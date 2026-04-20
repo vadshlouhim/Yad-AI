@@ -1,0 +1,715 @@
+// Yad.ia — Schéma Prisma V1
+// Auth : Supabase Auth (auth.users)
+// Base : Supabase PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// UTILISATEURS — lié à auth.users de Supabase via UUID
+// ============================================================
+
+model User {
+  id          String   @id @db.Uuid          // = auth.users.id (Supabase)
+  email       String   @unique
+  name        String?
+  avatarUrl   String?
+  role        UserRole @default(ADMIN)
+  communityId String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  community     Community?     @relation(fields: [communityId], references: [id])
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  conversations Conversation[]
+
+  @@index([email])
+  @@index([communityId])
+  @@map("profiles")   // table publique synchronisée avec auth.users
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+// ============================================================
+// COMMUNAUTÉ — Dossier central (source de vérité)
+// ============================================================
+
+model Community {
+  id              String           @id @default(cuid())
+  name            String
+  slug            String           @unique
+  description     String?          @db.Text
+  logoUrl         String?
+  coverUrl        String?
+  city            String?
+  country         String           @default("France")
+  timezone        String           @default("Europe/Paris")
+  phone           String?
+  email           String?
+  website         String?
+  address         String?
+  postalCode      String?
+
+  // Identité éditoriale
+  tone            CommunityTone    @default(MODERN)
+  language        String           @default("fr")
+  signature       String?          @db.Text
+  hashtags        String[]
+  mentions        String[]
+  editorialRules  String?          @db.Text
+  vocabulary      Json?            // Termes spécifiques
+
+  // Contexte communautaire
+  communityType   CommunityType    @default(SYNAGOGUE)
+  religiousStream String?          // Ashkénaze, Séfarade…
+
+  // Abonnement Stripe
+  plan              SubscriptionPlan @default(FREE_TRIAL)
+  planExpiresAt     DateTime?
+  stripeCustomerId  String?          @unique
+
+  // Onboarding
+  onboardingDone  Boolean          @default(false)
+  onboardingStep  Int              @default(0)
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  users           User[]
+  channels        Channel[]
+  events          Event[]
+  templates       Template[]
+  publications    Publication[]
+  automations     Automation[]
+  mediaFiles      MediaFile[]
+  contentDrafts   ContentDraft[]
+  notifications   Notification[]
+  subscriptions   Subscription[]
+  aiMemory        AIMemory[]
+  auditLogs       AuditLog[]
+
+  @@index([slug])
+  @@index([plan])
+}
+
+enum CommunityTone {
+  MODERN
+  TRADITIONAL
+  FORMAL
+  FRIENDLY
+  RELIGIOUS
+}
+
+enum CommunityType {
+  SYNAGOGUE
+  ASSOCIATION
+  SCHOOL
+  CENTER
+  OTHER
+}
+
+enum SubscriptionPlan {
+  FREE_TRIAL
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+// ============================================================
+// CANAUX DE DIFFUSION
+// ============================================================
+
+model Channel {
+  id             String      @id @default(cuid())
+  communityId    String
+  type           ChannelType
+  name           String
+  handle         String?
+  accessToken    String?     @db.Text
+  refreshToken   String?     @db.Text
+  tokenExpiresAt DateTime?
+  pageId         String?
+  isConnected    Boolean     @default(false)
+  isActive       Boolean     @default(true)
+  settings       Json?
+  lastSyncAt     DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  community    Community      @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  publications Publication[]
+
+  @@unique([communityId, type])
+  @@index([communityId])
+}
+
+enum ChannelType {
+  INSTAGRAM
+  FACEBOOK
+  WHATSAPP
+  TELEGRAM
+  EMAIL
+  WEB
+}
+
+// ============================================================
+// ÉVÉNEMENTS
+// ============================================================
+
+model Event {
+  id              String        @id @default(cuid())
+  communityId     String
+  title           String
+  description     String?       @db.Text
+  startDate       DateTime
+  endDate         DateTime?
+  location        String?
+  address         String?
+  category        EventCategory @default(OTHER)
+  audience        String?
+  status          EventStatus   @default(DRAFT)
+  isRecurring     Boolean       @default(false)
+  recurrenceRule  Json?         // RRULE JSON
+  parentEventId   String?
+  coverImageUrl   String?
+  isPublic        Boolean       @default(true)
+  maxAttendees    Int?
+  registrationUrl String?
+  notes           String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  community     Community      @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  parentEvent   Event?         @relation("EventRecurrence", fields: [parentEventId], references: [id])
+  childEvents   Event[]        @relation("EventRecurrence")
+  contentDrafts ContentDraft[]
+  publications  Publication[]
+  mediaFiles    MediaFile[]
+  automations   Automation[]
+
+  @@index([communityId])
+  @@index([startDate])
+  @@index([status])
+  @@index([category])
+}
+
+enum EventCategory {
+  SHABBAT
+  HOLIDAY
+  COURSE
+  PRAYER
+  COMMUNITY
+  YOUTH
+  CULTURAL
+  FUNDRAISING
+  ANNOUNCEMENT
+  OTHER
+}
+
+enum EventStatus {
+  DRAFT
+  READY
+  SCHEDULED
+  PUBLISHED
+  COMPLETED
+  ARCHIVED
+}
+
+// ============================================================
+// BROUILLONS DE CONTENU
+// ============================================================
+
+model ContentDraft {
+  id            String        @id @default(cuid())
+  communityId   String
+  eventId       String?
+  title         String?
+  body          String        @db.Text
+  bodyHebrew    String?       @db.Text
+  bodyEnglish   String?       @db.Text
+  hashtags      String[]
+  cta           String?
+  imageUrl      String?
+  imagePrompt   String?       @db.Text
+  status        ContentStatus @default(DRAFT)
+  contentType   ContentType   @default(EVENT_POST)
+  aiGenerated   Boolean       @default(false)
+  aiModel       String?
+  aiPromptUsed  String?       @db.Text
+  version       Int           @default(1)
+  parentDraftId String?
+  scheduledAt   DateTime?
+  publishedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  community          Community           @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  event              Event?              @relation(fields: [eventId], references: [id])
+  parentDraft        ContentDraft?       @relation("DraftVersions", fields: [parentDraftId], references: [id])
+  childDrafts        ContentDraft[]      @relation("DraftVersions")
+  channelAdaptations ChannelAdaptation[]
+  publications       Publication[]
+
+  @@index([communityId])
+  @@index([eventId])
+  @@index([status])
+  @@index([contentType])
+}
+
+enum ContentStatus {
+  DRAFT
+  AI_PROPOSAL
+  READY_TO_PUBLISH
+  PENDING_VALIDATION
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ContentType {
+  EVENT_ANNOUNCEMENT
+  EVENT_REMINDER
+  EVENT_DAY
+  EVENT_RECAP
+  SHABBAT_TIMES
+  HOLIDAY_GREETING
+  DAILY_CONTENT
+  COURSE_ANNOUNCEMENT
+  COMMUNITY_NEWS
+  FUNDRAISING
+  GENERAL
+  EVENT_POST
+}
+
+// ============================================================
+// ADAPTATION PAR CANAL
+// ============================================================
+
+model ChannelAdaptation {
+  id          String      @id @default(cuid())
+  draftId     String
+  channelType ChannelType
+  body        String      @db.Text
+  imageUrl    String?
+  hashtags    String[]
+  cta         String?
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  draft ContentDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+
+  @@unique([draftId, channelType])
+  @@index([draftId])
+}
+
+// ============================================================
+// TEMPLATES
+// ============================================================
+
+model Template {
+  id           String           @id @default(cuid())
+  communityId  String?
+  name         String
+  description  String?
+  category     TemplateCategory
+  subCategory  String?
+  channelType  ChannelType?
+  thumbnailUrl String?          // URL Supabase Storage (bucket templates)
+  previewUrl   String?
+  design       Json             // Zones éditables : [{ id, label, type, x, y, width, height, defaultText, fontSize, color, fontFamily }]
+  isGlobal     Boolean          @default(false)
+  isPremium    Boolean          @default(false)
+  isActive     Boolean          @default(true)
+  tags         String[]
+  usageCount   Int              @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  community Community? @relation(fields: [communityId], references: [id])
+
+  @@index([communityId])
+  @@index([category])
+  @@index([channelType])
+}
+
+enum TemplateCategory {
+  SHABBAT
+  HOLIDAY
+  EVENT
+  COURSE
+  ANNOUNCEMENT
+  RECAP
+  GREETING
+  GENERAL
+}
+
+// ============================================================
+// PUBLICATIONS — Moteur de diffusion
+// ============================================================
+
+model Publication {
+  id           String            @id @default(cuid())
+  communityId  String
+  eventId      String?
+  draftId      String?
+  channelId    String
+  channelType  ChannelType
+  status       PublicationStatus @default(PENDING)
+  scheduledAt  DateTime?
+  publishedAt  DateTime?
+  externalId   String?
+  externalUrl  String?
+  content      String            @db.Text
+  mediaUrls    String[]
+  metadata     Json?
+  error        String?           @db.Text
+  retryCount   Int               @default(0)
+  fallbackUsed Boolean           @default(false)
+  fallbackType FallbackType?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  community Community     @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  event     Event?         @relation(fields: [eventId], references: [id])
+  draft     ContentDraft?  @relation(fields: [draftId], references: [id])
+  channel   Channel        @relation(fields: [channelId], references: [id])
+
+  @@index([communityId])
+  @@index([status])
+  @@index([channelId])
+  @@index([scheduledAt])
+}
+
+enum PublicationStatus {
+  PENDING
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELLED
+  FALLBACK_READY
+}
+
+enum FallbackType {
+  COPY_PASTE
+  EXPORT_IMAGE
+  OPEN_PLATFORM
+  EMAIL_DRAFT
+}
+
+// ============================================================
+// AUTOMATISATIONS
+// ============================================================
+
+model Automation {
+  id            String            @id @default(cuid())
+  communityId   String
+  eventId       String?
+  name          String
+  description   String?
+  trigger       AutomationTrigger
+  triggerConfig Json
+  actions       Json
+  isActive      Boolean           @default(true)
+  lastRunAt     DateTime?
+  nextRunAt     DateTime?
+  status        AutomationStatus  @default(ACTIVE)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  community Community       @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  event     Event?           @relation(fields: [eventId], references: [id])
+  runs      AutomationRun[]
+
+  @@index([communityId])
+  @@index([trigger])
+  @@index([nextRunAt])
+}
+
+enum AutomationTrigger {
+  BEFORE_EVENT
+  EVENT_DAY
+  AFTER_EVENT
+  WEEKLY_SHABBAT
+  JEWISH_HOLIDAY
+  DAILY
+  CUSTOM_SCHEDULE
+  MANUAL
+}
+
+enum AutomationStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  FAILED
+  DRAFT
+}
+
+model AutomationRun {
+  id           String              @id @default(cuid())
+  automationId String
+  status       AutomationRunStatus @default(RUNNING)
+  startedAt    DateTime            @default(now())
+  completedAt  DateTime?
+  error        String?             @db.Text
+  result       Json?
+  logsCount    Int                 @default(0)
+
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@index([automationId])
+  @@index([startedAt])
+}
+
+enum AutomationRunStatus {
+  RUNNING
+  SUCCESS
+  PARTIAL_SUCCESS
+  FAILED
+  SKIPPED
+}
+
+// ============================================================
+// MÉDIAS
+// ============================================================
+
+model MediaFile {
+  id           String    @id @default(cuid())
+  communityId  String
+  eventId      String?
+  name         String
+  originalName String
+  url          String
+  publicId     String    // Cloudinary public_id
+  type         MediaType
+  mimeType     String
+  size         Int
+  width        Int?
+  height       Int?
+  duration     Int?
+  tags         String[]
+  altText      String?
+  usageCount   Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  event     Event?    @relation(fields: [eventId], references: [id])
+
+  @@index([communityId])
+  @@index([eventId])
+  @@index([type])
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  AUDIO
+}
+
+// ============================================================
+// MÉMOIRE IA
+// ============================================================
+
+model AIMemory {
+  id          String       @id @default(cuid())
+  communityId String
+  type        AIMemoryType
+  key         String
+  value       Json
+  relevance   Float        @default(1.0)
+  expiresAt   DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, type, key])
+  @@index([communityId])
+  @@index([type])
+}
+
+enum AIMemoryType {
+  EDITORIAL_PREFERENCE
+  EVENT_PATTERN
+  CONTENT_STYLE
+  CHANNEL_PREFERENCE
+  VOCABULARY
+  RECURRING_CONTENT
+  USER_FEEDBACK
+}
+
+// ============================================================
+// ABONNEMENTS STRIPE
+// ============================================================
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  communityId          String
+  stripeSubscriptionId String             @unique
+  stripePriceId        String
+  plan                 SubscriptionPlan
+  status               SubscriptionStatus
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean            @default(false)
+  canceledAt           DateTime?
+  trialStart           DateTime?
+  trialEnd             DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@index([communityId])
+  @@index([status])
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  INCOMPLETE
+  PAUSED
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String?          @db.Uuid
+  communityId String?
+  type        NotificationType
+  title       String
+  body        String           @db.Text
+  data        Json?
+  isRead      Boolean          @default(false)
+  readAt      DateTime?
+  link        String?
+  createdAt   DateTime         @default(now())
+
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  community Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([communityId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+enum NotificationType {
+  PUBLICATION_SUCCESS
+  PUBLICATION_FAILED
+  PUBLICATION_SCHEDULED
+  AUTOMATION_TRIGGERED
+  AUTOMATION_FAILED
+  AI_CONTENT_READY
+  EVENT_REMINDER
+  SUBSCRIPTION_EXPIRING
+  SUBSCRIPTION_RENEWED
+  PAYMENT_FAILED
+  CHANNEL_DISCONNECTED
+  SYSTEM
+}
+
+// ============================================================
+// AUDIT LOG
+// ============================================================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?  @db.Uuid
+  communityId String?
+  action      String
+  resource    String
+  resourceId  String?
+  oldData     Json?
+  newData     Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  user      User?      @relation(fields: [userId], references: [id])
+  community Community? @relation(fields: [communityId], references: [id])
+
+  @@index([userId])
+  @@index([communityId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ============================================================
+// CONTENU RÉCURRENT (Chabbat, fêtes, quotidien)
+// ============================================================
+
+model RecurringContent {
+  id           String               @id @default(cuid())
+  type         RecurringContentType
+  title        String
+  bodyTemplate String               @db.Text
+  channelTypes ChannelType[]
+  isActive     Boolean              @default(true)
+  metadata     Json?
+  generatedAt  DateTime?
+  scheduledAt  DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+}
+
+enum RecurringContentType {
+  SHABBAT_TIMES
+  HOLIDAY_ANNOUNCEMENT
+  DAILY_THOUGHT
+  WEEKLY_PARASHA
+  COURSE_REMINDER
+}
+
+// ============================================================
+// CONVERSATIONS IA
+// ============================================================
+
+model Conversation {
+  id          String   @id @default(cuid())
+  userId      String   @db.Uuid
+  communityId String
+  title       String   @default("Nouvelle conversation")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ConversationMessage[]
+
+  @@index([userId])
+  @@index([updatedAt])
+}
+
+model ConversationMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           String   // "user" | "assistant"
+  content        String   @db.Text
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
