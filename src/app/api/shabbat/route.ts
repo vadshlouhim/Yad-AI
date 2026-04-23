@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getShabbatTimes, getJewishHolidays } from "@/lib/automation/hebcal";
 
 export async function GET(request: Request) {
@@ -9,10 +9,21 @@ export async function GET(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-    const profile = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: { community: { select: { city: true, timezone: true } } },
-    });
+    const admin = createAdminClient();
+    const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
+
+    let city = "Paris";
+    let timezone = "Europe/Paris";
+
+    if (profile?.communityId) {
+      const { data: community } = await admin
+        .from("Community")
+        .select("city, timezone")
+        .eq("id", profile.communityId)
+        .single();
+      if (community?.city) city = community.city;
+      if (community?.timezone) timezone = community.timezone;
+    }
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") ?? "shabbat";
@@ -22,13 +33,9 @@ export async function GET(request: Request) {
       return NextResponse.json(holidays);
     }
 
-    const shabbatTimes = await getShabbatTimes({
-      city: profile?.community?.city ?? "Paris",
-      timezone: profile?.community?.timezone ?? "Europe/Paris",
-    });
-
+    const shabbatTimes = await getShabbatTimes({ city, timezone });
     return NextResponse.json(shabbatTimes);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

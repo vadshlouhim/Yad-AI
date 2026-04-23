@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound } from "next/navigation";
 import { ContentDetailClient } from "@/components/content/content-detail-client";
 import type { Metadata } from "next";
@@ -14,30 +14,20 @@ export default async function ContentDetailPage({
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
   const { id } = await params;
+  const admin = createAdminClient();
 
-  const [draft, community] = await Promise.all([
-    prisma.contentDraft.findFirst({
-      where: { id, communityId },
-      include: {
-        event: { select: { id: true, title: true, startDate: true, category: true } },
-        channelAdaptations: true,
-        publications: {
-          include: {
-            channel: { select: { type: true, name: true } },
-          },
-          orderBy: { createdAt: "desc" },
-        },
-      },
-    }),
-    prisma.community.findUnique({
-      where: { id: communityId },
-      select: {
-        name: true,
-        tone: true,
-        hashtags: true,
-        channels: { select: { type: true, isConnected: true, isActive: true, name: true } },
-      },
-    }),
+  const [{ data: draft }, { data: community }] = await Promise.all([
+    admin
+      .from("ContentDraft")
+      .select("*, event:Event(id, title, startDate, category), channelAdaptations:ChannelAdaptation(*), publications:Publication(*, channel:Channel(type, name))")
+      .eq("id", id)
+      .eq("communityId", communityId)
+      .single(),
+    admin
+      .from("Community")
+      .select("name, tone, hashtags, channels:Channel(type, isConnected, isActive, name)")
+      .eq("id", communityId)
+      .single(),
   ]);
 
   if (!draft) notFound();

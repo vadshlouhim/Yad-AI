@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 
-// POST — Ajouter un message à une conversation
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -12,10 +11,14 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-  // Vérifier que la conversation appartient à l'utilisateur
-  const conversation = await prisma.conversation.findFirst({
-    where: { id, userId: user.id },
-  });
+  const admin = createAdminClient();
+  const { data: conversation } = await admin
+    .from("Conversation")
+    .select("id")
+    .eq("id", id)
+    .eq("userId", user.id)
+    .single();
+
   if (!conversation) {
     return NextResponse.json({ error: "Conversation introuvable" }, { status: 404 });
   }
@@ -27,19 +30,21 @@ export async function POST(
     return NextResponse.json({ error: "role et content requis" }, { status: 400 });
   }
 
-  const message = await prisma.conversationMessage.create({
-    data: {
+  const { data: message } = await admin
+    .from("ConversationMessage")
+    .insert({
+      id: crypto.randomUUID(),
       conversationId: id,
       role,
       content,
-    },
-  });
+    })
+    .select()
+    .single();
 
-  // Mettre à jour updatedAt de la conversation
-  await prisma.conversation.update({
-    where: { id },
-    data: { updatedAt: new Date() },
-  });
+  await admin
+    .from("Conversation")
+    .update({ updatedAt: new Date().toISOString() })
+    .eq("id", id);
 
   return NextResponse.json(message);
 }

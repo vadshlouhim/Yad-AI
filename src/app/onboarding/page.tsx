@@ -1,17 +1,18 @@
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
 
 export default async function OnboardingPage() {
   const { profile } = await requireAuth();
 
-  // Si déjà onboardé, rediriger vers dashboard
   if (profile.communityId) {
-    const community = await prisma.community.findUnique({
-      where: { id: profile.communityId },
-      select: { onboardingDone: true },
-    });
+    const admin = createAdminClient();
+    const { data: community } = await admin
+      .from("Community")
+      .select("onboardingDone")
+      .eq("id", profile.communityId)
+      .single();
     if (community?.onboardingDone) {
       redirect("/dashboard");
     }

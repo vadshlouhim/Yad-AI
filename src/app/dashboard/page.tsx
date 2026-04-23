@@ -1,7 +1,7 @@
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { DashboardClient } from "@/components/dashboard/dashboard-client";
-import { addDays, startOfDay, endOfDay } from "date-fns";
+import { addDays } from "date-fns";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -9,90 +9,84 @@ export const metadata: Metadata = { title: "Dashboard" };
 export default async function DashboardPage() {
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
+  const admin = createAdminClient();
 
-  // Chargement parallèle des données dashboard
+  const now = new Date();
+  const in7days = addDays(now, 7).toISOString();
+
   const [
-    upcomingEvents,
-    pendingPublications,
-    recentDrafts,
-    stats,
-    notifications,
+    { data: upcomingEvents },
+    { data: pendingPublications },
+    { data: recentDrafts },
+    eventCount,
+    publishedCount,
+    draftCount,
+    automationCount,
+    { data: notifications },
+    { data: community },
   ] = await Promise.all([
-    // Prochains événements (7 jours)
-    prisma.event.findMany({
-      where: {
-        communityId,
-        startDate: { gte: new Date(), lte: addDays(new Date(), 7) },
-        status: { not: "ARCHIVED" },
-      },
-      orderBy: { startDate: "asc" },
-      take: 5,
-    }),
+    admin
+      .from("Event")
+      .select("*")
+      .eq("communityId", communityId)
+      .gte("startDate", now.toISOString())
+      .lte("startDate", in7days)
+      .neq("status", "ARCHIVED")
+      .order("startDate", { ascending: true })
+      .limit(5),
 
-    // Publications en attente
-    prisma.publication.findMany({
-      where: {
-        communityId,
-        status: { in: ["PENDING", "SCHEDULED", "FAILED"] },
-      },
-      orderBy: { scheduledAt: "asc" },
-      take: 8,
-      include: {
-        channel: { select: { type: true, name: true } },
-        event: { select: { title: true } },
-      },
-    }),
+    admin
+      .from("Publication")
+      .select("*, channel:Channel(type, name), event:Event(title)")
+      .eq("communityId", communityId)
+      .in("status", ["PENDING", "SCHEDULED", "FAILED"])
+      .order("scheduledAt", { ascending: true })
+      .limit(8),
 
-    // Brouillons récents
-    prisma.contentDraft.findMany({
-      where: {
-        communityId,
-        status: { in: ["DRAFT", "AI_PROPOSAL", "READY_TO_PUBLISH"] },
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 5,
-      include: { event: { select: { title: true, category: true } } },
-    }),
+    admin
+      .from("ContentDraft")
+      .select("*, event:Event(title, category)")
+      .eq("communityId", communityId)
+      .in("status", ["DRAFT", "AI_PROPOSAL", "READY_TO_PUBLISH"])
+      .order("updatedAt", { ascending: false })
+      .limit(5),
 
-    // Stats globales
-    Promise.all([
-      prisma.event.count({ where: { communityId } }),
-      prisma.publication.count({ where: { communityId, status: "PUBLISHED" } }),
-      prisma.contentDraft.count({ where: { communityId } }),
-      prisma.automation.count({ where: { communityId, isActive: true } }),
-    ]).then(([events, published, drafts, automations]) => ({
-      events, published, drafts, automations,
-    })),
+    admin.from("Event").select("*", { count: "exact", head: true }).eq("communityId", communityId).then(r => r.count ?? 0),
+    admin.from("Publication").select("*", { count: "exact", head: true }).eq("communityId", communityId).eq("status", "PUBLISHED").then(r => r.count ?? 0),
+    admin.from("ContentDraft").select("*", { count: "exact", head: true }).eq("communityId", communityId).then(r => r.count ?? 0),
+    admin.from("Automation").select("*", { count: "exact", head: true }).eq("communityId", communityId).eq("isActive", true).then(r => r.count ?? 0),
 
-    // Notifications non lues récentes
-    prisma.notification.findMany({
-      where: { userId: profile.id, isRead: false },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    }),
+    admin
+      .from("Notification")
+      .select("*")
+      .eq("userId", profile.id)
+      .eq("isRead", false)
+      .order("createdAt", { ascending: false })
+      .limit(5),
+
+    admin
+      .from("Community")
+      .select("name, tone, hashtags, channels:Channel(type, isConnected), plan")
+      .eq("id", communityId)
+      .single(),
   ]);
 
-  // Récupérer les infos communauté pour l'assistant IA
-  const community = await prisma.community.findUnique({
-    where: { id: communityId },
-    select: {
-      name: true,
-      tone: true,
-      hashtags: true,
-      channels: { select: { type: true, isConnected: true } },
-      plan: true,
-    },
-  });
+  const stats = {
+    events: eventCount,
+    published: publishedCount,
+    drafts: draftCount,
+    automations: automationCount,
+  };
 
   return (
     <DashboardClient
       userName={profile.name ?? ""}
       community={community!}
-      upcomingEvents={upcomingEvents}
-      pendingPublications={pendingPublications}
-      recentDrafts={recentDrafts}
+      upcomingEvents={upcomingEvents ?? []}
+      pendingPublications={pendingPublications ?? []}
+      recentDrafts={recentDrafts ?? []}
       stats={stats}
-      notifications={notifications}
+      notifications={notifications ?? []}
     />
   );
 }

@@ -1,9 +1,7 @@
-import type { Channel } from "@prisma/client";
+import type { Tables } from "@/types/database.types";
 import type { PublishPayload, PublishResult } from "../publisher";
 
-// Adaptateur WhatsApp
-// Stratégie V1 : fallback guidé avec copier-coller
-// (WhatsApp Business API requiert approbation Meta — complexe pour V1)
+type Channel = Tables<"Channel">;
 
 export async function prepareWhatsAppFallback(
   channel: Channel,
@@ -30,7 +28,5 @@ export async function prepareWhatsAppFallback(
 }
 
 function formatWhatsAppContent(payload: PublishPayload): string {
-  // WhatsApp utilise ses propres formatages :
-  // *gras*, _italique_, ~barré~
   return payload.content;
 }

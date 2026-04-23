@@ -1,7 +1,7 @@
-import type { Channel } from "@prisma/client";
+import type { Tables } from "@/types/database.types";
 import type { PublishPayload, PublishResult } from "../publisher";
 
-// Adaptateur Instagram — Meta Content Publishing API
+type Channel = Tables<"Channel">;
 
 const GRAPH_API_BASE = "https://graph.facebook.com/v18.0";
 
@@ -24,9 +24,7 @@ export async function publishToInstagram(
   }
 
   try {
-    // Instagram nécessite une image pour les posts standard
     if (!payload.mediaUrls || payload.mediaUrls.length === 0) {
-      // Post sans image → fallback (Instagram n'accepte pas de texte seul)
       return {
         success: false,
         fallbackUsed: true,
@@ -41,25 +39,19 @@ export async function publishToInstagram(
 
     const formattedCaption = formatInstagramContent(payload);
 
-    // Étape 1 : Créer le container média
-    const containerResponse = await fetch(
-      `${GRAPH_API_BASE}/${channel.pageId}/media`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          image_url: payload.mediaUrls[0],
-          caption: formattedCaption,
-          access_token: channel.accessToken,
-        }),
-      }
-    );
+    const containerResponse = await fetch(`${GRAPH_API_BASE}/${channel.pageId}/media`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        image_url: payload.mediaUrls[0],
+        caption: formattedCaption,
+        access_token: channel.accessToken,
+      }),
+    });
 
     const containerData = await containerResponse.json();
 
     if (!containerResponse.ok || containerData.error) {
-      const errorMsg = containerData.error?.message ?? "Erreur création container Instagram";
-
       if (containerData.error?.code === 190) {
         return {
           success: false,
@@ -73,16 +65,12 @@ export async function publishToInstagram(
           error: "Token Instagram expiré",
         };
       }
-
-      return { success: false, error: errorMsg };
+      return { success: false, error: containerData.error?.message ?? "Erreur création container Instagram" };
     }
 
-    const creationId = containerData.id;
-
-    // Attendre que le container soit prêt (polling)
     const containerReady = await waitForContainerReady(
       channel.pageId,
-      creationId,
+      containerData.id,
       channel.accessToken
     );
 
@@ -96,18 +84,14 @@ export async function publishToInstagram(
       };
     }
 
-    // Étape 2 : Publier le container
-    const publishResponse = await fetch(
-      `${GRAPH_API_BASE}/${channel.pageId}/media_publish`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          creation_id: creationId,
-          access_token: channel.accessToken,
-        }),
-      }
-    );
+    const publishResponse = await fetch(`${GRAPH_API_BASE}/${channel.pageId}/media_publish`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        creation_id: containerData.id,
+        access_token: channel.accessToken,
+      }),
+    });
 
     const publishData = await publishResponse.json();
 
@@ -142,12 +126,10 @@ async function waitForContainerReady(
 ): Promise<boolean> {
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
-
     const response = await fetch(
       `${GRAPH_API_BASE}/${containerId}?fields=status_code&access_token=${accessToken}`
     );
     const data = await response.json();
-
     if (data.status_code === "FINISHED") return true;
     if (data.status_code === "ERROR") return false;
   }

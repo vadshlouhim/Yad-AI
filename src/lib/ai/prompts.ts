@@ -1,13 +1,8 @@
-// ============================================================
-// Yad.ia — Architecture de prompts IA
-// Modulaire, contextuelle, maintenable
-// ============================================================
+import type { Enums, Tables } from "@/types/database.types";
 
-import type { Community, Event, ContentType, ChannelType } from "@prisma/client";
-
-// ============================================================
-// PROMPT SYSTÈME DE BASE
-// ============================================================
+type ContentType = Enums<"ContentType">;
+type ChannelType = Enums<"ChannelType">;
+type Event = Tables<"Event">;
 
 export function buildSystemPrompt(community: {
   name: string;
@@ -15,7 +10,7 @@ export function buildSystemPrompt(community: {
   tone: string;
   language: string;
   signature?: string | null;
-  hashtags: string[];
+  hashtags: string[] | null;
   editorialRules?: string | null;
   communityType: string;
   religiousStream?: string | null;
@@ -43,7 +38,7 @@ TON ET STYLE :
 - Langue principale : ${community.language === "fr" ? "français" : community.language}
 - Tu peux inclure des phrases courtes en hébreu si approprié (fêtes, salutations religieuses)
 
-${community.hashtags.length > 0 ? `HASHTAGS HABITUELS : ${community.hashtags.join(" ")}` : ""}
+${community.hashtags && community.hashtags.length > 0 ? `HASHTAGS HABITUELS : ${community.hashtags.join(" ")}` : ""}
 
 ${community.signature ? `SIGNATURE : Terminer les publications par "${community.signature}"` : ""}
 
@@ -62,10 +57,6 @@ FORMAT DE RÉPONSE :
 - Pour les contenus à publier, utilise le format structuré demandé
 - Sois direct et utile — pas de blabla introductif inutile`;
 }
-
-// ============================================================
-// PROMPTS PAR TYPE DE CONTENU
-// ============================================================
 
 export function buildContentGenerationPrompt(params: {
   contentType: ContentType;
@@ -154,11 +145,7 @@ Description : ${event.description ?? ""}
 Ton éducatif et invitant. Mentionne les bénéfices d'assister.
     `,
 
-    COMMUNITY_NEWS: `
-Génère une information communautaire.
-Ton informatif et clair. Structuré et facile à lire.
-    `,
-
+    COMMUNITY_NEWS: `Génère une information communautaire.\nTon informatif et clair. Structuré et facile à lire.`,
     GENERAL: `Génère un post communautaire engageant.`,
     EVENT_POST: `Génère un post pour cet événement.`,
     FUNDRAISING: `Génère un appel aux dons chaleureux et persuasif, en insistant sur l'impact collectif.`,
@@ -182,10 +169,6 @@ STRUCTURE DE RÉPONSE ATTENDUE (JSON) :
   "notes": "Notes internes sur les choix éditoriaux (optionnel)"
 }`;
 }
-
-// ============================================================
-// INSTRUCTIONS FORMAT PAR CANAL
-// ============================================================
 
 export const CHANNEL_FORMAT_INSTRUCTIONS: Record<ChannelType, string> = {
   INSTAGRAM: `
@@ -234,10 +217,6 @@ export const CHANNEL_FORMAT_INSTRUCTIONS: Record<ChannelType, string> = {
   `,
 };
 
-// ============================================================
-// PROMPT ADAPTATION PAR CANAL
-// ============================================================
-
 export function buildAdaptationPrompt(
   originalContent: string,
   targetChannel: ChannelType,
@@ -260,10 +239,6 @@ Génère le contenu adapté en JSON :
   "cta": "Appel à l'action adapté au canal"
 }`;
 }
-
-// ============================================================
-// PROMPT MÉMOIRE / CONTEXTE HISTORIQUE
-// ============================================================
 
 export function buildMemoryContext(memories: Array<{
   type: string;

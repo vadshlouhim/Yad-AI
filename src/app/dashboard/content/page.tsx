@@ -1,10 +1,10 @@
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, FileText, Sparkles, Filter } from "lucide-react";
+import { Plus, FileText, Sparkles } from "lucide-react";
 import { formatRelative, CONTENT_STATUS_LABELS, EVENT_CATEGORY_LABELS, truncate } from "@/lib/utils";
 import type { Metadata } from "next";
 
@@ -35,6 +35,8 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
   EVENT_POST: "Post événement",
 };
 
+const CONTENT_STATUSES = ["DRAFT", "AI_PROPOSAL", "READY_TO_PUBLISH", "PUBLISHED", "ARCHIVED"];
+
 export default async function ContentPage({
   searchParams,
 }: {
@@ -43,30 +45,33 @@ export default async function ContentPage({
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
   const params = await searchParams;
+  const admin = createAdminClient();
 
-  const where: Record<string, unknown> = { communityId };
-  if (params.status) where.status = params.status;
-  if (params.type) where.contentType = params.type;
+  let query = admin
+    .from("ContentDraft")
+    .select("*, event:Event(title, category, startDate), channelAdaptations:ChannelAdaptation(channelType), publications:Publication(status)")
+    .eq("communityId", communityId)
+    .order("updatedAt", { ascending: false })
+    .limit(50);
 
-  const [drafts, counts] = await Promise.all([
-    prisma.contentDraft.findMany({
-      where,
-      orderBy: { updatedAt: "desc" },
-      take: 50,
-      include: {
-        event: { select: { title: true, category: true, startDate: true } },
-        channelAdaptations: { select: { channelType: true } },
-        publications: { select: { status: true } },
-      },
-    }),
-    prisma.contentDraft.groupBy({
-      by: ["status"],
-      where: { communityId },
-      _count: true,
-    }),
+  if (params.status) query = query.eq("status", params.status);
+  if (params.type) query = query.eq("contentType", params.type);
+
+  const [{ data: drafts }, statusCounts] = await Promise.all([
+    query,
+    Promise.all(
+      CONTENT_STATUSES.map(async (status) => {
+        const { count } = await admin
+          .from("ContentDraft")
+          .select("*", { count: "exact", head: true })
+          .eq("communityId", communityId)
+          .eq("status", status);
+        return [status, count ?? 0] as [string, number];
+      })
+    ),
   ]);
 
-  const totalByStatus = Object.fromEntries(counts.map((c: { status: string; _count: number }) => [c.status, c._count]));
+  const totalByStatus = Object.fromEntries(statusCounts);
 
   return (
     <div className="space-y-6">
@@ -97,7 +102,7 @@ export default async function ContentPage({
           { label: "Archivés", value: "ARCHIVED" },
         ].map((filter) => {
           const isActive = (params.status ?? "") === filter.value;
-          const count = filter.value ? (totalByStatus[filter.value] ?? 0) : drafts.length;
+          const count = filter.value ? (totalByStatus[filter.value] ?? 0) : (drafts?.length ?? 0);
           return (
             <Link
               key={filter.value}
@@ -121,7 +126,7 @@ export default async function ContentPage({
       </div>
 
       {/* Liste des brouillons */}
-      {drafts.length === 0 ? (
+      {!drafts?.length ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
             <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center">
@@ -152,8 +157,10 @@ export default async function ContentPage({
       ) : (
         <div className="grid gap-3">
           {drafts.map((draft) => {
-            const publishedCount = draft.publications.filter((p) => p.status === "PUBLISHED").length;
-            const failedCount = draft.publications.filter((p) => p.status === "FAILED").length;
+            const pubs = draft.publications as Array<{ status: string }>;
+            const publishedCount = pubs.filter((p) => p.status === "PUBLISHED").length;
+            const failedCount = pubs.filter((p) => p.status === "FAILED").length;
+            const adaptations = draft.channelAdaptations as Array<{ channelType: string }>;
 
             return (
               <Link
@@ -164,7 +171,6 @@ export default async function ContentPage({
                 <Card className="hover:shadow-md transition-shadow cursor-pointer border-slate-200 hover:border-blue-200">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
-                      {/* Icône */}
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
                         draft.aiGenerated ? "bg-amber-100" : "bg-slate-100"
                       }`}>
@@ -174,7 +180,6 @@ export default async function ContentPage({
                         }
                       </div>
 
-                      {/* Contenu */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div>
@@ -194,26 +199,22 @@ export default async function ContentPage({
                         </div>
 
                         <div className="flex items-center flex-wrap gap-3 mt-3">
-                          {/* Type de contenu */}
                           <span className="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
                             {CONTENT_TYPE_LABELS[draft.contentType] ?? draft.contentType}
                           </span>
 
-                          {/* Événement lié */}
                           {draft.event && (
                             <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                              📅 {draft.event.title}
+                              📅 {(draft.event as { title: string }).title}
                             </span>
                           )}
 
-                          {/* Adaptations canaux */}
-                          {draft.channelAdaptations.length > 0 && (
+                          {adaptations.length > 0 && (
                             <span className="text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">
-                              {draft.channelAdaptations.length} canal{draft.channelAdaptations.length > 1 ? "x" : ""}
+                              {adaptations.length} canal{adaptations.length > 1 ? "x" : ""}
                             </span>
                           )}
 
-                          {/* Publications */}
                           {publishedCount > 0 && (
                             <span className="text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                               ✓ {publishedCount} publié{publishedCount > 1 ? "s" : ""}
@@ -225,7 +226,6 @@ export default async function ContentPage({
                             </span>
                           )}
 
-                          {/* Date */}
                           <span className="text-xs text-slate-400 ml-auto">
                             {formatRelative(draft.updatedAt)}
                           </span>

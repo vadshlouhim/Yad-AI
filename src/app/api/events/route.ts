@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
 
 const eventSchema = z.object({
@@ -25,22 +25,31 @@ export async function GET(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-    const profile = await prisma.user.findUnique({ where: { id: user.id } });
-    if (!profile?.communityId) return NextResponse.json({ error: "Pas de communauté" }, { status: 400 });
+    const admin = createAdminClient();
+
+    const { data: profile, error: profileError } = await admin
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+    if (profileError || !profile?.communityId) return NextResponse.json({ error: "Pas de communauté" }, { status: 400 });
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const category = searchParams.get("category");
 
-    const events = await prisma.event.findMany({
-      where: {
-        communityId: profile.communityId,
-        ...(status && { status: status as never }),
-        ...(category && { category: category as never }),
-      },
-      orderBy: { startDate: "asc" },
-      take: 100,
-    });
+    let query = admin
+      .from("Event")
+      .select("*")
+      .eq("communityId", profile.communityId)
+      .order("startDate", { ascending: true })
+      .limit(100);
+
+    if (status) query = query.eq("status", status);
+    if (category) query = query.eq("category", category);
+
+    const { data: events, error } = await query;
+    if (error) throw error;
 
     return NextResponse.json(events);
   } catch (error) {
@@ -55,8 +64,14 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-    const profile = await prisma.user.findUnique({ where: { id: user.id } });
-    if (!profile?.communityId) return NextResponse.json({ error: "Pas de communauté" }, { status: 400 });
+    const admin = createAdminClient();
+
+    const { data: profile, error: profileError } = await admin
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+    if (profileError || !profile?.communityId) return NextResponse.json({ error: "Pas de communauté" }, { status: 400 });
 
     const body = await request.json();
     const parsed = eventSchema.safeParse(body);
@@ -64,35 +79,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Données invalides", details: parsed.error }, { status: 400 });
     }
 
-    const event = await prisma.event.create({
-      data: {
+    const { data: event, error: eventError } = await admin
+      .from("Event")
+      .insert({
+        id: crypto.randomUUID(),
         communityId: profile.communityId,
         title: parsed.data.title,
         description: parsed.data.description ?? null,
-        startDate: new Date(parsed.data.startDate),
-        endDate: parsed.data.endDate ? new Date(parsed.data.endDate) : null,
+        startDate: parsed.data.startDate,
+        endDate: parsed.data.endDate ?? null,
         location: parsed.data.location ?? null,
         address: parsed.data.address ?? null,
-        category: parsed.data.category as never,
+        category: parsed.data.category,
         audience: parsed.data.audience ?? null,
-        status: parsed.data.status as never,
+        status: parsed.data.status,
         isRecurring: parsed.data.isRecurring,
-        recurrenceRule: parsed.data.recurrenceRule ?? undefined,
+        recurrenceRule: parsed.data.recurrenceRule ?? null,
         isPublic: parsed.data.isPublic,
         notes: parsed.data.notes ?? null,
-      },
-    });
+        updatedAt: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (eventError || !event) {
+      console.error("[Events POST] insert error", eventError);
+      return NextResponse.json({ error: "Erreur lors de la création" }, { status: 500 });
+    }
 
     // Log audit
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        communityId: profile.communityId,
-        action: "event.created",
-        resource: "Event",
-        resourceId: event.id,
-        newData: { title: event.title, category: event.category },
-      },
+    await admin.from("AuditLog").insert({
+      id: crypto.randomUUID(),
+      userId: user.id,
+      communityId: profile.communityId,
+      action: "event.created",
+      resource: "Event",
+      resourceId: event.id,
+      newData: { title: event.title, category: event.category },
+      updatedAt: new Date().toISOString(),
     });
 
     return NextResponse.json(event, { status: 201 });

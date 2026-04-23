@@ -1,9 +1,11 @@
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { PublicationsClient } from "@/components/publications/publications-client";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Publications — Yad.ia" };
+
+const PUBLICATION_STATUSES = ["PENDING", "SCHEDULED", "PUBLISHING", "PUBLISHED", "FAILED", "FALLBACK_READY", "CANCELLED"];
 
 export default async function PublicationsPage({
   searchParams,
@@ -13,34 +15,38 @@ export default async function PublicationsPage({
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
   const params = await searchParams;
+  const admin = createAdminClient();
 
-  const where: Record<string, unknown> = { communityId };
-  if (params.status) where.status = params.status;
-  if (params.channel) where.channelType = params.channel;
+  let query = admin
+    .from("Publication")
+    .select("*, channel:Channel(type, name), event:Event(title, category), draft:ContentDraft(title, body)")
+    .eq("communityId", communityId)
+    .order("scheduledAt", { ascending: false })
+    .order("createdAt", { ascending: false })
+    .limit(100);
 
-  const [publications, stats] = await Promise.all([
-    prisma.publication.findMany({
-      where,
-      orderBy: [{ scheduledAt: "desc" }, { createdAt: "desc" }],
-      take: 100,
-      include: {
-        channel: { select: { type: true, name: true } },
-        event: { select: { title: true, category: true } },
-        draft: { select: { title: true, body: true } },
-      },
-    }),
-    prisma.publication.groupBy({
-      by: ["status"],
-      where: { communityId },
-      _count: true,
-    }),
+  if (params.status) query = query.eq("status", params.status);
+  if (params.channel) query = query.eq("channelType", params.channel);
+
+  const [{ data: publications }, statusCounts] = await Promise.all([
+    query,
+    Promise.all(
+      PUBLICATION_STATUSES.map(async (status) => {
+        const { count } = await admin
+          .from("Publication")
+          .select("*", { count: "exact", head: true })
+          .eq("communityId", communityId)
+          .eq("status", status);
+        return [status, count ?? 0] as [string, number];
+      })
+    ),
   ]);
 
-  const statsByStatus = Object.fromEntries(stats.map((s) => [s.status, s._count]));
+  const statsByStatus = Object.fromEntries(statusCounts);
 
   return (
     <PublicationsClient
-      publications={publications as Parameters<typeof PublicationsClient>[0]["publications"]}
+      publications={(publications ?? []) as Parameters<typeof PublicationsClient>[0]["publications"]}
       statsByStatus={statsByStatus}
       activeStatus={params.status}
       activeChannel={params.channel}

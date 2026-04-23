@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 
-// GET — Récupérer une conversation avec ses messages
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -12,12 +11,13 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-  const conversation = await prisma.conversation.findFirst({
-    where: { id, userId: user.id },
-    include: {
-      messages: { orderBy: { createdAt: "asc" } },
-    },
-  });
+  const admin = createAdminClient();
+  const { data: conversation } = await admin
+    .from("Conversation")
+    .select("*, messages:ConversationMessage(*)")
+    .eq("id", id)
+    .eq("userId", user.id)
+    .single();
 
   if (!conversation) {
     return NextResponse.json({ error: "Conversation introuvable" }, { status: 404 });
@@ -26,7 +26,6 @@ export async function GET(
   return NextResponse.json(conversation);
 }
 
-// PATCH — Renommer une conversation
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -39,19 +38,21 @@ export async function PATCH(
   const body = await request.json();
   const { title } = body;
 
-  const conversation = await prisma.conversation.updateMany({
-    where: { id, userId: user.id },
-    data: { title },
-  });
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("Conversation")
+    .update({ title, updatedAt: new Date().toISOString() })
+    .eq("id", id)
+    .eq("userId", user.id)
+    .select();
 
-  if (conversation.count === 0) {
+  if (error || !data?.length) {
     return NextResponse.json({ error: "Conversation introuvable" }, { status: 404 });
   }
 
   return NextResponse.json({ success: true });
 }
 
-// DELETE — Supprimer une conversation
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -61,13 +62,19 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-  const conversation = await prisma.conversation.deleteMany({
-    where: { id, userId: user.id },
-  });
+  const admin = createAdminClient();
 
-  if (conversation.count === 0) {
+  const { data: existing } = await admin
+    .from("Conversation")
+    .select("id")
+    .eq("id", id)
+    .eq("userId", user.id)
+    .single();
+
+  if (!existing) {
     return NextResponse.json({ error: "Conversation introuvable" }, { status: 404 });
   }
 
+  await admin.from("Conversation").delete().eq("id", id);
   return NextResponse.json({ success: true });
 }

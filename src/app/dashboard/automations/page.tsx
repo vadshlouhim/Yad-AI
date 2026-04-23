@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { AutomationsClient } from "@/components/automations/automations-client";
 import type { Metadata } from "next";
 
@@ -8,36 +8,37 @@ export const metadata: Metadata = { title: "Automatisations — Yad.ia" };
 export default async function AutomationsPage() {
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
+  const admin = createAdminClient();
 
-  const [automations, runs] = await Promise.all([
-    prisma.automation.findMany({
-      where: { communityId },
-      orderBy: { createdAt: "desc" },
-      include: {
-        event: { select: { title: true, startDate: true } },
-        runs: {
-          orderBy: { startedAt: "desc" },
-          take: 1,
-        },
-      },
-    }),
-    prisma.automationRun.findMany({
-      where: {
-        automation: { communityId },
-        startedAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-      },
-      orderBy: { startedAt: "desc" },
-      take: 20,
-      include: {
-        automation: { select: { name: true } },
-      },
-    }),
-  ]);
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const { data: automations } = await admin
+    .from("Automation")
+    .select("*, event:Event(title, startDate), runs:AutomationRun(*)")
+    .eq("communityId", communityId)
+    .order("createdAt", { ascending: false });
+
+  const { data: communityAutomationIds } = await admin
+    .from("Automation")
+    .select("id")
+    .eq("communityId", communityId);
+
+  const ids = communityAutomationIds?.map((a) => a.id) ?? [];
+
+  const { data: runs } = ids.length
+    ? await admin
+        .from("AutomationRun")
+        .select("*, automation:Automation(name)")
+        .in("automationId", ids)
+        .gte("startedAt", weekAgo.toISOString())
+        .order("startedAt", { ascending: false })
+        .limit(20)
+    : { data: [] };
 
   return (
     <AutomationsClient
-      automations={automations as Parameters<typeof AutomationsClient>[0]["automations"]}
-      recentRuns={runs as Parameters<typeof AutomationsClient>[0]["recentRuns"]}
+      automations={(automations ?? []) as Parameters<typeof AutomationsClient>[0]["automations"]}
+      recentRuns={(runs ?? []) as Parameters<typeof AutomationsClient>[0]["recentRuns"]}
     />
   );
 }

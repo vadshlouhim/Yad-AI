@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(
   _request: Request,
@@ -12,28 +12,25 @@ export async function GET(
     if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
     const { id } = await params;
-    const profile = await prisma.user.findUnique({ where: { id: user.id } });
+    const admin = createAdminClient();
 
-    const event = await prisma.event.findFirst({
-      where: { id, communityId: profile?.communityId ?? "" },
-      include: {
-        contentDrafts: {
-          orderBy: { updatedAt: "desc" },
-          take: 10,
-        },
-        publications: {
-          orderBy: { scheduledAt: "desc" },
-          take: 10,
-          include: { channel: { select: { type: true, name: true } } },
-        },
-        mediaFiles: { take: 20 },
-        _count: { select: { contentDrafts: true, publications: true } },
-      },
-    });
+    const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
+
+    const { data: event } = await admin
+      .from("Event")
+      .select(`
+        *,
+        contentDrafts:ContentDraft(*),
+        publications:Publication(*, channel:Channel(type, name)),
+        mediaFiles:MediaFile(*)
+      `)
+      .eq("id", id)
+      .eq("communityId", profile?.communityId ?? "")
+      .single();
 
     if (!event) return NextResponse.json({ error: "Événement introuvable" }, { status: 404 });
     return NextResponse.json(event);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }
@@ -48,42 +45,39 @@ export async function PATCH(
     if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
     const { id } = await params;
-    const profile = await prisma.user.findUnique({ where: { id: user.id } });
+    const admin = createAdminClient();
+
+    const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
     if (!profile?.communityId) return NextResponse.json({ error: "Pas de communauté" }, { status: 400 });
 
-    // Vérifier que l'événement appartient à la communauté
-    const existing = await prisma.event.findFirst({
-      where: { id, communityId: profile.communityId },
-    });
+    const { data: existing } = await admin
+      .from("Event")
+      .select("*")
+      .eq("id", id)
+      .eq("communityId", profile.communityId)
+      .single();
     if (!existing) return NextResponse.json({ error: "Événement introuvable" }, { status: 404 });
 
     const body = await request.json();
+    const updateData: Record<string, unknown> = { ...body, updatedAt: new Date().toISOString() };
+    if (body.startDate) updateData.startDate = new Date(body.startDate).toISOString();
+    if (body.endDate) updateData.endDate = new Date(body.endDate).toISOString();
 
-    const updated = await prisma.event.update({
-      where: { id },
-      data: {
-        ...body,
-        startDate: body.startDate ? new Date(body.startDate) : undefined,
-        endDate: body.endDate ? new Date(body.endDate) : undefined,
-        category: body.category as never,
-        status: body.status as never,
-      },
-    });
+    const { data: updated } = await admin.from("Event").update(updateData).eq("id", id).select().single();
 
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        communityId: profile.communityId,
-        action: "event.updated",
-        resource: "Event",
-        resourceId: id,
-        oldData: existing,
-        newData: body,
-      },
+    await admin.from("AuditLog").insert({
+      id: crypto.randomUUID(),
+      userId: user.id,
+      communityId: profile.communityId,
+      action: "event.updated",
+      resource: "Event",
+      resourceId: id,
+      oldData: existing,
+      newData: body,
     });
 
     return NextResponse.json(updated);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Erreur lors de la mise à jour" }, { status: 500 });
   }
 }
@@ -98,32 +92,32 @@ export async function DELETE(
     if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
     const { id } = await params;
-    const profile = await prisma.user.findUnique({ where: { id: user.id } });
+    const admin = createAdminClient();
+
+    const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
     if (!profile?.communityId) return NextResponse.json({ error: "Pas de communauté" }, { status: 400 });
 
-    const existing = await prisma.event.findFirst({
-      where: { id, communityId: profile.communityId },
-    });
+    const { data: existing } = await admin
+      .from("Event")
+      .select("id")
+      .eq("id", id)
+      .eq("communityId", profile.communityId)
+      .single();
     if (!existing) return NextResponse.json({ error: "Événement introuvable" }, { status: 404 });
 
-    // Archiver plutôt que supprimer (soft delete)
-    await prisma.event.update({
-      where: { id },
-      data: { status: "ARCHIVED" },
-    });
+    await admin.from("Event").update({ status: "ARCHIVED", updatedAt: new Date().toISOString() }).eq("id", id);
 
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        communityId: profile.communityId,
-        action: "event.archived",
-        resource: "Event",
-        resourceId: id,
-      },
+    await admin.from("AuditLog").insert({
+      id: crypto.randomUUID(),
+      userId: user.id,
+      communityId: profile.communityId,
+      action: "event.archived",
+      resource: "Event",
+      resourceId: id,
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Erreur lors de la suppression" }, { status: 500 });
   }
 }

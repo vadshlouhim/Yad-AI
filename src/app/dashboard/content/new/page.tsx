@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { ContentNewClient } from "@/components/content/content-new-client";
 import type { Metadata } from "next";
 
@@ -13,35 +13,30 @@ export default async function ContentNewPage({
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
   const params = await searchParams;
+  const admin = createAdminClient();
 
-  const [events, community] = await Promise.all([
-    prisma.event.findMany({
-      where: {
-        communityId,
-        status: { not: "ARCHIVED" },
-        startDate: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-      },
-      orderBy: { startDate: "asc" },
-      select: { id: true, title: true, startDate: true, category: true, description: true },
-      take: 30,
-    }),
-    prisma.community.findUnique({
-      where: { id: communityId },
-      select: {
-        name: true,
-        tone: true,
-        hashtags: true,
-        signature: true,
-        editorialRules: true,
-        channels: { select: { type: true, isConnected: true, isActive: true } },
-      },
-    }),
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const [{ data: events }, { data: community }] = await Promise.all([
+    admin
+      .from("Event")
+      .select("id, title, startDate, category, description")
+      .eq("communityId", communityId)
+      .neq("status", "ARCHIVED")
+      .gte("startDate", weekAgo)
+      .order("startDate", { ascending: true })
+      .limit(30),
+    admin
+      .from("Community")
+      .select("name, tone, hashtags, signature, editorialRules, channels:Channel(type, isConnected, isActive)")
+      .eq("id", communityId)
+      .single(),
   ]);
 
   return (
     <ContentNewClient
       communityId={communityId}
-      events={events as Array<{ id: string; title: string; startDate: Date; category: string; description: string | null }>}
+      events={(events ?? []) as Array<{ id: string; title: string; startDate: string; category: string; description: string | null }>}
       community={community!}
       defaultType={params.type}
       defaultEventId={params.eventId}

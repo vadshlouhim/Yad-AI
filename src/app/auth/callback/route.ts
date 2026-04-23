@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -14,10 +14,11 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.user) {
-      // Créer ou mettre à jour le profil Prisma
-      await prisma.user.upsert({
-        where: { id: data.user.id },
-        create: {
+      const admin = createAdminClient();
+
+      // Créer ou mettre à jour le profil Supabase
+      await admin.from("profiles").upsert(
+        {
           id: data.user.id,
           email: data.user.email!,
           name:
@@ -25,20 +26,17 @@ export async function GET(request: NextRequest) {
             data.user.email?.split("@")[0],
           avatarUrl: data.user.user_metadata?.avatar_url ?? null,
           role: "ADMIN",
+          updatedAt: new Date().toISOString(),
         },
-        update: {
-          name:
-            data.user.user_metadata?.full_name ??
-            data.user.email?.split("@")[0],
-          avatarUrl: data.user.user_metadata?.avatar_url ?? null,
-        },
-      });
+        { onConflict: "id" }
+      );
 
       // Vérifier si l'onboarding est terminé
-      const profile = await prisma.user.findUnique({
-        where: { id: data.user.id },
-        include: { community: true },
-      });
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("communityId")
+        .eq("id", data.user.id)
+        .single();
 
       if (!profile?.communityId) {
         return NextResponse.redirect(`${origin}/onboarding`);

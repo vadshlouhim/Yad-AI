@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { generateContent } from "@/lib/ai/engine";
 import { z } from "zod";
 
@@ -18,10 +18,8 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-    const profile = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { communityId: true },
-    });
+    const admin = createAdminClient();
+    const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
     if (!profile?.communityId) {
       return NextResponse.json({ error: "Communauté non configurée" }, { status: 400 });
     }
@@ -34,7 +32,6 @@ export async function POST(request: Request) {
 
     const { contentType, eventId, channelType, customInstructions, saveDraft } = parsed.data;
 
-    // Générer le contenu
     const generated = await generateContent({
       communityId: profile.communityId,
       contentType: contentType as never,
@@ -43,35 +40,33 @@ export async function POST(request: Request) {
       customInstructions,
     });
 
-    // Sauvegarder en brouillon si demandé
     let draftId: string | undefined;
     if (saveDraft) {
-      const draft = await prisma.contentDraft.create({
-        data: {
-          communityId: profile.communityId,
-          eventId: eventId ?? null,
-          body: generated.body,
-          bodyHebrew: generated.bodyHebrew ?? null,
-          hashtags: generated.hashtags,
-          cta: generated.cta ?? null,
-          contentType: contentType as never,
-          status: "AI_PROPOSAL",
-          aiGenerated: true,
-          aiModel: "gemini-2.5-flash",
-        },
+      const newDraftId = crypto.randomUUID();
+      await admin.from("ContentDraft").insert({
+        id: newDraftId,
+        communityId: profile.communityId,
+        eventId: eventId ?? null,
+        body: generated.body,
+        bodyHebrew: generated.bodyHebrew ?? null,
+        hashtags: generated.hashtags,
+        cta: generated.cta ?? null,
+        contentType: contentType as never,
+        status: "AI_PROPOSAL",
+        aiGenerated: true,
+        aiModel: "gemini-2.5-flash",
+        updatedAt: new Date().toISOString(),
       });
-      draftId = draft.id;
+      draftId = newDraftId;
 
-      // Log audit
-      await prisma.auditLog.create({
-        data: {
-          userId: user.id,
-          communityId: profile.communityId,
-          action: "content.generated",
-          resource: "ContentDraft",
-          resourceId: draftId,
-          newData: { contentType, channelType },
-        },
+      await admin.from("AuditLog").insert({
+        id: crypto.randomUUID(),
+        userId: user.id,
+        communityId: profile.communityId,
+        action: "content.generated",
+        resource: "ContentDraft",
+        resourceId: draftId,
+        newData: { contentType, channelType },
       });
     }
 

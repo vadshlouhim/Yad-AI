@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 async function getAuthorizedChannel(channelId: string, userId: string) {
-  const profile = await prisma.user.findUnique({ where: { id: userId } });
+  const admin = createAdminClient();
+  const { data: profile } = await admin.from("profiles").select("communityId").eq("id", userId).single();
   if (!profile?.communityId) return null;
 
-  return prisma.channel.findFirst({
-    where: { id: channelId, communityId: profile.communityId },
-  });
+  const { data: channel } = await admin
+    .from("Channel")
+    .select("*")
+    .eq("id", channelId)
+    .eq("communityId", profile.communityId)
+    .single();
+  return channel;
 }
 
 export async function PATCH(
@@ -24,20 +29,19 @@ export async function PATCH(
   if (!channel) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
 
   const body = await request.json();
-  const updated = await prisma.channel.update({
-    where: { id },
-    data: {
-      isActive: body.isActive !== undefined ? body.isActive : undefined,
-      isConnected: body.isConnected !== undefined ? body.isConnected : undefined,
-      name: body.name !== undefined ? body.name : undefined,
-      handle: body.handle !== undefined ? body.handle : undefined,
-      accessToken: body.accessToken !== undefined ? body.accessToken : undefined,
-      refreshToken: body.refreshToken !== undefined ? body.refreshToken : undefined,
-      pageId: body.pageId !== undefined ? body.pageId : undefined,
-      settings: body.settings !== undefined ? body.settings : undefined,
-    },
-  });
+  const admin = createAdminClient();
 
+  const updateData: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+  if (body.isActive !== undefined) updateData.isActive = body.isActive;
+  if (body.isConnected !== undefined) updateData.isConnected = body.isConnected;
+  if (body.name !== undefined) updateData.name = body.name;
+  if (body.handle !== undefined) updateData.handle = body.handle;
+  if (body.accessToken !== undefined) updateData.accessToken = body.accessToken;
+  if (body.refreshToken !== undefined) updateData.refreshToken = body.refreshToken;
+  if (body.pageId !== undefined) updateData.pageId = body.pageId;
+  if (body.settings !== undefined) updateData.settings = body.settings;
+
+  const { data: updated } = await admin.from("Channel").update(updateData).eq("id", id).select().single();
   return NextResponse.json(updated);
 }
 
@@ -53,6 +57,7 @@ export async function DELETE(
   const channel = await getAuthorizedChannel(id, user.id);
   if (!channel) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
 
-  await prisma.channel.delete({ where: { id } });
+  const admin = createAdminClient();
+  await admin.from("Channel").delete().eq("id", id);
   return NextResponse.json({ success: true });
 }

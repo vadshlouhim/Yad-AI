@@ -1,22 +1,24 @@
-import type { Channel } from "@prisma/client";
+import type { Tables } from "@/types/database.types";
 import type { PublishPayload, PublishResult } from "../publisher";
 import { Resend } from "resend";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+type Channel = Tables<"Channel">;
 
 export async function prepareEmailFallback(
   channel: Channel,
   payload: PublishPayload,
   communityId: string
 ): Promise<PublishResult> {
-  // Récupérer les informations de la communauté pour l'email
-  const community = await prisma.community.findUnique({
-    where: { id: communityId },
-    select: { name: true, email: true, logoUrl: true },
-  });
+  const supabase = createAdminClient();
+  const { data: community } = await supabase
+    .from("Community")
+    .select("name,email,logoUrl")
+    .eq("id", communityId)
+    .single();
 
   const formattedContent = formatEmailContent(payload, community?.name ?? "");
 
-  // Si Resend est configuré, envoyer directement
   if (process.env.RESEND_API_KEY && channel.handle) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY);
@@ -29,20 +31,13 @@ export async function prepareEmailFallback(
         html: formattedContent,
       });
 
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      return {
-        success: true,
-        externalId: data?.id,
-      };
+      if (error) return { success: false, error: error.message };
+      return { success: true, externalId: data?.id };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : "Erreur email" };
     }
   }
 
-  // Fallback : préparer le brouillon email
   return {
     success: false,
     fallbackUsed: true,
@@ -56,7 +51,6 @@ export async function prepareEmailFallback(
 }
 
 function extractEmailSubject(content: string): string {
-  // Prend les 60 premiers caractères comme objet
   const firstLine = content.split("\n")[0].replace(/[*_#]/g, "").trim();
   return firstLine.substring(0, 60) || "Message de votre communauté";
 }
@@ -78,17 +72,8 @@ function formatEmailContent(payload: PublishPayload, communityName: string): str
   <div style="border-bottom: 3px solid #2563eb; padding-bottom: 16px; margin-bottom: 24px;">
     <h1 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0;">${communityName}</h1>
   </div>
-
-  ${payload.mediaUrls?.[0] ? `
-  <div style="margin-bottom: 24px;">
-    <img src="${payload.mediaUrls[0]}" alt="" style="width: 100%; border-radius: 12px;" />
-  </div>
-  ` : ""}
-
-  <div style="font-size: 15px; line-height: 1.7; color: #334155;">
-    <p>${contentHtml}</p>
-  </div>
-
+  ${payload.mediaUrls?.[0] ? `<div style="margin-bottom: 24px;"><img src="${payload.mediaUrls[0]}" alt="" style="width: 100%; border-radius: 12px;" /></div>` : ""}
+  <div style="font-size: 15px; line-height: 1.7; color: #334155;"><p>${contentHtml}</p></div>
   <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center;">
     Envoyé via <strong>Yad.ia</strong> · Communication communautaire assistée par IA
   </div>

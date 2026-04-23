@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicationsFromDraft, publishToAllChannels } from "@/lib/publishing/publisher";
 
 export async function POST(request: Request) {
@@ -8,36 +8,33 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-  const profile = await prisma.user.findUnique({ where: { id: user.id } });
+  const admin = createAdminClient();
+  const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
   if (!profile?.communityId) return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
 
   const body = await request.json();
   const { draftId, channelTypes, scheduledAt } = body;
 
-  // Récupérer les IDs de canaux à partir des types
-  const channels = await prisma.channel.findMany({
-    where: {
-      communityId: profile.communityId,
-      type: { in: channelTypes },
-      isActive: true,
-    },
-    select: { id: true },
-  });
+  const { data: channels } = await admin
+    .from("Channel")
+    .select("id")
+    .eq("communityId", profile.communityId)
+    .in("type", channelTypes)
+    .eq("isActive", true);
 
-  if (channels.length === 0) {
+  if (!channels?.length) {
     return NextResponse.json({ error: "Aucun canal actif trouvé" }, { status: 400 });
   }
 
   const publications = await createPublicationsFromDraft({
     draftId,
     communityId: profile.communityId,
-    channelIds: channels.map((c: { id: string }) => c.id),
+    channelIds: channels.map((c) => c.id),
     scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
   });
 
-  // Si pas de scheduledAt → publier immédiatement en arrière-plan
   if (!scheduledAt) {
-    publishToAllChannels(draftId, channels.map((c: { id: string }) => c.id)).catch(console.error);
+    publishToAllChannels(draftId, channels.map((c) => c.id)).catch(console.error);
   }
 
   return NextResponse.json({ publications, count: publications.length });

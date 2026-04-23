@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicationsFromDraft, publishToChannel } from "@/lib/publishing/publisher";
+import type { Tables } from "@/types/database.types";
 import { z } from "zod";
+
+type Channel = Tables<"Channel">;
+type Publication = Tables<"Publication">;
 
 const createSchema = z.object({
   draftId: z.string(),
@@ -17,7 +21,8 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-    const profile = await prisma.user.findUnique({ where: { id: user.id } });
+    const admin = createAdminClient();
+    const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
     if (!profile?.communityId) return NextResponse.json({ error: "Pas de communauté" }, { status: 400 });
 
     const body = await request.json();
@@ -28,7 +33,6 @@ export async function POST(request: Request) {
 
     const { draftId, channelIds, scheduledAt, publishNow } = parsed.data;
 
-    // Créer les publications
     const publications = await createPublicationsFromDraft({
       draftId,
       communityId: profile.communityId,
@@ -36,16 +40,16 @@ export async function POST(request: Request) {
       scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
     });
 
-    // Publication immédiate si demandée
     if (publishNow) {
       const results: Record<string, unknown> = {};
       for (const pub of publications) {
-        const fullPub = await prisma.publication.findUnique({
-          where: { id: pub.id },
-          include: { channel: true },
-        });
+        const { data: fullPub } = await admin
+          .from("Publication")
+          .select("*, channel:Channel(*)")
+          .eq("id", pub.id)
+          .single();
         if (fullPub) {
-          results[pub.channelId] = await publishToChannel(fullPub);
+          results[pub.channelId] = await publishToChannel(fullPub as Publication & { channel: Channel });
         }
       }
       return NextResponse.json({ publications, results });
@@ -64,30 +68,27 @@ export async function GET(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-    const profile = await prisma.user.findUnique({ where: { id: user.id } });
+    const admin = createAdminClient();
+    const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
     if (!profile?.communityId) return NextResponse.json({ error: "Pas de communauté" }, { status: 400 });
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const channelType = searchParams.get("channelType");
 
-    const publications = await prisma.publication.findMany({
-      where: {
-        communityId: profile.communityId,
-        ...(status && { status: status as never }),
-        ...(channelType && { channelType: channelType as never }),
-      },
-      orderBy: [{ scheduledAt: "desc" }, { createdAt: "desc" }],
-      take: 50,
-      include: {
-        channel: { select: { type: true, name: true } },
-        event: { select: { title: true, category: true } },
-        draft: { select: { title: true, contentType: true } },
-      },
-    });
+    let query = admin
+      .from("Publication")
+      .select("*, channel:Channel(type, name), event:Event(title, category), draft:ContentDraft(title, contentType)")
+      .eq("communityId", profile.communityId)
+      .order("scheduledAt", { ascending: false })
+      .limit(50);
 
-    return NextResponse.json(publications);
-  } catch (error) {
+    if (status) query = query.eq("status", status);
+    if (channelType) query = query.eq("channelType", channelType);
+
+    const { data: publications } = await query;
+    return NextResponse.json(publications ?? []);
+  } catch {
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

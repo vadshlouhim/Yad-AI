@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/topbar";
 import type { Metadata } from "next";
@@ -20,43 +20,37 @@ export default async function DashboardLayout({
     redirect("/onboarding");
   }
 
-  const community = await prisma.community.findUnique({
-    where: { id: profile.communityId },
-    select: {
-      id: true,
-      name: true,
-      logoUrl: true,
-      plan: true,
-      onboardingDone: true,
-      channels: { select: { type: true, isConnected: true } },
-    },
-  });
+  const admin = createAdminClient();
+
+  const { data: community } = await admin
+    .from("Community")
+    .select("id, name, logoUrl, plan, onboardingDone, channels:Channel(type, isConnected)")
+    .eq("id", profile.communityId)
+    .single();
 
   if (!community || !community.onboardingDone) {
     redirect("/onboarding");
   }
 
-  // Compteur notifications non lues
-  const unreadCount = await prisma.notification.count({
-    where: { userId: profile.id, isRead: false },
-  });
+  const { count: unreadCount } = await admin
+    .from("Notification")
+    .select("*", { count: "exact", head: true })
+    .eq("userId", profile.id)
+    .eq("isRead", false);
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
-      {/* Sidebar fixe */}
       <Sidebar
         community={community}
         userAvatar={profile.avatarUrl}
         userName={profile.name ?? profile.email}
       />
-
-      {/* Zone principale */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar
           communityName={community.name}
           userAvatar={profile.avatarUrl}
           userName={profile.name ?? ""}
-          unreadNotifications={unreadCount}
+          unreadNotifications={unreadCount ?? 0}
         />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto animate-fade-in">

@@ -1,7 +1,7 @@
-import type { Channel } from "@prisma/client";
+import type { Tables } from "@/types/database.types";
 import type { PublishPayload, PublishResult } from "../publisher";
 
-// Adaptateur Telegram Bot API
+type Channel = Tables<"Channel">;
 
 export async function publishToTelegram(
   channel: Channel,
@@ -28,7 +28,6 @@ export async function publishToTelegram(
     const formattedContent = formatTelegramContent(payload);
     const apiBase = `https://api.telegram.org/bot${botToken}`;
 
-    // Avec image
     if (payload.mediaUrls && payload.mediaUrls.length > 0) {
       const response = await fetch(`${apiBase}/sendPhoto`, {
         method: "POST",
@@ -36,23 +35,15 @@ export async function publishToTelegram(
         body: JSON.stringify({
           chat_id: chatId,
           photo: payload.mediaUrls[0],
-          caption: formattedContent.substring(0, 1024), // Limite Telegram caption
+          caption: formattedContent.substring(0, 1024),
           parse_mode: "HTML",
         }),
       });
-
       const data = await response.json();
-      if (!data.ok) {
-        return { success: false, error: data.description ?? "Erreur Telegram" };
-      }
-
-      return {
-        success: true,
-        externalId: data.result.message_id.toString(),
-      };
+      if (!data.ok) return { success: false, error: data.description ?? "Erreur Telegram" };
+      return { success: true, externalId: data.result.message_id.toString() };
     }
 
-    // Texte seul
     const response = await fetch(`${apiBase}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -65,15 +56,8 @@ export async function publishToTelegram(
     });
 
     const data = await response.json();
-
-    if (!data.ok) {
-      return { success: false, error: data.description ?? "Erreur Telegram" };
-    }
-
-    return {
-      success: true,
-      externalId: data.result.message_id.toString(),
-    };
+    if (!data.ok) return { success: false, error: data.description ?? "Erreur Telegram" };
+    return { success: true, externalId: data.result.message_id.toString() };
   } catch (error) {
     return {
       success: false,
@@ -89,10 +73,7 @@ export async function publishToTelegram(
 }
 
 function formatTelegramContent(payload: PublishPayload): string {
-  // Telegram supporte un sous-ensemble de HTML
-  let content = payload.content
+  return payload.content
     .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
     .replace(/\*(.*?)\*/g, "<i>$1</i>");
-
-  return content;
 }

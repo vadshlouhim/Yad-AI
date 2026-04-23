@@ -1,7 +1,7 @@
-import type { Channel } from "@prisma/client";
+import type { Tables } from "@/types/database.types";
 import type { PublishPayload, PublishResult } from "../publisher";
 
-// Adaptateur Facebook — Meta Graph API v18+
+type Channel = Tables<"Channel">;
 
 const GRAPH_API_BASE = "https://graph.facebook.com/v18.0";
 
@@ -26,30 +26,22 @@ export async function publishToFacebook(
   try {
     const formattedContent = formatFacebookContent(payload);
 
-    // Si on a des médias, upload d'abord
     if (payload.mediaUrls && payload.mediaUrls.length > 0) {
       return await publishFacebookWithMedia(channel, payload, formattedContent);
     }
 
-    // Publication texte seul
-    const response = await fetch(
-      `${GRAPH_API_BASE}/${channel.pageId}/feed`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: formattedContent,
-          access_token: channel.accessToken,
-        }),
-      }
-    );
+    const response = await fetch(`${GRAPH_API_BASE}/${channel.pageId}/feed`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: formattedContent,
+        access_token: channel.accessToken,
+      }),
+    });
 
     const data = await response.json();
 
     if (!response.ok || data.error) {
-      const errorMsg = data.error?.message ?? "Erreur API Facebook";
-
-      // Token expiré → fallback
       if (data.error?.code === 190) {
         return {
           success: false,
@@ -62,8 +54,7 @@ export async function publishToFacebook(
           error: "Token Facebook expiré",
         };
       }
-
-      return { success: false, error: errorMsg };
+      return { success: false, error: data.error?.message ?? "Erreur API Facebook" };
     }
 
     return {
@@ -93,41 +84,29 @@ async function publishFacebookWithMedia(
   try {
     const photoIds: string[] = [];
 
-    // Upload de chaque image
     for (const mediaUrl of payload.mediaUrls ?? []) {
-      const uploadResponse = await fetch(
-        `${GRAPH_API_BASE}/${channel.pageId}/photos`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            url: mediaUrl,
-            published: false, // Upload sans publier
-            access_token: channel.accessToken,
-          }),
-        }
-      );
-
-      const uploadData = await uploadResponse.json();
-      if (uploadData.id) {
-        photoIds.push(uploadData.id);
-      }
-    }
-
-    // Publication avec médias
-    const attachedMedia = photoIds.map((id) => ({ media_fbid: id }));
-    const response = await fetch(
-      `${GRAPH_API_BASE}/${channel.pageId}/feed`,
-      {
+      const uploadResponse = await fetch(`${GRAPH_API_BASE}/${channel.pageId}/photos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: formattedContent,
-          attached_media: attachedMedia,
+          url: mediaUrl,
+          published: false,
           access_token: channel.accessToken,
         }),
-      }
-    );
+      });
+      const uploadData = await uploadResponse.json();
+      if (uploadData.id) photoIds.push(uploadData.id);
+    }
+
+    const response = await fetch(`${GRAPH_API_BASE}/${channel.pageId}/feed`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: formattedContent,
+        attached_media: photoIds.map((id) => ({ media_fbid: id })),
+        access_token: channel.accessToken,
+      }),
+    });
 
     const data = await response.json();
     if (!response.ok || data.error) {

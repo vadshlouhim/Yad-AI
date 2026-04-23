@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { runAutomationEngine } from "@/lib/automation/engine";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { Tables } from "@/types/database.types";
 
-// Route cron — appelée par Vercel Cron ou un service externe toutes les 30 minutes
-// Sécurisée par header Authorization: Bearer {CRON_SECRET}
+type Channel = Tables<"Channel">;
+type Publication = Tables<"Publication">;
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function GET(request: Request) {
   try {
-    // Vérification du secret cron
     const authHeader = request.headers.get("authorization");
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
@@ -18,8 +18,6 @@ export async function GET(request: Request) {
 
     const startTime = Date.now();
     await runAutomationEngine();
-
-    // Traiter les publications programmées en attente
     await processScheduledPublications();
 
     const duration = Date.now() - startTime;
@@ -38,24 +36,22 @@ export async function GET(request: Request) {
 
 async function processScheduledPublications() {
   const now = new Date();
+  const admin = createAdminClient();
 
-  // Publications programmées dont l'heure est arrivée
-  const scheduledPubs = await prisma.publication.findMany({
-    where: {
-      status: "SCHEDULED",
-      scheduledAt: { lte: now },
-    },
-    include: { channel: true },
-    take: 50,
-  });
+  const { data: scheduledPubs } = await admin
+    .from("Publication")
+    .select("*, channel:Channel(*)")
+    .eq("status", "SCHEDULED")
+    .lte("scheduledAt", now.toISOString())
+    .limit(50);
 
-  console.log(`[Cron] ${scheduledPubs.length} publications à envoyer`);
+  console.log(`[Cron] ${scheduledPubs?.length ?? 0} publications à envoyer`);
 
   const { publishToChannel } = await import("@/lib/publishing/publisher");
 
-  for (const pub of scheduledPubs) {
+  for (const pub of scheduledPubs ?? []) {
     try {
-      await publishToChannel(pub);
+      await publishToChannel(pub as Publication & { channel: Channel });
       await new Promise((r) => setTimeout(r, 300));
     } catch (error) {
       console.error(`[Cron] Erreur publication ${pub.id}:`, error);

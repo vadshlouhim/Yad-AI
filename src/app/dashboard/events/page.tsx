@@ -1,9 +1,11 @@
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { EventsClient } from "@/components/events/events-client";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Événements" };
+
+const EVENT_STATUSES = ["DRAFT", "SCHEDULED", "ONGOING", "COMPLETED", "ARCHIVED", "CANCELLED"];
 
 export default async function EventsPage({
   searchParams,
@@ -13,36 +15,34 @@ export default async function EventsPage({
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
   const params = await searchParams;
+  const admin = createAdminClient();
 
-  const where = {
-    communityId,
-    ...(params.status && { status: params.status as never }),
-    ...(params.category && { category: params.category as never }),
-    ...(params.q && {
-      OR: [
-        { title: { contains: params.q, mode: "insensitive" as never } },
-        { description: { contains: params.q, mode: "insensitive" as never } },
-      ],
-    }),
-  };
+  let query = admin
+    .from("Event")
+    .select("*, contentDrafts:ContentDraft(id), publications:Publication(id)")
+    .eq("communityId", communityId)
+    .order("startDate", { ascending: true })
+    .limit(50);
 
-  const [events, counts] = await Promise.all([
-    prisma.event.findMany({
-      where,
-      orderBy: { startDate: "asc" },
-      take: 50,
-      include: {
-        _count: { select: { contentDrafts: true, publications: true } },
-      },
-    }),
-    prisma.event.groupBy({
-      by: ["status"],
-      where: { communityId },
-      _count: true,
-    }),
+  if (params.status) query = query.eq("status", params.status);
+  if (params.category) query = query.eq("category", params.category);
+  if (params.q) query = query.ilike("title", `%${params.q}%`);
+
+  const [{ data: events }, statusCounts] = await Promise.all([
+    query,
+    Promise.all(
+      EVENT_STATUSES.map(async (status) => {
+        const { count } = await admin
+          .from("Event")
+          .select("*", { count: "exact", head: true })
+          .eq("communityId", communityId)
+          .eq("status", status);
+        return [status, count ?? 0] as [string, number];
+      })
+    ),
   ]);
 
-  const statusCounts = Object.fromEntries(counts.map((c) => [c.status, c._count]));
+  const statusCounts2 = Object.fromEntries(statusCounts);
 
-  return <EventsClient events={events} statusCounts={statusCounts} />;
+  return <EventsClient events={events ?? []} statusCounts={statusCounts2} />;
 }

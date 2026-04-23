@@ -1,13 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
-import type { User } from "@prisma/client";
+import type { Tables } from "@/types/database.types";
 
-// Récupère l'utilisateur Supabase + son profil Prisma
+type Profile = Tables<"profiles">;
+
+// Récupère l'utilisateur Supabase + son profil
 // Redirige vers /auth/login si non connecté
 export async function requireAuth(): Promise<{
   supabaseUser: { id: string; email: string };
-  profile: User;
+  profile: Profile;
 }> {
   const supabase = await createClient();
   const {
@@ -19,21 +21,32 @@ export async function requireAuth(): Promise<{
     redirect("/auth/login");
   }
 
-  const profile = await prisma.user.findUnique({
-    where: { id: user.id },
-  });
+  const admin = createAdminClient();
+  const { data: profile, error: profileError } = await admin
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
 
-  if (!profile) {
+  if (profileError || !profile) {
     // Profil absent → first login, créer le profil
-    const newProfile = await prisma.user.create({
-      data: {
+    const { data: newProfile, error: createError } = await admin
+      .from("profiles")
+      .insert({
         id: user.id,
         email: user.email!,
-        name: user.user_metadata?.full_name ?? user.email?.split("@")[0],
+        name: user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? null,
         avatarUrl: user.user_metadata?.avatar_url ?? null,
         role: "ADMIN",
-      },
-    });
+        updatedAt: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (createError || !newProfile) {
+      throw new Error("Impossible de créer le profil utilisateur");
+    }
+
     redirect("/onboarding");
     return { supabaseUser: { id: user.id, email: user.email! }, profile: newProfile };
   }
@@ -53,15 +66,17 @@ export async function getOptionalUser() {
 
   if (!user) return null;
 
-  const profile = await prisma.user.findUnique({
-    where: { id: user.id },
-    include: { community: true },
-  });
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("*, community:Community(*)")
+    .eq("id", user.id)
+    .single();
 
-  return profile;
+  return profile ?? null;
 }
 
-// Récupère uniquement l'utilisateur Supabase (léger, sans Prisma)
+// Récupère uniquement l'utilisateur Supabase (léger, sans DB)
 export async function getSupabaseUser() {
   const supabase = await createClient();
   const {

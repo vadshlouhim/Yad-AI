@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 async function getAuthorizedAutomation(automationId: string, userId: string) {
-  const profile = await prisma.user.findUnique({ where: { id: userId } });
+  const admin = createAdminClient();
+  const { data: profile } = await admin.from("profiles").select("communityId").eq("id", userId).single();
   if (!profile?.communityId) return null;
 
-  return prisma.automation.findFirst({
-    where: { id: automationId, communityId: profile.communityId },
-  });
+  const { data: automation } = await admin
+    .from("Automation")
+    .select("*")
+    .eq("id", automationId)
+    .eq("communityId", profile.communityId)
+    .single();
+  return automation;
 }
 
 export async function PATCH(
@@ -24,18 +29,18 @@ export async function PATCH(
   if (!automation) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
 
   const body = await request.json();
-  const updated = await prisma.automation.update({
-    where: { id },
-    data: {
-      isActive: body.isActive !== undefined ? body.isActive : undefined,
-      name: body.name !== undefined ? body.name : undefined,
-      description: body.description !== undefined ? body.description : undefined,
-      triggerConfig: body.triggerConfig !== undefined ? body.triggerConfig : undefined,
-      actions: body.actions !== undefined ? body.actions : undefined,
-      status: body.isActive === false ? "PAUSED" : body.isActive === true ? "ACTIVE" : undefined,
-    },
-  });
+  const admin = createAdminClient();
 
+  const updateData: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+  if (body.isActive !== undefined) updateData.isActive = body.isActive;
+  if (body.name !== undefined) updateData.name = body.name;
+  if (body.description !== undefined) updateData.description = body.description;
+  if (body.triggerConfig !== undefined) updateData.triggerConfig = body.triggerConfig;
+  if (body.actions !== undefined) updateData.actions = body.actions;
+  if (body.isActive === false) updateData.status = "PAUSED";
+  else if (body.isActive === true) updateData.status = "ACTIVE";
+
+  const { data: updated } = await admin.from("Automation").update(updateData).eq("id", id).select().single();
   return NextResponse.json(updated);
 }
 
@@ -51,6 +56,7 @@ export async function DELETE(
   const automation = await getAuthorizedAutomation(id, user.id);
   if (!automation) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
 
-  await prisma.automation.delete({ where: { id } });
+  const admin = createAdminClient();
+  await admin.from("Automation").delete().eq("id", id);
   return NextResponse.json({ success: true });
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { retryFailedPublication } from "@/lib/publishing/publisher";
 
 export async function POST(
@@ -11,13 +11,17 @@ export async function POST(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-  const profile = await prisma.user.findUnique({ where: { id: user.id } });
+  const admin = createAdminClient();
+  const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
   if (!profile?.communityId) return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
 
   const { id } = await params;
-  const publication = await prisma.publication.findFirst({
-    where: { id, communityId: profile.communityId },
-  });
+  const { data: publication } = await admin
+    .from("Publication")
+    .select("id, status")
+    .eq("id", id)
+    .eq("communityId", profile.communityId)
+    .single();
 
   if (!publication) return NextResponse.json({ error: "Publication introuvable" }, { status: 404 });
   if (publication.status !== "FAILED") {

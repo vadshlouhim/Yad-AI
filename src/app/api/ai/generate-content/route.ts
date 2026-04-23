@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { generateContent } from "@/lib/ai/engine";
 
 export async function POST(request: Request) {
@@ -8,7 +8,8 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
-  const profile = await prisma.user.findUnique({ where: { id: user.id } });
+  const admin = createAdminClient();
+  const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
   if (!profile?.communityId) return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
 
   const body = await request.json();
@@ -22,9 +23,10 @@ export async function POST(request: Request) {
       customInstructions: instructions,
     });
 
-    // Sauvegarder en brouillon IA
-    const draft = await prisma.contentDraft.create({
-      data: {
+    const { data: draft } = await admin
+      .from("ContentDraft")
+      .insert({
+        id: crypto.randomUUID(),
         communityId: profile.communityId,
         body: result.body,
         title: null,
@@ -35,10 +37,12 @@ export async function POST(request: Request) {
         aiGenerated: true,
         aiModel: "gemini-2.5-flash",
         aiPromptUsed: instructions ?? null,
-      },
-    });
+        updatedAt: new Date().toISOString(),
+      })
+      .select()
+      .single();
 
-    return NextResponse.json({ ...result, draftId: draft.id });
+    return NextResponse.json({ ...result, draftId: draft?.id });
   } catch (error) {
     console.error("[AI Generate]", error);
     return NextResponse.json({ error: "Erreur de génération IA" }, { status: 500 });

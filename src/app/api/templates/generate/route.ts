@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import OpenAI from "openai";
 
 const openrouter = new OpenAI({
@@ -8,21 +8,14 @@ const openrouter = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY!,
 });
 
-/**
- * POST /api/templates/generate
- * Génère le texte personnalisé pour un template d'affiche
- * à partir du contexte communauté + réponses utilisateur
- */
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-    const profile = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { communityId: true },
-    });
+    const admin = createAdminClient();
+    const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
     if (!profile?.communityId) {
       return NextResponse.json({ error: "Communauté non configurée" }, { status: 400 });
     }
@@ -30,16 +23,9 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { templateId, answers } = body;
 
-    // Charger template + communauté
-    const [template, community] = await Promise.all([
-      prisma.template.findUnique({ where: { id: templateId } }),
-      prisma.community.findUnique({
-        where: { id: profile.communityId },
-        select: {
-          name: true, city: true, phone: true, email: true,
-          website: true, address: true, religiousStream: true, tone: true,
-        },
-      }),
+    const [{ data: template }, { data: community }] = await Promise.all([
+      admin.from("Template").select("*").eq("id", templateId).single(),
+      admin.from("Community").select("name, city, phone, email, website, address, religiousStream, tone").eq("id", profile.communityId).single(),
     ]);
 
     if (!template) {
@@ -65,7 +51,7 @@ Contexte de la communauté :
 - Téléphone : ${community?.phone ?? "Non spécifié"}
 - Email : ${community?.email ?? "Non spécifié"}
 - Site web : ${community?.website ?? "Non spécifié"}
-- Adresse : ${community?.address ?? "Non spécifié"}
+- Adresse : ${(community as Record<string, unknown>)?.address ?? "Non spécifié"}
 - Courant : ${community?.religiousStream ?? "Non spécifié"}
 - Ton : ${community?.tone ?? "MODERN"}
 
@@ -93,7 +79,6 @@ Réponds UNIQUEMENT en JSON valide, avec un objet dont les clés sont les IDs de
 
     const raw = response.choices[0]?.message?.content ?? "";
 
-    // Parser le JSON
     let generatedTexts: Record<string, string> = {};
     try {
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
@@ -104,11 +89,11 @@ Réponds UNIQUEMENT en JSON valide, avec un objet dont les clés sont les IDs de
       return NextResponse.json({ error: "Erreur de parsing IA", raw }, { status: 500 });
     }
 
-    // Incrémenter le compteur d'usage
-    await prisma.template.update({
-      where: { id: templateId },
-      data: { usageCount: { increment: 1 } },
-    });
+    const { data: currentTemplate } = await admin.from("Template").select("usageCount").eq("id", templateId).single();
+    await admin.from("Template").update({
+      usageCount: (currentTemplate?.usageCount ?? 0) + 1,
+      updatedAt: new Date().toISOString(),
+    }).eq("id", templateId);
 
     return NextResponse.json({ generatedTexts });
   } catch (error) {

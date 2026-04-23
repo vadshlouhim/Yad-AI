@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { buildSystemPrompt, buildMemoryContext } from "@/lib/ai/prompts";
 import OpenAI from "openai";
 
@@ -11,15 +11,12 @@ const openrouter = new OpenAI({
 
 export async function POST(request: Request) {
   try {
-    // Auth
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-    const profile = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { communityId: true },
-    });
+    const admin = createAdminClient();
+    const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
     if (!profile?.communityId) {
       return NextResponse.json({ error: "Communauté non configurée" }, { status: 400 });
     }
@@ -27,42 +24,36 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { messages, conversationId } = body;
 
-    // Contexte communauté
-    const [community, memories] = await Promise.all([
-      prisma.community.findUnique({
-        where: { id: profile.communityId },
-        select: {
-          name: true, city: true, tone: true, language: true,
-          signature: true, hashtags: true, editorialRules: true,
-          communityType: true, religiousStream: true,
-        },
-      }),
-      prisma.aIMemory.findMany({
-        where: { communityId: profile.communityId },
-        orderBy: { relevance: "desc" },
-        take: 10,
-      }),
+    const [{ data: community }, { data: memories }] = await Promise.all([
+      admin
+        .from("Community")
+        .select("name, city, tone, language, signature, hashtags, editorialRules, communityType, religiousStream")
+        .eq("id", profile.communityId)
+        .single(),
+      admin
+        .from("AIMemory")
+        .select("*")
+        .eq("communityId", profile.communityId)
+        .order("relevance", { ascending: false })
+        .limit(10),
     ]);
 
     if (!community) {
       return NextResponse.json({ error: "Communauté introuvable" }, { status: 404 });
     }
 
-    const systemPrompt = buildSystemPrompt(community) + buildMemoryContext(memories);
+    const systemPrompt = buildSystemPrompt(community) + buildMemoryContext(memories ?? []);
 
-    // Sauvegarder le message utilisateur
     const lastUserMessage = messages[messages.length - 1];
     if (conversationId && lastUserMessage?.role === "user") {
-      await prisma.conversationMessage.create({
-        data: {
-          conversationId,
-          role: "user",
-          content: lastUserMessage.content,
-        },
+      await admin.from("ConversationMessage").insert({
+        id: crypto.randomUUID(),
+        conversationId,
+        role: "user",
+        content: lastUserMessage.content,
       });
     }
 
-    // Streaming SSE
     const encoder = new TextEncoder();
     let fullResponse = "";
 
@@ -90,27 +81,26 @@ export async function POST(request: Request) {
 
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
 
-          // Sauvegarder la réponse assistant + générer titre si premier échange
           if (conversationId && fullResponse) {
-            await prisma.conversationMessage.create({
-              data: {
-                conversationId,
-                role: "assistant",
-                content: fullResponse,
-              },
+            await admin.from("ConversationMessage").insert({
+              id: crypto.randomUUID(),
+              conversationId,
+              role: "assistant",
+              content: fullResponse,
             });
 
-            await prisma.conversation.update({
-              where: { id: conversationId },
-              data: { updatedAt: new Date() },
-            });
+            await admin
+              .from("Conversation")
+              .update({ updatedAt: new Date().toISOString() })
+              .eq("id", conversationId);
 
-            // Générer un titre si c'est le premier message (2 messages : user + assistant)
-            const messageCount = await prisma.conversationMessage.count({
-              where: { conversationId },
-            });
-            if (messageCount === 2) {
-              generateTitle(conversationId, lastUserMessage.content).catch(console.error);
+            const { count } = await admin
+              .from("ConversationMessage")
+              .select("*", { count: "exact", head: true })
+              .eq("conversationId", conversationId);
+
+            if (count === 2) {
+              generateTitle(conversationId, lastUserMessage.content, admin).catch(console.error);
             }
           }
         } catch (error) {
@@ -137,8 +127,11 @@ export async function POST(request: Request) {
   }
 }
 
-// Génère un titre court pour la conversation à partir du premier message
-async function generateTitle(conversationId: string, firstMessage: string) {
+async function generateTitle(
+  conversationId: string,
+  firstMessage: string,
+  admin: ReturnType<typeof createAdminClient>
+) {
   try {
     const response = await openrouter.chat.completions.create({
       model: "google/gemini-2.5-flash",
@@ -154,10 +147,10 @@ async function generateTitle(conversationId: string, firstMessage: string) {
 
     const title = response.choices[0]?.message?.content?.trim();
     if (title) {
-      await prisma.conversation.update({
-        where: { id: conversationId },
-        data: { title },
-      });
+      await admin
+        .from("Conversation")
+        .update({ title, updatedAt: new Date().toISOString() })
+        .eq("id", conversationId);
     }
   } catch (error) {
     console.error("[AI Chat] Erreur génération titre:", error);
