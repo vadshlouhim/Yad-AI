@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  DEFAULT_POST_LOGIN_PATH,
+  normalizeAuthNextPath,
+} from "@/lib/supabase/auth-redirect";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -7,7 +11,16 @@ import type { NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const next = normalizeAuthNextPath(
+    searchParams.get("next"),
+    DEFAULT_POST_LOGIN_PATH
+  );
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
+  const redirectOrigin =
+    process.env.NODE_ENV === "development" || !forwardedHost
+      ? origin
+      : `${forwardedProto}://${forwardedHost}`;
 
   if (code) {
     const supabase = await createClient();
@@ -39,12 +52,14 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (!profile?.communityId) {
-        return NextResponse.redirect(`${origin}/onboarding`);
+        return NextResponse.redirect(new URL("/onboarding", redirectOrigin));
       }
 
-      return NextResponse.redirect(`${origin}${next}`);
+      return NextResponse.redirect(new URL(next, redirectOrigin));
     }
   }
 
-  return NextResponse.redirect(`${origin}/auth/error?message=auth_callback_failed`);
+  return NextResponse.redirect(
+    new URL("/auth/error?message=auth_callback_failed", redirectOrigin)
+  );
 }

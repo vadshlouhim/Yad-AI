@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import {
+  buildAuthCallbackUrl,
+  DEFAULT_POST_REGISTER_PATH,
+} from "@/lib/supabase/auth-redirect";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Eye, EyeOff, Mail, Lock, User, Globe } from "lucide-react";
 
 export function RegisterForm() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,7 +38,11 @@ export function RegisterForm() {
       password,
       options: {
         data: { full_name: name },
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+        emailRedirectTo: buildAuthCallbackUrl(
+          window.location.origin,
+          DEFAULT_POST_REGISTER_PATH,
+          DEFAULT_POST_REGISTER_PATH
+        ),
       },
     });
 
@@ -59,7 +65,11 @@ export function RegisterForm() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+        redirectTo: buildAuthCallbackUrl(
+          window.location.origin,
+          DEFAULT_POST_REGISTER_PATH,
+          DEFAULT_POST_REGISTER_PATH
+        ),
         queryParams: { prompt: "select_account" },
       },
     });
