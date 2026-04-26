@@ -28,23 +28,32 @@ export async function requireAuth(): Promise<{
     .eq("id", user.id)
     .single();
 
-  if (profileError || !profile) {
-    // Profil absent → first login, créer le profil
+  // PGRST116 = "no rows returned" — profil absent, à créer
+  // Toute autre erreur = problème DB réel, on propage
+  if (profileError && profileError.code !== "PGRST116") {
+    throw new Error(`Erreur de lecture du profil : ${profileError.message}`);
+  }
+
+  if (!profile) {
+    // Profil absent → first login, créer le profil (upsert pour éviter les doublons)
     const { data: newProfile, error: createError } = await admin
       .from("profiles")
-      .insert({
-        id: user.id,
-        email: user.email!,
-        name: user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? null,
-        avatarUrl: user.user_metadata?.avatar_url ?? null,
-        role: "ADMIN",
-        updatedAt: new Date().toISOString(),
-      })
+      .upsert(
+        {
+          id: user.id,
+          email: user.email!,
+          name: user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? null,
+          avatarUrl: user.user_metadata?.avatar_url ?? null,
+          role: "ADMIN",
+          updatedAt: new Date().toISOString(),
+        },
+        { onConflict: "id" }
+      )
       .select()
       .single();
 
     if (createError || !newProfile) {
-      throw new Error("Impossible de créer le profil utilisateur");
+      throw new Error(`Impossible de créer le profil utilisateur : ${createError?.message}`);
     }
 
     redirect("/onboarding");
