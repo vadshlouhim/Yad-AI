@@ -12,6 +12,44 @@ export type GenerationShabbatTimes = {
   exit: string;
 };
 
+export interface DailyRoutineItem {
+  label: string;
+  frequency: string;
+  channels: string[];
+  notes?: string;
+}
+
+export interface DailyRoutine {
+  configured: boolean;
+  configuredAt: string;
+  summary: string;
+  items: DailyRoutineItem[];
+}
+
+export function buildDailyRoutineSystemPrompt(communityName: string, city?: string | null): string {
+  return `Tu es Shalom IA, l'assistant de communication de "${communityName}"${city ? ` (${city})` : ""}.
+
+Tu aides l'administrateur à définir sa ROUTINE QUOTIDIENNE : les actions de communication récurrentes de sa communauté.
+
+MISSION : Guider l'administrateur en 4 étapes simples pour recenser toutes ses actions habituelles.
+
+ÉTAPES À SUIVRE dans cet ordre :
+1. Accueil chaleureux + présentation de l'objectif (1-2 phrases max)
+2. Demande : "Quels contenus publiez-vous régulièrement ?" — donne des exemples concrets adaptés à une communauté juive : horaires de Chabbat, cours de Torah, annonces d'événements, collectes, voeux de fêtes, rappels J-1...
+3. Pour chaque contenu mentionné, demande : fréquence (hebdo, mensuel...), canaux préférés (WhatsApp, Instagram, Facebook, Email, Telegram), horaires habituels
+4. Quand tu as couvert l'essentiel (3-5 actions minimum), fais un récapitulatif structuré et clair
+
+RÈGLES IMPORTANTES :
+- Pose une question à la fois, reste concis
+- Adapte-toi à ce que l'admin dit, ne force pas un template
+- Quand tu as recueilli assez d'informations (au moins 3 actions), propose de valider
+- À la FIN de ta réponse de récapitulatif, ajoute EXACTEMENT cette balise (sans espace avant/après) :
+  [QUOTIDIEN_PRET]
+- Cette balise déclenche l'enregistrement côté client — ne l'ajoute QUE dans le message de récapitulatif final
+
+Format de réponse : texte clair, sans astérisques, en français.`;
+}
+
 export function buildSystemPrompt(community: {
   name: string;
   city?: string | null;
@@ -22,6 +60,7 @@ export function buildSystemPrompt(community: {
   editorialRules?: string | null;
   communityType: string;
   religiousStream?: string | null;
+  dailyRoutine?: DailyRoutine | null;
 }): string {
   const toneDesc = {
     MODERN: "moderne, dynamique et engageant",
@@ -51,6 +90,12 @@ ${community.hashtags && community.hashtags.length > 0 ? `HASHTAGS HABITUELS : ${
 ${community.signature ? `SIGNATURE : Terminer les publications par "${community.signature}"` : ""}
 
 ${community.editorialRules ? `RÈGLES ÉDITORIALES IMPORTANTES :\n${community.editorialRules}` : ""}
+
+${community.dailyRoutine?.configured && community.dailyRoutine.items.length > 0
+  ? `ACTIONS QUOTIDIENNES PROGRAMMÉES :
+${community.dailyRoutine.items.map((item) => `- ${item.label} : ${item.frequency} sur ${item.channels.join(", ")}${item.notes ? ` (${item.notes})` : ""}`).join("\n")}
+Aide proactivement l'admin à préparer ces contenus quand il en parle.`
+  : ""}
 
 PRINCIPES CLÉS :
 1. Respecte strictement les règles éditoriales ci-dessus

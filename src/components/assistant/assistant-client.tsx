@@ -11,6 +11,8 @@ import {
 import { CHANNEL_LABELS, cn } from "@/lib/utils";
 import { formatArticlePrice } from "@/lib/articles/shared";
 import { startArticleCheckout } from "@/lib/articles/checkout-client";
+import { DailyRoutineWizard } from "./daily-routine-wizard";
+import type { RoutineItem } from "./daily-routine-wizard";
 
 // ============================================================
 // TYPES
@@ -287,12 +289,18 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
   const [selectedPublishChannels, setSelectedPublishChannels] = useState<string[]>([]);
   const [publishCaption, setPublishCaption] = useState("");
   const [buyingArticleId, setBuyingArticleId] = useState<string | null>(null);
+  // Quotidien
+  const [dailyRoutineConfigured, setDailyRoutineConfigured] = useState(false);
+  const [dailyRoutineLoading, setDailyRoutineLoading] = useState(true);
+  const [dailyRoutineMode, setDailyRoutineMode] = useState(false);
+  const [savingRoutine, setSavingRoutine] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Charger l'historique au montage
+  // Charger l'historique + routine au montage
   useEffect(() => {
     fetchConversations();
+    fetchDailyRoutine();
   }, []);
 
   useEffect(() => {
@@ -309,6 +317,38 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
     const res = await fetch("/api/conversations");
     if (res.ok) {
       setConversations(await res.json());
+    }
+  }
+
+  async function fetchDailyRoutine() {
+    try {
+      const res = await fetch("/api/community/daily-routine");
+      if (res.ok) {
+        const data = await res.json();
+        setDailyRoutineConfigured(!!data?.configured);
+      }
+    } finally {
+      setDailyRoutineLoading(false);
+    }
+  }
+
+  async function saveDailyRoutine(items: RoutineItem[]) {
+    setSavingRoutine(true);
+    try {
+      const summary = items
+        .map((i) => `${i.label} (${i.frequency}) sur ${i.channels.join(", ")}`)
+        .join(" ; ");
+      const res = await fetch("/api/community/daily-routine", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ summary, items }),
+      });
+      if (res.ok) {
+        setDailyRoutineConfigured(true);
+        setDailyRoutineMode(false);
+      }
+    } finally {
+      setSavingRoutine(false);
     }
   }
 
@@ -382,14 +422,13 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
 
   const sendMessage = useCallback(async (
     content?: string,
-    options?: { selectedTemplateId?: string | null; templateAction?: "select" | null }
+    options?: { selectedTemplateId?: string | null; templateAction?: "select" | null; mode?: "daily_routine" }
   ) => {
     const messageContent = content ?? input.trim();
     if (!messageContent || loading) return;
 
     setInput("");
 
-    // Créer la conversation si c'est le premier message
     let convId = activeConversationId;
     if (!convId) {
       convId = await createConversation();
@@ -415,6 +454,7 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
           conversationId: convId,
           selectedTemplateId: options?.selectedTemplateId ?? selectedTemplate?.id ?? null,
           templateAction: options?.templateAction ?? null,
+          mode: options?.mode ?? (dailyRoutineMode ? "daily_routine" : undefined),
           messages: currentMessages.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
@@ -486,7 +526,6 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
         }
       }
 
-      // Rafraîchir la liste pour récupérer le titre auto-généré
       setTimeout(fetchConversations, 2000);
     } catch {
       setMessages((prev) => [
@@ -501,7 +540,7 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
     } finally {
       setLoading(false);
     }
-  }, [input, loading, activeConversationId, messages, selectedTemplate]);
+  }, [input, loading, activeConversationId, messages, selectedTemplate, dailyRoutineMode]);
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -888,18 +927,29 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
               </div>
             </div>
           </div>
-          {conversations.length > 0 && (
-            <Link href="/dashboard/settings?tab=general" className="shrink-0">
-              <Button size="sm" variant="outline" className="gap-1.5 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-                <Settings className="size-3.5" />
-                <span className="hidden sm:inline text-xs">Mon quotidien</span>
-              </Button>
-            </Link>
+          {dailyRoutineConfigured && (
+            <button
+              onClick={() => { startNewChat(); setDailyRoutineMode(true); }}
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition-colors"
+            >
+              <Settings className="size-3.5" />
+              <span className="hidden sm:inline">Mon quotidien</span>
+            </button>
           )}
         </div>
 
+        {/* Wizard quotidien (prioritaire sur tout le reste) */}
+        {dailyRoutineMode && (
+          <DailyRoutineWizard
+            communityName={communityName}
+            onSave={saveDailyRoutine}
+            onCancel={() => setDailyRoutineMode(false)}
+            saving={savingRoutine}
+          />
+        )}
+
         {/* Quick prompts ou message vide */}
-        {showQuickPrompts && (
+        {!dailyRoutineMode && showQuickPrompts && (
           <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:px-6">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 via-sky-500 to-amber-400 flex items-center justify-center shadow-lg mb-6">
               <Sparkles className="size-8 text-white" />
@@ -913,7 +963,7 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
             </p>
 
             {/* Première utilisation : carte unique "Définir mon quotidien" */}
-            {conversations.length === 0 ? (
+            {!dailyRoutineLoading && !dailyRoutineConfigured ? (
               <div className="w-full max-w-2xl">
                 {demoPrompt && (
                   <div className="mb-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-white via-blue-50 to-indigo-50 p-3 text-center shadow-sm ring-1 ring-white/80">
@@ -937,9 +987,7 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
                   </div>
                 )}
                 <button
-                  onClick={() => sendMessage(
-                    "Je souhaite définir mon quotidien avec Shalom IA. Aide-moi à configurer mes besoins habituels : les types de contenus que je publie régulièrement (Chabbat, événements, cours, collectes…), le ton que je préfère, et la façon dont tu peux m'aider au quotidien pour ma communauté."
-                  )}
+                  onClick={() => setDailyRoutineMode(true)}
                   className="group w-full flex flex-col items-center justify-center rounded-2xl border border-blue-200 bg-gradient-to-br from-white via-blue-50 to-sky-100 px-6 py-10 text-center shadow-md ring-1 ring-white/80 transition-all hover:-translate-y-0.5 hover:border-blue-400 hover:shadow-lg"
                 >
                   <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-sky-400 shadow-sm">
@@ -1000,7 +1048,7 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
         )}
 
         {/* Messages */}
-        {!showQuickPrompts && (
+        {!dailyRoutineMode && !showQuickPrompts && (
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5 sm:px-6">
             {messages.map((message) => (
               <div
@@ -1350,7 +1398,7 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
         )}
 
         {/* Input */}
-        <div className="border-t border-slate-200/80 bg-white/85 px-4 py-4 backdrop-blur-xl sm:px-6">
+        {!dailyRoutineMode && <div className="border-t border-slate-200/80 bg-white/85 px-4 py-4 backdrop-blur-xl sm:px-6">
           {selectedTemplate && (
             <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -1413,7 +1461,7 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
           <p className="mt-2 text-center text-xs text-slate-400 sm:hidden">
             Entrée pour envoyer · Maj+Entrée pour nouvelle ligne
           </p>
-        </div>
+        </div>}
       </div>
     </div>
   );

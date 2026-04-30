@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { buildSystemPrompt, buildMemoryContext } from "@/lib/ai/prompts";
+import { buildSystemPrompt, buildMemoryContext, buildDailyRoutineSystemPrompt, type DailyRoutine } from "@/lib/ai/prompts";
 import { getStoredShabbatTimes } from "@/lib/ai/engine";
 import {
   buildArticleSuggestions,
@@ -59,12 +59,15 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { messages, conversationId, selectedTemplateId, templateAction } = body as {
+    const { messages, conversationId, selectedTemplateId, templateAction, mode } = body as {
       messages: Array<{ role: "user" | "assistant"; content: string }>;
       conversationId?: string;
       selectedTemplateId?: string | null;
       templateAction?: "select" | null;
+      mode?: "daily_routine";
     };
+
+    const isDailyRoutineMode = mode === "daily_routine";
 
     const lastUserMessage = messages[messages.length - 1];
     const isUserPrompt = lastUserMessage?.role === "user";
@@ -100,6 +103,14 @@ export async function POST(request: Request) {
             .limit(60)
         : Promise.resolve({ data: [] }),
     ]);
+
+    const { data: dailyRoutineMemory } = await admin
+      .from("AIMemory")
+      .select("value")
+      .eq("communityId", profile.communityId)
+      .eq("type", "RECURRING_CONTENT")
+      .eq("key", "daily_routine")
+      .maybeSingle();
 
     if (!community) {
       return NextResponse.json({ error: "Communauté introuvable" }, { status: 404 });
@@ -171,9 +182,12 @@ export async function POST(request: Request) {
       }
     }
 
-    const systemPrompt =
-      buildSystemPrompt(community) +
-      buildMemoryContext(memories ?? []) +
+    const dailyRoutine = dailyRoutineMemory?.value as DailyRoutine | null;
+
+    const systemPrompt = isDailyRoutineMode
+      ? buildDailyRoutineSystemPrompt(community.name, community.city)
+      : buildSystemPrompt({ ...community, dailyRoutine }) +
+        buildMemoryContext(memories ?? []) +
       (shabbatContext
         ? `\n\nCONTEXTE TEMPOREL CHABBAT :
 - Quand l'utilisateur parle de "Chabbat" sans autre précision, il s'agit par défaut du prochain Chabbat à venir.
@@ -350,6 +364,17 @@ export async function POST(request: Request) {
               const data = JSON.stringify({ content: cleanDelta });
               controller.enqueue(encoder.encode(`data: ${data}\n\n`));
             }
+          }
+
+          // Détecter [QUOTIDIEN_PRET] dans le mode daily_routine
+          if (isDailyRoutineMode && fullResponse.includes("[QUOTIDIEN_PRET]")) {
+            // Retirer la balise du texte affiché
+            fullResponse = fullResponse.replace("[QUOTIDIEN_PRET]", "").trim();
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ type: "daily_routine_ready" })}\n\n`
+              )
+            );
           }
 
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
