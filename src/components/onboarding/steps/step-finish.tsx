@@ -47,6 +47,14 @@ export function StepFinish({ data, onFinish, saving }: Props) {
     },
   ];
 
+  function splitSummaryText(value: string, fallback: string) {
+    if (!value) return [fallback];
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
   return (
     <Card className="shadow-md">
       <CardContent className="pt-8 pb-8 space-y-8">
@@ -65,25 +73,44 @@ export function StepFinish({ data, onFinish, saving }: Props) {
         </div>
 
         {/* Récap */}
-        <div className="grid gap-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           {summaryItems.map((item) => (
             <div
               key={item.label}
-              className="flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-4"
+              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
             >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${item.color}`}>
-                <item.icon className="size-5" />
+              <div className="flex items-start justify-between gap-3">
+                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${item.color}`}>
+                  <item.icon className="size-5" />
+                </div>
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 flex-shrink-0">
+                  <Check className="size-4" />
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-0.5">
-                  {item.label}
-                </p>
-                <p className="text-sm font-semibold text-slate-800">{item.value}</p>
+
+              <div className="mt-4 space-y-3">
+                <div className="space-y-1">
+                  <p className="text-[11px] text-slate-400 uppercase tracking-[0.16em] font-semibold">
+                    {item.label}
+                  </p>
+                  <p className="text-base font-semibold leading-tight text-slate-900 break-words">
+                    {item.value}
+                  </p>
+                </div>
+
                 {item.sub && (
-                  <p className="text-xs text-slate-400 mt-0.5 truncate">{item.sub}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {splitSummaryText(item.sub, item.sub).map((entry) => (
+                      <span
+                        key={`${item.label}-${entry}`}
+                        className="inline-flex max-w-full rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600 break-words"
+                      >
+                        {entry}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
-              <Check className="size-4 text-emerald-500 flex-shrink-0 mt-1" />
             </div>
           ))}
         </div>

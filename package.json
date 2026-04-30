@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@fal-ai/client": "^1.10.0",
+    "@hebcal/core": "^6.3.3",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
@@ -37,6 +39,7 @@
     "@stripe/stripe-js": "^9.2.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.2",
+    "@tailwindcss/postcss": "^4",
     "@tanstack/react-query": "^5.99.0",
     "@trpc/client": "^11.13.0",
     "@trpc/next": "^11.13.0",
@@ -65,7 +68,6 @@
     "stripe": "^22.0.1",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4",
-    "@tailwindcss/postcss": "^4",
     "vaul": "^1.1.2",
     "zod": "^4.3.6",
     "zustand": "^5.0.12"

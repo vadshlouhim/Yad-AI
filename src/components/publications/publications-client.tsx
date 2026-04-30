@@ -48,10 +48,10 @@ const CHANNEL_EMOJI: Record<string, string> = {
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
   PUBLISHED: <CheckCircle className="size-4 text-emerald-600" />,
-  SCHEDULED: <Clock className="size-4 text-blue-600" />,
+  SCHEDULED: <Clock className="size-4 text-emerald-600" />,
   PENDING: <Clock className="size-4 text-slate-400" />,
   FAILED: <XCircle className="size-4 text-red-600" />,
-  PUBLISHING: <RefreshCw className="size-4 text-blue-600 animate-spin" />,
+  PUBLISHING: <RefreshCw className="size-4 text-emerald-600 animate-spin" />,
   CANCELLED: <XCircle className="size-4 text-slate-400" />,
   FALLBACK_READY: <Copy className="size-4 text-amber-600" />,
 };
@@ -86,9 +86,9 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Publications</h1>
+      <div className="overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-teal-50 p-6 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Communication</p>
+        <h1 className="mt-2 text-2xl font-bold text-slate-900">Historique des publications</h1>
         <p className="text-slate-500 mt-1">Historique et suivi de toutes vos publications</p>
       </div>
 
@@ -112,7 +112,7 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
               <button
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-blue-600 text-white"
+                    ? "bg-emerald-600 text-white"
                     : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
                 }`}
               >
@@ -155,7 +155,7 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
               </p>
             </div>
             <Link href="/dashboard/content/new">
-              <Button size="sm">Créer du contenu</Button>
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 focus-visible:ring-emerald-500">Créer du contenu</Button>
             </Link>
           </CardContent>
         </Card>

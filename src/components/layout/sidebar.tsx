@@ -3,20 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import {
-  LayoutDashboard,
-  Calendar,
-  FileText,
-  Send,
-  Zap,
-  Library,
-  BarChart3,
-  Settings,
-  Bot,
-  Building2,
-  ChevronDown,
-} from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
+import { DASHBOARD_NAV_ITEMS, DASHBOARD_SECTION_STYLES } from "./dashboard-nav";
 
 interface SidebarProps {
   community: {
@@ -29,40 +18,6 @@ interface SidebarProps {
   userName: string;
   basePath?: string;
 }
-
-const NAV_ITEMS = [
-  {
-    section: "Principal",
-    items: [
-      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
-      { href: "/dashboard/assistant", label: "Assistant IA", icon: Bot, badge: "IA" },
-    ],
-  },
-  {
-    section: "Communication",
-    items: [
-      { href: "/dashboard/events", label: "Événements", icon: Calendar },
-      { href: "/dashboard/content", label: "Contenus", icon: FileText },
-      { href: "/dashboard/publications", label: "Publications", icon: Send },
-      { href: "/dashboard/automations", label: "Automatisations", icon: Zap },
-    ],
-  },
-  {
-    section: "Ressources",
-    items: [
-      { href: "/dashboard/templates", label: "Templates", icon: Library },
-      { href: "/dashboard/media", label: "Médiathèque", icon: null },
-      { href: "/dashboard/stats", label: "Statistiques", icon: BarChart3 },
-    ],
-  },
-  {
-    section: "Paramètres",
-    items: [
-      { href: "/dashboard/community", label: "Ma communauté", icon: Building2 },
-      { href: "/dashboard/settings", label: "Paramètres", icon: Settings },
-    ],
-  },
-];
 
 const PLAN_COLORS: Record<string, string> = {
   FREE_TRIAL: "bg-amber-500",
@@ -87,22 +42,30 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
     return href.replace("/dashboard", basePath);
   }
 
-  function isActive(href: string, exact?: boolean) {
+  function isActive(href: string) {
     const resolved = resolveHref(href);
-    if (exact) return pathname === resolved;
     return pathname.startsWith(resolved) && resolved !== basePath;
   }
 
   return (
     <aside
       className={cn(
-        "flex flex-col h-full bg-slate-900 text-slate-300 transition-all duration-300 flex-shrink-0",
+        "hidden lg:flex flex-col h-full bg-slate-900 text-slate-300 transition-all duration-300 flex-shrink-0",
         collapsed ? "w-16" : "w-64"
       )}
     >
       {/* Logo / Communauté */}
       <div className="p-4 border-b border-slate-800 flex items-center gap-3 min-h-[64px]">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center flex-shrink-0">
+        <button
+          type="button"
+          onClick={() => collapsed && setCollapsed(false)}
+          className={cn(
+            "w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center flex-shrink-0 ring-1 ring-blue-300/30 transition-all",
+            collapsed && "cursor-pointer hover:scale-105 hover:ring-blue-200/70"
+          )}
+          aria-label={collapsed ? "Élargir la barre latérale" : "Accueil communauté"}
+          title={collapsed ? "Élargir la barre latérale" : community.name}
+        >
           {community.logoUrl ? (
             <img src={community.logoUrl} alt={community.name} className="w-full h-full rounded-xl object-cover" />
           ) : (
@@ -110,7 +73,7 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
               {community.name.substring(0, 2).toUpperCase()}
             </span>
           )}
-        </div>
+        </button>
 
         {!collapsed && (
           <div className="flex-1 min-w-0">
@@ -137,16 +100,21 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-6">
-        {NAV_ITEMS.map((section) => (
+        {DASHBOARD_NAV_ITEMS.map((section) => {
+          const sectionStyle = DASHBOARD_SECTION_STYLES[section.section];
+          return (
           <div key={section.section}>
             {!collapsed && (
-              <p className="px-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+              <p className={cn(
+                "px-3 text-[11px] font-bold uppercase tracking-wider mb-1.5",
+                sectionStyle?.label ?? "text-slate-500"
+              )}>
                 {section.section}
               </p>
             )}
             <ul className="space-y-0.5">
               {section.items.map((item) => {
-                const active = isActive(item.href, item.exact);
+                const active = isActive(item.href);
                 return (
                   <li key={item.href}>
                     <Link
@@ -154,7 +122,7 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
                       className={cn(
                         "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-150",
                         active
-                          ? "bg-blue-600 text-white shadow-sm"
+                          ? sectionStyle?.itemActive
                           : "text-slate-400 hover:bg-slate-800 hover:text-slate-200",
                         collapsed && "justify-center px-2"
                       )}
@@ -179,7 +147,8 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
               })}
             </ul>
           </div>
-        ))}
+        );
+        })}
       </nav>
 
       {/* User footer */}

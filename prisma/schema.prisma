@@ -91,6 +91,8 @@ model Community {
   channels        Channel[]
   events          Event[]
   templates       Template[]
+  articles        Article[]
+  members         CommunityMember[]
   publications    Publication[]
   automations     Automation[]
   mediaFiles      MediaFile[]
@@ -102,6 +104,35 @@ model Community {
 
   @@index([slug])
   @@index([plan])
+}
+
+model CommunityMember {
+  id          String    @id @default(cuid())
+  communityId String
+  firstName   String?
+  lastName    String?
+  displayName String
+  email       String?
+  phone       String?
+  profession  String?
+  age         Int?
+  birthDate   DateTime?
+  address     String?
+  city        String?
+  familyStatus String?
+  notes       String?   @db.Text
+  source      String    @default("manual")
+  tags        String[]
+  optInEmail  Boolean   @default(true)
+  optInWhatsapp Boolean @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@index([communityId])
+  @@index([email])
+  @@index([phone])
 }
 
 enum CommunityTone {
@@ -345,6 +376,30 @@ model Template {
   @@index([channelType])
 }
 
+model Article {
+  id           String    @id @default(cuid())
+  communityId  String?
+  name         String
+  slug         String    @unique
+  description  String?
+  content      String?   @db.Text
+  priceCents   Int
+  currency     String    @default("EUR")
+  stripePriceId String
+  imageUrl     String?
+  tags         String[]
+  isGlobal     Boolean   @default(false)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  community Community? @relation(fields: [communityId], references: [id])
+
+  @@index([communityId])
+  @@index([isActive])
+  @@index([isGlobal])
+}
+
 enum TemplateCategory {
   SHABBAT
   HOLIDAY
@@ -490,10 +545,13 @@ model MediaFile {
   id           String    @id @default(cuid())
   communityId  String
   eventId      String?
+  userId       String?   @db.Uuid
+  templateId   String?
   name         String
   originalName String
   url          String
   publicId     String    // Cloudinary public_id
+  source       String    @default("UPLOAD")
   type         MediaType
   mimeType     String
   size         Int
@@ -508,10 +566,15 @@ model MediaFile {
 
   community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
   event     Event?    @relation(fields: [eventId], references: [id])
+  user      User?     @relation(fields: [userId], references: [id])
+  template  Template? @relation(fields: [templateId], references: [id])
 
   @@index([communityId])
   @@index([eventId])
+  @@index([userId])
+  @@index([templateId])
   @@index([type])
+  @@index([source])
 }
 
 enum MediaType {

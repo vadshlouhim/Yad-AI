@@ -180,7 +180,7 @@ export function ContentNewClient({ communityId, events, community, defaultType, 
                       className={cn(
                         "flex items-center gap-2 p-2.5 rounded-lg border text-sm font-medium transition-all text-left",
                         contentType === type.value
-                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                           : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                       )}
                     >
@@ -201,7 +201,7 @@ export function ContentNewClient({ communityId, events, community, defaultType, 
                   <select
                     value={selectedEventId}
                     onChange={(e) => setSelectedEventId(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-8 py-2.5 text-sm text-slate-900 appearance-none focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-8 py-2.5 text-sm text-slate-900 appearance-none focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                   >
                     <option value="">— Aucun événement —</option>
                     {events.map((event) => (
@@ -257,7 +257,7 @@ export function ContentNewClient({ communityId, events, community, defaultType, 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Titre (optionnel)"
-                className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
 
               {/* Corps du texte */}
@@ -271,7 +271,7 @@ export function ContentNewClient({ communityId, events, community, defaultType, 
                       : "Rédigez votre contenu ici..."
                   }
                   rows={12}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-y leading-relaxed"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-y leading-relaxed"
                 />
                 <div className="absolute bottom-3 right-3 text-[11px] text-slate-400">
                   {charCount} car.
@@ -286,7 +286,7 @@ export function ContentNewClient({ communityId, events, community, defaultType, 
                   value={hashtags}
                   onChange={(e) => setHashtags(e.target.value)}
                   placeholder="#shabbat #communauté"
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
 
@@ -317,7 +317,7 @@ export function ContentNewClient({ communityId, events, community, defaultType, 
               {activeChannels.length === 0 ? (
                 <div className="text-center py-4">
                   <p className="text-xs text-slate-400">Aucun canal actif</p>
-                  <Link href="/dashboard/settings/channels" className="text-xs text-blue-600 hover:underline mt-1 block">
+                  <Link href="/dashboard/settings/channels" className="text-xs text-emerald-600 hover:underline mt-1 block">
                     Connecter des canaux →
                   </Link>
                 </div>
@@ -342,7 +342,7 @@ export function ContentNewClient({ communityId, events, community, defaultType, 
                       className={cn(
                         "w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left",
                         isSelected
-                          ? "border-blue-300 bg-blue-50"
+                          ? "border-emerald-300 bg-emerald-50"
                           : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                       )}
                     >
@@ -357,7 +357,7 @@ export function ContentNewClient({ communityId, events, community, defaultType, 
                       </div>
                       <div className={cn(
                         "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0",
-                        isSelected ? "border-blue-600 bg-blue-600" : "border-slate-300"
+                        isSelected ? "border-emerald-600 bg-emerald-600" : "border-slate-300"
                       )}>
                         {isSelected && <Check className="size-2.5 text-white" />}
                       </div>
@@ -386,7 +386,7 @@ export function ContentNewClient({ communityId, events, community, defaultType, 
               {community.hashtags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {community.hashtags.slice(0, 5).map((tag) => (
-                    <span key={tag} className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                    <span key={tag} className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">
                       {tag}
                     </span>
                   ))}

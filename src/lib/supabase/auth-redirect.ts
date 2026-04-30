@@ -1,4 +1,4 @@
-const DEFAULT_POST_LOGIN_PATH = "/dashboard";
+const DEFAULT_POST_LOGIN_PATH = "/dashboard/assistant";
 const DEFAULT_POST_REGISTER_PATH = "/onboarding";
 
 function isSafeRelativePath(value: string): boolean {

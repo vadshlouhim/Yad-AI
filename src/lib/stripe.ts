@@ -78,6 +78,34 @@ export async function createCheckoutSession(params: {
   return session;
 }
 
+export async function createArticleCheckoutSession(params: {
+  communityId: string;
+  priceId: string;
+  stripeCustomerId?: string;
+  successUrl: string;
+  cancelUrl: string;
+  articleId: string;
+  articleSlug: string;
+}) {
+  const { communityId, priceId, stripeCustomerId, successUrl, cancelUrl, articleId, articleSlug } = params;
+
+  return stripe.checkout.sessions.create({
+    mode: "payment",
+    customer: stripeCustomerId,
+    line_items: [{ price: priceId, quantity: 1 }],
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    metadata: {
+      communityId,
+      articleId,
+      articleSlug,
+      checkoutType: "article",
+    },
+    allow_promotion_codes: true,
+    billing_address_collection: "required",
+  });
+}
+
 export async function createPortalSession(params: {
   stripeCustomerId: string;
   returnUrl: string;

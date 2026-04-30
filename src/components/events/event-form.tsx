@@ -4,11 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Save, Sparkles, Calendar, MapPin, Users, AlignLeft, RefreshCw } from "lucide-react";
+import { Save, Sparkles, Calendar, MapPin, Users, AlignLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  communityId: string;
   defaultValues?: Partial<EventFormData>;
   eventId?: string;
 }
@@ -66,7 +65,7 @@ const defaultFormData: EventFormData = {
   notes: "",
 };
 
-export function EventForm({ communityId, defaultValues, eventId }: Props) {
+export function EventForm({ defaultValues, eventId }: Props) {
   const router = useRouter();
   const [form, setForm] = useState<EventFormData>({ ...defaultFormData, ...defaultValues });
   const [saving, setSaving] = useState(false);
@@ -187,7 +186,7 @@ export function EventForm({ communityId, defaultValues, eventId }: Props) {
                   value={form.title}
                   onChange={(e) => update("title", e.target.value)}
                   placeholder="Ex. Cours de Torah — Paracha Vayikra"
-                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
 
@@ -203,7 +202,7 @@ export function EventForm({ communityId, defaultValues, eventId }: Props) {
                       className={cn(
                         "flex flex-col items-center gap-1 rounded-xl border-2 py-2.5 px-2 text-xs transition-all",
                         form.category === cat.value
-                          ? "border-blue-600 bg-blue-50 text-blue-700"
+                          ? "border-emerald-600 bg-emerald-50 text-emerald-700"
                           : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                       )}
                     >
@@ -224,13 +223,13 @@ export function EventForm({ communityId, defaultValues, eventId }: Props) {
                     type="date"
                     value={form.startDate}
                     onChange={(e) => update("startDate", e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none"
                   />
                   <input
                     type="time"
                     value={form.startTime}
                     onChange={(e) => update("startTime", e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -239,13 +238,13 @@ export function EventForm({ communityId, defaultValues, eventId }: Props) {
                     type="date"
                     value={form.endDate}
                     onChange={(e) => update("endDate", e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none"
                   />
                   <input
                     type="time"
                     value={form.endTime}
                     onChange={(e) => update("endTime", e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -260,14 +259,14 @@ export function EventForm({ communityId, defaultValues, eventId }: Props) {
                   value={form.location}
                   onChange={(e) => update("location", e.target.value)}
                   placeholder="Ex. Grande salle de la synagogue"
-                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm focus:border-emerald-500 focus:outline-none"
                 />
                 <input
                   type="text"
                   value={form.address}
                   onChange={(e) => update("address", e.target.value)}
                   placeholder="Adresse complète (optionnel)"
-                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm focus:border-emerald-500 focus:outline-none"
                 />
               </div>
 
@@ -281,7 +280,7 @@ export function EventForm({ communityId, defaultValues, eventId }: Props) {
                   onChange={(e) => update("description", e.target.value)}
                   placeholder="Description de l'événement pour l'IA et les contenus générés…"
                   rows={4}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none resize-none"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm focus:border-emerald-500 focus:outline-none resize-none"
                 />
               </div>
 
@@ -295,7 +294,7 @@ export function EventForm({ communityId, defaultValues, eventId }: Props) {
                   value={form.audience}
                   onChange={(e) => update("audience", e.target.value)}
                   placeholder="Ex. Toute la communauté, Familles avec enfants, Adultes…"
-                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm focus:border-emerald-500 focus:outline-none"
                 />
               </div>
 
@@ -308,7 +307,7 @@ export function EventForm({ communityId, defaultValues, eventId }: Props) {
                     onChange={(e) => update("isPublic", e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-10 h-6 bg-slate-200 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" />
+                  <div className="w-10 h-6 bg-slate-200 rounded-full peer peer-checked:bg-emerald-600 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" />
                 </label>
                 <span className="text-sm text-slate-700">Événement public</span>
               </div>
@@ -326,7 +325,7 @@ export function EventForm({ communityId, defaultValues, eventId }: Props) {
                     onChange={(e) => update("isRecurring", e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-10 h-6 bg-slate-200 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" />
+                  <div className="w-10 h-6 bg-slate-200 rounded-full peer peer-checked:bg-emerald-600 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" />
                 </label>
                 <div>
                   <span className="text-sm font-medium text-slate-700">Événement récurrent</span>
@@ -351,7 +350,7 @@ export function EventForm({ communityId, defaultValues, eventId }: Props) {
                           className={cn(
                             "px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all",
                             form.recurrenceFreq === freq.value
-                              ? "border-blue-600 bg-blue-50 text-blue-700"
+                              ? "border-emerald-600 bg-emerald-50 text-emerald-700"
                               : "border-slate-200 bg-white text-slate-600"
                           )}
                         >
@@ -373,7 +372,7 @@ export function EventForm({ communityId, defaultValues, eventId }: Props) {
                             className={cn(
                               "w-10 h-10 rounded-full text-xs font-semibold border-2 transition-all",
                               form.recurrenceDays.includes(i)
-                                ? "border-blue-600 bg-blue-600 text-white"
+                                ? "border-emerald-600 bg-emerald-600 text-white"
                                 : "border-slate-200 bg-white text-slate-600"
                             )}
                           >
@@ -384,7 +383,7 @@ export function EventForm({ communityId, defaultValues, eventId }: Props) {
                     </div>
                   )}
 
-                  <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-xs text-blue-700">
+                  <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-700">
                     <strong>💡 Note :</strong> Le moteur d&apos;automatisation générera automatiquement
                     les contenus associés avant chaque occurrence.
                   </div>
@@ -402,7 +401,7 @@ export function EventForm({ communityId, defaultValues, eventId }: Props) {
                 onChange={(e) => update("notes", e.target.value)}
                 placeholder="Notes privées, informations logistiques, contacts…"
                 rows={8}
-                className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none resize-none"
+                className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm focus:border-emerald-500 focus:outline-none resize-none"
               />
               <p className="text-xs text-slate-400">
                 Ces notes sont privées et ne seront pas publiées.
@@ -433,7 +432,7 @@ export function EventForm({ communityId, defaultValues, eventId }: Props) {
         </Button>
         <Button
           size="lg"
-          className="flex-1"
+          className="flex-1 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 focus-visible:ring-emerald-500"
           onClick={() => handleSubmit("READY")}
           loading={saving}
         >

@@ -244,7 +244,7 @@ export function ContentDetailClient({ draft, community }: Props) {
                 {draft.event && (
                   <Link
                     href={`/dashboard/events/${draft.event.id}`}
-                    className="flex items-center gap-1 text-blue-600 hover:underline"
+                    className="flex items-center gap-1 text-emerald-600 hover:underline"
                   >
                     <Calendar className="size-3" />
                     {draft.event.title}
@@ -259,7 +259,7 @@ export function ContentDetailClient({ draft, community }: Props) {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Titre (optionnel)"
-                className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-base font-semibold text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-base font-semibold text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               />
 
               {/* Onglets canal */}
@@ -270,7 +270,7 @@ export function ContentDetailClient({ draft, community }: Props) {
                     className={cn(
                       "text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors",
                       !activeAdaptation
-                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                         : "border-slate-200 text-slate-600 hover:bg-slate-50"
                     )}
                   >
@@ -285,7 +285,7 @@ export function ContentDetailClient({ draft, community }: Props) {
                       className={cn(
                         "text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors",
                         activeAdaptation === adapt.channelType
-                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                           : "border-slate-200 text-slate-600 hover:bg-slate-50"
                       )}
                     >
@@ -308,7 +308,7 @@ export function ContentDetailClient({ draft, community }: Props) {
                     "w-full rounded-lg border bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 resize-y leading-relaxed",
                     activeAdaptation
                       ? "border-slate-200 bg-slate-50 cursor-default focus:ring-0"
-                      : "border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                      : "border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20"
                   )}
                 />
                 <div className="absolute top-3 right-3 flex gap-1">
@@ -336,7 +336,7 @@ export function ContentDetailClient({ draft, community }: Props) {
                   onChange={(e) => { if (!activeAdaptation) setHashtags(e.target.value); }}
                   readOnly={!!activeAdaptation}
                   placeholder="#shabbat"
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
             </CardContent>
@@ -365,7 +365,7 @@ export function ContentDetailClient({ draft, community }: Props) {
                     )}
                     className={cn(
                       "w-full flex items-center gap-2.5 p-2.5 rounded-xl border transition-all text-left",
-                      isSelected ? "border-blue-300 bg-blue-50" : "border-slate-200 hover:border-slate-300"
+                      isSelected ? "border-emerald-300 bg-emerald-50" : "border-slate-200 hover:border-slate-300"
                     )}
                   >
                     <span>{emoji}</span>
@@ -374,7 +374,7 @@ export function ContentDetailClient({ draft, community }: Props) {
                     </span>
                     <div className={cn(
                       "w-4 h-4 rounded border-2 flex items-center justify-center",
-                      isSelected ? "border-blue-600 bg-blue-600" : "border-slate-300"
+                      isSelected ? "border-emerald-600 bg-emerald-600" : "border-slate-300"
                     )}>
                       {isSelected && <Check className="size-2.5 text-white" />}
                     </div>

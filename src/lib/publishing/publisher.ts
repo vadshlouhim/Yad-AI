@@ -56,7 +56,7 @@ export async function publishToChannel(
         result = await publishToTelegram(channel, payload);
         break;
       case "WHATSAPP":
-        result = await prepareWhatsAppFallback(channel, payload);
+        result = await prepareWhatsAppFallback(channel, payload, publication.communityId);
         break;
       case "EMAIL":
         result = await prepareEmailFallback(channel, payload, publication.communityId);

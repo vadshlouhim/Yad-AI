@@ -4,9 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  CheckCircle, XCircle, Settings, Trash2, Plus, ArrowLeft,
+  CheckCircle, Settings, ArrowLeft,
   ExternalLink, AlertCircle, Info
 } from "lucide-react";
 import Link from "next/link";
@@ -233,7 +233,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                     {info?.authType === "oauth" ? (
                       <div className="space-y-3">
                         <p className="text-sm text-slate-600">
-                          Connectez-vous via OAuth pour autoriser Yad.ia à publier en votre nom.
+                          Connectez-vous via OAuth Meta. Une fois le compte connecté, Yad.ia pourra publier sur la page Facebook ou le compte Instagram professionnel associé.
                         </p>
                         {channel?.isConnected ? (
                           <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 p-3">

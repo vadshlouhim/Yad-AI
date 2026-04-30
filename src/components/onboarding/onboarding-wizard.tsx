@@ -111,7 +111,7 @@ export function OnboardingWizard({ userId, userName, initialStep = 0 }: Props) {
 
       if (!res.ok) throw new Error("Erreur lors de la sauvegarde");
 
-      router.push("/dashboard?welcome=true");
+      router.push("/dashboard/assistant?welcome=true");
     } catch (err) {
       console.error(err);
       setSaving(false);
@@ -121,20 +121,20 @@ export function OnboardingWizard({ userId, userName, initialStep = 0 }: Props) {
   const stepProps = { data, updateData, onNext: goNext, onPrev: goPrev };
 
   return (
-    <div className="min-h-screen flex flex-col items-center py-12 px-4">
+    <div className="min-h-screen flex flex-col items-center px-4 py-8 sm:py-12">
       {/* En-tête de bienvenue */}
-      <div className="w-full max-w-2xl mb-10 text-center space-y-2">
-        <h1 className="text-3xl font-bold text-slate-900">
+      <div className="w-full max-w-2xl mb-8 sm:mb-10 text-center space-y-2">
+        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
           Bienvenue, {userName.split(" ")[0]} 👋
         </h1>
-        <p className="text-slate-500">
+        <p className="text-sm text-slate-500 sm:text-base">
           Configurons votre communauté en quelques étapes — cela prend moins de 5 minutes.
         </p>
       </div>
 
       {/* Barre de progression */}
-      <div className="w-full max-w-2xl mb-10">
-        <div className="flex items-center justify-between relative">
+      <div className="w-full max-w-2xl mb-8 sm:mb-10 overflow-x-auto">
+        <div className="relative flex min-w-[520px] items-center justify-between">
           {/* Ligne de connexion */}
           <div className="absolute left-0 right-0 top-4 h-0.5 bg-slate-200 -z-0" />
           <div

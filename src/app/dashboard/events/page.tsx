@@ -3,14 +3,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { EventsClient } from "@/components/events/events-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Événements" };
+export const metadata: Metadata = { title: "Mon agenda" };
 
-const EVENT_STATUSES = ["DRAFT", "SCHEDULED", "ONGOING", "COMPLETED", "ARCHIVED", "CANCELLED"];
+const EVENT_STATUSES = ["DRAFT", "READY", "SCHEDULED", "PUBLISHED", "COMPLETED", "ARCHIVED"];
 
 export default async function EventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; category?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; category?: string; q?: string; view?: string; period?: string }>;
 }) {
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
@@ -19,12 +19,13 @@ export default async function EventsPage({
 
   let query = admin
     .from("Event")
-    .select("*, contentDrafts:ContentDraft(id), publications:Publication(id)")
+    .select("id, title, startDate, endDate, location, category, status, isRecurring, coverImageUrl, contentDrafts:ContentDraft(id), publications:Publication(id)")
     .eq("communityId", communityId)
     .order("startDate", { ascending: true })
-    .limit(50);
+    .limit(500);
 
   if (params.status) query = query.eq("status", params.status);
+  else query = query.neq("status", "ARCHIVED");
   if (params.category) query = query.eq("category", params.category);
   if (params.q) query = query.ilike("title", `%${params.q}%`);
 
@@ -43,6 +44,21 @@ export default async function EventsPage({
   ]);
 
   const statusCounts2 = Object.fromEntries(statusCounts);
+  const normalizedEvents = (events ?? []).map((event) => ({
+    id: event.id,
+    title: event.title,
+    startDate: event.startDate,
+    endDate: event.endDate,
+    location: event.location,
+    category: event.category,
+    status: event.status,
+    isRecurring: event.isRecurring,
+    coverImageUrl: event.coverImageUrl,
+    _count: {
+      contentDrafts: Array.isArray(event.contentDrafts) ? event.contentDrafts.length : 0,
+      publications: Array.isArray(event.publications) ? event.publications.length : 0,
+    },
+  }));
 
-  return <EventsClient events={events ?? []} statusCounts={statusCounts2} />;
+  return <EventsClient events={normalizedEvents} statusCounts={statusCounts2} />;
 }

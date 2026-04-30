@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { PublicationsClient } from "@/components/publications/publications-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Publications — Yad.ia" };
+export const metadata: Metadata = { title: "Historique des publications — Yad.ia" };
 
 const PUBLICATION_STATUSES = ["PENDING", "SCHEDULED", "PUBLISHING", "PUBLISHED", "FAILED", "FALLBACK_READY", "CANCELLED"];
 

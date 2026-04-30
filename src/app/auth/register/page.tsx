@@ -13,7 +13,7 @@ export default function RegisterPage() {
     redirect("/");
   }
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Panneau gauche — Brand */}
       <div className="hidden lg:flex lg:w-1/2 brand-gradient flex-col justify-between p-12 text-white">
         <div className="flex items-center gap-3">
@@ -61,9 +61,9 @@ export default function RegisterPage() {
       </div>
 
       {/* Panneau droit — Formulaire */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-slate-50">
-        <div className="w-full max-w-md space-y-8">
-          <div className="lg:hidden flex items-center gap-3 justify-center mb-8">
+      <div className="flex-1 flex items-center justify-center px-4 py-8 sm:px-6 lg:p-8 bg-slate-50">
+        <div className="w-full max-w-md space-y-6 sm:space-y-8">
+          <div className="lg:hidden flex items-center gap-3 justify-center mb-4 sm:mb-8">
             <div className="w-10 h-10 rounded-xl brand-gradient flex items-center justify-center">
               <span className="text-white font-bold text-lg">י</span>
             </div>
@@ -71,7 +71,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-slate-900">Créer votre compte</h2>
+            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Créer votre compte</h2>
             <p className="text-slate-500">14 jours d&apos;essai gratuit, sans engagement</p>
           </div>
 

@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AIAssistantPanel } from "./ai-assistant-panel";
 import {
   Calendar, FileText, Send, Zap, Plus, ArrowRight,
-  TrendingUp, Clock, AlertCircle, Sparkles, Bot
+  AlertCircle, Sparkles, Bot
 } from "lucide-react";
 
 interface Props {
@@ -83,7 +83,6 @@ export function DashboardClient({
   pendingPublications,
   recentDrafts,
   stats,
-  notifications,
 }: Props) {
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
@@ -100,28 +99,28 @@ export function DashboardClient({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
             {greeting()}, {userName.split(" ")[0]} 👋
           </h1>
-          <p className="text-slate-500 mt-1">
+          <p className="mt-1 text-sm text-slate-500 sm:text-base">
             {community.name} · {connectedChannels} canal{connectedChannels !== 1 ? "x" : ""} connecté{connectedChannels !== 1 ? "s" : ""}
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end flex-shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setAiPanelOpen(true)}
-            className="hidden sm:flex"
+            className="w-full justify-center sm:w-auto"
           >
             <Sparkles className="size-4 text-amber-500" />
             Assistant IA
           </Button>
           <Link href="/dashboard/events/new">
-            <Button size="sm">
+            <Button size="sm" className="w-full sm:w-auto">
               <Plus className="size-4" />
               Nouvel événement
             </Button>
@@ -131,7 +130,7 @@ export function DashboardClient({
 
       {/* Alertes */}
       {failedPublications.length > 0 && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-start gap-3">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex flex-col gap-3 sm:flex-row sm:items-start">
           <AlertCircle className="size-5 text-red-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-red-800">
@@ -142,21 +141,21 @@ export function DashboardClient({
             </p>
           </div>
           <Link href="/dashboard/publications?status=FAILED">
-            <Button variant="destructive" size="sm">Voir</Button>
+            <Button variant="destructive" size="sm" className="w-full sm:w-auto">Voir</Button>
           </Link>
         </div>
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {STAT_CARDS(stats).map((card) => (
           <Link key={card.label} href={card.link}>
             <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="p-5">
+              <CardContent className="p-4 sm:p-5">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">{card.label}</p>
-                    <p className="text-3xl font-bold text-slate-900 mt-1">{card.value}</p>
+                    <p className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">{card.value}</p>
                   </div>
                   <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", card.color)}>
                     <card.icon className="size-5" />
@@ -197,7 +196,7 @@ export function DashboardClient({
                   <Link
                     key={event.id}
                     href={`/dashboard/events/${event.id}`}
-                    className="flex items-center gap-4 rounded-xl p-3 hover:bg-slate-50 transition-colors group"
+                    className="flex items-start gap-3 rounded-xl p-3 hover:bg-slate-50 transition-colors group sm:items-center sm:gap-4"
                   >
                     <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 text-sm font-bold text-blue-700">
                       {new Date(event.startDate).getDate()}
@@ -210,7 +209,7 @@ export function DashboardClient({
                         {formatEventDate(event.startDate)}
                       </p>
                     </div>
-                    <Badge variant="info" className="flex-shrink-0 text-[11px]">
+                    <Badge variant="info" className="mt-0.5 flex-shrink-0 text-[11px] sm:mt-0">
                       {EVENT_CATEGORY_LABELS[event.category] ?? event.category}
                     </Badge>
                   </Link>
@@ -245,7 +244,7 @@ export function DashboardClient({
                   return (
                     <div
                       key={pub.id}
-                      className="flex items-center gap-3 rounded-xl p-3 hover:bg-slate-50 transition-colors"
+                      className="flex items-start gap-3 rounded-xl p-3 hover:bg-slate-50 transition-colors sm:items-center"
                     >
                       <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 text-sm">
                         {pub.channelType === "INSTAGRAM" ? "📸" :
@@ -265,7 +264,7 @@ export function DashboardClient({
                             : "Non programmé"}
                         </p>
                       </div>
-                      <Badge variant={statusInfo.variant} className="text-[11px] flex-shrink-0">
+                      <Badge variant={statusInfo.variant} className="mt-0.5 text-[11px] flex-shrink-0 sm:mt-0">
                         {statusInfo.label}
                       </Badge>
                     </div>
@@ -350,17 +349,17 @@ export function DashboardClient({
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Actions rapides</CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-2">
+            <CardContent className="grid grid-cols-2 gap-2 sm:gap-3">
               {[
                 { label: "Nouveau post", href: "/dashboard/content/new", emoji: "✍️" },
                 { label: "Horaires Chabbat", href: "/dashboard/content/new?type=SHABBAT_TIMES", emoji: "🕯️" },
                 { label: "Calendrier", href: "/dashboard/events/calendar", emoji: "📅" },
-                { label: "Templates", href: "/dashboard/templates", emoji: "🎨" },
+                { label: "Affiches", href: "/dashboard/templates", emoji: "🎨" },
               ].map((action) => (
                 <Link
                   key={action.label}
                   href={action.href}
-                  className="flex flex-col items-center gap-1.5 rounded-xl border border-slate-200 p-3 hover:border-blue-300 hover:bg-blue-50 transition-all text-center"
+                  className="flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-xl border border-slate-200 p-3 hover:border-blue-300 hover:bg-blue-50 transition-all text-center"
                 >
                   <span className="text-xl">{action.emoji}</span>
                   <span className="text-xs font-medium text-slate-600">{action.label}</span>

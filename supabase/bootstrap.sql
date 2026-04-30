@@ -87,3 +87,32 @@ SECURITY DEFINER
 AS $$
   SELECT "communityId" FROM public.profiles WHERE id = auth.uid();
 $$;
+
+-- 7. Contacts / membres de communauté
+CREATE TABLE IF NOT EXISTS public."CommunityMember" (
+  id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "communityId" text NOT NULL REFERENCES public."Community"(id) ON DELETE CASCADE,
+  "firstName" text,
+  "lastName" text,
+  "displayName" text NOT NULL,
+  email text,
+  phone text,
+  profession text,
+  age integer,
+  "birthDate" date,
+  address text,
+  city text,
+  "familyStatus" text,
+  notes text,
+  source text NOT NULL DEFAULT 'manual',
+  tags text[] NOT NULL DEFAULT '{}',
+  "optInEmail" boolean NOT NULL DEFAULT true,
+  "optInWhatsapp" boolean NOT NULL DEFAULT true,
+  "createdAt" timestamptz NOT NULL DEFAULT now(),
+  "updatedAt" timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS "CommunityMember_communityId_idx" ON public."CommunityMember" ("communityId");
+CREATE INDEX IF NOT EXISTS "CommunityMember_email_idx" ON public."CommunityMember" (email);
+CREATE INDEX IF NOT EXISTS "CommunityMember_phone_idx" ON public."CommunityMember" (phone);
+CREATE INDEX IF NOT EXISTS "CommunityMember_profession_idx" ON public."CommunityMember" (profession);

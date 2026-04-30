@@ -167,6 +167,59 @@ export type Database = {
           status?: Database["public"]["Enums"]["AutomationRunStatus"]
         }
       }
+      Article: {
+        Row: {
+          communityId: string | null
+          content: string | null
+          createdAt: string
+          currency: string
+          description: string | null
+          id: string
+          imageUrl: string | null
+          isActive: boolean
+          isGlobal: boolean
+          name: string
+          priceCents: number
+          slug: string
+          stripePriceId: string
+          tags: string[]
+          updatedAt: string
+        }
+        Insert: {
+          communityId?: string | null
+          content?: string | null
+          createdAt?: string
+          currency?: string
+          description?: string | null
+          id: string
+          imageUrl?: string | null
+          isActive?: boolean
+          isGlobal?: boolean
+          name: string
+          priceCents: number
+          slug: string
+          stripePriceId: string
+          tags?: string[]
+          updatedAt: string
+        }
+        Update: {
+          communityId?: string | null
+          content?: string | null
+          createdAt?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          imageUrl?: string | null
+          isActive?: boolean
+          isGlobal?: boolean
+          name?: string
+          priceCents?: number
+          slug?: string
+          stripePriceId?: string
+          tags?: string[]
+          updatedAt?: string
+        }
+      }
       Channel: {
         Row: {
           accessToken: string | null
@@ -548,6 +601,103 @@ export type Database = {
           status?: Database["public"]["Enums"]["EventStatus"]
           title?: string
           updatedAt?: string
+        }
+      }
+      FranceCityShabbatSchedule: {
+        Row: {
+          city_code: string
+          city_name: string
+          created_at: string
+          latitude: number
+          longitude: number
+          shabbat_schedule: Json
+          source_provider: string | null
+          source_url: string | null
+          timezone: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          city_code: string
+          city_name: string
+          created_at?: string
+          latitude: number
+          longitude: number
+          shabbat_schedule: Json
+          source_provider?: string | null
+          source_url?: string | null
+          timezone?: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          city_code?: string
+          city_name?: string
+          created_at?: string
+          latitude?: number
+          longitude?: number
+          shabbat_schedule?: Json
+          source_provider?: string | null
+          source_url?: string | null
+          timezone?: string
+          updated_at?: string
+          year?: number
+        }
+      }
+      HebrewCalendarReference: {
+        Row: {
+          calendar_year: number
+          city: string | null
+          country: string | null
+          created_at: string
+          entry_type: string
+          gregorian_date: string
+          hebrew_date: string | null
+          holiday_name: string | null
+          holiday_name_hebrew: string | null
+          id: string
+          notes: string | null
+          parasha: string | null
+          shabbat_entry_time: string | null
+          shabbat_exit_time: string | null
+          source_provider: string | null
+          source_url: string | null
+        }
+        Insert: {
+          calendar_year: number
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          entry_type: string
+          gregorian_date: string
+          hebrew_date?: string | null
+          holiday_name?: string | null
+          holiday_name_hebrew?: string | null
+          id?: string
+          notes?: string | null
+          parasha?: string | null
+          shabbat_entry_time?: string | null
+          shabbat_exit_time?: string | null
+          source_provider?: string | null
+          source_url?: string | null
+        }
+        Update: {
+          calendar_year?: number
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          entry_type?: string
+          gregorian_date?: string
+          hebrew_date?: string | null
+          holiday_name?: string | null
+          holiday_name_hebrew?: string | null
+          id?: string
+          notes?: string | null
+          parasha?: string | null
+          shabbat_entry_time?: string | null
+          shabbat_exit_time?: string | null
+          source_provider?: string | null
+          source_url?: string | null
         }
       }
       MediaFile: {

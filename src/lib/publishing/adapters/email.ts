@@ -18,11 +18,25 @@ export async function prepareEmailFallback(
     .single();
 
   const formattedContent = formatEmailContent(payload, community?.name ?? "");
+  const { data: members } = await (supabase as ReturnType<typeof createAdminClient> & {
+    from: (table: string) => ReturnType<ReturnType<typeof createAdminClient>["from"]>;
+  })
+    .from("CommunityMember")
+    .select("email")
+    .eq("communityId", communityId)
+    .eq("optInEmail", true)
+    .not("email", "is", null);
+  const memberEmails = (members ?? [])
+    .map((member: { email: string | null }) => member.email)
+    .filter(Boolean) as string[];
 
-  if (process.env.RESEND_API_KEY && channel.handle) {
+  const emailList = channel.handle
+    ? channel.handle.split(",").map((e) => e.trim()).filter(Boolean)
+    : memberEmails;
+
+  if (process.env.RESEND_API_KEY && emailList.length > 0) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY);
-      const emailList = channel.handle.split(",").map((e) => e.trim());
 
       const { data, error } = await resend.emails.send({
         from: process.env.EMAIL_FROM ?? `${community?.name} <noreply@yad-ia.com>`,
@@ -45,7 +59,10 @@ export async function prepareEmailFallback(
     fallbackData: {
       subject: extractEmailSubject(payload.content),
       htmlContent: formattedContent,
-      instructions: "Configurez Resend dans les Paramètres pour l'envoi automatique.",
+      recipients: emailList,
+      instructions: emailList.length > 0
+        ? "Configurez Resend dans les Paramètres pour l'envoi automatique."
+        : "Ajoutez des contacts email dans Ma communauté ou configurez une liste d'emails.",
     },
   };
 }

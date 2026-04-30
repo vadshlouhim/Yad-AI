@@ -39,7 +39,7 @@ export default async function DashboardLayout({
     .eq("isRead", false);
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex h-dvh bg-slate-50 overflow-hidden">
       <Sidebar
         community={community}
         userAvatar={profile.avatarUrl}
@@ -52,8 +52,8 @@ export default async function DashboardLayout({
           userName={profile.name ?? ""}
           unreadNotifications={unreadCount ?? 0}
         />
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-7xl mx-auto animate-fade-in">
+        <main className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5 lg:p-6">
+          <div className="max-w-7xl mx-auto animate-fade-in pb-6">
             {children}
           </div>
         </main>

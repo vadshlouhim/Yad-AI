@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Zap, Plus, Play, Pause, Clock, CheckCircle, XCircle,
-  AlertCircle, Calendar, RefreshCw, Settings
+  AlertCircle, Calendar, RefreshCw, Settings, Trash2
 } from "lucide-react";
 import { formatRelative, formatDateTime, cn } from "@/lib/utils";
 
@@ -40,6 +40,7 @@ interface Automation {
 interface Props {
   automations: Automation[];
   recentRuns: AutomationRun[];
+  embedded?: boolean;
 }
 
 const TRIGGER_LABELS: Record<string, string> = {
@@ -54,7 +55,7 @@ const TRIGGER_LABELS: Record<string, string> = {
 };
 
 const RUN_STATUS_ICON: Record<string, React.ReactNode> = {
-  RUNNING: <RefreshCw className="size-3.5 text-blue-600 animate-spin" />,
+  RUNNING: <RefreshCw className="size-3.5 text-emerald-600 animate-spin" />,
   SUCCESS: <CheckCircle className="size-3.5 text-emerald-600" />,
   PARTIAL_SUCCESS: <AlertCircle className="size-3.5 text-amber-600" />,
   FAILED: <XCircle className="size-3.5 text-red-600" />,
@@ -69,10 +70,11 @@ const RUN_STATUS_VARIANT: Record<string, "draft" | "info" | "ready" | "published
   SKIPPED: "draft",
 };
 
-export function AutomationsClient({ automations, recentRuns }: Props) {
+export function AutomationsClient({ automations, recentRuns, embedded = false }: Props) {
   const router = useRouter();
   const [toggling, setToggling] = useState<string | null>(null);
   const [triggering, setTriggering] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   async function toggleAutomation(id: string, isActive: boolean) {
     setToggling(id);
@@ -100,25 +102,58 @@ export function AutomationsClient({ automations, recentRuns }: Props) {
     }
   }
 
+  async function deleteAutomation(id: string) {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette automatisation ?")) return;
+    setDeleting(id);
+    try {
+      const res = await fetch(`/api/automations/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        router.refresh();
+      } else {
+        alert("Erreur lors de la suppression.");
+      }
+    } catch {
+      alert("Erreur lors de la suppression.");
+    } finally {
+      setDeleting(null);
+    }
+  }
+
   const activeCount = automations.filter((a) => a.isActive).length;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      {!embedded && (
+      <div className="overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-teal-50 p-6 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Automatisations</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Communication</p>
+          <h1 className="mt-2 text-2xl font-bold text-slate-900">Automatisations</h1>
           <p className="text-slate-500 mt-1">
             {activeCount} automatisation{activeCount !== 1 ? "s" : ""} active{activeCount !== 1 ? "s" : ""}
           </p>
         </div>
         <Link href="/dashboard/automations/new">
-          <Button size="sm">
+          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 focus-visible:ring-emerald-500">
             <Plus className="size-4" />
             Nouvelle automatisation
           </Button>
         </Link>
+        </div>
       </div>
+      )}
+
+      {embedded && (
+        <div className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-teal-50 p-6 shadow-sm">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Automatisations</p>
+            <h2 className="mt-2 text-2xl font-bold text-slate-900">Programmations automatiques</h2>
+            <p className="mt-1 text-slate-500">
+              {activeCount} automatisation{activeCount !== 1 ? "s" : ""} active{activeCount !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Liste des automatisations */}
@@ -136,7 +171,7 @@ export function AutomationsClient({ automations, recentRuns }: Props) {
                   </p>
                 </div>
                 <Link href="/dashboard/automations/new">
-                  <Button size="sm">
+                  <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 focus-visible:ring-emerald-500">
                     <Plus className="size-4" />
                     Créer une automatisation
                   </Button>
@@ -159,7 +194,7 @@ export function AutomationsClient({ automations, recentRuns }: Props) {
                       {/* Icône trigger */}
                       <div className={cn(
                         "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl",
-                        automation.isActive ? "bg-purple-100" : "bg-slate-100"
+                        automation.isActive ? "bg-emerald-100" : "bg-slate-100"
                       )}>
                         {TRIGGER_LABELS[automation.trigger]?.split(" ")[0] ?? "⚡"}
                       </div>
@@ -183,11 +218,11 @@ export function AutomationsClient({ automations, recentRuns }: Props) {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3 mt-2">
-                          <span className="text-xs text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
+                          <span className="text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
                             {TRIGGER_LABELS[automation.trigger]?.slice(2) ?? automation.trigger}
                           </span>
                           {automation.event && (
-                            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
                               <Calendar className="size-3" />
                               {automation.event.title}
                             </span>
@@ -245,12 +280,26 @@ export function AutomationsClient({ automations, recentRuns }: Props) {
                             <Play className="size-3" />
                             Lancer maintenant
                           </Button>
-                          <Link href={`/dashboard/automations/${automation.id}`}>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs">
-                              <Settings className="size-3" />
-                              Configurer
-                            </Button>
-                          </Link>
+                          {!embedded && (
+                            <>
+                              <Link href={`/dashboard/automations/${automation.id}`}>
+                                <Button variant="ghost" size="sm" className="h-7 text-xs">
+                                  <Settings className="size-3" />
+                                  Configurer
+                                </Button>
+                              </Link>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => deleteAutomation(automation.id)}
+                                loading={deleting === automation.id}
+                              >
+                                <Trash2 className="size-3" />
+                                Supprimer
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -308,13 +357,13 @@ export function AutomationsClient({ automations, recentRuns }: Props) {
           </Card>
 
           {/* Info Chabbat automatique */}
-          <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+          <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200">
             <CardContent className="p-4 space-y-2">
               <div className="flex items-center gap-2">
                 <span className="text-xl">🕯️</span>
-                <p className="text-sm font-semibold text-blue-900">Automatisation Chabbat</p>
+                <p className="text-sm font-semibold text-emerald-900">Automatisation Chabbat</p>
               </div>
-              <p className="text-xs text-blue-700 leading-relaxed">
+              <p className="text-xs text-emerald-700 leading-relaxed">
                 L&apos;automatisation Chabbat publie automatiquement les horaires chaque vendredi
                 en se basant sur votre ville.
               </p>

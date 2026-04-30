@@ -21,8 +21,8 @@ export async function requireAuth(): Promise<{
     redirect("/auth/login");
   }
 
-  const admin = createAdminClient();
-  const { data: profile, error: profileError } = await admin
+  // Lecture du profil avec le client session (RLS autorise l'accès à son propre profil)
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)

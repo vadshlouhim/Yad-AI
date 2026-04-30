@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = { title: "Nouvel événement" };
 
 export default async function NewEventPage() {
-  const { profile } = await requireAuth();
+  await requireAuth();
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
@@ -14,7 +14,7 @@ export default async function NewEventPage() {
           Renseignez les détails de votre événement. L&apos;IA préparera ensuite les contenus automatiquement.
         </p>
       </div>
-      <EventForm communityId={profile.communityId!} />
+      <EventForm />
     </div>
   );
 }

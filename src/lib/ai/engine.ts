@@ -5,7 +5,9 @@ import {
   buildContentGenerationPrompt,
   buildAdaptationPrompt,
   buildMemoryContext,
+  type GenerationShabbatTimes,
 } from "./prompts";
+import { getShabbatTimes } from "@/lib/automation/hebcal";
 import type { Enums } from "@/types/database.types";
 
 type ContentType = Enums<"ContentType">;
@@ -38,7 +40,7 @@ async function getCommunityContext(communityId: string) {
   const [{ data: community }, { data: memories }] = await Promise.all([
     supabase
       .from("Community")
-      .select("name,city,tone,language,signature,hashtags,editorialRules,communityType,religiousStream")
+      .select("name,city,timezone,tone,language,signature,hashtags,editorialRules,communityType,religiousStream")
       .eq("id", communityId)
       .single(),
     supabase
@@ -51,13 +53,172 @@ async function getCommunityContext(communityId: string) {
   return { community, memories: memories ?? [] };
 }
 
+function normalizeCityName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function getNextShabbatFromSchedule(
+  schedule: Array<{
+    gregorian_date: string;
+    hebrew_date?: string | null;
+    parasha?: string | null;
+    shabbat_entry_time?: string | null;
+    shabbat_exit_time?: string | null;
+  }>,
+  now: Date
+) {
+  const today = startOfDay(now);
+  return schedule.find((entry) => new Date(`${entry.gregorian_date}T00:00:00`) >= today) ?? null;
+}
+
+export async function getStoredShabbatTimes(params: {
+  city?: string | null;
+  timezone?: string | null;
+}): Promise<GenerationShabbatTimes | null> {
+  const supabase = createAdminClient();
+  const now = new Date();
+  const years = [now.getFullYear(), now.getFullYear() + 1];
+
+  for (const year of years) {
+    let scheduleRow: { city_name: string; shabbat_schedule: unknown } | null = null;
+
+    if (params.city) {
+      const exactMatch = await supabase
+        .from("FranceCityShabbatSchedule")
+        .select("city_name, shabbat_schedule")
+        .eq("year", year)
+        .eq("city_name", params.city)
+        .maybeSingle();
+
+      scheduleRow = exactMatch.data as typeof scheduleRow;
+
+      if (!scheduleRow) {
+        const primaryToken =
+          params.city
+            .split(/[\s,'-]+/)
+            .find((token) => token.trim().length >= 3)
+            ?.trim() ?? params.city;
+
+        const closeMatches = await supabase
+          .from("FranceCityShabbatSchedule")
+          .select("city_name, shabbat_schedule")
+          .eq("year", year)
+          .ilike("city_name", `%${primaryToken}%`)
+          .limit(50);
+
+        const rows = (closeMatches.data ?? []) as Array<{ city_name: string; shabbat_schedule: unknown }>;
+        const normalizedCity = normalizeCityName(params.city);
+        scheduleRow =
+          rows.find((row) => normalizeCityName(row.city_name) === normalizedCity) ??
+          rows.find((row) => normalizeCityName(row.city_name).includes(normalizedCity)) ??
+          rows.find((row) => normalizedCity.includes(normalizeCityName(row.city_name))) ??
+          rows[0] ??
+          null;
+      }
+    }
+
+    if (!scheduleRow) {
+      const parisFallback = await supabase
+        .from("FranceCityShabbatSchedule")
+        .select("city_name, shabbat_schedule")
+        .eq("year", year)
+        .eq("city_code", "75056")
+        .maybeSingle();
+      scheduleRow = parisFallback.data as typeof scheduleRow;
+    }
+
+    const schedule = Array.isArray(scheduleRow?.shabbat_schedule)
+      ? scheduleRow.shabbat_schedule as Array<{
+          gregorian_date: string;
+          hebrew_date?: string | null;
+          parasha?: string | null;
+          shabbat_entry_time?: string | null;
+          shabbat_exit_time?: string | null;
+        }>
+      : [];
+
+    const next = getNextShabbatFromSchedule(schedule, now);
+    if (next?.shabbat_entry_time) {
+      return {
+        date: next.gregorian_date,
+        hebrewDate: next.hebrew_date ?? undefined,
+        parasha: next.parasha ?? undefined,
+        entry: next.shabbat_entry_time,
+        exit: next.shabbat_exit_time ?? "",
+      };
+    }
+  }
+
+  const live = await getShabbatTimes({
+    city: params.city ?? "Paris",
+    timezone: params.timezone ?? "Europe/Paris",
+  });
+
+  return live
+    ? {
+        date: live.date,
+        hebrewDate: live.hebrewDate,
+        parasha: live.parasha,
+        entry: live.entry,
+        exit: live.exit,
+      }
+    : null;
+}
+
+function looksLikeShabbatContent(params: {
+  contentType: ContentType;
+  customInstructions?: string;
+  event?: { title?: string | null; description?: string | null; category?: string | null } | null;
+}) {
+  const text = [
+    params.contentType,
+    params.customInstructions,
+    params.event?.title,
+    params.event?.description,
+    params.event?.category,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  return ["shabbat", "chabbat", "bougies", "havdala", "paracha"].some((keyword) => text.includes(keyword));
+}
+
+function removeAsterisks(value: string) {
+  return value.replace(/\*/g, "");
+}
+
+function sanitizeGeneratedContent(content: GeneratedContent): GeneratedContent {
+  return {
+    ...content,
+    body: removeAsterisks(content.body ?? ""),
+    bodyHebrew: content.bodyHebrew ? removeAsterisks(content.bodyHebrew) : content.bodyHebrew,
+    cta: content.cta ? removeAsterisks(content.cta) : content.cta,
+    notes: content.notes ? removeAsterisks(content.notes) : content.notes,
+    hashtags: Array.isArray(content.hashtags) ? content.hashtags.map(removeAsterisks) : [],
+    raw: content.raw ? removeAsterisks(content.raw) : content.raw,
+  };
+}
+
 export async function generateContent(params: {
   communityId: string;
   contentType: ContentType;
   eventId?: string;
   channelType?: ChannelType;
   customInstructions?: string;
-  shabbatTimes?: { entry: string; exit: string } | null;
+  shabbatTimes?: GenerationShabbatTimes | null;
   holidayName?: string;
   hebrewDate?: string;
 }): Promise<GeneratedContent> {
@@ -71,15 +232,24 @@ export async function generateContent(params: {
     ? (await supabase.from("Event").select("*").eq("id", eventId).single()).data
     : null;
 
+  const shabbatTimes =
+    params.shabbatTimes ??
+    (looksLikeShabbatContent({ contentType, customInstructions, event })
+      ? await getStoredShabbatTimes({
+          city: community.city,
+          timezone: community.timezone,
+        })
+      : null);
+
   const systemPrompt = buildSystemPrompt(community) + buildMemoryContext(memories);
   const userPrompt = buildContentGenerationPrompt({
     contentType,
     event,
     channelType,
     customInstructions,
-    shabbatTimes: params.shabbatTimes,
+    shabbatTimes,
     holidayName: params.holidayName,
-    hebrewDate: params.hebrewDate,
+    hebrewDate: params.hebrewDate ?? shabbatTimes?.hebrewDate,
   });
 
   const response = await openrouter.chat.completions.create({
@@ -97,11 +267,11 @@ export async function generateContent(params: {
     const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]) as GeneratedContent;
-      return { ...parsed, raw: rawContent };
+      return sanitizeGeneratedContent({ ...parsed, raw: rawContent });
     }
   } catch {}
 
-  return { body: rawContent, hashtags: community.hashtags ?? [], raw: rawContent };
+  return sanitizeGeneratedContent({ body: rawContent, hashtags: community.hashtags ?? [], raw: rawContent });
 }
 
 export async function adaptContentForChannel(params: {
@@ -134,10 +304,10 @@ export async function adaptContentForChannel(params: {
 
   try {
     const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-    if (jsonMatch) return JSON.parse(jsonMatch[0]) as GeneratedContent;
+    if (jsonMatch) return sanitizeGeneratedContent(JSON.parse(jsonMatch[0]) as GeneratedContent);
   } catch {}
 
-  return { body: rawContent, hashtags: [], raw: rawContent };
+  return sanitizeGeneratedContent({ body: rawContent, hashtags: [], raw: rawContent });
 }
 
 export async function* streamChatResponse(params: {
@@ -166,7 +336,7 @@ export async function* streamChatResponse(params: {
 
   for await (const chunk of stream) {
     const delta = chunk.choices[0]?.delta?.content;
-    if (delta) yield delta;
+    if (delta) yield removeAsterisks(delta);
   }
 }
 

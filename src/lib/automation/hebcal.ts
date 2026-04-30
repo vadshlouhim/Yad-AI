@@ -25,6 +25,11 @@ export interface JewishHoliday {
   link?: string;
 }
 
+export interface HolidayTimes {
+  entry: string | null;
+  exit: string | null;
+}
+
 const HEBCAL_API = process.env.HEBCAL_API_URL ?? "https://www.hebcal.com/hebcal";
 
 // ============================================================
@@ -137,7 +142,7 @@ export async function getJewishHolidays(params: {
   months?: number;
 }): Promise<JewishHoliday[]> {
   try {
-    const { year = new Date().getFullYear(), months = 12 } = params;
+    const { year = new Date().getFullYear() } = params;
 
     const searchParams = new URLSearchParams({
       v: "1",
@@ -186,6 +191,121 @@ export async function getJewishHolidays(params: {
   } catch (error) {
     console.error("[Hebcal] Erreur getHolidays:", error);
     return [];
+  }
+}
+
+export async function getHolidayTimes(params: {
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  timezone?: string;
+  date: string;
+}): Promise<HolidayTimes | null> {
+  try {
+    const { city, latitude, longitude, timezone = "Europe/Paris", date } = params;
+    const targetDate = new Date(`${date}T12:00:00`);
+    const start = new Date(targetDate);
+    start.setDate(start.getDate() - 1);
+    const end = new Date(targetDate);
+    end.setDate(end.getDate() + 2);
+
+    const searchParams = new URLSearchParams({
+      v: "1",
+      cfg: "json",
+      maj: "on",
+      min: "off",
+      mod: "off",
+      nx: "off",
+      year: targetDate.getFullYear().toString(),
+      c: "on",
+      start: start.toISOString().split("T")[0],
+      end: end.toISOString().split("T")[0],
+      b: "18",
+      M: "on",
+      i: "off",
+      lg: "fr",
+    });
+
+    if (latitude && longitude) {
+      searchParams.set("geo", "pos");
+      searchParams.set("latitude", latitude.toString());
+      searchParams.set("longitude", longitude.toString());
+      searchParams.set("tzid", timezone);
+    } else if (city) {
+      searchParams.set("geo", "city");
+      searchParams.set("city", getCityGeoId(city));
+    } else {
+      searchParams.set("geo", "city");
+      searchParams.set("city", "Paris");
+    }
+
+    const response = await fetch(`${HEBCAL_API}?${searchParams.toString()}`, {
+      next: { revalidate: 3600 },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    const items = Array.isArray(data.items) ? data.items : [];
+    if (!items.length) {
+      return null;
+    }
+
+    const targetKey = date;
+    const candlesOnTargetDate = items.find(
+      (item: { category?: string; date?: string }) =>
+        item.category === "candles" && item.date?.slice(0, 10) === targetKey
+    );
+    const havdalahOnTargetDate = items.find(
+      (item: { category?: string; date?: string }) =>
+        item.category === "havdalah" && item.date?.slice(0, 10) === targetKey
+    );
+
+    const holidayIndices = items
+      .map((item: { category?: string; date?: string }, index: number) => ({
+        category: item.category,
+        date: item.date?.slice(0, 10),
+        index,
+      }))
+      .filter((item) => item.category === "holiday" && item.date === targetKey)
+      .map((item) => item.index);
+
+    const startIndex = holidayIndices[0] ?? 0;
+    const endIndex = holidayIndices[holidayIndices.length - 1] ?? startIndex;
+
+    let entry: string | null = null;
+    let exit: string | null = null;
+
+    if (candlesOnTargetDate?.date) {
+      entry = formatTime(candlesOnTargetDate.date);
+    } else {
+      for (let index = startIndex; index >= 0; index -= 1) {
+        const item = items[index];
+        if (item.category === "candles") {
+          entry = formatTime(item.date);
+          break;
+        }
+      }
+    }
+
+    if (havdalahOnTargetDate?.date) {
+      exit = formatTime(havdalahOnTargetDate.date);
+    } else {
+      for (let index = endIndex; index < items.length; index += 1) {
+        const item = items[index];
+        if (item.category === "havdalah") {
+          exit = formatTime(item.date);
+          break;
+        }
+      }
+    }
+
+    return { entry, exit };
+  } catch (error) {
+    console.error("[Hebcal] Erreur getHolidayTimes:", error);
+    return null;
   }
 }
 

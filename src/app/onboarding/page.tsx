@@ -14,7 +14,7 @@ export default async function OnboardingPage() {
       .eq("id", profile.communityId)
       .single();
     if (community?.onboardingDone) {
-      redirect("/dashboard");
+      redirect("/dashboard/assistant");
     }
   }
 

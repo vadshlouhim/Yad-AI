@@ -4,6 +4,14 @@ type ContentType = Enums<"ContentType">;
 type ChannelType = Enums<"ChannelType">;
 type Event = Tables<"Event">;
 
+export type GenerationShabbatTimes = {
+  date?: string;
+  hebrewDate?: string;
+  parasha?: string;
+  entry: string;
+  exit: string;
+};
+
 export function buildSystemPrompt(community: {
   name: string;
   city?: string | null;
@@ -50,10 +58,16 @@ PRINCIPES CLÉS :
 3. Sois concis et percutant — les posts communautaires doivent accrocher l'attention
 4. Quand tu génères du contenu, propose aussi des hashtags adaptés et un CTA clair
 5. Pour les contenus religieux, sois précis et respectueux des pratiques communautaires
-6. Si tu n'es pas sûr d'une information (horaires, dates), indique-le clairement
+6. N'insère jamais d'astérisque dans tes réponses ou contenus, même pour mettre en gras
+7. Si un horaire, une date hébraïque ou une paracha est fourni dans le contexte, tu dois l'utiliser tel quel et ne jamais demander à l'utilisateur de le rajouter
+8. Si tu n'es pas sûr d'une information non fournie (horaires, dates), indique-le clairement
+9. Pour tout contenu lié à l'étude, la Torah, la paracha, la halakha, les fêtes ou une pensée juive, fonde-toi uniquement sur des éléments vérifiables depuis fr.chabad.org ; ne fabrique pas de citations, références ou explications religieuses
+10. Par défaut, vise environ 500 mots avec une marge de 20%, donc entre 400 et 600 mots, sauf si le canal ou l'utilisateur demande explicitement plus court
+11. Si l'utilisateur demande une affiche, un visuel ou un flyer, privilégie d'abord une affiche existante pertinente de la bibliothèque
+12. Dans ce cas, ne propose pas d'idée de prompt d'image ni de concept visuel abstrait si des affiches pertinentes sont déjà disponibles
 
 FORMAT DE RÉPONSE :
-- Réponds en markdown pour le chat
+- Réponds en texte clair, sans astérisques Markdown
 - Pour les contenus à publier, utilise le format structuré demandé
 - Sois direct et utile — pas de blabla introductif inutile`;
 }
@@ -64,7 +78,7 @@ export function buildContentGenerationPrompt(params: {
   channelType?: ChannelType;
   customInstructions?: string;
   hebrewDate?: string;
-  shabbatTimes?: { entry: string; exit: string } | null;
+  shabbatTimes?: GenerationShabbatTimes | null;
   holidayName?: string;
 }): string {
   const { contentType, event, channelType, customInstructions, hebrewDate, shabbatTimes, holidayName } = params;
@@ -115,16 +129,18 @@ Résume l'ambiance et les temps forts. Teaser du prochain événement si possibl
 
     SHABBAT_TIMES: `
 Génère un post d'horaires de Chabbat.
-${hebrewDate ? `Date hébraïque : ${hebrewDate}` : ""}
+${shabbatTimes?.date ? `Date civile du prochain Chabbat : ${new Date(`${shabbatTimes.date}T12:00:00`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}` : ""}
+${shabbatTimes?.hebrewDate || hebrewDate ? `Date hébraïque : ${shabbatTimes?.hebrewDate ?? hebrewDate}` : ""}
+${shabbatTimes?.parasha ? `Paracha : ${shabbatTimes.parasha}` : ""}
 ${shabbatTimes ? `
 Entrée du Chabbat : ${shabbatTimes.entry}
 Sortie du Chabbat : ${shabbatTimes.exit}
-` : "Inclure les placeholders [HEURE_ENTREE] et [HEURE_SORTIE] pour les horaires."}
+` : "Aucun horaire fiable n'est disponible dans le calendrier. N'invente pas les horaires et indique qu'ils doivent être vérifiés."}
 
 Le post doit inclure :
 - Salutation de Chabbat (Shabbat Shalom / שבת שלום)
 - Les horaires clairement mis en avant
-- Un verset ou une pensée courte si approprié
+- Une pensée courte seulement si elle est sûre et cohérente avec fr.chabad.org
 - Un souhait de bon Chabbat à la fin
     `,
 
@@ -159,6 +175,12 @@ Ton éducatif et invitant. Mentionne les bénéfices d'assister.
 ${channelInstructions ? `\nFORMAT ${channelType} :\n${channelInstructions}` : ""}
 
 ${customInstructions ? `\nINSTRUCTIONS SUPPLÉMENTAIRES :\n${customInstructions}` : ""}
+
+CONTRAINTES STRICTES :
+- N'utilise jamais le caractère astérisque.
+- Ne demande jamais à l'utilisateur d'ajouter des horaires si des horaires sont fournis ci-dessus.
+- Pour les sujets d'étude, Torah, paracha, halakha ou fêtes, reste aligné avec les informations de fr.chabad.org et évite toute affirmation non vérifiée.
+- Longueur cible du texte principal : environ 500 mots, marge 20%, donc 400 à 600 mots, sauf instruction explicite contraire.
 
 STRUCTURE DE RÉPONSE ATTENDUE (JSON) :
 {
@@ -197,7 +219,7 @@ export const CHANNEL_FORMAT_INSTRUCTIONS: Record<ChannelType, string> = {
   `,
   TELEGRAM: `
 - Longueur idéale : 100-200 mots
-- Peut utiliser le formatage Markdown de Telegram (*gras*, _italique_)
+- N'utilise aucun formatage Markdown avec astérisques
 - Pas de hashtags (ou très peu)
 - Ton direct et informatif
 - Liens cliquables si pertinents

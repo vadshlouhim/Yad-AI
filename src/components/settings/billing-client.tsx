@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowLeft, CreditCard, Check, Zap, Shield, Sparkles,
-  ExternalLink, AlertCircle, Calendar
+  ExternalLink, AlertCircle
 } from "lucide-react";
 import Link from "next/link";
 import { formatDateTime, cn } from "@/lib/utils";
@@ -42,7 +42,7 @@ const PLANS = [
       "30 publications / mois",
       "50 générations IA / mois",
       "2 canaux de diffusion",
-      "10 templates",
+      "10 affiches",
     ],
     color: "border-slate-200",
     badge: null,
@@ -57,7 +57,7 @@ const PLANS = [
       "150 publications / mois",
       "300 générations IA / mois",
       "5 canaux de diffusion",
-      "50 templates",
+      "50 affiches",
       "Automatisations Chabbat",
       "Support email",
     ],
@@ -75,7 +75,7 @@ const PLANS = [
       "Publications illimitées",
       "Générations IA illimitées",
       "Tous les canaux",
-      "Templates illimités",
+      "Affiches illimitées",
       "Toutes les automatisations",
       "Calendrier juif avancé",
       "Support prioritaire",
