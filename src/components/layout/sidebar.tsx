@@ -37,13 +37,14 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
-  // Remplace le préfixe /dashboard par basePath dans les hrefs
   function resolveHref(href: string) {
+    if (href.startsWith("http") || href.startsWith("mailto")) return href;
     return href.replace("/dashboard", basePath);
   }
 
   function isActive(href: string) {
-    const resolved = resolveHref(href);
+    if (href.startsWith("http") || href.startsWith("mailto")) return false;
+    const resolved = resolveHref(href.split("?")[0]);
     return pathname.startsWith(resolved) && resolved !== basePath;
   }
 
@@ -79,10 +80,7 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-semibold truncate leading-tight">{community.name}</p>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className={cn(
-                "w-1.5 h-1.5 rounded-full",
-                PLAN_COLORS[community.plan] ?? "bg-slate-500"
-              )} />
+              <span className={cn("w-1.5 h-1.5 rounded-full", PLAN_COLORS[community.plan] ?? "bg-slate-500")} />
               <span className="text-xs text-slate-400">
                 {PLAN_LABELS[community.plan] ?? community.plan}
               </span>
@@ -99,55 +97,79 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-6">
+      <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-5">
         {DASHBOARD_NAV_ITEMS.map((section) => {
           const sectionStyle = DASHBOARD_SECTION_STYLES[section.section];
           return (
-          <div key={section.section}>
-            {!collapsed && (
-              <p className={cn(
-                "px-3 text-[11px] font-bold uppercase tracking-wider mb-1.5",
-                sectionStyle?.label ?? "text-slate-500"
-              )}>
-                {section.section}
-              </p>
-            )}
-            <ul className="space-y-0.5">
-              {section.items.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={resolveHref(item.href)}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-150",
-                        active
-                          ? sectionStyle?.itemActive
-                          : "text-slate-400 hover:bg-slate-800 hover:text-slate-200",
-                        collapsed && "justify-center px-2"
-                      )}
-                      title={collapsed ? item.label : undefined}
-                    >
-                      {item.icon && (
-                        <item.icon className={cn("flex-shrink-0", collapsed ? "size-5" : "size-4")} />
-                      )}
-                      {!collapsed && (
-                        <>
-                          <span className="flex-1 font-medium">{item.label}</span>
-                          {item.badge && (
-                            <span className="text-[10px] font-bold bg-amber-500 text-white rounded-full px-1.5 py-0.5">
+            <div key={section.section}>
+              {!collapsed && (
+                <p className={cn(
+                  "px-3 text-[10px] font-bold uppercase tracking-widest mb-1.5",
+                  sectionStyle?.label ?? "text-slate-500"
+                )}>
+                  {section.section}
+                </p>
+              )}
+              <ul className="space-y-0.5">
+                {section.items.map((item) => {
+                  const active = isActive(item.href);
+                  const isExternal = item.external || item.href.startsWith("mailto");
+                  const resolvedHref = resolveHref(item.href);
+
+                  return (
+                    <li key={item.href}>
+                      <div className="flex items-center gap-1">
+                        <Link
+                          href={resolvedHref}
+                          target={isExternal ? "_blank" : undefined}
+                          rel={isExternal ? "noopener noreferrer" : undefined}
+                          className={cn(
+                            "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-all duration-150 flex-1 min-w-0",
+                            item.isQuickAction
+                              ? active
+                                ? sectionStyle?.itemActive
+                                : "text-sky-400 hover:bg-slate-800 hover:text-sky-300 font-medium"
+                              : active
+                              ? sectionStyle?.itemActive
+                              : "text-slate-400 hover:bg-slate-800 hover:text-slate-200",
+                            collapsed && "justify-center px-2"
+                          )}
+                          title={collapsed ? item.label : undefined}
+                        >
+                          {item.icon && (
+                            <item.icon className={cn(
+                              "flex-shrink-0",
+                              collapsed ? "size-5" : "size-4",
+                              item.isQuickAction && !active && "text-sky-500"
+                            )} />
+                          )}
+                          {!collapsed && (
+                            <span className="flex-1 font-medium truncate">{item.label}</span>
+                          )}
+                          {!collapsed && item.badge && (
+                            <span className="text-[10px] font-bold bg-amber-500 text-white rounded-full px-1.5 py-0.5 flex-shrink-0">
                               {item.badge}
                             </span>
                           )}
-                        </>
-                      )}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        );
+                        </Link>
+
+                        {/* Bouton action secondaire */}
+                        {!collapsed && item.action && (
+                          <Link
+                            href={resolveHref(item.action.href)}
+                            className="text-[10px] text-slate-500 hover:text-slate-200 hover:bg-slate-700 rounded-md px-1.5 py-1 transition-colors flex-shrink-0 font-medium whitespace-nowrap"
+                            title={item.action.label}
+                          >
+                            {item.action.label}
+                          </Link>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
         })}
       </nav>
 
