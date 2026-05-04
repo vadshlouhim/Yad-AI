@@ -94,7 +94,6 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
         href: "/dashboard/assistant",
         label: "Activer l'assistant",
         icon: Bot,
-        action: { label: "Mon quotidien", href: "/dashboard/assistant?routine=1" },
       },
     ],
   },
