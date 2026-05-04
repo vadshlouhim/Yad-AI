@@ -7,7 +7,7 @@ export default function HomePage() {
         {/* Logo */}
         <div className="flex items-center justify-center gap-3">
           <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center">
-            <span className="text-white font-bold text-2xl">י</span>
+            <span className="text-white font-bold text-2xl">ש</span>
           </div>
           <span className="text-3xl font-bold tracking-tight">Shalom IA</span>
         </div>
@@ -30,8 +30,7 @@ export default function HomePage() {
             "✍️ Génération de contenu par IA",
             "📡 Diffusion multicanale automatisée",
             "🕍 Calendrier hébraïque intégré",
-            "📊 Statistiques et historique",
-            "🔔 Automatisations intelligentes",
+            "💛 Automatisation des appels aux dons",
           ].map((feat) => (
             <div
               key={feat}
