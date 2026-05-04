@@ -70,7 +70,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
       { href: "/dashboard/settings/channels", label: "Connecter mes réseaux", icon: Share2 },
       {
         href: "/dashboard/automations",
-        label: "Mes automatisations",
+        label: "Automatisations",
         icon: Zap,
         action: { label: "+ Créer", href: "/dashboard/automations?new=1" },
       },
@@ -82,9 +82,8 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     items: [
       {
         href: "/dashboard/messaging",
-        label: "Messagerie",
+        label: "Boite de réception",
         icon: MessageSquare,
-        action: { label: "+ Contacts", href: "/dashboard/messaging/contacts" },
       },
     ],
   },
