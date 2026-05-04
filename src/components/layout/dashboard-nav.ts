@@ -1,9 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard, Share2, Zap, MessageSquare,
-  Clock, Bot, Calendar, BookOpen, Image, Video,
+  Bot, BookOpen, Image, Video, CalendarDays, Calendar,
   ShoppingBag, Globe, Plus, Settings, HelpCircle,
-  Mail, History, CalendarDays,
+  Mail, History,
 } from "lucide-react";
 
 export interface DashboardNavItem {
@@ -30,7 +30,7 @@ export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActiv
     label: "text-cyan-300",
     itemActive: "bg-cyan-700 text-white shadow-sm",
   },
-  "ASSISTANT DU QUOTIDIEN": {
+  "ASSISTANT IA": {
     label: "text-blue-300",
     itemActive: "bg-blue-600 text-white shadow-sm",
   },
@@ -41,10 +41,6 @@ export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActiv
   "BANQUE VISUELLE": {
     label: "text-amber-300",
     itemActive: "bg-amber-600 text-white shadow-sm",
-  },
-  "AGENDA INTELLIGENT": {
-    label: "text-sky-300",
-    itemActive: "bg-sky-600 text-white shadow-sm",
   },
   "SERVICES COMPLÉMENTAIRES": {
     label: "text-rose-300",
@@ -88,13 +84,10 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     ],
   },
   {
-    section: "ASSISTANT DU QUOTIDIEN",
+    section: "ASSISTANT IA",
     items: [
-      {
-        href: "/dashboard/assistant",
-        label: "Activer l'assistant",
-        icon: Bot,
-      },
+      { href: "/dashboard/assistant", label: "Activer l'assistant IA", icon: Bot },
+      { href: "/dashboard/events", label: "Agenda intelligent", icon: CalendarDays },
     ],
   },
   {
@@ -107,15 +100,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "BANQUE VISUELLE",
     items: [
-      { href: "/dashboard/hebrew-calendar?tab=shabbat", label: "Horaires de Chabbat", icon: Clock },
       { href: "/dashboard/templates", label: "Affiches préremplies", icon: Image },
-    ],
-  },
-  {
-    section: "AGENDA INTELLIGENT",
-    items: [
-      { href: "/dashboard/events", label: "Voir mon agenda", icon: Calendar },
-      { href: "/dashboard/hebrew-calendar", label: "Calendrier hébraïque", icon: CalendarDays },
     ],
   },
   {

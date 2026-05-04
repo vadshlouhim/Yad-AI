@@ -32,9 +32,26 @@ interface Event {
   _count?: { contentDrafts: number; publications: number };
 }
 
+export interface ShabbatItem {
+  date: string;
+  hebrewDate: string | null;
+  parasha: string | null;
+  entry: string | null;
+  exit: string | null;
+}
+
+export interface HolidayItem {
+  date: string;
+  name: string;
+  nameHebrew: string | null;
+  hebrewDate: string | null;
+}
+
 interface Props {
   events: Event[];
   statusCounts: Record<string, number>;
+  shabbatItems?: ShabbatItem[];
+  holidayItems?: HolidayItem[];
 }
 
 type ViewMode = "calendar" | "list";
@@ -210,12 +227,29 @@ function buildYearMonths(anchor: Date) {
   return Array.from({ length: 12 }, (_, month) => new Date(anchor.getFullYear(), month, 1));
 }
 
-export function EventsClient({ events, statusCounts }: Props) {
+export function EventsClient({ events, statusCounts, shabbatItems = [], holidayItems = [] }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showShabbat, setShowShabbat] = useState(false);
+  const [showHolidays, setShowHolidays] = useState(false);
+
+  // Index par date pour lookup rapide dans le calendrier
+  const shabbatByDate = useMemo(() => {
+    const map = new Map<string, ShabbatItem>();
+    shabbatItems.forEach((s) => map.set(s.date, s));
+    return map;
+  }, [shabbatItems]);
+
+  const holidayByDate = useMemo(() => {
+    const map = new Map<string, HolidayItem[]>();
+    holidayItems.forEach((h) => {
+      map.set(h.date, [...(map.get(h.date) ?? []), h]);
+    });
+    return map;
+  }, [holidayItems]);
 
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const activeStatus = searchParams.get("status") ?? "";
@@ -290,9 +324,9 @@ export function EventsClient({ events, statusCounts }: Props) {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Agenda communautaire</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">Mon agenda</h1>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">Agenda intelligent</h1>
             <p className="mt-2 text-sm text-slate-600">
-              {totalAll} événement{totalAll !== 1 ? "s" : ""} enregistré{totalAll !== 1 ? "s" : ""}, avec une vue calendrier et une vue liste.
+              {totalAll} événement{totalAll !== 1 ? "s" : ""} enregistré{totalAll !== 1 ? "s" : ""}
             </p>
           </div>
           <Link href="/dashboard/events/new">
@@ -301,6 +335,48 @@ export function EventsClient({ events, statusCounts }: Props) {
               Nouvel événement
             </Button>
           </Link>
+        </div>
+
+        {/* Toggles calendrier hébraïque */}
+        <div className="mt-5 flex flex-wrap gap-3 border-t border-emerald-100 pt-4">
+          <p className="w-full text-xs font-semibold uppercase tracking-wide text-slate-500">Afficher dans l&apos;agenda :</p>
+          <button
+            type="button"
+            onClick={() => setShowShabbat((v) => !v)}
+            className={cn(
+              "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all",
+              showShabbat
+                ? "border-amber-400 bg-amber-50 text-amber-700"
+                : "border-slate-200 bg-white text-slate-500 hover:border-amber-300 hover:text-amber-600"
+            )}
+          >
+            <span className={cn(
+              "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+              showShabbat ? "border-amber-500 bg-amber-500" : "border-slate-300"
+            )}>
+              {showShabbat && <span className="text-white text-[10px] leading-none">✓</span>}
+            </span>
+            🕯️ Horaires de Chabbat
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowHolidays((v) => !v)}
+            className={cn(
+              "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all",
+              showHolidays
+                ? "border-blue-400 bg-blue-50 text-blue-700"
+                : "border-slate-200 bg-white text-slate-500 hover:border-blue-300 hover:text-blue-600"
+            )}
+          >
+            <span className={cn(
+              "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+              showHolidays ? "border-blue-500 bg-blue-500" : "border-slate-300"
+            )}>
+              {showHolidays && <span className="text-white text-[10px] leading-none">✓</span>}
+            </span>
+            🕍 Fêtes juives
+          </button>
         </div>
       </div>
 
@@ -399,6 +475,8 @@ export function EventsClient({ events, statusCounts }: Props) {
             todaysEvents={todaysEvents}
             period={activePeriod}
             anchorDate={anchorDate}
+            shabbatByDate={showShabbat ? shabbatByDate : undefined}
+            holidayByDate={showHolidays ? holidayByDate : undefined}
             onPeriodChange={updatePeriod}
             onToday={goToday}
             onPrevious={() => setAnchorDate((date) => moveAnchor(date, activePeriod, -1))}
@@ -426,6 +504,8 @@ function CalendarView({
   todaysEvents,
   period,
   anchorDate,
+  shabbatByDate,
+  holidayByDate,
   onPeriodChange,
   onToday,
   onPrevious,
@@ -439,6 +519,8 @@ function CalendarView({
   todaysEvents: Event[];
   period: CalendarPeriod;
   anchorDate: Date;
+  shabbatByDate?: Map<string, ShabbatItem>;
+  holidayByDate?: Map<string, HolidayItem[]>;
   onPeriodChange: (period: CalendarPeriod) => void;
   onToday: () => void;
   onPrevious: () => void;
@@ -520,10 +602,10 @@ function CalendarView({
             <DayCalendar events={periodEvents} anchorDate={anchorDate} onDelete={onDelete} deletingId={deletingId} isPending={isPending} />
           )}
           {period === "week" && (
-            <WeekCalendar events={events} anchorDate={anchorDate} />
+            <WeekCalendar events={events} anchorDate={anchorDate} shabbatByDate={shabbatByDate} holidayByDate={holidayByDate} />
           )}
           {period === "month" && (
-            <MonthCalendar events={events} anchorDate={anchorDate} />
+            <MonthCalendar events={events} anchorDate={anchorDate} shabbatByDate={shabbatByDate} holidayByDate={holidayByDate} />
           )}
           {period === "year" && (
             <YearCalendar events={events} anchorDate={anchorDate} />
@@ -627,17 +709,20 @@ function DayCalendar({
   );
 }
 
-function WeekCalendar({ events, anchorDate }: { events: Event[]; anchorDate: Date }) {
+function WeekCalendar({ events, anchorDate, shabbatByDate, holidayByDate }: { events: Event[]; anchorDate: Date; shabbatByDate?: Map<string, ShabbatItem>; holidayByDate?: Map<string, HolidayItem[]> }) {
   const weekStart = startOfWeek(anchorDate);
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
 
   return (
     <div className="grid min-w-[760px] grid-cols-7 divide-x divide-slate-200 overflow-x-auto">
       {days.map((day) => {
+        const key = dayKey(day);
         const dayEvents = eventsForDate(events, day);
-        const isToday = dayKey(day) === todayKey();
+        const shabbat = shabbatByDate?.get(key);
+        const holidays = holidayByDate?.get(key);
+        const isToday = key === todayKey();
         return (
-          <div key={dayKey(day)} className={cn("min-h-[34rem] bg-white", isToday && "bg-emerald-50/60")}>
+          <div key={key} className={cn("min-h-[34rem] bg-white", isToday && "bg-emerald-50/60")}>
             <div className={cn(
               "sticky top-0 z-10 border-b border-slate-200 bg-white/95 p-3 backdrop-blur",
               isToday && "bg-emerald-50/95"
@@ -649,6 +734,19 @@ function WeekCalendar({ events, anchorDate }: { events: Event[]; anchorDate: Dat
               <p className="mt-1 truncate text-xs font-medium text-emerald-700 hebrew">{formatHebrewDate(day)}</p>
             </div>
             <div className="space-y-2 p-2">
+              {shabbat && (
+                <div className="rounded-md bg-amber-50 border border-amber-200 px-2 py-1">
+                  <p className="text-[11px] font-semibold text-amber-700">🕯️ Chabbat</p>
+                  {shabbat.parasha && <p className="text-[10px] text-amber-600">{shabbat.parasha}</p>}
+                  <p className="text-[10px] text-amber-600">Entrée {shabbat.entry ?? "—"} · Sortie {shabbat.exit ?? "—"}</p>
+                </div>
+              )}
+              {holidays?.map((h) => (
+                <div key={h.name} className="rounded-md bg-blue-50 border border-blue-200 px-2 py-1">
+                  <p className="text-[11px] font-semibold text-blue-700">🕍 {h.name}</p>
+                  {h.nameHebrew && <p className="text-[10px] text-blue-500 hebrew">{h.nameHebrew}</p>}
+                </div>
+              ))}
               {dayEvents.map((event) => (
                 <CalendarEventPill key={event.id} event={event} />
               ))}
@@ -660,7 +758,7 @@ function WeekCalendar({ events, anchorDate }: { events: Event[]; anchorDate: Dat
   );
 }
 
-function MonthCalendar({ events, anchorDate }: { events: Event[]; anchorDate: Date }) {
+function MonthCalendar({ events, anchorDate, shabbatByDate, holidayByDate }: { events: Event[]; anchorDate: Date; shabbatByDate?: Map<string, ShabbatItem>; holidayByDate?: Map<string, HolidayItem[]> }) {
   const days = buildMonthDays(anchorDate);
 
   return (
@@ -675,12 +773,15 @@ function MonthCalendar({ events, anchorDate }: { events: Event[]; anchorDate: Da
         </div>
         <div className="grid grid-cols-7">
           {days.map((day) => {
+            const key = dayKey(day);
             const dayEvents = eventsForDate(events, day);
-            const isToday = dayKey(day) === todayKey();
+            const shabbat = shabbatByDate?.get(key);
+            const holidays = holidayByDate?.get(key);
+            const isToday = key === todayKey();
             const isOutsideMonth = day.getMonth() !== anchorDate.getMonth();
             return (
               <div
-                key={dayKey(day)}
+                key={key}
                 className={cn(
                   "min-h-32 border-b border-r border-slate-200 p-2",
                   isOutsideMonth ? "bg-slate-50/70 text-slate-400" : "bg-white",
@@ -696,7 +797,17 @@ function MonthCalendar({ events, anchorDate }: { events: Event[]; anchorDate: Da
                   </span>
                   <span className="truncate text-[11px] font-medium text-emerald-700 hebrew">{formatHebrewDate(day)}</span>
                 </div>
-                <div className="mt-2 space-y-1">
+                <div className="mt-1 space-y-1">
+                  {shabbat && (
+                    <div className="rounded bg-amber-50 border border-amber-200 px-1.5 py-0.5">
+                      <p className="text-[10px] font-semibold text-amber-700 truncate">🕯️ {shabbat.entry ?? "Chabbat"}</p>
+                    </div>
+                  )}
+                  {holidays?.map((h) => (
+                    <div key={h.name} className="rounded bg-blue-50 border border-blue-200 px-1.5 py-0.5">
+                      <p className="text-[10px] font-semibold text-blue-700 truncate">🕍 {h.name}</p>
+                    </div>
+                  ))}
                   {dayEvents.slice(0, 3).map((event) => (
                     <CalendarEventPill key={event.id} event={event} compact />
                   ))}
