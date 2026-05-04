@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   ChevronRight, ChevronLeft, Plus, X, Check,
-  Sparkles, Settings,
+  Sparkles, Settings, Clock,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -13,6 +13,8 @@ import {
 export interface RoutineItem {
   label: string;
   frequency: string;
+  day?: string;
+  time?: string;
   channels: string[];
   notes?: string;
 }
@@ -27,18 +29,18 @@ interface Props {
 // ── Données ────────────────────────────────────────────────────────────────
 
 const SUGGESTED_ACTIONS = [
-  { label: "Horaires de Chabbat", icon: "🕯️", defaultFrequency: "Chaque vendredi", defaultChannels: ["WHATSAPP", "INSTAGRAM"] },
-  { label: "Cours de Torah", icon: "📖", defaultFrequency: "Hebdomadaire", defaultChannels: ["WHATSAPP"] },
-  { label: "Annonce d'événement", icon: "📅", defaultFrequency: "Selon besoins", defaultChannels: ["WHATSAPP", "INSTAGRAM"] },
-  { label: "Vœux de fêtes", icon: "🎊", defaultFrequency: "Saisonnier", defaultChannels: ["WHATSAPP", "INSTAGRAM", "FACEBOOK"] },
-  { label: "Collecte de dons", icon: "💛", defaultFrequency: "Mensuel", defaultChannels: ["WHATSAPP", "EMAIL"] },
-  { label: "Rappel J-1 événement", icon: "🔔", defaultFrequency: "Avant chaque événement", defaultChannels: ["WHATSAPP"] },
-  { label: "Pensée du jour", icon: "✨", defaultFrequency: "Quotidien", defaultChannels: ["WHATSAPP", "INSTAGRAM"] },
-  { label: "Activités jeunesse", icon: "🎉", defaultFrequency: "Hebdomadaire", defaultChannels: ["WHATSAPP"] },
-  { label: "Programme des femmes", icon: "🌸", defaultFrequency: "Mensuel", defaultChannels: ["WHATSAPP"] },
-  { label: "Accueil nouveaux membres", icon: "👋", defaultFrequency: "Selon besoins", defaultChannels: ["WHATSAPP"] },
-  { label: "Résumé hebdomadaire", icon: "📰", defaultFrequency: "Hebdomadaire", defaultChannels: ["EMAIL", "WHATSAPP"] },
-  { label: "Communiqué officiel", icon: "📣", defaultFrequency: "Selon besoins", defaultChannels: ["WHATSAPP", "FACEBOOK", "EMAIL"] },
+  { label: "Horaires de Chabbat",    icon: "🕯️", defaultFrequency: "Chaque vendredi", defaultDay: "Vendredi",  defaultChannels: ["WHATSAPP", "INSTAGRAM"] },
+  { label: "Cours de Torah",         icon: "📖", defaultFrequency: "Hebdomadaire",    defaultDay: undefined,   defaultChannels: ["WHATSAPP"] },
+  { label: "Annonce d'événement",    icon: "📅", defaultFrequency: "Selon besoins",   defaultDay: undefined,   defaultChannels: ["WHATSAPP", "INSTAGRAM"] },
+  { label: "Vœux de fêtes",          icon: "🎊", defaultFrequency: "Saisonnier",      defaultDay: undefined,   defaultChannels: ["WHATSAPP", "INSTAGRAM", "FACEBOOK"] },
+  { label: "Collecte de dons",       icon: "💛", defaultFrequency: "Mensuel",         defaultDay: undefined,   defaultChannels: ["WHATSAPP", "EMAIL"] },
+  { label: "Rappel J-1 événement",   icon: "🔔", defaultFrequency: "Avant chaque événement", defaultDay: undefined, defaultChannels: ["WHATSAPP"] },
+  { label: "Pensée du jour",         icon: "✨", defaultFrequency: "Quotidien",       defaultDay: undefined,   defaultChannels: ["WHATSAPP", "INSTAGRAM"] },
+  { label: "Activités jeunesse",     icon: "🎉", defaultFrequency: "Hebdomadaire",    defaultDay: undefined,   defaultChannels: ["WHATSAPP"] },
+  { label: "Programme des femmes",   icon: "🌸", defaultFrequency: "Mensuel",         defaultDay: undefined,   defaultChannels: ["WHATSAPP"] },
+  { label: "Accueil nouveaux membres", icon: "👋", defaultFrequency: "Selon besoins", defaultDay: undefined,  defaultChannels: ["WHATSAPP"] },
+  { label: "Résumé hebdomadaire",    icon: "📰", defaultFrequency: "Hebdomadaire",    defaultDay: undefined,   defaultChannels: ["EMAIL", "WHATSAPP"] },
+  { label: "Communiqué officiel",    icon: "📣", defaultFrequency: "Selon besoins",   defaultDay: undefined,   defaultChannels: ["WHATSAPP", "FACEBOOK", "EMAIL"] },
 ];
 
 const FREQUENCIES = [
@@ -52,17 +54,32 @@ const FREQUENCIES = [
   "Selon besoins",
 ];
 
+// Fréquences qui affichent le sélecteur de jour
+const FREQ_WITH_DAY = new Set(["Hebdomadaire", "Bi-mensuel", "Mensuel"]);
+// Fréquences qui affichent le sélecteur d'heure
+const FREQ_WITH_TIME = new Set(["Quotidien", "Chaque vendredi", "Hebdomadaire", "Bi-mensuel", "Mensuel"]);
+// Fréquences qui pré-fixent le jour
+const FREQ_PRESET_DAY: Record<string, string> = { "Chaque vendredi": "Vendredi" };
+
+const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+
+const TIME_SLOTS = [
+  "8h00", "9h00", "10h00", "11h00",
+  "12h00", "13h00", "14h00", "15h00",
+  "16h00", "17h00", "18h00", "19h00", "20h00", "21h00",
+];
+
 const CHANNELS: { key: string; label: string; emoji: string }[] = [
-  { key: "WHATSAPP", label: "WhatsApp", emoji: "💬" },
+  { key: "WHATSAPP",  label: "WhatsApp",  emoji: "💬" },
   { key: "INSTAGRAM", label: "Instagram", emoji: "📸" },
-  { key: "FACEBOOK", label: "Facebook", emoji: "👥" },
-  { key: "EMAIL", label: "Email", emoji: "📧" },
-  { key: "TELEGRAM", label: "Telegram", emoji: "✈️" },
+  { key: "FACEBOOK",  label: "Facebook",  emoji: "👥" },
+  { key: "EMAIL",     label: "Email",     emoji: "📧" },
+  { key: "TELEGRAM",  label: "Telegram",  emoji: "✈️" },
 ];
 
 const STEPS = [
   { id: 0, label: "Vos contenus" },
-  { id: 1, label: "Canaux & fréquence" },
+  { id: 1, label: "Canaux & horaires" },
   { id: 2, label: "Confirmation" },
 ];
 
@@ -79,13 +96,29 @@ export function DailyRoutineWizard({ communityName, onSave, onCancel, saving }: 
     } else {
       setSelected((prev) => [
         ...prev,
-        { label: action.label, frequency: action.defaultFrequency, channels: action.defaultChannels },
+        {
+          label: action.label,
+          frequency: action.defaultFrequency,
+          day: action.defaultDay,
+          channels: action.defaultChannels,
+        },
       ]);
     }
   }
 
   function updateItem(label: string, patch: Partial<RoutineItem>) {
     setSelected((prev) => prev.map((s) => s.label === label ? { ...s, ...patch } : s));
+  }
+
+  function changeFrequency(label: string, freq: string) {
+    const preset = FREQ_PRESET_DAY[freq];
+    updateItem(label, {
+      frequency: freq,
+      // Pré-remplir le jour si la fréquence l'implique, sinon vider
+      day: preset ?? (FREQ_WITH_DAY.has(freq) ? undefined : undefined),
+      // Conserver l'heure si la nouvelle fréquence supporte les heures, sinon vider
+      time: FREQ_WITH_TIME.has(freq) ? selected.find((s) => s.label === label)?.time : undefined,
+    });
   }
 
   function toggleChannel(label: string, channel: string) {
@@ -199,17 +232,22 @@ export function DailyRoutineWizard({ communityName, onSave, onCancel, saving }: 
           </div>
         )}
 
-        {/* ── Étape 1 : canaux & fréquence ── */}
+        {/* ── Étape 1 : canaux, fréquence, jour & heure ── */}
         {step === 1 && (
           <div className="space-y-4">
             <p className="text-sm font-medium text-slate-700">
-              Pour chaque action, précisez les canaux et la fréquence
+              Pour chaque action, précisez les canaux et les horaires
             </p>
             <div className="space-y-3">
               {selected.map((item) => {
                 const action = SUGGESTED_ACTIONS.find((a) => a.label === item.label);
+                const showDayPicker = FREQ_WITH_DAY.has(item.frequency);
+                const presetDay = FREQ_PRESET_DAY[item.frequency];
+                const showTimePicker = FREQ_WITH_TIME.has(item.frequency);
+
                 return (
-                  <div key={item.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+                  <div key={item.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+                    {/* Titre */}
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{action?.icon}</span>
                       <p className="text-sm font-semibold text-slate-900">{item.label}</p>
@@ -217,13 +255,13 @@ export function DailyRoutineWizard({ communityName, onSave, onCancel, saving }: 
 
                     {/* Fréquence */}
                     <div>
-                      <p className="mb-1.5 text-xs font-medium text-slate-500">Fréquence</p>
+                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">Fréquence</p>
                       <div className="flex flex-wrap gap-1.5">
                         {FREQUENCIES.map((freq) => (
                           <button
                             key={freq}
                             type="button"
-                            onClick={() => updateItem(item.label, { frequency: freq })}
+                            onClick={() => changeFrequency(item.label, freq)}
                             className={cn(
                               "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                               item.frequency === freq
@@ -237,9 +275,93 @@ export function DailyRoutineWizard({ communityName, onSave, onCancel, saving }: 
                       </div>
                     </div>
 
+                    {/* Jour — sous-filtre après fréquence */}
+                    {(showDayPicker || presetDay) && (
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 space-y-2">
+                        {presetDay ? (
+                          <p className="text-xs text-slate-500">
+                            Jour : <span className="font-semibold text-slate-700">{presetDay}</span>
+                          </p>
+                        ) : (
+                          <>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Quel jour ?</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {DAYS.map((day) => (
+                                <button
+                                  key={day}
+                                  type="button"
+                                  onClick={() => updateItem(item.label, { day: item.day === day ? undefined : day })}
+                                  className={cn(
+                                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                                    item.day === day
+                                      ? "border-violet-600 bg-violet-600 text-white"
+                                      : "border-slate-200 bg-white text-slate-600 hover:border-violet-300"
+                                  )}
+                                >
+                                  {day}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Heure — sous-filtre après le jour */}
+                        {showTimePicker && (
+                          <div className="pt-1 space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 flex items-center gap-1">
+                              <Clock className="size-3" /> À quelle heure ?
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {TIME_SLOTS.map((slot) => (
+                                <button
+                                  key={slot}
+                                  type="button"
+                                  onClick={() => updateItem(item.label, { time: item.time === slot ? undefined : slot })}
+                                  className={cn(
+                                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                                    item.time === slot
+                                      ? "border-emerald-600 bg-emerald-600 text-white"
+                                      : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300"
+                                  )}
+                                >
+                                  {slot}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Heure seule (sans jour) — ex: Quotidien */}
+                    {showTimePicker && !showDayPicker && !presetDay && (
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 space-y-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 flex items-center gap-1">
+                          <Clock className="size-3" /> À quelle heure ?
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {TIME_SLOTS.map((slot) => (
+                            <button
+                              key={slot}
+                              type="button"
+                              onClick={() => updateItem(item.label, { time: item.time === slot ? undefined : slot })}
+                              className={cn(
+                                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                                item.time === slot
+                                  ? "border-emerald-600 bg-emerald-600 text-white"
+                                  : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300"
+                              )}
+                            >
+                              {slot}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Canaux */}
                     <div>
-                      <p className="mb-1.5 text-xs font-medium text-slate-500">Canaux</p>
+                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">Canaux</p>
                       <div className="flex flex-wrap gap-1.5">
                         {CHANNELS.map((ch) => {
                           const active = item.channels.includes(ch.key);
@@ -293,6 +415,7 @@ export function DailyRoutineWizard({ communityName, onSave, onCancel, saving }: 
                   .filter(Boolean)
                   .map((ch) => `${ch!.emoji} ${ch!.label}`)
                   .join("  ");
+                const schedule = [item.frequency, item.day, item.time].filter(Boolean).join(" · ");
                 return (
                   <div
                     key={item.label}
@@ -304,7 +427,7 @@ export function DailyRoutineWizard({ communityName, onSave, onCancel, saving }: 
                     <span className="text-lg shrink-0 mt-0.5">{action?.icon}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-slate-900">{item.label}</p>
-                      <p className="text-xs text-slate-500">{item.frequency}</p>
+                      <p className="text-xs text-slate-500">{schedule}</p>
                       {channelLabels && (
                         <p className="mt-1 text-xs text-slate-400">{channelLabels}</p>
                       )}
