@@ -1,9 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  LayoutDashboard, Share2, Zap, MessageSquare, Clock,
-  Bot, Calendar, BookOpen, Image, Video, ShoppingBag,
-  Globe, Plus, Settings, HelpCircle, Mail, History,
-  CalendarDays,
+  LayoutDashboard, Share2, Zap, MessageSquare,
+  Clock, Bot, Calendar, BookOpen, Image, Video,
+  ShoppingBag, Globe, Plus, Settings, HelpCircle,
+  Mail, History, CalendarDays,
 } from "lucide-react";
 
 export interface DashboardNavItem {
@@ -22,25 +22,29 @@ export interface DashboardNavSection {
 }
 
 export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActive: string }> = {
-  PRINCIPALE: {
-    label: "text-sky-300",
-    itemActive: "bg-sky-600 text-white shadow-sm",
-  },
-  "RÉSEAUX SOCIAUX": {
+  "GESTION DES RÉSEAUX SOCIAUX": {
     label: "text-emerald-300",
     itemActive: "bg-emerald-700 text-white shadow-sm",
   },
-  "ASSISTANT PERSONNEL": {
+  "MESSAGERIE CONNECTÉE": {
+    label: "text-cyan-300",
+    itemActive: "bg-cyan-700 text-white shadow-sm",
+  },
+  "ASSISTANT DU QUOTIDIEN": {
     label: "text-blue-300",
     itemActive: "bg-blue-600 text-white shadow-sm",
   },
-  RESSOURCES: {
+  "CONTENUS ET PUBLICATIONS AUTOMATIQUES": {
     label: "text-violet-300",
     itemActive: "bg-violet-600 text-white shadow-sm",
   },
   "BANQUE VISUELLE": {
     label: "text-amber-300",
     itemActive: "bg-amber-600 text-white shadow-sm",
+  },
+  "AGENDA INTELLIGENT": {
+    label: "text-sky-300",
+    itemActive: "bg-sky-600 text-white shadow-sm",
   },
   "SERVICES COMPLÉMENTAIRES": {
     label: "text-rose-300",
@@ -52,15 +56,16 @@ export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActiv
   },
 };
 
+// Item standalone affiché en haut, avant toutes les sections
+export const DASHBOARD_TOP_ITEM: DashboardNavItem = {
+  href: "/dashboard/overview",
+  label: "Tableau de bord",
+  icon: LayoutDashboard,
+};
+
 export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
-    section: "PRINCIPALE",
-    items: [
-      { href: "/dashboard/overview", label: "Tableau de bord", icon: LayoutDashboard },
-    ],
-  },
-  {
-    section: "RÉSEAUX SOCIAUX",
+    section: "GESTION DES RÉSEAUX SOCIAUX",
     items: [
       { href: "/dashboard/settings/channels", label: "Connecter mes réseaux", icon: Share2 },
       {
@@ -69,32 +74,36 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
         icon: Zap,
         action: { label: "+ Créer", href: "/dashboard/automations?new=1" },
       },
+      { href: "/dashboard/publications", label: "Historique des publications", icon: History },
+    ],
+  },
+  {
+    section: "MESSAGERIE CONNECTÉE",
+    items: [
       {
         href: "/dashboard/messaging",
         label: "Messagerie",
         icon: MessageSquare,
         action: { label: "+ Contacts", href: "/dashboard/messaging/contacts" },
       },
-      { href: "/dashboard/publications", label: "Historique des publications", icon: History },
     ],
   },
   {
-    section: "ASSISTANT PERSONNEL",
+    section: "ASSISTANT DU QUOTIDIEN",
     items: [
       {
         href: "/dashboard/assistant",
-        label: "Assistant IA",
+        label: "Activer l'assistant",
         icon: Bot,
         action: { label: "Mon quotidien", href: "/dashboard/assistant?routine=1" },
       },
-      { href: "/dashboard/events", label: "Voir mon agenda", icon: Calendar },
     ],
   },
   {
-    section: "RESSOURCES",
+    section: "CONTENUS ET PUBLICATIONS AUTOMATIQUES",
     items: [
+      { href: "/dashboard/content/new", label: "Créer une publication", icon: Plus },
       { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
-      { href: "/dashboard/hebrew-calendar", label: "Calendrier hébraïque", icon: CalendarDays },
     ],
   },
   {
@@ -102,6 +111,13 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     items: [
       { href: "/dashboard/hebrew-calendar?tab=shabbat", label: "Horaires de Chabbat", icon: Clock },
       { href: "/dashboard/templates", label: "Affiches préremplies", icon: Image },
+    ],
+  },
+  {
+    section: "AGENDA INTELLIGENT",
+    items: [
+      { href: "/dashboard/events", label: "Voir mon agenda", icon: Calendar },
+      { href: "/dashboard/hebrew-calendar", label: "Calendrier hébraïque", icon: CalendarDays },
     ],
   },
   {

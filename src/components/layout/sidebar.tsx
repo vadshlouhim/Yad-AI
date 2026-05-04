@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
-import { DASHBOARD_NAV_ITEMS, DASHBOARD_SECTION_STYLES } from "./dashboard-nav";
+import { DASHBOARD_NAV_ITEMS, DASHBOARD_SECTION_STYLES, DASHBOARD_TOP_ITEM } from "./dashboard-nav";
 
 interface SidebarProps {
   community: {
@@ -98,6 +98,26 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-5">
+        {/* Tableau de bord — bouton standalone en haut */}
+        <div className="pb-2 border-b border-slate-800">
+          <Link
+            href={resolveHref(DASHBOARD_TOP_ITEM.href)}
+            className={cn(
+              "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all duration-150",
+              isActive(DASHBOARD_TOP_ITEM.href)
+                ? "bg-slate-700 text-white"
+                : "text-slate-200 hover:bg-slate-800 hover:text-white",
+              collapsed && "justify-center px-2"
+            )}
+            title={collapsed ? DASHBOARD_TOP_ITEM.label : undefined}
+          >
+            {DASHBOARD_TOP_ITEM.icon && (
+              <DASHBOARD_TOP_ITEM.icon className={cn("flex-shrink-0", collapsed ? "size-5" : "size-4")} />
+            )}
+            {!collapsed && <span>{DASHBOARD_TOP_ITEM.label}</span>}
+          </Link>
+        </div>
+
         {DASHBOARD_NAV_ITEMS.map((section) => {
           const sectionStyle = DASHBOARD_SECTION_STYLES[section.section];
           return (
