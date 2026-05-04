@@ -10,7 +10,7 @@ import {
   Zap, Plus, Play, Pause, Clock, CheckCircle, XCircle,
   AlertCircle, Calendar, RefreshCw, Settings, Trash2
 } from "lucide-react";
-import { formatRelative, formatDateTime, cn } from "@/lib/utils";
+import { formatRelative, cn } from "@/lib/utils";
 
 interface AutomationRun {
   id: string;
@@ -75,6 +75,7 @@ export function AutomationsClient({ automations, recentRuns, embedded = false }:
   const [toggling, setToggling] = useState<string | null>(null);
   const [triggering, setTriggering] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   async function toggleAutomation(id: string, isActive: boolean) {
     setToggling(id);
@@ -119,6 +120,23 @@ export function AutomationsClient({ automations, recentRuns, embedded = false }:
     }
   }
 
+  async function createShabbatAutomation() {
+    setCreating(true);
+    try {
+      const res = await fetch("/api/automations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preset: "WEEKLY_SHABBAT" }),
+      });
+      if (res.ok) router.refresh();
+      else alert("Erreur lors de la création de l'automatisation.");
+    } catch {
+      alert("Erreur lors de la création de l'automatisation.");
+    } finally {
+      setCreating(false);
+    }
+  }
+
   const activeCount = automations.filter((a) => a.isActive).length;
 
   return (
@@ -144,7 +162,7 @@ export function AutomationsClient({ automations, recentRuns, embedded = false }:
       )}
 
       {embedded && (
-        <div className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-teal-50 p-6 shadow-sm">
+        <div className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-teal-50 p-5 shadow-sm">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Automatisations</p>
             <h2 className="mt-2 text-2xl font-bold text-slate-900">Programmations automatiques</h2>
@@ -152,12 +170,33 @@ export function AutomationsClient({ automations, recentRuns, embedded = false }:
               {activeCount} automatisation{activeCount !== 1 ? "s" : ""} active{activeCount !== 1 ? "s" : ""}
             </p>
           </div>
+          <div className="mt-4 grid gap-2">
+            <Button
+              size="sm"
+              onClick={createShabbatAutomation}
+              loading={creating}
+              className="justify-start bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 focus-visible:ring-emerald-500"
+            >
+              <Plus className="size-4" />
+              Créer l&apos;automatisation Chabbat
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="justify-start border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+              onClick={() => createShabbatAutomation()}
+              loading={creating}
+            >
+              <Zap className="size-4" />
+              Suggérer une programmation utile
+            </Button>
+          </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className={cn("grid gap-6", embedded ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-3")}>
         {/* Liste des automatisations */}
-        <div className="lg:col-span-2 space-y-3">
+        <div className={cn("space-y-3", !embedded && "lg:col-span-2")}>
           {automations.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
@@ -170,12 +209,24 @@ export function AutomationsClient({ automations, recentRuns, embedded = false }:
                     Créez des automatisations pour publier du contenu automatiquement.
                   </p>
                 </div>
-                <Link href="/dashboard/automations/new">
-                  <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 focus-visible:ring-emerald-500">
+                {embedded ? (
+                  <Button
+                    size="sm"
+                    onClick={createShabbatAutomation}
+                    loading={creating}
+                    className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 focus-visible:ring-emerald-500"
+                  >
                     <Plus className="size-4" />
                     Créer une automatisation
                   </Button>
-                </Link>
+                ) : (
+                  <Link href="/dashboard/automations/new">
+                    <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 focus-visible:ring-emerald-500">
+                      <Plus className="size-4" />
+                      Créer une automatisation
+                    </Button>
+                  </Link>
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -280,26 +331,26 @@ export function AutomationsClient({ automations, recentRuns, embedded = false }:
                             <Play className="size-3" />
                             Lancer maintenant
                           </Button>
-                          {!embedded && (
-                            <>
+                          <>
+                            {!embedded && (
                               <Link href={`/dashboard/automations/${automation.id}`}>
                                 <Button variant="ghost" size="sm" className="h-7 text-xs">
                                   <Settings className="size-3" />
                                   Configurer
                                 </Button>
                               </Link>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => deleteAutomation(automation.id)}
-                                loading={deleting === automation.id}
-                              >
-                                <Trash2 className="size-3" />
-                                Supprimer
-                              </Button>
-                            </>
-                          )}
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => deleteAutomation(automation.id)}
+                              loading={deleting === automation.id}
+                            >
+                              <Trash2 className="size-3" />
+                              Supprimer
+                            </Button>
+                          </>
                         </div>
                       </div>
                     </div>
@@ -311,7 +362,7 @@ export function AutomationsClient({ automations, recentRuns, embedded = false }:
         </div>
 
         {/* Journal d'activité */}
-        <div className="space-y-4">
+        <div className={cn("space-y-4", embedded && recentRuns.length === 0 && "hidden")}>
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">

@@ -123,6 +123,47 @@ export default async function ContentPage({
         </div>
       </div>
 
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]">
+        <section className="space-y-4">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Contenus</p>
+                <h2 className="mt-2 text-xl font-bold text-slate-900">Créer et préparer</h2>
+                <p className="mt-1 text-sm text-slate-500">Actions rapides pour générer, relire et publier.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/dashboard/content/new?ai=true">
+                  <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 focus-visible:ring-emerald-500">
+                    <Sparkles className="size-4" />
+                    Générer avec l&apos;IA
+                  </Button>
+                </Link>
+                <Link href="/dashboard/content/new">
+                  <Button size="sm" variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                    <Plus className="size-4" />
+                    Créer manuellement
+                  </Button>
+                </Link>
+              </div>
+            </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              {[
+                { label: "Post Chabbat", href: "/dashboard/content/new?type=SHABBAT_TIMES&ai=true" },
+                { label: "Annonce événement", href: "/dashboard/content/new?type=EVENT_ANNOUNCEMENT&ai=true" },
+                { label: "Rappel J-5", href: "/dashboard/content/new?type=EVENT_REMINDER&ai=true" },
+              ].map((action) => (
+                <Link
+                  key={action.label}
+                  href={action.href}
+                  className="rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-100"
+                >
+                  {action.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
       {/* Filtres par statut */}
       <div className="flex flex-wrap gap-2">
         {[
@@ -275,11 +316,16 @@ export default async function ContentPage({
         </div>
       )}
 
+        </section>
+
+        <aside className="space-y-4">
       <AutomationsClient
         automations={(automations ?? []) as Parameters<typeof AutomationsClient>[0]["automations"]}
         recentRuns={(runs ?? []) as Parameters<typeof AutomationsClient>[0]["recentRuns"]}
         embedded
       />
+        </aside>
+      </div>
     </div>
   );
 }
