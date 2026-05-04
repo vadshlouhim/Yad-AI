@@ -26,11 +26,12 @@ export default function HomePage() {
         {/* Features */}
         <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
           {[
-            "🗓️ Gestion d'événements récurrents",
-            "✍️ Génération de contenu par IA",
-            "📡 Diffusion multicanale automatisée",
-            "🕍 Calendrier hébraïque intégré",
-            "💛 Automatisation des appels aux dons",
+            "📱 Gestion des réseaux sociaux",
+            "🤖 Assistant du quotidien",
+            "📝 Contenus et publications automatiques",
+            "💬 Messagerie connectée",
+            "🖼️ Banque visuelle",
+            "📅 Agenda intelligent",
           ].map((feat) => (
             <div
               key={feat}
