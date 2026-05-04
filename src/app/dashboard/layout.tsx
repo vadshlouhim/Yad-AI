@@ -6,7 +6,7 @@ import { TopBar } from "@/components/layout/topbar";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: { template: "%s — Yad.ia", default: "Dashboard — Yad.ia" },
+  title: { template: "%s — Shalom IA", default: "Dashboard — Shalom IA" },
 };
 
 export default async function DashboardLayout({

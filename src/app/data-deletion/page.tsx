@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Suppression des données",
-  description: "Instructions pour demander la suppression des données Yad.ia.",
+  description: "Instructions pour demander la suppression des données Shalom IA.",
 };
 
 export default function DataDeletionPage() {
@@ -16,7 +16,7 @@ export default function DataDeletionPage() {
 
         <div className="mt-6 space-y-6">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">Yad.ia</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">Shalom IA</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
               Instructions pour la suppression des données
             </h1>
@@ -26,7 +26,7 @@ export default function DataDeletionPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-semibold text-slate-950">Demander la suppression</h2>
             <p className="leading-7">
-              Vous pouvez demander la suppression de votre compte Yad.ia, de votre communauté, de
+              Vous pouvez demander la suppression de votre compte Shalom IA, de votre communauté, de
               vos contacts, contenus, canaux connectés et données associées en nous envoyant une
               demande par email.
             </p>
@@ -49,8 +49,8 @@ export default function DataDeletionPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-semibold text-slate-950">Déconnexion Facebook et Instagram</h2>
             <p className="leading-7">
-              Vous pouvez également révoquer l&apos;accès de Yad.ia depuis votre compte Meta ou depuis
-              les paramètres de l&apos;application Yad.ia dans la section Canaux. La révocation supprime
+              Vous pouvez également révoquer l&apos;accès de Shalom IA depuis votre compte Meta ou depuis
+              les paramètres de l&apos;application Shalom IA dans la section Canaux. La révocation supprime
               l&apos;autorisation de publier via les API Meta.
             </p>
           </section>

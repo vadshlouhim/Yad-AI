@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NotificationsClient } from "@/components/notifications/notifications-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Notifications — Yad.ia" };
+export const metadata: Metadata = { title: "Notifications — Shalom IA" };
 
 export default async function NotificationsPage() {
   const { profile } = await requireAuth();

@@ -113,7 +113,7 @@ export function StepChannels({ data, updateData, onNext, onPrev }: Props) {
           <Info className="size-4 text-amber-600 flex-shrink-0 mt-0.5" />
           <p className="text-xs text-amber-700 leading-relaxed">
             Les connexions OAuth (Instagram, Facebook) seront finalisées dans les Paramètres.
-            Pour WhatsApp et Email, Yad.ia prépare le contenu et vous guide pour la diffusion.
+            Pour WhatsApp et Email, Shalom IA prépare le contenu et vous guide pour la diffusion.
           </p>
         </div>
 

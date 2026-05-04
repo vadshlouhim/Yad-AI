@@ -160,7 +160,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
       <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 flex items-start gap-3">
         <Info className="size-5 text-blue-600 flex-shrink-0 mt-0.5" />
         <p className="text-sm text-blue-700">
-          Connectez vos canaux pour publier directement depuis Yad.ia. Les canaux non connectés
+          Connectez vos canaux pour publier directement depuis Shalom IA. Les canaux non connectés
           génèrent des contenus à copier-coller.
         </p>
       </div>
@@ -233,7 +233,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                     {info?.authType === "oauth" ? (
                       <div className="space-y-3">
                         <p className="text-sm text-slate-600">
-                          Connectez-vous via OAuth Meta. Une fois le compte connecté, Yad.ia pourra publier sur la page Facebook ou le compte Instagram professionnel associé.
+                          Connectez-vous via OAuth Meta. Une fois le compte connecté, Shalom IA pourra publier sur la page Facebook ou le compte Instagram professionnel associé.
                         </p>
                         {channel?.isConnected ? (
                           <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 p-3">
@@ -341,7 +341,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                           <p className="font-medium">Mode copier-coller</p>
                           <p className="text-xs mt-1">
                             WhatsApp ne permet pas la publication automatique sans l&apos;API Business.
-                            Yad.ia génère le texte optimisé avec un lien <code>wa.me</code> à partager.
+                            Shalom IA génère le texte optimisé avec un lien <code>wa.me</code> à partager.
                           </p>
                         </div>
                       </div>

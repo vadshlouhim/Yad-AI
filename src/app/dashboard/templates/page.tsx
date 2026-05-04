@@ -4,7 +4,7 @@ import { TemplatesClient } from "@/components/templates/templates-client";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Affiches — Yad.ia" };
+export const metadata: Metadata = { title: "Affiches — Shalom IA" };
 
 export default async function TemplatesPage() {
   const { profile } = await requireAuth();

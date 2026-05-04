@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SettingsGeneralClient } from "@/components/settings/settings-general-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Paramètres — Yad.ia" };
+export const metadata: Metadata = { title: "Paramètres — Shalom IA" };
 
 export default async function SettingsPage() {
   const { profile } = await requireAuth();

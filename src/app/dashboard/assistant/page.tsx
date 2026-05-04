@@ -4,7 +4,7 @@ import { getJewishHolidays } from "@/lib/automation/hebcal";
 import { AssistantClient } from "@/components/assistant/assistant-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Assistant IA — Yad.ia" };
+export const metadata: Metadata = { title: "Assistant IA — Shalom IA" };
 
 export default async function AssistantPage() {
   const { profile } = await requireAuth();
@@ -58,15 +58,15 @@ export default async function AssistantPage() {
 
   const demoPrompt = {
     label: "Voir tout ce que je peux faire",
-    prompt: "Présente-moi en clair tout ce que Yad.ia peut faire pour ma communauté, comme une démonstration guidée et concrète.",
+    prompt: "Présente-moi en clair tout ce que Shalom IA peut faire pour ma communauté, comme une démonstration guidée et concrète.",
     href: demoVideoUrl,
   };
 
   const quickActionPrompts = [
     {
       label: "Communication automatique",
-      description: "Yad.ia peut préparer, programmer et publier vos contenus au bon moment",
-      prompt: `Explique comment Yad.ia peut préparer, programmer et publier automatiquement les contenus au bon moment pour ma communauté. Appuie-toi si utile sur ce programme :\n${programContext}`,
+      description: "Shalom IA peut préparer, programmer et publier vos contenus au bon moment",
+      prompt: `Explique comment Shalom IA peut préparer, programmer et publier automatiquement les contenus au bon moment pour ma communauté. Appuie-toi si utile sur ce programme :\n${programContext}`,
     },
     {
       label: "Horaires de Chabbat",
@@ -75,14 +75,14 @@ export default async function AssistantPage() {
     },
     {
       label: "Assistant personnel",
-      description: "Yad.ia devient votre assistant du quotidien : \"Publier le rappel J-5\"",
-      prompt: `Montre comment Yad.ia peut agir comme assistant du quotidien, par exemple pour publier un rappel J-5, J-1 ou jour J. Programme connu :\n${programContext}`,
+      description: "Shalom IA devient votre assistant du quotidien : \"Publier le rappel J-5\"",
+      prompt: `Montre comment Shalom IA peut agir comme assistant du quotidien, par exemple pour publier un rappel J-5, J-1 ou jour J. Programme connu :\n${programContext}`,
     },
     {
       label: "Banque d'affiches",
       description: "Accédez à une banque de +250 affiches préremplies sur tous les thèmes juifs",
       prompt: nextHoliday
-        ? `Présente la banque d'affiches de Yad.ia et propose des affiches pertinentes pour ${nextHoliday.name}.`
+        ? `Présente la banque d'affiches de Shalom IA et propose des affiches pertinentes pour ${nextHoliday.name}.`
         : "Présente la banque de plus de 250 affiches préremplies sur les thèmes juifs et aide-moi à choisir une affiche adaptée.",
     },
   ];

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Configuration de votre communauté — Yad.ia",
+  title: "Configuration de votre communauté — Shalom IA",
 };
 
 export default function OnboardingLayout({
@@ -18,7 +18,7 @@ export default function OnboardingLayout({
             <div className="w-8 h-8 rounded-lg brand-gradient flex items-center justify-center">
               <span className="text-white font-bold text-sm">י</span>
             </div>
-            <span className="font-semibold text-slate-900">Yad.ia</span>
+            <span className="font-semibold text-slate-900">Shalom IA</span>
           </div>
           <span className="hidden sm:block text-xs text-slate-400">Configuration initiale</span>
         </div>

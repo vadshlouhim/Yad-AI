@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité",
-  description: "Politique de confidentialité de Yad.ia.",
+  description: "Politique de confidentialité de Shalom IA.",
 };
 
 export default function PrivacyPage() {
@@ -16,7 +16,7 @@ export default function PrivacyPage() {
 
         <div className="mt-6 space-y-6">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">Yad.ia</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">Shalom IA</p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">
               Politique de confidentialité
             </h1>
@@ -26,7 +26,7 @@ export default function PrivacyPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-semibold text-slate-950">1. Données collectées</h2>
             <p className="leading-7">
-              Yad.ia collecte les informations nécessaires à la création et à la gestion d&apos;un
+              Shalom IA collecte les informations nécessaires à la création et à la gestion d&apos;un
               compte utilisateur, d&apos;une communauté, de ses canaux de communication, de ses
               contenus, de ses contacts membres et de ses publications.
             </p>
@@ -45,7 +45,7 @@ export default function PrivacyPage() {
           <section className="space-y-2">
             <h2 className="text-lg font-semibold text-slate-950">3. Connexion Facebook et Instagram</h2>
             <p className="leading-7">
-              Lorsque vous connectez Facebook ou Instagram, Yad.ia utilise l&apos;autorisation OAuth
+              Lorsque vous connectez Facebook ou Instagram, Shalom IA utilise l&apos;autorisation OAuth
               Meta afin d&apos;accéder uniquement aux Pages Facebook ou comptes Instagram professionnels
               que vous autorisez. Ces accès servent à identifier les canaux connectés et à publier
               les contenus que vous validez depuis l&apos;application.
@@ -57,14 +57,14 @@ export default function PrivacyPage() {
             <p className="leading-7">
               Les contacts ajoutés manuellement ou importés depuis un smartphone sont utilisés comme
               destinataires de communications communautaires, notamment par email ou WhatsApp. Ces
-              contacts ne disposent pas d&apos;accès administrateur à Yad.ia.
+              contacts ne disposent pas d&apos;accès administrateur à Shalom IA.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-lg font-semibold text-slate-950">5. Partage des données</h2>
             <p className="leading-7">
-              Yad.ia ne vend pas les données personnelles. Certaines données peuvent être transmises
+              Shalom IA ne vend pas les données personnelles. Certaines données peuvent être transmises
               à des services techniques nécessaires au fonctionnement de l&apos;application, comme
               l&apos;hébergement, l&apos;authentification, l&apos;envoi d&apos;emails, les services IA ou les API
               de publication connectées par l&apos;utilisateur.
@@ -84,7 +84,7 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-semibold text-slate-950">7. Suppression des données</h2>
             <p className="leading-7">
               Vous pouvez demander la suppression de vos données ou la révocation des accès connectés
-              en contactant l&apos;équipe Yad.ia. Vous pouvez également déconnecter les canaux sociaux
+              en contactant l&apos;équipe Shalom IA. Vous pouvez également déconnecter les canaux sociaux
               depuis les paramètres de l&apos;application.
             </p>
           </section>

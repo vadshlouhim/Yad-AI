@@ -3,15 +3,16 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { OnboardingData } from "../onboarding-wizard";
-import { Sparkles, Building2, Pen, Radio, Calendar, Check, Loader2 } from "lucide-react";
+import { Sparkles, Building2, Pen, Radio, Calendar, Check, Loader2, ChevronLeft } from "lucide-react";
 
 interface Props {
   data: OnboardingData;
   onFinish: () => void;
+  onPrev: () => void;
   saving: boolean;
 }
 
-export function StepFinish({ data, onFinish, saving }: Props) {
+export function StepFinish({ data, onFinish, onPrev, saving }: Props) {
   const summaryItems = [
     {
       icon: Building2,
@@ -118,7 +119,7 @@ export function StepFinish({ data, onFinish, saving }: Props) {
         {/* Ce qui va se passer */}
         <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-5 space-y-3">
           <p className="text-sm font-semibold text-slate-800">
-            🚀 Ce que Yad.ia va faire maintenant :
+            🚀 Ce que Shalom IA va faire maintenant :
           </p>
           <ul className="space-y-2">
             {[
@@ -137,25 +138,31 @@ export function StepFinish({ data, onFinish, saving }: Props) {
           </ul>
         </div>
 
-        {/* CTA */}
-        <Button
-          size="xl"
-          className="w-full"
-          onClick={onFinish}
-          disabled={saving}
-        >
-          {saving ? (
-            <>
-              <Loader2 className="size-4 animate-spin" />
-              Création en cours…
-            </>
-          ) : (
-            <>
-              <Sparkles className="size-4" />
-              Lancer mon espace Yad.ia
-            </>
-          )}
-        </Button>
+        {/* Navigation */}
+        <div className="flex gap-3">
+          <Button variant="outline" size="lg" onClick={onPrev} disabled={saving} className="flex-shrink-0">
+            <ChevronLeft className="size-4" />
+            Retour
+          </Button>
+          <Button
+            size="lg"
+            className="flex-1"
+            onClick={onFinish}
+            disabled={saving}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Création en cours…
+              </>
+            ) : (
+              <>
+                <Sparkles className="size-4" />
+                Lancer mon espace Shalom IA
+              </>
+            )}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

@@ -14,11 +14,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    template: "%s — Yad.ia",
-    default: "Yad.ia — Communication communautaire assistée par IA",
+    template: "%s — Shalom IA",
+    default: "Shalom IA — Communication communautaire assistée par IA",
   },
   description:
-    "Yad.ia est le copilote IA de communication de votre communauté. Centralisez, préparez et diffusez votre communication sur tous vos canaux.",
+    "Shalom IA est le copilote IA de communication de votre communauté. Centralisez, préparez et diffusez votre communication sur tous vos canaux.",
   keywords: ["communauté juive", "communication", "IA", "Chabbat", "réseaux sociaux"],
 };
 

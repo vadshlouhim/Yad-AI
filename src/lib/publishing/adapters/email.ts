@@ -92,7 +92,7 @@ function formatEmailContent(payload: PublishPayload, communityName: string): str
   ${payload.mediaUrls?.[0] ? `<div style="margin-bottom: 24px;"><img src="${payload.mediaUrls[0]}" alt="" style="width: 100%; border-radius: 12px;" /></div>` : ""}
   <div style="font-size: 15px; line-height: 1.7; color: #334155;"><p>${contentHtml}</p></div>
   <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center;">
-    Envoyé via <strong>Yad.ia</strong> · Communication communautaire assistée par IA
+    Envoyé via <strong>Shalom IA</strong> · Communication communautaire assistée par IA
   </div>
 </body>
 </html>`;

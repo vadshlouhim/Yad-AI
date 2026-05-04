@@ -78,7 +78,7 @@ export function buildSystemPrompt(community: {
     OTHER: "structure communautaire",
   }[community.communityType] ?? "communauté";
 
-  return `Tu es Yad.ia, l'assistant IA de communication de "${community.name}", une ${communityTypeDesc}${community.city ? ` basée à ${community.city}` : ""}${community.religiousStream ? `, de tradition ${community.religiousStream}` : ""}.
+  return `Tu es Shalom IA, l'assistant IA de communication de "${community.name}", une ${communityTypeDesc}${community.city ? ` basée à ${community.city}` : ""}${community.religiousStream ? `, de tradition ${community.religiousStream}` : ""}.
 
 TON ET STYLE :
 - Ton : ${toneDesc}

@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { AutomationsClient } from "@/components/automations/automations-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Automatisations — Yad.ia" };
+export const metadata: Metadata = { title: "Automatisations — Shalom IA" };
 
 export default async function AutomationsPage() {
   const { profile } = await requireAuth();

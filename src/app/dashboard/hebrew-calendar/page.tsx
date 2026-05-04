@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getHolidayTimes, getJewishHolidays, getShabbatTimes } from "@/lib/automation/hebcal";
 
-export const metadata: Metadata = { title: "Calendrier hébraïque — Yad.ia" };
+export const metadata: Metadata = { title: "Calendrier hébraïque — Shalom IA" };
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 

@@ -10,7 +10,7 @@ import { ContentDeleteButton } from "@/components/content/content-delete-button"
 import { formatRelative, CONTENT_STATUS_LABELS, truncate } from "@/lib/utils";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Contenu & automatisations — Yad.ia" };
+export const metadata: Metadata = { title: "Contenu & automatisations — Shalom IA" };
 
 const STATUS_VARIANT: Record<string, "draft" | "info" | "ready" | "published" | "scheduled"> = {
   DRAFT: "draft",

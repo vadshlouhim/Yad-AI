@@ -17,7 +17,7 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   return {
-    title: `${slug.replaceAll("-", " ")} — Articles — Yad.ia`,
+    title: `${slug.replaceAll("-", " ")} — Articles — Shalom IA`,
   };
 }
 

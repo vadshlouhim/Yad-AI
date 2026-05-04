@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveArticleAssetUrl } from "@/lib/articles/shared";
 import { ArticlesClient } from "@/components/articles/articles-client";
 
-export const metadata: Metadata = { title: "Articles — Yad.ia" };
+export const metadata: Metadata = { title: "Articles — Shalom IA" };
 
 export default async function ArticlesPage() {
   const { profile } = await requireAuth();

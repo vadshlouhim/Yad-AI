@@ -183,7 +183,7 @@ export function OnboardingWizard({ userId, userName, initialStep = 0 }: Props) {
         {currentStep === 2 && <StepChannels {...stepProps} />}
         {currentStep === 3 && <StepRecurring {...stepProps} />}
         {currentStep === 4 && (
-          <StepFinish data={data} onFinish={finishOnboarding} saving={saving} />
+          <StepFinish data={data} onFinish={finishOnboarding} onPrev={goPrev} saving={saving} />
         )}
       </div>
     </div>

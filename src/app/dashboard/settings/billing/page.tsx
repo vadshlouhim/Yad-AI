@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { BillingClient } from "@/components/settings/billing-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Facturation — Yad.ia" };
+export const metadata: Metadata = { title: "Facturation — Shalom IA" };
 
 export default async function BillingPage() {
   const { profile } = await requireAuth();

@@ -53,10 +53,14 @@ export function StepRecurring({ data, updateData, onNext, onPrev }: Props) {
         <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center mb-3">
           <Calendar className="size-6 text-purple-600" />
         </div>
-        <CardTitle className="text-xl">Événements récurrents</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-xl">Événements récurrents</CardTitle>
+          <span className="text-xs font-medium text-slate-400 border border-slate-200 rounded-full px-2 py-0.5">Facultatif</span>
+        </div>
         <CardDescription>
           Ces événements seront automatiquement planifiés dans votre calendrier.
           L&apos;IA génèrera les contenus associés avant chaque occurrence.
+          Vous pouvez passer cette étape et y revenir plus tard depuis les paramètres.
         </CardDescription>
       </CardHeader>
 
@@ -153,6 +157,13 @@ export function StepRecurring({ data, updateData, onNext, onPrev }: Props) {
             <ChevronRight className="size-4" />
           </Button>
         </div>
+        <button
+          type="button"
+          onClick={onNext}
+          className="w-full text-sm text-slate-400 hover:text-slate-600 transition-colors py-1"
+        >
+          Passer cette étape, je le ferai plus tard →
+        </button>
       </CardContent>
     </Card>
   );

@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ContentNewClient } from "@/components/content/content-new-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Nouveau contenu — Yad.ia" };
+export const metadata: Metadata = { title: "Nouveau contenu — Shalom IA" };
 
 export default async function ContentNewPage({
   searchParams,

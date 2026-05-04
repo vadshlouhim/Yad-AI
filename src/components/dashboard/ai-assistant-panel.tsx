@@ -32,7 +32,7 @@ export function AIAssistantPanel({ communityName, tone, onClose }: Props) {
     {
       id: "welcome",
       role: "assistant",
-      content: `Shalom ! Je suis votre assistant IA Yad.ia pour **${communityName}**.\n\nJe peux vous aider à :\n- Générer des posts pour Chabbat, fêtes, événements\n- Adapter vos contenus par canal\n- Rédiger des annonces et récapitulatifs\n- Planifier votre communication\n\nQue souhaitez-vous créer aujourd'hui ?`,
+      content: `Shalom ! Je suis votre assistant IA Shalom IA pour **${communityName}**.\n\nJe peux vous aider à :\n- Générer des posts pour Chabbat, fêtes, événements\n- Adapter vos contenus par canal\n- Rédiger des annonces et récapitulatifs\n- Planifier votre communication\n\nQue souhaitez-vous créer aujourd'hui ?`,
       timestamp: new Date(),
     },
   ]);
@@ -170,7 +170,7 @@ export function AIAssistantPanel({ communityName, tone, onClose }: Props) {
             <Bot className="size-5 text-white" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold text-white">Assistant Yad.ia</p>
+            <p className="text-sm font-semibold text-white">Assistant Shalom IA</p>
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-xs text-slate-400">Claude · Prêt</span>
@@ -289,7 +289,7 @@ export function AIAssistantPanel({ communityName, tone, onClose }: Props) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Demandez à Yad.ia de générer un contenu…"
+              placeholder="Demandez à Shalom IA de générer un contenu…"
               rows={2}
               className="flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
             />
