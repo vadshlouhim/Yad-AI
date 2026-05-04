@@ -17,10 +17,12 @@ export async function GET(request: NextRequest) {
   );
   const forwardedHost = request.headers.get("x-forwarded-host");
   const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
   const redirectOrigin =
-    process.env.NODE_ENV === "development" || !forwardedHost
+    siteUrl ??
+    (process.env.NODE_ENV === "development" || !forwardedHost
       ? origin
-      : `${forwardedProto}://${forwardedHost}`;
+      : `${forwardedProto}://${forwardedHost}`);
 
   if (code) {
     const supabase = await createClient();

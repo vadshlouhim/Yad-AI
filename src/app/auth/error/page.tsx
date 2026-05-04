@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Erreur d'authentification — Yad.ia" };
+export const metadata: Metadata = { title: "Erreur d'authentification — Shalom IA" };
 
 export default async function AuthErrorPage({
   searchParams,

@@ -4,8 +4,8 @@ import { LoginForm } from "@/components/auth/login-form";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Connexion — Yad.ia",
-  description: "Connectez-vous à votre espace Yad.ia",
+  title: "Connexion — Shalom IA",
+  description: "Connectez-vous à votre espace Shalom IA",
 };
 
 export default function LoginPage() {
@@ -18,9 +18,9 @@ export default function LoginPage() {
       <div className="hidden lg:flex lg:w-1/2 brand-gradient flex-col justify-between p-12 text-white">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-            <span className="text-white font-bold text-lg">י</span>
+            <span className="text-white font-bold text-lg">ש</span>
           </div>
-          <span className="text-xl font-bold tracking-tight">Yad.ia</span>
+          <span className="text-xl font-bold tracking-tight">Shalom IA</span>
         </div>
 
         <div className="space-y-6">
@@ -50,7 +50,7 @@ export default function LoginPage() {
         </div>
 
         <div className="text-blue-300 text-sm">
-          © {new Date().getFullYear()} Yad.ia — Communication communautaire augmentée
+          © {new Date().getFullYear()} Shalom IA — Communication communautaire augmentée
         </div>
       </div>
 
@@ -60,9 +60,9 @@ export default function LoginPage() {
           {/* Logo mobile */}
           <div className="lg:hidden flex items-center gap-3 justify-center mb-4 sm:mb-8">
             <div className="w-10 h-10 rounded-xl brand-gradient flex items-center justify-center">
-              <span className="text-white font-bold text-lg">י</span>
+              <span className="text-white font-bold text-lg">ש</span>
             </div>
-            <span className="text-xl font-bold text-slate-900">Yad.ia</span>
+            <span className="text-xl font-bold text-slate-900">Shalom IA</span>
           </div>
 
           <div className="space-y-2">

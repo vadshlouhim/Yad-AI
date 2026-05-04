@@ -4,8 +4,8 @@ import { RegisterForm } from "@/components/auth/register-form";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Créer un compte — Yad.ia",
-  description: "Démarrez avec Yad.ia gratuitement",
+  title: "Créer un compte — Shalom IA",
+  description: "Démarrez avec Shalom IA gratuitement",
 };
 
 export default function RegisterPage() {
@@ -18,9 +18,9 @@ export default function RegisterPage() {
       <div className="hidden lg:flex lg:w-1/2 brand-gradient flex-col justify-between p-12 text-white">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-            <span className="text-white font-bold text-lg">י</span>
+            <span className="text-white font-bold text-lg">ש</span>
           </div>
-          <span className="text-xl font-bold tracking-tight">Yad.ia</span>
+          <span className="text-xl font-bold tracking-tight">Shalom IA</span>
         </div>
 
         <div className="space-y-6">
@@ -56,7 +56,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="text-blue-300 text-sm">
-          © {new Date().getFullYear()} Yad.ia — Communication communautaire augmentée
+          © {new Date().getFullYear()} Shalom IA — Communication communautaire augmentée
         </div>
       </div>
 
@@ -65,9 +65,9 @@ export default function RegisterPage() {
         <div className="w-full max-w-md space-y-6 sm:space-y-8">
           <div className="lg:hidden flex items-center gap-3 justify-center mb-4 sm:mb-8">
             <div className="w-10 h-10 rounded-xl brand-gradient flex items-center justify-center">
-              <span className="text-white font-bold text-lg">י</span>
+              <span className="text-white font-bold text-lg">ש</span>
             </div>
-            <span className="text-xl font-bold text-slate-900">Yad.ia</span>
+            <span className="text-xl font-bold text-slate-900">Shalom IA</span>
           </div>
 
           <div className="space-y-2">
