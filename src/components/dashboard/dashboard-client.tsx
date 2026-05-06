@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AIAssistantPanel } from "./ai-assistant-panel";
 import {
   Calendar, FileText, Send, Zap, Plus, ArrowRight,
-  AlertCircle, Sparkles, Bot
+  AlertCircle, Sparkles, Bot, ImageIcon
 } from "lucide-react";
 
 interface Props {
@@ -94,7 +94,7 @@ export function DashboardClient({
   };
 
   const failedPublications = pendingPublications.filter((p) => p.status === "FAILED");
-  const connectedChannels = community.channels.filter((c) => c.isConnected).length;
+  const connectedChannels = (community.channels ?? []).filter((c) => c.isConnected).length;
 
   return (
     <div className="space-y-6">
@@ -126,6 +126,19 @@ export function DashboardClient({
             </Button>
           </Link>
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
+        <p className="text-sm text-slate-100">
+          Retrouvez vos publications, événements et rappels en un seul endroit.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <Link href="/dashboard/content/new"><Button variant="outline" className="w-full justify-start"><Plus className="size-4" />Créer une publication</Button></Link>
+        <Link href="/dashboard/events"><Button variant="outline" className="w-full justify-start"><Calendar className="size-4" />Voir mon agenda</Button></Link>
+        <Link href="/dashboard/templates"><Button variant="outline" className="w-full justify-start"><ImageIcon className="size-4" />Choisir une affiche</Button></Link>
+        <Link href="/dashboard/assistant"><Button variant="outline" className="w-full justify-start"><Bot className="size-4" />Nouvelle conversation IA</Button></Link>
       </div>
 
       {/* Alertes */}
@@ -177,7 +190,7 @@ export function DashboardClient({
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Calendar className="size-4 text-blue-600" />
-                  Prochains événements
+                  Événements à venir
                 </CardTitle>
                 <Link href="/dashboard/events" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
                   Voir tout <ArrowRight className="size-3" />
@@ -224,7 +237,7 @@ export function DashboardClient({
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Send className="size-4 text-emerald-600" />
-                  File de publication
+                  Publications à valider
                 </CardTitle>
                 <Link href="/dashboard/publications" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
                   Gérer <ArrowRight className="size-3" />
@@ -310,7 +323,7 @@ export function DashboardClient({
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <FileText className="size-4 text-amber-600" />
-                Brouillons récents
+                Rappels du quotidien
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">

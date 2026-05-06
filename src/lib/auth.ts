@@ -36,6 +36,7 @@ export async function requireAuth(): Promise<{
 
   if (!profile) {
     // Profil absent → first login, créer le profil (upsert pour éviter les doublons)
+    const admin = createAdminClient();
     const { data: newProfile, error: createError } = await admin
       .from("profiles")
       .upsert(
