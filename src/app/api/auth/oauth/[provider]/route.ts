@@ -26,6 +26,10 @@ function signState(payload: Record<string, unknown>, secret: string) {
   return `${encodedPayload}.${signature}`;
 }
 
+function getOAuthBaseUrl(requestUrl: URL) {
+  return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? requestUrl.origin;
+}
+
 export async function GET(request: Request, { params }: RouteParams) {
   const { provider } = await params;
   if (provider !== "facebook" && provider !== "instagram") {
@@ -62,7 +66,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     path: "/",
   });
 
-  const redirectUri = new URL(`/api/auth/oauth/${provider}/callback`, url.origin).toString();
+  const redirectUri = new URL(`/api/auth/oauth/${provider}/callback`, getOAuthBaseUrl(url)).toString();
   const dialogUrl = new URL("https://www.facebook.com/v20.0/dialog/oauth");
   dialogUrl.searchParams.set("client_id", appId);
   dialogUrl.searchParams.set("redirect_uri", redirectUri);

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Send, ExternalLink, RefreshCw, AlertCircle, CheckCircle,
-  Clock, XCircle, Copy, Download
+  Clock, XCircle, Copy, Eye
 } from "lucide-react";
 import {
   formatDateTime, formatRelative, CHANNEL_LABELS,
@@ -66,8 +66,30 @@ const STATUS_VARIANT: Record<string, "draft" | "info" | "ready" | "published" | 
   FALLBACK_READY: "ready",
 };
 
+function cleanPreviewText(value: string): string {
+  return value
+    .replace(/\*\*/g, "")
+    .replace(/`/g, "")
+    .replace(/#+\s?/g, "")
+    .replace(/\[(.*?)\]\((.*?)\)/g, "$1")
+    .replace(/\n{2,}/g, "\n")
+    .trim();
+}
+
+function buildChannelPreview(pub: Publication) {
+  const text = cleanPreviewText(pub.content);
+  if (pub.channelType === "EMAIL") {
+    return `Objet: ${pub.event?.title ?? pub.draft?.title ?? "Information communauté"}\n\n${text}`;
+  }
+  if (pub.channelType === "INSTAGRAM") {
+    return `${text}\n\n#communauté #shalomia`;
+  }
+  return text;
+}
+
 export function PublicationsClient({ publications, statsByStatus, activeStatus, activeChannel }: Props) {
   const router = useRouter();
+  void activeChannel;
   const [retrying, setRetrying] = useState<string | null>(null);
 
   const total = Object.values(statsByStatus).reduce((a, b) => a + b, 0);
@@ -86,10 +108,10 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-teal-50 p-6 shadow-sm">
+      <div className="overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-white via-blue-50 to-slate-100 p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Communication</p>
         <h1 className="mt-2 text-2xl font-bold text-slate-900">Historique des publications</h1>
-        <p className="text-slate-500 mt-1">Historique et suivi de toutes vos publications</p>
+        <p className="text-slate-500 mt-1">Prévisualisez chaque publication comme elle a été envoyée, canal par canal.</p>
       </div>
 
       {/* Filtres statut */}
@@ -160,12 +182,12 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
+        <div className="grid gap-3 lg:grid-cols-2">
           {publications.map((pub) => (
             <Card
               key={pub.id}
               className={cn(
-                "border-slate-200 transition-shadow hover:shadow-sm",
+                "border-slate-200 transition-shadow hover:shadow-md",
                 pub.status === "FAILED" && "border-red-200 bg-red-50/30",
                 pub.status === "FALLBACK_READY" && "border-amber-200 bg-amber-50/30"
               )}
@@ -201,10 +223,23 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
                       </div>
                     </div>
 
-                    {/* Aperçu du contenu */}
-                    <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
-                      {truncate(pub.content, 150)}
-                    </p>
+                    {/* Aperçu moderne */}
+                    <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          Prévisualisation {CHANNEL_LABELS[pub.channelType]}
+                        </p>
+                        <span className="inline-flex items-center gap-1 text-[11px] text-slate-400">
+                          <Eye className="size-3" />
+                          Rendu
+                        </span>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+                        <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700 line-clamp-6">
+                          {truncate(buildChannelPreview(pub), 320)}
+                        </p>
+                      </div>
+                    </div>
 
                     {/* Fallback info */}
                     {pub.fallbackUsed && pub.fallbackType && (
@@ -256,7 +291,7 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
                           size="sm"
                           className="h-7 text-xs text-amber-600 border-amber-300 hover:bg-amber-50"
                           onClick={() => {
-                            navigator.clipboard.writeText(pub.content);
+                            navigator.clipboard.writeText(cleanPreviewText(pub.content));
                             alert("Contenu copié !");
                           }}
                         >

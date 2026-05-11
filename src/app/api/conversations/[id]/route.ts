@@ -21,6 +21,15 @@ type ConversationMessage = {
   articleSuggestions?: unknown[];
 };
 
+function cleanConversationTitle(title: unknown) {
+  if (typeof title !== "string") return "Nouvelle conversation";
+  return title
+    .replace(/\*\*/g, "")
+    .replace(/[*_`#]/g, "")
+    .replace(/\s+/g, " ")
+    .trim() || "Nouvelle conversation";
+}
+
 export async function GET(_request: Request, { params }: RouteParams) {
   const supabase = await createClient();
   const {
@@ -92,7 +101,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     }
   }
 
-  return NextResponse.json({ ...conversation, messages });
+  return NextResponse.json({ ...conversation, title: cleanConversationTitle(conversation.title), messages });
 }
 
 export async function PATCH(request: Request, { params }: RouteParams) {
@@ -106,9 +115,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   const body = await request.json();
   const admin = createAdminClient();
 
+  const title = cleanConversationTitle(body.title);
+
   const { data } = await admin
     .from("Conversation")
-    .update({ title: body.title, updatedAt: new Date().toISOString() })
+    .update({ title, updatedAt: new Date().toISOString() })
     .eq("id", id)
     .eq("userId", user.id)
     .select()

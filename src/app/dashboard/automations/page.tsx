@@ -10,7 +10,8 @@ export default async function AutomationsPage() {
   const communityId = profile.communityId!;
   const admin = createAdminClient();
 
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
 
   const { data: automations } = await admin
     .from("Automation")
@@ -36,9 +37,16 @@ export default async function AutomationsPage() {
     : { data: [] };
 
   return (
-    <AutomationsClient
-      automations={(automations ?? []) as Parameters<typeof AutomationsClient>[0]["automations"]}
-      recentRuns={(runs ?? []) as Parameters<typeof AutomationsClient>[0]["recentRuns"]}
-    />
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
+        <p className="text-sm text-slate-100">
+          Les automatisations pilotent uniquement vos publications programmées (J-10, J-5, J-1, jour J).
+        </p>
+      </div>
+      <AutomationsClient
+        automations={(automations ?? []) as Parameters<typeof AutomationsClient>[0]["automations"]}
+        recentRuns={(runs ?? []) as Parameters<typeof AutomationsClient>[0]["recentRuns"]}
+      />
+    </div>
   );
 }

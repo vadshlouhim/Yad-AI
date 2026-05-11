@@ -37,10 +37,36 @@ export async function POST(
 
   if (!run) return NextResponse.json({ error: "Erreur création run" }, { status: 500 });
 
-  executeAutomationActions(
-    automation as Parameters<typeof executeAutomationActions>[0],
-    run.id
-  ).catch(console.error);
+  try {
+    await executeAutomationActions(
+      automation as Parameters<typeof executeAutomationActions>[0],
+      run.id
+    );
+
+    await Promise.all([
+      admin
+        .from("AutomationRun")
+        .update({ status: "SUCCESS", completedAt: new Date().toISOString() })
+        .eq("id", run.id),
+      admin
+        .from("Automation")
+        .update({ lastRunAt: new Date().toISOString(), status: "ACTIVE", updatedAt: new Date().toISOString() })
+        .eq("id", automation.id),
+    ]);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erreur inconnue";
+    await Promise.all([
+      admin
+        .from("AutomationRun")
+        .update({ status: "FAILED", completedAt: new Date().toISOString(), error: message })
+        .eq("id", run.id),
+      admin
+        .from("Automation")
+        .update({ status: "FAILED", updatedAt: new Date().toISOString() })
+        .eq("id", automation.id),
+    ]);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 
   return NextResponse.json({ runId: run.id, message: "Automatisation déclenchée" });
 }

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Save, Building2, User, Palette, ChevronRight, ShieldCheck, Users, Smartphone, Trash2, Share2 } from "lucide-react";
+import { Save, Building2, User, Palette, ChevronRight, ShieldCheck, Users, Smartphone, Trash2, Share2, Bot, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +38,7 @@ interface Profile {
   name: string;
   email: string;
   avatarUrl: string | null;
+  canAccessAdmin: boolean;
   authProviders: string[];
 }
 
@@ -100,7 +101,8 @@ const PLAN_LABELS: Record<string, { label: string; color: string }> = {
 export function SettingsGeneralClient({ community, profile }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
-  const [activeSection, setActiveSection] = useState<"community" | "contacts" | "editorial" | "profile">("community");
+  const [activeSection, setActiveSection] = useState<"community" | "contacts" | "editorial" | "profile" | "interface">("community");
+  const [assistantMode, setAssistantMode] = useState<"simple" | "detailed">("simple");
 
   // Community form
   const [name, setName] = useState(community.name);
@@ -142,6 +144,8 @@ export function SettingsGeneralClient({ community, profile }: Props) {
 
   useEffect(() => {
     loadMembers();
+    const storedMode = window.localStorage.getItem("shalom-assistant-experience");
+    if (storedMode === "detailed") setAssistantMode("detailed");
   }, []);
 
   async function saveCommunity() {
@@ -333,6 +337,7 @@ export function SettingsGeneralClient({ community, profile }: Props) {
   const authProviders = profile.authProviders.length > 0 ? profile.authProviders : ["email"];
 
   const navItems = [
+    { id: "interface" as const, label: "Interface", icon: Bot },
     { id: "community" as const, label: "Communauté", icon: Building2 },
     { id: "contacts" as const, label: "Contacts", icon: Users },
     { id: "editorial" as const, label: "Identité éditoriale", icon: Palette },
@@ -345,9 +350,18 @@ export function SettingsGeneralClient({ community, profile }: Props) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Paramètres</h1>
-          <p className="text-slate-500 mt-1">Gérez votre communauté et votre profil</p>
+          <p className="text-slate-500 mt-1">Gérez vos réseaux, votre quotidien, vos contacts et l&apos;aide produit.</p>
         </div>
         <div className="flex items-center gap-2">
+          {profile.canAccessAdmin && (
+            <Link href="/admin">
+              <Button variant="outline" size="sm">
+                <ShieldCheck className="size-4" />
+                Mode admin
+                <ChevronRight className="size-3.5 ml-1" />
+              </Button>
+            </Link>
+          )}
           <Link href="/dashboard/settings/billing">
             <Button variant="outline" size="sm">
               <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", PLAN_LABELS[community.plan]?.color)}>
@@ -358,6 +372,20 @@ export function SettingsGeneralClient({ community, profile }: Props) {
             </Button>
           </Link>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <Link href="/dashboard/settings/channels" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Connexion réseaux sociaux</Link>
+        <Link href="/dashboard/events" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Gestion du quotidien</Link>
+        <button type="button" onClick={() => setActiveSection("contacts")} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50">Gestion des contacts</button>
+        <Link href="/help" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">FAQ</Link>
+        <a href="mailto:contact@shalom-ia.com" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Contact</a>
+        <a href="mailto:contact@shalom-ia.com?subject=Suggestion%20Shalom%20IA" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Envoyer une suggestion</a>
+        {profile.canAccessAdmin && (
+          <Link href="/admin" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 hover:bg-emerald-100">
+            Mode admin global
+          </Link>
+        )}
       </div>
 
       <div className="flex gap-6">
@@ -389,6 +417,57 @@ export function SettingsGeneralClient({ community, profile }: Props) {
 
         {/* Contenu */}
         <div className="flex-1 space-y-4">
+          {activeSection === "interface" && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <SlidersHorizontal className="size-4" />
+                  Mode d&apos;utilisation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    {
+                      value: "simple" as const,
+                      title: "Mode simplifié",
+                      description: "Assistant conversationnel en page principale, avec boutons d'action sur le compte.",
+                    },
+                    {
+                      value: "detailed" as const,
+                      title: "Mode détaillé",
+                      description: "Interface experte avec historique, sections et réglages complets.",
+                    },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setAssistantMode(option.value);
+                        window.localStorage.setItem("shalom-assistant-experience", option.value);
+                      }}
+                      className={cn(
+                        "rounded-xl border p-4 text-left transition",
+                        assistantMode === option.value
+                          ? "border-blue-300 bg-blue-50 ring-2 ring-blue-100"
+                          : "border-slate-200 bg-white hover:bg-slate-50"
+                      )}
+                    >
+                      <span className="text-sm font-bold text-slate-900">{option.title}</span>
+                      <span className="mt-1 block text-xs leading-relaxed text-slate-500">{option.description}</span>
+                    </button>
+                  ))}
+                </div>
+                <Link href="/dashboard/assistant">
+                  <Button size="sm">
+                    <Bot className="size-4" />
+                    Ouvrir l&apos;assistant
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Section communauté */}
           {activeSection === "community" && (
             <Card>

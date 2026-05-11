@@ -4,7 +4,7 @@ import { EventsClient } from "@/components/events/events-client";
 import { getShabbatTimes, getJewishHolidays } from "@/lib/automation/hebcal";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Agenda intelligent — Shalom IA" };
+export const metadata: Metadata = { title: "Mon quotidien — Shalom IA" };
 
 const EVENT_STATUSES = ["DRAFT", "READY", "SCHEDULED", "PUBLISHED", "COMPLETED", "ARCHIVED"];
 

@@ -18,11 +18,15 @@ export async function GET(request: NextRequest) {
   const forwardedHost = request.headers.get("x-forwarded-host");
   const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
   const siteUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+  const isLocalOrigin =
+    origin.startsWith("http://localhost:") ||
+    origin.startsWith("http://127.0.0.1:");
   const redirectOrigin =
-    siteUrl ??
-    (process.env.NODE_ENV === "development" || !forwardedHost
+    process.env.NODE_ENV === "development" || isLocalOrigin
       ? origin
-      : `${forwardedProto}://${forwardedHost}`);
+      : forwardedHost
+        ? `${forwardedProto}://${forwardedHost}`
+        : siteUrl ?? origin;
 
   if (code) {
     const cookieStore = await cookies();

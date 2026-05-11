@@ -33,7 +33,16 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
   const pathname = usePathname();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const SEARCH_TARGETS = [
+    { label: "Assistant IA", href: "/dashboard/assistant", keywords: ["assistant", "ia", "chat"] },
+    { label: "Mon quotidien", href: "/dashboard/events", keywords: ["agenda", "quotidien", "cours", "rappel"] },
+    { label: "Automatisations", href: "/dashboard/automations", keywords: ["automatisation", "j-10", "j-5", "j-1"] },
+    { label: "Affiches", href: "/dashboard/templates", keywords: ["affiche", "visuel", "template"] },
+    { label: "Publications", href: "/dashboard/publications", keywords: ["publication", "historique"] },
+    { label: "Paramètres", href: "/dashboard/settings", keywords: ["parametre", "réglage", "contact", "faq"] },
+  ];
 
   async function handleLogout() {
     const supabase = createClient();
@@ -43,6 +52,17 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  function submitSearch() {
+    const q = searchValue.trim().toLowerCase();
+    if (!q) return;
+    const target = SEARCH_TARGETS.find((item) =>
+      item.label.toLowerCase().includes(q) || item.keywords.some((k) => k.includes(q))
+    );
+    router.push(target?.href ?? `/dashboard/events?q=${encodeURIComponent(searchValue.trim())}`);
+    setSearchOpen(false);
+    setSearchValue("");
   }
 
   return (
@@ -66,8 +86,11 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
             <input
               autoFocus
               type="text"
+              value={searchValue}
+              onChange={(event) => setSearchValue(event.target.value)}
               placeholder="Rechercher événements, contenus, affiches, articles…"
               onBlur={() => setSearchOpen(false)}
+              onKeyDown={(event) => event.key === "Enter" && submitSearch()}
               className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             />
           </div>

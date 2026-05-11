@@ -11,8 +11,6 @@ const PUBLIC_ROUTES = [
   "/auth/error",
 ];
 
-const SUPER_ADMIN_ROUTES = ["/admin"];
-
 function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
@@ -64,14 +62,6 @@ export async function middleware(request: NextRequest) {
     const loginUrl = new URL("/auth/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
-  }
-
-  // Routes super-admin — vérifier le rôle via metadata Supabase
-  if (
-    SUPER_ADMIN_ROUTES.some((r) => pathname.startsWith(r)) &&
-    user.app_metadata?.role !== "SUPER_ADMIN"
-  ) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return supabaseResponse;

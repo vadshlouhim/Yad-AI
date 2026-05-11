@@ -2,15 +2,19 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Send, Sparkles, Bot, Copy, Check, RefreshCw, Trash2,
   Plus, MessageSquare, Pencil, MoreHorizontal, PanelLeftOpen, Share2,
-  WandSparkles, ArrowRight, Settings,
+  X, SlidersHorizontal, PlayCircle, PauseCircle,
+  Power, ExternalLink, Zap, CalendarDays, BookOpen, Gift, HeartHandshake,
+  Lightbulb, Clock3, Radio,
 } from "lucide-react";
 import { CHANNEL_LABELS, cn } from "@/lib/utils";
 import { formatArticlePrice } from "@/lib/articles/shared";
 import { startArticleCheckout } from "@/lib/articles/checkout-client";
+import { AUTOMATION_PRESETS, type AutomationPresetKey } from "@/lib/automation/presets";
 import { DailyRoutineWizard } from "./daily-routine-wizard";
 import type { RoutineItem } from "./daily-routine-wizard";
 
@@ -28,6 +32,8 @@ interface Message {
   posterDraft?: PosterDraft | null;
   generatedImageUrl?: string | null;
   publishDraft?: PublishDraft | null;
+  assistantActions?: AssistantActionCard[];
+  automationSetup?: AutomationSetupDraft;
 }
 
 interface TemplateSuggestion {
@@ -74,6 +80,34 @@ interface PublishDraft {
   caption: string;
 }
 
+interface AutomationSetupDraft {
+  preset: AutomationPresetKey;
+  name: string;
+  description: string;
+  trigger: string;
+  time: string;
+  day?: string;
+  dayOfWeek?: number;
+  daysBeforeHoliday?: number;
+  channels: string[];
+  isActive: boolean;
+}
+
+interface AssistantActionCard {
+  id: string;
+  type: "automation" | "setting" | "navigation" | "creation";
+  title: string;
+  description: string;
+  status?: string;
+  href?: string;
+  action?: {
+    kind: "toggle_automation" | "trigger_automation" | "delete_automation" | "create_automation" | "create_shabbat_automation" | "open_daily_routine" | "switch_detailed";
+    automationId?: string;
+    isActive?: boolean;
+    preset?: AutomationPresetKey;
+  };
+}
+
 interface ConversationSummary {
   id: string;
   title: string;
@@ -83,9 +117,9 @@ interface ConversationSummary {
 
 interface Props {
   communityName: string;
+  communityLogoUrl?: string | null;
   tone: string;
   channels: ChannelOption[];
-  demoPrompt?: QuickPrompt & { href?: string };
   seasonalPrompts: QuickPrompt[];
 }
 
@@ -103,50 +137,126 @@ interface QuickPrompt {
   prompt: string;
 }
 
-interface FollowUpSuggestion {
-  label: string;
-  prompt: string;
-}
-
 // ============================================================
 // CONSTANTES
 // ============================================================
 
 const QUICK_PROMPTS: QuickPrompt[] = [
-  { label: "Post Chabbat", prompt: "Génère un post pour annoncer les horaires de Chabbat de cette semaine" },
-  { label: "Annonce événement", prompt: "Aide-moi à rédiger une annonce pour un événement communautaire" },
-  { label: "Post récapitulatif", prompt: "Écris un post récapitulatif d'un événement qui vient de se terminer" },
-  { label: "Voeux de fête", prompt: "Génère des voeux pour la prochaine fête juive" },
-  { label: "Cours de Torah", prompt: "Rédige une annonce pour un cours de Torah hebdomadaire" },
-  { label: "Collecte de fonds", prompt: "Écris un post engageant pour une collecte de dons" },
-  { label: "Accueil nouveaux", prompt: "Rédige un message de bienvenue pour les nouveaux membres" },
-  { label: "Pensée du jour", prompt: "Génère une pensée inspirante liée à la Torah" },
+  { label: "Plan Chabbat", description: "Post, affiche, horaires, rappel", prompt: "Prépare-moi un plan complet pour Chabbat cette semaine : message WhatsApp, post Instagram, affiche si disponible et rappel à programmer." },
+  { label: "Créer automatisation", description: "Suggestions prêtes en un clic", prompt: "Propose-moi les automatisations les plus utiles pour mon Beth Habad et explique laquelle créer en premier." },
+  { label: "Annonce événement", description: "J-10, J-5, J-1, jour J", prompt: "Aide-moi à préparer la communication complète d'un événement : annonce, rappels, visuel et canaux." },
+  { label: "Voeux de fête", description: "Texte + affiche + timing", prompt: "Prépare les voeux pour la prochaine fête juive avec texte, canaux recommandés et affiche si disponible." },
+  { label: "Cours de Torah", description: "Annonce et rappel régulier", prompt: "Prépare une annonce de cours de Torah hebdomadaire et propose une automatisation de rappel." },
+  { label: "Collecte de fonds", description: "Message clair et sensible", prompt: "Écris une campagne de collecte de dons structurée avec message principal, WhatsApp, email et CTA." },
+  { label: "Diagnostic compte", description: "Ce qui manque / quoi améliorer", prompt: "Fais un diagnostic simple de mon compte : automatisations, réseaux, quotidien, contenus et prochaines actions." },
+  { label: "Pensée du jour", description: "Court, publiable, régulier", prompt: "Génère une pensée du jour courte et propose comment la publier régulièrement." },
 ];
 
-const FALLBACK_FOLLOW_UPS: FollowUpSuggestion[] = [
-  {
-    label: "Version courte",
-    prompt: "Transforme ta réponse précédente en version courte, claire et prête à publier.",
-  },
-  {
-    label: "Adapter par canal",
-    prompt: "Adapte ta réponse précédente en versions WhatsApp, Instagram et email.",
-  },
-  {
-    label: "Créer un visuel",
-    prompt: "Propose une affiche ou un visuel adapté à ta réponse précédente.",
-  },
+const QUICK_PROMPT_STYLES = [
+  "border-blue-100 bg-blue-50 text-blue-900 hover:border-blue-200 hover:bg-blue-100",
+  "border-amber-100 bg-amber-50 text-amber-900 hover:border-amber-200 hover:bg-amber-100",
+  "border-emerald-100 bg-emerald-50 text-emerald-900 hover:border-emerald-200 hover:bg-emerald-100",
+  "border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50",
 ];
 
-const SUGGESTION_TAB_STYLES = [
-  "border-blue-100 bg-gradient-to-br from-white via-blue-50 to-sky-100 text-blue-900 hover:border-blue-300 hover:from-blue-50 hover:to-sky-200",
-  "border-violet-100 bg-gradient-to-br from-white via-violet-50 to-fuchsia-100 text-violet-900 hover:border-violet-300 hover:from-violet-50 hover:to-fuchsia-200",
-  "border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-teal-100 text-emerald-900 hover:border-emerald-300 hover:from-emerald-50 hover:to-teal-200",
-  "border-amber-100 bg-gradient-to-br from-white via-amber-50 to-orange-100 text-amber-900 hover:border-amber-300 hover:from-amber-50 hover:to-orange-200",
+function getQuickPromptStyle(index: number) {
+  return QUICK_PROMPT_STYLES[index % QUICK_PROMPT_STYLES.length];
+}
+
+const AUTOMATION_DAYS = [
+  { value: "monday", label: "Lundi", dayOfWeek: 1 },
+  { value: "tuesday", label: "Mardi", dayOfWeek: 2 },
+  { value: "wednesday", label: "Mercredi", dayOfWeek: 3 },
+  { value: "thursday", label: "Jeudi", dayOfWeek: 4 },
+  { value: "friday", label: "Vendredi", dayOfWeek: 5 },
+  { value: "sunday", label: "Dimanche", dayOfWeek: 0 },
 ];
 
-function getSuggestionTabStyle(index: number) {
-  return SUGGESTION_TAB_STYLES[index % SUGGESTION_TAB_STYLES.length];
+const AUTOMATION_CHANNELS = ["WHATSAPP", "INSTAGRAM", "FACEBOOK", "EMAIL", "TELEGRAM", "WEB"];
+
+function buildAutomationSetupDraft(presetKey: AutomationPresetKey): AutomationSetupDraft {
+  const preset = AUTOMATION_PRESETS[presetKey];
+  const triggerConfig = preset.triggerConfig as {
+    time?: string;
+    day?: string;
+    dayOfWeek?: number;
+    daysBeforeHoliday?: number;
+  };
+
+  return {
+    preset: presetKey,
+    name: preset.name,
+    description: preset.description,
+    trigger: preset.trigger,
+    time: triggerConfig.time ?? "10:00",
+    day: triggerConfig.day,
+    dayOfWeek: triggerConfig.dayOfWeek,
+    daysBeforeHoliday: triggerConfig.daysBeforeHoliday,
+    channels: [...preset.channels],
+    isActive: true,
+  };
+}
+
+function buildAutomationTriggerConfig(setup: AutomationSetupDraft) {
+  if (setup.trigger === "JEWISH_HOLIDAY") {
+    return {
+      daysBeforeHoliday: setup.daysBeforeHoliday ?? 3,
+      time: setup.time,
+    };
+  }
+
+  if (setup.trigger === "CUSTOM_SCHEDULE" || setup.trigger === "WEEKLY_SHABBAT") {
+    return {
+      day: setup.day ?? "monday",
+      dayOfWeek: setup.dayOfWeek ?? AUTOMATION_DAYS.find((day) => day.value === setup.day)?.dayOfWeek ?? 1,
+      time: setup.time,
+      ...(setup.trigger === "WEEKLY_SHABBAT" ? { daysBefore: 1 } : {}),
+    };
+  }
+
+  return { time: setup.time };
+}
+
+function isAutomationAction(card: AssistantActionCard) {
+  return card.type === "automation" || card.action?.kind === "create_automation" || card.action?.kind === "create_shabbat_automation";
+}
+
+function getAutomationIcon(card: AssistantActionCard) {
+  const key = `${card.action?.preset ?? ""} ${card.title}`.toLowerCase();
+  if (/shabbat|chabbat/.test(key)) return CalendarDays;
+  if (/thought|pensée|pensee/.test(key)) return Lightbulb;
+  if (/course|cours/.test(key)) return BookOpen;
+  if (/holiday|fête|fetes|voeux|vœux/.test(key)) return Gift;
+  if (/don|donation|collecte/.test(key)) return HeartHandshake;
+  if (/rappel|reminder/.test(key)) return Clock3;
+  return Zap;
+}
+
+function getAutomationTone(card: AssistantActionCard) {
+  const key = `${card.action?.preset ?? ""} ${card.title}`.toLowerCase();
+  if (/shabbat|chabbat/.test(key)) return "from-amber-50 to-orange-100 text-amber-700 border-amber-200";
+  if (/thought|pensée|pensee/.test(key)) return "from-sky-50 to-blue-100 text-blue-700 border-blue-200";
+  if (/course|cours/.test(key)) return "from-indigo-50 to-violet-100 text-indigo-700 border-indigo-200";
+  if (/holiday|fête|fetes|voeux|vœux/.test(key)) return "from-rose-50 to-pink-100 text-rose-700 border-rose-200";
+  if (/don|donation|collecte/.test(key)) return "from-emerald-50 to-teal-100 text-emerald-700 border-emerald-200";
+  return "from-slate-50 to-slate-100 text-slate-700 border-slate-200";
+}
+
+function getCommunityInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "BH";
+}
+
+function cleanConversationTitle(title: string) {
+  return title
+    .replace(/\*\*/g, "")
+    .replace(/[*_`#]/g, "")
+    .replace(/\s+/g, " ")
+    .trim() || "Nouvelle conversation";
 }
 
 // ============================================================
@@ -182,96 +292,14 @@ function groupByDate(conversations: ConversationSummary[]): { label: string; ite
     .map(([label, items]) => ({ label, items }));
 }
 
-function normalizeSuggestionText(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-function getFollowUpSuggestions(message: Message): FollowUpSuggestion[] {
-  if (message.role !== "assistant" || !message.content.trim()) {
-    return [];
-  }
-
-  const text = normalizeSuggestionText(message.content);
-  const suggestions: FollowUpSuggestion[] = [];
-
-  const add = (suggestion: FollowUpSuggestion) => {
-    if (!suggestions.some((item) => item.label === suggestion.label)) {
-      suggestions.push(suggestion);
-    }
-  };
-
-  if (message.templateSuggestions?.length || message.posterDraft || message.generatedImageUrl || /affiche|flyer|visuel|template/.test(text)) {
-    add({
-      label: "Préparer l'affiche",
-      prompt: "À partir de ta réponse précédente, prépare les textes exacts pour une affiche.",
-    });
-    add({
-      label: "Légende de publication",
-      prompt: "Rédige une légende courte pour publier ce visuel sur les réseaux sociaux.",
-    });
-    add({
-      label: "Déclinaisons réseaux",
-      prompt: "Décline cette création en formats WhatsApp, Instagram et email.",
-    });
-  }
-
-  if (/chabbat|shabbat|paracha|havdala|bougies|kiddouch|kidouch/.test(text)) {
-    add({
-      label: "Version WhatsApp",
-      prompt: "Transforme ta réponse précédente en message WhatsApp court pour annoncer Chabbat.",
-    });
-    add({
-      label: "Version Instagram",
-      prompt: "Adapte ta réponse précédente en post Instagram avec accroche, emojis sobres et hashtags.",
-    });
-    add({
-      label: "Ajouter une pensée",
-      prompt: "Ajoute une courte pensée de Torah liée à cette annonce, en gardant le texte concis.",
-    });
-  }
-
-  if (/evenement|événement|inscription|programme|cours|conference|conférence|soiree|soirée/.test(text)) {
-    add({
-      label: "Rappel J-1",
-      prompt: "Crée un rappel J-1 à partir de ta réponse précédente.",
-    });
-    add({
-      label: "Message d'inscription",
-      prompt: "Rédige une version centrée sur l'inscription avec un appel à l'action clair.",
-    });
-    add({
-      label: "Email complet",
-      prompt: "Transforme ta réponse précédente en email complet avec objet, introduction et CTA.",
-    });
-  }
-
-  if (message.articleSuggestions?.length || /article|boutique|commande|produit|prix/.test(text)) {
-    add({
-      label: "Texte boutique",
-      prompt: "Rédige une description boutique plus vendeuse à partir de ta réponse précédente.",
-    });
-    add({
-      label: "Post promotion",
-      prompt: "Crée un post de promotion court pour mettre ces articles en avant.",
-    });
-  }
-
-  add(FALLBACK_FOLLOW_UPS[0]);
-  add(FALLBACK_FOLLOW_UPS[1]);
-  add(FALLBACK_FOLLOW_UPS[2]);
-
-  return suggestions.slice(0, 3);
-}
-
 // ============================================================
 // COMPOSANT PRINCIPAL
 // ============================================================
 
-export function AssistantClient({ communityName, tone: _tone, channels, demoPrompt, seasonalPrompts }: Props) {
+export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, channels, seasonalPrompts }: Props) {
   void _tone;
+  const router = useRouter();
+  const [assistantExperience, setAssistantExperienceState] = useState<"simple" | "detailed">("simple");
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -289,11 +317,17 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
   const [selectedPublishChannels, setSelectedPublishChannels] = useState<string[]>([]);
   const [publishCaption, setPublishCaption] = useState("");
   const [buyingArticleId, setBuyingArticleId] = useState<string | null>(null);
+  const [runningActionId, setRunningActionId] = useState<string | null>(null);
+  const [editingPosterId, setEditingPosterId] = useState<string | null>(null);
+  const [posterDraftEdits, setPosterDraftEdits] = useState<Record<string, string>>({});
   // Quotidien
-  const [dailyRoutineConfigured, setDailyRoutineConfigured] = useState(false);
+  const [, setDailyRoutineConfigured] = useState(false);
   const [dailyRoutineLoading, setDailyRoutineLoading] = useState(true);
   const [dailyRoutineMode, setDailyRoutineMode] = useState(false);
   const [savingRoutine, setSavingRoutine] = useState(false);
+  const [showDailyRoutineBubble, setShowDailyRoutineBubble] = useState(true);
+  const [bubblePosition, setBubblePosition] = useState({ x: 24, y: 24 });
+  const bubbleDragState = useRef({ active: false, moved: false, offsetX: 0, offsetY: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -301,6 +335,8 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
   useEffect(() => {
     fetchConversations();
     fetchDailyRoutine();
+    const storedMode = window.localStorage.getItem("shalom-assistant-experience");
+    if (storedMode === "detailed") setAssistantExperienceState("detailed");
   }, []);
 
   useEffect(() => {
@@ -311,12 +347,21 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
     inputRef.current?.focus();
   }, [activeConversationId]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setBubblePosition({
+      x: Math.max(16, window.innerWidth - 250),
+      y: 90,
+    });
+  }, []);
+
   // ── API calls ──
 
   async function fetchConversations() {
     const res = await fetch("/api/conversations");
     if (res.ok) {
-      setConversations(await res.json());
+      const data = (await res.json()) as ConversationSummary[];
+      setConversations(data.map((conv) => ({ ...conv, title: cleanConversationTitle(conv.title) })));
     }
   }
 
@@ -359,6 +404,7 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
       body: JSON.stringify({}),
     });
     const conv = await res.json();
+    conv.title = cleanConversationTitle(conv.title);
     setConversations((prev) => [conv, ...prev]);
     return conv.id;
   }
@@ -401,13 +447,14 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
   }
 
   async function renameConversation(id: string, title: string) {
+    const cleanTitle = cleanConversationTitle(title);
     await fetch(`/api/conversations/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title }),
+      body: JSON.stringify({ title: cleanTitle }),
     });
     setConversations((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, title } : c))
+      prev.map((c) => (c.id === id ? { ...c, title: cleanTitle } : c))
     );
     setEditingId(null);
   }
@@ -422,7 +469,7 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
 
   const sendMessage = useCallback(async (
     content?: string,
-    options?: { selectedTemplateId?: string | null; templateAction?: "select" | null; mode?: "daily_routine" }
+    options?: { selectedTemplateId?: string | null; templateAction?: "select" | null; mode?: "daily_routine" | "simplified" }
   ) => {
     const messageContent = content ?? input.trim();
     if (!messageContent || loading) return;
@@ -454,7 +501,7 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
           conversationId: convId,
           selectedTemplateId: options?.selectedTemplateId ?? selectedTemplate?.id ?? null,
           templateAction: options?.templateAction ?? null,
-          mode: options?.mode ?? (dailyRoutineMode ? "daily_routine" : undefined),
+          mode: options?.mode ?? (dailyRoutineMode ? "daily_routine" : assistantExperience === "simple" ? "simplified" : undefined),
           messages: currentMessages.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
@@ -506,6 +553,15 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
                   )
                 );
               }
+              if (parsed.type === "assistant_actions" && Array.isArray(parsed.actions)) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMessage.id
+                      ? { ...m, assistantActions: parsed.actions }
+                      : m
+                  )
+                );
+              }
               if (parsed.content) {
                 assistantContent += parsed.content;
                 setMessages((prev) =>
@@ -540,7 +596,7 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
     } finally {
       setLoading(false);
     }
-  }, [input, loading, activeConversationId, messages, selectedTemplate, dailyRoutineMode]);
+  }, [input, loading, activeConversationId, messages, selectedTemplate, dailyRoutineMode, assistantExperience]);
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -559,11 +615,18 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
     return text
       .replace(/\*\*(.*?)\*\*/g, '<span class="font-bold">$1</span>')
       .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<span class="font-bold">$1</span>')
+      .replace(/^- (.*)$/gm, '<div class="ml-1 flex gap-2"><span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400"></span><span>$1</span></div>')
+      .replace(/^(\d+)\. (.*)$/gm, '<div class="ml-1 flex gap-2"><span class="font-bold text-blue-600">$1.</span><span>$2</span></div>')
       .replace(/\n/g, "<br />");
   }
 
-  function sendFollowUp(prompt: string) {
-    sendMessage(prompt);
+  function setAssistantExperience(mode: "simple" | "detailed") {
+    if (mode === "simple") {
+      setHistoryOpen(false);
+      setMenuId(null);
+    }
+    setAssistantExperienceState(mode);
+    window.localStorage.setItem("shalom-assistant-experience", mode);
   }
 
   const showQuickPrompts = messages.length === 0;
@@ -572,17 +635,60 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
     ? seasonalPrompts.slice(0, 4)
     : [...seasonalPrompts, ...QUICK_PROMPTS].slice(0, 4);
 
-  async function preparePosterDraft() {
-    if (!selectedTemplate || preparingPoster) return;
+  function clampBubblePosition(x: number, y: number) {
+    if (typeof window === "undefined") return { x, y };
+    const maxX = Math.max(16, window.innerWidth - 260);
+    const maxY = Math.max(16, window.innerHeight - 70);
+    return {
+      x: Math.min(Math.max(16, x), maxX),
+      y: Math.min(Math.max(16, y), maxY),
+    };
+  }
+
+  function handleBubbleMouseDown(event: React.MouseEvent<HTMLButtonElement>) {
+    if (typeof window === "undefined" || window.innerWidth < 1024) return;
+    const drag = bubbleDragState.current;
+    drag.active = true;
+    drag.moved = false;
+    drag.offsetX = event.clientX - bubblePosition.x;
+    drag.offsetY = event.clientY - bubblePosition.y;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      if (!drag.active) return;
+      drag.moved = true;
+      const nextPosition = clampBubblePosition(moveEvent.clientX - drag.offsetX, moveEvent.clientY - drag.offsetY);
+      setBubblePosition(nextPosition);
+    };
+
+    const onMouseUp = () => {
+      drag.active = false;
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      setTimeout(() => {
+        drag.moved = false;
+      }, 0);
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  }
+
+  async function preparePosterDraft(
+    templateOverride?: TemplateSuggestion,
+    sourceMessages?: Message[]
+  ) {
+    const templateToPrepare = templateOverride ?? selectedTemplate;
+    if (!templateToPrepare || preparingPoster) return;
 
     setPreparingPoster(true);
     try {
+      const messagesForPoster = sourceMessages ?? messages;
       const response = await fetch("/api/templates/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          templateId: selectedTemplate.id,
-          messages: messages.map((message) => ({
+          templateId: templateToPrepare.id,
+          messages: messagesForPoster.map((message) => ({
             role: message.role,
             content: message.content,
           })),
@@ -617,6 +723,107 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
           role: "assistant",
           content:
             "Je n'ai pas pu préparer l'affiche pour le moment. Réessaie après avoir précisé les textes principaux.",
+          timestamp: new Date(),
+        },
+      ]);
+    } finally {
+      setPreparingPoster(false);
+    }
+  }
+
+  function openPosterEditor(message: Message) {
+    if (!message.posterDraft) return;
+    setEditingPosterId(message.id);
+    setPosterDraftEdits(message.posterDraft.generatedTexts);
+  }
+
+  function savePosterEdits(message: Message) {
+    if (!message.posterDraft) return;
+    const nextTexts = Object.fromEntries(
+      Object.entries(posterDraftEdits).map(([key, value]) => [key, value.trim() || "À confirmer"])
+    );
+    const missingFields = Object.entries(nextTexts)
+      .filter(([, value]) => value === "À confirmer")
+      .map(([key]) => key);
+
+    setMessages((prev) =>
+      prev.map((item) =>
+        item.id === message.id && item.posterDraft
+          ? {
+              ...item,
+              posterDraft: {
+                ...item.posterDraft,
+                generatedTexts: nextTexts,
+                missingFields,
+              },
+              content: [
+                "J'ai mis à jour les textes de l'affiche avec vos modifications.",
+                "",
+                ...Object.entries(nextTexts).map(([key, value]) => `- ${key} : ${value}`),
+                "",
+                missingFields.length > 0
+                  ? `À confirmer : ${missingFields.join(", ")}.`
+                  : "Si tout est bon, vous pouvez générer l'affiche.",
+              ].join("\n"),
+            }
+          : item
+      )
+    );
+    setEditingPosterId(null);
+  }
+
+  async function regeneratePosterDraft(message: Message) {
+    if (!message.posterDraft || preparingPoster) return;
+
+    setPreparingPoster(true);
+    try {
+      const response = await fetch("/api/templates/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId: message.posterDraft.template.id,
+          messages: [
+            ...messages.map((entry) => ({
+              role: entry.role,
+              content: entry.content,
+            })),
+            {
+              role: "user",
+              content: `Régénère automatiquement les textes de l'affiche ${message.posterDraft.template.name} avec toutes les informations connues et ces corrections éventuelles : ${JSON.stringify(posterDraftEdits)}`,
+            },
+          ],
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Impossible de régénérer l'affiche");
+      }
+
+      setPosterDraftEdits(data.generatedTexts);
+      setMessages((prev) =>
+        prev.map((item) =>
+          item.id === message.id
+            ? {
+                ...item,
+                content: data.confirmationMessage,
+                posterDraft: {
+                  template: data.template,
+                  generatedTexts: data.generatedTexts,
+                  missingFields: data.missingFields ?? [],
+                },
+              }
+            : item
+        )
+      );
+    } catch (error) {
+      console.error(error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: "Je n'ai pas pu régénérer automatiquement les textes pour le moment.",
           timestamp: new Date(),
         },
       ]);
@@ -698,10 +905,15 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
 
   function chooseTemplate(template: TemplateSuggestion) {
     setSelectedTemplate(template);
-    sendMessage(
-      `Je choisis l'affiche « ${template.name} » pour cette création.`,
-      { selectedTemplateId: template.id, templateAction: "select" }
-    );
+    const choiceMessage: Message = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: `Je choisis l'affiche « ${template.name} ». Prépare-la automatiquement avec toutes les informations connues, puis propose-moi de valider ou modifier.`,
+      timestamp: new Date(),
+    };
+    const nextMessages = [...messages, choiceMessage];
+    setMessages(nextMessages);
+    preparePosterDraft(template, nextMessages);
   }
 
   async function orderArticle(articleId: string) {
@@ -786,20 +998,216 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
     }
   }
 
+  function updateAutomationSetup(messageId: string, patch: Partial<AutomationSetupDraft>) {
+    setMessages((prev) =>
+      prev.map((message) =>
+        message.id === messageId && message.automationSetup
+          ? { ...message, automationSetup: { ...message.automationSetup, ...patch } }
+          : message
+      )
+    );
+  }
+
+  function updateAutomationSetupChannel(messageId: string, channel: string) {
+    setMessages((prev) =>
+      prev.map((message) => {
+        if (message.id !== messageId || !message.automationSetup) return message;
+        const channels = message.automationSetup.channels.includes(channel)
+          ? message.automationSetup.channels.filter((item) => item !== channel)
+          : [...message.automationSetup.channels, channel];
+        return { ...message, automationSetup: { ...message.automationSetup, channels } };
+      })
+    );
+  }
+
+  async function confirmAutomationSetup(message: Message) {
+    const setup = message.automationSetup;
+    if (!setup || setup.channels.length === 0) return;
+
+    setRunningActionId(`automation-setup-${message.id}`);
+    try {
+      const response = await fetch("/api/automations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          preset: setup.preset,
+          name: setup.name,
+          description: setup.description,
+          channels: setup.channels,
+          triggerConfig: buildAutomationTriggerConfig(setup),
+          isActive: setup.isActive,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Création échouée");
+
+      setMessages((prev) =>
+        prev.map((item) =>
+          item.id === message.id
+            ? {
+                ...item,
+                content: `Créé : ${setup.name}.\nHeure : ${setup.time}\nCanaux : ${setup.channels.map((channel) => CHANNEL_LABELS[channel] ?? channel).join(", ")}`,
+                automationSetup: undefined,
+              }
+            : item
+        )
+      );
+
+      router.refresh();
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: "Je n'ai pas pu créer cette automatisation. Vérifiez les champs puis réessayez.",
+          timestamp: new Date(),
+        },
+      ]);
+    } finally {
+      setRunningActionId(null);
+    }
+  }
+
+  async function runAssistantAction(card: AssistantActionCard) {
+    if (!card.action) return;
+    if (card.action.kind === "open_daily_routine") {
+      setDailyRoutineMode(true);
+      return;
+    }
+    if (card.action.kind === "switch_detailed") {
+      setAssistantExperience("detailed");
+      return;
+    }
+
+    if (card.action.kind === "create_shabbat_automation" || card.action.kind === "create_automation") {
+      const preset = card.action.preset ?? "WEEKLY_SHABBAT";
+      const setup = buildAutomationSetupDraft(preset);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: `Configurons ${setup.name}. Remplissez ou ajustez ces informations, puis je la crée.`,
+          timestamp: new Date(),
+          automationSetup: setup,
+        },
+      ]);
+      return;
+    }
+
+    setRunningActionId(card.id);
+    try {
+      let response: Response | null = null;
+
+      if (card.action.kind === "toggle_automation" && card.action.automationId) {
+        response = await fetch(`/api/automations/${card.action.automationId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isActive: !card.action.isActive }),
+        });
+      }
+
+      if (card.action.kind === "trigger_automation" && card.action.automationId) {
+        response = await fetch(`/api/automations/${card.action.automationId}/trigger`, { method: "POST" });
+      }
+
+      if (card.action.kind === "delete_automation" && card.action.automationId) {
+        response = await fetch(`/api/automations/${card.action.automationId}`, { method: "DELETE" });
+      }
+
+      if (response && !response.ok) {
+        throw new Error("Action échouée");
+      }
+
+      setMessages((prev) =>
+        prev.map((message) => ({
+          ...message,
+          assistantActions: message.assistantActions?.map((actionCard) => {
+            if (actionCard.id !== card.id || !actionCard.action) return actionCard;
+
+            if (card.action?.kind === "toggle_automation") {
+              const nextActive = !card.action.isActive;
+              return {
+                ...actionCard,
+                status: nextActive ? "Actif" : "Pause",
+                action: { ...actionCard.action, isActive: nextActive },
+              };
+            }
+
+            if (card.action?.kind === "create_shabbat_automation" || card.action?.kind === "create_automation") {
+              return { ...actionCard, status: "Créée", action: undefined };
+            }
+
+            if (card.action?.kind === "trigger_automation") {
+              return { ...actionCard, status: "Lancée" };
+            }
+
+            if (card.action?.kind === "delete_automation") {
+              return { ...actionCard, status: "Supprimée", action: undefined };
+            }
+
+            return actionCard;
+          }),
+        }))
+      );
+
+      const confirmation =
+        card.action.kind === "toggle_automation"
+          ? `${card.action.isActive ? "Mis en pause" : "Activé"} : ${card.title}.`
+          : card.action.kind === "trigger_automation"
+            ? `Lancé : ${card.title}.`
+            : card.action.kind === "delete_automation"
+              ? `Supprimé : ${card.title}.`
+              : `Créé : ${card.title}.`;
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: confirmation,
+          timestamp: new Date(),
+        },
+      ]);
+
+      router.refresh();
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: "Je n'ai pas pu appliquer cette action. Réessayez dans un instant.",
+          timestamp: new Date(),
+        },
+      ]);
+    } finally {
+      setRunningActionId(null);
+    }
+  }
+
   // ============================================================
   // RENDER
   // ============================================================
 
   return (
-    <div className="flex h-[calc(100dvh-4rem)] min-h-0 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.08),transparent_28rem),linear-gradient(180deg,#f8fafc_0%,#ffffff_42%)]">
+    <div
+      className={cn(
+        "flex min-h-0 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_42%)]",
+        assistantExperience === "simple"
+          ? "fixed inset-0 z-[80] h-dvh"
+          : "h-[calc(100dvh-4rem)]"
+      )}
+    >
       {/* ── Sidebar historique ── */}
-      {historyOpen && (
+      {assistantExperience === "detailed" && historyOpen && (
         <div
           className="fixed inset-0 z-30 bg-slate-950/40 lg:hidden"
           onClick={() => setHistoryOpen(false)}
         />
       )}
-      <div
+      {assistantExperience === "detailed" && <div
         className={cn(
           "fixed inset-y-0 left-0 z-40 w-[84vw] max-w-xs border-r border-slate-200/80 bg-white/90 flex flex-col shrink-0 shadow-2xl shadow-slate-950/10 backdrop-blur-xl transition-transform duration-200 lg:static lg:z-auto lg:w-72 lg:max-w-none lg:translate-x-0 lg:shadow-none",
           historyOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
@@ -898,157 +1306,278 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
             </div>
           ))}
         </div>
-      </div>
+      </div>}
+
+      {assistantExperience === "simple" && historyOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-slate-950/30 md:hidden"
+          onClick={() => setHistoryOpen(false)}
+        />
+      )}
+
+      {assistantExperience === "simple" && (
+        <aside
+          className={cn(
+            "fixed inset-y-0 left-0 z-40 flex w-[84vw] max-w-xs shrink-0 flex-col border-r border-slate-200 bg-slate-50 shadow-2xl shadow-slate-950/10 transition-transform duration-200 md:static md:z-auto md:w-72 md:max-w-none md:translate-x-0 md:shadow-none",
+            historyOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          )}
+        >
+          <div className="border-b border-slate-200 p-3">
+            <button
+              type="button"
+              onClick={() => setAssistantExperience("detailed")}
+              className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
+            >
+              <SlidersHorizontal className="size-4" />
+              Mode détaillé
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-2 py-3">
+            {groupedConversations.length === 0 && (
+              <p className="px-4 py-8 text-center text-xs text-slate-400">
+                Vos conversations apparaîtront ici
+              </p>
+            )}
+            {groupedConversations.map((group) => (
+              <div key={group.label} className="mb-4">
+                <p className="px-2 pb-1 text-[11px] font-semibold uppercase text-slate-400">
+                  {group.label}
+                </p>
+                <div className="space-y-1">
+                  {group.items.map((conv) => (
+                    <div
+                      key={conv.id}
+                      className={cn(
+                        "group flex items-center rounded-lg transition",
+                        activeConversationId === conv.id
+                          ? "bg-white font-semibold text-slate-950 shadow-sm"
+                          : "text-slate-600 hover:bg-white hover:text-slate-950"
+                      )}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => loadConversation(conv.id)}
+                        className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left text-sm"
+                      >
+                        <MessageSquare className="size-3.5 shrink-0 text-slate-400" />
+                        <span className="truncate">{conv.title}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          deleteConversation(conv.id);
+                        }}
+                        className="mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus:opacity-100"
+                        aria-label={`Supprimer la conversation ${conv.title}`}
+                        title="Supprimer"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+      )}
 
       {/* ── Zone de chat ── */}
-      <div className="flex-1 flex flex-col min-w-0">
+		      <div className={cn("flex-1 flex flex-col min-w-0", assistantExperience === "simple" && "w-full")}>
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 bg-white/80 px-4 py-3 backdrop-blur-xl sm:px-6">
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              onClick={() => setHistoryOpen(true)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 lg:hidden"
-              aria-label="Ouvrir l'historique"
-            >
-              <PanelLeftOpen className="size-4" />
-            </button>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 via-sky-500 to-amber-400 flex items-center justify-center shadow-sm shrink-0">
+        <div className={cn(
+          "flex items-center justify-between gap-3 border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur-xl sm:px-6",
+          assistantExperience === "simple" && "border-slate-100"
+        )}>
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            {(assistantExperience === "detailed" || assistantExperience === "simple") && (
+              <button
+                onClick={() => setHistoryOpen(true)}
+                className={cn(
+                  "inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50",
+                  assistantExperience === "detailed" ? "lg:hidden" : "md:hidden"
+                )}
+                aria-label="Ouvrir l'historique"
+              >
+                <PanelLeftOpen className="size-4" />
+              </button>
+            )}
+            <div className={cn(
+              "w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 via-sky-500 to-amber-400 flex items-center justify-center shadow-sm shrink-0",
+              assistantExperience === "simple" && "rounded-full"
+            )}>
               <Bot className="size-4 text-white" />
             </div>
             <div className="min-w-0">
               <h1 className="truncate text-base font-bold text-slate-900">
-                {activeConversationId
+                {assistantExperience === "simple"
+                  ? "Shalom IA"
+                  : activeConversationId
                   ? conversations.find((c) => c.id === activeConversationId)?.title ?? "Conversation"
-                  : "Shalom IA"}
+                  : "Assistant IA"}
               </h1>
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="truncate text-xs text-slate-500">Shalom AI · Prêt</span>
+                <span className="truncate text-xs text-slate-500">
+                  {assistantExperience === "simple" ? "Assistant IA" : "Assistant principal · Prêt"}
+                </span>
               </div>
             </div>
           </div>
-          {dailyRoutineConfigured && (
-            <button
-              onClick={() => { startNewChat(); setDailyRoutineMode(true); }}
-              className="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition-colors"
-            >
-              <Settings className="size-3.5" />
-              <span className="hidden sm:inline">Mon quotidien</span>
-            </button>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {assistantExperience === "simple" && (
+              <button
+                type="button"
+                onClick={startNewChat}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
+                aria-label="Nouvelle conversation"
+              >
+                <Plus className="size-4" />
+                <span className="hidden sm:inline">Nouvelle conversation</span>
+              </button>
+            )}
+            <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+            {assistantExperience === "detailed" && (
+              <button
+                type="button"
+                onClick={() => setAssistantExperience("simple")}
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:text-slate-800"
+              >
+                <Bot className="size-3.5" />
+                Simple
+              </button>
+            )}
+            {assistantExperience === "detailed" && (
+              <button
+                type="button"
+                onClick={() => setAssistantExperience("detailed")}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm transition"
+              >
+                <SlidersHorizontal className="size-3.5" />
+                Mode détaillé
+              </button>
+            )}
+            </div>
+          </div>
         </div>
 
-        {/* Wizard quotidien (prioritaire sur tout le reste) */}
-        {dailyRoutineMode && (
-          <DailyRoutineWizard
-            communityName={communityName}
-            onSave={saveDailyRoutine}
-            onCancel={() => setDailyRoutineMode(false)}
-            saving={savingRoutine}
-          />
-        )}
-
         {/* Quick prompts ou message vide */}
-        {!dailyRoutineMode && showQuickPrompts && (
-          <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:px-6">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 via-sky-500 to-amber-400 flex items-center justify-center shadow-lg mb-6">
+        {showQuickPrompts && (
+	          <div className={cn(
+              "flex-1 flex flex-col items-center justify-center px-4 py-8 sm:px-6",
+              assistantExperience === "simple" && "justify-end pb-8 pt-20"
+            )}>
+            <div className={cn(
+              "w-16 h-16 bg-gradient-to-br from-blue-600 via-sky-500 to-amber-400 flex items-center justify-center shadow-lg mb-6",
+              assistantExperience === "simple" ? "rounded-full" : "rounded-2xl"
+            )}>
               <Sparkles className="size-8 text-white" />
             </div>
             <h2 className="mb-2 text-center text-xl font-bold text-slate-900 sm:text-2xl">
-              Shalom ! Comment puis-je vous aider ?
+              Assistant principal Shalom IA
             </h2>
             <p className="mb-8 max-w-md text-center text-sm text-slate-500">
-              Génération de posts, annonces, contenu pour Chabbat, fêtes, événements…
-              pour <strong>{communityName}</strong>
+              Je prépare vos publications automatiquement (J-10, J-5, J-1), vos rappels et vos contenus.
+              Vous validez, puis je publie en un clic. Je vous aide aussi à organiser votre quotidien et à rester régulier.
             </p>
 
-            {/* Première utilisation : carte unique "Définir mon quotidien" */}
-            {!dailyRoutineLoading && !dailyRoutineConfigured ? (
-              <div className="w-full max-w-2xl">
-                {demoPrompt && (
-                  <div className="mb-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-white via-blue-50 to-indigo-50 p-3 text-center shadow-sm ring-1 ring-white/80">
-                    <button
-                      type="button"
-                      onClick={() => sendMessage(demoPrompt.prompt)}
-                      className="text-sm font-bold text-slate-950 transition-colors hover:text-blue-700"
-                    >
-                      {demoPrompt.label}
-                    </button>
-                    {demoPrompt.href && (
-                      <a
-                        href={demoPrompt.href}
-                        target={demoPrompt.href.startsWith("http") ? "_blank" : undefined}
-                        rel={demoPrompt.href.startsWith("http") ? "noreferrer" : undefined}
-                        className="ml-2 inline-flex items-center justify-center rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-semibold text-blue-700 shadow-sm transition-colors hover:bg-blue-50"
-                      >
-                        Voir la vidéo de démo
-                      </a>
-                    )}
+            {assistantExperience === "simple" && (
+              <div className="mb-5 grid w-full max-w-3xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
+                {[
+                  {
+                    title: "Communication",
+                    description: "posts, affiches, emails, WhatsApp",
+                    icon: Share2,
+                    accent: "bg-blue-500",
+                    surface: "bg-blue-50/60",
+                    iconTone: "text-blue-600",
+                  },
+                  {
+                    title: "Organisation",
+                    description: "quotidien, rappels, automatisations",
+                    icon: CalendarDays,
+                    accent: "bg-amber-500",
+                    surface: "bg-amber-50/60",
+                    iconTone: "text-amber-600",
+                  },
+                  {
+                    title: "Pilotage",
+                    description: "réseaux, publications, actions à valider",
+                    icon: SlidersHorizontal,
+                    accent: "bg-emerald-500",
+                    surface: "bg-emerald-50/60",
+                    iconTone: "text-emerald-600",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.title}
+                    className="group rounded-[1.6rem] border border-slate-200/80 bg-white p-4 shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.09)]"
+                  >
+                    <div className={cn("mb-4 h-1 w-10 rounded-full", item.accent)} />
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[15px] font-semibold tracking-tight text-slate-950">{item.title}</p>
+                        <p className="mt-1.5 max-w-[11rem] text-xs leading-5 text-slate-500">{item.description}</p>
+                      </div>
+                      <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", item.surface, item.iconTone)}>
+                        <item.icon className="size-5" />
+                      </span>
+                    </div>
                   </div>
-                )}
-                <button
-                  onClick={() => setDailyRoutineMode(true)}
-                  className="group w-full flex flex-col items-center justify-center rounded-2xl border border-blue-200 bg-gradient-to-br from-white via-blue-50 to-sky-100 px-6 py-10 text-center shadow-md ring-1 ring-white/80 transition-all hover:-translate-y-0.5 hover:border-blue-400 hover:shadow-lg"
-                >
-                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-sky-400 shadow-sm">
-                    <Settings className="size-6 text-white" />
-                  </div>
-                  <span className="text-lg font-bold text-blue-900">Définir mon quotidien</span>
-                  <span className="mt-2 text-sm font-medium text-blue-600 opacity-80">
-                    Configurez Shalom IA selon vos besoins communautaires habituels
-                  </span>
-                </button>
+                ))}
               </div>
-            ) : (
-              /* Utilisateur connu : 4 onglets habituels */
-              <>
-                {demoPrompt && (
-                  <div className="mb-4 w-full max-w-2xl rounded-2xl border border-blue-100 bg-gradient-to-r from-white via-blue-50 to-indigo-50 p-3 text-center shadow-sm ring-1 ring-white/80">
-                    <button
-                      type="button"
-                      onClick={() => sendMessage(demoPrompt.prompt)}
-                      className="text-sm font-bold text-slate-950 transition-colors hover:text-blue-700"
-                    >
-                      {demoPrompt.label}
-                    </button>
-                    {demoPrompt.href && (
-                      <a
-                        href={demoPrompt.href}
-                        target={demoPrompt.href.startsWith("http") ? "_blank" : undefined}
-                        rel={demoPrompt.href.startsWith("http") ? "noreferrer" : undefined}
-                        className="ml-2 inline-flex items-center justify-center rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-semibold text-blue-700 shadow-sm transition-colors hover:bg-blue-50"
-                      >
-                        Voir la vidéo de démo
-                      </a>
+            )}
+
+            {assistantExperience === "simple" && (
+              <div className="mb-5 grid w-full max-w-3xl grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  { label: "Plan Chabbat", icon: Sparkles, prompt: "Prépare-moi un plan complet pour Chabbat cette semaine : message WhatsApp, post Instagram, affiche si disponible et rappel à programmer." },
+                  { label: "Mes automatisations", icon: Zap, prompt: "Combien ai-je d'automatisations en cours ? Affiche uniquement celles déjà présentes sur mon Beth Habad." },
+                  { label: "Définir quotidien", icon: Power, prompt: "Je veux définir mon quotidien et créer les routines utiles." },
+                  { label: "Diagnostic compte", icon: SlidersHorizontal, prompt: "Fais un diagnostic simple de mon compte : automatisations, réseaux, quotidien, contenus et prochaines actions." },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => item.label === "Définir quotidien" ? setDailyRoutineMode(true) : sendMessage(item.prompt)}
+                    className="flex min-h-20 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+                      <item.icon className="size-4" />
+                    </span>
+                    <span className="text-sm font-bold text-slate-800">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {assistantExperience === "detailed" && (
+              <div className="grid w-full max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">
+                {quickPrompts.map((qp, index) => (
+                  <button
+                    key={qp.label}
+                    onClick={() => sendMessage(qp.prompt)}
+                    className={cn(
+                      "group flex min-h-32 flex-col items-center justify-center rounded-2xl border px-3 py-4 text-center shadow-sm ring-1 ring-white/80 transition-all hover:-translate-y-0.5 hover:shadow-md",
+                      getQuickPromptStyle(index)
                     )}
-                  </div>
-                )}
-                <div className="grid w-full max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">
-                  {quickPrompts.map((qp, index) => (
-                    <button
-                      key={qp.label}
-                      onClick={() => sendMessage(qp.prompt)}
-                      className={cn(
-                        "group flex min-h-32 flex-col items-center justify-center rounded-2xl border px-3 py-4 text-center shadow-sm ring-1 ring-white/80 transition-all hover:-translate-y-0.5 hover:shadow-md",
-                        getSuggestionTabStyle(index)
-                      )}
-                    >
-                      <span className="text-sm font-bold leading-snug">{qp.label}</span>
-                      {qp.description && (
-                        <span className="mt-2 text-xs font-medium leading-snug opacity-80">
-                          {qp.description}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </>
+                  >
+                    <span className="text-sm font-bold leading-snug">{qp.label}</span>
+                    {qp.description && (
+                      <span className="mt-2 text-xs font-medium leading-snug opacity-80">
+                        {qp.description}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         )}
 
         {/* Messages */}
-        {!dailyRoutineMode && !showQuickPrompts && (
+        {!showQuickPrompts && (
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5 sm:px-6">
             {messages.map((message) => (
               <div
@@ -1077,11 +1606,17 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
                       "rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm",
                       message.role === "user"
                         ? "bg-blue-600 text-white rounded-tr-sm"
-                        : "border border-slate-200 bg-white text-slate-800 rounded-tl-sm"
+                        : "border border-slate-200 bg-white text-slate-800 rounded-tl-sm ring-1 ring-slate-100"
                     )}
                   >
                     {message.content ? (
-                      <span dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content) }} />
+                      <div
+                        className={cn(
+                          "assistant-response",
+                          message.role === "assistant" && "space-y-1"
+                        )}
+                        dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content) }}
+                      />
                     ) : (
                       <div className="flex gap-1 py-1">
                         {[0, 1, 2].map((i) => (
@@ -1116,42 +1651,402 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
                     </div>
                   )}
 
-                  {message.role === "assistant" && message.content && (
-                    <div className="mt-2 rounded-2xl border border-blue-100 bg-gradient-to-r from-white via-blue-50 to-indigo-50 p-2 shadow-sm ring-1 ring-white/80">
-                      <div className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-blue-500">
-                        <WandSparkles className="size-3.5 text-blue-500" />
-                        Suite suggérée
+                  {message.automationSetup && (
+                    <div className="mt-3 rounded-[1.7rem] border border-amber-100 bg-gradient-to-br from-white to-amber-50/80 p-4 shadow-sm">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-black text-slate-900">Informations à confirmer</p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            Ajustez les champs utiles avant création.
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-black text-amber-800">
+                          {AUTOMATION_PRESETS[message.automationSetup.preset].logo}
+                        </span>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        {getFollowUpSuggestions(message).map((suggestion, index) => (
-                          <button
-                            key={suggestion.label}
-                            type="button"
-                            onClick={() => sendFollowUp(suggestion.prompt)}
-                            disabled={loading}
-                            className={cn(
-                              "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 text-center text-xs font-semibold shadow-sm transition-all disabled:pointer-events-none disabled:opacity-50",
-                              getSuggestionTabStyle(index)
-                            )}
-                          >
-                            {suggestion.label}
-                            <ArrowRight className="size-3" />
-                          </button>
-                        ))}
+
+                      <div className="mt-4 grid gap-3">
+                        <label className="grid gap-1.5">
+                          <span className="text-xs font-bold text-slate-700">Nom</span>
+                          <input
+                            value={message.automationSetup.name}
+                            onChange={(event) => updateAutomationSetup(message.id, { name: event.target.value })}
+                            className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-100"
+                          />
+                        </label>
+
+                        <label className="grid gap-1.5">
+                          <span className="text-xs font-bold text-slate-700">Description</span>
+                          <textarea
+                            value={message.automationSetup.description}
+                            rows={2}
+                            onChange={(event) => updateAutomationSetup(message.id, { description: event.target.value })}
+                            className="resize-none rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-100"
+                          />
+                        </label>
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {(message.automationSetup.trigger === "CUSTOM_SCHEDULE" || message.automationSetup.trigger === "WEEKLY_SHABBAT") && (
+                            <label className="grid gap-1.5">
+                              <span className="text-xs font-bold text-slate-700">Jour</span>
+                              <select
+                                value={message.automationSetup.day ?? "monday"}
+                                onChange={(event) => {
+                                  const day = AUTOMATION_DAYS.find((item) => item.value === event.target.value);
+                                  updateAutomationSetup(message.id, {
+                                    day: event.target.value,
+                                    dayOfWeek: day?.dayOfWeek,
+                                  });
+                                }}
+                                className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-100"
+                              >
+                                {AUTOMATION_DAYS.map((day) => (
+                                  <option key={day.value} value={day.value}>{day.label}</option>
+                                ))}
+                              </select>
+                            </label>
+                          )}
+
+                          {message.automationSetup.trigger === "JEWISH_HOLIDAY" && (
+                            <label className="grid gap-1.5">
+                              <span className="text-xs font-bold text-slate-700">Jours avant la fête</span>
+                              <input
+                                type="number"
+                                min={1}
+                                max={14}
+                                value={message.automationSetup.daysBeforeHoliday ?? 3}
+                                onChange={(event) => updateAutomationSetup(message.id, { daysBeforeHoliday: Number(event.target.value) })}
+                                className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-100"
+                              />
+                            </label>
+                          )}
+
+                          <label className="grid gap-1.5">
+                            <span className="text-xs font-bold text-slate-700">Heure</span>
+                            <input
+                              type="time"
+                              value={message.automationSetup.time}
+                              onChange={(event) => updateAutomationSetup(message.id, { time: event.target.value })}
+                              className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-300 focus:ring-2 focus:ring-amber-100"
+                            />
+                          </label>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-bold text-slate-700">Canaux</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {AUTOMATION_CHANNELS.map((channel) => {
+                              const selected = message.automationSetup?.channels.includes(channel);
+                              return (
+                                <button
+                                  key={channel}
+                                  type="button"
+                                  onClick={() => updateAutomationSetupChannel(message.id, channel)}
+                                  className={cn(
+                                    "rounded-full border px-3 py-1.5 text-xs font-bold transition",
+                                    selected
+                                      ? "border-blue-200 bg-blue-600 text-white"
+                                      : "border-slate-200 bg-white text-slate-600 hover:border-blue-200"
+                                  )}
+                                >
+                                  {CHANNEL_LABELS[channel] ?? channel}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <label className="flex items-center justify-between gap-3 rounded-2xl border border-white bg-white/80 px-3 py-2">
+                          <span className="text-xs font-bold text-slate-700">Activer dès maintenant</span>
+                          <input
+                            type="checkbox"
+                            checked={message.automationSetup.isActive}
+                            onChange={(event) => updateAutomationSetup(message.id, { isActive: event.target.checked })}
+                            className="h-4 w-4 accent-blue-600"
+                          />
+                        </label>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => confirmAutomationSetup(message)}
+                          loading={runningActionId === `automation-setup-${message.id}`}
+                          disabled={message.automationSetup.channels.length === 0 || message.automationSetup.name.trim().length < 2}
+                        >
+                          <Plus className="size-3.5" />
+                          Créer l’automatisation
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateAutomationSetup(message.id, buildAutomationSetupDraft(message.automationSetup!.preset))}
+                        >
+                          Réinitialiser
+                        </Button>
                       </div>
                     </div>
                   )}
 
+                  {message.assistantActions && message.assistantActions.length > 0 && (() => {
+                    const automationCards = message.assistantActions.filter(isAutomationAction);
+                    const otherCards = message.assistantActions.filter((card) => !isAutomationAction(card));
+                    const currentAutomations = automationCards.filter((card) => card.type === "automation");
+                    const availableAutomations = automationCards.filter((card) => card.type !== "automation");
+                    const activeCount = automationCards.filter((card) => card.status === "Actif").length;
+                    const visualCards = automationCards.slice(0, 5);
+                    const showCreateOnlyPanel = currentAutomations.length === 0 && availableAutomations.length > 0;
+
+                    const renderActionButton = (card: AssistantActionCard) => card.action ? (
+                      <Button
+                        size="sm"
+                        className="h-8 text-xs"
+                        variant={card.action.kind === "delete_automation" ? "destructive" : "default"}
+                        onClick={() => runAssistantAction(card)}
+                        loading={runningActionId === card.id}
+                      >
+                        {card.action.kind === "toggle_automation" && card.action.isActive ? (
+                          <PauseCircle className="size-3.5" />
+                        ) : card.action.kind === "toggle_automation" ? (
+                          <PlayCircle className="size-3.5" />
+                        ) : card.action.kind === "trigger_automation" ? (
+                          <PlayCircle className="size-3.5" />
+                        ) : card.action.kind === "create_shabbat_automation" || card.action.kind === "create_automation" ? (
+                          <Plus className="size-3.5" />
+                        ) : card.action.kind === "switch_detailed" ? (
+                          <SlidersHorizontal className="size-3.5" />
+                        ) : (
+                          <Power className="size-3.5" />
+                        )}
+                        {card.action.kind === "toggle_automation"
+                          ? card.action.isActive ? "Pause" : "Activer"
+                          : card.action.kind === "trigger_automation"
+                            ? "Lancer"
+                            : card.action.kind === "create_shabbat_automation" || card.action.kind === "create_automation"
+                              ? "Créer"
+                              : card.action.kind === "open_daily_routine"
+                                ? "Configurer"
+                                : card.action.kind === "switch_detailed"
+                                  ? "Détaillé"
+                                  : "Appliquer"}
+                      </Button>
+                    ) : null;
+
+                    const renderCompactCard = (card: AssistantActionCard) => {
+                      const Icon = getAutomationIcon(card);
+                      return (
+                        <div
+                          key={card.id}
+                          className={cn(
+                            "rounded-2xl border bg-gradient-to-br p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+                            getAutomationTone(card)
+                          )}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/85 shadow-sm">
+                              <Icon className="size-5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="line-clamp-2 text-sm font-black leading-snug text-slate-900">{card.title}</p>
+                                {card.status && (
+                                  <span className="shrink-0 rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-black text-slate-600">
+                                    {card.status}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">{card.description}</p>
+                              <div className="mt-3">{renderActionButton(card)}</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    };
+
+                    return (
+                      <div className="mt-3 space-y-3">
+                        {automationCards.length > 0 && (
+                          <div className={cn(
+                            "overflow-hidden rounded-[2rem] p-4 shadow-sm ring-1 ring-white",
+                            showCreateOnlyPanel
+                              ? "border border-amber-100 bg-gradient-to-br from-white to-amber-50/80"
+                              : "border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-amber-50"
+                          )}>
+                            {!showCreateOnlyPanel && <div className="relative mx-auto flex h-48 max-w-md items-center justify-center">
+                              <div className="absolute inset-8 rounded-full border border-dashed border-blue-200" />
+                              <div className="absolute h-20 w-20 animate-ping rounded-full bg-blue-200/30" />
+                              <div className="absolute h-32 w-32 animate-pulse rounded-full bg-amber-200/20" />
+                              {visualCards.map((card, index) => {
+                                const Icon = getAutomationIcon(card);
+                                const positions = [
+                                  "left-8 top-5",
+                                  "right-8 top-8",
+                                  "left-10 bottom-8",
+                                  "right-12 bottom-6",
+                                  "top-2 left-1/2 -translate-x-1/2",
+                                ];
+                                return (
+                                  <div
+                                    key={card.id}
+                                    className={cn(
+                                      "group/icon absolute flex h-12 w-12 items-center justify-center rounded-2xl border bg-white shadow-lg transition hover:z-20 hover:-translate-y-1 hover:shadow-xl",
+                                      positions[index % positions.length]
+                                    )}
+                                    style={{ animation: "bounce 2.8s infinite", animationDelay: `${index * 180}ms` }}
+                                    aria-label={card.title}
+                                  >
+                                    <Icon className="size-5 text-blue-700" />
+                                    <div className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 min-w-max -translate-x-1/2 rounded-full border border-slate-200 bg-white/95 px-3 py-1.5 text-[11px] font-bold text-slate-800 opacity-0 shadow-lg shadow-slate-950/10 backdrop-blur transition duration-150 group-hover/icon:opacity-100">
+                                      {card.title.replace(/^[^\p{L}\p{N}]+/u, "").trim()}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                              <div
+                                className={cn(
+                                  "relative z-10 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-slate-900 text-sm font-black text-white shadow-2xl",
+                                  communityLogoUrl && "bg-cover bg-center"
+                                )}
+                                style={communityLogoUrl ? { backgroundImage: `url(${communityLogoUrl})` } : undefined}
+                                aria-label={communityName}
+                              >
+                                {communityLogoUrl && <span className="absolute inset-0 bg-slate-950/20" />}
+                                <span className="relative z-10 flex flex-col items-center leading-none">
+                                  <span className="text-lg font-black">✡</span>
+                                  {!communityLogoUrl && (
+                                    <span className="mt-0.5 text-[10px] tracking-wide">{getCommunityInitials(communityName)}</span>
+                                  )}
+                                </span>
+                              </div>
+                              <div className="absolute bottom-1 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white bg-white/90 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm">
+                                <Radio className="size-3.5 text-emerald-500" />
+                                {activeCount} active{activeCount > 1 ? "s" : ""}
+                              </div>
+                            </div>}
+                            <div className="text-center">
+                              <p className="text-sm font-black text-slate-900">
+                                {showCreateOnlyPanel ? "Automatisations à créer" : "Vos automatisations"}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {showCreateOnlyPanel
+                                  ? "Voici seulement les options disponibles en un clic."
+                                  : "Celles déjà installées sont séparées de celles que vous pouvez créer."}
+                              </p>
+                            </div>
+
+                            <div className="mt-4 space-y-4">
+                              {!showCreateOnlyPanel && <div className="rounded-3xl border border-white bg-white/75 p-3 shadow-sm">
+                                <div className="mb-3 flex items-center justify-between gap-3">
+                                  <div>
+                                    <p className="text-sm font-black text-slate-900">Déjà en place</p>
+                                    <p className="mt-0.5 text-xs text-slate-500">Automatisations configurées sur votre compte.</p>
+                                  </div>
+                                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700">
+                                    {currentAutomations.length}
+                                  </span>
+                                </div>
+                                {currentAutomations.length > 0 ? (
+                                  <div className="grid gap-2 md:grid-cols-2">
+                                    {currentAutomations.map(renderCompactCard)}
+                                  </div>
+                                ) : (
+                                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">
+                                    <p className="text-sm font-bold text-slate-700">Aucune automatisation active pour l’instant.</p>
+                                    <p className="mt-1 text-xs text-slate-500">Choisissez une option ci-dessous pour commencer.</p>
+                                  </div>
+                                )}
+                              </div>}
+
+                              {availableAutomations.length > 0 && (
+                                <div className="rounded-3xl border border-amber-100 bg-gradient-to-br from-white to-amber-50/80 p-3 shadow-sm">
+                                  <div className="mb-3 flex items-center justify-between gap-3">
+                                    <div>
+                                      <p className="text-sm font-black text-slate-900">À créer</p>
+                                      <p className="mt-0.5 text-xs text-slate-500">Automatisations disponibles en un clic.</p>
+                                    </div>
+                                    <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-black text-amber-800">
+                                      {availableAutomations.length}
+                                    </span>
+                                  </div>
+                                  <div className="grid gap-2 md:grid-cols-2">
+                                    {availableAutomations.map(renderCompactCard)}
+                                  </div>
+                                </div>
+                              )}
+
+                              {!showCreateOnlyPanel && availableAutomations.length > 0 && <div className="rounded-2xl border border-white bg-white/80 p-3 text-center shadow-sm">
+                                <p className="text-sm font-bold text-slate-900">
+                                  Voulez-vous que je vous propose d&apos;autres automatisations pertinentes ?
+                                </p>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="mt-2 h-8 rounded-full text-xs"
+                                  onClick={() => sendMessage("Propose-moi d'autres automatisations pertinentes pour mon Beth Habad, de façon courte et concrète.")}
+                                >
+                                  <Sparkles className="size-3.5 text-amber-500" />
+                                  Oui, propose-moi
+                                </Button>
+                              </div>}
+                            </div>
+                          </div>
+                        )}
+
+                        {otherCards.length > 0 && (
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            {otherCards.map((card) => (
+                              <div key={card.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div>
+                                    <p className="text-sm font-bold text-slate-900">{card.title}</p>
+                                    <p className="mt-1 text-xs leading-relaxed text-slate-500">{card.description}</p>
+                                  </div>
+                                  {card.status && (
+                                    <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                                      {card.status}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {card.href && assistantExperience === "detailed" && (
+                                    <Link href={card.href}>
+                                      <Button size="sm" variant="outline" className="h-8 text-xs">
+                                        <ExternalLink className="size-3.5" />
+                                        Ouvrir
+                                      </Button>
+                                    </Link>
+                                  )}
+                                  {renderActionButton(card)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {message.templateSuggestions && message.templateSuggestions.length > 0 && (
-                    <div className="mt-3 space-y-3">
-                      <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="mt-3 space-y-3 rounded-3xl border border-blue-100 bg-blue-50/50 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-black text-slate-900">Affiches les plus pertinentes</p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            Sélectionnées selon le thème demandé, les tags, la catégorie et les consignes IA.
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-blue-700 shadow-sm">
+                          {message.templateSuggestions.length} choix
+                        </span>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-3">
                         {message.templateSuggestions.map((template) => (
                           <div
                             key={template.id}
-                            className="overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-100 p-2 shadow-sm ring-1 ring-white/70"
+                            className="overflow-hidden rounded-2xl border border-blue-100 bg-white p-2 shadow-sm ring-1 ring-white/70"
                           >
                             <div className="overflow-hidden rounded-xl border border-white/80 bg-white p-1 shadow-inner">
-                              <div className="aspect-[4/5] overflow-hidden rounded-lg bg-slate-100">
+                              <div className="aspect-[3/4] overflow-hidden rounded-lg bg-slate-100">
                               {template.thumbnailUrl ? (
                                 <img
                                   src={template.thumbnailUrl}
@@ -1167,26 +2062,33 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
                             </div>
                             <div className="space-y-2 px-1 pb-1 pt-3">
                               <div>
-                                <p className="text-sm font-semibold text-slate-900">
+                                <p className="line-clamp-2 text-sm font-black leading-snug text-slate-900">
                                   {template.name}
                                 </p>
-                                <p className="mt-1 text-xs text-slate-500">
+                                <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
                                   {template.reason}
                                 </p>
                               </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  className="flex-1"
-                                  onClick={() => chooseTemplate(template)}
-                                >
-                                  Choisir
-                                </Button>
-                                <Link href="/dashboard/templates" className="flex-1">
-                                  <Button size="sm" variant="outline" className="w-full">
-                                    Voir plus
-                                  </Button>
-                                </Link>
+                              <div className="flex flex-wrap gap-1.5">
+                                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                                  {template.category}
+                                </span>
+                                {template.tags.slice(0, 2).map((tag) => (
+                                  <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                              <div className="grid gap-2">
+	                                <Button
+	                                  size="sm"
+	                                  className="w-full"
+	                                  onClick={() => chooseTemplate(template)}
+                                    loading={preparingPoster && selectedTemplate?.id === template.id}
+                                    disabled={preparingPoster}
+	                                >
+	                                  Choisir et préparer
+	                                </Button>
                               </div>
                             </div>
                           </div>
@@ -1290,25 +2192,80 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
                               À confirmer : {message.posterDraft.missingFields.join(", ")}
                             </p>
                           )}
-                          <div className="mt-3 flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => renderPoster(message)}
-                              loading={renderingPoster}
-                            >
-                              Confirmer et générer
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setSelectedTemplate(null)}
-                            >
-                              Changer
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+	                          <div className="mt-3 flex gap-2">
+	                            <Button
+	                              size="sm"
+	                              onClick={() => renderPoster(message)}
+	                              loading={renderingPoster}
+	                            >
+	                              Confirmer et générer
+	                            </Button>
+	                            <Button
+	                              size="sm"
+	                              variant="outline"
+	                              onClick={() => openPosterEditor(message)}
+	                            >
+	                              Changer
+	                            </Button>
+	                          </div>
+                          {editingPosterId === message.id && message.posterDraft && (
+                            <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-semibold text-slate-900">Modifier les textes</p>
+                                  <p className="mt-1 text-xs text-slate-500">
+                                    Ajustez les champs à la main ou régénérez automatiquement avec les informations connues.
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => regeneratePosterDraft(message)}
+                                  loading={preparingPoster}
+                                  className="shrink-0"
+                                >
+                                  Générer
+                                </Button>
+                              </div>
+                              <div className="mt-3 grid gap-2">
+                                {Object.entries(message.posterDraft.generatedTexts).map(([key]) => (
+                                  <label
+                                    key={key}
+                                    className="rounded-xl border border-slate-200 bg-slate-50 p-2"
+                                  >
+                                    <span className="mb-1 block text-[11px] font-semibold uppercase text-slate-500">
+                                      {key.replace(/_/g, " ")}
+                                    </span>
+                                    <input
+                                      value={posterDraftEdits[key] ?? ""}
+                                      onChange={(event) =>
+                                        setPosterDraftEdits((prev) => ({
+                                          ...prev,
+                                          [key]: event.target.value,
+                                        }))
+                                      }
+                                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                                    />
+                                  </label>
+                                ))}
+                              </div>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <Button size="sm" onClick={() => savePosterEdits(message)}>
+                                  Enregistrer les modifications
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setEditingPosterId(null)}
+                                >
+                                  Fermer
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+	                        </div>
+	                      </div>
+	                    </div>
                   )}
 
                   {message.generatedImageUrl && (
@@ -1398,7 +2355,7 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
         )}
 
         {/* Input */}
-        {!dailyRoutineMode && <div className="border-t border-slate-200/80 bg-white/85 px-4 py-4 backdrop-blur-xl sm:px-6">
+        <div className="border-t border-slate-200/80 bg-white/85 px-4 py-4 backdrop-blur-xl sm:px-6">
           {selectedTemplate && (
             <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -1461,8 +2418,59 @@ export function AssistantClient({ communityName, tone: _tone, channels, demoProm
           <p className="mt-2 text-center text-xs text-slate-400 sm:hidden">
             Entrée pour envoyer · Maj+Entrée pour nouvelle ligne
           </p>
-        </div>}
+        </div>
       </div>
+      {assistantExperience === "detailed" && !dailyRoutineLoading && showDailyRoutineBubble && (
+        <div
+          className="fixed z-40"
+          style={{ right: "auto", top: `${bubblePosition.y}px`, left: `${bubblePosition.x}px` }}
+        >
+          <button
+            type="button"
+            onMouseDown={handleBubbleMouseDown}
+            onClick={() => {
+              if (bubbleDragState.current.moved) return;
+              startNewChat();
+              setDailyRoutineMode(true);
+            }}
+            className="group relative inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-600"
+          >
+            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-white/90" />
+            <span>Définir mon quotidien</span>
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(event) => {
+                event.stopPropagation();
+                setShowDailyRoutineBubble(false);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setShowDailyRoutineBubble(false);
+                }
+              }}
+              className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
+              aria-label="Fermer le bouton définir mon quotidien"
+            >
+              <X className="size-3.5" />
+            </span>
+          </button>
+        </div>
+      )}
+      {dailyRoutineMode && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 p-4 pt-8 sm:items-center">
+          <div className="w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <DailyRoutineWizard
+              communityName={communityName}
+              onSave={saveDailyRoutine}
+              onCancel={() => setDailyRoutineMode(false)}
+              saving={savingRoutine}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

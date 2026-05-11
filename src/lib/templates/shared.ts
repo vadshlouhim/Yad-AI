@@ -107,6 +107,22 @@ const VISUAL_INTENT_KEYWORDS = [
   "flyer",
   "poster",
   "image",
+  "images",
+  "photo",
+  "photos",
+  "illustration",
+  "illustrations",
+  "graphisme",
+  "graphique",
+  "design",
+  "canva",
+  "créa",
+  "crea",
+  "création visuelle",
+  "creation visuelle",
+];
+
+const PASSIVE_CHANNEL_WORDS = [
   "story",
   "instagram",
   "facebook",
@@ -115,37 +131,11 @@ const VISUAL_INTENT_KEYWORDS = [
   "social media",
   "réseaux sociaux",
   "reseaux sociaux",
-  "canva",
   "carousel",
   "réseau",
   "réseaux",
   "publication",
   "post",
-];
-
-const COMMUNICATION_INTENT_KEYWORDS = [
-  "annonce",
-  "annoncer",
-  "invitation",
-  "inviter",
-  "programme",
-  "programmer",
-  "horaire",
-  "horaires",
-  "soirée",
-  "soiree",
-  "événement",
-  "evenement",
-  "cours",
-  "chiour",
-  "shiour",
-  "fête",
-  "fete",
-  "collecte",
-  "gala",
-  "camp",
-  "kidouch",
-  "kiddouch",
 ];
 
 const CATEGORY_HINTS: Record<string, string[]> = {
@@ -287,15 +277,19 @@ export function resolveTemplateAssetUrl(value: string | null | undefined): strin
 export function looksLikeTemplateIntent(text: string): boolean {
   const normalized = normalizeText(text);
 
-  if (VISUAL_INTENT_KEYWORDS.some((keyword) => normalized.includes(normalizeText(keyword)))) {
+  const hasExplicitVisualWord = VISUAL_INTENT_KEYWORDS.some((keyword) => normalized.includes(normalizeText(keyword)));
+  if (hasExplicitVisualWord) {
     return true;
   }
 
-  const hasCommunicationNeed = COMMUNICATION_INTENT_KEYWORDS.some((keyword) =>
-    normalized.includes(normalizeText(keyword))
-  );
+  // Canal/post seul ne veut pas dire affiche. On ne propose une affiche que si
+  // l'utilisateur demande explicitement un support visuel.
+  const hasOnlyPassiveChannelIntent = PASSIVE_CHANNEL_WORDS.some((keyword) => normalized.includes(normalizeText(keyword)));
+  if (hasOnlyPassiveChannelIntent) {
+    return false;
+  }
 
-  return hasCommunicationNeed && collectTopicMatches(text).length > 0;
+  return false;
 }
 
 export function getTemplateQuestions(category: string): TemplateQuestion[] {
@@ -357,7 +351,7 @@ function inferCategoryScore(
   const requestTokens = unique(tokenize(text));
   const templateTokens = collectTemplateSearchTokens(template);
   const topicMatches = collectTopicMatches(text);
-  let score = Math.min(template.usageCount * 0.03, 2);
+  let score = Math.min(template.usageCount * 0.01, 0.75);
   const tags = template.tags ?? [];
 
   const hints = CATEGORY_HINTS[template.category] ?? [];
@@ -378,18 +372,20 @@ function inferCategoryScore(
   }
 
   const overlappingTokens = requestTokens.filter((token) => templateTokens.includes(token));
-  score += Math.min(overlappingTokens.length * 1.1, 6);
+  score += Math.min(overlappingTokens.length * 1.8, 10);
 
   const exactTagMatches = tags.filter((tag) => {
     const normalizedTag = normalizeText(tag);
     return normalizedTag.length > 2 && normalized.includes(normalizedTag);
   });
-  score += Math.min(exactTagMatches.length * 2, 6);
+  score += Math.min(exactTagMatches.length * 4, 12);
 
   const templateTopicMatches = collectTemplateTopicMatches(template);
   const sharedTopics = topicMatches.filter((topic) => templateTopicMatches.includes(topic));
   if (sharedTopics.length > 0) {
-    score += 22;
+    score += 30;
+  } else if (topicMatches.length > 0) {
+    score -= 8;
   }
 
   const requestHasHolidayTopic = hasHolidayTopic(text);
@@ -413,8 +409,8 @@ function inferCategoryScore(
     score += 3;
   }
 
-  if (template.category === "GENERAL") {
-    score -= 0.5;
+  if (template.category === "GENERAL" && topicMatches.length > 0) {
+    score -= 4;
   }
 
   return score;
@@ -520,13 +516,15 @@ export function buildTemplateSuggestions(
   const eligibleMatches = strictMatches.length > 0 ? strictMatches : fallbackMatches;
   const candidatePool = eligibleMatches
     .slice(0, Math.max(limit * 6, 12))
-    .map((match) => ({
-      ...match,
-      rotationScore: match.score + Math.random() * 2.5,
-    }))
     .sort((left, right) => {
-      if (right.rotationScore !== left.rotationScore) {
-        return right.rotationScore - left.rotationScore;
+      const leftShared = left.sharedTopics.length;
+      const rightShared = right.sharedTopics.length;
+      if (rightShared !== leftShared) {
+        return rightShared - leftShared;
+      }
+
+      if (right.score !== left.score) {
+        return right.score - left.score;
       }
 
       if (left.isOwned !== right.isOwned) {

@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildSystemPrompt, buildMemoryContext, buildDailyRoutineSystemPrompt, type DailyRoutine } from "@/lib/ai/prompts";
+import { buildTemporalSystemContext } from "@/lib/ai/time-context";
 import { getStoredShabbatTimes } from "@/lib/ai/engine";
+import { getJewishHolidays, type JewishHoliday } from "@/lib/automation/hebcal";
+import { AUTOMATION_PRESETS, type AutomationPresetKey } from "@/lib/automation/presets";
 import {
   buildArticleSuggestions,
   looksLikeArticleIntent,
@@ -21,6 +24,32 @@ const openrouter = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
   apiKey: process.env.OPENROUTER_API_KEY!,
 });
+
+interface AssistantActionCard {
+  id: string;
+  type: "automation" | "setting" | "navigation" | "creation";
+  title: string;
+  description: string;
+  status?: string;
+  href?: string;
+  action?: {
+    kind: "toggle_automation" | "trigger_automation" | "create_automation" | "create_shabbat_automation" | "open_daily_routine" | "switch_detailed";
+    automationId?: string;
+    isActive?: boolean;
+    preset?: AutomationPresetKey;
+  };
+}
+
+interface AutomationSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  trigger: string;
+  isActive: boolean;
+  status: string;
+  nextRunAt: string | null;
+  lastRunAt: string | null;
+}
 
 function isShabbatRequest(text: string): boolean {
   const normalized = text
@@ -42,8 +71,210 @@ function formatFrenchDate(value: string): string {
   });
 }
 
+function getUpcomingHoliday(holidays: JewishHoliday[], now: Date) {
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  return getUpcomingHolidays(holidays, now, 1)[0] ?? null;
+}
+
+function getUpcomingHolidays(holidays: JewishHoliday[], now: Date, limit = 8) {
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  return holidays
+    .filter((holiday) => new Date(`${holiday.date}T12:00:00`) >= today)
+    .sort((left, right) => new Date(left.date).getTime() - new Date(right.date).getTime())
+    .slice(0, limit);
+}
+
 function removeAsterisks(value: string) {
   return value.replace(/\*/g, "");
+}
+
+function cleanConversationTitle(value: string | null | undefined) {
+  return (value ?? "")
+    .replace(/\*\*/g, "")
+    .replace(/[*_`#]/g, "")
+    .replace(/^["'«\s]+|["'»\s.]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeIntent(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function formatRelativeDate(value: string | null) {
+  if (!value) return null;
+  return new Date(value).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function buildAutomationCards(automations: AutomationSummary[]): AssistantActionCard[] {
+  return automations.map((automation) => {
+    const nextRun = formatRelativeDate(automation.nextRunAt);
+    const lastRun = formatRelativeDate(automation.lastRunAt);
+    const description = [
+      automation.description,
+      nextRun ? `Prochaine execution : ${nextRun}` : null,
+      lastRun ? `Derniere execution : ${lastRun}` : null,
+    ].filter(Boolean).join(" ");
+
+    return {
+      id: `automation-${automation.id}`,
+      type: "automation",
+      title: automation.name,
+      description: description || `Declencheur : ${automation.trigger}`,
+      status: automation.isActive ? "Actif" : "Pause",
+      action: {
+        kind: "toggle_automation",
+        automationId: automation.id,
+        isActive: automation.isActive,
+      },
+    };
+  });
+}
+
+function buildAutomationSuggestionCards(automations: AutomationSummary[]): AssistantActionCard[] {
+  const existingNames = new Set(automations.map((automation) => normalizeIntent(automation.name)));
+
+  return (Object.entries(AUTOMATION_PRESETS) as Array<[AutomationPresetKey, typeof AUTOMATION_PRESETS[AutomationPresetKey]]>)
+    .filter(([, preset]) => !existingNames.has(normalizeIntent(preset.name)))
+    .map(([key, preset]) => ({
+      id: `suggest-${key.toLowerCase().replace(/_/g, "-")}`,
+      type: "creation",
+      title: `${preset.logo} ${preset.name}`,
+      description: `${preset.description} Canaux proposés : ${preset.channels.join(", ")}.`,
+      status: "Disponible",
+      action: { kind: "create_automation", preset: key },
+    }));
+}
+
+function buildCurrentAutomationContent(automations: AutomationSummary[]) {
+  const activeCount = automations.filter((automation) => automation.isActive).length;
+
+  return [
+    automations.length > 0
+      ? `Vous avez ${automations.length} automatisation${automations.length > 1 ? "s" : ""}, dont ${activeCount} active${activeCount > 1 ? "s" : ""}.`
+      : "Vous n’avez encore aucune automatisation.",
+  ].join("\n");
+}
+
+function buildCreateAutomationContent(suggestionCards: AssistantActionCard[]) {
+  return suggestionCards.length > 0
+    ? "Voici uniquement les automatisations que vous pouvez encore créer."
+    : "Toutes les automatisations disponibles sont déjà créées sur votre compte.";
+}
+
+function getSimplifiedShortcut(prompt: string, automations: AutomationSummary[]): { content: string; actions: AssistantActionCard[] } | null {
+  const intent = normalizeIntent(prompt);
+  const talksAutomation = /automatisation|automation|programmation|automatique|automatiser|planifier|rappel automatique|publication automatique/.test(intent);
+  const asksCurrentAutomations = /combien|nombre|mes automatisations|en cours|deja|déjà|active|actif|actives|etat|état|liste|voir/.test(intent);
+  const asksCreateAutomations = /creer|cree|créer|crée|ajoute|ajouter|mettre en place|autres|propose|pertinentes|a creer|à créer|disponibles/.test(intent);
+
+  if (talksAutomation) {
+    const suggestionCards = buildAutomationSuggestionCards(automations);
+
+    if (asksCurrentAutomations) {
+      return {
+        content: buildCurrentAutomationContent(automations),
+        actions: buildAutomationCards(automations),
+      };
+    }
+
+    if (asksCreateAutomations) {
+      return {
+        content: buildCreateAutomationContent(suggestionCards),
+        actions: suggestionCards,
+      };
+    }
+
+    return {
+      content: automations.length > 0
+        ? buildCurrentAutomationContent(automations)
+        : buildCreateAutomationContent(suggestionCards),
+      actions: [
+        ...buildAutomationCards(automations),
+        ...(automations.length > 0 ? [] : suggestionCards),
+      ],
+    };
+  }
+
+  if (/quotidien|routine|agenda/.test(intent)) {
+    return {
+      content: [
+        "Je peux vous aider à définir le quotidien de la communauté.",
+        "",
+        "On va simplement préciser :",
+        "- contenus réguliers",
+        "- jours et horaires",
+        "- canaux de publication",
+        "- rappels utiles",
+        "",
+        "Cliquez sur le bouton pour commencer.",
+      ].join("\n"),
+      actions: [
+        {
+          id: "open-daily-routine",
+          type: "setting",
+          title: "Définir mon quotidien",
+          description: "Configurer les elements recurrents de la communaute.",
+          status: "Assistant",
+          action: { kind: "open_daily_routine" },
+        },
+      ],
+    };
+  }
+
+  if (/parametre|reglage|profil|communaute|identite|ton|signature|hashtag|reseau|instagram|facebook|whatsapp|telegram/.test(intent)) {
+    return {
+      content: [
+        "Je peux vérifier les réglages importants du compte.",
+        "",
+        "À contrôler :",
+        "- identité de la communauté",
+        "- ton et signature",
+        "- réseaux connectés",
+        "- automatisations actives",
+        "",
+        "Pour modifier ces réglages, passez en mode détaillé.",
+      ].join("\n"),
+      actions: [
+        {
+          id: "switch-detailed-settings",
+          type: "navigation",
+          title: "Passer en mode détaillé",
+          description: "Affiche les menus experts pour modifier les parametres avances.",
+          action: { kind: "switch_detailed" },
+        },
+      ],
+    };
+  }
+
+  return null;
+}
+
+function buildSimplifiedResponseRules(params: { automations: AutomationSummary[] }) {
+  return `\n\nMODE SIMPLIFIE — RÈGLES DE RÉPONSE POUR RESPONSABLE BETH HABAD :
+- L'utilisateur veut piloter son Beth Habad depuis le chat, sans interface complexe.
+- Réponds court, simple et clair.
+- Pas de titres rigides comme Résumé, Action recommandée, Informations utilisées, À confirmer ou Prochaine étape.
+- Commence directement par la réponse utile.
+- 2 à 5 lignes maximum dans la majorité des cas.
+- Utilise des puces seulement si cela rend la réponse plus lisible.
+- Une seule question à la fois si une information manque.
+- Quand tu proposes plusieurs choix, limite à 3 ou 4 options dans le texte.
+- Quand une action doit modifier le compte, explique l'action et laisse l'utilisateur utiliser les boutons quand ils sont affichés.
+- Ne prétends jamais avoir modifié un paramètre si aucun bouton ou appel d'action ne l'a fait.
+- Pour les affiches : propose les textes préremplis, puis demande seulement si l'utilisateur veut modifier ou valider.
+- Pour les automatisations : affiche clairement ce qui existe et les boutons disponibles.
+- Automatisations connues : ${params.automations.map((automation) => `${automation.name} (${automation.isActive ? "active" : "pause"})`).join(", ") || "aucune"}.`;
 }
 
 export async function POST(request: Request) {
@@ -64,17 +295,18 @@ export async function POST(request: Request) {
       conversationId?: string;
       selectedTemplateId?: string | null;
       templateAction?: "select" | null;
-      mode?: "daily_routine";
+      mode?: "daily_routine" | "simplified";
     };
 
     const isDailyRoutineMode = mode === "daily_routine";
+    const isSimplifiedMode = mode === "simplified";
 
     const lastUserMessage = messages[messages.length - 1];
     const isUserPrompt = lastUserMessage?.role === "user";
     const hasExplicitVisualIntent = isUserPrompt && looksLikeTemplateIntent(lastUserMessage.content);
     const hasExplicitArticleIntent = isUserPrompt && looksLikeArticleIntent(lastUserMessage.content);
 
-    const [{ data: community }, { data: memories }, { data: candidateTemplates }, { data: candidateArticles }] = await Promise.all([
+    const [{ data: community }, { data: memories }, { data: candidateTemplates }, { data: candidateArticles }, { data: automations }] = await Promise.all([
       admin
         .from("Community")
         .select("name, city, timezone, tone, language, signature, hashtags, editorialRules, communityType, religiousStream")
@@ -102,6 +334,14 @@ export async function POST(request: Request) {
             .or(`isGlobal.eq.true,communityId.eq.${profile.communityId}`)
             .limit(60)
         : Promise.resolve({ data: [] }),
+      isSimplifiedMode
+        ? admin
+            .from("Automation")
+            .select("id, name, description, trigger, isActive, status, nextRunAt, lastRunAt")
+            .eq("communityId", profile.communityId)
+            .order("createdAt", { ascending: false })
+            .limit(12)
+        : Promise.resolve({ data: [] }),
     ]);
 
     const { data: dailyRoutineMemory } = await admin
@@ -116,14 +356,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Communauté introuvable" }, { status: 404 });
     }
 
-    const shabbatContext = isUserPrompt && isShabbatRequest(lastUserMessage.content)
-      ? await getStoredShabbatTimes({
-          city: community.city ?? "Paris",
-          timezone: community.timezone ?? "Europe/Paris",
-        })
-      : null;
+    const now = new Date();
+    const timezone = community.timezone ?? "Europe/Paris";
+    const [shabbatContext, currentYearHolidays, nextYearHolidays] = await Promise.all([
+      getStoredShabbatTimes({
+        city: community.city ?? "Paris",
+        timezone,
+      }),
+      getJewishHolidays({ year: now.getFullYear() }),
+      getJewishHolidays({ year: now.getFullYear() + 1 }),
+    ]);
+    const upcomingHolidays = getUpcomingHolidays([...currentYearHolidays, ...nextYearHolidays], now);
+    const nextHoliday = getUpcomingHoliday(upcomingHolidays, now);
+    const temporalContext = buildTemporalSystemContext({
+      timezone,
+      city: community.city,
+      now,
+      shabbatTimes: shabbatContext,
+      nextHoliday,
+      upcomingHolidays,
+    });
 
-    const templateSuggestions = isUserPrompt
+    const templateSuggestions = isUserPrompt && hasExplicitVisualIntent
       ? buildTemplateSuggestions(candidateTemplates ?? [], lastUserMessage.content, {
           limit: 3,
           communityId: profile.communityId,
@@ -140,7 +394,7 @@ export async function POST(request: Request) {
     const shouldSuggestTemplates =
       !selectedTemplateId &&
       templateSuggestions.length > 0 &&
-      (hasExplicitVisualIntent || templateSuggestions.length >= 2);
+      hasExplicitVisualIntent;
     const shouldSuggestArticles =
       articleSuggestions.length > 0 &&
       (hasExplicitArticleIntent || articleSuggestions.some((article) => article.confidence >= 8));
@@ -185,10 +439,11 @@ export async function POST(request: Request) {
     const dailyRoutine = dailyRoutineMemory?.value as DailyRoutine | null;
 
     const systemPrompt = isDailyRoutineMode
-      ? buildDailyRoutineSystemPrompt(community.name, community.city)
-      : buildSystemPrompt({ ...community, dailyRoutine }) +
+      ? `${temporalContext}\n\n${buildDailyRoutineSystemPrompt(community.name, community.city)}`
+      : temporalContext + "\n\n" +
+        buildSystemPrompt({ ...community, dailyRoutine }) +
         buildMemoryContext(memories ?? []) +
-      (shabbatContext
+      (isUserPrompt && isShabbatRequest(lastUserMessage.content) && shabbatContext
         ? `\n\nCONTEXTE TEMPOREL CHABBAT :
 - Quand l'utilisateur parle de "Chabbat" sans autre précision, il s'agit par défaut du prochain Chabbat à venir.
 - Prochain Chabbat : ${formatFrenchDate(shabbatContext.date)}
@@ -260,9 +515,7 @@ export async function POST(request: Request) {
           }
 
           if (shouldSuggestTemplates) {
-            const intro = hasExplicitVisualIntent
-              ? "J'ai sélectionné dans ta bibliothèque des affiches qui correspondent à ta demande. Tu peux les voir juste en dessous.\n\n"
-              : "Je t'ai aussi préparé dans ta bibliothèque quelques affiches qui collent bien au sujet de ta demande. Tu peux les voir juste en dessous.\n\n";
+            const intro = "J’ai trouvé des affiches pertinentes. Choisissez-en une et je préparerai les textes.\n\n";
             fullResponse += intro;
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ content: intro })}\n\n`)
@@ -300,6 +553,8 @@ export async function POST(request: Request) {
                 .from("Conversation")
                 .update({ updatedAt: new Date().toISOString() })
                 .eq("id", conversationId);
+
+              generateTitle(conversationId, lastUserMessage.content, fullResponse, admin).catch(console.error);
             }
 
             controller.close();
@@ -340,18 +595,63 @@ export async function POST(request: Request) {
                 .from("Conversation")
                 .update({ updatedAt: new Date().toISOString() })
                 .eq("id", conversationId);
+
+              generateTitle(conversationId, lastUserMessage.content, fullResponse, admin).catch(console.error);
             }
 
             controller.close();
             return;
           }
 
+          const simplifiedShortcut = isSimplifiedMode && isUserPrompt
+            ? getSimplifiedShortcut(lastUserMessage.content, (automations ?? []) as AutomationSummary[])
+            : null;
+
+          if (simplifiedShortcut) {
+            fullResponse = simplifiedShortcut.content;
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ content: simplifiedShortcut.content })}\n\n`)
+            );
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({
+                  type: "assistant_actions",
+                  actions: simplifiedShortcut.actions,
+                })}\n\n`
+              )
+            );
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+
+            if (conversationId && fullResponse) {
+              await admin.from("ConversationMessage").insert({
+                id: crypto.randomUUID(),
+                conversationId,
+                role: "assistant",
+                content: fullResponse,
+              });
+
+              await admin
+                .from("Conversation")
+                .update({ updatedAt: new Date().toISOString() })
+                .eq("id", conversationId);
+
+              generateTitle(conversationId, lastUserMessage.content, fullResponse, admin).catch(console.error);
+            }
+
+            controller.close();
+            return;
+          }
+
+          const simplifiedSystemContext = isSimplifiedMode
+            ? buildSimplifiedResponseRules({ automations: (automations ?? []) as AutomationSummary[] })
+            : "";
+
           const openrouterStream = await openrouter.chat.completions.create({
             model: "google/gemini-2.5-flash",
             max_tokens: 2048,
             stream: true,
             messages: [
-              { role: "system", content: systemPrompt },
+              { role: "system", content: systemPrompt + simplifiedSystemContext },
               ...messages.slice(-20),
             ],
           });
@@ -392,14 +692,7 @@ export async function POST(request: Request) {
               .update({ updatedAt: new Date().toISOString() })
               .eq("id", conversationId);
 
-            const { count } = await admin
-              .from("ConversationMessage")
-              .select("*", { count: "exact", head: true })
-              .eq("conversationId", conversationId);
-
-            if (count === 2) {
-              generateTitle(conversationId, lastUserMessage.content, admin).catch(console.error);
-            }
+            generateTitle(conversationId, lastUserMessage.content, fullResponse, admin).catch(console.error);
           }
         } catch (error) {
           console.error("[AI Chat] Erreur streaming:", error);
@@ -428,22 +721,44 @@ export async function POST(request: Request) {
 async function generateTitle(
   conversationId: string,
   firstMessage: string,
+  assistantResponse: string,
   admin: ReturnType<typeof createAdminClient>
 ) {
   try {
+    const { data: conversation } = await admin
+      .from("Conversation")
+      .select("title")
+      .eq("id", conversationId)
+      .single();
+
+    const currentTitle = conversation?.title?.trim();
+    if (currentTitle && currentTitle !== "Nouvelle conversation") {
+      return;
+    }
+
     const response = await openrouter.chat.completions.create({
       model: "google/gemini-2.5-flash",
-      max_tokens: 30,
+      max_tokens: 40,
       messages: [
         {
           role: "system",
-          content: "Génère un titre très court (3-6 mots max) pour cette conversation. Réponds UNIQUEMENT avec le titre, sans guillemets ni ponctuation finale.",
+          content: [
+            "Tu renommes une conversation Shalom IA pour l'historique utilisateur.",
+            "Génère un titre clair, concret et mémorisable en français.",
+            "Le titre doit résumer le thème principal, pas être générique.",
+            "3 à 6 mots maximum.",
+            "Texte brut uniquement : pas de Markdown, pas de **gras**, pas de guillemets, pas de point final, pas d'emoji.",
+            "Évite : Nouvelle conversation, Assistant IA, Aide, Discussion.",
+          ].join("\n"),
         },
-        { role: "user", content: firstMessage },
+        {
+          role: "user",
+          content: `Demande utilisateur :\n${firstMessage}\n\nRéponse assistant :\n${assistantResponse.slice(0, 1200)}`,
+        },
       ],
     });
 
-    const title = response.choices[0]?.message?.content?.trim();
+    const title = cleanConversationTitle(response.choices[0]?.message?.content);
     if (title) {
       await admin
         .from("Conversation")

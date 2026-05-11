@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -69,8 +70,21 @@ const CHANNEL_INFO: Record<string, {
 
 const CHANNEL_ORDER = ["INSTAGRAM", "FACEBOOK", "WHATSAPP", "TELEGRAM", "EMAIL"];
 
+const OAUTH_MESSAGES: Record<string, { tone: "success" | "error"; text: string }> = {
+  success: { tone: "success", text: "Connexion réussie. Le canal est maintenant disponible." },
+  missing_code: { tone: "error", text: "Meta n'a pas renvoyé de code de connexion." },
+  missing_env: { tone: "error", text: "Configuration Meta manquante côté serveur." },
+  expired: { tone: "error", text: "Session de connexion expirée. Relancez la connexion." },
+  invalid_state: { tone: "error", text: "Sécurité OAuth invalide. Relancez la connexion depuis cette page." },
+  forbidden: { tone: "error", text: "Ce compte ne correspond pas à cette communauté." },
+  no_page: { tone: "error", text: "Aucune page Facebook administrable trouvée pour ce compte Meta." },
+  no_instagram_business: { tone: "error", text: "Aucun compte Instagram professionnel relié à une page Facebook n'a été trouvé." },
+  error: { tone: "error", text: "Meta a refusé la connexion. Vérifiez l'URL de redirection et les droits de l'application Meta." },
+};
+
 export function ChannelsSettingsClient({ channels, communityId }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [saving, setSaving] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expandedChannel, setExpandedChannel] = useState<string | null>(null);
@@ -78,6 +92,8 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
 
   // Map des canaux existants
   const channelMap = Object.fromEntries(channels.map((c) => [c.type, c]));
+  const oauthStatus = searchParams.get("oauth");
+  const oauthMessage = oauthStatus ? OAUTH_MESSAGES[oauthStatus] : null;
 
   async function connectOAuth(type: string) {
     window.location.href = `/api/auth/oauth/${type.toLowerCase()}?communityId=${communityId}`;
@@ -155,6 +171,25 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
           <p className="text-slate-500 mt-1">Connectez vos réseaux sociaux et canaux de communication</p>
         </div>
       </div>
+
+      {/* Info générale */}
+      {oauthMessage && (
+        <div className={cn(
+          "rounded-xl border p-4 flex items-start gap-3",
+          oauthMessage.tone === "success"
+            ? "bg-emerald-50 border-emerald-200"
+            : "bg-red-50 border-red-200"
+        )}>
+          {oauthMessage.tone === "success" ? (
+            <CheckCircle className="size-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+          ) : (
+            <AlertCircle className="size-5 text-red-600 flex-shrink-0 mt-0.5" />
+          )}
+          <p className={cn("text-sm", oauthMessage.tone === "success" ? "text-emerald-700" : "text-red-700")}>
+            {oauthMessage.text}
+          </p>
+        </div>
+      )}
 
       {/* Info générale */}
       <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 flex items-start gap-3">

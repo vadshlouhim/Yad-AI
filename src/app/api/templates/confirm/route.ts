@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTemplateQuestions, resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import { analyzeTemplateVisuals } from "@/lib/templates/analysis";
+import { buildTemporalSystemContext } from "@/lib/ai/time-context";
+import { getStoredShabbatTimes } from "@/lib/ai/engine";
+import { getJewishHolidays, type JewishHoliday } from "@/lib/automation/hebcal";
 
 const openrouter = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
@@ -19,6 +22,15 @@ interface DesignZone {
 
 function removeAsterisks(value: string) {
   return value.replace(/\*/g, "");
+}
+
+function getUpcomingHolidays(holidays: JewishHoliday[], now: Date, limit = 8) {
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  return holidays
+    .filter((holiday) => new Date(`${holiday.date}T12:00:00`) >= today)
+    .sort((left, right) => new Date(left.date).getTime() - new Date(right.date).getTime())
+    .slice(0, limit);
 }
 
 export async function POST(request: Request) {
@@ -56,7 +68,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const [{ data: template }, { data: community }] = await Promise.all([
+    const now = new Date();
+    const [{ data: template }, { data: community }, { data: upcomingEvents }] = await Promise.all([
       admin
         .from("Template")
         .select("*")
@@ -65,9 +78,17 @@ export async function POST(request: Request) {
         .single(),
       admin
         .from("Community")
-        .select("name, city, phone, email, website, address, religiousStream, tone")
+        .select("name, city, country, timezone, phone, email, website, address, religiousStream, tone, signature, hashtags, editorialRules, communityType")
         .eq("id", profile.communityId)
         .single(),
+      admin
+        .from("Event")
+        .select("title, startDate, endDate, location, category, description, audience")
+        .eq("communityId", profile.communityId)
+        .gte("startDate", now.toISOString())
+        .neq("status", "ARCHIVED")
+        .order("startDate", { ascending: true })
+        .limit(8),
     ]);
 
     if (!template) {
@@ -75,6 +96,24 @@ export async function POST(request: Request) {
     }
 
     const questions = getTemplateQuestions(template.category);
+    const timezone = community?.timezone ?? "Europe/Paris";
+    const [shabbatTimes, currentYearHolidays, nextYearHolidays] = await Promise.all([
+      getStoredShabbatTimes({
+        city: community?.city ?? "Paris",
+        timezone,
+      }),
+      getJewishHolidays({ year: now.getFullYear() }),
+      getJewishHolidays({ year: now.getFullYear() + 1 }),
+    ]);
+    const upcomingHolidays = getUpcomingHolidays([...currentYearHolidays, ...nextYearHolidays], now);
+    const temporalContext = buildTemporalSystemContext({
+      timezone,
+      city: community?.city,
+      now,
+      shabbatTimes,
+      nextHoliday: upcomingHolidays[0] ?? null,
+      upcomingHolidays,
+    });
     const templateImageUrl =
       resolveTemplateAssetUrl(template.previewUrl) ??
       resolveTemplateAssetUrl(template.thumbnailUrl);
@@ -105,17 +144,34 @@ export async function POST(request: Request) {
       .map((message) => `${message.role === "user" ? "Utilisateur" : "Assistant"}: ${message.content}`)
       .join("\n");
 
-    const extractionPrompt = `Tu prépares le texte final d'une affiche communautaire.
+    const eventsContext = (upcomingEvents ?? []).length > 0
+      ? (upcomingEvents ?? [])
+          .map((event) => `- ${event.title} : ${new Date(event.startDate).toLocaleString("fr-FR", { timeZone: timezone, weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}${event.location ? `, ${event.location}` : ""}${event.description ? ` — ${event.description}` : ""}`)
+          .join("\n")
+      : "Aucun événement à venir enregistré.";
+
+    const extractionPrompt = `Tu prépares automatiquement le texte final d'une affiche communautaire.
+
+${temporalContext}
 
 Communauté :
 - Nom : ${community?.name ?? "Non spécifié"}
 - Ville : ${community?.city ?? "Non spécifié"}
+- Pays : ${community?.country ?? "Non spécifié"}
+- Fuseau : ${timezone}
 - Téléphone : ${community?.phone ?? "Non spécifié"}
 - Email : ${community?.email ?? "Non spécifié"}
 - Site web : ${community?.website ?? "Non spécifié"}
 - Adresse : ${community?.address ?? "Non spécifié"}
 - Courant : ${community?.religiousStream ?? "Non spécifié"}
 - Ton : ${community?.tone ?? "MODERN"}
+- Type : ${community?.communityType ?? "Non spécifié"}
+- Signature : ${community?.signature ?? "Non spécifiée"}
+- Hashtags : ${Array.isArray(community?.hashtags) ? community.hashtags.join(" ") : "Non spécifiés"}
+- Règles éditoriales : ${community?.editorialRules ?? "Non spécifiées"}
+
+Événements à venir enregistrés :
+${eventsContext}
 
 Template :
 - Nom : ${template.name}
@@ -141,8 +197,13 @@ Conversation récente :
 ${conversation}
 
 Règles :
+- Comprends le thème de l'affiche à partir de son nom, sa catégorie, ses tags, son analyse visuelle, la conversation et le calendrier.
+- Préremplis automatiquement tous les champs possibles avec les informations connues.
+- Pour Chabbat, utilise le prochain Chabbat fourni dans le contexte temporel.
+- Pour une fête, utilise la prochaine fête pertinente fournie dans le calendrier hébraïque.
+- Pour un événement/cours, utilise les événements enregistrés si l'un correspond au thème.
 - Génère des textes courts, crédibles et prêts à poser sur une affiche.
-- Si une information importante manque, écris exactement "À confirmer".
+- Si une information importante manque vraiment et ne peut pas être inférée, écris exactement "À confirmer".
 - Réutilise les infos de la communauté quand elles sont pertinentes.
 - N'utilise jamais le caractère astérisque.
 - N'ajoute pas de commentaires.
@@ -189,13 +250,14 @@ Réponds UNIQUEMENT en JSON valide de la forme :
     });
 
     const confirmationMessage = [
-      `J'ai préparé les textes pour ${template.name}.`,
+      `J'ai préparé automatiquement une proposition pour ${template.name}.`,
+      `J'ai utilisé le thème de l'affiche, les informations de votre communauté et le calendrier disponible.`,
       "",
       ...summaryLines,
       "",
       missingFields.length > 0
         ? `Les champs suivants restent à confirmer : ${missingFields.join(", ")}.`
-        : "Si tout te convient, tu peux confirmer et générer l'affiche.",
+        : "Si tout est bon pour vous, vous pouvez générer l'affiche. Sinon, dites-moi simplement quoi modifier.",
     ].join("\n");
 
     return NextResponse.json({

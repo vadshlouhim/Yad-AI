@@ -2,6 +2,15 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+function cleanConversationTitle(title: unknown) {
+  if (typeof title !== "string") return "Nouvelle conversation";
+  return title
+    .replace(/\*\*/g, "")
+    .replace(/[*_`#]/g, "")
+    .replace(/\s+/g, " ")
+    .trim() || "Nouvelle conversation";
+}
+
 export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -14,7 +23,10 @@ export async function GET() {
     .eq("userId", user.id)
     .order("updatedAt", { ascending: false });
 
-  return NextResponse.json(conversations ?? []);
+  return NextResponse.json((conversations ?? []).map((conversation) => ({
+    ...conversation,
+    title: cleanConversationTitle(conversation.title),
+  })));
 }
 
 export async function POST(request: Request) {
@@ -36,7 +48,7 @@ export async function POST(request: Request) {
       id: crypto.randomUUID(),
       userId: user.id,
       communityId: profile.communityId,
-      title: body.title ?? "Nouvelle conversation",
+      title: cleanConversationTitle(body.title),
       updatedAt: new Date().toISOString(),
     })
     .select()

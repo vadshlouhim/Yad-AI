@@ -7,7 +7,8 @@ import {
   buildMemoryContext,
   type GenerationShabbatTimes,
 } from "./prompts";
-import { getShabbatTimes } from "@/lib/automation/hebcal";
+import { buildTemporalSystemContext } from "./time-context";
+import { getJewishHolidays, getShabbatTimes, type JewishHoliday } from "@/lib/automation/hebcal";
 import type { Enums } from "@/types/database.types";
 
 type ContentType = Enums<"ContentType">;
@@ -20,6 +21,28 @@ const openrouter = new OpenAI({
 
 const MODEL = "google/gemini-2.5-flash";
 const MAX_TOKENS = 2048;
+
+function getUpcomingHolidays(holidays: JewishHoliday[], now: Date, limit = 8) {
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  return holidays
+    .filter((holiday) => new Date(`${holiday.date}T12:00:00`) >= today)
+    .sort((left, right) => new Date(left.date).getTime() - new Date(right.date).getTime())
+    .slice(0, limit);
+}
+
+async function getHebrewCalendarContext(now = new Date()) {
+  const [currentYearHolidays, nextYearHolidays] = await Promise.all([
+    getJewishHolidays({ year: now.getFullYear() }),
+    getJewishHolidays({ year: now.getFullYear() + 1 }),
+  ]);
+  const upcomingHolidays = getUpcomingHolidays([...currentYearHolidays, ...nextYearHolidays], now);
+  return {
+    now,
+    upcomingHolidays,
+    nextHoliday: upcomingHolidays[0] ?? null,
+  };
+}
 
 export interface GeneratedContent {
   body: string;
@@ -241,7 +264,16 @@ export async function generateContent(params: {
         })
       : null);
 
-  const systemPrompt = buildSystemPrompt(community) + buildMemoryContext(memories);
+  const calendarContext = await getHebrewCalendarContext();
+  const temporalContext = buildTemporalSystemContext({
+    timezone: community.timezone,
+    city: community.city,
+    now: calendarContext.now,
+    shabbatTimes,
+    nextHoliday: calendarContext.nextHoliday,
+    upcomingHolidays: calendarContext.upcomingHolidays,
+  });
+  const systemPrompt = temporalContext + "\n\n" + buildSystemPrompt(community) + buildMemoryContext(memories);
   const userPrompt = buildContentGenerationPrompt({
     contentType,
     event,
@@ -284,7 +316,15 @@ export async function adaptContentForChannel(params: {
   const { community } = await getCommunityContext(communityId);
   if (!community) throw new Error("Communauté introuvable");
 
-  const systemPrompt = buildSystemPrompt(community);
+  const calendarContext = await getHebrewCalendarContext();
+  const temporalContext = buildTemporalSystemContext({
+    timezone: community.timezone,
+    city: community.city,
+    now: calendarContext.now,
+    nextHoliday: calendarContext.nextHoliday,
+    upcomingHolidays: calendarContext.upcomingHolidays,
+  });
+  const systemPrompt = temporalContext + "\n\n" + buildSystemPrompt(community);
   const userPrompt = buildAdaptationPrompt(
     originalContent,
     targetChannel,
@@ -322,7 +362,15 @@ export async function* streamChatResponse(params: {
     return;
   }
 
-  const systemPrompt = buildSystemPrompt(community) + buildMemoryContext(memories);
+  const calendarContext = await getHebrewCalendarContext();
+  const temporalContext = buildTemporalSystemContext({
+    timezone: community.timezone,
+    city: community.city,
+    now: calendarContext.now,
+    nextHoliday: calendarContext.nextHoliday,
+    upcomingHolidays: calendarContext.upcomingHolidays,
+  });
+  const systemPrompt = temporalContext + "\n\n" + buildSystemPrompt(community) + buildMemoryContext(memories);
 
   const stream = await openrouter.chat.completions.create({
     model: MODEL,

@@ -32,7 +32,7 @@ export function AIAssistantPanel({ communityName, tone, onClose }: Props) {
     {
       id: "welcome",
       role: "assistant",
-      content: `Shalom ! Je suis votre assistant IA Shalom IA pour **${communityName}**.\n\nJe peux vous aider à :\n- Générer des posts pour Chabbat, fêtes, événements\n- Adapter vos contenus par canal\n- Rédiger des annonces et récapitulatifs\n- Planifier votre communication\n\nQue souhaitez-vous créer aujourd'hui ?`,
+      content: "Je prépare vos publications automatiquement (J-10, J-5, J-1), vos rappels et vos contenus.\nVous validez, puis je publie en un clic.\nJe vous aide aussi à organiser votre quotidien et à rester régulier.",
       timestamp: new Date(),
     },
   ]);
@@ -173,7 +173,7 @@ export function AIAssistantPanel({ communityName, tone, onClose }: Props) {
             <p className="text-sm font-semibold text-white">Assistant Shalom IA</p>
             <div className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs text-slate-400">Claude · Prêt</span>
+              <span className="text-xs text-slate-400">Assistant principal · Prêt</span>
             </div>
           </div>
           <button

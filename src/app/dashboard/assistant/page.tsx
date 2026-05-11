@@ -15,7 +15,7 @@ export default async function AssistantPage() {
   const [{ data: community }, { data: channels }, { data: upcomingEvents }, currentYearHolidays, nextYearHolidays] = await Promise.all([
     admin
       .from("Community")
-      .select("name, tone, hashtags, language, communityType, religiousStream")
+      .select("name, tone, logoUrl, hashtags, language, communityType, religiousStream")
       .eq("id", communityId)
       .single(),
     admin
@@ -54,14 +54,6 @@ export default async function AssistantPage() {
         .join("\n")
     : "Aucun événement précis n'est encore listé. Propose une trame de programme communautaire adaptable.";
 
-  const demoVideoUrl = process.env.NEXT_PUBLIC_DEMO_VIDEO_URL ?? "/demo";
-
-  const demoPrompt = {
-    label: "Voir tout ce que je peux faire",
-    prompt: "Présente-moi en clair tout ce que Shalom IA peut faire pour ma communauté, comme une démonstration guidée et concrète.",
-    href: demoVideoUrl,
-  };
-
   const quickActionPrompts = [
     {
       label: "Communication automatique",
@@ -88,12 +80,19 @@ export default async function AssistantPage() {
   ];
 
   return (
-    <AssistantClient
-      communityName={community?.name ?? "Ma communauté"}
-      tone={community?.tone ?? "MODERN"}
-      channels={channels ?? []}
-      demoPrompt={demoPrompt}
-      seasonalPrompts={quickActionPrompts}
-    />
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
+        <p className="text-sm text-slate-100">
+          Utilisez Assistant IA pour préparer vos publications, vos rappels et organiser votre quotidien avant validation.
+        </p>
+      </div>
+      <AssistantClient
+        communityName={community?.name ?? "Ma communauté"}
+        communityLogoUrl={community?.logoUrl ?? null}
+        tone={community?.tone ?? "MODERN"}
+        channels={channels ?? []}
+        seasonalPrompts={quickActionPrompts}
+      />
+    </div>
   );
 }

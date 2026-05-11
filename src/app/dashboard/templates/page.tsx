@@ -34,10 +34,17 @@ export default async function TemplatesPage() {
   }));
 
   return (
-    <TemplatesClient
-      templates={hydratedTemplates as Parameters<typeof TemplatesClient>[0]["templates"]}
-      community={community!}
-      plan={community?.plan ?? "FREE_TRIAL"}
-    />
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
+        <p className="text-sm text-slate-100">
+          Choisissez une affiche existante, personnalisez les informations, puis validez la version finale.
+        </p>
+      </div>
+      <TemplatesClient
+        templates={hydratedTemplates as Parameters<typeof TemplatesClient>[0]["templates"]}
+        community={community!}
+        plan={community?.plan ?? "FREE_TRIAL"}
+      />
+    </div>
   );
 }

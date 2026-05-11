@@ -57,15 +57,7 @@ interface Props {
 type ViewMode = "calendar" | "list";
 type CalendarPeriod = "day" | "week" | "month" | "year";
 
-const STATUS_FILTERS = [
-  { value: "", label: "Tous" },
-  { value: "DRAFT", label: "Brouillons" },
-  { value: "READY", label: "Prêts" },
-  { value: "SCHEDULED", label: "Programmés" },
-  { value: "PUBLISHED", label: "Publiés" },
-  { value: "COMPLETED", label: "Terminés" },
-  { value: "ARCHIVED", label: "Archivés" },
-];
+const STATUS_FILTERS = [{ value: "", label: "Tous" }];
 
 const STATUS_BADGE_VARIANT: Record<string, "draft" | "ready" | "scheduled" | "published" | "archived"> = {
   DRAFT: "draft",
@@ -323,16 +315,16 @@ export function EventsClient({ events, statusCounts, shabbatItems = [], holidayI
       <div className="overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-teal-50 p-6 shadow-sm">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Agenda communautaire</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">Agenda intelligent</h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Mon quotidien</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">Agenda simplifié</h1>
             <p className="mt-2 text-sm text-slate-600">
-              {totalAll} événement{totalAll !== 1 ? "s" : ""} enregistré{totalAll !== 1 ? "s" : ""}
+              {totalAll} élément{totalAll !== 1 ? "s" : ""} planifié{totalAll !== 1 ? "s" : ""}
             </p>
           </div>
           <Link href="/dashboard/events/new">
             <Button className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 focus-visible:ring-emerald-500 sm:w-auto">
               <Plus className="size-4" />
-              Nouvel événement
+              Ajouter mon quotidien
             </Button>
           </Link>
         </div>
