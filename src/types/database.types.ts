@@ -43,6 +43,7 @@ export type Database = {
           updatedAt?: string
           value?: Json
         }
+        Relationships: []
       }
       AuditLog: {
         Row: {
@@ -84,6 +85,7 @@ export type Database = {
           userAgent?: string | null
           userId?: string | null
         }
+        Relationships: []
       }
       Automation: {
         Row: {
@@ -97,6 +99,7 @@ export type Database = {
           lastRunAt: string | null
           name: string
           nextRunAt: string | null
+          presetId: string | null
           status: Database["public"]["Enums"]["AutomationStatus"]
           trigger: Database["public"]["Enums"]["AutomationTrigger"]
           triggerConfig: Json
@@ -113,6 +116,7 @@ export type Database = {
           lastRunAt?: string | null
           name: string
           nextRunAt?: string | null
+          presetId?: string | null
           status?: Database["public"]["Enums"]["AutomationStatus"]
           trigger: Database["public"]["Enums"]["AutomationTrigger"]
           triggerConfig: Json
@@ -129,11 +133,82 @@ export type Database = {
           lastRunAt?: string | null
           name?: string
           nextRunAt?: string | null
+          presetId?: string | null
           status?: Database["public"]["Enums"]["AutomationStatus"]
           trigger?: Database["public"]["Enums"]["AutomationTrigger"]
           triggerConfig?: Json
           updatedAt?: string
         }
+        Relationships: []
+      }
+      AutomationPreset: {
+        Row: {
+          actions: Json
+          category: string
+          clientTypes: Database["public"]["Enums"]["CommunityType"][]
+          createdAt: string
+          description: string | null
+          icon: string | null
+          id: string
+          isActive: boolean
+          isGlobal: boolean
+          sortOrder: number
+          title: string
+          trigger: Database["public"]["Enums"]["AutomationTrigger"]
+          triggerConfig: Json
+          updatedAt: string
+        }
+        Insert: {
+          actions?: Json
+          category?: string
+          clientTypes?: Database["public"]["Enums"]["CommunityType"][]
+          createdAt?: string
+          description?: string | null
+          icon?: string | null
+          id: string
+          isActive?: boolean
+          isGlobal?: boolean
+          sortOrder?: number
+          title: string
+          trigger?: Database["public"]["Enums"]["AutomationTrigger"]
+          triggerConfig?: Json
+          updatedAt?: string
+        }
+        Update: {
+          actions?: Json
+          category?: string
+          clientTypes?: Database["public"]["Enums"]["CommunityType"][]
+          createdAt?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          isActive?: boolean
+          isGlobal?: boolean
+          sortOrder?: number
+          title?: string
+          trigger?: Database["public"]["Enums"]["AutomationTrigger"]
+          triggerConfig?: Json
+          updatedAt?: string
+        }
+        Relationships: []
+      }
+      AutomationPresetRhythm: {
+        Row: {
+          id: string
+          presetId: string
+          rhythmId: string
+        }
+        Insert: {
+          id: string
+          presetId: string
+          rhythmId: string
+        }
+        Update: {
+          id?: string
+          presetId?: string
+          rhythmId?: string
+        }
+        Relationships: []
       }
       AutomationRun: {
         Row: {
@@ -166,6 +241,7 @@ export type Database = {
           startedAt?: string
           status?: Database["public"]["Enums"]["AutomationRunStatus"]
         }
+        Relationships: []
       }
       Article: {
         Row: {
@@ -219,6 +295,7 @@ export type Database = {
           tags?: string[]
           updatedAt?: string
         }
+        Relationships: []
       }
       Channel: {
         Row: {
@@ -272,6 +349,7 @@ export type Database = {
           type?: Database["public"]["Enums"]["ChannelType"]
           updatedAt?: string
         }
+        Relationships: []
       }
       ChannelAdaptation: {
         Row: {
@@ -310,6 +388,7 @@ export type Database = {
           metadata?: Json | null
           updatedAt?: string
         }
+        Relationships: []
       }
       Community: {
         Row: {
@@ -335,6 +414,7 @@ export type Database = {
           planExpiresAt: string | null
           postalCode: string | null
           religiousStream: string | null
+          rhythmId: string | null
           signature: string | null
           slug: string
           stripeCustomerId: string | null
@@ -367,6 +447,7 @@ export type Database = {
           planExpiresAt?: string | null
           postalCode?: string | null
           religiousStream?: string | null
+          rhythmId?: string | null
           signature?: string | null
           slug: string
           stripeCustomerId?: string | null
@@ -399,6 +480,7 @@ export type Database = {
           planExpiresAt?: string | null
           postalCode?: string | null
           religiousStream?: string | null
+          rhythmId?: string | null
           signature?: string | null
           slug?: string
           stripeCustomerId?: string | null
@@ -408,6 +490,40 @@ export type Database = {
           vocabulary?: Json | null
           website?: string | null
         }
+        Relationships: []
+      }
+      CommunityRhythm: {
+        Row: {
+          createdAt: string
+          description: string | null
+          id: string
+          isActive: boolean
+          name: string
+          slug: string
+          sortOrder: number
+          updatedAt: string
+        }
+        Insert: {
+          createdAt?: string
+          description?: string | null
+          id: string
+          isActive?: boolean
+          name: string
+          slug: string
+          sortOrder?: number
+          updatedAt?: string
+        }
+        Update: {
+          createdAt?: string
+          description?: string | null
+          id?: string
+          isActive?: boolean
+          name?: string
+          slug?: string
+          sortOrder?: number
+          updatedAt?: string
+        }
+        Relationships: []
       }
       ContentDraft: {
         Row: {
@@ -482,6 +598,7 @@ export type Database = {
           updatedAt?: string
           version?: number
         }
+        Relationships: []
       }
       Conversation: {
         Row: {
@@ -508,6 +625,7 @@ export type Database = {
           updatedAt?: string
           userId?: string
         }
+        Relationships: []
       }
       ConversationMessage: {
         Row: {
@@ -531,6 +649,7 @@ export type Database = {
           id?: string
           role?: string
         }
+        Relationships: []
       }
       Event: {
         Row: {
@@ -602,6 +721,7 @@ export type Database = {
           title?: string
           updatedAt?: string
         }
+        Relationships: []
       }
       FranceCityShabbatSchedule: {
         Row: {
@@ -643,6 +763,7 @@ export type Database = {
           updated_at?: string
           year?: number
         }
+        Relationships: []
       }
       HebrewCalendarReference: {
         Row: {
@@ -699,6 +820,7 @@ export type Database = {
           source_provider?: string | null
           source_url?: string | null
         }
+        Relationships: []
       }
       MediaFile: {
         Row: {
@@ -761,6 +883,7 @@ export type Database = {
           usageCount?: number
           width?: number | null
         }
+        Relationships: []
       }
       Notification: {
         Row: {
@@ -802,6 +925,7 @@ export type Database = {
           type?: Database["public"]["Enums"]["NotificationType"]
           userId?: string | null
         }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -834,6 +958,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["UserRole"]
           updatedAt?: string
         }
+        Relationships: []
       }
       Publication: {
         Row: {
@@ -902,6 +1027,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["PublicationStatus"]
           updatedAt?: string
         }
+        Relationships: []
       }
       RecurringContent: {
         Row: {
@@ -943,6 +1069,7 @@ export type Database = {
           type?: Database["public"]["Enums"]["RecurringContentType"]
           updatedAt?: string
         }
+        Relationships: []
       }
       Subscription: {
         Row: {
@@ -993,6 +1120,7 @@ export type Database = {
           trialStart?: string | null
           updatedAt?: string
         }
+        Relationships: []
       }
       Template: {
         Row: {
@@ -1052,6 +1180,7 @@ export type Database = {
           updatedAt?: string
           usageCount?: number
         }
+        Relationships: []
       }
     }
     Views: { [_ in never]: never }

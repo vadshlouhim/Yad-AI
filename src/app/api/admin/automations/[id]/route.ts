@@ -1,4 +1,4 @@
-import { canAccessAdmin } from "@/lib/admin-access";
+﻿import { canAccessAdmin } from "@/lib/admin-access";
 import { buildAutomationActions } from "@/lib/automation/presets";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -15,8 +15,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-  if (!(await isAuthorizedAdmin(user.id))) return NextResponse.json({ error: "Accès réservé au super-admin" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+  if (!(await isAuthorizedAdmin(user.id))) return NextResponse.json({ error: "Acces reserve a l'admin global" }, { status: 403 });
 
   const { id } = await params;
   const body = (await request.json()) as Record<string, unknown>;
@@ -48,8 +48,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-  if (!(await isAuthorizedAdmin(user.id))) return NextResponse.json({ error: "Accès réservé au super-admin" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+  if (!(await isAuthorizedAdmin(user.id))) return NextResponse.json({ error: "Acces reserve a l'admin global" }, { status: 403 });
 
   const { id } = await params;
   const admin = createAdminClient();

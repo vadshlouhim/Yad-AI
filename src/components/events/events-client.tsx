@@ -14,7 +14,7 @@ import {
   cn,
 } from "@/lib/utils";
 import {
-  Plus, Search, CalendarDays, MapPin,
+  Plus, Search, Calendar, CalendarDays, MapPin,
   FileText, Send, MoreHorizontal, Edit, Trash2, Sparkles, Clock, LayoutList,
   ChevronLeft, ChevronRight,
 } from "lucide-react";
@@ -245,7 +245,7 @@ export function EventsClient({ events, statusCounts, shabbatItems = [], holidayI
 
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const activeStatus = searchParams.get("status") ?? "";
-  const viewMode: ViewMode = searchParams.get("view") === "list" ? "list" : "calendar";
+  const viewMode: ViewMode = searchParams.get("view") === "calendar" ? "calendar" : "list";
   const activePeriod = PERIODS.some((period) => period.value === searchParams.get("period"))
     ? (searchParams.get("period") as CalendarPeriod)
     : "week";
@@ -312,25 +312,36 @@ export function EventsClient({ events, statusCounts, shabbatItems = [], holidayI
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-teal-50 p-6 shadow-sm">
+      <div className="overflow-hidden rounded-3xl border border-violet-300/70 bg-gradient-to-br from-violet-950 via-violet-900 to-indigo-900 p-6 text-white shadow-[0_24px_56px_rgba(76,29,149,0.28)]">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">Mon quotidien</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">Agenda simplifié</h1>
-            <p className="mt-2 text-sm text-slate-600">
+            <div className="mb-3 h-1.5 w-10 rounded-full bg-violet-300" />
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">Mon Agenda IA</h1>
+            <p className="mt-2 text-sm text-violet-100/90">
               {totalAll} élément{totalAll !== 1 ? "s" : ""} planifié{totalAll !== 1 ? "s" : ""}
             </p>
           </div>
-          <Link href="/dashboard/events/new">
-            <Button className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 focus-visible:ring-emerald-500 sm:w-auto">
-              <Plus className="size-4" />
-              Ajouter mon quotidien
-            </Button>
-          </Link>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+            <Link href="/dashboard/hebrew-calendar" className="w-full sm:w-auto">
+              <Button
+                variant="outline"
+                className="w-full border-violet-200/40 bg-white/10 text-white hover:bg-white/20 hover:text-white sm:w-auto"
+              >
+                <Calendar className="size-4" />
+                Calendrier hébraïque
+              </Button>
+            </Link>
+            <Link href="/dashboard/events/new?recurring=1" className="w-full sm:w-auto">
+              <Button className="w-full bg-white text-violet-800 hover:bg-violet-100 active:bg-violet-200 focus-visible:ring-white sm:w-auto shadow-[0_12px_28px_rgba(15,23,42,0.25)]">
+                <Plus className="size-4" />
+                Ajouter un evenement
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Toggles calendrier hébraïque */}
-        <div className="mt-5 flex flex-wrap gap-3 border-t border-emerald-100 pt-4">
+        <div className="mt-5 flex flex-wrap gap-3 border-t border-violet-100 pt-4">
           <p className="w-full text-xs font-semibold uppercase tracking-wide text-slate-500">Afficher dans l&apos;agenda :</p>
           <button
             type="button"
@@ -372,7 +383,7 @@ export function EventsClient({ events, statusCounts, shabbatItems = [], holidayI
         </div>
       </div>
 
-      <Card className="rounded-2xl border-slate-200 shadow-sm">
+      <Card className="rounded-2xl border-slate-200 shadow-sm max-md:border-cyan-200/70 max-md:bg-gradient-to-br max-md:from-white max-md:via-sky-50/60 max-md:to-cyan-50/60 max-md:shadow-[0_14px_32px_rgba(30,136,229,0.12)]">
         <CardContent className="space-y-4 p-4">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex gap-2 overflow-x-auto pb-1">
@@ -386,7 +397,7 @@ export function EventsClient({ events, statusCounts, shabbatItems = [], holidayI
                     className={cn(
                       "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-all",
                       isActive
-                        ? "bg-emerald-600 text-white"
+                        ? "bg-violet-600 text-white"
                         : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                     )}
                   >
@@ -403,7 +414,7 @@ export function EventsClient({ events, statusCounts, shabbatItems = [], holidayI
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row xl:items-center">
-              <div className="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+              <div className="flex rounded-xl border border-slate-200 bg-slate-50 p-1 max-md:border-cyan-100 max-md:bg-white/80">
                 {[
                   { value: "calendar", label: "Calendrier", icon: CalendarDays },
                   { value: "list", label: "Liste", icon: LayoutList },
@@ -417,7 +428,7 @@ export function EventsClient({ events, statusCounts, shabbatItems = [], holidayI
                       onClick={() => updateFilter("view", view.value)}
                       className={cn(
                         "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all sm:flex-none",
-                        isActive ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                        isActive ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
                       )}
                     >
                       <Icon className="size-4" />
@@ -435,7 +446,7 @@ export function EventsClient({ events, statusCounts, shabbatItems = [], holidayI
                   onChange={(event) => setSearch(event.target.value)}
                   onKeyDown={(event) => event.key === "Enter" && updateFilter("q", search)}
                   placeholder="Rechercher dans l&apos;agenda..."
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-4 text-sm focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-4 text-sm focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20 max-md:border-violet-100 max-md:bg-white"
                 />
               </div>
             </div>
@@ -444,16 +455,16 @@ export function EventsClient({ events, statusCounts, shabbatItems = [], holidayI
       </Card>
 
       {events.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-slate-200 bg-white py-16 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100">
-            <CalendarDays className="size-7 text-slate-400" />
+        <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-slate-200 bg-white py-16 text-center max-md:border-cyan-200 max-md:bg-gradient-to-br max-md:from-white max-md:via-sky-50/60 max-md:to-emerald-50/60">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 max-md:bg-gradient-to-br max-md:from-[#1E88E5] max-md:to-[#00A7A0] max-md:shadow-[0_10px_24px_rgba(30,136,229,0.22)]">
+            <CalendarDays className="size-7 text-slate-400 max-md:text-white" />
           </div>
           <div>
             <p className="font-semibold text-slate-700">Aucune date dans l&apos;agenda</p>
             <p className="mt-1 text-sm text-slate-400">Créez votre premier événement pour commencer.</p>
           </div>
           <Link href="/dashboard/events/new">
-            <Button variant="outline" className="border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+            <Button variant="outline" className="border-violet-200 text-violet-700 hover:bg-violet-50">
               <Plus className="size-4" />
               Créer un événement
             </Button>
@@ -523,19 +534,19 @@ function CalendarView({
 }) {
   return (
     <div className="space-y-4">
-      <Card className="rounded-2xl border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-teal-50 shadow-sm">
+      <Card className="rounded-2xl border-violet-100 bg-gradient-to-br from-white via-violet-50 to-fuchsia-50 shadow-sm">
         <CardContent className="p-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600">Aujourd&apos;hui</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600">Aujourd&apos;hui</p>
               <div className="mt-2 flex flex-wrap items-center gap-3">
-                <div className="flex h-14 w-14 flex-col items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm">
+                <div className="flex h-14 w-14 flex-col items-center justify-center rounded-2xl bg-violet-600 text-white shadow-sm">
                   <span className="text-[11px] font-semibold uppercase">{formatMonth(new Date())}</span>
                   <span className="text-xl font-bold leading-none">{formatDayNumber(new Date())}</span>
                 </div>
                 <div>
                   <p className="text-sm font-semibold capitalize text-slate-950">{formatFrenchDate(new Date())}</p>
-                  <p className="mt-1 text-sm font-medium text-emerald-700 hebrew">{formatHebrewDate(new Date())}</p>
+                  <p className="mt-1 text-sm font-medium text-violet-700 hebrew">{formatHebrewDate(new Date())}</p>
                 </div>
               </div>
             </div>
@@ -581,7 +592,7 @@ function CalendarView({
                   onClick={() => onPeriodChange(item.value)}
                   className={cn(
                     "flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all sm:flex-none",
-                    period === item.value ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                    period === item.value ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
                   )}
                 >
                   {item.label}
@@ -623,15 +634,15 @@ function ListView({
     <div className="space-y-5">
       {groupedEvents.map((group) => (
         <section key={group.key} className="grid gap-3 lg:grid-cols-[13rem_1fr]">
-          <div className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-4 lg:sticky lg:top-4 lg:self-start">
+          <div className="rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 p-4 lg:sticky lg:top-4 lg:self-start">
             <div className="flex items-center gap-3">
-              <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-sm">
+              <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-violet-600 text-white shadow-sm">
                 <span className="text-xs font-semibold uppercase">{formatMonth(group.date)}</span>
                 <span className="text-2xl font-bold leading-none">{formatDayNumber(group.date)}</span>
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold capitalize text-slate-950">{formatFrenchDate(group.date)}</p>
-                <p className="mt-1 text-sm font-medium text-emerald-700 hebrew">{formatHebrewDate(group.date)}</p>
+                <p className="mt-1 text-sm font-medium text-violet-700 hebrew">{formatHebrewDate(group.date)}</p>
               </div>
             </div>
             <p className="mt-3 text-xs text-slate-500">
@@ -674,10 +685,10 @@ function DayCalendar({
     <div className="p-4">
       <div className={cn(
         "mb-4 rounded-2xl border p-4",
-        isToday ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"
+        isToday ? "border-violet-200 bg-violet-50" : "border-slate-200 bg-slate-50"
       )}>
         <p className="text-sm font-semibold capitalize text-slate-950">{formatFrenchDate(anchorDate)}</p>
-        <p className="mt-1 text-sm font-medium text-emerald-700 hebrew">{formatHebrewDate(anchorDate)}</p>
+        <p className="mt-1 text-sm font-medium text-violet-700 hebrew">{formatHebrewDate(anchorDate)}</p>
       </div>
       {events.length > 0 ? (
         <div className="space-y-3">
@@ -714,16 +725,16 @@ function WeekCalendar({ events, anchorDate, shabbatByDate, holidayByDate }: { ev
         const holidays = holidayByDate?.get(key);
         const isToday = key === todayKey();
         return (
-          <div key={key} className={cn("min-h-[34rem] bg-white", isToday && "bg-emerald-50/60")}>
+          <div key={key} className={cn("min-h-[34rem] bg-white", isToday && "bg-violet-50/60")}>
             <div className={cn(
               "sticky top-0 z-10 border-b border-slate-200 bg-white/95 p-3 backdrop-blur",
-              isToday && "bg-emerald-50/95"
+              isToday && "bg-violet-50/95"
             )}>
               <p className="text-xs font-semibold uppercase text-slate-500">{DAY_SHORT_FORMATTER.format(day)}</p>
-              <p className={cn("mt-1 text-2xl font-bold", isToday ? "text-emerald-700" : "text-slate-950")}>
+              <p className={cn("mt-1 text-2xl font-bold", isToday ? "text-violet-700" : "text-slate-950")}>
                 {day.getDate()}
               </p>
-              <p className="mt-1 truncate text-xs font-medium text-emerald-700 hebrew">{formatHebrewDate(day)}</p>
+              <p className="mt-1 truncate text-xs font-medium text-violet-700 hebrew">{formatHebrewDate(day)}</p>
             </div>
             <div className="space-y-2 p-2">
               {shabbat && (
@@ -777,17 +788,17 @@ function MonthCalendar({ events, anchorDate, shabbatByDate, holidayByDate }: { e
                 className={cn(
                   "min-h-32 border-b border-r border-slate-200 p-2",
                   isOutsideMonth ? "bg-slate-50/70 text-slate-400" : "bg-white",
-                  isToday && "bg-emerald-50"
+                  isToday && "bg-violet-50"
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
                   <span className={cn(
                     "flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold",
-                    isToday ? "bg-emerald-600 text-white" : "text-slate-700"
+                    isToday ? "bg-violet-600 text-white" : "text-slate-700"
                   )}>
                     {day.getDate()}
                   </span>
-                  <span className="truncate text-[11px] font-medium text-emerald-700 hebrew">{formatHebrewDate(day)}</span>
+                  <span className="truncate text-[11px] font-medium text-violet-700 hebrew">{formatHebrewDate(day)}</span>
                 </div>
                 <div className="mt-1 space-y-1">
                   {shabbat && (
@@ -825,7 +836,7 @@ function YearCalendar({ events, anchorDate }: { events: Event[]; anchorDate: Dat
         return (
           <div key={month.toISOString()} className={cn(
             "rounded-2xl border p-4",
-            isCurrentMonth ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-white"
+            isCurrentMonth ? "border-violet-200 bg-violet-50" : "border-slate-200 bg-white"
           )}>
             <div className="flex items-center justify-between gap-2">
               <h3 className="font-bold capitalize text-slate-950">{MONTH_NAME_FORMATTER.format(month)}</h3>
@@ -856,7 +867,7 @@ function CalendarEventPill({ event, compact = false }: { event: Event; compact?:
     <Link
       href={`/dashboard/events/${event.id}`}
       className={cn(
-        "block rounded-lg border border-emerald-100 bg-emerald-600 px-2 py-1.5 text-white shadow-sm transition-colors hover:bg-emerald-700",
+        "block rounded-lg border border-violet-100 bg-violet-600 px-2 py-1.5 text-white shadow-sm transition-colors hover:bg-violet-700",
         compact && "px-1.5 py-1"
       )}
     >
@@ -864,7 +875,7 @@ function CalendarEventPill({ event, compact = false }: { event: Event; compact?:
         {formatTime(event.startDate)} · {event.title}
       </span>
       {!compact && event.location && (
-        <span className="mt-0.5 block truncate text-[11px] text-emerald-100">{event.location}</span>
+        <span className="mt-0.5 block truncate text-[11px] text-violet-100">{event.location}</span>
       )}
     </Link>
   );
@@ -876,7 +887,7 @@ function MiniCalendarEvent({ event }: { event: Event }) {
       href={`/dashboard/events/${event.id}`}
       className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
     >
-      <span className="w-11 shrink-0 font-semibold text-emerald-700">{formatTime(event.startDate)}</span>
+      <span className="w-11 shrink-0 font-semibold text-violet-700">{formatTime(event.startDate)}</span>
       <span className="truncate">{event.title}</span>
     </Link>
   );
@@ -898,15 +909,15 @@ function AgendaEventCard({
   const publicationCount = event._count?.publications ?? 0;
 
   return (
-    <Card className="rounded-2xl border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+    <Card className="rounded-2xl border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md max-md:border-violet-200/70 max-md:bg-gradient-to-br max-md:from-white max-md:via-violet-50/55 max-md:to-fuchsia-50/45 max-md:shadow-[0_14px_30px_rgba(124,58,237,0.14)]">
       <CardContent className="p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-start">
           <div className={cn(
-            "flex w-full shrink-0 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 md:w-36 md:flex-col md:items-start",
+            "flex w-full shrink-0 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 md:w-36 md:flex-col md:items-start max-md:border-cyan-100 max-md:bg-white/80",
             compact && "md:w-48 md:flex-row md:items-center"
           )}>
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
-              <Clock className="size-4 text-emerald-600" />
+              <Clock className="size-4 text-violet-600 max-md:text-violet-600" />
               {formatTime(event.startDate)}
             </div>
             {event.endDate && (
@@ -919,7 +930,7 @@ function AgendaEventCard({
               <div className="min-w-0">
                 <Link
                   href={`/dashboard/events/${event.id}`}
-                  className="text-base font-semibold text-slate-950 transition-colors hover:text-emerald-700"
+                  className="text-base font-semibold text-slate-950 transition-colors hover:text-violet-700"
                 >
                   {event.title}
                 </Link>
@@ -928,7 +939,7 @@ function AgendaEventCard({
                 )}
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
-                <Badge variant={STATUS_BADGE_VARIANT[event.status] ?? "draft"} className="text-[11px]">
+                <Badge variant={STATUS_BADGE_VARIANT[event.status] ?? "draft"} className="text-[11px] max-md:ring-1 max-md:ring-white/80">
                   {EVENT_STATUS_LABELS[event.status] ?? event.status}
                 </Badge>
                 <div className="relative">
@@ -942,7 +953,7 @@ function AgendaEventCard({
                   {menuOpen && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                      <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+                      <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-xl border border-slate-200 bg-white py-1 shadow-lg max-md:border-cyan-100 max-md:bg-white/95">
                         <Link href={`/dashboard/events/${event.id}/edit`} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
                           <Edit className="size-4" /> Modifier
                         </Link>
@@ -966,12 +977,12 @@ function AgendaEventCard({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 max-md:text-slate-600">
               <span className="flex items-center gap-1">
                 <CalendarDays className="size-3" />
                 <span className="capitalize">{formatFrenchDate(event.startDate)}</span>
               </span>
-              <span className="font-medium text-emerald-700 hebrew">{formatHebrewDate(event.startDate)}</span>
+              <span className="font-medium text-violet-700 hebrew">{formatHebrewDate(event.startDate)}</span>
               {event.location && (
                 <span className="flex items-center gap-1">
                   <MapPin className="size-3" />
@@ -989,13 +1000,13 @@ function AgendaEventCard({
               </span>
 
               {draftCount > 0 && (
-                <Link href={`/dashboard/events/${event.id}?tab=content`} className="flex items-center gap-1 text-xs text-slate-500 hover:text-emerald-600">
+                <Link href={`/dashboard/events/${event.id}?tab=content`} className="flex items-center gap-1 text-xs text-slate-500 hover:text-violet-600 max-md:text-violet-700">
                   <FileText className="size-3" />
                   {draftCount} contenu{draftCount > 1 ? "s" : ""}
                 </Link>
               )}
               {publicationCount > 0 && (
-                <Link href={`/dashboard/events/${event.id}?tab=publications`} className="flex items-center gap-1 text-xs text-slate-500 hover:text-emerald-600">
+                <Link href={`/dashboard/events/${event.id}?tab=publications`} className="flex items-center gap-1 text-xs text-slate-500 hover:text-violet-600 max-md:text-violet-700">
                   <Send className="size-3" />
                   {publicationCount} publication{publicationCount > 1 ? "s" : ""}
                 </Link>

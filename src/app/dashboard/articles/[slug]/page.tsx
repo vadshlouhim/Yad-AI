@@ -17,7 +17,7 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   return {
-    title: `${slug.replaceAll("-", " ")} — Articles — Shalom IA`,
+    title: `${slug.replaceAll("-", " ")} — Articles — EasyCom AI`,
   };
 }
 
@@ -67,7 +67,7 @@ export default async function ArticleDetailPage({ params }: Props) {
           <CardContent className="space-y-5 p-6">
             <div className="flex flex-wrap gap-2">
               {article.isGlobal && <Badge variant="outline">Catalogue global</Badge>}
-              {(article.tags ?? []).map((tag) => (
+              {(article.tags ?? []).map((tag: string) => (
                 <Badge key={tag} variant="secondary">{tag}</Badge>
               ))}
             </div>

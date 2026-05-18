@@ -1,8 +1,8 @@
-import { isAdminEmail } from "@/lib/admin-access";
+﻿import { canAccessAdmin } from "@/lib/admin-access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { NextResponse } from "next/server";
 import type { Database } from "@/types/database.types";
+import { NextResponse } from "next/server";
 
 const TEMPLATE_CATEGORIES = new Set<Database["public"]["Enums"]["TemplateCategory"]>([
   "SHABBAT",
@@ -18,7 +18,7 @@ const TEMPLATE_CATEGORIES = new Set<Database["public"]["Enums"]["TemplateCategor
 async function canManageAdminTemplates(userId: string) {
   const admin = createAdminClient();
   const { data: profile } = await admin.from("profiles").select("email, role").eq("id", userId).single();
-  return profile?.role === "SUPER_ADMIN" || isAdminEmail(profile?.email);
+  return canAccessAdmin(profile);
 }
 
 function normalizeTags(value: unknown) {
@@ -36,11 +36,11 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    return NextResponse.json({ error: "Non autorise" }, { status: 401 });
   }
 
   if (!(await canManageAdminTemplates(user.id))) {
-    return NextResponse.json({ error: "Accès réservé au super-admin" }, { status: 403 });
+    return NextResponse.json({ error: "Acces reserve a l'admin global" }, { status: 403 });
   }
 
   const body = await request.json();

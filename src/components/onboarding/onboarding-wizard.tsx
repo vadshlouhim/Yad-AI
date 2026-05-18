@@ -22,6 +22,8 @@ export interface OnboardingData {
   // Étape 1 — Identité
   communityName: string;
   communityType: string;
+  rhythmId: string;
+  rhythmOther: string;
   religiousStream: string;
   city: string;
   country: string;
@@ -58,6 +60,8 @@ export interface OnboardingData {
 const defaultData: OnboardingData = {
   communityName: "",
   communityType: "SYNAGOGUE",
+  rhythmId: "",
+  rhythmOther: "",
   religiousStream: "",
   city: "",
   country: "France",

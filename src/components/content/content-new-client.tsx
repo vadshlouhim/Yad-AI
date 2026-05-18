@@ -15,7 +15,7 @@ import { cn, CHANNEL_LABELS } from "@/lib/utils";
 interface Event {
   id: string;
   title: string;
-  startDate: Date;
+  startDate: string;
   category: string;
   description: string | null;
 }

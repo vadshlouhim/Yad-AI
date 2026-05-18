@@ -24,7 +24,7 @@ export async function PATCH(request: Request) {
     "name", "description", "city", "country", "timezone",
     "phone", "email", "website", "address", "postalCode",
     "tone", "language", "signature", "hashtags", "mentions",
-    "editorialRules", "communityType", "religiousStream",
+    "editorialRules", "communityType", "rhythmId", "religiousStream",
     "logoUrl", "coverUrl",
   ];
 

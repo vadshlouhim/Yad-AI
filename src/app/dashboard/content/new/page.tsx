@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ContentNewClient } from "@/components/content/content-new-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Nouveau contenu — Shalom IA" };
+export const metadata: Metadata = { title: "Nouveau contenu — EasyCom AI" };
 
 export default async function ContentNewPage({
   searchParams,
@@ -15,7 +15,9 @@ export default async function ContentNewPage({
   const params = await searchParams;
   const admin = createAdminClient();
 
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const weekAgoDate = new Date();
+  weekAgoDate.setDate(weekAgoDate.getDate() - 7);
+  const weekAgo = weekAgoDate.toISOString();
 
   const [{ data: events }, { data: community }] = await Promise.all([
     admin

@@ -6,7 +6,7 @@ import { TopBar } from "@/components/layout/topbar";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: { template: "%s — Shalom IA", default: "Dashboard — Shalom IA" },
+  title: { template: "%s — EasyCom AI", default: "Dashboard — EasyCom AI" },
 };
 
 export default async function DashboardLayout({
@@ -53,7 +53,7 @@ export default async function DashboardLayout({
           unreadNotifications={unreadCount ?? 0}
         />
         <main className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5 lg:p-6">
-          <div className="max-w-7xl mx-auto animate-fade-in pb-6">
+          <div className="max-w-7xl mx-auto animate-fade-in pb-6 max-md:pb-2">
             {children}
           </div>
         </main>

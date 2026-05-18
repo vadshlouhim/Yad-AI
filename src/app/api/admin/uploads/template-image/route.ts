@@ -1,4 +1,4 @@
-import { canAccessAdmin } from "@/lib/admin-access";
+﻿import { canAccessAdmin } from "@/lib/admin-access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
@@ -11,18 +11,18 @@ export async function POST(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
 
   const admin = createAdminClient();
   const { data: profile } = await admin.from("profiles").select("email, role").eq("id", user.id).single();
-  if (!canAccessAdmin(profile)) return NextResponse.json({ error: "Accès réservé au super-admin" }, { status: 403 });
+  if (!canAccessAdmin(profile)) return NextResponse.json({ error: "Acces reserve a l'admin global" }, { status: 403 });
 
   const form = await request.formData();
   const file = form.get("file");
   const templateId = String(form.get("templateId") ?? "");
   const kind = String(form.get("kind") ?? "preview");
   if (!(file instanceof File)) return NextResponse.json({ error: "Fichier manquant" }, { status: 400 });
-  if (!file.type.startsWith("image/")) return NextResponse.json({ error: "Le fichier doit être une image" }, { status: 400 });
+  if (!file.type.startsWith("image/")) return NextResponse.json({ error: "Le fichier doit etre une image" }, { status: 400 });
   if (file.size > MAX_FILE_SIZE) return NextResponse.json({ error: "Image trop lourde, maximum 12 Mo" }, { status: 400 });
 
   const input = Buffer.from(await file.arrayBuffer());

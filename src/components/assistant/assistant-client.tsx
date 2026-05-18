@@ -9,12 +9,13 @@ import {
   Plus, MessageSquare, Pencil, MoreHorizontal, PanelLeftOpen, Share2,
   X, SlidersHorizontal, PlayCircle, PauseCircle,
   Power, ExternalLink, Zap, CalendarDays, BookOpen, Gift, HeartHandshake,
-  Lightbulb, Clock3, Radio,
+  Lightbulb, Clock3, Radio, Image as ImageIcon,
 } from "lucide-react";
 import { CHANNEL_LABELS, cn } from "@/lib/utils";
 import { formatArticlePrice } from "@/lib/articles/shared";
 import { startArticleCheckout } from "@/lib/articles/checkout-client";
 import { AUTOMATION_PRESETS, type AutomationPresetKey } from "@/lib/automation/presets";
+import { DASHBOARD_NAV_ITEMS } from "@/components/layout/dashboard-nav";
 import { DailyRoutineWizard } from "./daily-routine-wizard";
 import type { RoutineItem } from "./daily-routine-wizard";
 
@@ -105,6 +106,7 @@ interface AssistantActionCard {
     automationId?: string;
     isActive?: boolean;
     preset?: AutomationPresetKey;
+    presetId?: string;
   };
 }
 
@@ -310,6 +312,8 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   const [editTitle, setEditTitle] = useState("");
   const [menuId, setMenuId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [simpleMainMenuOpen, setSimpleMainMenuOpen] = useState(false);
+  const [simpleHistoryOpen, setSimpleHistoryOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateSuggestion | null>(null);
   const [preparingPoster, setPreparingPoster] = useState(false);
   const [renderingPoster, setRenderingPoster] = useState(false);
@@ -326,6 +330,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   const [dailyRoutineMode, setDailyRoutineMode] = useState(false);
   const [savingRoutine, setSavingRoutine] = useState(false);
   const [showDailyRoutineBubble, setShowDailyRoutineBubble] = useState(true);
+  const [showAllFeaturesMobile, setShowAllFeaturesMobile] = useState(false);
   const [bubblePosition, setBubblePosition] = useState({ x: 24, y: 24 });
   const bubbleDragState = useRef({ active: false, moved: false, offsetX: 0, offsetY: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -335,8 +340,8 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   useEffect(() => {
     fetchConversations();
     fetchDailyRoutine();
-    const storedMode = window.localStorage.getItem("shalom-assistant-experience");
-    if (storedMode === "detailed") setAssistantExperienceState("detailed");
+    setAssistantExperienceState("simple");
+    window.localStorage.setItem("shalom-assistant-experience", "simple");
   }, []);
 
   useEffect(() => {
@@ -353,6 +358,18 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
       x: Math.max(16, window.innerWidth - 250),
       y: 90,
     });
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncMobileMode = () => {
+      if (window.innerWidth < 768) {
+        setAssistantExperienceState("simple");
+      }
+    };
+    syncMobileMode();
+    window.addEventListener("resize", syncMobileMode);
+    return () => window.removeEventListener("resize", syncMobileMode);
   }, []);
 
   // ── API calls ──
@@ -412,7 +429,10 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   async function loadConversation(id: string) {
     setActiveConversationId(id);
     setMessages([]);
-    setHistoryOpen(false);
+    setSimpleHistoryOpen(false);
+    if (assistantExperience === "detailed") {
+      setHistoryOpen(false);
+    }
     const res = await fetch(`/api/conversations/${id}`);
     if (res.ok) {
       const data = await res.json();
@@ -462,7 +482,10 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   function startNewChat() {
     setActiveConversationId(null);
     setMessages([]);
-    setHistoryOpen(false);
+    setSimpleHistoryOpen(false);
+    if (assistantExperience === "detailed") {
+      setHistoryOpen(false);
+    }
   }
 
   // ── Chat ──
@@ -621,6 +644,11 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   }
 
   function setAssistantExperience(mode: "simple" | "detailed") {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setAssistantExperienceState("simple");
+      window.localStorage.setItem("shalom-assistant-experience", "simple");
+      return;
+    }
     if (mode === "simple") {
       setHistoryOpen(false);
       setMenuId(null);
@@ -634,6 +662,82 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   const quickPrompts = seasonalPrompts.length >= 4
     ? seasonalPrompts.slice(0, 4)
     : [...seasonalPrompts, ...QUICK_PROMPTS].slice(0, 4);
+  const simpleMenuSections = DASHBOARD_NAV_ITEMS
+    .filter((section) => section.section !== "ASSISTANT IA")
+    .map((section) => ({
+      section: section.section,
+      items: section.items.filter((item) => item.href !== "/dashboard/assistant"),
+    }))
+    .filter((section) => section.items.length > 0);
+  const detailedMenuItems = DASHBOARD_NAV_ITEMS.flatMap((section) => section.items);
+  const simpleMainButtons = [
+    { label: "Automatisations", href: "/dashboard/automations", icon: Zap, accent: "bg-cyan-500", iconTone: "text-cyan-600", iconBg: "bg-cyan-50" },
+    { label: "Messagerie", href: "/dashboard/messaging", icon: MessageSquare, accent: "bg-blue-500", iconTone: "text-blue-600", iconBg: "bg-blue-50" },
+    { label: "Assistant du quotidien", href: "/dashboard/events", icon: CalendarDays, accent: "bg-violet-500", iconTone: "text-violet-600", iconBg: "bg-violet-50" },
+    { label: "Affiches", href: "/dashboard/templates", icon: ImageIcon, accent: "bg-amber-500", iconTone: "text-amber-600", iconBg: "bg-amber-50" },
+    { label: "Cours Torah IA", href: "/dashboard/torah", icon: BookOpen, accent: "bg-emerald-500", iconTone: "text-emerald-600", iconBg: "bg-emerald-50" },
+  ] as const;
+  const mobileQuickFeatureConfigs = [
+    { href: "/dashboard/automations", label: "Mes automatisations" },
+    { href: "/dashboard/events", label: "Mon agenda IA" },
+    { href: "/dashboard/messaging", label: "Messageries connectées" },
+    { href: "/dashboard/torah", label: "Cours de Torah IA" },
+    { href: "/dashboard/templates", label: "Affiches" },
+    { href: "https://boutique.shalom-ia.com", label: "Boutiques" },
+  ];
+  const mobileSimpleFeatures = mobileQuickFeatureConfigs
+    .map(({ href, label }) => {
+      const item = detailedMenuItems.find((entry) => entry.href === href);
+      return item ? { ...item, label } : null;
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const mobileCircleColors = [
+    "from-blue-500 to-cyan-500",
+    "from-emerald-500 to-green-500",
+    "from-violet-500 to-purple-500",
+    "from-amber-500 to-orange-500",
+    "from-sky-500 to-blue-500",
+    "from-cyan-500 to-teal-500",
+    "from-lime-500 to-emerald-500",
+    "from-indigo-500 to-blue-600",
+    "from-fuchsia-500 to-violet-600",
+  ];
+  const mobileFeatureCardTones = [
+    {
+      ring: "border-cyan-200/80",
+      glow: "shadow-[0_14px_30px_rgba(34,211,238,0.16)]",
+      iconWrap: "from-cyan-500 via-sky-500 to-blue-500",
+      iconGlow: "shadow-[0_10px_20px_rgba(14,165,233,0.26)]",
+      badge: "text-cyan-700",
+    },
+    {
+      ring: "border-emerald-200/80",
+      glow: "shadow-[0_14px_30px_rgba(16,185,129,0.14)]",
+      iconWrap: "from-emerald-500 via-teal-500 to-cyan-500",
+      iconGlow: "shadow-[0_10px_20px_rgba(16,185,129,0.22)]",
+      badge: "text-emerald-700",
+    },
+    {
+      ring: "border-violet-200/80",
+      glow: "shadow-[0_14px_30px_rgba(139,92,246,0.16)]",
+      iconWrap: "from-violet-500 via-fuchsia-500 to-indigo-500",
+      iconGlow: "shadow-[0_10px_20px_rgba(139,92,246,0.24)]",
+      badge: "text-violet-700",
+    },
+    {
+      ring: "border-amber-200/80",
+      glow: "shadow-[0_14px_30px_rgba(245,158,11,0.14)]",
+      iconWrap: "from-amber-500 via-orange-500 to-rose-500",
+      iconGlow: "shadow-[0_10px_20px_rgba(249,115,22,0.22)]",
+      badge: "text-amber-700",
+    },
+  ];
+  const mobileDetailedSections = DASHBOARD_NAV_ITEMS
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => item.href !== "/dashboard/assistant"),
+    }))
+    .filter((section) => section.items.length > 0);
 
   function clampBubblePosition(x: number, y: number) {
     if (typeof window === "undefined") return { x, y };
@@ -1076,7 +1180,42 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
       return;
     }
     if (card.action.kind === "switch_detailed") {
-      setAssistantExperience("detailed");
+      setShowAllFeaturesMobile(true);
+      return;
+    }
+
+    if ((card.action.kind === "create_shabbat_automation" || card.action.kind === "create_automation") && card.action.presetId) {
+      setRunningActionId(card.id);
+      try {
+        const response = await fetch("/api/automations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ presetId: card.action.presetId }),
+        });
+        if (!response.ok) throw new Error("Création échouée");
+        router.refresh();
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: `Créé : ${card.title}. Vous pouvez l'activer, le mettre en pause ou le configurer depuis vos automatisations.`,
+            timestamp: new Date(),
+          },
+        ]);
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: "Je n'ai pas pu créer cette automatisation. Vérifiez vos droits ou réessayez.",
+            timestamp: new Date(),
+          },
+        ]);
+      } finally {
+        setRunningActionId(null);
+      }
       return;
     }
 
@@ -1194,9 +1333,9 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   return (
     <div
       className={cn(
-        "flex min-h-0 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_42%)]",
+        "flex min-h-0 overflow-hidden bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_42%)]",
         assistantExperience === "simple"
-          ? "fixed inset-0 z-[80] h-dvh"
+          ? "h-[calc(100dvh-8rem)] min-h-[620px] rounded-3xl border border-slate-200/80 bg-white/70 shadow-[0_18px_42px_rgba(15,23,42,0.06)]"
           : "h-[calc(100dvh-4rem)]"
       )}
     >
@@ -1223,6 +1362,9 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
 
         {/* Liste des conversations groupées par date */}
         <div className="flex-1 overflow-y-auto px-2 pb-4">
+          <p className="px-2 py-1 text-xs font-semibold tracking-wide text-slate-600">
+            Historique des conversations
+          </p>
           {groupedConversations.length === 0 && (
             <p className="text-xs text-slate-400 text-center mt-8 px-4">
               Vos conversations apparaîtront ici
@@ -1308,31 +1450,45 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
         </div>
       </div>}
 
-      {assistantExperience === "simple" && historyOpen && (
+      {assistantExperience === "simple" && false && simpleMainMenuOpen && (
         <div
           className="fixed inset-0 z-30 bg-slate-950/30 md:hidden"
-          onClick={() => setHistoryOpen(false)}
+          onClick={() => setSimpleMainMenuOpen(false)}
         />
       )}
 
-      {assistantExperience === "simple" && (
+      {assistantExperience === "simple" && false && (
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-40 flex w-[84vw] max-w-xs shrink-0 flex-col border-r border-slate-200 bg-slate-50 shadow-2xl shadow-slate-950/10 transition-transform duration-200 md:static md:z-auto md:w-72 md:max-w-none md:translate-x-0 md:shadow-none",
-            historyOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+            "fixed inset-y-0 left-0 z-40 flex w-[84vw] max-w-xs shrink-0 flex-col border-r border-slate-200 bg-slate-50 shadow-2xl transition-transform duration-200",
+            simpleMainMenuOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
-          <div className="border-b border-slate-200 p-3">
+          <div className="flex items-center justify-between border-b border-slate-200 p-3">
+            <p className="text-sm font-semibold text-slate-900">Menu principal</p>
             <button
               type="button"
-              onClick={() => setAssistantExperience("detailed")}
-              className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
+              onClick={() => setSimpleMainMenuOpen(false)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+              aria-label="Fermer le menu principal"
             >
-              <SlidersHorizontal className="size-4" />
-              Mode détaillé
+              <X className="size-4" />
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto px-2 py-3">
+          <div className="hidden border-b border-slate-200 p-3">
+            <Link
+              href="/dashboard/overview"
+              className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-transparent shadow-sm transition hover:border-blue-200"
+            >
+              <PanelLeftOpen className="size-4 text-slate-800" />
+              <span className="text-slate-800">Menu principal</span>
+              Mode détaillé
+            </Link>
+          </div>
+          <div className="hidden flex-1 overflow-y-auto px-2 py-3">
+            <p className="px-2 pb-1 text-xs font-semibold tracking-wide text-slate-600">
+              Historique des conversations
+            </p>
             {groupedConversations.length === 0 && (
               <p className="px-4 py-8 text-center text-xs text-slate-400">
                 Vos conversations apparaîtront ici
@@ -1380,7 +1536,97 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
               </div>
             ))}
           </div>
+          <div className="flex-1 overflow-y-auto px-3 py-3">
+            <div className="space-y-3">
+              {simpleMenuSections.map((section, sectionIndex) => (
+                <div key={section.section} className="rounded-2xl border border-slate-200 bg-white p-2.5 shadow-[0_8px_20px_rgba(15,23,42,0.06)]">
+                  <div className="mb-2 px-1">
+                    <div className={cn("mb-1 h-1 w-9 rounded-full", sectionIndex % 3 === 0 ? "bg-blue-500" : sectionIndex % 3 === 1 ? "bg-cyan-500" : "bg-emerald-500")} />
+                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">{section.section}</p>
+                  </div>
+                  <div className="space-y-1">
+                    {section.items.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className="flex items-center gap-2 rounded-xl border border-transparent px-2.5 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-200 hover:bg-slate-50"
+                      >
+                        {item.icon ? <item.icon className="size-4 text-slate-500" /> : null}
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </aside>
+      )}
+
+      {assistantExperience === "simple" && simpleHistoryOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/45 p-4 md:p-6">
+          <div className="max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 sm:px-5">
+              <p className="text-sm font-semibold text-slate-900">Historique des conversations</p>
+              <button
+                type="button"
+                onClick={() => setSimpleHistoryOpen(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Fermer l'historique des conversations"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="max-h-[calc(88vh-60px)] overflow-y-auto px-3 py-3 sm:px-4">
+              {groupedConversations.length === 0 && (
+                <p className="px-4 py-10 text-center text-sm text-slate-400">
+                  Vos conversations apparaîtront ici
+                </p>
+              )}
+              {groupedConversations.map((group) => (
+                <div key={group.label} className="mb-4">
+                  <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    {group.label}
+                  </p>
+                  <div className="space-y-1.5">
+                    {group.items.map((conv) => (
+                      <div
+                        key={conv.id}
+                        className={cn(
+                          "group flex items-center rounded-xl border px-2 py-1.5 transition",
+                          activeConversationId === conv.id
+                            ? "border-blue-200 bg-blue-50/70"
+                            : "border-transparent hover:border-slate-200 hover:bg-slate-50"
+                        )}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => loadConversation(conv.id)}
+                          className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left"
+                        >
+                          <MessageSquare className="size-3.5 shrink-0 text-slate-400" />
+                          <span className="truncate text-sm text-slate-700">{conv.title}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            deleteConversation(conv.id);
+                          }}
+                          className="mr-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+                          aria-label={`Supprimer la conversation ${conv.title}`}
+                          title="Supprimer"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Zone de chat ── */}
@@ -1391,20 +1637,35 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
           assistantExperience === "simple" && "border-slate-100"
         )}>
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            {(assistantExperience === "detailed" || assistantExperience === "simple") && (
+            {assistantExperience === "detailed" && (
               <button
                 onClick={() => setHistoryOpen(true)}
                 className={cn(
                   "inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50",
-                  assistantExperience === "detailed" ? "lg:hidden" : "md:hidden"
+                  "lg:hidden"
                 )}
                 aria-label="Ouvrir l'historique"
               >
                 <PanelLeftOpen className="size-4" />
               </button>
             )}
+            {assistantExperience === "simple" && (
+              <button
+                type="button"
+                onClick={() => setSimpleMainMenuOpen(true)}
+                className="hidden items-center gap-2 rounded-full border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:from-blue-50 hover:to-sky-50 hover:text-blue-700"
+              >
+                <PanelLeftOpen className="size-4" />
+                <span>menu pricipale</span>
+              </button>
+            )}
+            <img
+              src="/easycom-ai-logo.png"
+              alt="Logo EasyCom AI"
+              className="h-9 w-9 shrink-0 rounded-lg object-contain md:hidden"
+            />
             <div className={cn(
-              "w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 via-sky-500 to-amber-400 flex items-center justify-center shadow-sm shrink-0",
+              "hidden w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 via-sky-500 to-amber-400 items-center justify-center shadow-sm shrink-0 md:flex",
               assistantExperience === "simple" && "rounded-full"
             )}>
               <Bot className="size-4 text-white" />
@@ -1412,7 +1673,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
             <div className="min-w-0">
               <h1 className="truncate text-base font-bold text-slate-900">
                 {assistantExperience === "simple"
-                  ? "Shalom IA"
+                  ? "EasyCom AI"
                   : activeConversationId
                   ? conversations.find((c) => c.id === activeConversationId)?.title ?? "Conversation"
                   : "Assistant IA"}
@@ -1437,7 +1698,17 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                 <span className="hidden sm:inline">Nouvelle conversation</span>
               </button>
             )}
-            <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+            {assistantExperience === "simple" && (
+              <button
+                type="button"
+                onClick={() => setSimpleHistoryOpen(true)}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
+              >
+                <MessageSquare className="size-4" />
+                <span className="hidden sm:inline">Historique des communications</span>
+              </button>
+            )}
+            <div className="hidden items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
             {assistantExperience === "detailed" && (
               <button
                 type="button"
@@ -1466,24 +1737,171 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
         {showQuickPrompts && (
 	          <div className={cn(
               "flex-1 flex flex-col items-center justify-center px-4 py-8 sm:px-6",
-              assistantExperience === "simple" && "justify-end pb-8 pt-20"
+              assistantExperience === "simple" && "w-full justify-center overflow-y-auto pb-8 pt-8"
             )}>
+            <div className="mb-4 flex justify-center md:hidden">
+              <img
+                src="/assistant-robot-mobile.png"
+                alt="Robot assistant EasyCom AI"
+                className="h-auto w-[86px] object-contain"
+              />
+            </div>
             <div className={cn(
-              "w-16 h-16 bg-gradient-to-br from-blue-600 via-sky-500 to-amber-400 flex items-center justify-center shadow-lg mb-6",
+              "hidden",
               assistantExperience === "simple" ? "rounded-full" : "rounded-2xl"
             )}>
               <Sparkles className="size-8 text-white" />
             </div>
-            <h2 className="mb-2 text-center text-xl font-bold text-slate-900 sm:text-2xl">
-              Assistant principal Shalom IA
+            <div className="hidden">
+              <h2 className="mb-2 text-center text-2xl font-black text-slate-900">
+                Bienvenue 👋
+              </h2>
+                <p className="mb-8 max-w-md text-center text-sm text-slate-500">
+                  Je prépare vos publications automatiquement <strong className="font-semibold text-slate-700">(J-10, J-5, J-1)</strong>,
+                  vos rappels et vos contenus. Vous validez, puis je <strong className="font-semibold text-slate-700">publie en un clic</strong>.
+                  Je vous aide aussi à organiser <strong className="font-semibold text-slate-700">votre quotidien</strong> et à rester régulier.
+                </p>
+            </div>
+            <h2 className="hidden mb-2 text-center text-2xl font-black text-slate-900 md:hidden">
+              Bienvenue 👋
             </h2>
-            <p className="mb-8 max-w-md text-center text-sm text-slate-500">
+              <p className="hidden mb-8 max-w-md text-center text-sm text-slate-500 md:hidden">
+                Je prépare vos publications automatiquement <strong className="font-semibold text-slate-700">(J-10, J-5, J-1)</strong>,
+                vos rappels et vos contenus. Vous validez, puis je <strong className="font-semibold text-slate-700">publie en un clic</strong>.
+                Je vous aide aussi à organiser <strong className="font-semibold text-slate-700">votre quotidien</strong> et à rester régulier.
+              </p>
+            <div className="hidden">
+              <h2 className="mb-2 text-center text-xl font-bold text-slate-900 sm:text-2xl">
+                <span className="font-black">Bienvenue</span> 👋
+              </h2>
+                <p className="mb-8 max-w-md text-center text-sm text-slate-500">
+                  Je prépare vos publications automatiquement <strong className="font-semibold text-slate-700">(J-10, J-5, J-1)</strong>,
+                  vos rappels et vos contenus. Vous validez, puis je <strong className="font-semibold text-slate-700">publie en un clic</strong>.
+                  Je vous aide aussi à organiser <strong className="font-semibold text-slate-700">votre quotidien</strong> et à rester régulier.
+                </p>
+            </div>
+            <h2 className="hidden">
+              
+            </h2>
+            <p className="hidden">
               Je prépare vos publications automatiquement (J-10, J-5, J-1), vos rappels et vos contenus.
               Vous validez, puis je publie en un clic. Je vous aide aussi à organiser votre quotidien et à rester régulier.
             </p>
 
             {assistantExperience === "simple" && (
-              <div className="mb-5 grid w-full max-w-3xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
+              <div className="mb-6 w-full max-w-4xl px-5 py-2 text-center sm:px-8">
+                <div className="mb-2 text-3xl leading-none">👋</div>
+                <h2 className="text-2xl font-black text-slate-900 sm:text-3xl">
+                  Bienvenue sur votre espace personnel
+                </h2>
+                <p className="mx-auto mt-2 max-w-3xl text-sm leading-7 text-slate-600 sm:text-[15px]">
+                  Votre temps est précieux — concentrez-vous sur l’essentiel. EasyComAI s’occupe du reste !
+                </p>
+                <p className="mx-auto mt-0.5 max-w-3xl text-sm leading-7 text-slate-500 sm:text-[15px]">
+                  (Publications récurrentes et programmées, agenda IA, assistant du quotidien, affiches, cours et ressources communautaires)
+                </p>
+              </div>
+            )}
+
+            {assistantExperience === "simple" && false && (
+              <div className="mb-6 w-full max-w-3xl md:hidden">
+                <h3 className="mb-4 text-center text-base font-bold text-slate-900">
+                  Actions rapides
+                </h3>
+                <div className="rounded-[1.8rem] border border-slate-200/80 bg-white p-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-6">
+                    {mobileSimpleFeatures.map((item, index) => {
+                      const Icon = item.icon;
+                      const color = mobileCircleColors[index % mobileCircleColors.length];
+                      const isExternal = item.external || item.href.startsWith("mailto");
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          target={isExternal ? "_blank" : undefined}
+                          rel={isExternal ? "noopener noreferrer" : undefined}
+                          className="flex flex-col items-center gap-2 text-center"
+                        >
+                          <span className={cn(
+                            "flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br text-white shadow-[0_10px_22px_rgba(15,23,42,0.16)] transition duration-200 hover:-translate-y-0.5",
+                            color
+                          )}>
+                            {Icon ? <Icon className="size-6" /> : <Sparkles className="size-6" />}
+                          </span>
+                          <span className="text-xs font-semibold leading-4 text-slate-700">
+                            {item.label}
+                          </span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+            {assistantExperience === "simple" && false && (
+              <div className="mb-6 w-full max-w-3xl md:hidden">
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllFeaturesMobile((prev) => !prev)}
+                    className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-[#1E88E5] via-[#009688] to-[#00897B] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(15,23,42,0.18)] transition hover:opacity-95"
+                  >
+                    Toutes les fonctionnalités
+                  </button>
+                </div>
+                {showAllFeaturesMobile && (
+                  <div className="animate-fade-in mt-4 rounded-[1.8rem] border border-slate-200/80 bg-white/95 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.1)] backdrop-blur-sm">
+                    <div className="space-y-5">
+                      {mobileDetailedSections.map((section, sectionIndex) => (
+                        <div key={section.section}>
+                          <p className="mb-2.5 px-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                            {section.section}
+                          </p>
+                          <div className="grid grid-cols-2 gap-2.5">
+                            {section.items.map((item, itemIndex) => {
+                              const Icon = item.icon ?? Sparkles;
+                              const isExternal = item.external || item.href.startsWith("mailto");
+                              const tone = mobileFeatureCardTones[(sectionIndex + itemIndex) % mobileFeatureCardTones.length];
+                              return (
+                                <Link
+                                  key={`${section.section}-${item.href}`}
+                                  href={item.href}
+                                  target={isExternal ? "_blank" : undefined}
+                                  rel={isExternal ? "noopener noreferrer" : undefined}
+                                  className={cn(
+                                    "animate-mobile-feature-card-in group relative flex min-h-[96px] flex-col items-start rounded-[1.1rem] border bg-white px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition duration-200",
+                                    "hover:-translate-y-0.5 hover:bg-white active:scale-[0.99]",
+                                    tone.ring,
+                                    tone.glow
+                                  )}
+                                  style={{ animationDelay: `${sectionIndex * 70 + itemIndex * 55}ms` }}
+                                >
+                                  <span className="pointer-events-none absolute inset-0 rounded-[1.1rem] bg-[linear-gradient(135deg,rgba(255,255,255,0.78),rgba(255,255,255,0.18))]" />
+                                  <span className={cn(
+                                    "relative z-10 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br text-white",
+                                    tone.iconWrap,
+                                    tone.iconGlow
+                                  )}>
+                                    <Icon className="size-[18px]" />
+                                  </span>
+                                  <span className="relative z-10 mt-2.5 line-clamp-3 min-h-[2.5rem] text-[13px] font-semibold leading-5 text-slate-700">
+                                    {item.label}
+                                  </span>
+                                  {isExternal && <ExternalLink className={cn("absolute right-3 top-3 z-10 size-3.5", tone.badge)} />}
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {assistantExperience === "simple" && false && (
+              <div className="mb-5 hidden w-full max-w-3xl grid-cols-1 gap-3 text-left md:grid md:grid-cols-3">
                 {[
                   {
                     title: "Communication",
@@ -1529,8 +1947,8 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
               </div>
             )}
 
-            {assistantExperience === "simple" && (
-              <div className="mb-5 grid w-full max-w-3xl grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {assistantExperience === "simple" && false && (
+              <div className="mb-5 hidden w-full max-w-3xl grid-cols-1 gap-2 md:grid md:grid-cols-2 lg:grid-cols-4">
                 {[
                   { label: "Plan Chabbat", icon: Sparkles, prompt: "Prépare-moi un plan complet pour Chabbat cette semaine : message WhatsApp, post Instagram, affiche si disponible et rappel à programmer." },
                   { label: "Mes automatisations", icon: Zap, prompt: "Combien ai-je d'automatisations en cours ? Affiche uniquement celles déjà présentes sur mon Beth Habad." },
@@ -1548,6 +1966,27 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                     </span>
                     <span className="text-sm font-bold text-slate-800">{item.label}</span>
                   </button>
+                ))}
+              </div>
+            )}
+
+            {assistantExperience === "simple" && (
+              <div className="mx-auto mb-5 grid w-full max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                <div className="col-span-full mb-1 text-center">
+                  <p className="text-sm font-bold tracking-tight text-slate-800">Actions rapides</p>
+                </div>
+                {simpleMainButtons.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="group rounded-[1.3rem] border border-slate-200 bg-white px-4 py-4 text-left shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.1)]"
+                  >
+                    <div className={cn("mb-3 h-1 w-10 rounded-full", item.accent)} />
+                    <span className={cn("mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl", item.iconBg, item.iconTone)}>
+                      <item.icon className="size-4.5" />
+                    </span>
+                    <p className="text-sm font-semibold leading-5 text-slate-800">{item.label}</p>
+                  </Link>
                 ))}
               </div>
             )}
@@ -1797,7 +2236,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                     const visualCards = automationCards.slice(0, 5);
                     const showCreateOnlyPanel = currentAutomations.length === 0 && availableAutomations.length > 0;
 
-                    const renderActionButton = (card: AssistantActionCard) => card.action ? (
+                    const renderActionButton = (card: AssistantActionCard) => card.action && card.action.kind !== "switch_detailed" ? (
                       <Button
                         size="sm"
                         className="h-8 text-xs"
@@ -1813,8 +2252,6 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                           <PlayCircle className="size-3.5" />
                         ) : card.action.kind === "create_shabbat_automation" || card.action.kind === "create_automation" ? (
                           <Plus className="size-3.5" />
-                        ) : card.action.kind === "switch_detailed" ? (
-                          <SlidersHorizontal className="size-3.5" />
                         ) : (
                           <Power className="size-3.5" />
                         )}
@@ -1826,9 +2263,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                               ? "Créer"
                               : card.action.kind === "open_daily_routine"
                                 ? "Configurer"
-                                : card.action.kind === "switch_detailed"
-                                  ? "Détaillé"
-                                  : "Appliquer"}
+                                : "Appliquer"}
                       </Button>
                     ) : null;
 
@@ -2356,6 +2791,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
 
         {/* Input */}
         <div className="border-t border-slate-200/80 bg-white/85 px-4 py-4 backdrop-blur-xl sm:px-6">
+          <div className="mx-auto w-full max-w-3xl">
           {selectedTemplate && (
             <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -2376,7 +2812,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                 </Button>
                 <Button
                   size="sm"
-                  onClick={preparePosterDraft}
+                  onClick={() => preparePosterDraft()}
                   loading={preparingPoster}
                 >
                   Préparer l&apos;affiche
@@ -2384,16 +2820,18 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
               </div>
             </div>
           )}
-          <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm ring-1 ring-slate-100">
-            <div className="mb-1 flex items-center justify-between px-2">
-              <label htmlFor="assistant-specific-request" className="text-xs font-semibold text-slate-500">
-                Demande spécifique
+          <div className="rounded-3xl border border-blue-200/90 bg-gradient-to-br from-white via-sky-50/70 to-cyan-50/60 p-2.5 shadow-[0_18px_44px_rgba(14,165,233,0.14)] ring-1 ring-blue-100/80 transition focus-within:border-blue-400 focus-within:shadow-[0_20px_52px_rgba(59,130,246,0.2)]">
+            <div className="mb-2 flex items-center justify-between px-2">
+              <label htmlFor="assistant-specific-request" className="hidden items-center gap-1.5 text-xs font-bold text-blue-700 sm:inline-flex">
+                <Bot className="size-3.5" />
+                Assistant IA
               </label>
-              <span className="hidden text-[11px] text-slate-400 sm:inline">
-                Entrée pour envoyer · Maj+Entrée pour nouvelle ligne
-              </span>
+              <div className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-sky-100 bg-gradient-to-r from-sky-50 to-blue-50 px-3 py-1.5 text-xs font-semibold text-sky-700 shadow-sm sm:hidden">
+                <Bot className="size-3.5 text-sky-500" />
+                <span>Assistant IA</span>
+              </div>
             </div>
-            <div className="flex gap-2 items-end">
+            <div className="flex items-end gap-2.5">
               <textarea
                 id="assistant-specific-request"
                 ref={inputRef}
@@ -2402,27 +2840,25 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                 onKeyDown={handleKeyDown}
                 placeholder="Écrivez votre demande, ou cliquez sur une suite suggérée…"
                 rows={2}
-                className="flex-1 resize-none rounded-xl border-0 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+                className="flex-1 resize-none rounded-2xl border border-blue-100 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
               />
               <Button
                 onClick={() => sendMessage()}
                 disabled={!input.trim() || loading}
                 size="icon"
-                className="h-11 w-11 rounded-xl flex-shrink-0"
+                className="h-11 w-11 flex-shrink-0 rounded-2xl bg-blue-600 text-white shadow-sm transition hover:bg-blue-700 disabled:bg-slate-300"
                 aria-label="Envoyer la demande"
               >
                 <Send className="size-4" />
               </Button>
             </div>
           </div>
-          <p className="mt-2 text-center text-xs text-slate-400 sm:hidden">
-            Entrée pour envoyer · Maj+Entrée pour nouvelle ligne
-          </p>
+          </div>
         </div>
       </div>
       {assistantExperience === "detailed" && !dailyRoutineLoading && showDailyRoutineBubble && (
         <div
-          className="fixed z-40"
+          className="fixed z-40 hidden lg:block"
           style={{ right: "auto", top: `${bubblePosition.y}px`, left: `${bubblePosition.x}px` }}
         >
           <button

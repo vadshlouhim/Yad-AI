@@ -29,6 +29,7 @@ model User {
   auditLogs     AuditLog[]
   notifications Notification[]
   conversations Conversation[]
+  mediaFiles    MediaFile[]
 
   @@index([email])
   @@index([communityId])
@@ -73,6 +74,7 @@ model Community {
 
   // Contexte communautaire
   communityType   CommunityType    @default(SYNAGOGUE)
+  rhythmId        String?
   religiousStream String?          // Ashkénaze, Séfarade…
 
   // Abonnement Stripe
@@ -88,6 +90,7 @@ model Community {
   updatedAt       DateTime         @updatedAt
 
   users           User[]
+  rhythm          CommunityRhythm? @relation(fields: [rhythmId], references: [id])
   channels        Channel[]
   events          Event[]
   templates       Template[]
@@ -104,6 +107,24 @@ model Community {
 
   @@index([slug])
   @@index([plan])
+  @@index([rhythmId])
+}
+
+model CommunityRhythm {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  communities       Community[]
+  automationPresets AutomationPresetRhythm[]
+
+  @@index([isActive])
+  @@index([sortOrder])
 }
 
 model CommunityMember {
@@ -370,6 +391,7 @@ model Template {
   updatedAt    DateTime         @updatedAt
 
   community Community? @relation(fields: [communityId], references: [id])
+  mediaFiles MediaFile[]
 
   @@index([communityId])
   @@index([category])
@@ -472,6 +494,7 @@ enum FallbackType {
 model Automation {
   id            String            @id @default(cuid())
   communityId   String
+  presetId      String?
   eventId       String?
   name          String
   description   String?
@@ -485,13 +508,51 @@ model Automation {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  community Community       @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  event     Event?           @relation(fields: [eventId], references: [id])
+  community Community         @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  preset    AutomationPreset? @relation(fields: [presetId], references: [id], onDelete: SetNull)
+  event     Event?            @relation(fields: [eventId], references: [id])
   runs      AutomationRun[]
 
   @@index([communityId])
+  @@index([presetId])
   @@index([trigger])
   @@index([nextRunAt])
+}
+
+model AutomationPreset {
+  id            String            @id @default(cuid())
+  title         String
+  description   String?           @db.Text
+  category      String            @default("GENERAL")
+  icon          String?
+  trigger       AutomationTrigger @default(MANUAL)
+  triggerConfig Json              @default("{}")
+  actions       Json              @default("[]")
+  isActive      Boolean           @default(true)
+  isGlobal      Boolean           @default(true)
+  clientTypes   CommunityType[]
+  sortOrder     Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  rhythms     AutomationPresetRhythm[]
+  automations Automation[]
+
+  @@index([isActive])
+  @@index([isGlobal])
+  @@index([category])
+}
+
+model AutomationPresetRhythm {
+  id       String @id @default(cuid())
+  presetId String
+  rhythmId String
+
+  preset AutomationPreset @relation(fields: [presetId], references: [id], onDelete: Cascade)
+  rhythm CommunityRhythm  @relation(fields: [rhythmId], references: [id], onDelete: Cascade)
+
+  @@unique([presetId, rhythmId])
+  @@index([rhythmId])
 }
 
 enum AutomationTrigger {

@@ -21,6 +21,10 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient();
 
+    const rhythmId = typeof data.rhythmId === "string" && data.rhythmId
+      ? (await admin.from("CommunityRhythm").select("id").eq("id", data.rhythmId).maybeSingle()).data?.id ?? null
+      : null;
+
     // Générer un slug unique
     const baseSlug = slugify(data.communityName);
     let slug = baseSlug;
@@ -45,6 +49,7 @@ export async function POST(request: Request) {
         email: data.email || null,
         website: data.website || null,
         communityType: data.communityType || "SYNAGOGUE",
+        rhythmId,
         religiousStream: data.religiousStream || null,
         tone: data.tone || "MODERN",
         language: data.language || "fr",

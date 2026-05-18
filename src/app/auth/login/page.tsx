@@ -4,8 +4,8 @@ import { LoginForm } from "@/components/auth/login-form";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Connexion — Shalom IA",
-  description: "Connectez-vous à votre espace Shalom IA",
+  title: "Connexion — EasyCom AI",
+  description: "Connectez-vous à votre espace EasyCom AI",
 };
 
 export default function LoginPage() {
@@ -17,10 +17,12 @@ export default function LoginPage() {
       {/* Panneau gauche — Brand */}
       <div className="hidden lg:flex lg:w-1/2 brand-gradient flex-col justify-between p-12 text-white">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-            <span className="text-white font-bold text-lg">ש</span>
-          </div>
-          <span className="text-xl font-bold tracking-tight">Shalom IA</span>
+          <img
+            src="/easycom-ai-logo.png"
+            alt="Logo EasyCom AI"
+            className="h-10 w-10 rounded-xl bg-white/15 object-cover p-0.5"
+          />
+          <span className="text-xl font-bold tracking-tight">EasyCom AI</span>
         </div>
 
         <div className="space-y-6">
@@ -50,7 +52,7 @@ export default function LoginPage() {
         </div>
 
         <div className="text-blue-300 text-sm">
-          © {new Date().getFullYear()} Shalom IA — Communication communautaire augmentée
+          © {new Date().getFullYear()} EasyCom AI — Communication communautaire augmentée
         </div>
       </div>
 
@@ -59,10 +61,12 @@ export default function LoginPage() {
         <div className="w-full max-w-md space-y-6 sm:space-y-8">
           {/* Logo mobile */}
           <div className="lg:hidden flex items-center gap-3 justify-center mb-4 sm:mb-8">
-            <div className="w-10 h-10 rounded-xl brand-gradient flex items-center justify-center">
-              <span className="text-white font-bold text-lg">ש</span>
-            </div>
-            <span className="text-xl font-bold text-slate-900">Shalom IA</span>
+            <img
+              src="/easycom-ai-logo.png"
+              alt="Logo EasyCom AI"
+              className="h-10 w-10 rounded-xl object-cover"
+            />
+            <span className="text-xl font-bold text-slate-900">EasyCom AI</span>
           </div>
 
           <div className="space-y-2">

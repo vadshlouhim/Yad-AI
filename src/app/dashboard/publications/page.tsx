@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { PublicationsClient } from "@/components/publications/publications-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Historique des publications — Shalom IA" };
+export const metadata: Metadata = { title: "Historique des publications â€” EasyCom AI" };
 
 const PUBLICATION_STATUSES = ["PENDING", "SCHEDULED", "PUBLISHING", "PUBLISHED", "FAILED", "FALLBACK_READY", "CANCELLED"];
 
@@ -45,18 +45,11 @@ export default async function PublicationsPage({
   const statsByStatus = Object.fromEntries(statusCounts);
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
-        <p className="text-sm text-slate-100">
-          Retrouvez ici l&apos;historique des contenus publiés et le suivi de vos envois par canal.
-        </p>
-      </div>
-      <PublicationsClient
-        publications={(publications ?? []) as Parameters<typeof PublicationsClient>[0]["publications"]}
-        statsByStatus={statsByStatus}
-        activeStatus={params.status}
-        activeChannel={params.channel}
-      />
-    </div>
+    <PublicationsClient
+      publications={(publications ?? []) as Parameters<typeof PublicationsClient>[0]["publications"]}
+      statsByStatus={statsByStatus}
+      activeStatus={params.status}
+      activeChannel={params.channel}
+    />
   );
 }

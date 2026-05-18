@@ -16,6 +16,16 @@ interface AutomationAction {
   daysOffset?: number;
 }
 
+const DAY_TO_INDEX: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
+
 type AutomationWithCommunity = Automation & {
   community: {
     id: string;
@@ -74,7 +84,7 @@ async function processAutomation(
   if (!run) return;
 
   try {
-    await executeAutomationActions(automation, run.id);
+    await executeAutomationActions(automation);
 
     await supabase
       .from("AutomationRun")
@@ -147,6 +157,43 @@ async function shouldTrigger(automation: Automation, now: Date): Promise<boolean
       return now.getHours() === hours && now.getMinutes() < minutes + 30;
     }
 
+    case "CUSTOM_SCHEDULE": {
+      const time = (config.time as string) ?? "09:00";
+      const [hours, minutes] = time.split(":").map(Number);
+      const inTimeWindow = now.getHours() === hours && now.getMinutes() < minutes + 30;
+      if (!inTimeWindow) return false;
+
+      const repeat = String(config.repeat ?? "none");
+      const date = typeof config.date === "string" ? config.date : null;
+
+      if (repeat === "none") {
+        if (!date) return false;
+        const targetDate = new Date(date);
+        return isWithinInterval(now, { start: startOfDay(targetDate), end: endOfDay(targetDate) });
+      }
+
+      if (repeat === "weekly") {
+        const days = Array.isArray(config.days) && config.days.length > 0
+          ? config.days.map((value) => DAY_TO_INDEX[String(value)]).filter((value) => value !== undefined)
+          : [DAY_TO_INDEX[String(config.day ?? "friday")]];
+        return days.includes(now.getDay());
+      }
+
+      if (repeat === "custom") {
+        const days = Array.isArray(config.days)
+          ? config.days.map((value) => DAY_TO_INDEX[String(value)]).filter((value) => value !== undefined)
+          : [];
+        return days.includes(now.getDay());
+      }
+
+      if (repeat === "monthly") {
+        const dayOfMonth = Number(config.dayOfMonth ?? (date ? new Date(date).getDate() : now.getDate()));
+        return now.getDate() === dayOfMonth;
+      }
+
+      return false;
+    }
+
     case "JEWISH_HOLIDAY": {
       const holiday = await getNextHoliday();
       if (!holiday) return false;
@@ -164,11 +211,23 @@ async function shouldTrigger(automation: Automation, now: Date): Promise<boolean
 }
 
 export async function executeAutomationActions(
-  automation: AutomationWithCommunity,
-  runId: string
+  automation: AutomationWithCommunity
 ): Promise<void> {
   const supabase = createAdminClient();
-  const actions = automation.actions as AutomationAction[];
+  const actions = automation.actions as unknown as AutomationAction[];
+  const triggerConfig = (automation.triggerConfig ?? {}) as Record<string, unknown>;
+  const configuredChannels = actions
+    .flatMap((action) => action.channels ?? [])
+    .filter((value, index, array) => array.indexOf(value) === index);
+  const eventName = String(triggerConfig.eventTitle ?? automation.name ?? "cet evenement");
+  const channelsText = configuredChannels.length > 0 ? configuredChannels.join(", ") : "vos plateformes";
+  const configuredMessage = typeof triggerConfig.message === "string" ? triggerConfig.message.trim() : "";
+
+  const { data: notifyUsers } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("communityId", automation.community.id)
+    .in("role", ["SUPER_ADMIN", "ADMIN"]);
 
   for (const action of actions) {
     switch (action.type) {
@@ -184,13 +243,15 @@ export async function executeAutomationActions(
           hebrewDate = shabbatTimes?.hebrewDate;
         }
 
-        const generated = await generateContent({
-          communityId: automation.community.id,
-          contentType: (action.contentType ?? "GENERAL") as never,
-          eventId: automation.eventId ?? undefined,
-          shabbatTimes,
-          hebrewDate,
-        });
+        const generated = configuredMessage
+          ? { body: configuredMessage, bodyHebrew: null, hashtags: [], cta: null }
+          : await generateContent({
+              communityId: automation.community.id,
+              contentType: (action.contentType ?? "GENERAL") as never,
+              eventId: automation.eventId ?? undefined,
+              shabbatTimes,
+              hebrewDate,
+            });
 
         const { data: draft } = await supabase
           .from("ContentDraft")
@@ -230,23 +291,18 @@ export async function executeAutomationActions(
           }
         }
 
-        const { data: adminUser } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("communityId", automation.community.id)
-          .limit(1)
-          .maybeSingle();
-
-        if (adminUser) {
-          await supabase.from("Notification").insert({
-            id: crypto.randomUUID(),
-            userId: adminUser.id,
-            communityId: automation.community.id,
-            type: "AI_CONTENT_READY",
-            title: "Contenu généré automatiquement",
-            body: `L'automatisation "${automation.name}" a généré un nouveau contenu.`,
-            link: `/dashboard/content/${draft.id}`,
-          });
+        if (notifyUsers && notifyUsers.length > 0) {
+          await supabase.from("Notification").insert(
+            notifyUsers.map((user) => ({
+              id: crypto.randomUUID(),
+              userId: user.id,
+              communityId: automation.community.id,
+              type: "AI_CONTENT_READY" as const,
+              title: "Message pret a envoyer",
+              body: `Il est temps d'envoyer votre message sur ${channelsText} pour ${eventName}.`,
+              link: `/dashboard/content/${draft.id}`,
+            }))
+          );
         }
         break;
       }

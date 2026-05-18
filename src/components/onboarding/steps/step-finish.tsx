@@ -119,7 +119,7 @@ export function StepFinish({ data, onFinish, onPrev, saving }: Props) {
         {/* Ce qui va se passer */}
         <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-5 space-y-3">
           <p className="text-sm font-semibold text-slate-800">
-            🚀 Ce que Shalom IA va faire maintenant :
+            🚀 Ce que EasyCom AI va faire maintenant :
           </p>
           <ul className="space-y-2">
             {[
@@ -158,7 +158,7 @@ export function StepFinish({ data, onFinish, onPrev, saving }: Props) {
             ) : (
               <>
                 <Sparkles className="size-4" />
-                Lancer mon espace Shalom IA
+                Lancer mon espace EasyCom AI
               </>
             )}
           </Button>

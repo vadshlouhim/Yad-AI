@@ -1,9 +1,10 @@
-import { requireAuth } from "@/lib/auth";
+﻿import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AutomationsClient } from "@/components/automations/automations-client";
+import { presetAppliesToCommunity, type PresetWithRhythms } from "@/lib/automation/preset-utils";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Automatisations — Shalom IA" };
+export const metadata: Metadata = { title: "Automatisations - EasyCom AI" };
 
 export default async function AutomationsPage() {
   const { profile } = await requireAuth();
@@ -18,6 +19,20 @@ export default async function AutomationsPage() {
     .select("*, event:Event(title, startDate), runs:AutomationRun(*)")
     .eq("communityId", communityId)
     .order("createdAt", { ascending: false });
+
+  const [{ data: community }, { data: presets }] = await Promise.all([
+    admin.from("Community").select("id, communityType, rhythmId, religiousStream").eq("id", communityId).single(),
+    admin
+      .from("AutomationPreset")
+      .select("*, rhythms:AutomationPresetRhythm(id, rhythmId, rhythm:CommunityRhythm(id, name, slug, isActive))")
+      .eq("isActive", true)
+      .order("sortOrder", { ascending: true })
+      .order("title", { ascending: true }),
+  ]);
+
+  const applicablePresets = ((presets ?? []) as PresetWithRhythms[]).filter((preset) =>
+    community ? presetAppliesToCommunity(preset, community) : false
+  );
 
   const { data: communityAutomationIds } = await admin
     .from("Automation")
@@ -37,16 +52,10 @@ export default async function AutomationsPage() {
     : { data: [] };
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
-        <p className="text-sm text-slate-100">
-          Les automatisations pilotent uniquement vos publications programmées (J-10, J-5, J-1, jour J).
-        </p>
-      </div>
-      <AutomationsClient
-        automations={(automations ?? []) as Parameters<typeof AutomationsClient>[0]["automations"]}
-        recentRuns={(runs ?? []) as Parameters<typeof AutomationsClient>[0]["recentRuns"]}
-      />
-    </div>
+    <AutomationsClient
+      automations={(automations ?? []) as Parameters<typeof AutomationsClient>[0]["automations"]}
+      presets={applicablePresets as Parameters<typeof AutomationsClient>[0]["presets"]}
+      recentRuns={(runs ?? []) as Parameters<typeof AutomationsClient>[0]["recentRuns"]}
+    />
   );
 }

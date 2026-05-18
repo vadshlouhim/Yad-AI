@@ -1,29 +1,30 @@
 "use client";
 
 import { useMemo, useState } from "react";
+
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  BellRing,
   Bot,
+  Camera,
   CheckCircle2,
   Clock3,
   Filter,
-  Camera,
   Mail,
   MessageSquare,
   RefreshCw,
-  Search,
   Send,
-  ShieldCheck,
   Sparkles,
   TriangleAlert,
 } from "lucide-react";
-import { cn, formatDateTime, formatRelative } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 type ChannelType = "EMAIL" | "MESSENGER" | "WHATSAPP" | "INSTAGRAM" | "TELEGRAM";
 type Direction = "IN" | "OUT";
 type MessageStatus = "SENT" | "DELIVERED" | "READ" | "FAILED" | "PENDING";
+type PriorityFilter = "ALL" | "EXTREME" | "URGENT" | "IMPORTANT" | "LOW";
+type DateFilter = "ALL" | "TODAY" | "7D" | "30D";
 
 interface ChannelSync {
   channel: ChannelType;
@@ -62,331 +63,476 @@ interface Props {
   conversations: Conversation[];
 }
 
-const CHANNEL_META: Record<ChannelType, { label: string; icon: React.ReactNode; color: string }> = {
-  EMAIL: { label: "Email", icon: <Mail className="size-4" />, color: "text-blue-600 bg-blue-50 border-blue-200" },
+const CHANNEL_META: Record<
+  ChannelType,
+  {
+    label: string;
+    icon: React.ReactNode;
+    chipClassName: string;
+    cardClassName: string;
+    emptyIconClassName: string;
+  }
+> = {
+  EMAIL: {
+    label: "Email",
+    icon: <Mail className="size-4" />,
+    chipClassName: "text-slate-700 bg-slate-50 border-slate-200",
+    cardClassName: "from-slate-50/90 via-white to-slate-100/70 border-slate-200/80",
+    emptyIconClassName: "text-slate-600 border-slate-200 bg-white",
+  },
   MESSENGER: {
-    label: "Messenger",
+    label: "Facebook",
     icon: <MessageSquare className="size-4" />,
-    color: "text-indigo-600 bg-indigo-50 border-indigo-200",
+    chipClassName: "text-blue-700 bg-blue-50 border-blue-200",
+    cardClassName: "from-blue-50/90 via-white to-cyan-50/70 border-blue-200/70",
+    emptyIconClassName: "text-blue-600 border-blue-100 bg-white",
   },
   WHATSAPP: {
     label: "WhatsApp",
     icon: <MessageSquare className="size-4" />,
-    color: "text-emerald-600 bg-emerald-50 border-emerald-200",
+    chipClassName: "text-emerald-700 bg-emerald-50 border-emerald-200",
+    cardClassName: "from-emerald-50/90 via-white to-emerald-100/70 border-emerald-200/70",
+    emptyIconClassName: "text-emerald-600 border-emerald-100 bg-white",
   },
   INSTAGRAM: {
     label: "Instagram",
     icon: <Camera className="size-4" />,
-    color: "text-fuchsia-600 bg-fuchsia-50 border-fuchsia-200",
+    chipClassName: "text-fuchsia-700 bg-fuchsia-50 border-fuchsia-200",
+    cardClassName: "from-fuchsia-50/90 via-white to-pink-50/70 border-fuchsia-200/70",
+    emptyIconClassName: "text-fuchsia-600 border-fuchsia-100 bg-white",
   },
   TELEGRAM: {
     label: "Telegram",
     icon: <Send className="size-4" />,
-    color: "text-cyan-600 bg-cyan-50 border-cyan-200",
+    chipClassName: "text-sky-700 bg-sky-50 border-sky-200",
+    cardClassName: "from-sky-50/90 via-white to-cyan-50/70 border-sky-200/70",
+    emptyIconClassName: "text-sky-600 border-sky-100 bg-white",
   },
 };
 
-const STATUS_META: Record<MessageStatus, { label: string; tone: string }> = {
-  SENT: { label: "Envoyé", tone: "text-slate-600" },
-  DELIVERED: { label: "Distribué", tone: "text-blue-600" },
-  READ: { label: "Lu", tone: "text-emerald-600" },
-  FAILED: { label: "Échec", tone: "text-red-600" },
-  PENDING: { label: "En attente", tone: "text-amber-600" },
-};
+const CHANNEL_ORDER: ChannelType[] = ["INSTAGRAM", "MESSENGER", "WHATSAPP", "TELEGRAM", "EMAIL"];
+
+const PRIORITY_META = [
+  {
+    key: "EXTREME",
+    title: "Extrême urgence",
+    icon: <TriangleAlert className="size-4" />,
+    accentClassName: "text-rose-700 bg-rose-50 border-rose-200",
+    surfaceClassName: "from-rose-50 via-white to-rose-100/70 border-rose-200/80",
+  },
+  {
+    key: "URGENT",
+    title: "Urgent",
+    icon: <BellRing className="size-4" />,
+    accentClassName: "text-amber-700 bg-amber-50 border-amber-200",
+    surfaceClassName: "from-amber-50 via-white to-orange-50/70 border-amber-200/80",
+  },
+  {
+    key: "IMPORTANT",
+    title: "Important",
+    icon: <Sparkles className="size-4" />,
+    accentClassName: "text-cyan-700 bg-cyan-50 border-cyan-200",
+    surfaceClassName: "from-cyan-50 via-white to-sky-50/70 border-cyan-200/80",
+  },
+  {
+    key: "LOW",
+    title: "Non important",
+    icon: <Clock3 className="size-4" />,
+    accentClassName: "text-slate-600 bg-slate-50 border-slate-200",
+    surfaceClassName: "from-slate-50 via-white to-slate-100/70 border-slate-200/80",
+  },
+] as const;
+
+const DATE_FILTER_OPTIONS: { key: DateFilter; label: string }[] = [
+  { key: "ALL", label: "Toutes les dates" },
+  { key: "TODAY", label: "Aujourd'hui" },
+  { key: "7D", label: "7 derniers jours" },
+  { key: "30D", label: "30 derniers jours" },
+];
+
+const PRIORITY_FILTER_OPTIONS: { key: PriorityFilter; label: string }[] = [
+  { key: "ALL", label: "Tous les niveaux" },
+  { key: "EXTREME", label: "Extrême urgence" },
+  { key: "URGENT", label: "Urgent" },
+  { key: "IMPORTANT", label: "Important" },
+  { key: "LOW", label: "Non important" },
+];
+
+function getConversationPriority(conversation: Conversation): Exclude<PriorityFilter, "ALL"> {
+  if (conversation.priority === "HIGH" && conversation.unreadCount >= 3) {
+    return "EXTREME";
+  }
+
+  if (conversation.priority === "HIGH") {
+    return "URGENT";
+  }
+
+  return conversation.unreadCount > 0 ? "IMPORTANT" : "LOW";
+}
+
+function matchesDateFilter(dateFilter: DateFilter, date: Date) {
+  if (dateFilter === "ALL") {
+    return true;
+  }
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (dateFilter === "TODAY") {
+    return date >= startOfToday;
+  }
+
+  const days = dateFilter === "7D" ? 7 : 30;
+  const cutoff = new Date(now);
+  cutoff.setDate(now.getDate() - days);
+  return date >= cutoff;
+}
 
 export function MessagingClient({ channels, conversations }: Props) {
-  const [query, setQuery] = useState("");
-  const [channelFilter, setChannelFilter] = useState<"ALL" | ChannelType>("ALL");
-  const [mode, setMode] = useState<"ALL" | "IN" | "OUT">("ALL");
-  const [selectedConversationId, setSelectedConversationId] = useState(conversations[0]?.id ?? "");
+  const [showFilters, setShowFilters] = useState(false);
+  const [channelFilter, setChannelFilter] = useState<ChannelType | "ALL">("ALL");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("ALL");
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("ALL");
+
+  const channelsByType = useMemo(
+    () =>
+      Object.fromEntries(
+        CHANNEL_ORDER.map((channelType) => [channelType, channels.find((item) => item.channel === channelType) ?? null]),
+      ) as Record<ChannelType, ChannelSync | null>,
+    [channels],
+  );
 
   const filteredConversations = useMemo(() => {
     return conversations.filter((conversation) => {
-      const q = query.trim().toLowerCase();
-      const matchesQuery =
-        q.length === 0 ||
-        conversation.contactName.toLowerCase().includes(q) ||
-        conversation.contactHandle.toLowerCase().includes(q) ||
-        conversation.lastMessagePreview.toLowerCase().includes(q);
-      const matchesChannel = channelFilter === "ALL" || conversation.channel === channelFilter;
-      const matchesMode =
-        mode === "ALL" ||
-        conversation.messages.some((message) => message.direction === mode);
-      return matchesQuery && matchesChannel && matchesMode;
+      if (channelFilter !== "ALL" && conversation.channel !== channelFilter) {
+        return false;
+      }
+
+      if (!matchesDateFilter(dateFilter, conversation.lastMessageAt)) {
+        return false;
+      }
+
+      if (priorityFilter !== "ALL" && getConversationPriority(conversation) !== priorityFilter) {
+        return false;
+      }
+
+      return true;
     });
-  }, [conversations, query, channelFilter, mode]);
+  }, [channelFilter, conversations, dateFilter, priorityFilter]);
 
-  const selectedConversation =
-    filteredConversations.find((conversation) => conversation.id === selectedConversationId) ??
-    filteredConversations[0] ??
-    null;
+  const groupedConversations = useMemo(
+    () =>
+      Object.fromEntries(
+        CHANNEL_ORDER.map((channelType) => [
+          channelType,
+          filteredConversations.filter((conversation) => conversation.channel === channelType),
+        ]),
+      ) as Record<ChannelType, Conversation[]>,
+    [filteredConversations],
+  );
 
-  const totalUnread = conversations.reduce((sum, conversation) => sum + conversation.unreadCount, 0);
-  const incomingCount = conversations.flatMap((conversation) => conversation.messages).filter((m) => m.direction === "IN").length;
-  const outgoingCount = conversations.flatMap((conversation) => conversation.messages).filter((m) => m.direction === "OUT").length;
+  const sectionCardClassName =
+    "overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_18px_45px_-30px_rgba(8,31,54,0.28)]";
+  const sectionHeaderClassName = "border-b border-slate-100 bg-gradient-to-r from-cyan-50/80 via-white to-white pb-4";
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
-        <p className="text-sm text-slate-100">
-          Centralisez ici tous les messages entrants et sortants (Email, Messenger, WhatsApp, Instagram, Telegram), avec
-          une vue unique prête pour le pilotage IA.
-        </p>
+      <div className="overflow-hidden rounded-3xl border border-cyan-800/60 bg-gradient-to-br from-[#081f36] via-[#0d304f] to-[#08192d] p-6 shadow-lg shadow-slate-950/35">
+        <div className="max-w-3xl">
+          <div className="mb-3 h-1.5 w-10 rounded-full bg-cyan-300" />
+          <h1 className="mt-2 text-2xl font-bold text-white">Messagerie</h1>
+          <p className="mt-1 text-sm text-cyan-100/80">
+            Recevez une notification dès qu&apos;un message arrive sur Facebook ou Instagram, et gérez tout au même
+            endroit, sans devoir vérifier chaque application.
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <MetricCard label="Conversations actives" value={String(conversations.length)} hint="7 derniers jours" />
-        <MetricCard label="Messages entrants" value={String(incomingCount)} hint="Synchronisés" />
-        <MetricCard label="Messages sortants" value={String(outgoingCount)} hint="Tous canaux" />
-        <MetricCard label="Non lus" value={String(totalUnread)} hint="À traiter" />
-      </div>
+      <Card className={sectionCardClassName}>
+        <CardHeader className={sectionHeaderClassName}>
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <div className="mb-3 h-1 w-10 rounded-full bg-cyan-500/80" />
+              <CardTitle className="text-base text-slate-900">Messages reçus</CardTitle>
+              <p className="mt-1 text-sm text-slate-500">
+                Retrouvez vos échanges par canal, dans une structure claire prête à accueillir les vraies données.
+              </p>
+            </div>
+            <div className="flex flex-col items-start gap-3 md:items-end">
+              <button
+                type="button"
+                onClick={() => setShowFilters((value) => !value)}
+                className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white px-3.5 py-2 text-sm font-medium text-cyan-700 shadow-sm shadow-cyan-100/40 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-cyan-50 active:scale-[0.98]"
+              >
+                <Filter className="size-4" />
+                Filtrer
+              </button>
+              {showFilters && (
+                <div className="w-full min-w-[18rem] rounded-3xl border border-cyan-100 bg-white/95 p-4 shadow-[0_18px_38px_-28px_rgba(8,31,54,0.35)] backdrop-blur md:w-[24rem]">
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Canaux</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setChannelFilter("ALL")}
+                          className={cn(
+                            "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                            channelFilter === "ALL"
+                              ? "border-cyan-200 bg-cyan-50 text-cyan-700"
+                              : "border-slate-200 bg-white text-slate-500 hover:border-cyan-200 hover:text-cyan-700",
+                          )}
+                        >
+                          Tous
+                        </button>
+                        {CHANNEL_ORDER.map((channelType) => {
+                          const meta = CHANNEL_META[channelType];
+                          const active = channelFilter === channelType;
+                          return (
+                            <button
+                              key={channelType}
+                              type="button"
+                              onClick={() => setChannelFilter(channelType)}
+                              className={cn(
+                                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                                active
+                                  ? meta.chipClassName
+                                  : "border-slate-200 bg-white text-slate-500 hover:border-cyan-200 hover:text-cyan-700",
+                              )}
+                            >
+                              {meta.icon}
+                              {meta.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-      <Card className="border-slate-200">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <RefreshCw className="size-4 text-slate-600" />
-            État de synchronisation
-          </CardTitle>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Dates</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {DATE_FILTER_OPTIONS.map((option) => (
+                          <button
+                            key={option.key}
+                            type="button"
+                            onClick={() => setDateFilter(option.key)}
+                            className={cn(
+                              "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                              dateFilter === option.key
+                                ? "border-cyan-200 bg-cyan-50 text-cyan-700"
+                                : "border-slate-200 bg-white text-slate-500 hover:border-cyan-200 hover:text-cyan-700",
+                            )}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Urgence</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {PRIORITY_FILTER_OPTIONS.map((option) => (
+                          <button
+                            key={option.key}
+                            type="button"
+                            onClick={() => setPriorityFilter(option.key)}
+                            className={cn(
+                              "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                              priorityFilter === option.key
+                                ? "border-cyan-200 bg-cyan-50 text-cyan-700"
+                                : "border-slate-200 bg-white text-slate-500 hover:border-cyan-200 hover:text-cyan-700",
+                            )}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          {channels.map((channel) => {
-            const meta = CHANNEL_META[channel.channel];
-            const healthy = channel.connected && !channel.issue;
-            return (
-              <div key={channel.channel} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-medium", meta.color)}>
-                    {meta.icon}
-                    {meta.label}
-                  </span>
-                  {healthy ? (
-                    <CheckCircle2 className="size-4 text-emerald-500" />
+        <CardContent className="p-6">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {CHANNEL_ORDER.map((channelType) => {
+              const meta = CHANNEL_META[channelType];
+              const channelConversations = groupedConversations[channelType];
+
+              return (
+                <div
+                  key={channelType}
+                  className={cn(
+                    "rounded-[24px] border bg-gradient-to-br p-4 shadow-[0_14px_34px_-28px_rgba(8,31,54,0.45)]",
+                    meta.cardClassName,
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold",
+                        meta.chipClassName,
+                      )}
+                    >
+                      {meta.icon}
+                      {meta.label}
+                    </span>
+                    <span className="text-xs text-slate-400">{channelConversations.length} conversation(s)</span>
+                  </div>
+
+                  {channelConversations.length === 0 ? (
+                    <div className="mt-4 rounded-[20px] border border-dashed border-white/70 bg-white/75 px-4 py-8 text-center">
+                      <div
+                        className={cn(
+                          "mx-auto flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm",
+                          meta.emptyIconClassName,
+                        )}
+                      >
+                        {meta.icon}
+                      </div>
+                      <p className="mt-3 text-sm font-semibold text-slate-700">Aucun message pour {meta.label}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Cet encart est prêt à afficher les messages reçus dès qu&apos;ils seront réellement synchronisés.
+                      </p>
+                    </div>
                   ) : (
-                    <TriangleAlert className="size-4 text-amber-500" />
+                    <div className="mt-4 space-y-3">
+                      {channelConversations.map((conversation) => (
+                        <div
+                          key={conversation.id}
+                          className="rounded-[20px] border border-white/80 bg-white/90 px-4 py-3 shadow-[0_14px_28px_-24px_rgba(8,31,54,0.4)]"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="truncate text-sm font-semibold text-slate-900">{conversation.contactName}</p>
+                            {conversation.unreadCount > 0 && (
+                              <Badge variant="info" className="border border-cyan-100 bg-cyan-50 text-cyan-700">
+                                {conversation.unreadCount}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="mt-1 truncate text-xs text-slate-500">{conversation.contactHandle}</p>
+                          <p className="mt-2 truncate text-sm text-slate-600">{conversation.lastMessagePreview}</p>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-                <p className="mt-2 text-xs text-slate-500">Dernière synchro {formatRelative(channel.lastSyncAt)}</p>
-                <p className="text-xs text-slate-400">Latence: {channel.latencySec}s</p>
-                {channel.issue && <p className="mt-1 text-xs text-amber-600">{channel.issue}</p>}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_minmax(0,1fr)_320px]">
-        <Card className="border-slate-200">
-          <CardHeader className="pb-3">
-            <div className="space-y-2">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Rechercher un contact ou un message..."
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Filter className="size-4 text-slate-500" />
-                <select
-                  value={channelFilter}
-                  onChange={(event) => setChannelFilter(event.target.value as "ALL" | ChannelType)}
-                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="ALL">Tous les canaux</option>
-                  {Object.entries(CHANNEL_META).map(([key, value]) => (
-                    <option key={key} value={key}>
-                      {value.label}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={mode}
-                  onChange={(event) => setMode(event.target.value as "ALL" | "IN" | "OUT")}
-                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="ALL">Entrants + sortants</option>
-                  <option value="IN">Entrants</option>
-                  <option value="OUT">Sortants</option>
-                </select>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="max-h-[65vh] space-y-2 overflow-y-auto pr-1">
-            {filteredConversations.map((conversation) => {
-              const isActive = selectedConversation?.id === conversation.id;
-              const channelMeta = CHANNEL_META[conversation.channel];
-              return (
-                <button
-                  key={conversation.id}
-                  type="button"
-                  onClick={() => setSelectedConversationId(conversation.id)}
+      <Card className={sectionCardClassName}>
+        <CardHeader className={sectionHeaderClassName}>
+          <div className="mb-3 h-1 w-10 rounded-full bg-cyan-500/80" />
+          <CardTitle className="flex items-center gap-2 text-base text-slate-900">
+            <Bot className="size-4 text-cyan-700" />
+            Pilotage IA
+          </CardTitle>
+          <p className="text-sm text-slate-500">L&apos;IA classe vos messages selon leur importance.</p>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {PRIORITY_META.map((priority) => (
+              <div
+                key={priority.key}
+                className={cn(
+                  "rounded-[24px] border bg-gradient-to-br p-4 shadow-[0_14px_34px_-28px_rgba(8,31,54,0.45)]",
+                  priority.surfaceClassName,
+                )}
+              >
+                <div
                   className={cn(
-                    "w-full rounded-xl border px-3 py-2.5 text-left transition-colors",
-                    isActive ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-white hover:bg-slate-50"
+                    "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold",
+                    priority.accentClassName,
+                  )}
+                >
+                  {priority.icon}
+                  {priority.title}
+                </div>
+                <div className="mt-4 rounded-[20px] border border-white/80 bg-white/85 px-4 py-8 text-center">
+                  <p className="text-sm font-semibold text-slate-700">Aucune donnée classée pour le moment</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Cette zone affichera les messages identifiés comme {priority.title.toLowerCase()} dès que la
+                    classification IA sera alimentée.
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className={sectionCardClassName}>
+        <CardHeader className={sectionHeaderClassName}>
+          <div className="mb-3 h-1 w-10 rounded-full bg-cyan-500/80" />
+          <CardTitle className="flex items-center gap-2 text-base text-slate-900">
+            <RefreshCw className="size-4 text-cyan-700" />
+            État de synchronisation
+          </CardTitle>
+          <p className="text-sm text-slate-500">
+            Suivez vos canaux connectés dans une vue unifiée, même lorsqu&apos;aucune donnée réelle n&apos;est encore remontée.
+          </p>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            {CHANNEL_ORDER.map((channelType) => {
+              const meta = CHANNEL_META[channelType];
+              const channel = channelsByType[channelType];
+              const healthy = channel?.connected && !channel.issue;
+
+              return (
+                <div
+                  key={channelType}
+                  className={cn(
+                    "rounded-[24px] border bg-gradient-to-br p-4 shadow-[0_14px_34px_-28px_rgba(8,31,54,0.45)]",
+                    meta.cardClassName,
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm font-semibold text-slate-900">{conversation.contactName}</p>
-                    {conversation.unreadCount > 0 && (
-                      <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[11px] font-semibold text-white">
-                        {conversation.unreadCount}
-                      </span>
-                    )}
-                  </div>
-                  <p className="truncate text-xs text-slate-500">{conversation.contactHandle}</p>
-                  <p className="mt-1 truncate text-xs text-slate-600">{conversation.lastMessagePreview}</p>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium", channelMeta.color)}>
-                      {channelMeta.icon}
-                      {channelMeta.label}
-                    </span>
-                    <span className="text-[11px] text-slate-400">{formatRelative(conversation.lastMessageAt)}</span>
-                  </div>
-                </button>
-              );
-            })}
-            {filteredConversations.length === 0 && (
-              <p className="rounded-xl border border-dashed border-slate-200 px-3 py-8 text-center text-sm text-slate-500">
-                Aucune conversation avec ces filtres.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-slate-200">
-          <CardHeader className="pb-3">
-            {selectedConversation ? (
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <CardTitle className="text-base">{selectedConversation.contactName}</CardTitle>
-                  <p className="text-xs text-slate-500">{selectedConversation.contactHandle}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {selectedConversation.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="text-[11px]">
-                      {tag}
-                    </Badge>
-                  ))}
-                  {selectedConversation.priority === "HIGH" && (
-                    <Badge variant="ready" className="text-[11px]">
-                      Priorité haute
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <CardTitle className="text-base">Conversation</CardTitle>
-            )}
-          </CardHeader>
-          <CardContent>
-            {!selectedConversation ? (
-              <p className="rounded-xl border border-dashed border-slate-200 px-3 py-8 text-center text-sm text-slate-500">
-                Sélectionnez une conversation.
-              </p>
-            ) : (
-              <div className="max-h-[65vh] space-y-3 overflow-y-auto pr-1">
-                {selectedConversation.messages.map((message) => {
-                  const statusMeta = STATUS_META[message.status];
-                  const channelMeta = CHANNEL_META[message.channel];
-                  return (
-                    <div
-                      key={message.id}
+                    <span
                       className={cn(
-                        "max-w-[90%] rounded-2xl border px-3 py-2.5",
-                        message.direction === "OUT"
-                          ? "ml-auto border-blue-200 bg-blue-50"
-                          : "mr-auto border-slate-200 bg-white"
+                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold",
+                        meta.chipClassName,
                       )}
                     >
-                      <p className="text-sm text-slate-800">{message.body}</p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-                        <span className="text-slate-500">{message.author}</span>
-                        <span className="text-slate-400">{formatDateTime(message.createdAt)}</span>
-                        <span className={cn("font-medium", statusMeta.tone)}>{statusMeta.label}</span>
-                        <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium", channelMeta.color)}>
-                          {channelMeta.icon}
-                          {channelMeta.label}
-                        </span>
-                        {message.aiSuggested && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 font-medium text-violet-700">
-                            <Sparkles className="size-3" />
-                            Suggestion IA
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                      {meta.icon}
+                      {meta.label}
+                    </span>
+                    {channel ? (
+                      healthy ? (
+                        <CheckCircle2 className="size-4 text-emerald-500" />
+                      ) : (
+                        <TriangleAlert className="size-4 text-amber-500" />
+                      )
+                    ) : (
+                      <Clock3 className="size-4 text-slate-400" />
+                    )}
+                  </div>
 
-        <Card className="border-slate-200">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Bot className="size-4 text-violet-600" />
-              Pilotage IA
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-slate-600">
-              Préparez la future boîte de réponse centralisée avec IA: suggestions, validation humaine, et envoi multicanal.
-            </p>
-            <div className="space-y-2">
-              <Button className="w-full justify-start" variant="outline">
-                <Sparkles className="size-4 text-violet-600" />
-                Générer une réponse IA
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <ShieldCheck className="size-4 text-emerald-600" />
-                Exiger validation avant envoi
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <Send className="size-4 text-blue-600" />
-                Envoyer sur le canal d&apos;origine
-              </Button>
-              <Button className="w-full justify-start" variant="outline">
-                <RefreshCw className="size-4 text-slate-600" />
-                Relancer la synchronisation
-              </Button>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <p className="text-xs font-semibold text-slate-700">Règles futures recommandées</p>
-              <ul className="mt-2 space-y-1 text-xs text-slate-600">
-                <li>Validation obligatoire pour les réponses sensibles.</li>
-                <li>Escalade auto vers admin après 2 échecs d&apos;envoi.</li>
-                <li>Journal d&apos;audit complet IA + humain.</li>
-              </ul>
-            </div>
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-              <div className="flex items-center gap-2 text-amber-800">
-                <Clock3 className="size-4" />
-                <p className="text-xs font-semibold">Connecteurs en évolution</p>
-              </div>
-              <p className="mt-1 text-xs text-amber-700">
-                Cette vue centralise déjà la logique produit. Les envois/lectures API par canal seront branchés ensuite.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                  <div className="mt-4 rounded-[20px] border border-white/80 bg-white/85 px-4 py-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                      Dernière synchronisation
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-slate-700">
+                      {channel ? channel.lastSyncAt.toLocaleString("fr-FR") : "Aucune donnée"}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {channel
+                        ? `Latence actuelle : ${channel.latencySec}s`
+                        : "Ce canal apparaîtra ici dès qu'il sera relié à une vraie synchronisation."}
+                    </p>
+                    {channel?.issue && <p className="mt-2 text-xs text-amber-600">{channel.issue}</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-
-function MetricCard({ label, value, hint }: { label: string; value: string; hint: string }) {
-  return (
-    <Card className="border-slate-200">
-      <CardContent className="space-y-1 p-4">
-        <p className="text-xs font-medium text-slate-500">{label}</p>
-        <p className="text-2xl font-bold text-slate-900">{value}</p>
-        <p className="text-xs text-slate-400">{hint}</p>
-      </CardContent>
-    </Card>
-  );
-}
-

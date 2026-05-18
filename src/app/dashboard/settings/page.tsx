@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SettingsGeneralClient } from "@/components/settings/settings-general-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Paramètres — Shalom IA" };
+export const metadata: Metadata = { title: "Paramètres - EasyCom AI" };
 
 export default async function SettingsPage() {
   const { profile } = await requireAuth();
@@ -19,9 +19,19 @@ export default async function SettingsPage() {
 
   const { data: community } = await admin
     .from("Community")
-    .select("id, name, slug, description, logoUrl, city, country, timezone, phone, email, website, address, postalCode, tone, language, signature, hashtags, mentions, editorialRules, communityType, religiousStream, onboardingDone, plan")
+    .select("id, name, slug, description, logoUrl, city, country, timezone, phone, email, website, address, postalCode, tone, language, signature, hashtags, mentions, editorialRules, communityType, rhythmId, religiousStream, onboardingDone, plan")
     .eq("id", communityId)
     .single();
+
+  const rhythmQuery = admin
+    .from("CommunityRhythm")
+    .select("id, name, slug, description, isActive, sortOrder")
+    .order("sortOrder", { ascending: true })
+    .order("name", { ascending: true });
+
+  const { data: rhythms } = community?.rhythmId
+    ? await rhythmQuery.or(`isActive.eq.true,id.eq.${community.rhythmId}`)
+    : await rhythmQuery.eq("isActive", true);
 
   return (
     <div className="space-y-4">
@@ -32,6 +42,7 @@ export default async function SettingsPage() {
       </div>
       <SettingsGeneralClient
         community={community!}
+        rhythms={rhythms ?? []}
         profile={{
           name: profile.name ?? "",
           email: profile.email,

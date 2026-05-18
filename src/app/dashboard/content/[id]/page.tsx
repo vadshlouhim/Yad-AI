@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ContentDetailClient } from "@/components/content/content-detail-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Modifier le contenu — Shalom IA" };
+export const metadata: Metadata = { title: "Modifier le contenu — EasyCom AI" };
 
 export default async function ContentDetailPage({
   params,

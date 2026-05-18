@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import OpenAI from "openai";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 const openrouter = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
@@ -11,13 +11,18 @@ const openrouter = new OpenAI({
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Non authentifie" }, { status: 401 });
+    }
 
     const admin = createAdminClient();
     const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
     if (!profile?.communityId) {
-      return NextResponse.json({ error: "Communauté non configurée" }, { status: 400 });
+      return NextResponse.json({ error: "Communaute non configuree" }, { status: 400 });
     }
 
     const body = await request.json();
@@ -25,7 +30,11 @@ export async function POST(request: Request) {
 
     const [{ data: template }, { data: community }] = await Promise.all([
       admin.from("Template").select("*").eq("id", templateId).single(),
-      admin.from("Community").select("name, city, phone, email, website, address, religiousStream, tone").eq("id", profile.communityId).single(),
+      admin
+        .from("Community")
+        .select("name, city, phone, email, website, address, religiousStream, tone")
+        .eq("id", profile.communityId)
+        .single(),
     ]);
 
     if (!template) {
@@ -40,36 +49,40 @@ export async function POST(request: Request) {
     }>;
 
     const zonesDescription = designZones
-      .map((z) => `- "${z.label}" (id: ${z.id}, type: ${z.type}) — texte par défaut : "${z.defaultText}"`)
+      .map(
+        (zone) =>
+          `- "${zone.label}" (id: ${zone.id}, type: ${zone.type}) - texte par defaut : "${zone.defaultText}"`,
+      )
       .join("\n");
 
-    const prompt = `Tu es un expert en communication pour les communautés juives.
+    const prompt = `Tu es un expert en communication pour les communautes juives.
 
-Contexte de la communauté :
+Contexte de la communaute :
 - Nom : ${community?.name}
-- Ville : ${community?.city ?? "Non spécifié"}
-- Téléphone : ${community?.phone ?? "Non spécifié"}
-- Email : ${community?.email ?? "Non spécifié"}
-- Site web : ${community?.website ?? "Non spécifié"}
-- Adresse : ${(community as Record<string, unknown>)?.address ?? "Non spécifié"}
-- Courant : ${community?.religiousStream ?? "Non spécifié"}
+- Ville : ${community?.city ?? "Non specifie"}
+- Telephone : ${community?.phone ?? "Non specifie"}
+- Email : ${community?.email ?? "Non specifie"}
+- Site web : ${community?.website ?? "Non specifie"}
+- Adresse : ${(community as Record<string, unknown>)?.address ?? "Non specifie"}
+- Courant : ${community?.religiousStream ?? "Non specifie"}
 - Ton : ${community?.tone ?? "MODERN"}
 
-Réponses de l'utilisateur aux questions de personnalisation :
-${Object.entries(answers).map(([k, v]) => `- ${k} : ${v}`).join("\n")}
+Informations fournies librement par l'utilisateur pour personnaliser l'affiche :
+${Object.entries(answers).map(([key, value]) => `- ${key} : ${value}`).join("\n")}
 
-Template choisi : "${template.name}" (catégorie : ${template.category})
+Template choisi : "${template.name}" (categorie : ${template.category})
 
-Zones éditables de l'affiche :
+Zones editables de l'affiche :
 ${zonesDescription}
 
-Pour chaque zone éditable, génère le texte personnalisé adapté. Le texte doit être :
-- Court et percutant (adapté à une affiche)
-- En accord avec le ton de la communauté
-- Intégrant les informations de la communauté et les réponses de l'utilisateur
+Pour chaque zone editable, genere le texte personnalise adapte. Le texte doit etre :
+- Court et percutant, adapte a une affiche
+- En accord avec le ton de la communaute
+- Capable d'extraire et de comprendre les informations donnees librement par l'utilisateur
+- Coherent avec le type d'evenement, la date, l'heure, le lieu, le public et les consignes eventuelles
 
-Réponds UNIQUEMENT en JSON valide, avec un objet dont les clés sont les IDs des zones et les valeurs le texte personnalisé. Exemple :
-{ "title": "Soirée Chabbat Spéciale", "date": "Vendredi 20 Avril 2026", "lieu": "Beth Habad Paris" }`;
+Reponds UNIQUEMENT en JSON valide, avec un objet dont les cles sont les IDs des zones et les valeurs le texte personnalise. Exemple :
+{ "title": "Soiree Chabbat Speciale", "date": "Vendredi 20 Avril 2026", "lieu": "Beth Habad Paris" }`;
 
     const response = await openrouter.chat.completions.create({
       model: "google/gemini-2.5-flash",
@@ -90,10 +103,13 @@ Réponds UNIQUEMENT en JSON valide, avec un objet dont les clés sont les IDs de
     }
 
     const { data: currentTemplate } = await admin.from("Template").select("usageCount").eq("id", templateId).single();
-    await admin.from("Template").update({
-      usageCount: (currentTemplate?.usageCount ?? 0) + 1,
-      updatedAt: new Date().toISOString(),
-    }).eq("id", templateId);
+    await admin
+      .from("Template")
+      .update({
+        usageCount: (currentTemplate?.usageCount ?? 0) + 1,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", templateId);
 
     return NextResponse.json({ generatedTexts });
   } catch (error) {

@@ -39,8 +39,7 @@ export async function POST(
 
   try {
     await executeAutomationActions(
-      automation as Parameters<typeof executeAutomationActions>[0],
-      run.id
+      automation as Parameters<typeof executeAutomationActions>[0]
     );
 
     await Promise.all([

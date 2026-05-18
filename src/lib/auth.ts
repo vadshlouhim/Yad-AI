@@ -21,11 +21,16 @@ export async function requireAuth(): Promise<{
     redirect("/auth/login");
   }
 
+  const authUser = user;
+  if (!authUser) {
+    throw new Error("Utilisateur non authentifie.");
+  }
+
   // Lecture du profil avec le client session (RLS autorise l'accès à son propre profil)
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("*")
-    .eq("id", user.id)
+    .eq("id", authUser.id)
     .single();
 
   // PGRST116 = "no rows returned" — profil absent, à créer
@@ -41,10 +46,10 @@ export async function requireAuth(): Promise<{
       .from("profiles")
       .upsert(
         {
-          id: user.id,
-          email: user.email!,
-          name: user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? null,
-          avatarUrl: user.user_metadata?.avatar_url ?? null,
+          id: authUser.id,
+          email: authUser.email!,
+          name: authUser.user_metadata?.full_name ?? authUser.email?.split("@")[0] ?? null,
+          avatarUrl: authUser.user_metadata?.avatar_url ?? null,
           role: "ADMIN",
           updatedAt: new Date().toISOString(),
         },
@@ -58,11 +63,11 @@ export async function requireAuth(): Promise<{
     }
 
     redirect("/onboarding");
-    return { supabaseUser: { id: user.id, email: user.email! }, profile: newProfile };
+    return { supabaseUser: { id: authUser.id, email: authUser.email! }, profile: newProfile };
   }
 
   return {
-    supabaseUser: { id: user.id, email: user.email! },
+    supabaseUser: { id: authUser.id, email: authUser.email! },
     profile,
   };
 }

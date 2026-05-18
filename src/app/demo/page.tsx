@@ -6,8 +6,8 @@ import {
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Démo — Shalom IA",
-  description: "Découvrez Shalom IA en mode démo avec des données fictives.",
+  title: "Démo — EasyCom AI",
+  description: "Découvrez EasyCom AI en mode démo avec des données fictives.",
 };
 
 export default function DemoPage() {

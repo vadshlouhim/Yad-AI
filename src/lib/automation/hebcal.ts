@@ -1,5 +1,5 @@
 // ============================================================
-// Shalom IA — Intégration Hebcal
+// EasyCom AI — Intégration Hebcal
 // Calendrier hébraïque, horaires Chabbat, fêtes
 // API gratuite : https://www.hebcal.com/home/195/jewish-calendar-rest-api
 // ============================================================
@@ -269,8 +269,8 @@ export async function getHolidayTimes(params: {
         date: item.date?.slice(0, 10),
         index,
       }))
-      .filter((item) => item.category === "holiday" && item.date === targetKey)
-      .map((item) => item.index);
+      .filter((item: { category?: string; date?: string; index: number }) => item.category === "holiday" && item.date === targetKey)
+      .map((item: { index: number }) => item.index);
 
     const startIndex = holidayIndices[0] ?? 0;
     const endIndex = holidayIndices[holidayIndices.length - 1] ?? startIndex;

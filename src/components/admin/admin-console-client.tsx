@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   Activity,
@@ -21,6 +21,7 @@ import {
   UploadCloud,
   Users,
   Wand2,
+  X,
   Zap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -99,6 +100,40 @@ interface AdminAutomation {
   community: { id: string; name: string | null; city: string | null } | null;
 }
 
+interface AdminRhythm {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface AdminAutomationPreset {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  icon: string | null;
+  trigger: string;
+  triggerConfig: unknown;
+  actions: unknown;
+  isActive: boolean;
+  isGlobal: boolean;
+  clientTypes: string[];
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  usageCount: number;
+  rhythms?: Array<{
+    id: string;
+    rhythmId: string;
+    rhythm: { id: string; name: string; slug: string; isActive: boolean } | null;
+  }>;
+}
+
 interface RecentConversation {
   id: string;
   title: string;
@@ -114,10 +149,12 @@ interface Props {
   communities: AdminCommunity[];
   users: AdminUser[];
   automations: AdminAutomation[];
+  rhythms: AdminRhythm[];
+  automationPresets: AdminAutomationPreset[];
   recentConversations: RecentConversation[];
 }
 
-type AdminSection = "overview" | "templates" | "automations" | "communities" | "activity" | "data";
+type AdminSection = "overview" | "templates" | "rhythms" | "presets" | "automations" | "communities" | "activity" | "data";
 type ThemeMode = "light" | "dark";
 
 const numberFormatter = new Intl.NumberFormat("fr-FR");
@@ -127,12 +164,13 @@ const CHANNEL_TYPES = ["", "INSTAGRAM", "FACEBOOK", "WHATSAPP", "TELEGRAM", "EMA
 const VISIBILITY_FILTERS = ["ALL", "GLOBAL", "LOCAL"] as const;
 const STATUS_FILTERS = ["ALL", "ACTIVE", "INACTIVE", "PREMIUM"] as const;
 const ADMIN_AUTOMATION_PRESETS = [
-  { key: "WEEKLY_SHABBAT", logo: "🕯️", name: "Horaires de Chabbat", description: "Prépare les horaires chaque semaine.", trigger: "WEEKLY_SHABBAT" },
-  { key: "DAILY_THOUGHT", logo: "✨", name: "Pensée du jour", description: "Prépare une pensée quotidienne.", trigger: "DAILY" },
-  { key: "WEEKLY_COURSE_REMINDER", logo: "📖", name: "Rappel de cours", description: "Prépare les annonces de cours.", trigger: "CUSTOM_SCHEDULE" },
-  { key: "HOLIDAY_GREETING", logo: "🎉", name: "Voeux de fêtes", description: "Prépare des messages avant les fêtes.", trigger: "JEWISH_HOLIDAY" },
-  { key: "DONATION_REMINDER", logo: "💛", name: "Rappel de dons", description: "Prépare un message de collecte.", trigger: "CUSTOM_SCHEDULE" },
+  { key: "WEEKLY_SHABBAT", logo: "ðŸ•¯ï¸", name: "Horaires de Chabbat", description: "PrÃ©pare les horaires chaque semaine.", trigger: "WEEKLY_SHABBAT" },
+  { key: "DAILY_THOUGHT", logo: "âœ¨", name: "PensÃ©e du jour", description: "PrÃ©pare une pensÃ©e quotidienne.", trigger: "DAILY" },
+  { key: "WEEKLY_COURSE_REMINDER", logo: "ðŸ“–", name: "Rappel de cours", description: "PrÃ©pare les annonces de cours.", trigger: "CUSTOM_SCHEDULE" },
+  { key: "HOLIDAY_GREETING", logo: "ðŸŽ‰", name: "Voeux de fÃªtes", description: "PrÃ©pare des messages avant les fÃªtes.", trigger: "JEWISH_HOLIDAY" },
+  { key: "DONATION_REMINDER", logo: "ðŸ’›", name: "Rappel de dons", description: "PrÃ©pare un message de collecte.", trigger: "CUSTOM_SCHEDULE" },
 ];
+void ADMIN_AUTOMATION_PRESETS;
 
 function formatNumber(value: number) {
   return numberFormatter.format(value);
@@ -179,8 +217,10 @@ function MetricCard({
   );
 }
 
-export function AdminConsoleClient({ metrics, templates, communities, users, automations, recentConversations }: Props) {
+export function AdminConsoleClient({ metrics, templates, communities, users, automations, rhythms, automationPresets, recentConversations }: Props) {
   const [selectedId, setSelectedId] = useState(templates[0]?.id ?? "");
+  const [selectedRhythmId, setSelectedRhythmId] = useState(rhythms[0]?.id ?? "");
+  const [selectedPresetId, setSelectedPresetId] = useState(automationPresets[0]?.id ?? "");
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>("ALL");
@@ -191,14 +231,20 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
   const [status, setStatus] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [uploadingField, setUploadingField] = useState<"thumbnail" | "preview" | null>(null);
   const [automationSaving, setAutomationSaving] = useState<string | null>(null);
   const [drafts, setDrafts] = useState(() => new Map(templates.map((template) => [template.id, template])));
+  const [rhythmDrafts, setRhythmDrafts] = useState(() => new Map(rhythms.map((rhythm) => [rhythm.id, rhythm])));
+  const [presetDrafts, setPresetDrafts] = useState(() => new Map(automationPresets.map((preset) => [preset.id, preset])));
 
   const isDark = theme === "dark";
   const selectedTemplate = drafts.get(selectedId) ?? Array.from(drafts.values())[0] ?? null;
+  const selectedRhythm = rhythmDrafts.get(selectedRhythmId) ?? Array.from(rhythmDrafts.values())[0] ?? null;
+  const selectedPreset = presetDrafts.get(selectedPresetId) ?? Array.from(presetDrafts.values())[0] ?? null;
   const allTemplates = useMemo(() => Array.from(drafts.values()), [drafts]);
+  const allRhythms = useMemo(() => Array.from(rhythmDrafts.values()).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)), [rhythmDrafts]);
+  const allPresets = useMemo(() => Array.from(presetDrafts.values()).sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title)), [presetDrafts]);
   const templateStats = useMemo(() => {
     const active = allTemplates.filter((template) => template.isActive).length;
     const inactive = allTemplates.length - active;
@@ -260,6 +306,45 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     });
   }
 
+  function updateSelectedRhythm(patch: Partial<AdminRhythm>) {
+    if (!selectedRhythm) return;
+    const nextRhythm = { ...selectedRhythm, ...patch };
+    setRhythmDrafts((previous) => {
+      const next = new Map(previous);
+      next.set(nextRhythm.id, nextRhythm);
+      return next;
+    });
+  }
+
+  function getPresetRhythmIds(preset: AdminAutomationPreset) {
+    return (preset.rhythms ?? []).map((entry) => entry.rhythmId).filter(Boolean);
+  }
+
+  function updateSelectedPreset(patch: Partial<AdminAutomationPreset>) {
+    if (!selectedPreset) return;
+    const nextPreset = { ...selectedPreset, ...patch };
+    setPresetDrafts((previous) => {
+      const next = new Map(previous);
+      next.set(nextPreset.id, nextPreset);
+      return next;
+    });
+  }
+
+  function toggleSelectedPresetRhythm(rhythmId: string) {
+    if (!selectedPreset) return;
+    const currentIds = new Set(getPresetRhythmIds(selectedPreset));
+    if (currentIds.has(rhythmId)) currentIds.delete(rhythmId);
+    else currentIds.add(rhythmId);
+    updateSelectedPreset({
+      rhythms: Array.from(currentIds).map((id) => ({
+        id: `${selectedPreset.id}_${id}`,
+        rhythmId: id,
+        rhythm: allRhythms.find((rhythm) => rhythm.id === id) ?? null,
+      })),
+      isGlobal: currentIds.size === 0,
+    });
+  }
+
   async function saveTemplate() {
     if (!selectedTemplate) return;
     setSaving(true);
@@ -302,7 +387,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
       });
       return next;
     });
-    setStatus("Affiche mise à jour. Les nouvelles consignes seront utilisées par l'assistant.");
+    setStatus("Affiche mise Ã  jour. Les nouvelles consignes seront utilisÃ©es par l'assistant.");
   }
 
   async function createTemplate() {
@@ -315,7 +400,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
       body: JSON.stringify({
         name: "Nouvelle affiche",
         category: "GENERAL",
-        description: "Décrire ici quand l'assistant doit suggérer cette affiche.",
+        description: "DÃ©crire ici quand l'assistant doit suggÃ©rer cette affiche.",
         isGlobal: true,
         isActive: true,
         tags: ["nouvelle-affiche"],
@@ -342,19 +427,18 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     });
     setSelectedId(nextTemplate.id);
     setActiveSection("templates");
-    setStatus("Nouvelle affiche créée. Complétez sa fiche puis enregistrez.");
+    setStatus("Nouvelle affiche crÃ©Ã©e. ComplÃ©tez sa fiche puis enregistrez.");
   }
 
-  async function deleteTemplate() {
-    if (!selectedTemplate) return;
-    const confirmed = window.confirm(`Supprimer définitivement l'affiche "${selectedTemplate.name}" ?`);
+  async function deleteTemplateById(template: AdminTemplate) {
+    const confirmed = window.confirm(`Supprimer dÃ©finitivement l'affiche "${template.name}" ?`);
     if (!confirmed) return;
 
-    setDeleting(true);
+    setDeletingId(template.id);
     setStatus(null);
-    const response = await fetch(`/api/admin/templates/${selectedTemplate.id}`, { method: "DELETE" });
+    const response = await fetch(`/api/admin/templates/${template.id}`, { method: "DELETE" });
     const payload = await response.json();
-    setDeleting(false);
+    setDeletingId(null);
 
     if (!response.ok) {
       setStatus(payload.error ?? "Impossible de supprimer l'affiche.");
@@ -363,11 +447,18 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
 
     setDrafts((previous) => {
       const next = new Map(previous);
-      next.delete(selectedTemplate.id);
-      setSelectedId(next.keys().next().value ?? "");
+      next.delete(template.id);
+      if (selectedId === template.id) {
+        setSelectedId(next.keys().next().value ?? "");
+      }
       return next;
     });
-    setStatus("Affiche supprimée.");
+    setStatus("Affiche supprimÃ©e.");
+  }
+
+  async function deleteTemplate() {
+    if (!selectedTemplate) return;
+    await deleteTemplateById(selectedTemplate);
   }
 
   async function uploadTemplateImage(file: File, kind: "thumbnail" | "preview") {
@@ -390,24 +481,161 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
       return;
     }
     updateSelectedTemplate(kind === "thumbnail" ? { thumbnailUrl: payload.url } : { previewUrl: payload.url });
-    setStatus(`${kind === "thumbnail" ? "Miniature" : "Affiche"} convertie en WebP et envoyée.`);
+    setStatus(`${kind === "thumbnail" ? "Miniature" : "Affiche"} convertie en WebP et envoyÃ©e.`);
   }
 
-  async function createPresetAutomation(preset: string) {
+  async function createRhythm() {
+    setStatus(null);
+    const response = await fetch("/api/admin/rhythms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Nouveau rythme", isActive: true, sortOrder: allRhythms.length * 10 + 10 }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setStatus(payload.error ?? "Impossible de créer le rythme.");
+      return;
+    }
+    setRhythmDrafts((previous) => new Map(previous).set(payload.id, payload));
+    setSelectedRhythmId(payload.id);
+    setActiveSection("rhythms");
+  }
+
+  async function saveRhythm() {
+    if (!selectedRhythm) return;
+    setStatus(null);
+    const response = await fetch(`/api/admin/rhythms/${selectedRhythm.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(selectedRhythm),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setStatus(payload.error ?? "Impossible d'enregistrer le rythme.");
+      return;
+    }
+    setRhythmDrafts((previous) => new Map(previous).set(payload.id, payload));
+    setStatus("Rythme enregistré.");
+  }
+
+  async function deleteRhythm(rhythm: AdminRhythm) {
+    if (!window.confirm(`Supprimer le rythme "${rhythm.name}" ? Les anciens comptes doivent rester compatibles.`)) return;
+    const response = await fetch(`/api/admin/rhythms/${rhythm.id}`, { method: "DELETE" });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (response.status === 409 && window.confirm(`${payload.error}\n\nVoulez-vous le désactiver à la place ?`)) {
+        await fetch(`/api/admin/rhythms/${rhythm.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isActive: false }),
+        });
+        setRhythmDrafts((previous) => new Map(previous).set(rhythm.id, { ...rhythm, isActive: false }));
+      } else {
+        setStatus(payload.error ?? "Suppression impossible.");
+      }
+      return;
+    }
+    setRhythmDrafts((previous) => {
+      const next = new Map(previous);
+      next.delete(rhythm.id);
+      setSelectedRhythmId(next.keys().next().value ?? "");
+      return next;
+    });
+  }
+
+  async function createAutomationPreset() {
+    setStatus(null);
+    const response = await fetch("/api/admin/automation-presets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Nouveau scénario",
+        description: "Décrivez quand proposer cette automatisation.",
+        category: "GENERAL",
+        icon: "⚡",
+        trigger: "MANUAL",
+        triggerConfig: {},
+        actions: [],
+        isActive: true,
+        isGlobal: true,
+        clientTypes: ["SYNAGOGUE"],
+        sortOrder: allPresets.length * 10 + 10,
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setStatus(payload.error ?? "Impossible de créer le scénario.");
+      return;
+    }
+    const nextPreset = { ...payload, rhythms: [], usageCount: 0 };
+    setPresetDrafts((previous) => new Map(previous).set(nextPreset.id, nextPreset));
+    setSelectedPresetId(nextPreset.id);
+    setActiveSection("presets");
+  }
+
+  async function saveAutomationPreset() {
+    if (!selectedPreset) return;
+    setStatus(null);
+    const response = await fetch(`/api/admin/automation-presets/${selectedPreset.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...selectedPreset,
+        rhythmIds: getPresetRhythmIds(selectedPreset),
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      setStatus(payload.error ?? "Impossible d'enregistrer le scénario.");
+      return;
+    }
+    setPresetDrafts((previous) => new Map(previous).set(selectedPreset.id, { ...selectedPreset, ...payload }));
+    setStatus("Scénario enregistré.");
+  }
+
+  async function deleteAutomationPreset(preset: AdminAutomationPreset) {
+    const warning = preset.usageCount > 0
+      ? `\n\nAttention : cette automatisation est déjà utilisée par ${preset.usageCount} compte(s). Si la suppression peut casser des données clientes, elle sera désactivée globalement.`
+      : "";
+    if (!window.confirm(`Voulez-vous vraiment supprimer cette automatisation de tous les comptes concernés ?${warning}`)) return;
+    const response = await fetch(`/api/admin/automation-presets/${preset.id}`, { method: "DELETE" });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      if (response.status === 409 && window.confirm(`${payload.error}\n\nDésactiver cette automatisation globalement ?`)) {
+        await fetch(`/api/admin/automation-presets/${preset.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isActive: false }),
+        });
+        setPresetDrafts((previous) => new Map(previous).set(preset.id, { ...preset, isActive: false }));
+      } else {
+        setStatus(payload.error ?? "Suppression impossible.");
+      }
+      return;
+    }
+    setPresetDrafts((previous) => {
+      const next = new Map(previous);
+      next.delete(preset.id);
+      setSelectedPresetId(next.keys().next().value ?? "");
+      return next;
+    });
+  }
+
+  async function createPresetAutomation(presetId: string) {
     if (!selectedAutomationCommunity) {
       setStatus("Choisissez d'abord une communauté cible.");
       return;
     }
-    setAutomationSaving(preset);
+    setAutomationSaving(presetId);
     const response = await fetch("/api/admin/automations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ communityId: selectedAutomationCommunity, preset }),
+      body: JSON.stringify({ communityId: selectedAutomationCommunity, presetId }),
     });
     const payload = await response.json().catch(() => ({}));
     setAutomationSaving(null);
     if (!response.ok) {
-      setStatus(payload.error ?? "Création impossible.");
+      setStatus(payload.error ?? "CrÃ©ation impossible.");
       return;
     }
     window.location.reload();
@@ -432,10 +660,12 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
   const navItems = [
     { id: "overview" as const, label: "Vue globale", icon: LayoutDashboard, value: formatNumber(metrics.databaseItemCount) },
     { id: "templates" as const, label: "Affiches", icon: ImageIcon, value: formatNumber(allTemplates.length) },
+    { id: "rhythms" as const, label: "Rythmes", icon: SlidersHorizontal, value: formatNumber(allRhythms.length) },
+    { id: "presets" as const, label: "Scénarios", icon: Sparkles, value: formatNumber(allPresets.length) },
     { id: "automations" as const, label: "Automatisations", icon: Zap, value: formatNumber(automations.length) },
     { id: "communities" as const, label: "Beth Habad", icon: Building2, value: formatNumber(metrics.communityCount) },
-    { id: "activity" as const, label: "Activité IA", icon: Bot, value: formatNumber(metrics.conversationCount) },
-    { id: "data" as const, label: "Données", icon: Database, value: formatNumber(metrics.databaseItemCount) },
+    { id: "activity" as const, label: "ActivitÃ© IA", icon: Bot, value: formatNumber(metrics.conversationCount) },
+    { id: "data" as const, label: "DonnÃ©es", icon: Database, value: formatNumber(metrics.databaseItemCount) },
   ];
 
   const overviewCards = (
@@ -457,7 +687,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                 <Sparkles className="size-3.5" />
                 Admin global
               </div>
-              <h1 className={`mt-4 text-2xl font-black leading-tight ${strongText}`}>Pilotage Shalom IA</h1>
+              <h1 className={`mt-4 text-2xl font-black leading-tight ${strongText}`}>Pilotage EasyCom AI</h1>
               <p className={`mt-2 text-sm leading-6 ${mutedText}`}>Supervisez les structures, les usages IA, les données et surtout la banque d&apos;affiches.</p>
             </div>
 
@@ -494,7 +724,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
               <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                 <div><span className={strongText}>{templateStats.active}</span><span className={`block text-xs ${mutedText}`}>actives</span></div>
                 <div><span className={strongText}>{templateStats.global}</span><span className={`block text-xs ${mutedText}`}>globales</span></div>
-                <div><span className={strongText}>{templateStats.inactive}</span><span className={`block text-xs ${mutedText}`}>masquées</span></div>
+                <div><span className={strongText}>{templateStats.inactive}</span><span className={`block text-xs ${mutedText}`}>masquÃ©es</span></div>
                 <div><span className={strongText}>{templateStats.premium}</span><span className={`block text-xs ${mutedText}`}>premium</span></div>
               </div>
             </div>
@@ -521,10 +751,10 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
               <div>
                 <p className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.18em] ${isDark ? "bg-emerald-300/10 text-emerald-200" : "bg-emerald-100 text-emerald-800"}`}>
                   <SlidersHorizontal className="size-3.5" />
-                  {activeSection === "templates" ? "Pilotage des affiches" : "Mode admin global"}
+                  {activeSection === "templates" ? "Pilotage des affiches" : "Admin global"}
                 </p>
-                <h2 className={`mt-3 text-3xl font-black tracking-tight md:text-4xl ${strongText}`}>Tableau de contrôle</h2>
-                <p className={`mt-2 max-w-3xl text-sm leading-6 ${mutedText}`}>Vue claire par défaut, dark mode en option. Les filtres permettent de retrouver rapidement les affiches à modifier ou à suggérer.</p>
+                <h2 className={`mt-3 text-3xl font-black tracking-tight md:text-4xl ${strongText}`}>Tableau de contrÃ´le</h2>
+                <p className={`mt-2 max-w-3xl text-sm leading-6 ${mutedText}`}>Vue claire par défaut, dark mode en option. Les filtres permettent de retrouver rapidement les affiches Ã  modifier ou Ã  suggÃ©rer.</p>
               </div>
               <div className="flex flex-wrap gap-2 lg:hidden">
                 {navItems.map((item) => (
@@ -557,7 +787,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                 <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
                   <div>
                     <h3 className={`text-xl font-black ${strongText}`}>Affiches suggerables</h3>
-                    <p className={`mt-1 text-sm ${mutedText}`}>{filteredTemplates.length} affiche(s) affichée(s) sur {allTemplates.length}.</p>
+                    <p className={`mt-1 text-sm ${mutedText}`}>{filteredTemplates.length} affiche(s) affichÃ©e(s) sur {allTemplates.length}.</p>
                   </div>
                   <button
                     type="button"
@@ -566,17 +796,17 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                     className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Plus className="size-4" />
-                    {creating ? "Création..." : "Ajouter une affiche"}
+                    {creating ? "CrÃ©ation..." : "Ajouter une affiche"}
                   </button>
                 </div>
 
                 <div className="mt-5 grid gap-3 xl:grid-cols-[minmax(220px,1fr)_160px_150px_140px]">
                   <label className={`flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm ${inputClass}`}>
                     <Search className="size-4 opacity-60" />
-                    <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher par thème, tag, nom..." className="w-full bg-transparent outline-none" />
+                    <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher par thÃ¨me, tag, nom..." className="w-full bg-transparent outline-none" />
                   </label>
                   <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className={`rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>
-                    {TEMPLATE_CATEGORIES.map((category) => <option key={category} value={category}>{category === "ALL" ? "Toutes catégories" : category}</option>)}
+                    {TEMPLATE_CATEGORIES.map((category) => <option key={category} value={category}>{category === "ALL" ? "Toutes catÃ©gories" : category}</option>)}
                   </select>
                   <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} className={`rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>
                     {STATUS_FILTERS.map((statusOption) => <option key={statusOption} value={statusOption}>{statusOption === "ALL" ? "Tous statuts" : statusOption}</option>)}
@@ -594,12 +824,39 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                         key={template.id}
                         type="button"
                         onClick={() => setSelectedId(template.id)}
-                        className={`group overflow-hidden rounded-3xl border p-3 text-left transition ${
+                        className={`group relative overflow-hidden rounded-3xl border p-3 text-left transition ${
                           isSelected
                             ? isDark ? "border-emerald-300/70 bg-emerald-300/10" : "border-emerald-500 bg-emerald-50"
                             : isDark ? "border-white/10 bg-slate-950/55 hover:border-white/25" : "border-slate-200 bg-white hover:border-slate-300"
                         }`}
                       >
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Supprimer l'affiche ${template.name}`}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            void deleteTemplateById(template);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key !== "Enter" && event.key !== " ") return;
+                            event.preventDefault();
+                            event.stopPropagation();
+                            void deleteTemplateById(template);
+                          }}
+                          className={`absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border transition ${
+                            deletingId === template.id
+                              ? isDark
+                                ? "border-red-400/40 bg-red-500/20 text-red-100"
+                                : "border-red-200 bg-red-100 text-red-700"
+                              : isDark
+                                ? "border-white/10 bg-slate-950/80 text-slate-300 hover:border-red-400/40 hover:bg-red-500/20 hover:text-red-100"
+                                : "border-slate-200 bg-white/95 text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                          }`}
+                        >
+                          <Trash2 className={`size-4 ${deletingId === template.id ? "animate-pulse" : ""}`} />
+                        </span>
                         <div className="flex gap-3">
                           <div className={`h-24 w-20 flex-shrink-0 overflow-hidden rounded-2xl ${isDark ? "bg-slate-800" : "bg-slate-100"}`}>
                             {template.thumbnailUrl || template.previewUrl ? (
@@ -657,7 +914,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                       className={`rounded-2xl border border-dashed p-3 text-sm ${isDark ? "border-white/15 bg-white/5" : "border-slate-300 bg-slate-50"}`}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <span className={mutedText}>Glisser-déposer miniature PNG/JPEG/WebP</span>
+                        <span className={mutedText}>Glisser-dÃ©poser miniature PNG/JPEG/WebP</span>
                         <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-emerald-500 px-3 py-2 text-xs font-black text-white">
                           <UploadCloud className="size-4" />
                           {uploadingField === "thumbnail" ? "Upload..." : "Choisir"}
@@ -669,7 +926,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                         </label>
                       </div>
                     </div>
-                    <label className={`block text-sm font-semibold ${strongText}`}>URL aperçu / image de référence<input value={selectedTemplate.previewUrl ?? ""} onChange={(event) => updateSelectedTemplate({ previewUrl: event.target.value || null })} placeholder="https://..." className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
+                    <label className={`block text-sm font-semibold ${strongText}`}>URL aperÃ§u / image de rÃ©fÃ©rence<input value={selectedTemplate.previewUrl ?? ""} onChange={(event) => updateSelectedTemplate({ previewUrl: event.target.value || null })} placeholder="https://..." className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
                     <div
                       onDragOver={(event) => event.preventDefault()}
                       onDrop={(event) => {
@@ -680,7 +937,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                       className={`rounded-2xl border border-dashed p-3 text-sm ${isDark ? "border-white/15 bg-white/5" : "border-slate-300 bg-slate-50"}`}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <span className={mutedText}>Glisser-déposer affiche PNG/JPEG/WebP</span>
+                        <span className={mutedText}>Glisser-dÃ©poser affiche PNG/JPEG/WebP</span>
                         <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-emerald-500 px-3 py-2 text-xs font-black text-white">
                           <UploadCloud className="size-4" />
                           {uploadingField === "preview" ? "Upload..." : "Choisir"}
@@ -701,10 +958,139 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                     </div>
 
                     <button type="button" onClick={saveTemplate} disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"><Save className="size-4" />{saving ? "Enregistrement..." : "Enregistrer la fiche"}</button>
-                    <button type="button" onClick={deleteTemplate} disabled={deleting} className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${isDark ? "border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20" : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"}`}><Trash2 className="size-4" />{deleting ? "Suppression..." : "Supprimer cette affiche"}</button>
+                    <button type="button" onClick={deleteTemplate} disabled={deletingId === selectedTemplate.id} className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${isDark ? "border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20" : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"}`}><Trash2 className="size-4" />{deletingId === selectedTemplate.id ? "Suppression..." : "Supprimer cette affiche"}</button>
                     {status && <p className={`rounded-2xl border px-3 py-2 text-sm ${isDark ? "border-white/10 bg-white/10 text-slate-200" : "border-slate-200 bg-slate-50 text-slate-700"}`}>{status}</p>}
                   </div>
                 ) : <p className={`text-sm ${mutedText}`}>Aucune affiche disponible.</p>}
+              </aside>
+            </section>
+          )}
+
+          {(activeSection === "overview" || activeSection === "rhythms") && (
+            <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+              <div className={`rounded-[2rem] border p-5 ${panelClass}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className={`text-xl font-black ${strongText}`}>Rythmes de communauté</h3>
+                    <p className={`mt-1 text-sm ${mutedText}`}>Ces choix alimentent l&apos;inscription et les scénarios adaptés.</p>
+                  </div>
+                  <button type="button" onClick={createRhythm} className="rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-black text-white">
+                    <Plus className="mr-1 inline size-4" />Ajouter
+                  </button>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  {allRhythms.map((rhythm) => (
+                    <button
+                      key={rhythm.id}
+                      type="button"
+                      onClick={() => setSelectedRhythmId(rhythm.id)}
+                      className={`rounded-3xl border p-4 text-left transition ${selectedRhythm?.id === rhythm.id ? "border-emerald-400 bg-emerald-50" : isDark ? "border-white/10 bg-slate-950/55" : "border-slate-200 bg-white"}`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className={`font-black ${strongText}`}>{rhythm.name}</p>
+                          <p className={`mt-1 text-xs ${mutedText}`}>{rhythm.slug}</p>
+                        </div>
+                        <span className={`rounded-full px-2 py-1 text-xs font-bold ${rhythm.isActive ? "bg-emerald-500/15 text-emerald-600" : "bg-slate-500/15 text-slate-500"}`}>
+                          {rhythm.isActive ? "Actif" : "Inactif"}
+                        </span>
+                      </div>
+                      {rhythm.description && <p className={`mt-3 text-sm ${mutedText}`}>{rhythm.description}</p>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <aside className={`rounded-[2rem] border p-5 ${panelClass}`}>
+                {selectedRhythm ? (
+                  <div className="space-y-4">
+                    <h3 className={`font-black ${strongText}`}>Fiche rythme</h3>
+                    <label className={`block text-sm font-semibold ${strongText}`}>Nom<input value={selectedRhythm.name} onChange={(event) => updateSelectedRhythm({ name: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
+                    <label className={`block text-sm font-semibold ${strongText}`}>Slug<input value={selectedRhythm.slug} onChange={(event) => updateSelectedRhythm({ slug: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
+                    <label className={`block text-sm font-semibold ${strongText}`}>Description<textarea value={selectedRhythm.description ?? ""} onChange={(event) => updateSelectedRhythm({ description: event.target.value })} rows={4} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
+                    <label className={`block text-sm font-semibold ${strongText}`}>Ordre<input type="number" value={selectedRhythm.sortOrder} onChange={(event) => updateSelectedRhythm({ sortOrder: Number(event.target.value) })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
+                    <button type="button" onClick={() => updateSelectedRhythm({ isActive: !selectedRhythm.isActive })} className={`w-full rounded-2xl px-4 py-3 text-sm font-black ${selectedRhythm.isActive ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-700"}`}>
+                      {selectedRhythm.isActive ? "Actif" : "Inactif"}
+                    </button>
+                    <button type="button" onClick={saveRhythm} className="w-full rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-black text-white"><Save className="mr-1 inline size-4" />Enregistrer</button>
+                    <button type="button" onClick={() => deleteRhythm(selectedRhythm)} className="w-full rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-black text-red-700"><Trash2 className="mr-1 inline size-4" />Supprimer</button>
+                  </div>
+                ) : <p className={`text-sm ${mutedText}`}>Aucun rythme.</p>}
+              </aside>
+            </section>
+          )}
+
+          {(activeSection === "overview" || activeSection === "presets") && (
+            <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
+              <div className={`rounded-[2rem] border p-5 ${panelClass}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className={`text-xl font-black ${strongText}`}>Scénarios / automatisations prédéfinies</h3>
+                    <p className={`mt-1 text-sm ${mutedText}`}>Associez chaque scénario à un ou plusieurs rythmes, ou rendez-le global.</p>
+                  </div>
+                  <button type="button" onClick={createAutomationPreset} className="rounded-2xl bg-violet-600 px-4 py-2 text-sm font-black text-white">
+                    <Plus className="mr-1 inline size-4" />Ajouter
+                  </button>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  {allPresets.map((preset) => (
+                    <div key={preset.id} className={`relative rounded-3xl border p-4 ${selectedPreset?.id === preset.id ? "border-violet-300 bg-violet-50" : isDark ? "border-white/10 bg-slate-950/55" : "border-slate-200 bg-white"}`}>
+                      <button
+                        type="button"
+                        aria-label="Supprimer cette automatisation"
+                        onClick={() => deleteAutomationPreset(preset)}
+                        className="absolute right-3 top-3 rounded-full bg-red-500 p-1.5 text-white shadow-sm hover:bg-red-600"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                      <button type="button" onClick={() => setSelectedPresetId(preset.id)} className="block w-full pr-8 text-left">
+                        <p className={`font-black ${strongText}`}>{preset.icon ?? "⚡"} {preset.title}</p>
+                        <p className={`mt-1 text-xs ${mutedText}`}>{preset.category} · {preset.trigger}</p>
+                        <p className={`mt-2 line-clamp-2 text-sm ${mutedText}`}>{preset.description ?? "Aucune description."}</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className={`rounded-full px-2 py-1 text-xs font-bold ${preset.isActive ? "bg-emerald-500/15 text-emerald-600" : "bg-slate-500/15 text-slate-500"}`}>{preset.isActive ? "Actif" : "Inactif"}</span>
+                          <span className="rounded-full bg-violet-500/15 px-2 py-1 text-xs font-bold text-violet-600">{preset.isGlobal ? "Global" : `${getPresetRhythmIds(preset).length} rythme(s)`}</span>
+                          {preset.usageCount > 0 && <span className="rounded-full bg-amber-500/15 px-2 py-1 text-xs font-bold text-amber-700">{preset.usageCount} compte(s)</span>}
+                        </div>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <aside className={`rounded-[2rem] border p-5 ${panelClass}`}>
+                {selectedPreset ? (
+                  <div className="space-y-4">
+                    <h3 className={`font-black ${strongText}`}>Fiche scénario</h3>
+                    <label className={`block text-sm font-semibold ${strongText}`}>Titre<input value={selectedPreset.title} onChange={(event) => updateSelectedPreset({ title: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
+                    <label className={`block text-sm font-semibold ${strongText}`}>Description<textarea value={selectedPreset.description ?? ""} onChange={(event) => updateSelectedPreset({ description: event.target.value })} rows={4} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className={`block text-sm font-semibold ${strongText}`}>Catégorie<input value={selectedPreset.category} onChange={(event) => updateSelectedPreset({ category: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
+                      <label className={`block text-sm font-semibold ${strongText}`}>Icône<input value={selectedPreset.icon ?? ""} onChange={(event) => updateSelectedPreset({ icon: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
+                    </div>
+                    <label className={`block text-sm font-semibold ${strongText}`}>Déclencheur<select value={selectedPreset.trigger} onChange={(event) => updateSelectedPreset({ trigger: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>{["MANUAL","WEEKLY_SHABBAT","DAILY","CUSTOM_SCHEDULE","JEWISH_HOLIDAY","BEFORE_EVENT","EVENT_DAY","AFTER_EVENT"].map((trigger) => <option key={trigger} value={trigger}>{trigger}</option>)}</select></label>
+                    <label className={`block text-sm font-semibold ${strongText}`}>Configuration par défaut (JSON)<textarea value={JSON.stringify(selectedPreset.triggerConfig ?? {}, null, 2)} onChange={(event) => { try { updateSelectedPreset({ triggerConfig: JSON.parse(event.target.value) }); } catch {} }} rows={5} className={`mt-2 w-full rounded-2xl border px-3 py-2 font-mono text-xs outline-none ${inputClass}`} /></label>
+                    <label className={`block text-sm font-semibold ${strongText}`}>Actions (JSON)<textarea value={JSON.stringify(selectedPreset.actions ?? [], null, 2)} onChange={(event) => { try { updateSelectedPreset({ actions: JSON.parse(event.target.value) }); } catch {} }} rows={6} className={`mt-2 w-full rounded-2xl border px-3 py-2 font-mono text-xs outline-none ${inputClass}`} /></label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => updateSelectedPreset({ isActive: !selectedPreset.isActive })} className={`rounded-2xl px-3 py-2 text-xs font-black ${selectedPreset.isActive ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-700"}`}>{selectedPreset.isActive ? "Actif" : "Inactif"}</button>
+                      <button type="button" onClick={() => updateSelectedPreset({ isGlobal: !selectedPreset.isGlobal, rhythms: selectedPreset.isGlobal ? selectedPreset.rhythms : [] })} className={`rounded-2xl px-3 py-2 text-xs font-black ${selectedPreset.isGlobal ? "bg-violet-600 text-white" : "bg-slate-200 text-slate-700"}`}>{selectedPreset.isGlobal ? "Global" : "Par rythme"}</button>
+                    </div>
+                    <div className="space-y-2">
+                      <p className={`text-sm font-semibold ${strongText}`}>Rythmes associés</p>
+                      <div className="flex flex-wrap gap-2">
+                        {allRhythms.map((rhythm) => {
+                          const selected = getPresetRhythmIds(selectedPreset).includes(rhythm.id);
+                          return (
+                            <button key={rhythm.id} type="button" onClick={() => toggleSelectedPresetRhythm(rhythm.id)} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${selected ? "border-violet-300 bg-violet-600 text-white" : isDark ? "border-white/10 text-slate-300" : "border-slate-200 text-slate-600"}`}>
+                              {rhythm.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <button type="button" onClick={saveAutomationPreset} className="w-full rounded-2xl bg-violet-600 px-4 py-3 text-sm font-black text-white"><Save className="mr-1 inline size-4" />Enregistrer</button>
+                  </div>
+                ) : <p className={`text-sm ${mutedText}`}>Aucun scénario.</p>}
               </aside>
             </section>
           )}
@@ -713,20 +1099,20 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
             <section className="mt-6 grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
               <div className={`rounded-[2rem] border p-5 ${panelClass}`}>
                 <h3 className={`flex items-center gap-2 text-xl font-black ${strongText}`}><Zap className="size-5 text-violet-500" />Automatisations prédéfinies</h3>
-                <p className={`mt-1 text-sm ${mutedText}`}>Choisissez une communauté puis ajoutez un modèle au compte client.</p>
+                <p className={`mt-1 text-sm ${mutedText}`}>Choisissez une communauté puis ajoutez un modÃ¨le au compte client.</p>
                 <select value={automationCommunityFilter === "ALL" ? communities[0]?.id ?? "" : automationCommunityFilter} onChange={(event) => setAutomationCommunityFilter(event.target.value)} className={`mt-4 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>
                   {communities.map((community) => <option key={community.id} value={community.id}>{community.name}{community.city ? ` · ${community.city}` : ""}</option>)}
                 </select>
                 <div className="mt-4 space-y-3">
-                  {ADMIN_AUTOMATION_PRESETS.map((preset) => (
-                    <div key={preset.key} className={`rounded-3xl border p-4 ${isDark ? "border-white/10 bg-slate-950/55" : "border-slate-200 bg-slate-50"}`}>
+                  {allPresets.filter((preset) => preset.isActive).map((preset) => (
+                    <div key={preset.id} className={`rounded-3xl border p-4 ${isDark ? "border-white/10 bg-slate-950/55" : "border-slate-200 bg-slate-50"}`}>
                       <div className="flex gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm">{preset.logo}</div>
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm">{preset.icon ?? "⚡"}</div>
                         <div className="min-w-0 flex-1">
-                          <p className={`font-black ${strongText}`}>{preset.name}</p>
+                          <p className={`font-black ${strongText}`}>{preset.title}</p>
                           <p className={`mt-1 text-xs leading-5 ${mutedText}`}>{preset.description}</p>
-                          <button type="button" onClick={() => createPresetAutomation(preset.key)} disabled={automationSaving === preset.key} className="mt-3 rounded-xl bg-violet-600 px-3 py-2 text-xs font-black text-white hover:bg-violet-700 disabled:opacity-60">
-                            {automationSaving === preset.key ? "Ajout..." : "Ajouter au compte"}
+                          <button type="button" onClick={() => createPresetAutomation(preset.id)} disabled={automationSaving === preset.id} className="mt-3 rounded-xl bg-violet-600 px-3 py-2 text-xs font-black text-white hover:bg-violet-700 disabled:opacity-60">
+                            {automationSaving === preset.id ? "Ajout..." : "Ajouter au compte"}
                           </button>
                         </div>
                       </div>
@@ -739,7 +1125,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h3 className={`text-xl font-black ${strongText}`}>Automatisations utilisateurs</h3>
-                    <p className={`mt-1 text-sm ${mutedText}`}>{filteredAutomations.length} automatisation(s) affichée(s).</p>
+                    <p className={`mt-1 text-sm ${mutedText}`}>{filteredAutomations.length} automatisation(s) affichÃ©e(s).</p>
                   </div>
                   <select value={automationCommunityFilter} onChange={(event) => setAutomationCommunityFilter(event.target.value)} className={`rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>
                     <option value="ALL">Tous les comptes</option>
@@ -755,7 +1141,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                           <div>
                             <p className={`font-black ${strongText}`}>{automation.name}</p>
                             <p className={`mt-1 text-sm ${mutedText}`}>{automation.community?.name ?? "Compte inconnu"}{automation.community?.city ? ` · ${automation.community.city}` : ""}</p>
-                            <p className={`mt-1 text-xs ${mutedText}`}>{ownerUsers.map((user) => user.email).join(", ") || "Aucun utilisateur listé"}</p>
+                            <p className={`mt-1 text-xs ${mutedText}`}>{ownerUsers.map((user) => user.email).join(", ") || "Aucun utilisateur listÃ©"}</p>
                             <div className="mt-3 flex flex-wrap gap-2">
                               <span className="rounded-full bg-violet-500/15 px-2 py-1 text-xs font-bold text-violet-600">{automation.trigger}</span>
                               <span className={`rounded-full px-2 py-1 text-xs font-bold ${automation.isActive ? "bg-emerald-500/15 text-emerald-600" : "bg-slate-500/15 text-slate-500"}`}>{automation.isActive ? "Actif" : "Pause"}</span>

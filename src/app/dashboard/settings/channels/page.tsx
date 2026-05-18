@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ChannelsSettingsClient } from "@/components/settings/channels-settings-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Canaux — Shalom IA" };
+export const metadata: Metadata = { title: "Canaux — EasyCom AI" };
 
 export default async function ChannelsSettingsPage() {
   const { profile } = await requireAuth();

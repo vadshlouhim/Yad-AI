@@ -4,7 +4,7 @@ import { TemplatesClient } from "@/components/templates/templates-client";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Affiches — Shalom IA" };
+export const metadata: Metadata = { title: "Affiches — EasyCom AI" };
 
 export default async function TemplatesPage() {
   const { profile } = await requireAuth();
@@ -34,17 +34,10 @@ export default async function TemplatesPage() {
   }));
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
-        <p className="text-sm text-slate-100">
-          Choisissez une affiche existante, personnalisez les informations, puis validez la version finale.
-        </p>
-      </div>
-      <TemplatesClient
-        templates={hydratedTemplates as Parameters<typeof TemplatesClient>[0]["templates"]}
-        community={community!}
-        plan={community?.plan ?? "FREE_TRIAL"}
-      />
-    </div>
+    <TemplatesClient
+      templates={hydratedTemplates as Parameters<typeof TemplatesClient>[0]["templates"]}
+      community={community!}
+      plan={community?.plan ?? "FREE_TRIAL"}
+    />
   );
 }

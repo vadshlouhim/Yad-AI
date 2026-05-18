@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getHolidayTimes, getJewishHolidays, getShabbatTimes } from "@/lib/automation/hebcal";
 
-export const metadata: Metadata = { title: "Calendrier hébraïque — Shalom IA" };
+export const metadata: Metadata = { title: "Calendrier hébraïque — EasyCom AI" };
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -251,43 +251,45 @@ export default async function HebrewCalendarPage() {
 
   return (
     <div className="space-y-8">
-      <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-amber-50 p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+      <div className="overflow-hidden rounded-3xl border border-violet-300/70 bg-gradient-to-br from-violet-950 via-violet-900 to-indigo-900 p-6 text-white shadow-[0_24px_56px_rgba(76,29,149,0.28)]">
+        <div className="mb-4 h-1.5 w-10 rounded-full bg-violet-300" />
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-100/80">
           Ressource communautaire
         </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+        <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">
           Calendrier hébraïque
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-violet-100/90">
           Vue rapide du prochain Chabbat et des prochaines fêtes pour {community?.name ?? "ta communauté"}.
         </p>
       </div>
 
       {shabbat && (
-        <Card className="rounded-3xl border-slate-200 shadow-sm">
-          <CardHeader>
-            <CardTitle>Prochain Chabbat</CardTitle>
+        <Card className="overflow-hidden rounded-3xl border-violet-200 bg-white shadow-[0_18px_42px_rgba(124,58,237,0.12)]">
+          <CardHeader className="border-b border-violet-100 bg-gradient-to-r from-violet-50 via-white to-fuchsia-50">
+            <div className="h-1.5 w-10 rounded-full bg-violet-500" />
+            <CardTitle className="mt-3 text-2xl text-slate-950">Prochain Chabbat</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-500">Date</p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">{formatDate(shabbat.date)}</p>
+          <CardContent className="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-500">Date</p>
+              <p className="mt-1 text-sm font-bold text-slate-950">{formatDate(shabbat.date)}</p>
             </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-500">Date hébraïque</p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">{formatField(shabbat.hebrewDate)}</p>
+            <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-500">Date hebraique</p>
+              <p className="mt-1 text-sm font-bold text-slate-950">{formatField(shabbat.hebrewDate)}</p>
             </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-500">Paracha</p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">{formatField(shabbat.parasha)}</p>
+            <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-500">Paracha</p>
+              <p className="mt-1 text-sm font-bold text-slate-950">{formatField(shabbat.parasha)}</p>
             </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-500">Entrée</p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">{formatField(shabbat.entry || shabbat.candleLighting)}</p>
+            <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-500">Entree</p>
+              <p className="mt-1 text-sm font-bold text-slate-950">{formatField(shabbat.entry || shabbat.candleLighting)}</p>
             </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-500">Sortie</p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">{formatField(shabbat.exit || shabbat.havdalah)}</p>
+            <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-500">Sortie</p>
+              <p className="mt-1 text-sm font-bold text-slate-950">{formatField(shabbat.exit || shabbat.havdalah)}</p>
             </div>
           </CardContent>
         </Card>
@@ -296,33 +298,34 @@ export default async function HebrewCalendarPage() {
       {upcomingShabbatSchedule.length > 0 && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Horaires de Chabbat</h2>
+            <div className="mb-3 h-1.5 w-10 rounded-full bg-violet-500" />
+            <h2 className="text-2xl font-bold text-slate-950">Horaires de Chabbat</h2>
             <p className="mt-1 text-sm text-slate-500">
               Les prochains horaires d&apos;entrée et de sortie pour {shabbat?.cityName ?? community?.city ?? "ta ville"}.
             </p>
           </div>
 
-          <details className="group rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5">
+          <details className="group overflow-hidden rounded-3xl border border-violet-200 bg-white shadow-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 bg-gradient-to-r from-violet-50 via-white to-fuchsia-50 px-6 py-5">
               <div>
-                <p className="text-base font-semibold text-slate-900">Voir les prochains Chabbat</p>
+                <p className="text-base font-bold text-slate-950">Voir les prochains Chabbat</p>
                 <p className="mt-1 text-sm text-slate-500">
                   {upcomingShabbatSchedule.length} dates disponibles
                 </p>
               </div>
-              <span className="text-sm font-medium text-amber-700 transition group-open:rotate-180">
+              <span className="rounded-full border border-violet-200 bg-white px-3 py-1 text-sm font-bold text-violet-700 transition group-open:rotate-180">
                 ˅
               </span>
             </summary>
 
-            <div className="grid gap-4 border-t border-slate-200 p-6 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 border-t border-violet-100 p-6 md:grid-cols-2 xl:grid-cols-4">
               {upcomingShabbatSchedule.map((entry) => (
-                <Card key={entry.gregorian_date} className="rounded-3xl border-slate-200 shadow-sm">
+                <Card key={entry.gregorian_date} className="rounded-2xl border-violet-100 bg-white shadow-sm transition hover:border-violet-300 hover:shadow-md">
                   <CardContent className="space-y-4 p-5">
                     <div>
-                      <p className="text-base font-semibold text-slate-900">{formatDate(entry.gregorian_date)}</p>
+                      <p className="text-base font-bold text-slate-950">{formatDate(entry.gregorian_date)}</p>
                       {entry.parasha && (
-                        <p className="mt-1 text-sm text-slate-500">{entry.parasha}</p>
+                        <p className="mt-1 text-sm font-semibold text-violet-700">{entry.parasha}</p>
                       )}
                     </div>
 
@@ -349,24 +352,25 @@ export default async function HebrewCalendarPage() {
 
       <div className="space-y-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Prochaines fêtes</h2>
+          <div className="mb-3 h-1.5 w-10 rounded-full bg-violet-500" />
+          <h2 className="text-2xl font-bold text-slate-950">Prochaines fetes</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Les 12 prochaines dates importantes du calendrier hébraïque.
+            Les 12 prochaines dates importantes du calendrier hebraique.
           </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {upcomingHolidays.map((holiday) => (
-            <Card key={`${holiday.date}-${holiday.name}`} className="rounded-3xl border-slate-200 shadow-sm">
+            <Card key={`${holiday.date}-${holiday.name}`} className="rounded-2xl border-violet-100 bg-white shadow-sm transition hover:border-violet-300 hover:shadow-md">
               <CardContent className="space-y-4 p-5">
                 <div>
-                  <p className="text-lg font-semibold text-slate-900">{holiday.name}</p>
+                  <p className="text-lg font-bold text-slate-950">{holiday.name}</p>
                   {holiday.nameHebrew && (
-                    <p className="mt-1 text-sm text-slate-500">{holiday.nameHebrew}</p>
+                    <p className="mt-1 text-sm font-semibold text-violet-700">{holiday.nameHebrew}</p>
                   )}
                 </div>
 
-                <div className="space-y-2 text-sm text-slate-600">
+                <div className="space-y-2 rounded-2xl border border-violet-100 bg-violet-50/60 p-4 text-sm text-slate-600">
                   <p>
                     <span className="font-medium text-slate-900">Date :</span> {formatDate(holiday.date)}
                   </p>

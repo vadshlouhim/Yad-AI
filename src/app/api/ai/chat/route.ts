@@ -6,6 +6,7 @@ import { buildTemporalSystemContext } from "@/lib/ai/time-context";
 import { getStoredShabbatTimes } from "@/lib/ai/engine";
 import { getJewishHolidays, type JewishHoliday } from "@/lib/automation/hebcal";
 import { AUTOMATION_PRESETS, type AutomationPresetKey } from "@/lib/automation/presets";
+import { presetAppliesToCommunity, type PresetWithRhythms } from "@/lib/automation/preset-utils";
 import {
   buildArticleSuggestions,
   looksLikeArticleIntent,
@@ -37,11 +38,13 @@ interface AssistantActionCard {
     automationId?: string;
     isActive?: boolean;
     preset?: AutomationPresetKey;
+    presetId?: string;
   };
 }
 
 interface AutomationSummary {
   id: string;
+  presetId?: string | null;
   name: string;
   description: string | null;
   trigger: string;
@@ -141,8 +144,25 @@ function buildAutomationCards(automations: AutomationSummary[]): AssistantAction
   });
 }
 
-function buildAutomationSuggestionCards(automations: AutomationSummary[]): AssistantActionCard[] {
+function buildAutomationSuggestionCards(
+  automations: AutomationSummary[],
+  presets: PresetWithRhythms[] = []
+): AssistantActionCard[] {
   const existingNames = new Set(automations.map((automation) => normalizeIntent(automation.name)));
+
+  if (presets.length > 0) {
+    const existingPresetIds = new Set(automations.map((automation) => "presetId" in automation ? String((automation as AutomationSummary & { presetId?: string | null }).presetId ?? "") : ""));
+    return presets
+      .filter((preset) => !existingPresetIds.has(preset.id) && !existingNames.has(normalizeIntent(preset.title)))
+      .map((preset) => ({
+        id: `suggest-${preset.id}`,
+        type: "creation",
+        title: `${preset.icon ?? "⚡"} ${preset.title}`,
+        description: `${preset.description ?? "Automatisation prédéfinie par l'admin global."}`,
+        status: "Disponible",
+        action: { kind: "create_automation", presetId: preset.id },
+      }));
+  }
 
   return (Object.entries(AUTOMATION_PRESETS) as Array<[AutomationPresetKey, typeof AUTOMATION_PRESETS[AutomationPresetKey]]>)
     .filter(([, preset]) => !existingNames.has(normalizeIntent(preset.name)))
@@ -172,14 +192,14 @@ function buildCreateAutomationContent(suggestionCards: AssistantActionCard[]) {
     : "Toutes les automatisations disponibles sont déjà créées sur votre compte.";
 }
 
-function getSimplifiedShortcut(prompt: string, automations: AutomationSummary[]): { content: string; actions: AssistantActionCard[] } | null {
+function getSimplifiedShortcut(prompt: string, automations: AutomationSummary[], automationPresets: PresetWithRhythms[] = []): { content: string; actions: AssistantActionCard[] } | null {
   const intent = normalizeIntent(prompt);
   const talksAutomation = /automatisation|automation|programmation|automatique|automatiser|planifier|rappel automatique|publication automatique/.test(intent);
   const asksCurrentAutomations = /combien|nombre|mes automatisations|en cours|deja|déjà|active|actif|actives|etat|état|liste|voir/.test(intent);
   const asksCreateAutomations = /creer|cree|créer|crée|ajoute|ajouter|mettre en place|autres|propose|pertinentes|a creer|à créer|disponibles/.test(intent);
 
   if (talksAutomation) {
-    const suggestionCards = buildAutomationSuggestionCards(automations);
+    const suggestionCards = buildAutomationSuggestionCards(automations, automationPresets);
 
     if (asksCurrentAutomations) {
       return {
@@ -306,10 +326,10 @@ export async function POST(request: Request) {
     const hasExplicitVisualIntent = isUserPrompt && looksLikeTemplateIntent(lastUserMessage.content);
     const hasExplicitArticleIntent = isUserPrompt && looksLikeArticleIntent(lastUserMessage.content);
 
-    const [{ data: community }, { data: memories }, { data: candidateTemplates }, { data: candidateArticles }, { data: automations }] = await Promise.all([
+    const [{ data: community }, { data: memories }, { data: candidateTemplates }, { data: candidateArticles }, { data: automations }, { data: automationPresets }] = await Promise.all([
       admin
         .from("Community")
-        .select("name, city, timezone, tone, language, signature, hashtags, editorialRules, communityType, religiousStream")
+        .select("name, city, timezone, tone, language, signature, hashtags, editorialRules, communityType, rhythmId, religiousStream")
         .eq("id", profile.communityId)
         .single(),
       admin
@@ -337,10 +357,18 @@ export async function POST(request: Request) {
       isSimplifiedMode
         ? admin
             .from("Automation")
-            .select("id, name, description, trigger, isActive, status, nextRunAt, lastRunAt")
+            .select("id, presetId, name, description, trigger, isActive, status, nextRunAt, lastRunAt")
             .eq("communityId", profile.communityId)
             .order("createdAt", { ascending: false })
             .limit(12)
+        : Promise.resolve({ data: [] }),
+      isSimplifiedMode
+        ? admin
+            .from("AutomationPreset")
+            .select("*, rhythms:AutomationPresetRhythm(id, rhythmId, rhythm:CommunityRhythm(id, name, slug, isActive))")
+            .eq("isActive", true)
+            .order("sortOrder", { ascending: true })
+            .limit(24)
         : Promise.resolve({ data: [] }),
     ]);
 
@@ -446,7 +474,7 @@ export async function POST(request: Request) {
       (isUserPrompt && isShabbatRequest(lastUserMessage.content) && shabbatContext
         ? `\n\nCONTEXTE TEMPOREL CHABBAT :
 - Quand l'utilisateur parle de "Chabbat" sans autre précision, il s'agit par défaut du prochain Chabbat à venir.
-- Prochain Chabbat : ${formatFrenchDate(shabbatContext.date)}
+- Prochain Chabbat : ${shabbatContext.date ? formatFrenchDate(shabbatContext.date) : "Non précisé"}
 - Date hébraïque : ${shabbatContext.hebrewDate || "Non précisée"}
 - Paracha : ${shabbatContext.parasha || "Non précisée"}
 - Allumage des bougies : ${shabbatContext.entry || "Non précisé"}
@@ -603,8 +631,15 @@ export async function POST(request: Request) {
             return;
           }
 
+          const applicableAutomationPresets = ((automationPresets ?? []) as PresetWithRhythms[]).filter((preset) =>
+            presetAppliesToCommunity(preset, {
+              communityType: community.communityType,
+              rhythmId: community.rhythmId,
+            })
+          );
+
           const simplifiedShortcut = isSimplifiedMode && isUserPrompt
-            ? getSimplifiedShortcut(lastUserMessage.content, (automations ?? []) as AutomationSummary[])
+            ? getSimplifiedShortcut(lastUserMessage.content, (automations ?? []) as AutomationSummary[], applicableAutomationPresets)
             : null;
 
           if (simplifiedShortcut) {
@@ -743,7 +778,7 @@ async function generateTitle(
         {
           role: "system",
           content: [
-            "Tu renommes une conversation Shalom IA pour l'historique utilisateur.",
+            "Tu renommes une conversation EasyCom AI pour l'historique utilisateur.",
             "Génère un titre clair, concret et mémorisable en français.",
             "Le titre doit résumer le thème principal, pas être générique.",
             "3 à 6 mots maximum.",

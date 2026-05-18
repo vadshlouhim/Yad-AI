@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import {
   CATEGORY_EMOJI,
   CATEGORY_LABELS,
-  CATEGORY_QUESTIONS,
 } from "@/lib/templates/shared";
 
 // ============================================================
@@ -257,19 +256,19 @@ function TemplateCard({
   return (
     <Card
       className={cn(
-        "group cursor-pointer overflow-hidden rounded-2xl border-blue-100 bg-gradient-to-br from-blue-50 via-sky-100 to-indigo-100 p-2 shadow-sm ring-1 ring-white/80 transition-all hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-950/10",
+        "group cursor-pointer overflow-hidden rounded-[1.4rem] border border-amber-300 bg-white p-2 shadow-[0_14px_30px_-22px_rgba(146,64,14,0.22)] transition-all duration-200 hover:-translate-y-1 hover:border-amber-400 hover:shadow-[0_22px_40px_-24px_rgba(146,64,14,0.28)] active:scale-[0.99]",
         template.isPremium && !isPremiumUser && "opacity-60"
       )}
       onClick={() => onSelect(template)}
     >
-      <div className="rounded-xl border border-blue-100 bg-white p-1.5 shadow-inner">
-        <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-gradient-to-br from-slate-100 to-slate-200">
+      <div className="rounded-[1rem] border border-amber-100 bg-white p-1.5 shadow-inner">
+        <div className="relative aspect-[3/4] overflow-hidden rounded-[0.9rem] bg-slate-100">
           <PosterThumbnail
             template={template}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
 
-          <div className="absolute left-2 top-2 flex max-w-[70%] flex-wrap gap-1.5">
+          <div className="hidden absolute left-2 top-2 max-w-[70%] flex-wrap gap-1.5">
             <Badge variant="secondary" className="bg-white/90 text-[10px] backdrop-blur">
               {CATEGORY_EMOJI[template.category] ?? "🖼️"} {CATEGORY_LABELS[template.category] ?? template.category}
             </Badge>
@@ -320,7 +319,7 @@ export function TemplatesClient({ templates, community, plan }: Props) {
   const [activeSubCategory, setActiveSubCategory] = useState<string | null>(null);
   const [activeCollection, setActiveCollection] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [assistantPrompt, setAssistantPrompt] = useState("");
   const [generatedTexts, setGeneratedTexts] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [rendering, setRendering] = useState(false);
@@ -382,7 +381,7 @@ export function TemplatesClient({ templates, community, plan }: Props) {
   function selectTemplate(template: Template) {
     if (template.isPremium && !isPremiumUser) return;
     setSelectedTemplate(template);
-    setAnswers({});
+    setAssistantPrompt("");
     setGeneratedTexts({});
     setStep("questions");
   }
@@ -409,7 +408,9 @@ export function TemplatesClient({ templates, community, plan }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           templateId: selectedTemplate.id,
-          answers,
+          answers: {
+            prompt_libre: assistantPrompt.trim(),
+          },
         }),
       });
 
@@ -462,10 +463,6 @@ export function TemplatesClient({ templates, community, plan }: Props) {
     }
   }
 
-  const questions = selectedTemplate
-    ? CATEGORY_QUESTIONS[selectedTemplate.category] ?? CATEGORY_QUESTIONS.DEFAULT
-    : [];
-
   // ============================================================
   // RENDER — GALERIE
   // ============================================================
@@ -473,37 +470,34 @@ export function TemplatesClient({ templates, community, plan }: Props) {
   if (step === "gallery") {
     return (
       <div className="space-y-8">
-        <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-blue-50 p-6">
+        <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-[#8a4b11] via-[#a86216] to-[#c98319] p-6 shadow-[0_18px_40px_-28px_rgba(146,64,14,0.35)]">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">
-                Bibliothèque visuelle
-              </p>
-              <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-                Toutes les affiches
+              <div className="mb-3 h-1.5 w-10 rounded-full bg-amber-200/90" />
+              <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">
+                BANQUE D&apos;AFFICHES
               </h1>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Toute la base d&apos;affiches est maintenant visible ici, avec aperçu direct,
-                rangement par thème et sous-thème, et accès rapide à la personnalisation.
+              <p className="mt-2 text-sm leading-6 text-amber-50/90">
+                Choisissez parmi plus de 250 affiches prêtes à personnaliser, ajoutez vos informations, puis laissez l&apos;IA adapter le modèle et le publier en un clic.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <Card className="rounded-2xl border-slate-200 shadow-sm">
+              <Card className="rounded-2xl border-white/20 bg-white/10 shadow-sm backdrop-blur">
                 <CardContent className="p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Affiches</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">{templates.length}</p>
+                  <p className="text-xs uppercase tracking-wide text-amber-100">Affiches</p>
+                  <p className="mt-1 text-2xl font-bold text-white">{templates.length}</p>
                 </CardContent>
               </Card>
-              <Card className="rounded-2xl border-slate-200 shadow-sm">
+              <Card className="rounded-2xl border-white/20 bg-white/10 shadow-sm backdrop-blur">
                 <CardContent className="p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Catégories</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">{categories.length}</p>
+                  <p className="text-xs uppercase tracking-wide text-amber-100">Catégories</p>
+                  <p className="mt-1 text-2xl font-bold text-white">{categories.length}</p>
                 </CardContent>
               </Card>
-              <Card className="rounded-2xl border-slate-200 shadow-sm">
+              <Card className="rounded-2xl border-white/20 bg-white/10 shadow-sm backdrop-blur">
                 <CardContent className="p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Sous-thèmes</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">{subCategoryCount}</p>
+                  <p className="text-xs uppercase tracking-wide text-amber-100">Sous-thèmes</p>
+                  <p className="mt-1 text-2xl font-bold text-white">{subCategoryCount}</p>
                 </CardContent>
               </Card>
             </div>
@@ -520,7 +514,7 @@ export function TemplatesClient({ templates, community, plan }: Props) {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Rechercher une fête, un cours, une affiche, un thème…"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-11 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  className="w-full rounded-2xl border border-amber-200 bg-amber-50/40 py-3 pl-10 pr-11 text-sm text-slate-700 outline-none transition focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-100"
                 />
                 {search && (
                   <button
@@ -635,7 +629,7 @@ export function TemplatesClient({ templates, community, plan }: Props) {
           <div className="space-y-8">
             {categorySections.map((section) => (
               <section key={section.category} className="space-y-5">
-                <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-end sm:justify-between">
+                <div className="hidden flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                       {section.emoji} {section.label}
@@ -656,7 +650,7 @@ export function TemplatesClient({ templates, community, plan }: Props) {
                 <div className="space-y-6">
                   {section.groups.map((group) => (
                     <div key={`${section.category}-${group.key}`} className="space-y-3">
-                      <div className="flex items-center justify-between">
+                      <div className="hidden items-center justify-between">
                         <div>
                           <h3 className="text-base font-semibold text-slate-900">{group.label}</h3>
                           <p className="text-xs text-slate-500">
@@ -750,26 +744,36 @@ export function TemplatesClient({ templates, community, plan }: Props) {
           </CardContent>
         </Card>
 
-        {/* Questions */}
-        <Card>
-          <CardContent className="py-5 space-y-4">
-            <p className="text-sm font-semibold text-slate-700">
-              Répondez aux questions pour personnaliser votre affiche :
-            </p>
-            {questions.map((q) => (
-              <div key={q.id}>
-                <label className="text-sm font-medium text-slate-700 block mb-1.5">
-                  {q.label}
-                </label>
-                <input
-                  type="text"
-                  value={answers[q.id] ?? ""}
-                  onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
-                  placeholder={q.placeholder}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
+        {/* Assistant IA */}
+        <Card className="border-violet-100 bg-gradient-to-br from-white via-violet-50/70 to-fuchsia-50/60 shadow-sm">
+          <CardContent className="space-y-4 py-5">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-violet-700">
+                <Sparkles className="size-3.5" />
+                Assistant IA
               </div>
-            ))}
+              <p className="text-sm font-semibold text-slate-800">
+                Donnez-moi un maximum d&apos;informations, et l&apos;IA personnalisera l&apos;affiche selon ce que
+                vous indiquez.
+              </p>
+              <p className="text-sm text-slate-500">
+                Écrivez naturellement votre demande : indiquez le type d&apos;événement, la date, l&apos;heure, le
+                lieu, le public concerné, le texte à ajouter, le style souhaité et toute information utile.
+                L&apos;IA comprendra votre message et personnalisera l&apos;affiche directement.
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-violet-200 bg-white p-4 shadow-inner">
+              <label className="mb-2 block text-sm font-medium text-slate-700">
+                Décrivez librement votre affiche
+              </label>
+              <textarea
+                value={assistantPrompt}
+                onChange={(event) => setAssistantPrompt(event.target.value)}
+                placeholder="Exemple : Je veux créer une affiche pour un cours de Torah mardi soir à 20h30 au Beth Habad, animé par le Rav Cohen, sur le thème de la paracha. Je veux un style chaleureux, moderne et professionnel."
+                className="min-h-[220px] w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -780,13 +784,13 @@ export function TemplatesClient({ templates, community, plan }: Props) {
           </Button>
           <Button
             onClick={generateTexts}
-            disabled={loading || Object.keys(answers).length === 0}
+            disabled={loading || assistantPrompt.trim().length === 0}
             className="flex-1 bg-gradient-to-r from-blue-600 to-violet-600 text-white"
           >
             {loading ? (
               <><Loader2 className="size-4 mr-2 animate-spin" /> Génération en cours...</>
             ) : (
-              <><Sparkles className="size-4 mr-2" /> Générer avec l&apos;IA</>
+              <><Sparkles className="size-4 mr-2" /> Personnaliser avec l&apos;IA</>
             )}
           </Button>
         </div>

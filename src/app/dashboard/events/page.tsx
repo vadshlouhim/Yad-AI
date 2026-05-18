@@ -4,7 +4,7 @@ import { EventsClient } from "@/components/events/events-client";
 import { getShabbatTimes, getJewishHolidays } from "@/lib/automation/hebcal";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Mon quotidien — Shalom IA" };
+export const metadata: Metadata = { title: "Mon Agenda IA - EasyCom AI" };
 
 const EVENT_STATUSES = ["DRAFT", "READY", "SCHEDULED", "PUBLISHED", "COMPLETED", "ARCHIVED"];
 
@@ -68,7 +68,7 @@ export default async function EventsPage({
   const shabbatRows = await (async () => {
     const rows: ShabbatScheduleItem[] = [];
     for (const year of calendarYears) {
-      const primaryToken = city.split(/[\s,'-]+/).find((t) => t.trim().length >= 3)?.trim() ?? city;
+      const primaryToken = city.split(/[\s,'-]+/).find((t: string) => t.trim().length >= 3)?.trim() ?? city;
       const { data } = await admin
         .from("FranceCityShabbatSchedule")
         .select("shabbat_schedule")

@@ -6,10 +6,12 @@ export default function HomePage() {
       <div className="max-w-5xl text-center space-y-8">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3">
-          <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center">
-            <span className="text-white font-bold text-2xl">ש</span>
-          </div>
-          <span className="text-3xl font-bold tracking-tight">Shalom IA</span>
+          <img
+            src="/easycom-ai-logo.png"
+            alt="Logo EasyCom AI"
+            className="h-14 w-14 rounded-2xl bg-white/10 object-cover p-1"
+          />
+          <span className="text-3xl font-bold tracking-tight">EasyCom AI</span>
         </div>
 
         {/* Headline */}

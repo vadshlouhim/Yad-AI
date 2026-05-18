@@ -4,8 +4,8 @@ import { RegisterForm } from "@/components/auth/register-form";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Créer un compte — Shalom IA",
-  description: "Démarrez avec Shalom IA gratuitement",
+  title: "Créer un compte — EasyCom AI",
+  description: "Démarrez avec EasyCom AI gratuitement",
 };
 
 export default function RegisterPage() {
@@ -20,7 +20,7 @@ export default function RegisterPage() {
           <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
             <span className="text-white font-bold text-lg">ש</span>
           </div>
-          <span className="text-xl font-bold tracking-tight">Shalom IA</span>
+          <span className="text-xl font-bold tracking-tight">EasyCom AI</span>
         </div>
 
         <div className="space-y-6">
@@ -56,7 +56,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="text-blue-300 text-sm">
-          © {new Date().getFullYear()} Shalom IA — Communication communautaire augmentée
+          © {new Date().getFullYear()} EasyCom AI — Communication communautaire augmentée
         </div>
       </div>
 
@@ -67,7 +67,7 @@ export default function RegisterPage() {
             <div className="w-10 h-10 rounded-xl brand-gradient flex items-center justify-center">
               <span className="text-white font-bold text-lg">ש</span>
             </div>
-            <span className="text-xl font-bold text-slate-900">Shalom IA</span>
+            <span className="text-xl font-bold text-slate-900">EasyCom AI</span>
           </div>
 
           <div className="space-y-2">

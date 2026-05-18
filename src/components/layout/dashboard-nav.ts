@@ -1,14 +1,31 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  LayoutDashboard, Share2, Zap, MessageSquare,
-  Bot, BookOpen, Image, Video, CalendarDays, Calendar,
-  ShoppingBag, Globe, Settings, HelpCircle, Mail, History, Clock3,
+  Bell,
+  BookOpen,
+  Bot,
+  Calendar,
+  CalendarDays,
+  Clock3,
+  Globe,
+  HelpCircle,
+  History,
+  Image,
+  LayoutDashboard,
+  Mail,
+  MessageCircle,
+  MessageSquare,
+  Settings,
+  Share2,
+  ShoppingBag,
+  Video,
+  Zap,
 } from "lucide-react";
 
 export interface DashboardNavItem {
   href: string;
   label: string;
   icon: LucideIcon | null;
+  description?: string;
   badge?: string;
   action?: { label: string; href: string };
   external?: boolean;
@@ -20,12 +37,18 @@ export interface DashboardNavSection {
   items: DashboardNavItem[];
 }
 
+export interface DashboardDesktopCategory {
+  section: string;
+  icon: LucideIcon;
+  items: DashboardNavItem[];
+}
+
 export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActive: string }> = {
-  "GESTION DES RÉSEAUX SOCIAUX": {
+  "GESTION DES RESEAUX SOCIAUX": {
     label: "text-emerald-300",
     itemActive: "bg-emerald-700 text-white shadow-sm",
   },
-  "MESSAGERIE CONNECTÉE": {
+  "MESSAGERIE CONNECTEE": {
     label: "text-cyan-300",
     itemActive: "bg-cyan-700 text-white shadow-sm",
   },
@@ -33,7 +56,7 @@ export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActiv
     label: "text-blue-300",
     itemActive: "bg-blue-600 text-white shadow-sm",
   },
-  "RÉSEAUX SOCIAUX": {
+  "RESEAUX SOCIAUX": {
     label: "text-emerald-300",
     itemActive: "bg-emerald-700 text-white shadow-sm",
   },
@@ -41,7 +64,7 @@ export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActiv
     label: "text-cyan-300",
     itemActive: "bg-cyan-700 text-white shadow-sm",
   },
-  "RESSOURCES": {
+  RESSOURCES: {
     label: "text-violet-300",
     itemActive: "bg-violet-600 text-white shadow-sm",
   },
@@ -49,28 +72,31 @@ export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActiv
     label: "text-amber-300",
     itemActive: "bg-amber-600 text-white shadow-sm",
   },
-  "SERVICES": {
+  SERVICES: {
     label: "text-rose-300",
     itemActive: "bg-rose-600 text-white shadow-sm",
   },
+  PARAMETRES: {
+    label: "text-slate-300",
+    itemActive: "bg-slate-600 text-white shadow-sm",
+  },
 };
 
-// Item standalone affiché en haut, avant toutes les sections
 export const DASHBOARD_TOP_ITEM: DashboardNavItem = {
-  href: "/dashboard/overview",
-  label: "Tableau de bord",
-  icon: LayoutDashboard,
+  href: "/dashboard/notifications",
+  label: "Notification",
+  icon: Bell,
 };
 
 export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "ASSISTANT IA",
-    items: [{ href: "/dashboard/assistant", label: "Assistant IA", icon: Bot }],
+    items: [{ href: "/dashboard/assistant", label: "Assistent IA", icon: Bot }],
   },
   {
-    section: "RÉSEAUX SOCIAUX",
+    section: "RESEAUX SOCIAUX",
     items: [
-      { href: "/dashboard/settings/channels", label: "Connecter mes réseaux", icon: Share2 },
+      { href: "/dashboard/settings/channels", label: "Connecter mes reseaux", icon: Share2 },
       { href: "/dashboard/automations", label: "Automatisations", icon: Zap },
       { href: "/dashboard/messaging", label: "Messagerie", icon: MessageSquare },
       { href: "/dashboard/publications", label: "Historique des publications", icon: History },
@@ -78,15 +104,13 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   },
   {
     section: "ASSISTANT PERSONNEL",
-    items: [
-      { href: "/dashboard/events", label: "Agenda et quotidien", icon: CalendarDays },
-    ],
+    items: [{ href: "/dashboard/events", label: "Agenda et quotidien", icon: CalendarDays }],
   },
   {
     section: "RESSOURCES",
     items: [
       { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
-      { href: "/dashboard/hebrew-calendar", label: "Calendrier hébraïque", icon: Calendar },
+      { href: "/dashboard/hebrew-calendar", label: "Calendrier hebraique", icon: Calendar },
     ],
   },
   {
@@ -99,15 +123,15 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "SERVICES",
     items: [
-      { href: "/dashboard/clip-recap", label: "Clip récap", icon: Video },
+      { href: "/dashboard/clip-recap", label: "Clip recap", icon: Video },
       { href: "https://boutique.shalom-ia.com", label: "Boutique", icon: ShoppingBag, external: true },
-      { href: "/dashboard/website", label: "Création site web", icon: Globe },
+      { href: "/dashboard/website", label: "Creation site web", icon: Globe },
     ],
   },
   {
-    section: "PARAMÈTRES",
+    section: "PARAMETRES",
     items: [
-      { href: "/dashboard/settings", label: "Paramètres", icon: Settings },
+      { href: "/dashboard/settings", label: "Parametres", icon: Settings },
       { href: "/help", label: "Aide & FAQ", icon: HelpCircle },
       { href: "mailto:contact@shalom-ia.com", label: "Contact", icon: Mail },
     ],
@@ -118,5 +142,55 @@ export const MOBILE_PRIMARY_NAV: DashboardNavItem[] = [
   { href: "/dashboard/overview", label: "Accueil", icon: LayoutDashboard },
   { href: "/dashboard/assistant", label: "Assistant IA", icon: Bot },
   { href: "/dashboard/events", label: "Personnel", icon: Calendar },
-  { href: "/dashboard/settings", label: "Réglages", icon: Settings },
+  { href: "/dashboard/settings", label: "Reglages", icon: Settings },
+];
+
+export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
+  {
+    section: "RESEAUX SOCIAUX",
+    icon: Share2,
+    items: [
+      { href: "/dashboard/settings/channels", label: "Connecter mes reseaux", icon: Share2 },
+      { href: "/dashboard/automations", label: "Automatisations", icon: Zap },
+      { href: "/dashboard/publications", label: "Historique des publications", icon: History },
+    ],
+  },
+  {
+    section: "MESSAGERIE",
+    icon: MessageSquare,
+    items: [
+      { href: "/dashboard/messaging", label: "Messagerie", icon: MessageSquare },
+      {
+        href: "/dashboard/whatsapp",
+        label: "WhatsApp",
+        description: "Automatisation WhatsApp",
+        icon: MessageCircle,
+      },
+    ],
+  },
+  {
+    section: "AGENDA ET QUOTIDIEN",
+    icon: CalendarDays,
+    items: [{ href: "/dashboard/events", label: "Agenda et quotidien", icon: CalendarDays }],
+  },
+  {
+    section: "RESSOURCES",
+    icon: BookOpen,
+    items: [
+      { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
+      { href: "/dashboard/templates", label: "Affiches", icon: Image },
+      { href: "/dashboard/clip-recap", label: "Clip recap", icon: Video },
+      { href: "https://boutique.shalom-ia.com", label: "Boutique", icon: ShoppingBag, external: true },
+      { href: "/dashboard/website", label: "Creation site web", icon: Globe },
+    ],
+  },
+  {
+    section: "PARAMETRES",
+    icon: Settings,
+    items: [
+      { href: "/dashboard/settings", label: "Parametres", icon: Settings },
+      { href: "/help", label: "Aide & FAQ", icon: HelpCircle },
+      { href: "mailto:contact@shalom-ia.com", label: "Contact", icon: Mail },
+    ],
+  },
 ];

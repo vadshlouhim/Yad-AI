@@ -136,7 +136,7 @@ Format :
       }>;
     };
 
-    const elements = (parsed.elements ?? [])
+    const elements: TemplateVisualElementSuggestion[] = (parsed.elements ?? [])
       .filter((element) => element.label && element.question)
       .slice(0, 7)
       .map((element, index) => ({

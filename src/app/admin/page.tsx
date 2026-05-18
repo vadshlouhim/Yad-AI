@@ -6,7 +6,7 @@ import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Admin global - Shalom IA" };
+export const metadata: Metadata = { title: "Admin global - EasyCom AI" };
 
 type CountableTable =
   | "profiles"
@@ -16,6 +16,8 @@ type CountableTable =
   | "ContentDraft"
   | "MediaFile"
   | "Template"
+  | "CommunityRhythm"
+  | "AutomationPreset"
   | "Article"
   | "Automation"
   | "Event"
@@ -24,6 +26,11 @@ type CountableTable =
 async function countRows(admin: ReturnType<typeof createAdminClient>, table: CountableTable) {
   const { count } = await admin.from(table).select("id", { count: "exact", head: true });
   return count ?? 0;
+}
+
+function firstRelation<T>(relation: T | T[] | null | undefined): T | null {
+  if (Array.isArray(relation)) return relation[0] ?? null;
+  return relation ?? null;
 }
 
 export default async function AdminPage() {
@@ -50,6 +57,9 @@ export default async function AdminPage() {
     { data: communities },
     { data: users },
     { data: automations },
+    { data: rhythms },
+    { data: automationPresets },
+    { data: presetUsages },
     { data: recentConversations },
     { count: aiGeneratedDraftCount },
     { count: draftsWithImagesCount },
@@ -86,6 +96,17 @@ export default async function AdminPage() {
       .select("id, communityId, name, description, trigger, triggerConfig, actions, isActive, status, lastRunAt, nextRunAt, createdAt, updatedAt, community:Community(id, name, city)")
       .order("updatedAt", { ascending: false })
       .limit(200),
+    admin
+      .from("CommunityRhythm")
+      .select("*")
+      .order("sortOrder", { ascending: true })
+      .order("name", { ascending: true }),
+    admin
+      .from("AutomationPreset")
+      .select("*, rhythms:AutomationPresetRhythm(id, rhythmId, rhythm:CommunityRhythm(id, name, slug, isActive))")
+      .order("sortOrder", { ascending: true })
+      .order("title", { ascending: true }),
+    admin.from("Automation").select("id, presetId").not("presetId", "is", null),
     admin
       .from("Conversation")
       .select("id, title, communityId, createdAt, updatedAt, community:Community(name, city)")
@@ -131,8 +152,19 @@ export default async function AdminPage() {
       templates={hydratedTemplates}
       communities={communities ?? []}
       users={users ?? []}
-      automations={automations ?? []}
-      recentConversations={recentConversations ?? []}
+      automations={(automations ?? []).map((automation) => ({
+        ...automation,
+        community: firstRelation(automation.community),
+      }))}
+      rhythms={rhythms ?? []}
+      automationPresets={(automationPresets ?? []).map((preset) => ({
+        ...preset,
+        usageCount: (presetUsages ?? []).filter((automation) => automation.presetId === preset.id).length,
+      }))}
+      recentConversations={(recentConversations ?? []).map((conversation) => ({
+        ...conversation,
+        community: firstRelation(conversation.community),
+      }))}
     />
   );
 }

@@ -4,7 +4,7 @@ import { getJewishHolidays } from "@/lib/automation/hebcal";
 import { AssistantClient } from "@/components/assistant/assistant-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Assistant IA — Shalom IA" };
+export const metadata: Metadata = { title: "Assistant IA — EasyCom AI" };
 
 export default async function AssistantPage() {
   const { profile } = await requireAuth();
@@ -57,8 +57,8 @@ export default async function AssistantPage() {
   const quickActionPrompts = [
     {
       label: "Communication automatique",
-      description: "Shalom IA peut préparer, programmer et publier vos contenus au bon moment",
-      prompt: `Explique comment Shalom IA peut préparer, programmer et publier automatiquement les contenus au bon moment pour ma communauté. Appuie-toi si utile sur ce programme :\n${programContext}`,
+      description: "EasyCom AI peut préparer, programmer et publier vos contenus au bon moment",
+      prompt: `Explique comment EasyCom AI peut préparer, programmer et publier automatiquement les contenus au bon moment pour ma communauté. Appuie-toi si utile sur ce programme :\n${programContext}`,
     },
     {
       label: "Horaires de Chabbat",
@@ -67,21 +67,21 @@ export default async function AssistantPage() {
     },
     {
       label: "Assistant personnel",
-      description: "Shalom IA devient votre assistant du quotidien : \"Publier le rappel J-5\"",
-      prompt: `Montre comment Shalom IA peut agir comme assistant du quotidien, par exemple pour publier un rappel J-5, J-1 ou jour J. Programme connu :\n${programContext}`,
+      description: "EasyCom AI devient votre assistant du quotidien : \"Publier le rappel J-5\"",
+      prompt: `Montre comment EasyCom AI peut agir comme assistant du quotidien, par exemple pour publier un rappel J-5, J-1 ou jour J. Programme connu :\n${programContext}`,
     },
     {
       label: "Banque d'affiches",
       description: "Accédez à une banque de +250 affiches préremplies sur tous les thèmes juifs",
       prompt: nextHoliday
-        ? `Présente la banque d'affiches de Shalom IA et propose des affiches pertinentes pour ${nextHoliday.name}.`
+        ? `Présente la banque d'affiches de EasyCom AI et propose des affiches pertinentes pour ${nextHoliday.name}.`
         : "Présente la banque de plus de 250 affiches préremplies sur les thèmes juifs et aide-moi à choisir une affiche adaptée.",
     },
   ];
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
+      <div className="hidden">
         <p className="text-sm text-slate-100">
           Utilisez Assistant IA pour préparer vos publications, vos rappels et organiser votre quotidien avant validation.
         </p>

@@ -137,9 +137,10 @@ export function DailyRoutineWizard({ communityName, onSave, onCancel, saving }: 
       <div className="mx-auto w-full max-w-2xl">
 
         {/* Header */}
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-sky-400 shadow-md">
-            <Settings className="size-7 text-white" />
+        <div className="mb-6 overflow-hidden rounded-2xl border border-blue-200/80 bg-gradient-to-br from-white via-sky-50 to-cyan-50 p-5 text-center shadow-[0_14px_34px_rgba(14,165,233,0.14)]">
+          <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-sky-500" />
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-sky-400 shadow-sm">
+            <Settings className="size-6 text-white" />
           </div>
           <h2 className="text-xl font-bold text-slate-900">Définir mon quotidien</h2>
           <p className="mt-1 text-sm text-slate-500">
@@ -175,9 +176,15 @@ export function DailyRoutineWizard({ communityName, onSave, onCancel, saving }: 
         {/* ── Étape 0 : sélection des contenus ── */}
         {step === 0 && (
           <div className="space-y-4">
+            <div className="rounded-xl border border-sky-100 bg-white px-4 py-3">
+              <p className="text-sm font-semibold text-slate-700">Tu retrouves ces evenements du quotidien</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Selectionne les scenarios utiles puis ajuste la frequence, les jours et les canaux.
+              </p>
+            </div>
             <p className="text-sm font-medium text-slate-700">
               Quels contenus publiez-vous régulièrement ?{" "}
-              <span className="font-normal text-slate-400">(sélectionnez tout ce qui s'applique)</span>
+              <span className="font-normal text-slate-400">(sélectionnez tout ce qui s&apos;applique)</span>
             </p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {SUGGESTED_ACTIONS.map((action) => {
@@ -442,8 +449,8 @@ export function DailyRoutineWizard({ communityName, onSave, onCancel, saving }: 
 
             <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
               <p className="text-xs text-blue-700 leading-relaxed">
-                <strong>Shalom IA</strong> mémorisera ces actions et vous proposera proactivement les contenus au bon moment.
-                Vous pourrez toujours modifier via le bouton <strong>Mon quotidien</strong> dans l'assistant.
+                <strong>EasyCom AI</strong> mémorisera ces actions et vous proposera proactivement les contenus au bon moment.
+                Vous pourrez toujours modifier via le bouton <strong>Mon quotidien</strong> dans l&apos;assistant.
               </p>
             </div>
 

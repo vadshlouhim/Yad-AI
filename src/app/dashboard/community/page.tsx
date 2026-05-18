@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { CommunityClient } from "@/components/community/community-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Ma communauté — Shalom IA" };
+export const metadata: Metadata = { title: "Ma communauté — EasyCom AI" };
 
 export default async function CommunityPage() {
   const { profile } = await requireAuth();
