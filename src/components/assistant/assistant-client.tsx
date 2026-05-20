@@ -1185,7 +1185,12 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
       return;
     }
     if (card.action.kind === "switch_detailed") {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("shalom-assistant-experience", "detailed");
+      }
+      setAssistantExperienceState("detailed");
       setShowAllFeaturesMobile(true);
+      router.push(card.href ?? "/dashboard/settings?section=interface");
       return;
     }
 
@@ -2265,7 +2270,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                     const visualCards = automationCards.slice(0, 5);
                     const showCreateOnlyPanel = currentAutomations.length === 0 && availableAutomations.length > 0;
 
-                    const renderActionButton = (card: AssistantActionCard) => card.action && card.action.kind !== "switch_detailed" ? (
+                    const renderActionButton = (card: AssistantActionCard) => card.action ? (
                       <Button
                         size="sm"
                         className="h-8 text-xs"
@@ -2283,6 +2288,8 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                           <Plus className="size-3.5" />
                         ) : card.action.kind === "send_email" ? (
                           <Send className="size-3.5" />
+                        ) : card.action.kind === "switch_detailed" ? (
+                          <SlidersHorizontal className="size-3.5" />
                         ) : (
                           <Power className="size-3.5" />
                         )}
@@ -2296,7 +2303,9 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                                 ? "Configurer"
                                 : card.action.kind === "send_email"
                                   ? "Confirmer l'envoi"
-                                  : "Appliquer"}
+                                  : card.action.kind === "switch_detailed"
+                                    ? "Ouvrir les paramètres"
+                                    : "Appliquer"}
                       </Button>
                     ) : null;
 

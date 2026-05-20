@@ -67,8 +67,67 @@ body {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+@keyframes chatTyping {
+  0%, 70%, 100% { opacity: 0.35; transform: translateY(0); }
+  35% { opacity: 1; transform: translateY(-3px); }
+}
+@keyframes chatHome {
+  0%, 30% { opacity: 1; transform: translateY(0) scale(1); }
+  38%, 100% { opacity: 0; transform: translateY(-14px) scale(0.98); }
+}
+@keyframes chatInput {
+  0%, 12% { opacity: 0; transform: translateY(14px); }
+  18%, 50% { opacity: 1; transform: translateY(0); }
+  58%, 100% { opacity: 0; transform: translateY(12px); }
+}
+@keyframes typeLine {
+  0%, 18% { width: 0; }
+  42%, 100% { width: 100%; }
+}
+@keyframes chatNote {
+  0%, 50% { opacity: 0; transform: translateY(16px) scale(0.98); }
+  60%, 82% { opacity: 1; transform: translateY(0) scale(1); }
+  90%, 100% { opacity: 0; transform: translateY(-10px) scale(0.99); }
+}
+@keyframes chatActions {
+  0%, 66% { opacity: 0; transform: translateY(14px); }
+  74%, 88% { opacity: 1; transform: translateY(0); }
+  96%, 100% { opacity: 0; transform: translateY(10px); }
+}
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
 .animate-mobile-feature-card-in { animation: mobileFeatureCardIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-chat-home { animation: chatHome 7.5s ease-in-out infinite; }
+.animate-chat-input { animation: chatInput 7.5s ease-in-out infinite; }
+.animate-chat-note { animation: chatNote 7.5s ease-in-out infinite; }
+.animate-chat-actions { animation: chatActions 7.5s ease-in-out infinite; }
+.typing-line {
+  display: block;
+  max-width: max-content;
+  border-right: 2px solid #2563eb;
+  animation: typeLine 7.5s steps(55, end) infinite;
+}
+.typing-dot {
+  height: 0.45rem;
+  width: 0.45rem;
+  border-radius: 9999px;
+  background: #2563eb;
+  animation: chatTyping 1s ease-in-out infinite;
+}
+.animation-delay-150 { animation-delay: 150ms; }
+.animation-delay-300 { animation-delay: 300ms; }
+
+/* Hero animation — bulles de conversation */
+@keyframes msgBubbleIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+.msg-bubble-in { animation: msgBubbleIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Curseur clignotant de la barre de saisie */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
 
 /* Skeleton loader */
 .skeleton {
@@ -81,6 +140,45 @@ body {
 /* Gradient brand */
 .brand-gradient {
   background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+}
+
+/* ── Welcome / Onboarding finish animation ─────────────────────────────────── */
+@keyframes wIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes wOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes wCount {
+  0%   { opacity: 0; transform: scale(0.35); filter: blur(14px); }
+  28%  { opacity: 1; transform: scale(1.08); filter: blur(0); }
+  58%  { opacity: 1; transform: scale(1);    filter: blur(0); }
+  84%  { opacity: 1; transform: scale(1.04); filter: blur(0); }
+  100% { opacity: 0; transform: scale(1.55); filter: blur(10px); }
+}
+@keyframes wFlash {
+  0%   { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+@keyframes wSlide {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes wLogo {
+  0%   { opacity: 0; transform: scale(0.3) rotate(-14deg); }
+  55%  { opacity: 1; transform: scale(1.14) rotate(3deg); }
+  75%  { transform: scale(0.94) rotate(-1deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+@keyframes wGlow {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50%       { opacity: 1;    transform: scale(1.08); }
+}
+@keyframes wRing {
+  0%, 100% { box-shadow: 0 0 32px 10px rgba(37,99,235,0.35); }
+  50%       { box-shadow: 0 0 52px 18px rgba(37,99,235,0.55); }
 }
 
 /* Truncate multiline */

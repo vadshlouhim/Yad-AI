@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/topbar";
+import { headers } from "next/headers";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -15,6 +16,8 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { profile } = await requireAuth();
+  const pathname = (await headers()).get("x-current-pathname") ?? "";
+  const isSettingsPath = pathname.startsWith("/dashboard/settings");
 
   if (!profile.communityId) {
     redirect("/onboarding");
@@ -28,7 +31,11 @@ export default async function DashboardLayout({
     .eq("id", profile.communityId)
     .single();
 
-  if (!community || !community.onboardingDone) {
+  if (!community) {
+    redirect("/onboarding");
+  }
+
+  if (!community.onboardingDone && !isSettingsPath) {
     redirect("/onboarding");
   }
 

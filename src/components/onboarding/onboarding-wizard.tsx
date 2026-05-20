@@ -7,6 +7,7 @@ import { StepEditorial } from "./steps/step-editorial";
 import { StepChannels } from "./steps/step-channels";
 import { StepRecurring } from "./steps/step-recurring";
 import { StepFinish } from "./steps/step-finish";
+import { WelcomeAnimation } from "./welcome-animation";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 
@@ -14,7 +15,7 @@ const STEPS = [
   { id: 0, label: "Identité", description: "Votre communauté" },
   { id: 1, label: "Éditorial", description: "Ton & règles" },
   { id: 2, label: "Canaux", description: "Où diffuser" },
-  { id: 3, label: "Récurrences", description: "Événements types" },
+  { id: 3, label: "Agenda", description: "Récurrences" },
   { id: 4, label: "C'est parti !", description: "Finalisation" },
 ];
 
@@ -22,9 +23,7 @@ export interface OnboardingData {
   // Étape 1 — Identité
   communityName: string;
   communityType: string;
-  rhythmId: string;
-  rhythmOther: string;
-  religiousStream: string;
+  description: string;
   city: string;
   country: string;
   timezone: string;
@@ -59,10 +58,8 @@ export interface OnboardingData {
 
 const defaultData: OnboardingData = {
   communityName: "",
-  communityType: "SYNAGOGUE",
-  rhythmId: "",
-  rhythmOther: "",
-  religiousStream: "",
+  communityType: "ASSOCIATION",
+  description: "",
   city: "",
   country: "France",
   timezone: "Europe/Paris",
@@ -91,6 +88,7 @@ export function OnboardingWizard({ userId, userName, initialStep = 0 }: Props) {
   const [currentStep, setCurrentStep] = useState(initialStep);
   const [data, setData] = useState<OnboardingData>(defaultData);
   const [saving, setSaving] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   function updateData(partial: Partial<OnboardingData>) {
     setData((prev) => ({ ...prev, ...partial }));
@@ -115,7 +113,8 @@ export function OnboardingWizard({ userId, userName, initialStep = 0 }: Props) {
 
       if (!res.ok) throw new Error("Erreur lors de la sauvegarde");
 
-      router.push("/dashboard/assistant?welcome=true");
+      // Déclenche l'animation de bienvenue avant la redirection
+      setShowWelcome(true);
     } catch (err) {
       console.error(err);
       setSaving(false);
@@ -124,22 +123,29 @@ export function OnboardingWizard({ userId, userName, initialStep = 0 }: Props) {
 
   const stepProps = { data, updateData, onNext: goNext, onPrev: goPrev };
 
+  if (showWelcome) {
+    return (
+      <WelcomeAnimation
+        onComplete={() => router.push("/dashboard/assistant?welcome=true")}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center px-4 py-8 sm:py-12">
-      {/* En-tête de bienvenue */}
+      {/* En-tête */}
       <div className="w-full max-w-2xl mb-8 sm:mb-10 text-center space-y-2">
         <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
           Bienvenue, {userName.split(" ")[0]} 👋
         </h1>
         <p className="text-sm text-slate-500 sm:text-base">
-          Configurons votre communauté en quelques étapes — cela prend moins de 5 minutes.
+          Configurons votre communauté en 2 minutes — vous pourrez tout modifier ensuite.
         </p>
       </div>
 
       {/* Barre de progression */}
       <div className="w-full max-w-2xl mb-8 sm:mb-10 overflow-x-auto">
         <div className="relative flex min-w-[520px] items-center justify-between">
-          {/* Ligne de connexion */}
           <div className="absolute left-0 right-0 top-4 h-0.5 bg-slate-200 -z-0" />
           <div
             className="absolute left-0 top-4 h-0.5 bg-blue-600 transition-all duration-500 -z-0"

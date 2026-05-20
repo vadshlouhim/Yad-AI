@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/login-form";
 import { Metadata } from "next";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { CalendarDays, Sparkles, Radio, Users } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Connexion — EasyCom AI",
@@ -39,14 +40,14 @@ export default function LoginPage() {
 
           <div className="grid gap-4">
             {[
-              { icon: "🗓️", text: "Gestion des événements récurrents" },
-              { icon: "✍️", text: "Génération de contenu par IA" },
-              { icon: "📡", text: "Diffusion multicanale automatisée" },
-              { icon: "🕍", text: "Calendrier hébraïque intégré" },
-            ].map((item) => (
-              <div key={item.text} className="flex items-center gap-3">
-                <span className="text-xl">{item.icon}</span>
-                <span className="text-blue-100">{item.text}</span>
+              { icon: CalendarDays, text: "Gestion des événements récurrents" },
+              { icon: Sparkles, text: "Génération de contenu par IA" },
+              { icon: Radio, text: "Diffusion multicanale automatisée" },
+              { icon: Users, text: "Adapté à tous types de communautés" },
+            ].map(({ icon: Icon, text }) => (
+              <div key={text} className="flex items-center gap-3">
+                <Icon className="size-5 shrink-0 text-blue-300" />
+                <span className="text-blue-100">{text}</span>
               </div>
             ))}
           </div>

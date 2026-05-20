@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +32,7 @@ interface GoogleReview {
   rating: number;
   comment: string;
   relativeTime: string;
-  timestamp: Date;
+  timestamp: Date | string;
   answered: boolean;
   replyText?: string;
 }
@@ -81,32 +81,41 @@ const DEFAULT_REVIEWS: GoogleReview[] = [
   },
 ];
 
+function isBrowserStorageAvailable() {
+  return typeof window !== "undefined" && Boolean(window.localStorage);
+}
+
+function getStoredGmbConnected() {
+  return isBrowserStorageAvailable() && window.localStorage.getItem("gmb_connected") === "true";
+}
+
+function getStoredGmbLocation() {
+  return isBrowserStorageAvailable() ? window.localStorage.getItem("gmb_location_name") ?? "" : "";
+}
+
+function getStoredReviews() {
+  if (!getStoredGmbConnected()) return [];
+
+  const savedReviews = window.localStorage.getItem("easycom_gmb_reviews");
+  if (!savedReviews) return DEFAULT_REVIEWS;
+
+  try {
+    return JSON.parse(savedReviews) as GoogleReview[];
+  } catch {
+    return DEFAULT_REVIEWS;
+  }
+}
+
 export function ReviewsClient() {
-  const [gmbConnected, setGmbConnected] = useState(false);
-  const [gmbLocation, setGmbLocation] = useState("");
-  const [reviews, setReviews] = useState<GoogleReview[]>([]);
+  const [analysisNow] = useState(() => Date.now());
+  const [gmbConnected, setGmbConnected] = useState(getStoredGmbConnected);
+  const [gmbLocation, setGmbLocation] = useState(getStoredGmbLocation);
+  const [reviews, setReviews] = useState<GoogleReview[]>(getStoredReviews);
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<"ALL" | "URGENT_ONLY" | "UNANSWERED" | "BAD_ONLY">("ALL");
   const [replyText, setReplyText] = useState("");
   const [isAiDrafting, setIsAiDrafting] = useState(false);
   const [aiDraft, setAiDraft] = useState("");
-
-  useEffect(() => {
-    const isConn = window.localStorage.getItem("gmb_connected") === "true";
-    const loc = window.localStorage.getItem("gmb_location_name") ?? "";
-    setGmbConnected(isConn);
-    setGmbLocation(loc);
-
-    if (isConn) {
-      const savedReviews = window.localStorage.getItem("easycom_gmb_reviews");
-      if (savedReviews) {
-        setReviews(JSON.parse(savedReviews));
-      } else {
-        setReviews(DEFAULT_REVIEWS);
-        window.localStorage.setItem("easycom_gmb_reviews", JSON.stringify(DEFAULT_REVIEWS));
-      }
-    }
-  }, []);
 
   const handleConnectGMB = () => {
     if (gmbConnected) {
@@ -143,7 +152,7 @@ export function ReviewsClient() {
       };
     }
 
-    const hoursSinceCreated = (Date.now() - new Date(review.timestamp).getTime()) / 3600000;
+    const hoursSinceCreated = (analysisNow - new Date(review.timestamp).getTime()) / 3600000;
     const isVeryRecent = hoursSinceCreated < 24;
 
     if (review.rating <= 2) {
@@ -189,33 +198,29 @@ export function ReviewsClient() {
     return reviews.find((r) => r.id === selectedReviewId) || null;
   }, [reviews, selectedReviewId]);
 
-  const filteredReviews = useMemo(() => {
-    return reviews.filter((r) => {
-      const analysis = getAiAnalysis(r);
-      if (activeFilter === "URGENT_ONLY") {
-        return !r.answered && (analysis.level === "EXTREME" || analysis.level === "URGENT");
-      }
-      if (activeFilter === "UNANSWERED") {
-        return !r.answered;
-      }
-      if (activeFilter === "BAD_ONLY") {
-        return r.rating <= 2;
-      }
-      return true;
-    });
-  }, [reviews, activeFilter]);
+  const filteredReviews = reviews.filter((r) => {
+    const analysis = getAiAnalysis(r);
+    if (activeFilter === "URGENT_ONLY") {
+      return !r.answered && (analysis.level === "EXTREME" || analysis.level === "URGENT");
+    }
+    if (activeFilter === "UNANSWERED") {
+      return !r.answered;
+    }
+    if (activeFilter === "BAD_ONLY") {
+      return r.rating <= 2;
+    }
+    return true;
+  });
 
-  const counts = useMemo(() => {
-    const total = reviews.length;
-    const unanswered = reviews.filter((r) => !r.answered).length;
-    const urgent = reviews.filter((r) => {
+  const counts = {
+    total: reviews.length,
+    unanswered: reviews.filter((r) => !r.answered).length,
+    urgent: reviews.filter((r) => {
       const analysis = getAiAnalysis(r);
       return !r.answered && (analysis.level === "EXTREME" || analysis.level === "URGENT");
-    }).length;
-    const bad = reviews.filter((r) => r.rating <= 2).length;
-
-    return { total, unanswered, urgent, bad };
-  }, [reviews]);
+    }).length,
+    bad: reviews.filter((r) => r.rating <= 2).length,
+  };
 
   const handleDraftWithAi = () => {
     if (!selectedReview) return;

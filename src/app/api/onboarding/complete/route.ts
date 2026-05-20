@@ -21,10 +21,6 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient();
 
-    const rhythmId = typeof data.rhythmId === "string" && data.rhythmId
-      ? (await admin.from("CommunityRhythm").select("id").eq("id", data.rhythmId).maybeSingle()).data?.id ?? null
-      : null;
-
     // Générer un slug unique
     const baseSlug = slugify(data.communityName);
     let slug = baseSlug;
@@ -42,15 +38,17 @@ export async function POST(request: Request) {
         id: crypto.randomUUID(),
         name: data.communityName,
         slug,
+        description: data.description || null,
         city: data.city || null,
         country: data.country || "France",
         timezone: data.timezone || "Europe/Paris",
         phone: data.phone || null,
         email: data.email || null,
         website: data.website || null,
-        communityType: data.communityType || "SYNAGOGUE",
-        rhythmId,
-        religiousStream: data.religiousStream || null,
+        address: data.address || null,
+        logoUrl: data.logoUrl || null,
+        communityType: data.communityType || "ASSOCIATION",
+        religiousStream: null,
         tone: data.tone || "MODERN",
         language: data.language || "fr",
         signature: data.signature || null,
@@ -90,24 +88,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Créer l'automatisation Chabbat par défaut
-    await admin.from("Automation").insert({
-      id: crypto.randomUUID(),
-      communityId: community.id,
-      name: "Horaires de Chabbat — hebdomadaire",
-      description: "Génère et publie automatiquement les horaires du Chabbat chaque semaine",
-      trigger: "WEEKLY_SHABBAT",
-      triggerConfig: { daysBefore: 1, time: "10:00" },
-      actions: [
-        { type: "GENERATE_CONTENT", contentType: "SHABBAT_TIMES", channels: ["INSTAGRAM", "FACEBOOK", "WHATSAPP"] },
-        { type: "CREATE_PUBLICATION", requiresValidation: true },
-      ],
-      isActive: true,
-      status: "ACTIVE",
-      updatedAt: new Date().toISOString(),
-    });
-
-    // 5. Créer les événements récurrents
+    // 4. Créer les événements récurrents
     if (data.recurringEvents && data.recurringEvents.length > 0) {
       for (const event of data.recurringEvents) {
         await admin.from("Event").insert({
@@ -119,14 +100,14 @@ export async function POST(request: Request) {
           isRecurring: true,
           recurrenceRule: event.dayOfWeek !== undefined
             ? { freq: "WEEKLY", byday: ["SU", "MO", "TU", "WE", "TH", "FR", "SA"][event.dayOfWeek] }
-            : { freq: "WEEKLY" },
+            : { freq: "MONTHLY" },
           status: "SCHEDULED",
           updatedAt: new Date().toISOString(),
         });
       }
     }
 
-    // 6. Initialiser la mémoire IA
+    // 5. Initialiser la mémoire IA
     await admin.from("AIMemory").insert([
       {
         id: crypto.randomUUID(),
@@ -144,9 +125,22 @@ export async function POST(request: Request) {
         value: { hashtags: data.hashtags || [] },
         updatedAt: new Date().toISOString(),
       },
+      {
+        id: crypto.randomUUID(),
+        communityId: community.id,
+        type: "COMMUNITY_PROFILE",
+        key: "identity",
+        value: {
+          communityType: data.communityType || "ASSOCIATION",
+          description: data.description || null,
+          city: data.city || null,
+          country: data.country || "France",
+        },
+        updatedAt: new Date().toISOString(),
+      },
     ]);
 
-    // 7. Log audit
+    // 6. Log audit
     await admin.from("AuditLog").insert({
       id: crypto.randomUUID(),
       userId,
@@ -154,7 +148,7 @@ export async function POST(request: Request) {
       action: "community.created",
       resource: "Community",
       resourceId: community.id,
-      newData: { name: community.name, slug: community.slug },
+      newData: { name: community.name, slug: community.slug, communityType: community.communityType },
     });
 
     return NextResponse.json({ success: true, communityId: community.id });

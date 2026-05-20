@@ -78,8 +78,11 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true, id: data?.id });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[Email API Catch Error]", error);
-    return NextResponse.json({ error: error.message || "Erreur interne" }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Erreur interne" },
+      { status: 500 }
+    );
   }
 }

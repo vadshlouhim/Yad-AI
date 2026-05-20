@@ -58,7 +58,7 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
       <header className="z-10 flex h-16 flex-shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 lg:px-6">
         <div className="lg:hidden">
           <button
-            onClick={() => router.push("/dashboard/assistant")}
+            onClick={() => setMobileNavOpen(true)}
             className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
             aria-label="Ouvrir la navigation"
           >
@@ -138,7 +138,7 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
                     <p className="mt-0.5 text-xs text-slate-400">{communityName}</p>
                   </div>
                   <Link
-                    href="/dashboard/settings/profile"
+                    href="/dashboard/settings?section=profile"
                     className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
                     onClick={() => setUserMenuOpen(false)}
                   >

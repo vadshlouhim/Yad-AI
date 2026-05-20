@@ -20,6 +20,7 @@ import {
 } from "@/lib/templates/shared";
 import { analyzeTemplateVisuals } from "@/lib/templates/analysis";
 import OpenAI from "openai";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 const openrouter = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
@@ -52,6 +53,32 @@ interface AutomationSummary {
   status: string;
   nextRunAt: string | null;
   lastRunAt: string | null;
+}
+
+interface CommunityContext {
+  name: string;
+  city: string | null;
+  timezone: string;
+  tone: string;
+  language: string;
+  signature: string | null;
+  hashtags: string[] | null;
+  editorialRules: string | null;
+  communityType: string;
+  rhythmId: string | null;
+  religiousStream: string | null;
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Erreur inconnue";
+}
+
+function getErrorDebug(error: unknown) {
+  if (error && typeof error === "object") {
+    const maybeResponse = error as { response?: { data?: unknown }; message?: unknown };
+    return maybeResponse.response?.data ?? maybeResponse.message ?? error;
+  }
+  return error;
 }
 
 function isShabbatRequest(text: string): boolean {
@@ -271,6 +298,7 @@ function getSimplifiedShortcut(prompt: string, automations: AutomationSummary[],
           type: "navigation",
           title: "Passer en mode détaillé",
           description: "Affiche les menus experts pour modifier les parametres avances.",
+          href: "/dashboard/settings?section=interface",
           action: { kind: "switch_detailed" },
         },
       ],
@@ -371,7 +399,20 @@ export async function POST(request: Request) {
             .limit(24)
         : Promise.resolve({ data: [] }),
     ]);
-    let community = dbCommunity as any;
+    const communityData = (dbCommunity as Partial<CommunityContext> | null) ?? {};
+    const community: CommunityContext = {
+      name: communityData.name ?? "Ma communauté",
+      city: communityData.city ?? "Paris",
+      timezone: communityData.timezone ?? "Europe/Paris",
+      tone: communityData.tone ?? "MODERN",
+      language: communityData.language ?? "fr",
+      signature: communityData.signature ?? null,
+      hashtags: communityData.hashtags ?? [],
+      editorialRules: communityData.editorialRules ?? null,
+      communityType: communityData.communityType ?? "SYNAGOGUE",
+      rhythmId: communityData.rhythmId ?? null,
+      religiousStream: communityData.religiousStream ?? null,
+    };
 
     const { data: dailyRoutineMemory } = await admin
       .from("AIMemory")
@@ -380,23 +421,6 @@ export async function POST(request: Request) {
       .eq("type", "RECURRING_CONTENT")
       .eq("key", "daily_routine")
       .maybeSingle();
-
-    if (!community) {
-      // Si la communauté n'existe pas encore (ex: nouvel utilisateur), on utilise un contexte par défaut
-      // au lieu de retourner une erreur 404 qui bloque l'utilisation de l'assistant.
-      community = {
-        name: "Ma communauté",
-        city: "Paris",
-        timezone: "Europe/Paris",
-        tone: "MODERN",
-        language: "fr",
-        hashtags: [],
-        editorialRules: null,
-        communityType: "SYNAGOGUE",
-        rhythmId: null,
-        religiousStream: null
-      };
-    }
 
     const now = new Date();
     const timezone = community.timezone ?? "Europe/Paris";
@@ -695,10 +719,10 @@ export async function POST(request: Request) {
             ? buildSimplifiedResponseRules({ automations: (automations ?? []) as AutomationSummary[] })
             : "";
 
-          let currentMessages = [
+          const currentMessages: ChatCompletionMessageParam[] = [
             { role: "system", content: systemPrompt + simplifiedSystemContext },
             ...messages.slice(-20),
-          ] as any[];
+          ];
 
           let needsToolExecution = true;
           let maxLoops = 3;
@@ -832,45 +856,51 @@ export async function POST(request: Request) {
               for (const toolCall of responseMessage.tool_calls) {
                 let result = "Action exécutée avec succès";
                 try {
-                  const toolCallAny = toolCall as any;
-                  const args = JSON.parse(toolCallAny.function.arguments);
-                  if (toolCallAny.function.name === "update_community_settings") {
+                  if (toolCall.type !== "function") {
+                    continue;
+                  }
+                  const toolFunction = toolCall.function;
+                  const args = JSON.parse(toolFunction.arguments) as Record<string, unknown>;
+                  if (toolFunction.name === "update_community_settings") {
                     await admin.from("Community").update(args).eq("id", profile.communityId);
-                  } else if (toolCallAny.function.name === "toggle_automation") {
+                  } else if (toolFunction.name === "toggle_automation") {
                     await admin.from("Automation").update({ isActive: args.isActive }).eq("id", args.automationId);
-                  } else if (toolCallAny.function.name === "delete_automation") {
+                  } else if (toolFunction.name === "delete_automation") {
                     await admin.from("Automation").delete().eq("id", args.automationId);
-                  } else if (toolCallAny.function.name === "create_automation") {
+                  } else if (toolFunction.name === "create_automation") {
                     const id = crypto.randomUUID();
                     const automationData = {
                       id,
                       communityId: profile.communityId,
-                      name: args.name,
-                      description: args.description || null,
-                      trigger: args.trigger,
-                      triggerConfig: args.triggerConfig || {},
-                      actions: args.actions || [],
+                      name: String(args.name ?? "Automatisation"),
+                      description: typeof args.description === "string" ? args.description : null,
+                      trigger: String(args.trigger ?? "CUSTOM_SCHEDULE"),
+                      triggerConfig: args.triggerConfig && typeof args.triggerConfig === "object" ? args.triggerConfig : {},
+                      actions: Array.isArray(args.actions) ? args.actions : [],
                       isActive: true,
                       status: "ACTIVE"
                     };
                     await admin.from("Automation").insert(automationData);
-                    result = `Automatisation '${args.name}' créée avec succès (ID: ${id})`;
-                  } else if (toolCallAny.function.name === "send_email") {
-                    result = `Brouillon d'e-mail préparé pour ${args.to}. En attente de confirmation de l'utilisateur.`;
+                    result = `Automatisation '${automationData.name}' créée avec succès (ID: ${id})`;
+                  } else if (toolFunction.name === "send_email") {
+                    const emailTo = String(args.to ?? "");
+                    const emailSubject = String(args.subject ?? "");
+                    const emailBody = String(args.body ?? "");
+                    result = `Brouillon d'e-mail préparé pour ${emailTo}. En attente de confirmation de l'utilisateur.`;
                     controller.enqueue(
                       encoder.encode(`data: ${JSON.stringify({ 
                         type: "assistant_actions", 
                         actions: [{
                           id: crypto.randomUUID(),
                           type: "email",
-                          title: `Envoi d'e-mail à ${args.to}`,
-                          description: `Sujet : ${args.subject}\n\n${args.body}`,
+                          title: `Envoi d'e-mail à ${emailTo}`,
+                          description: `Sujet : ${emailSubject}\n\n${emailBody}`,
                           action: {
                             kind: "send_email",
                             emailData: {
-                              to: args.to,
-                              subject: args.subject,
-                              body: args.body
+                              to: emailTo,
+                              subject: emailSubject,
+                              body: emailBody
                             }
                           }
                         }]
@@ -880,10 +910,10 @@ export async function POST(request: Request) {
                   
                   // Notifier le frontend qu'une action a eu lieu pour qu'il recharge éventuellement les données
                   controller.enqueue(
-                    encoder.encode(`data: ${JSON.stringify({ type: "system_updated", action: toolCallAny.function.name })}\n\n`)
+                    encoder.encode(`data: ${JSON.stringify({ type: "system_updated", action: toolFunction.name })}\n\n`)
                   );
-                } catch (e: any) {
-                  result = "Erreur: " + e.message;
+                } catch (e) {
+                  result = "Erreur: " + getErrorMessage(e);
                 }
                 currentMessages.push({
                   role: "tool",
@@ -941,8 +971,8 @@ export async function POST(request: Request) {
 
             generateTitle(conversationId, lastUserMessage.content, fullResponse, admin).catch(console.error);
           }
-        } catch (error: any) {
-          console.error("[AI Chat] Erreur streaming:", error?.response?.data || error?.message || error);
+        } catch (error) {
+          console.error("[AI Chat] Erreur streaming:", getErrorDebug(error));
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ error: "Erreur IA" })}\n\n`)
           );

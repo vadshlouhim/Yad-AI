@@ -310,8 +310,8 @@ export function EmailClient() {
       setEmails(updatedEmails);
       window.localStorage.setItem("easycom_emails", JSON.stringify(updatedEmails));
       setReplyText("");
-    } catch (err: any) {
-      alert(`Erreur de connexion : ${err.message || "Erreur"}`);
+    } catch (err) {
+      alert(`Erreur de connexion : ${err instanceof Error ? err.message : "Erreur"}`);
     } finally {
       setIsSending(false);
     }

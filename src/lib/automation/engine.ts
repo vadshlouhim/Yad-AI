@@ -7,6 +7,8 @@ import type { Tables, Enums } from "@/types/database.types";
 import { Resend } from "resend";
 
 type Automation = Tables<"Automation">;
+type Publication = Tables<"Publication">;
+type Channel = Tables<"Channel">;
 type AutomationTrigger = Enums<"AutomationTrigger">;
 
 interface AutomationAction {
@@ -335,7 +337,7 @@ export async function executeAutomationActions(
           .not("email", "is", null);
         
         if (members && members.length > 0) {
-          toEmails = members.map((m: any) => m.email).filter(Boolean);
+          toEmails = members.map((member) => member.email).filter((email): email is string => Boolean(email));
         } else if (automation.community.email) {
           toEmails = [automation.community.email];
         }
@@ -402,11 +404,11 @@ export async function executeAutomationActions(
                 status: "PENDING",
                 updatedAt: new Date().toISOString(),
               })
-              .select()
+              .select("*, channel:Channel(*)")
               .single();
 
             if (pub) {
-              await publishToChannel(pub as any & { channel: any });
+              await publishToChannel(pub as Publication & { channel: Channel });
             }
           }
         }

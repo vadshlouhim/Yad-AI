@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { RegisterForm } from "@/components/auth/register-form";
 import type { Metadata } from "next";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { CheckCircle2, CalendarDays, Sparkles, Share2, Users } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Créer un compte — EasyCom AI",
@@ -18,39 +19,36 @@ export default function RegisterPage() {
       {/* Panneau gauche — Brand */}
       <div className="hidden lg:flex lg:w-1/2 brand-gradient flex-col justify-between p-12 text-white">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-            <span className="text-white font-bold text-lg">ש</span>
-          </div>
+          <img
+            src="/easycom-ai-logo.png"
+            alt="Logo EasyCom AI"
+            className="h-10 w-10 rounded-xl bg-white/15 object-cover p-0.5"
+          />
           <span className="text-xl font-bold tracking-tight">EasyCom AI</span>
         </div>
 
         <div className="space-y-6">
           <div className="space-y-3">
             <h1 className="text-4xl font-bold leading-tight">
-              Démarrez gratuitement
+              Découvrez EasyCom AI
             </h1>
             <p className="text-blue-200 text-lg leading-relaxed">
-              14 jours d&apos;essai gratuit — aucune carte bancaire requise.
-              Configurez votre communauté en moins de 10 minutes.
+              Explorez l&apos;application et configurez votre communauté en moins de 2 minutes.
             </p>
           </div>
 
           <div className="bg-white/10 rounded-2xl p-6 space-y-3">
             <p className="font-semibold text-white">Ce que vous obtenez :</p>
             {[
-              "Profil communauté complet",
-              "Génération de contenu IA illimitée",
-              "Planification automatique Chabbat & fêtes",
-              "Diffusion sur Instagram, Facebook, WhatsApp, Telegram et Email",
-              "Support prioritaire",
-            ].map((item) => (
-              <div key={item} className="flex items-center gap-2.5">
-                <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
-                    <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <span className="text-blue-100 text-sm">{item}</span>
+              { icon: Users, text: "Profil communauté complet" },
+              { icon: Sparkles, text: "Génération de contenu IA illimitée" },
+              { icon: CalendarDays, text: "Planification automatique des événements" },
+              { icon: Share2, text: "Diffusion sur Instagram, Facebook, WhatsApp, Telegram et Email" },
+              { icon: CheckCircle2, text: "Support prioritaire" },
+            ].map(({ icon: Icon, text }) => (
+              <div key={text} className="flex items-center gap-2.5">
+                <Icon className="size-4 shrink-0 text-amber-300" />
+                <span className="text-blue-100 text-sm">{text}</span>
               </div>
             ))}
           </div>
@@ -65,15 +63,17 @@ export default function RegisterPage() {
       <div className="flex-1 flex items-center justify-center px-4 py-8 sm:px-6 lg:p-8 bg-slate-50">
         <div className="w-full max-w-md space-y-6 sm:space-y-8">
           <div className="lg:hidden flex items-center gap-3 justify-center mb-4 sm:mb-8">
-            <div className="w-10 h-10 rounded-xl brand-gradient flex items-center justify-center">
-              <span className="text-white font-bold text-lg">ש</span>
-            </div>
+            <img
+              src="/easycom-ai-logo.png"
+              alt="Logo EasyCom AI"
+              className="h-10 w-10 rounded-xl object-cover"
+            />
             <span className="text-xl font-bold text-slate-900">EasyCom AI</span>
           </div>
 
           <div className="space-y-2">
             <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Créer votre compte</h2>
-            <p className="text-slate-500">14 jours d&apos;essai gratuit, sans engagement</p>
+            <p className="text-slate-500">Configurez votre communauté en moins de 2 minutes</p>
           </div>
 
           <Suspense fallback={<div className="skeleton h-72 w-full rounded-xl" />}>

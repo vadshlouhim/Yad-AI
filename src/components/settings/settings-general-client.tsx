@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Save, Building2, User, Palette, ChevronRight, ShieldCheck, Users, Smartphone, Trash2, Share2, Bot, SlidersHorizontal } from "lucide-react";
+import { Save, Building2, User, Palette, ChevronRight, ShieldCheck, Users, Smartphone, Trash2, Share2, Bot, SlidersHorizontal, Image as ImageIcon, Loader2, Upload } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +56,10 @@ interface Props {
   community: Community;
   rhythms: CommunityRhythm[];
   profile: Profile;
+  initialSection?: SettingsSection;
 }
+
+type SettingsSection = "community" | "contacts" | "editorial" | "profile" | "interface";
 
 interface CommunityMember {
   id: string;
@@ -109,10 +112,10 @@ const PLAN_LABELS: Record<string, { label: string; color: string }> = {
   ENTERPRISE: { label: "Enterprise", color: "bg-amber-100 text-amber-700" },
 };
 
-export function SettingsGeneralClient({ community, rhythms, profile }: Props) {
+export function SettingsGeneralClient({ community, rhythms, profile, initialSection = "community" }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
-  const [activeSection, setActiveSection] = useState<"community" | "contacts" | "editorial" | "profile" | "interface">("community");
+  const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
   const [assistantMode, setAssistantMode] = useState<"simple" | "detailed">("simple");
 
   // Community form
@@ -125,6 +128,9 @@ export function SettingsGeneralClient({ community, rhythms, profile }: Props) {
   const [email, setEmail] = useState(community.email ?? "");
   const [website, setWebsite] = useState(community.website ?? "");
   const [address] = useState(community.address ?? "");
+  const [logoUrl, setLogoUrl] = useState(community.logoUrl ?? "");
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
   const [communityType, setCommunityType] = useState(community.communityType);
   const [rhythmId, setRhythmId] = useState(community.rhythmId ?? "");
   const [rhythmOther, setRhythmOther] = useState(
@@ -197,6 +203,7 @@ export function SettingsGeneralClient({ community, rhythms, profile }: Props) {
           name, description: description || null, city: city || null,
           country, timezone, phone: phone || null, email: email || null,
           website: website || null, address: address || null,
+          logoUrl: logoUrl || null,
           communityType,
           rhythmId: communityType === "SYNAGOGUE" && rhythmId ? rhythmId : null,
           religiousStream: communityType === "SYNAGOGUE" ? religiousStream || null : null,
@@ -240,6 +247,34 @@ export function SettingsGeneralClient({ community, rhythms, profile }: Props) {
       router.refresh();
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function uploadCommunityLogo(file: File) {
+    setLogoUploading(true);
+    setLogoError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/uploads/community-logo", {
+        method: "POST",
+        body: formData,
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        setLogoError(result.error ?? "Impossible de téléverser le logo.");
+        return;
+      }
+
+      setLogoUrl(result.logoUrl);
+      router.refresh();
+    } catch {
+      setLogoError("Impossible de téléverser le logo.");
+    } finally {
+      setLogoUploading(false);
     }
   }
 
@@ -915,6 +950,49 @@ export function SettingsGeneralClient({ community, rhythms, profile }: Props) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                        {logoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={logoUrl} alt="Logo de la communauté" className="h-full w-full object-contain p-2" />
+                        ) : (
+                          <ImageIcon className="size-7 text-slate-400" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">Logo de la communauté</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          Ce logo sera utilisé pour personnaliser votre profil, vos contenus et votre espace.
+                        </p>
+                      </div>
+                    </div>
+
+                    <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                      {logoUploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                      {logoUploading ? "Téléversement..." : "Changer le logo"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        disabled={logoUploading}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) void uploadCommunityLogo(file);
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {logoError && (
+                    <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+                      {logoError}
+                    </p>
+                  )}
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">Méthodes de connexion</label>
                   <div className="flex flex-wrap gap-2">

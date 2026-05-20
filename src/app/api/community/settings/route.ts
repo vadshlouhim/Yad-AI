@@ -40,6 +40,23 @@ export async function PATCH(request: Request) {
     .select()
     .single();
 
+  if (error?.code === "42703" && "rhythmId" in data) {
+    const retryData = { ...data };
+    delete retryData.rhythmId;
+    const { data: retryUpdated, error: retryError } = await admin
+      .from("Community")
+      .update(retryData)
+      .eq("id", profile.communityId)
+      .select()
+      .single();
+
+    if (retryError || !retryUpdated) {
+      return NextResponse.json({ error: "Mise à jour échouée" }, { status: 500 });
+    }
+
+    return NextResponse.json(retryUpdated);
+  }
+
   if (error || !updated) return NextResponse.json({ error: "Mise à jour échouée" }, { status: 500 });
 
   return NextResponse.json(updated);

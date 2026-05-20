@@ -8,7 +8,25 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Paramètres - EasyCom AI" };
 
-export default async function SettingsPage() {
+type SettingsSection = "community" | "contacts" | "editorial" | "profile" | "interface";
+
+function getSettingsSection(value: string | string[] | undefined): SettingsSection {
+  const section = Array.isArray(value) ? value[0] : value;
+  return section === "contacts" ||
+    section === "editorial" ||
+    section === "profile" ||
+    section === "interface"
+    ? section
+    : "community";
+}
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ section?: string | string[] }>;
+}) {
+  const { section } = await searchParams;
+  const initialSection = getSettingsSection(section);
   const { profile } = await requireAuth();
   if (!profile.communityId) {
     redirect("/onboarding");
@@ -24,7 +42,7 @@ export default async function SettingsPage() {
 
   const { data: community } = await admin
     .from("Community")
-    .select("id, name, slug, description, logoUrl, city, country, timezone, phone, email, website, address, postalCode, tone, language, signature, hashtags, mentions, editorialRules, communityType, rhythmId, religiousStream, onboardingDone, plan")
+    .select("id, name, slug, description, logoUrl, city, country, timezone, phone, email, website, address, postalCode, tone, language, signature, hashtags, mentions, editorialRules, communityType, religiousStream, onboardingDone, plan")
     .eq("id", communityId)
     .single();
 
@@ -32,15 +50,20 @@ export default async function SettingsPage() {
     redirect("/onboarding");
   }
 
+  const settingsCommunity = {
+    ...community,
+    rhythmId: null,
+    hashtags: community.hashtags ?? [],
+    mentions: community.mentions ?? [],
+  };
+
   const rhythmQuery = admin
     .from("CommunityRhythm")
     .select("id, name, slug, description, isActive, sortOrder")
     .order("sortOrder", { ascending: true })
     .order("name", { ascending: true });
 
-  const { data: rhythms } = community?.rhythmId
-    ? await rhythmQuery.or(`isActive.eq.true,id.eq.${community.rhythmId}`)
-    : await rhythmQuery.eq("isActive", true);
+  const { data: rhythms } = await rhythmQuery.eq("isActive", true);
 
   return (
     <div className="space-y-4">
@@ -50,8 +73,9 @@ export default async function SettingsPage() {
         </p>
       </div>
       <SettingsGeneralClient
-        community={community}
+        community={settingsCommunity}
         rhythms={rhythms ?? []}
+        initialSection={initialSection}
         profile={{
           name: profile.name ?? "",
           email: profile.email,

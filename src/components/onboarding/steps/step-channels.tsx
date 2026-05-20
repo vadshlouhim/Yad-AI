@@ -17,8 +17,8 @@ const AVAILABLE_CHANNELS = [
   {
     type: "INSTAGRAM",
     label: "Instagram",
-    icon: "📸",
-    color: "from-pink-500 to-orange-400",
+    logo: "/logo/instagram-2-1-logo-svgrepo-com%20(1).svg",
+    logoBg: "bg-gradient-to-br from-pink-50 to-orange-50 border border-pink-100",
     description: "Publications + Stories",
     needsHandle: true,
     handlePlaceholder: "@votre_compte",
@@ -27,8 +27,8 @@ const AVAILABLE_CHANNELS = [
   {
     type: "FACEBOOK",
     label: "Facebook",
-    icon: "👥",
-    color: "from-blue-600 to-blue-700",
+    logo: "/logo/facebook-3-logo-svgrepo-com.svg",
+    logoBg: "bg-blue-50 border border-blue-100",
     description: "Posts sur votre Page",
     needsHandle: true,
     handlePlaceholder: "Nom de votre Page",
@@ -37,8 +37,8 @@ const AVAILABLE_CHANNELS = [
   {
     type: "WHATSAPP",
     label: "WhatsApp",
-    icon: "💬",
-    color: "from-green-500 to-green-600",
+    logo: "/logo/whatsapp-svgrepo-com.svg",
+    logoBg: "bg-green-50 border border-green-100",
     description: "Canal ou groupe broadcast",
     needsHandle: false,
     handlePlaceholder: "",
@@ -47,8 +47,8 @@ const AVAILABLE_CHANNELS = [
   {
     type: "TELEGRAM",
     label: "Telegram",
-    icon: "✈️",
-    color: "from-sky-500 to-sky-600",
+    logo: "/logo/telegram-svgrepo-com.svg",
+    logoBg: "bg-sky-50 border border-sky-100",
     description: "Canal ou groupe",
     needsHandle: true,
     handlePlaceholder: "@votre_canal",
@@ -57,8 +57,8 @@ const AVAILABLE_CHANNELS = [
   {
     type: "EMAIL",
     label: "Email / Newsletter",
-    icon: "📧",
-    color: "from-slate-600 to-slate-700",
+    logo: "/logo/gmail-svgrepo-com.svg",
+    logoBg: "bg-slate-50 border border-slate-200",
     description: "Envoi à votre liste",
     needsHandle: false,
     handlePlaceholder: "",
@@ -101,10 +101,12 @@ export function StepChannels({ data, updateData, onNext, onPrev }: Props) {
         <div className="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center mb-3">
           <Radio className="size-6 text-green-600" />
         </div>
-        <CardTitle className="text-xl">Vos canaux de diffusion</CardTitle>
+        <div className="flex items-center gap-2 flex-wrap">
+          <CardTitle className="text-xl">Vos canaux de diffusion</CardTitle>
+          <span className="text-xs font-medium text-slate-400 border border-slate-200 rounded-full px-2 py-0.5">Facultatif</span>
+        </div>
         <CardDescription>
-          Sélectionnez où vous souhaitez diffuser. Vous pourrez connecter et configurer les
-          accès depuis les Paramètres après l&apos;onboarding.
+          Sélectionnez où vous souhaitez diffuser. Les connexions seront finalisées depuis les Paramètres après l&apos;onboarding.
         </CardDescription>
       </CardHeader>
 
@@ -129,15 +131,22 @@ export function StepChannels({ data, updateData, onNext, onPrev }: Props) {
                     "w-full flex items-center gap-4 rounded-xl border-2 px-4 py-3 text-left transition-all",
                     selected
                       ? "border-blue-600 bg-blue-50"
-                      : "border-slate-200 bg-white hover:border-slate-300"
+                      : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                   )}
                 >
+                  {/* Logo */}
                   <div className={cn(
-                    "w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center text-white text-xl flex-shrink-0",
-                    channel.color
+                    "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 p-2",
+                    channel.logoBg
                   )}>
-                    {channel.icon}
+                    <img
+                      src={channel.logo}
+                      alt={`Logo ${channel.label}`}
+                      className="w-full h-full object-contain"
+                    />
                   </div>
+
+                  {/* Infos */}
                   <div className="flex-1 min-w-0">
                     <p className={cn(
                       "text-sm font-semibold",
@@ -148,6 +157,8 @@ export function StepChannels({ data, updateData, onNext, onPrev }: Props) {
                     <p className="text-xs text-slate-500">{channel.description}</p>
                     <p className="text-xs text-slate-400 mt-0.5">{channel.publishMode}</p>
                   </div>
+
+                  {/* Checkbox */}
                   <div className={cn(
                     "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0",
                     selected ? "border-blue-600 bg-blue-600" : "border-slate-300"

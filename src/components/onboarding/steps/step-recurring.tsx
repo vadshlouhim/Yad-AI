@@ -3,7 +3,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { OnboardingData } from "../onboarding-wizard";
-import { Calendar, ChevronRight, ChevronLeft, Plus, X } from "lucide-react";
+import {
+  Calendar, ChevronRight, ChevronLeft, Plus, X,
+  Users, BookOpen, Star, Mail, Heart, Megaphone,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -13,16 +16,64 @@ interface Props {
   onPrev: () => void;
 }
 
-const SUGGESTED_RECURRING = [
-  { title: "Chabbat hebdomadaire", category: "SHABBAT", icon: "🕯️", dayOfWeek: 5 },
-  { title: "Cours de Torah du soir", category: "COURSE", icon: "📖", dayOfWeek: 2 },
-  { title: "Prière du matin", category: "PRAYER", icon: "🙏", dayOfWeek: undefined },
-  { title: "Activités jeunesse", category: "YOUTH", icon: "🎉", dayOfWeek: 0 },
-  { title: "Cours pour femmes", category: "COURSE", icon: "✨", dayOfWeek: 4 },
-  { title: "Collecte mensuelle", category: "FUNDRAISING", icon: "💛", dayOfWeek: undefined },
-];
-
 const DAYS = ["Dim.", "Lun.", "Mar.", "Mer.", "Jeu.", "Ven.", "Sam."];
+
+const SUGGESTED_RECURRING = [
+  {
+    title: "Réunion hebdomadaire",
+    category: "MEETING",
+    icon: Users,
+    dayOfWeek: 1,
+    freq: "Chaque semaine · Lundi",
+    accent: "bg-blue-50 border-blue-200 text-blue-700",
+    iconColor: "text-blue-600 bg-blue-100",
+  },
+  {
+    title: "Cours / Atelier régulier",
+    category: "COURSE",
+    icon: BookOpen,
+    dayOfWeek: 3,
+    freq: "Chaque semaine · Mercredi",
+    accent: "bg-amber-50 border-amber-200 text-amber-700",
+    iconColor: "text-amber-600 bg-amber-100",
+  },
+  {
+    title: "Activités jeunesse",
+    category: "YOUTH",
+    icon: Star,
+    dayOfWeek: 0,
+    freq: "Chaque semaine · Dimanche",
+    accent: "bg-pink-50 border-pink-200 text-pink-700",
+    iconColor: "text-pink-600 bg-pink-100",
+  },
+  {
+    title: "Newsletter mensuelle",
+    category: "NEWSLETTER",
+    icon: Mail,
+    dayOfWeek: undefined,
+    freq: "1× par mois",
+    accent: "bg-indigo-50 border-indigo-200 text-indigo-700",
+    iconColor: "text-indigo-600 bg-indigo-100",
+  },
+  {
+    title: "Collecte / Appel aux dons",
+    category: "FUNDRAISING",
+    icon: Heart,
+    dayOfWeek: undefined,
+    freq: "Ponctuel",
+    accent: "bg-rose-50 border-rose-200 text-rose-700",
+    iconColor: "text-rose-600 bg-rose-100",
+  },
+  {
+    title: "Communication mensuelle",
+    category: "EVENT",
+    icon: Megaphone,
+    dayOfWeek: undefined,
+    freq: "1× par mois",
+    accent: "bg-emerald-50 border-emerald-200 text-emerald-700",
+    iconColor: "text-emerald-600 bg-emerald-100",
+  },
+];
 
 export function StepRecurring({ data, updateData, onNext, onPrev }: Props) {
   function addSuggested(item: typeof SUGGESTED_RECURRING[0]) {
@@ -53,24 +104,24 @@ export function StepRecurring({ data, updateData, onNext, onPrev }: Props) {
         <div className="w-12 h-12 rounded-2xl bg-purple-100 flex items-center justify-center mb-3">
           <Calendar className="size-6 text-purple-600" />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <CardTitle className="text-xl">Événements récurrents</CardTitle>
           <span className="text-xs font-medium text-slate-400 border border-slate-200 rounded-full px-2 py-0.5">Facultatif</span>
         </div>
         <CardDescription>
-          Ces événements seront automatiquement planifiés dans votre calendrier.
-          L&apos;IA génèrera les contenus associés avant chaque occurrence.
-          Vous pouvez passer cette étape et y revenir plus tard depuis les paramètres.
+          Sélectionnez vos rendez-vous réguliers. L&apos;IA préparera automatiquement les contenus associés avant chaque occurrence.
         </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Suggestions rapides */}
+
+        {/* Suggestions */}
         <div className="space-y-2">
           <p className="text-sm font-medium text-slate-700">Suggestions fréquentes</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {SUGGESTED_RECURRING.map((item) => {
               const added = isSuggestionAdded(item.title);
+              const Icon = item.icon;
               return (
                 <button
                   key={item.title}
@@ -80,10 +131,15 @@ export function StepRecurring({ data, updateData, onNext, onPrev }: Props) {
                     "flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all",
                     added
                       ? "border-purple-600 bg-purple-50"
-                      : "border-slate-200 bg-white hover:border-slate-300"
+                      : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                   )}
                 >
-                  <span className="text-xl">{item.icon}</span>
+                  <div className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                    added ? "bg-purple-100 text-purple-600" : item.iconColor
+                  )}>
+                    <Icon className="size-4" />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className={cn(
                       "text-sm font-medium",
@@ -91,11 +147,7 @@ export function StepRecurring({ data, updateData, onNext, onPrev }: Props) {
                     )}>
                       {item.title}
                     </p>
-                    {item.dayOfWeek !== undefined && (
-                      <p className="text-xs text-slate-400">
-                        {DAYS[item.dayOfWeek]}
-                      </p>
-                    )}
+                    <p className="text-xs text-slate-400 mt-0.5">{item.freq}</p>
                   </div>
                   {added ? (
                     <X className="size-4 text-purple-600 flex-shrink-0" />
@@ -108,17 +160,17 @@ export function StepRecurring({ data, updateData, onNext, onPrev }: Props) {
           </div>
         </div>
 
-        {/* Événements ajoutés */}
+        {/* Événements sélectionnés */}
         {data.recurringEvents.length > 0 && (
           <div className="space-y-2">
             <p className="text-sm font-medium text-slate-700">
-              Événements sélectionnés ({data.recurringEvents.length})
+              Sélectionnés ({data.recurringEvents.length})
             </p>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
               {data.recurringEvents.map((event) => (
                 <div
                   key={event.title}
-                  className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-slate-100"
+                  className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-slate-100"
                 >
                   <div>
                     <p className="text-sm font-medium text-slate-700">{event.title}</p>
@@ -129,7 +181,7 @@ export function StepRecurring({ data, updateData, onNext, onPrev }: Props) {
                   <button
                     type="button"
                     onClick={() => removeEvent(event.title)}
-                    className="text-slate-400 hover:text-red-500 transition-colors"
+                    className="text-slate-400 hover:text-red-500 transition-colors ml-3"
                   >
                     <X className="size-4" />
                   </button>
@@ -138,13 +190,6 @@ export function StepRecurring({ data, updateData, onNext, onPrev }: Props) {
             </div>
           </div>
         )}
-
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-          <p className="text-xs text-blue-700 leading-relaxed">
-            <strong>💡 Note :</strong> Le calendrier hébraïque (Chabbat, fêtes, parasha)
-            est automatiquement intégré. Vous n&apos;avez pas besoin de l&apos;ajouter ici.
-          </p>
-        </div>
 
         {/* Navigation */}
         <div className="flex gap-3 pt-2">
