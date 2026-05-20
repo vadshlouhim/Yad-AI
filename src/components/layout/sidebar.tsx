@@ -1,0 +1,387 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  DASHBOARD_DESKTOP_CATEGORIES,
+  DASHBOARD_NAV_ITEMS,
+  DASHBOARD_TOP_ITEM,
+} from "./dashboard-nav";
+
+interface SidebarProps {
+  community: {
+    id: string;
+    name: string;
+    logoUrl: string | null;
+    plan: string;
+  };
+  userAvatar: string | null | undefined;
+  userName: string;
+  basePath?: string;
+}
+
+const PLAN_COLORS: Record<string, string> = {
+  FREE_TRIAL: "bg-amber-500",
+  STARTER: "bg-blue-500",
+  PROFESSIONAL: "bg-violet-500",
+  ENTERPRISE: "bg-emerald-500",
+};
+
+const PLAN_LABELS: Record<string, string> = {
+  FREE_TRIAL: "Essai gratuit",
+  STARTER: "Starter",
+  PROFESSIONAL: "Pro",
+  ENTERPRISE: "Enterprise",
+};
+
+const DESKTOP_CATEGORY_CONTENT: Record<
+  string,
+  {
+    title: string;
+    description: string;
+    accentBar: string;
+    iconSurface: string;
+    titleClass: string;
+    descriptionClass: string;
+    itemIcon: string;
+    itemHover: string;
+    itemActive: string;
+  }
+> = {
+  "RESEAUX SOCIAUX": {
+    title: "RÉSEAUX SOCIAUX",
+    description: "Connecter & automatiser vos réseaux",
+    accentBar: "bg-blue-500",
+    iconSurface: "bg-blue-50",
+    titleClass: "text-blue-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-blue-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-blue-50 text-slate-950 ring-1 ring-blue-100",
+  },
+  EMAIL: {
+    title: "EMAIL & AVIS",
+    description: "Gérer vos emails, WhatsApp et avis",
+    accentBar: "bg-cyan-500",
+    iconSurface: "bg-cyan-50",
+    titleClass: "text-cyan-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-cyan-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-cyan-50 text-slate-950 ring-1 ring-cyan-100",
+  },
+  "AGENDA ET QUOTIDIEN": {
+    title: "ASSISTANT DU QUOTIDIEN",
+    description: "Votre quotidien bien organisé",
+    accentBar: "bg-violet-500",
+    iconSurface: "bg-violet-50",
+    titleClass: "text-violet-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-violet-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-violet-50 text-slate-950 ring-1 ring-violet-100",
+  },
+  RESSOURCES: {
+    title: "RESSOURCES",
+    description: "Cours de Torah, affiches...",
+    accentBar: "bg-amber-500",
+    iconSurface: "bg-amber-50",
+    titleClass: "text-amber-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-amber-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-amber-50 text-slate-950 ring-1 ring-amber-100",
+  },
+  PARAMETRES: {
+    title: "PARAMÈTRES",
+    description: "Paramètres et contacts",
+    accentBar: "bg-emerald-500",
+    iconSurface: "bg-emerald-50",
+    titleClass: "text-emerald-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-emerald-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-emerald-50 text-slate-950 ring-1 ring-emerald-100",
+  },
+};
+
+const ASSISTANT_ITEM = DASHBOARD_NAV_ITEMS.find((section) => section.section === "ASSISTANT IA")?.items[0] ?? null;
+
+function normalizeSectionKey(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+export function Sidebar({ community, userAvatar, userName, basePath = "/dashboard" }: SidebarProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [collapsed, setCollapsed] = useState(false);
+
+  function resolveHref(href: string) {
+    if (href.startsWith("http") || href.startsWith("mailto")) return href;
+    return href.replace("/dashboard", basePath);
+  }
+
+  function isActive(href: string) {
+    if (href.startsWith("http") || href.startsWith("mailto")) return false;
+    const resolved = resolveHref(href.split("?")[0]);
+    return pathname.startsWith(resolved) && resolved !== basePath;
+  }
+
+  function categoryHasActiveItem(section: (typeof DASHBOARD_DESKTOP_CATEGORIES)[number]) {
+    return section.items.some((item) => isActive(item.href));
+  }
+
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(
+      DASHBOARD_DESKTOP_CATEGORIES.map((category) => [category.section, categoryHasActiveItem(category)])
+    )
+  );
+
+  return (
+    <aside
+      className={cn(
+        "hidden h-full flex-shrink-0 flex-col border-r border-slate-200 bg-slate-50 text-slate-700 transition-all duration-300 lg:flex",
+        collapsed ? "w-20" : "w-80"
+      )}
+    >
+      <div className="flex min-h-[74px] items-center gap-3 border-b border-slate-200 bg-white px-4 py-4">
+        <button
+          type="button"
+          onClick={() => {
+            if (collapsed) {
+              setCollapsed(false);
+              return;
+            }
+            router.push(resolveHref("/dashboard/assistant"));
+          }}
+          className={cn(
+            "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-blue-600 shadow-sm ring-1 ring-blue-100 transition-all",
+            collapsed && "cursor-pointer hover:scale-[1.03] hover:ring-blue-200"
+          )}
+          aria-label={collapsed ? "Elargir la barre laterale" : "Ouvrir Assistant IA"}
+          title={collapsed ? "Elargir la barre laterale" : "Ouvrir Assistant IA"}
+        >
+          {community.logoUrl ? (
+            <img src={community.logoUrl} alt={community.name} className="h-full w-full rounded-2xl object-cover" />
+          ) : (
+            <span className="text-sm font-bold text-white">{community.name.substring(0, 2).toUpperCase()}</span>
+          )}
+        </button>
+
+        {!collapsed && (
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold leading-tight text-slate-900">{community.name}</p>
+            <div className="mt-0.5 flex items-center gap-1.5">
+              <span className={cn("h-1.5 w-1.5 rounded-full", PLAN_COLORS[community.plan] ?? "bg-slate-400")} />
+              <span className="text-xs text-slate-500">{PLAN_LABELS[community.plan] ?? community.plan}</span>
+            </div>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className="ml-auto flex-shrink-0 text-slate-400 transition-colors hover:text-slate-700"
+          aria-label={collapsed ? "Elargir la navigation" : "Reduire la navigation"}
+        >
+          <ChevronDown className={cn("size-4 transition-transform", collapsed ? "-rotate-90" : "rotate-90")} />
+        </button>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto px-3 py-5">
+        <div className="space-y-2">
+          {ASSISTANT_ITEM && (
+            <Link
+              href={resolveHref(ASSISTANT_ITEM.href)}
+              className={cn(
+                "flex items-center rounded-[1.2rem] bg-slate-900 px-4 py-3 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition-colors duration-200",
+                isActive(ASSISTANT_ITEM.href) ? "bg-slate-950" : "hover:bg-slate-800",
+                collapsed && "justify-center px-2 text-center"
+              )}
+              title={collapsed ? ASSISTANT_ITEM.label : undefined}
+            >
+              {!collapsed && (
+                <div className="flex min-w-0 items-center gap-2">
+                  {ASSISTANT_ITEM.icon && <ASSISTANT_ITEM.icon className="size-4 shrink-0 text-cyan-200" />}
+                  <p className="truncate text-[15px] font-semibold tracking-tight text-white">
+                    {ASSISTANT_ITEM.label}
+                  </p>
+                  <p className="sr-only">
+                    {ASSISTANT_ITEM.label}
+                  </p>
+                </div>
+              )}
+              {collapsed && <span className="text-xs font-semibold text-white">IA</span>}
+            </Link>
+          )}
+
+          <div className={cn("pt-1 pb-3", collapsed && "pt-1 pb-2")}>
+            <Link
+              href={resolveHref(DASHBOARD_TOP_ITEM.href)}
+              className={cn(
+                "flex items-center rounded-[1.2rem] bg-slate-900 px-4 py-3 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition-colors duration-200",
+                isActive(DASHBOARD_TOP_ITEM.href) ? "bg-slate-950" : "hover:bg-slate-800",
+                collapsed && "justify-center px-2 text-center"
+              )}
+              title={collapsed ? DASHBOARD_TOP_ITEM.label : undefined}
+            >
+              {!collapsed && (
+                <div className="flex min-w-0 items-center gap-2">
+                  {DASHBOARD_TOP_ITEM.icon && <DASHBOARD_TOP_ITEM.icon className="size-4 shrink-0 text-cyan-200" />}
+                  <p className="truncate text-[15px] font-semibold tracking-tight text-white">
+                    {DASHBOARD_TOP_ITEM.label}
+                  </p>
+                  <p className="sr-only">
+                    {DASHBOARD_TOP_ITEM.label}
+                  </p>
+                </div>
+              )}
+              {collapsed && <span className="text-xs font-semibold text-white">Notif</span>}
+            </Link>
+          </div>
+
+          <div className="space-y-3 pt-3">
+            {DASHBOARD_DESKTOP_CATEGORIES.map((category) => {
+              const style =
+                DESKTOP_CATEGORY_CONTENT[normalizeSectionKey(category.section)] ?? DESKTOP_CATEGORY_CONTENT.RESSOURCES;
+              const isOpen = openSections[category.section];
+
+              return (
+                <div
+                  key={category.section}
+                  className="rounded-[1.6rem] border border-slate-200 bg-white p-3 shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition duration-200 hover:border-slate-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.09)]"
+                >
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenSections((current) => ({
+                        ...current,
+                        [category.section]: !current[category.section],
+                      }))
+                    }
+                    className={cn(
+                      "flex w-full items-start gap-3 rounded-[1.15rem] px-1 py-1 text-left transition-all duration-200",
+                      collapsed && "justify-center px-2"
+                    )}
+                    aria-expanded={isOpen}
+                    title={collapsed ? style.title : undefined}
+                  >
+                    <span className={cn("mt-4 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full", style.iconSurface)}>
+                      <category.icon className={cn("size-[18px]", style.itemIcon)} />
+                    </span>
+
+                    {!collapsed && (
+                      <>
+                        <div className="min-w-0 flex-1">
+                          <div className={cn("mb-3 h-1 w-10 rounded-full", style.accentBar)} />
+                          <p className={cn("text-[15px] font-semibold tracking-tight", style.titleClass)}>{style.title}</p>
+                          <p className={cn("mt-1.5 text-xs leading-5", style.descriptionClass)}>{style.description}</p>
+                        </div>
+                        <ChevronDown
+                          className={cn(
+                            "mt-4 size-4 flex-shrink-0 text-slate-400 transition-transform duration-300",
+                            isOpen && "rotate-180"
+                          )}
+                        />
+                      </>
+                    )}
+                  </button>
+
+                  {!collapsed && (
+                    <div
+                      className={cn(
+                        "grid transition-all duration-300 ease-out",
+                        isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                      )}
+                    >
+                      <div className="overflow-hidden">
+                        <div className="mt-3 space-y-1.5 rounded-[1.2rem] bg-slate-50/80 p-2">
+                          {category.items.map((item) => {
+                            const active = isActive(item.href);
+                            const isExternal = item.external || item.href.startsWith("mailto");
+                            const resolvedHref = resolveHref(item.href);
+
+                            return (
+                              <div key={`${category.section}-${item.href}`} className="flex items-center gap-1.5">
+                                <Link
+                                  href={resolvedHref}
+                                  target={isExternal ? "_blank" : undefined}
+                                  rel={isExternal ? "noopener noreferrer" : undefined}
+                                  className={cn(
+                                    "flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all duration-200",
+                                    active ? style.itemActive : cn("text-slate-700", style.itemHover)
+                                  )}
+                                >
+                                  {item.icon && (
+                                    <item.icon
+                                      className={cn("size-4 flex-shrink-0", active ? "text-current" : style.itemIcon)}
+                                    />
+                                  )}
+                                  <span className="flex min-w-0 flex-1 flex-col">
+                                    <span className="truncate font-medium">{item.label}</span>
+                                    {item.description && (
+                                      <span
+                                        className={cn(
+                                          "mt-0.5 truncate text-[11px] leading-4",
+                                          active ? "text-current/70" : "text-slate-500"
+                                        )}
+                                      >
+                                        {item.description}
+                                      </span>
+                                    )}
+                                  </span>
+                                  {item.badge && (
+                                    <span className="flex-shrink-0 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                      {item.badge}
+                                    </span>
+                                  )}
+                                </Link>
+
+                                {item.action && (
+                                  <Link
+                                    href={resolveHref(item.action.href)}
+                                    className="flex-shrink-0 rounded-xl px-2 py-1 text-[10px] font-semibold text-slate-500 transition-colors hover:bg-white hover:text-slate-800"
+                                    title={item.action.label}
+                                  >
+                                    {item.action.label}
+                                  </Link>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
+
+      <div className="border-t border-slate-200 bg-white p-4">
+        <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
+          <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-full bg-slate-200">
+            {userAvatar ? (
+              <img src={userAvatar} alt={userName} className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-slate-600">
+                {userName.substring(0, 2).toUpperCase()}
+              </div>
+            )}
+          </div>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-slate-800">{userName}</p>
+              <p className="text-xs text-slate-500">Administrateur</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </aside>
+  );
+}

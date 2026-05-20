@@ -1,0 +1,62 @@
+import { requireAuth } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { ManualPublishClient } from "@/components/publish/manual-publish-client";
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+
+interface Props {
+  params: Promise<{
+    platform: string;
+  }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { platform } = await params;
+  const capitalized = platform.charAt(0).toUpperCase() + platform.slice(1);
+  return {
+    title: `Publier sur ${capitalized} — EasyCom AI`,
+  };
+}
+
+const VALID_PLATFORMS = ["whatsapp", "instagram", "facebook", "telegram", "email"];
+
+export default async function ManualPublishPage({ params }: Props) {
+  const { platform } = await params;
+  
+  if (!VALID_PLATFORMS.includes(platform.toLowerCase())) {
+    notFound();
+  }
+
+  const { profile } = await requireAuth();
+  const communityId = profile.communityId!;
+  const admin = createAdminClient();
+
+  // Get the target channel
+  const type = platform.toUpperCase();
+  const { data: channel } = await admin
+    .from("Channel")
+    .select("isConnected")
+    .eq("communityId", communityId)
+    .eq("type", type)
+    .maybeSingle();
+
+  // Get the community details for preview/brand name
+  const { data: community } = await admin
+    .from("Community")
+    .select("name")
+    .eq("id", communityId)
+    .single();
+
+  const isConnected = channel?.isConnected || false;
+  const communityName = community?.name || "Ma Communauté";
+
+  return (
+    <div className="container max-w-6xl mx-auto py-6">
+      <ManualPublishClient
+        platform={platform}
+        isConnected={isConnected}
+        communityName={communityName}
+      />
+    </div>
+  );
+}
