@@ -22,6 +22,7 @@ export default async function OnboardingPage() {
     <OnboardingWizard
       userId={profile.id}
       userName={profile.name ?? ""}
+      communityId={profile.communityId ?? undefined}
       initialStep={profile.communityId ? 1 : 0}
     />
   );

@@ -50,15 +50,20 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   const url = new URL(request.url);
   const communityId = url.searchParams.get("communityId");
+  // "onboarding" ou "settings" — détermine où rediriger après le callback
+  const returnTo = url.searchParams.get("returnTo") ?? "settings";
+
   const nonce = crypto.randomUUID();
   const state = signState({
     nonce,
     provider,
     communityId,
+    returnTo,
     exp: Date.now() + 10 * 60 * 1000,
   }, appSecret);
+
   const cookieStore = await cookies();
-  cookieStore.set(`meta_oauth_state_${provider}`, JSON.stringify({ state, communityId }), {
+  cookieStore.set(`meta_oauth_state_${provider}`, JSON.stringify({ state, communityId, returnTo }), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

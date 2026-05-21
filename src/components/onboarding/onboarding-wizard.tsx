@@ -80,10 +80,11 @@ const defaultData: OnboardingData = {
 interface Props {
   userId: string;
   userName: string;
+  communityId?: string;
   initialStep?: number;
 }
 
-export function OnboardingWizard({ userId, userName, initialStep = 0 }: Props) {
+export function OnboardingWizard({ userId, userName, communityId, initialStep = 0 }: Props) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(initialStep);
   const [data, setData] = useState<OnboardingData>(defaultData);
@@ -190,7 +191,7 @@ export function OnboardingWizard({ userId, userName, initialStep = 0 }: Props) {
       <div className="w-full max-w-2xl animate-fade-in">
         {currentStep === 0 && <StepIdentity {...stepProps} />}
         {currentStep === 1 && <StepEditorial {...stepProps} />}
-        {currentStep === 2 && <StepChannels {...stepProps} />}
+        {currentStep === 2 && <StepChannels {...stepProps} communityId={communityId} />}
         {currentStep === 3 && <StepRecurring {...stepProps} />}
         {currentStep === 4 && (
           <StepFinish data={data} onFinish={finishOnboarding} onPrev={goPrev} saving={saving} />

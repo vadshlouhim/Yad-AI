@@ -21,7 +21,14 @@ type SignedOAuthState = {
   nonce: string;
   provider: string;
   communityId?: string | null;
+  returnTo?: string;
   exp: number;
+};
+
+type StoredOAuthState = {
+  state: string;
+  communityId?: string | null;
+  returnTo?: string;
 };
 
 function verifySignedState(state: string, secret: string): SignedOAuthState | null {
@@ -52,6 +59,14 @@ function getOAuthBaseUrl(requestUrl: URL) {
   return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? requestUrl.origin;
 }
 
+/** Construit l'URL de retour selon returnTo ("onboarding" ou "settings") */
+function buildReturnUrl(origin: string, returnTo: string | undefined): URL {
+  if (returnTo === "onboarding") {
+    return new URL("/onboarding", origin);
+  }
+  return new URL("/dashboard/settings/channels", origin);
+}
+
 export async function GET(request: Request, { params }: RouteParams) {
   const { provider } = await params;
   if (provider !== "facebook" && provider !== "instagram") {
@@ -61,42 +76,44 @@ export async function GET(request: Request, { params }: RouteParams) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
-  const settingsUrl = new URL("/dashboard/settings/channels", url.origin);
-
-  if (!code || !state) {
-    settingsUrl.searchParams.set("oauth", "missing_code");
-    return NextResponse.redirect(settingsUrl);
-  }
 
   const appId = process.env.META_APP_ID ?? process.env.FACEBOOK_APP_ID;
   const appSecret = process.env.META_APP_SECRET ?? process.env.FACEBOOK_APP_SECRET;
-  if (!appId || !appSecret) {
-    settingsUrl.searchParams.set("oauth", "missing_env");
-    return NextResponse.redirect(settingsUrl);
-  }
 
+  // Lire + supprimer le cookie en une seule fois
   const cookieStore = await cookies();
   const rawState = cookieStore.get(`meta_oauth_state_${provider}`)?.value;
   cookieStore.delete(`meta_oauth_state_${provider}`);
 
+  const stored = rawState ? (JSON.parse(rawState) as StoredOAuthState) : null;
+  const returnTo = stored?.returnTo ?? "settings";
+  const returnUrl = buildReturnUrl(url.origin, returnTo);
+
+  if (!code || !state) {
+    returnUrl.searchParams.set("oauth", "missing_code");
+    return NextResponse.redirect(returnUrl);
+  }
+
+  if (!appId || !appSecret) {
+    returnUrl.searchParams.set("oauth", "missing_env");
+    return NextResponse.redirect(returnUrl);
+  }
+
   const signedState = verifySignedState(state, appSecret);
-  const stored = rawState
-    ? (JSON.parse(rawState) as { state: string; communityId?: string | null })
-    : null;
 
   if (!signedState && !stored) {
-    settingsUrl.searchParams.set("oauth", "expired");
-    return NextResponse.redirect(settingsUrl);
+    returnUrl.searchParams.set("oauth", "expired");
+    return NextResponse.redirect(returnUrl);
   }
 
   if (stored && stored.state !== state) {
-    settingsUrl.searchParams.set("oauth", "invalid_state");
-    return NextResponse.redirect(settingsUrl);
+    returnUrl.searchParams.set("oauth", "invalid_state");
+    return NextResponse.redirect(returnUrl);
   }
 
   if (signedState && signedState.provider !== provider) {
-    settingsUrl.searchParams.set("oauth", "invalid_state");
-    return NextResponse.redirect(settingsUrl);
+    returnUrl.searchParams.set("oauth", "invalid_state");
+    return NextResponse.redirect(returnUrl);
   }
 
   const supabase = await createClient();
@@ -115,8 +132,8 @@ export async function GET(request: Request, { params }: RouteParams) {
   const communityId = profile?.communityId;
   const stateCommunityId = stored?.communityId ?? signedState?.communityId;
   if (!communityId || (stateCommunityId && stateCommunityId !== communityId)) {
-    settingsUrl.searchParams.set("oauth", "forbidden");
-    return NextResponse.redirect(settingsUrl);
+    returnUrl.searchParams.set("oauth", "forbidden");
+    return NextResponse.redirect(returnUrl);
   }
 
   try {
@@ -146,8 +163,8 @@ export async function GET(request: Request, { params }: RouteParams) {
     );
 
     if (!selectedPage) {
-      settingsUrl.searchParams.set("oauth", provider === "instagram" ? "no_instagram_business" : "no_page");
-      return NextResponse.redirect(settingsUrl);
+      returnUrl.searchParams.set("oauth", provider === "instagram" ? "no_instagram_business" : "no_page");
+      return NextResponse.redirect(returnUrl);
     }
 
     const type = provider === "instagram" ? "INSTAGRAM" : "FACEBOOK";
@@ -185,12 +202,12 @@ export async function GET(request: Request, { params }: RouteParams) {
       { onConflict: "communityId,type" }
     );
 
-    settingsUrl.searchParams.set("oauth", "success");
-    settingsUrl.searchParams.set("provider", provider);
-    return NextResponse.redirect(settingsUrl);
+    returnUrl.searchParams.set("oauth", "success");
+    returnUrl.searchParams.set("provider", provider);
+    return NextResponse.redirect(returnUrl);
   } catch (error) {
     console.error("[Meta OAuth]", error);
-    settingsUrl.searchParams.set("oauth", "error");
-    return NextResponse.redirect(settingsUrl);
+    returnUrl.searchParams.set("oauth", "error");
+    return NextResponse.redirect(returnUrl);
   }
 }
