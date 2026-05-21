@@ -143,6 +143,12 @@ export default function HomePage() {
 
           <div className="flex items-center gap-2">
             <Link
+              href="/dashboard/email"
+              className="hidden sm:inline-flex h-10 items-center justify-center rounded-full border border-slate-200 px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 md:mr-2"
+            >
+              Tableau de bord
+            </Link>
+            <Link
               href="/auth/login"
               className="inline-flex h-10 items-center justify-center rounded-full bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
             >

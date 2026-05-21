@@ -161,6 +161,26 @@ export function EmailClient() {
   const [aiDraft, setAiDraft] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchEmails = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/email/gmail/list");
+      if (response.ok) {
+        const data = await response.json();
+        setEmails(data.messages || []);
+        if (data.messages?.length > 0 && !selectedMailId) {
+          setSelectedMailId(data.messages[0].id);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch emails", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     const isConn = window.localStorage.getItem("google_email_connected") === "true";
     const mail = window.localStorage.getItem("google_email_address") ?? "";
@@ -168,18 +188,11 @@ export function EmailClient() {
     setGoogleEmail(mail);
 
     if (isConn) {
-      // Charger les emails
-      const savedEmails = window.localStorage.getItem("easycom_emails");
-      if (savedEmails) {
-        setEmails(JSON.parse(savedEmails));
-      } else {
-        setEmails(DEFAULT_EMAILS);
-        window.localStorage.setItem("easycom_emails", JSON.stringify(DEFAULT_EMAILS));
-      }
+      fetchEmails();
     }
   }, []);
 
-  const handleConnectGoogle = () => {
+  const handleConnectGoogle = async () => {
     if (googleConnected) {
       window.localStorage.removeItem("google_email_connected");
       window.localStorage.removeItem("google_email_address");
@@ -190,16 +203,19 @@ export function EmailClient() {
       setSelectedMailId(null);
       setHasClassified(false);
     } else {
-      const email = prompt("Connectez votre adresse email Google :", "chlomitaieb@gmail.com");
-      if (email && email.trim() !== "") {
-        window.localStorage.setItem("google_email_connected", "true");
-        window.localStorage.setItem("google_email_address", email.trim());
-        window.localStorage.setItem("easycom_emails", JSON.stringify(DEFAULT_EMAILS));
-        setGoogleConnected(true);
-        setGoogleEmail(email.trim());
-        setEmails(DEFAULT_EMAILS);
-        // Sélectionner par défaut le premier
-        setSelectedMailId(DEFAULT_EMAILS[0].id);
+      // Utiliser notre route d'auth
+      try {
+        const res = await fetch("/api/email/gmail/auth");
+        const data = await res.json();
+        if (data.url) {
+          window.localStorage.setItem("google_email_connected", "true");
+          window.localStorage.setItem("google_email_address", "Connecté");
+          window.open(data.url, "_blank");
+          alert("Une fois l'autorisation terminée et le token configuré, rafraîchissez cette page.");
+          window.location.reload();
+        }
+      } catch (err) {
+        alert("Erreur lors de la connexion Gmail");
       }
     }
   };
@@ -263,14 +279,10 @@ export function EmailClient() {
   const handleSendReply = async () => {
     if (!replyText.trim() || !selectedMail || isSending) return;
 
-    const confirmed = window.confirm(
-      `Voulez-vous vraiment envoyer cette réponse à ${selectedMail.senderEmail} ?\n\nSujet: Re: ${selectedMail.subject}\n\n${replyText}`
-    );
-    if (!confirmed) return;
-
+    setIsSending(false); // Reset state just in case
     setIsSending(true);
     try {
-      const response = await fetch("/api/email/send", {
+      const response = await fetch("/api/email/gmail/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -282,7 +294,7 @@ export function EmailClient() {
 
       if (!response.ok) {
         const errData = await response.json();
-        alert(`Erreur lors de l'envoi : ${errData.error || "inconnue"}`);
+        alert(`Erreur Gmail : ${errData.error || "Une erreur est survenue lors de l'envoi."}`);
         setIsSending(false);
         return;
       }
@@ -292,7 +304,6 @@ export function EmailClient() {
           return {
             ...mail,
             read: true,
-            // Si on répond, l'urgence repasse en normale/basse car le message est géré
             priority: "LOW" as Priority,
             history: [
               ...mail.history,
@@ -311,7 +322,7 @@ export function EmailClient() {
       window.localStorage.setItem("easycom_emails", JSON.stringify(updatedEmails));
       setReplyText("");
     } catch (err) {
-      alert(`Erreur de connexion : ${err instanceof Error ? err.message : "Erreur"}`);
+      alert(`Erreur de connexion : ${err instanceof Error ? err.message : "Impossible de contacter le serveur Gmail."}`);
     } finally {
       setIsSending(false);
     }
