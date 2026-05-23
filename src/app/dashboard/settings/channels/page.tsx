@@ -16,9 +16,36 @@ export default async function ChannelsSettingsPage() {
     .eq("communityId", communityId)
     .order("type", { ascending: true });
 
+  // Si le canal EMAIL n'existe pas encore en base mais qu'un refresh token
+  // est présent en env, on l'affiche comme connecté (connexion legacy)
+  const channelList = channels ?? [];
+  const hasEmailInDb = channelList.some((c) => c.type === "EMAIL");
+  const hasGmailEnvToken = !!process.env.GMAIL_REFRESH_TOKEN;
+
+  const syntheticChannels = [...channelList];
+  if (!hasEmailInDb && hasGmailEnvToken) {
+    syntheticChannels.push({
+      id: "env-gmail",
+      communityId,
+      type: "EMAIL",
+      name: "Email / Newsletter",
+      handle: process.env.GMAIL_CLIENT_ID?.split("-")[0] ?? "Gmail",
+      isConnected: true,
+      isActive: true,
+      pageId: null,
+      lastSyncAt: null,
+      accessToken: null,
+      refreshToken: null,
+      tokenExpiresAt: null,
+      settings: { provider: "gmail", source: "env" },
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    });
+  }
+
   return (
     <ChannelsSettingsClient
-      channels={(channels ?? []) as Parameters<typeof ChannelsSettingsClient>[0]["channels"]}
+      channels={syntheticChannels as Parameters<typeof ChannelsSettingsClient>[0]["channels"]}
       communityId={communityId}
     />
   );

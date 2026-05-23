@@ -1,12 +1,31 @@
 import { NextResponse } from 'next/server';
 import { oauth2Client, GMAIL_SCOPES } from '@/lib/gmail';
+import { createClient } from '@/lib/supabase/server';
 
-export async function GET() {
+export async function GET(request: Request) {
+  // Vérifier que l'utilisateur est connecté
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.redirect(new URL('/auth/login', request.url));
+  }
+
+  const { searchParams } = new URL(request.url);
+  const communityId = searchParams.get('communityId') ?? '';
+
+  // Encoder communityId dans le state pour le callback
+  const state = Buffer.from(JSON.stringify({
+    communityId,
+    userId: user.id,
+    exp: Date.now() + 10 * 60 * 1000, // 10 min
+  })).toString('base64url');
+
   const url = oauth2Client.generateAuthUrl({
-    access_type: 'offline', // IMPORTANT: pour obtenir le refresh_token
+    access_type: 'offline',
     scope: GMAIL_SCOPES,
-    prompt: 'consent' // Force le consentement pour être sûr d'avoir le refresh_token
+    prompt: 'consent',
+    state,
   });
 
-  return NextResponse.json({ url });
+  return NextResponse.redirect(url);
 }

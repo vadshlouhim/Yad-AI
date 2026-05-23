@@ -36,7 +36,7 @@ const CHANNEL_CONFIG: Record<string, {
   brandBorder: string;
   brandText: string;
   description: string;
-  authType: "oauth" | "token" | "manual";
+  authType: "oauth" | "gmail-oauth" | "token" | "manual";
   badge: string;
   botField?: string;
   tokenField?: string;
@@ -85,20 +85,20 @@ const CHANNEL_CONFIG: Record<string, {
   },
   EMAIL: {
     logo: "/logo/gmail-svgrepo-com.svg",
-    logoBg: "bg-slate-50",
-    brandColor: "from-slate-500 to-slate-400",
-    brandBorder: "border-slate-200",
-    brandText: "text-slate-600",
-    description: "Envoyez des newsletters à votre liste de diffusion via Resend.",
-    authType: "token",
-    badge: "API Resend",
-    tokenField: "Clé API Resend",
+    logoBg: "bg-red-50",
+    brandColor: "from-red-500 to-orange-400",
+    brandBorder: "border-red-200",
+    brandText: "text-red-600",
+    description: "Connectez votre compte Gmail pour envoyer des emails depuis EasyCom AI.",
+    authType: "gmail-oauth",
+    badge: "Gmail OAuth",
   },
 };
 
 const CHANNEL_ORDER = ["INSTAGRAM", "FACEBOOK", "WHATSAPP", "TELEGRAM", "EMAIL"];
 
 const OAUTH_MESSAGES: Record<string, { tone: "success" | "error"; text: string }> = {
+  // Meta
   success: { tone: "success", text: "Connexion réussie ! Le canal est maintenant actif." },
   missing_code: { tone: "error", text: "Meta n'a pas renvoyé de code de connexion." },
   missing_env: { tone: "error", text: "Configuration Meta manquante côté serveur." },
@@ -108,6 +108,13 @@ const OAUTH_MESSAGES: Record<string, { tone: "success" | "error"; text: string }
   no_page: { tone: "error", text: "Aucune Page Facebook administrable trouvée." },
   no_instagram_business: { tone: "error", text: "Aucun compte Instagram Pro lié à une Page Facebook." },
   error: { tone: "error", text: "Connexion refusée par Meta. Vérifiez l'URL de redirection." },
+  // Gmail
+  gmail_success: { tone: "success", text: "Gmail connecté avec succès ! Vous pouvez maintenant envoyer des emails depuis EasyCom AI." },
+  gmail_cancelled: { tone: "error", text: "Connexion Gmail annulée." },
+  gmail_missing_code: { tone: "error", text: "Google n'a pas renvoyé de code d'autorisation." },
+  gmail_no_token: { tone: "error", text: "Aucun token reçu de Google. Réessayez avec 'consent' forcé." },
+  gmail_no_community: { tone: "error", text: "Communauté introuvable. Vérifiez votre profil." },
+  gmail_error: { tone: "error", text: "Erreur lors de la connexion Gmail. Réessayez." },
 };
 
 export function ChannelsSettingsClient({ channels, communityId }: Props) {
@@ -418,6 +425,59 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                         >
                           <img src={cfg.logo} alt="" className="w-5 h-5 object-contain brightness-0 invert" />
                           Se connecter via {CHANNEL_LABELS[type]}
+                          <ExternalLink className="size-4 ml-1 opacity-80" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Gmail OAuth */}
+                  {cfg.authType === "gmail-oauth" && (
+                    <div className="space-y-4">
+                      <p className="text-sm text-slate-600 leading-relaxed">
+                        {cfg.description} La connexion passe par le dialogue officiel Google — aucun mot de passe n'est stocké.
+                      </p>
+
+                      {isConnected ? (
+                        <div className="flex items-center justify-between rounded-2xl bg-white border border-emerald-200 p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl p-2 flex items-center justify-center bg-red-50">
+                              <img src="/logo/gmail-svgrepo-com.svg" alt="Gmail" className="w-full h-full object-contain" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900">
+                                {channel?.handle || channel?.pageId || "Compte Gmail"}
+                              </p>
+                              <p className="text-xs text-emerald-600 font-medium">Connecté via OAuth Google</p>
+                            </div>
+                            <CheckCircle2 className="size-4 text-emerald-500 ml-1" />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => window.location.href = `/api/email/gmail/auth?communityId=${communityId}`}
+                              className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                            >
+                              Reconnecter
+                            </button>
+                            <button
+                              onClick={() => channel && disconnectChannel(channel)}
+                              disabled={deletingId === channel?.id}
+                              className="flex items-center gap-1.5 text-xs font-medium text-red-600 border border-red-200 bg-white hover:bg-red-50 rounded-xl px-3 py-1.5 transition-all disabled:opacity-50"
+                            >
+                              {deletingId === channel?.id
+                                ? <Loader2 className="size-3 animate-spin" />
+                                : <Unlink className="size-3" />}
+                              Déconnecter
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => window.location.href = `/api/email/gmail/auth?communityId=${communityId}`}
+                          className="flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 bg-gradient-to-r from-red-500 to-orange-400"
+                        >
+                          <img src="/logo/gmail-svgrepo-com.svg" alt="Gmail" className="w-5 h-5 object-contain brightness-0 invert" />
+                          Se connecter avec Gmail
                           <ExternalLink className="size-4 ml-1 opacity-80" />
                         </button>
                       )}
