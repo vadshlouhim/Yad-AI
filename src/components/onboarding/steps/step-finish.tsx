@@ -86,10 +86,14 @@ export function StepFinish({ data, onFinish, onPrev, saving }: Props) {
     <Card className="shadow-md">
       <CardContent className="pt-8 pb-8 space-y-8">
 
-        {/* Icône centrale */}
+        {/* Logo + titre */}
         <div className="text-center space-y-3">
-          <div className="w-16 h-16 rounded-2xl brand-gradient flex items-center justify-center mx-auto shadow-lg">
-            <Sparkles className="size-8 text-white" />
+          <div className="flex items-center justify-center">
+            <img
+              src="/easycom-ai-logo.png"
+              alt="Logo EasyCom AI"
+              className="h-16 w-16 rounded-2xl object-cover shadow-lg"
+            />
           </div>
           <div className="space-y-1">
             <h2 className="text-2xl font-bold text-slate-900">Tout est prêt !</h2>
