@@ -56,7 +56,8 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 function getOAuthBaseUrl(requestUrl: URL) {
-  return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? requestUrl.origin;
+  const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+  return appUrl?.replace(/\/$/, "") ?? requestUrl.origin;
 }
 
 /** Construit l'URL de retour selon returnTo ("onboarding" ou "settings") */

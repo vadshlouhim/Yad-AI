@@ -27,7 +27,10 @@ function signState(payload: Record<string, unknown>, secret: string) {
 }
 
 function getOAuthBaseUrl(requestUrl: URL) {
-  return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? requestUrl.origin;
+  // APP_URL est une variable serveur pure (pas NEXT_PUBLIC_) — disponible au runtime, pas baked au build.
+  // Fallback sur l'origin de la requête (fiable en production derrière Netlify/Vercel).
+  const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+  return appUrl?.replace(/\/$/, "") ?? requestUrl.origin;
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
