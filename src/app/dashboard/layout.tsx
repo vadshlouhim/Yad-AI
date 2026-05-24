@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/topbar";
+import { GmbNotificationBadge } from "@/components/layout/gmb-notification-badge";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 
@@ -59,6 +60,7 @@ export default async function DashboardLayout({
           userName={profile.name ?? ""}
           unreadNotifications={unreadCount ?? 0}
         />
+        <GmbNotificationBadge />
         <main className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5 lg:p-6">
           <div className="max-w-7xl mx-auto animate-fade-in pb-6 max-md:pb-2">
             {children}
