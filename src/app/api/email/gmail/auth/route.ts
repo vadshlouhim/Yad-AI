@@ -12,11 +12,14 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const communityId = searchParams.get('communityId') ?? '';
+  // "onboarding" ou "settings" — détermine où rediriger après le callback
+  const returnTo = searchParams.get('returnTo') ?? 'settings';
 
-  // Encoder communityId dans le state pour le callback
+  // Encoder communityId + returnTo dans le state pour le callback
   const state = Buffer.from(JSON.stringify({
     communityId,
     userId: user.id,
+    returnTo,
     exp: Date.now() + 10 * 60 * 1000, // 10 min
   })).toString('base64url');
 

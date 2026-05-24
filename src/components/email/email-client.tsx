@@ -148,9 +148,15 @@ const PRIORITY_META = {
   },
 };
 
-export function EmailClient() {
-  const [googleConnected, setGoogleConnected] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState("");
+interface EmailClientProps {
+  communityId: string;
+  initialConnected: boolean;
+  initialEmail: string;
+}
+
+export function EmailClient({ communityId, initialConnected, initialEmail }: EmailClientProps) {
+  const [googleConnected, setGoogleConnected] = useState(initialConnected);
+  const [googleEmail, setGoogleEmail] = useState(initialEmail);
   const [emails, setEmails] = useState<EmailMessage[]>([]);
   const [selectedMailId, setSelectedMailId] = useState<string | null>(null);
   const [isClassifying, setIsClassifying] = useState(false);
@@ -160,7 +166,7 @@ export function EmailClient() {
   const [isAiDrafting, setIsAiDrafting] = useState(false);
   const [aiDraft, setAiDraft] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-
+  const [isConnecting, setIsConnecting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchEmails = async () => {
@@ -182,41 +188,48 @@ export function EmailClient() {
   };
 
   useEffect(() => {
-    const isConn = window.localStorage.getItem("google_email_connected") === "true";
-    const mail = window.localStorage.getItem("google_email_address") ?? "";
-    setGoogleConnected(isConn);
-    setGoogleEmail(mail);
-
-    if (isConn) {
+    if (googleConnected) {
       fetchEmails();
     }
+  }, [googleConnected]);
+
+  // Écouter le postMessage du popup OAuth Gmail
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === "gmail_oauth_success") {
+        setGoogleConnected(true);
+        setIsConnecting(false);
+        // Recharger la page pour récupérer les données à jour depuis le serveur
+        window.location.reload();
+      }
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
   }, []);
 
-  const handleConnectGoogle = async () => {
+  const handleConnectGoogle = () => {
     if (googleConnected) {
-      window.localStorage.removeItem("google_email_connected");
-      window.localStorage.removeItem("google_email_address");
-      window.localStorage.removeItem("easycom_emails");
-      setGoogleConnected(false);
-      setGoogleEmail("");
-      setEmails([]);
-      setSelectedMailId(null);
-      setHasClassified(false);
-    } else {
-      // Utiliser notre route d'auth
-      try {
-        const res = await fetch("/api/email/gmail/auth");
-        const data = await res.json();
-        if (data.url) {
-          window.localStorage.setItem("google_email_connected", "true");
-          window.localStorage.setItem("google_email_address", "Connecté");
-          window.open(data.url, "_blank");
-          alert("Une fois l'autorisation terminée et le token configuré, rafraîchissez cette page.");
-          window.location.reload();
-        }
-      } catch (err) {
-        alert("Erreur lors de la connexion Gmail");
-      }
+      // Déconnexion — on recharge pour mettre à jour l'état serveur
+      window.location.href = "/api/email/gmail/disconnect";
+      return;
+    }
+
+    setIsConnecting(true);
+    const authUrl = new URL("/api/email/gmail/auth", window.location.origin);
+    authUrl.searchParams.set("communityId", communityId);
+    authUrl.searchParams.set("returnTo", "email_popup");
+
+    const popup = window.open(
+      authUrl.toString(),
+      "gmail_oauth",
+      "width=520,height=660,left=200,top=100,toolbar=0,menubar=0,location=0"
+    );
+
+    // Fallback : si le popup est bloqué
+    if (!popup) {
+      setIsConnecting(false);
+      window.location.href = authUrl.toString().replace("email_popup", "settings");
     }
   };
 
@@ -341,18 +354,29 @@ export function EmailClient() {
             </p>
           </div>
           <div>
-            <Button
-              variant={googleConnected ? "destructive" : "outline"}
-              onClick={handleConnectGoogle}
-              className={cn(
-                "rounded-full px-5 py-5 text-sm font-semibold transition-all hover:scale-[1.02]",
-                googleConnected
-                  ? "bg-rose-600 hover:bg-rose-700 text-white border-none"
-                  : "bg-white text-cyan-950 border-cyan-200 hover:bg-cyan-50"
+            <div className="flex flex-col items-end gap-1">
+              {googleConnected && googleEmail && (
+                <p className="text-xs text-cyan-200/70">{googleEmail}</p>
               )}
-            >
-              {googleConnected ? "Déconnecter Google" : "Connecter ma messagerie"}
-            </Button>
+              <Button
+                variant={googleConnected ? "destructive" : "outline"}
+                onClick={handleConnectGoogle}
+                disabled={isConnecting}
+                className={cn(
+                  "rounded-full px-5 py-5 text-sm font-semibold transition-all hover:scale-[1.02]",
+                  googleConnected
+                    ? "bg-rose-600 hover:bg-rose-700 text-white border-none"
+                    : "bg-white text-cyan-950 border-cyan-200 hover:bg-cyan-50"
+                )}
+              >
+                {isConnecting ? (
+                  <span className="flex items-center gap-2">
+                    <RefreshCw className="size-4 animate-spin" />
+                    Connexion en cours…
+                  </span>
+                ) : googleConnected ? "Déconnecter Google" : "Connecter ma messagerie"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -439,9 +463,17 @@ export function EmailClient() {
             </p>
             <Button
               onClick={handleConnectGoogle}
+              disabled={isConnecting}
               className="w-full rounded-full bg-cyan-700 text-white hover:bg-cyan-800 px-6 py-5 text-sm font-semibold transition-all"
             >
-              Se connecter avec Google
+              {isConnecting ? (
+                <span className="flex items-center gap-2 justify-center">
+                  <RefreshCw className="size-4 animate-spin" />
+                  Connexion en cours…
+                </span>
+              ) : (
+                "Se connecter avec Google"
+              )}
             </Button>
           </CardContent>
         </Card>

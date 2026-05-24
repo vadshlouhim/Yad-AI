@@ -67,10 +67,17 @@ export async function POST(request: Request) {
     }
 
     // 2. Lier l'utilisateur à la communauté
-    await admin
+    const { error: profileUpdateError } = await admin
       .from("profiles")
       .update({ communityId: community.id, updatedAt: new Date().toISOString() })
       .eq("id", userId);
+
+    if (profileUpdateError) {
+      console.error("[Onboarding] Erreur mise à jour communityId:", profileUpdateError);
+      // Rollback : supprimer la communauté créée pour ne pas laisser d'orphelin
+      await admin.from("Community").delete().eq("id", community.id);
+      return NextResponse.json({ error: "Impossible de lier le profil à la communauté" }, { status: 500 });
+    }
 
     // 3. Créer les canaux sélectionnés
     if (data.channels && data.channels.length > 0) {

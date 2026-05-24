@@ -19,6 +19,7 @@ interface Props {
 type ConnectedStatus = {
   INSTAGRAM: boolean;
   FACEBOOK: boolean;
+  EMAIL: boolean;
 };
 
 const AVAILABLE_CHANNELS = [
@@ -74,13 +75,13 @@ const AVAILABLE_CHANNELS = [
     type: "EMAIL",
     label: "Email / Newsletter",
     logo: "/logo/gmail-svgrepo-com.svg",
-    logoBg: "bg-slate-50 border border-slate-200",
-    description: "Envoi à votre liste",
+    logoBg: "bg-red-50 border border-red-100",
+    description: "Envoi depuis votre boîte Gmail",
     needsHandle: false,
     handlePlaceholder: "",
-    publishMode: "Via Resend (configuration dans les Paramètres)",
-    oauthProvider: null,
-    canConnectNow: false,
+    publishMode: "Via Gmail OAuth (connexion directe)",
+    oauthProvider: "gmail" as const,
+    canConnectNow: true,
   },
 ];
 
@@ -93,13 +94,18 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   no_page: "Aucune Page Facebook trouvée sur ce compte.",
   forbidden: "Accès non autorisé.",
   error: "Une erreur est survenue lors de la connexion.",
+  gmail_cancelled: "Connexion Gmail annulée.",
+  gmail_error: "Erreur lors de la connexion Gmail.",
+  gmail_no_community: "Veuillez d'abord finaliser l'onboarding.",
+  gmail_no_token: "Aucun token Gmail reçu, réessayez.",
+  gmail_missing_code: "Connexion Gmail annulée.",
 };
 
 export function StepChannels({ data, updateData, onNext, onPrev, communityId }: Props) {
   const searchParams = useSearchParams();
   const [connecting, setConnecting] = useState<string | null>(null);
   const [oauthNotice, setOauthNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [connected, setConnected] = useState<ConnectedStatus>({ INSTAGRAM: false, FACEBOOK: false });
+  const [connected, setConnected] = useState<ConnectedStatus>({ INSTAGRAM: false, FACEBOOK: false, EMAIL: false });
 
   // Lire le résultat OAuth au retour (param ?oauth=...)
   useEffect(() => {
@@ -107,7 +113,14 @@ export function StepChannels({ data, updateData, onNext, onPrev, communityId }: 
     const provider = searchParams.get("provider");
     if (!oauth) return;
 
-    if (oauth === "success" && provider) {
+    if (oauth === "gmail_success" || (oauth === "success" && provider === "gmail")) {
+      setConnected((prev) => ({ ...prev, EMAIL: true }));
+      const channelDef = AVAILABLE_CHANNELS.find((c) => c.type === "EMAIL");
+      if (channelDef && !data.channels.find((c) => c.type === "EMAIL")) {
+        updateData({ channels: [...data.channels, { type: "EMAIL", name: channelDef.label, handle: "" }] });
+      }
+      setOauthNotice({ type: "success", message: "Gmail connecté avec succès ! ✓" });
+    } else if (oauth === "success" && provider) {
       const providerKey = provider.toUpperCase() as keyof ConnectedStatus;
       setConnected((prev) => ({ ...prev, [providerKey]: true }));
 
@@ -119,7 +132,7 @@ export function StepChannels({ data, updateData, onNext, onPrev, communityId }: 
         });
       }
       setOauthNotice({ type: "success", message: `${provider.charAt(0).toUpperCase() + provider.slice(1)} connecté avec succès ! ✓` });
-    } else {
+    } else if (!oauth.startsWith("gmail_success") && oauth !== "success") {
       setOauthNotice({
         type: "error",
         message: OAUTH_ERROR_MESSAGES[oauth] ?? "Erreur inconnue lors de la connexion.",
@@ -161,9 +174,14 @@ export function StepChannels({ data, updateData, onNext, onPrev, communityId }: 
     return data.channels.find((c) => c.type === type)?.handle ?? "";
   }
 
-  function handleOAuthConnect(provider: "facebook" | "instagram") {
+  function handleOAuthConnect(provider: "facebook" | "instagram" | "gmail") {
     setConnecting(provider);
-    const url = new URL(`/api/auth/oauth/${provider}`, window.location.origin);
+    let url: URL;
+    if (provider === "gmail") {
+      url = new URL("/api/email/gmail/auth", window.location.origin);
+    } else {
+      url = new URL(`/api/auth/oauth/${provider}`, window.location.origin);
+    }
     if (communityId) url.searchParams.set("communityId", communityId);
     // Retour vers l'onboarding (pas les Settings)
     url.searchParams.set("returnTo", "onboarding");
@@ -211,9 +229,9 @@ export function StepChannels({ data, updateData, onNext, onPrev, communityId }: 
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex gap-2.5">
           <Info className="size-4 text-amber-600 flex-shrink-0 mt-0.5" />
           <p className="text-xs text-amber-700 leading-relaxed">
-            <strong>Instagram & Facebook</strong> : connexion directe via Meta OAuth.
+            <strong>Instagram, Facebook & Gmail</strong> : connexion directe via OAuth.
             <br />
-            <strong>WhatsApp, Telegram & Email</strong> : EasyCom AI prépare le contenu, vous diffusez manuellement ou via les Paramètres.
+            <strong>WhatsApp & Telegram</strong> : EasyCom AI prépare le contenu, vous diffusez manuellement ou via les Paramètres.
           </p>
         </div>
 
@@ -286,6 +304,7 @@ export function StepChannels({ data, updateData, onNext, onPrev, communityId }: 
                             "text-xs h-8 px-3 gap-1.5",
                             channel.type === "INSTAGRAM" && !selected && "border-pink-200 text-pink-700 hover:bg-pink-50",
                             channel.type === "FACEBOOK" && !selected && "border-blue-200 text-blue-700 hover:bg-blue-50",
+                            channel.type === "EMAIL" && !selected && "border-red-200 text-red-700 hover:bg-red-50",
                           )}
                           onClick={() => handleOAuthConnect(channel.oauthProvider!)}
                           disabled={isConnecting}

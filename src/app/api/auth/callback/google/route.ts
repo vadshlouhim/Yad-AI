@@ -11,28 +11,38 @@ export async function GET(request: Request) {
 
   const settingsUrl = new URL('/dashboard/settings/channels', origin);
 
-  // Accès refusé par l'utilisateur
-  if (errorParam === 'access_denied') {
-    settingsUrl.searchParams.set('oauth', 'gmail_cancelled');
-    return NextResponse.redirect(settingsUrl);
-  }
-
-  if (!code) {
-    settingsUrl.searchParams.set('oauth', 'gmail_missing_code');
-    return NextResponse.redirect(settingsUrl);
-  }
-
-  // Décoder le state
+  // Décoder le state en premier pour récupérer returnTo même en cas d'erreur
   let communityId: string | null = null;
+  let returnTo = 'settings';
   if (stateRaw) {
     try {
       const payload = JSON.parse(Buffer.from(stateRaw, 'base64url').toString('utf8'));
       if (payload.exp && payload.exp > Date.now()) {
         communityId = payload.communityId ?? null;
+        returnTo = payload.returnTo ?? 'settings';
       }
     } catch {
       // state invalide, on continue sans communityId
     }
+  }
+
+  // Construire l'URL de retour selon returnTo
+  const returnUrl =
+    returnTo === 'onboarding'
+      ? new URL('/onboarding', origin)
+      : returnTo === 'email_popup'
+      ? new URL('/dashboard/email/oauth-done', origin)
+      : settingsUrl;
+
+  // Accès refusé par l'utilisateur
+  if (errorParam === 'access_denied') {
+    returnUrl.searchParams.set('oauth', 'gmail_cancelled');
+    return NextResponse.redirect(returnUrl);
+  }
+
+  if (!code) {
+    returnUrl.searchParams.set('oauth', 'gmail_missing_code');
+    return NextResponse.redirect(returnUrl);
   }
 
   // Vérifier l'authentification
@@ -54,8 +64,8 @@ export async function GET(request: Request) {
   }
 
   if (!communityId) {
-    settingsUrl.searchParams.set('oauth', 'gmail_no_community');
-    return NextResponse.redirect(settingsUrl);
+    returnUrl.searchParams.set('oauth', 'gmail_no_community');
+    return NextResponse.redirect(returnUrl);
   }
 
   try {
@@ -63,8 +73,8 @@ export async function GET(request: Request) {
     const { tokens } = await oauth2Client.getToken(code);
 
     if (!tokens.refresh_token && !tokens.access_token) {
-      settingsUrl.searchParams.set('oauth', 'gmail_no_token');
-      return NextResponse.redirect(settingsUrl);
+      returnUrl.searchParams.set('oauth', 'gmail_no_token');
+      return NextResponse.redirect(returnUrl);
     }
 
     // Obtenir l'email du compte Gmail connecté
@@ -109,12 +119,12 @@ export async function GET(request: Request) {
       { onConflict: 'communityId,type' }
     );
 
-    settingsUrl.searchParams.set('oauth', 'gmail_success');
-    settingsUrl.searchParams.set('provider', 'gmail');
-    return NextResponse.redirect(settingsUrl);
+    returnUrl.searchParams.set('oauth', 'gmail_success');
+    returnUrl.searchParams.set('provider', 'gmail');
+    return NextResponse.redirect(returnUrl);
   } catch (error) {
     console.error('[Gmail Callback Error]', error);
-    settingsUrl.searchParams.set('oauth', 'gmail_error');
-    return NextResponse.redirect(settingsUrl);
+    returnUrl.searchParams.set('oauth', 'gmail_error');
+    return NextResponse.redirect(returnUrl);
   }
 }
