@@ -354,7 +354,7 @@ export async function POST(request: Request) {
     const hasExplicitVisualIntent = isUserPrompt && looksLikeTemplateIntent(lastUserMessage.content);
     const hasExplicitArticleIntent = isUserPrompt && looksLikeArticleIntent(lastUserMessage.content);
 
-    const [{ data: dbCommunity }, { data: memories }, { data: candidateTemplates }, { data: candidateArticles }, { data: automations }, { data: automationPresets }] = await Promise.all([
+    const [{ data: dbCommunity }, { data: memories }, { data: candidateTemplates }, { data: candidateArticles }, { data: automations }, { data: automationPresets }, { data: gmailChannel }] = await Promise.all([
       admin
         .from("Community")
         .select("name, city, timezone, tone, language, signature, hashtags, editorialRules, communityType, rhythmId, religiousStream")
@@ -398,6 +398,13 @@ export async function POST(request: Request) {
             .order("sortOrder", { ascending: true })
             .limit(24)
         : Promise.resolve({ data: [] }),
+      // Vérifier si Gmail est connecté pour cette communauté
+      admin
+        .from("Channel")
+        .select("isConnected, handle")
+        .eq("communityId", profile.communityId)
+        .eq("type", "EMAIL")
+        .maybeSingle(),
     ]);
     const communityData = (dbCommunity as Partial<CommunityContext> | null) ?? {};
     const community: CommunityContext = {
@@ -832,11 +839,13 @@ export async function POST(request: Request) {
                   type: "function",
                   function: {
                     name: "send_email",
-                    description: "Prépare un e-mail à envoyer. Cela affichera une demande de confirmation à l'utilisateur dans l'interface de chat avant l'envoi réel par Resend.",
+                    description: gmailChannel?.isConnected
+                      ? `Prépare et envoie un e-mail depuis la boîte Gmail connectée (${gmailChannel.handle ?? "Gmail"}). Une confirmation sera demandée à l'utilisateur avant l'envoi réel.`
+                      : "Prépare un e-mail à envoyer. Une confirmation sera demandée à l'utilisateur avant l'envoi réel via le canal email configuré.",
                     parameters: {
                       type: "object",
                       properties: {
-                        to: { type: "string", description: "Adresse e-mail du destinataire (ex: chlomitaieb@gmail.com)" },
+                        to: { type: "string", description: "Adresse e-mail du destinataire" },
                         subject: { type: "string", description: "Sujet de l'e-mail" },
                         body: { type: "string", description: "Contenu textuel ou corps du message de l'e-mail" }
                       },
