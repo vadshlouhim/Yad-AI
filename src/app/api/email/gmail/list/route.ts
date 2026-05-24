@@ -1,18 +1,48 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getGmailClient } from '@/lib/gmail';
 
 export async function GET() {
-  const refreshToken = process.env.GMAIL_REFRESH_TOKEN;
+  // 1. Vérifier l'authentification
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  }
 
-  if (!refreshToken) {
+  // 2. Récupérer le communityId de l'utilisateur
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('communityId')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile?.communityId) {
+    return NextResponse.json({ error: 'Aucune communauté associée' }, { status: 400 });
+  }
+
+  // 3. Récupérer le refreshToken Gmail de CETTE communauté
+  const { data: channel } = await admin
+    .from('Channel')
+    .select('refreshToken, isConnected')
+    .eq('communityId', profile.communityId)
+    .eq('type', 'EMAIL')
+    .maybeSingle();
+
+  const refreshToken = channel?.refreshToken ?? process.env.GMAIL_REFRESH_TOKEN;
+
+  if (!refreshToken || !channel?.isConnected) {
     return NextResponse.json({ error: 'Gmail non connecté' }, { status: 400 });
   }
 
+  // 4. Lister les emails avec le token de la communauté
   try {
     const gmail = getGmailClient(refreshToken);
     const res = await gmail.users.messages.list({
       userId: 'me',
-      maxResults: 10
+      maxResults: 10,
     });
 
     const messages = await Promise.all(
@@ -20,19 +50,15 @@ export async function GET() {
         const detail = await gmail.users.messages.get({
           userId: 'me',
           id: msg.id!,
-          format: 'full'
+          format: 'full',
         });
 
         const headers = detail.data.payload?.headers;
-        const subject = headers?.find(h => h.name === 'Subject')?.value || 'Sans sujet';
-        const from = headers?.find(h => h.name === 'From')?.value || 'Inconnu';
-        const date = headers?.find(h => h.name === 'Date')?.value || '';
-        
-        // Extraction simplifiée du corps
-        let body = '';
-        if (detail.data.snippet) {
-          body = detail.data.snippet;
-        }
+        const subject = headers?.find((h) => h.name === 'Subject')?.value || 'Sans sujet';
+        const from = headers?.find((h) => h.name === 'From')?.value || 'Inconnu';
+        const date = headers?.find((h) => h.name === 'Date')?.value || '';
+
+        const body = detail.data.snippet || '';
 
         return {
           id: msg.id,
@@ -43,19 +69,16 @@ export async function GET() {
           date: new Date(date).toLocaleDateString('fr-FR'),
           timestamp: new Date(date).getTime(),
           read: !detail.data.labelIds?.includes('UNREAD'),
-          priority: 'IMPORTANT', // Par défaut
-          history: [{
-            role: 'user',
-            body: body,
-            date: new Date(date).toLocaleTimeString('fr-FR')
-          }]
+          priority: 'IMPORTANT',
+          history: [{ role: 'user', body, date: new Date(date).toLocaleTimeString('fr-FR') }],
         };
       })
     );
 
     return NextResponse.json({ messages });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Gmail List Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Erreur inconnue';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
