@@ -46,6 +46,7 @@
     "@trpc/react-query": "^11.13.0",
     "@trpc/server": "^11.13.0",
     "@upstash/redis": "^1.37.0",
+    "antd": "^6.4.3",
     "bullmq": "^5.74.1",
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.9.0",
@@ -74,6 +75,8 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@netlify/functions": "^5.2.2",
+    "@netlify/plugin-nextjs": "^5.15.11",
     "@types/node": "^20.19.39",
     "@types/pg": "^8.20.0",
     "@types/react": "^19.2.14",

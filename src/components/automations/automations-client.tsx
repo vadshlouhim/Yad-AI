@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AutomationFloatButton } from "@/components/ui/float-button";
 import {
   Zap, Plus, Play, Pause, Clock, CheckCircle, XCircle,
-  AlertCircle, Calendar, RefreshCw, Settings, Trash2, X, Save
+  AlertCircle, Calendar, RefreshCw, Settings, Trash2, X, Save,
 } from "lucide-react";
 import { formatRelative, cn } from "@/lib/utils";
 
@@ -302,14 +303,15 @@ const RUN_STATUS_VARIANT: Record<string, "draft" | "info" | "ready" | "published
 };
 
 function defaultForm(): AutomationFormState {
+  const defaultSendAt = new Date(Date.now() + 5 * 60 * 1000);
   return {
     id: null,
     name: "Nouvel evenement",
     description: "",
     trigger: "CUSTOM_SCHEDULE",
     repeat: "none",
-    time: "10:00",
-    date: "",
+    time: formatTimeInput(defaultSendAt),
+    date: formatDateInput(defaultSendAt),
     day: "friday",
     customDays: [],
     daysBefore: "1",
@@ -319,6 +321,24 @@ function defaultForm(): AutomationFormState {
     requiresValidation: true,
     isActive: true,
   };
+}
+
+function formatDateInput(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatTimeInput(value: Date) {
+  return `${String(value.getHours()).padStart(2, "0")}:${String(value.getMinutes()).padStart(2, "0")}`;
+}
+
+function buildNextRunAt(form: AutomationFormState) {
+  if (!form.date || !form.time || form.trigger === "MANUAL") return null;
+  const nextRun = new Date(`${form.date}T${form.time}:00`);
+  if (Number.isNaN(nextRun.getTime())) return null;
+  return nextRun.toISOString();
 }
 
 function getGenerateAction(automation: Automation): AutomationAction | null {
@@ -333,6 +353,8 @@ function formFromAutomation(automation: Automation): AutomationFormState {
   const config = automation.triggerConfig ?? {};
   const generateAction = getGenerateAction(automation);
   const validationAction = getValidationAction(automation);
+  const nextRunAt = automation.nextRunAt ? new Date(automation.nextRunAt) : null;
+  const hasValidNextRunAt = nextRunAt !== null && !Number.isNaN(nextRunAt.getTime());
   const repeat: AutomationFormState["repeat"] = (() => {
     if (automation.trigger === "DAILY") return "daily";
     if (automation.trigger === "CUSTOM_SCHEDULE") {
@@ -349,8 +371,8 @@ function formFromAutomation(automation: Automation): AutomationFormState {
     description: automation.description ?? "",
     trigger: automation.trigger,
     repeat,
-    time: String(config.time ?? "10:00"),
-    date: typeof config.date === "string" ? config.date : "",
+    time: hasValidNextRunAt ? formatTimeInput(nextRunAt) : String(config.time ?? "10:00"),
+    date: hasValidNextRunAt ? formatDateInput(nextRunAt) : typeof config.date === "string" ? config.date : "",
     day: String(config.day ?? "friday"),
     customDays: Array.isArray(config.days) ? config.days.map((entry) => String(entry)) : [],
     daysBefore: String(config.daysBefore ?? config.daysBeforeHoliday ?? 1),
@@ -425,6 +447,39 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
   const shabbatAutomationId =
     predefinedCards.find((card) => card.key === "shabbat-times")?.matchingAutomation?.id ?? null;
   const visibleAutomations = automations.filter((automation) => automation.id !== shabbatAutomationId);
+
+  function IosAutomationSwitch({
+    active,
+    loading,
+    onClick,
+  }: {
+    active: boolean;
+    loading: boolean;
+    onClick: () => void;
+  }) {
+    return (
+      <button
+        type="button"
+        aria-label={active ? "Desactiver l'automatisation" : "Activer l'automatisation"}
+        aria-pressed={active}
+        disabled={loading}
+        onClick={onClick}
+        className={cn(
+          "relative inline-flex h-8 w-14 shrink-0 items-center rounded-full p-1 transition-colors duration-200 disabled:cursor-wait disabled:opacity-70",
+          active ? "bg-emerald-500" : "bg-slate-300"
+        )}
+      >
+        <span
+          className={cn(
+            "flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-sm transition-transform duration-200",
+            active ? "translate-x-6" : "translate-x-0"
+          )}
+        >
+          {loading && <RefreshCw className="size-3 animate-spin text-slate-500" />}
+        </span>
+      </button>
+    );
+  }
 
   function openCreateForm() {
     setForm(defaultForm());
@@ -512,6 +567,10 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
       setFeedback({ type: "error", text: "Veuillez choisir une heure." });
       return;
     }
+    if (form.trigger !== "MANUAL" && !form.date) {
+      setFeedback({ type: "error", text: "Veuillez choisir la date d'envoi automatique." });
+      return;
+    }
     if ((form.repeat === "weekly" || form.repeat === "custom") && form.trigger === "CUSTOM_SCHEDULE" && form.customDays.length === 0) {
       setFeedback({ type: "error", text: "Veuillez selectionner au moins un jour." });
       return;
@@ -532,7 +591,8 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
         contentType: form.contentType,
         channels: form.channels,
         requiresValidation: true,
-        isActive: true,
+        isActive: form.isActive,
+        nextRunAt: buildNextRunAt(form),
       };
       const res = await fetch(form.id ? `/api/automations/${form.id}` : "/api/automations", {
         method: form.id ? "PATCH" : "POST",
@@ -572,10 +632,14 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
     try {
       const res = await fetch(`/api/automations/${id}/trigger`, { method: "POST" });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) alert(data.error ?? "Erreur lors du déclenchement.");
+      if (!res.ok) {
+        alert(data.error ?? "Erreur lors du test.");
+        return;
+      }
+      alert("Test envoye. Verifiez les destinataires email de la communaute.");
       router.refresh();
     } catch {
-      alert("Erreur lors du déclenchement.");
+      alert("Erreur lors du test.");
     } finally {
       setTriggering(null);
     }
@@ -641,6 +705,125 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
     }
   }
 
+  function renderAutomationCard(automation: Automation) {
+    const lastRun = automation.runs[0];
+    const generateAction = getGenerateAction(automation);
+
+    return (
+      <Card
+        key={automation.id}
+        className={cn(
+          "relative border border-slate-200/90 bg-white/95 transition-shadow hover:shadow-sm hover:shadow-blue-100/50",
+          !automation.isActive && "opacity-60"
+        )}
+      >
+        <CardContent className="p-4">
+          <div className="absolute right-3 top-3 flex items-center gap-1">
+            <button
+              type="button"
+              aria-label="Modifier l'automatisation"
+              onClick={() => openEditForm(automation)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-blue-600"
+            >
+              <Settings className="size-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Supprimer l'automatisation"
+              onClick={() => deleteAutomation(automation.id)}
+              disabled={deleting === automation.id}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-100 bg-red-50 text-red-600 shadow-sm transition hover:bg-red-100 disabled:cursor-wait disabled:opacity-60"
+            >
+              {deleting === automation.id ? <RefreshCw className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-4 pr-20">
+            <div className={cn(
+              "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-xl",
+              automation.isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"
+            )}>
+              {TRIGGER_LABELS[automation.trigger]?.split(" ")[0] ?? "⚡"}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-800">{automation.name}</p>
+                  {automation.description && <p className="mt-0.5 text-xs text-slate-500">{automation.description}</p>}
+                </div>
+                <Badge variant={automation.isActive ? "published" : "draft"} className="w-fit text-[11px]">
+                  {automation.isActive ? "Actif" : "Pause"}
+                </Badge>
+              </div>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">
+                  {TRIGGER_LABELS[automation.trigger]?.slice(2) ?? automation.trigger}
+                </span>
+                {generateAction?.contentType && (
+                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">{generateAction.contentType}</span>
+                )}
+                {automation.event && (
+                  <span className="flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-xs text-sky-700">
+                    <Calendar className="size-3" />
+                    {automation.event.title}
+                  </span>
+                )}
+                {automation.nextRunAt && <span className="text-xs text-slate-500">Prochaine : {formatRelative(automation.nextRunAt)}</span>}
+                {automation.lastRunAt && <span className="text-xs text-slate-400">Derniere : {formatRelative(automation.lastRunAt)}</span>}
+              </div>
+
+              {generateAction?.channels && generateAction.channels.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {generateAction.channels.map((channel) => (
+                    <span key={channel} className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                      {SOCIAL_LOGOS[channel]}
+                      {channel}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {lastRun && (
+                <div className="mt-3 flex items-center gap-1.5">
+                  {RUN_STATUS_ICON[lastRun.status]}
+                  <span className="text-xs text-slate-500">
+                    {{ RUNNING: "En cours...", SUCCESS: "Succes", PARTIAL_SUCCESS: "Succes partiel", FAILED: "Echec", SKIPPED: "Ignore" }[lastRun.status] ?? lastRun.status}
+                    {" "}({formatRelative(lastRun.startedAt)})
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-1 flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold text-slate-500">
+                  {automation.isActive ? "Automatisation active" : "Automatisation desactivee"}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 rounded-full px-2.5 text-xs"
+                  onClick={() => triggerNow(automation.id)}
+                  loading={triggering === automation.id}
+                >
+                  <Play className="size-3" />
+                  Tester
+                </Button>
+              </div>
+              <IosAutomationSwitch
+                active={automation.isActive}
+                loading={toggling === automation.id}
+                onClick={() => toggleAutomation(automation.id, automation.isActive)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {!embedded && (
@@ -684,7 +867,7 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
         </div>
       )}
 
-      {!embedded && (
+      {false && !embedded && (
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-blue-100/30">
           <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -766,15 +949,14 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
                   <div className="mt-4 flex flex-wrap items-center gap-2">
                     {existing ? (
                       <>
-                        <Button
-                          size="sm"
-                          className={cn(
-                            "h-8 rounded-full text-xs text-white shadow-sm",
-                            existing.isActive ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"
-                          )}
-                          onClick={() => toggleAutomation(existing.id, existing.isActive)}
+                        <AutomationFloatButton
+                          active={existing.isActive}
                           loading={toggling === existing.id}
-                        >
+                          onClick={() => toggleAutomation(existing.id, existing.isActive)}
+                        />
+                        <span className="hidden" />
+                        {false ? (
+                        <Button>
                           {existing.isActive ? (
                             <>
                               <Pause className="size-3" />
@@ -787,7 +969,7 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
                             </>
                           )}
                         </Button>
-                        <span className="hidden" />
+                        ) : null}
                       </>
                     ) : card.status === "preset" ? (
                       <Button
@@ -836,6 +1018,47 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
         </section>
       )}
 
+      {!embedded && (
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-blue-100/30">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Mes automatisations</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Voici les automatisations qu&apos;EasyCom AI peut préparer de manière récurrente. Vous pouvez les activer, les désactiver ou ajouter vos propres automatisations régulières. À chaque contenu prêt, vous recevez une notification et pouvez le publier en un clic sur vos réseaux.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button onClick={openCreateForm} className="rounded-full bg-blue-600 text-white hover:bg-blue-700">
+                <Plus className="size-4" />
+                Ajouter
+              </Button>
+            </div>
+          </div>
+
+          {automations.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center gap-4 py-14 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100">
+                  <Zap className="size-7 text-slate-400" />
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-700">Aucune automatisation personnalisee</p>
+                  <p className="mt-1 text-sm text-slate-400">Creez une automatisation ou activez un scenario ci-dessus.</p>
+                </div>
+                <Button size="sm" onClick={openCreateForm} className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="size-4" />
+                  Creer une automatisation
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {automations.map((automation) => renderAutomationCard(automation))}
+            </div>
+          )}
+        </section>
+      )}
+
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4">
         <Card className="max-h-[90vh] w-full max-w-3xl overflow-y-auto border-blue-100 bg-white/95 shadow-xl shadow-blue-100/40">
@@ -865,22 +1088,22 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
               <input value={form.name} onChange={(event) => updateForm({ name: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:bg-white" />
             </label>
             <label className="space-y-1.5 text-sm font-medium text-slate-700">
-              Date (si nécessaire)
+              Date d&apos;envoi automatique
               <input type="date" value={form.date} onChange={(event) => updateForm({ date: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:bg-white" />
             </label>
-            <label className="hidden">
+            <label className="space-y-1.5 text-sm font-medium text-slate-700">
               Déclencheur
               <select value={form.trigger} onChange={(event) => updateForm({ trigger: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:bg-white">
                 {TRIGGER_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </label>
-            <label className="hidden">
+            <label className="space-y-1.5 text-sm font-medium text-slate-700 lg:col-span-2">
               Description
               <textarea value={form.description} onChange={(event) => updateForm({ description: event.target.value })} rows={3} className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:bg-white" />
             </label>
             {form.trigger !== "MANUAL" && (
               <label className="space-y-1.5 text-sm font-medium text-slate-700">
-                Heure souhaitée
+                Heure d&apos;envoi automatique
                 <input type="time" value={form.time} onChange={(event) => updateForm({ time: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:bg-white" />
               </label>
             )}
@@ -964,6 +1187,15 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
                 ))}
               </div>
             </div>
+            <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm font-medium text-slate-700 lg:col-span-2">
+              Automatisation active
+              <input
+                type="checkbox"
+                checked={form.isActive}
+                onChange={(event) => updateForm({ isActive: event.target.checked })}
+                className="h-4 w-4 rounded border-slate-300 text-blue-600"
+              />
+            </label>
             <div className="flex flex-wrap items-center justify-end gap-2 lg:col-span-2">
               <Button type="button" variant="outline" className="ml-auto border-slate-200" onClick={() => setFormOpen(false)}>Annuler</Button>
               <Button type="button" onClick={saveAutomation} loading={saving} className="bg-blue-600 hover:bg-blue-700"><Save className="size-4" />Enregistrer l&apos;automatisation</Button>

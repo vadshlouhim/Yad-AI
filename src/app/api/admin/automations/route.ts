@@ -49,6 +49,7 @@ export async function POST(request: Request) {
         actions: (typedPreset.actions ?? []) as never,
         isActive: body.isActive === undefined ? true : Boolean(body.isActive),
         status: body.isActive === false ? "PAUSED" : "ACTIVE",
+        nextRunAt: typeof body.nextRunAt === "string" && body.nextRunAt ? body.nextRunAt : null,
         updatedAt: new Date().toISOString(),
       })
       .select()
@@ -75,6 +76,7 @@ export async function POST(request: Request) {
       actions: buildAutomationActions({ contentType, channels, requiresValidation: true }) as never,
       isActive: body.isActive === undefined ? true : Boolean(body.isActive),
       status: body.isActive === false ? "PAUSED" : "ACTIVE",
+      nextRunAt: typeof body.nextRunAt === "string" && body.nextRunAt ? body.nextRunAt : null,
       updatedAt: now,
     })
     .select()

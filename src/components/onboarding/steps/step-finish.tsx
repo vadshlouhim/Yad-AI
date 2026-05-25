@@ -13,6 +13,7 @@ interface Props {
   onFinish: () => void;
   onPrev: () => void;
   saving: boolean;
+  simulationMode?: boolean;
 }
 
 const TONE_LABELS: Record<string, string> = {
@@ -37,7 +38,7 @@ const TYPE_LABELS: Record<string, string> = {
   OTHER: "Autre",
 };
 
-export function StepFinish({ data, onFinish, onPrev, saving }: Props) {
+export function StepFinish({ data, onFinish, onPrev, saving, simulationMode = false }: Props) {
   const summaryItems = [
     {
       icon: Building2,
@@ -180,12 +181,12 @@ export function StepFinish({ data, onFinish, onPrev, saving }: Props) {
             {saving ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Création en cours…
+                {simulationMode ? "Simulation en cours..." : "Création en cours…"}
               </>
             ) : (
               <>
                 <Sparkles className="size-4" />
-                Lancer mon espace EasyCom AI
+                {simulationMode ? "Terminer la simulation" : "Lancer mon espace EasyCom AI"}
               </>
             )}
           </Button>

@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Moon,
   Pencil,
+  PlayCircle,
   Plus,
   Save,
   Search,
@@ -25,6 +26,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { OnboardingWizard, demoOnboardingData } from "@/components/onboarding/onboarding-wizard";
 
 interface AdminMetrics {
   userCount: number;
@@ -71,6 +73,8 @@ interface AdminCommunity {
   city: string | null;
   plan: string;
   onboardingDone: boolean;
+  communityType: string;
+  religiousStream: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -154,13 +158,51 @@ interface Props {
   recentConversations: RecentConversation[];
 }
 
-type AdminSection = "overview" | "templates" | "rhythms" | "presets" | "automations" | "communities" | "activity" | "data";
+type AdminSection = "overview" | "templates" | "rhythms" | "presets" | "automations" | "communities" | "activity" | "data" | "development";
 type ThemeMode = "light" | "dark";
+type AdminAutomationFormState = {
+  communityId: string;
+  name: string;
+  description: string;
+  trigger: string;
+  contentType: string;
+  channels: string[];
+  date: string;
+  day: string;
+  time: string;
+  message: string;
+  isActive: boolean;
+};
 
 const numberFormatter = new Intl.NumberFormat("fr-FR");
 const TEMPLATE_CATEGORIES = ["ALL", "SHABBAT", "HOLIDAY", "EVENT", "COURSE", "ANNOUNCEMENT", "RECAP", "GREETING", "GENERAL"];
 const EDITABLE_TEMPLATE_CATEGORIES = TEMPLATE_CATEGORIES.filter((category) => category !== "ALL");
 const CHANNEL_TYPES = ["", "INSTAGRAM", "FACEBOOK", "WHATSAPP", "TELEGRAM", "EMAIL", "WEB"];
+const AUTOMATION_CHANNEL_TYPES = ["EMAIL", "WHATSAPP", "INSTAGRAM", "FACEBOOK", "TELEGRAM", "WEB"];
+const AUTOMATION_TRIGGER_TYPES = [
+  { value: "MANUAL", label: "Manuel" },
+  { value: "CUSTOM_SCHEDULE", label: "Planifie" },
+  { value: "DAILY", label: "Tous les jours" },
+  { value: "WEEKLY_SHABBAT", label: "Chabbat" },
+  { value: "JEWISH_HOLIDAY", label: "Fete juive" },
+];
+const AUTOMATION_CONTENT_TYPES = [
+  { value: "GENERAL", label: "General" },
+  { value: "COURSE_ANNOUNCEMENT", label: "Cours" },
+  { value: "COMMUNITY_NEWS", label: "Actualite" },
+  { value: "SHABBAT_TIMES", label: "Horaires de Chabbat" },
+  { value: "HOLIDAY_GREETING", label: "Fetes" },
+  { value: "FUNDRAISING", label: "Dons" },
+];
+const AUTOMATION_DAY_TYPES = [
+  { value: "sunday", label: "Dimanche" },
+  { value: "monday", label: "Lundi" },
+  { value: "tuesday", label: "Mardi" },
+  { value: "wednesday", label: "Mercredi" },
+  { value: "thursday", label: "Jeudi" },
+  { value: "friday", label: "Vendredi" },
+  { value: "saturday", label: "Samedi" },
+];
 const VISIBILITY_FILTERS = ["ALL", "GLOBAL", "LOCAL"] as const;
 const STATUS_FILTERS = ["ALL", "ACTIVE", "INACTIVE", "PREMIUM"] as const;
 const ADMIN_AUTOMATION_PRESETS = [
@@ -171,6 +213,10 @@ const ADMIN_AUTOMATION_PRESETS = [
   { key: "DONATION_REMINDER", logo: "💛", name: "Rappel de dons", description: "Prépare un message de collecte.", trigger: "CUSTOM_SCHEDULE" },
 ];
 void ADMIN_AUTOMATION_PRESETS;
+
+function isBethHabadCommunity(community: Pick<AdminCommunity, "communityType" | "religiousStream"> | null | undefined) {
+  return community?.communityType === "SYNAGOGUE" && community.religiousStream === "BETH_HABAD";
+}
 
 function formatNumber(value: number) {
   return numberFormatter.format(value);
@@ -183,6 +229,41 @@ function formatDate(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function formatDateInput(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatTimeInput(value: Date) {
+  return `${String(value.getHours()).padStart(2, "0")}:${String(value.getMinutes()).padStart(2, "0")}`;
+}
+
+function buildNextRunAt(date: string, time: string) {
+  if (!date || !time) return null;
+  const nextRun = new Date(`${date}T${time}:00`);
+  if (Number.isNaN(nextRun.getTime())) return null;
+  return nextRun.toISOString();
+}
+
+function createDefaultAdminAutomationForm(communityId: string): AdminAutomationFormState {
+  const defaultSendAt = new Date(Date.now() + 5 * 60 * 1000);
+  return {
+    communityId,
+    name: "Nouvelle automatisation",
+    description: "",
+    trigger: "CUSTOM_SCHEDULE",
+    contentType: "GENERAL",
+    channels: ["EMAIL"],
+    date: formatDateInput(defaultSendAt),
+    day: "monday",
+    time: formatTimeInput(defaultSendAt),
+    message: "",
+    isActive: true,
+  };
 }
 
 function MetricCard({
@@ -229,6 +310,10 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
   const [automationCommunityFilter, setAutomationCommunityFilter] = useState("ALL");
   const [theme, setTheme] = useState<ThemeMode>("light");
   const [status, setStatus] = useState<string | null>(null);
+  const [showDevelopmentPreview, setShowDevelopmentPreview] = useState(false);
+  const [developmentPreviewRun, setDevelopmentPreviewRun] = useState(0);
+  const [adminAutomationFormOpen, setAdminAutomationFormOpen] = useState(false);
+  const [adminAutomationForm, setAdminAutomationForm] = useState<AdminAutomationFormState>(() => createDefaultAdminAutomationForm(""));
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -253,12 +338,20 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     return { active, inactive, global, premium };
   }, [allTemplates]);
   const filteredAutomations = useMemo(() => {
-    return automations.filter((automation) =>
-      automationCommunityFilter === "ALL" ? true : automation.communityId === automationCommunityFilter
-    );
-  }, [automationCommunityFilter, automations]);
+    return automations.filter((automation) => {
+      if (automationCommunityFilter === "ALL") return true;
+      if (automationCommunityFilter === "BETH_HABAD") {
+        const community = communities.find((item) => item.id === automation.communityId);
+        return isBethHabadCommunity(community);
+      }
+      return automation.communityId === automationCommunityFilter;
+    });
+  }, [automationCommunityFilter, automations, communities]);
+  const bethHabadCommunities = communities.filter(isBethHabadCommunity);
   const selectedAutomationCommunity =
-    automationCommunityFilter !== "ALL" ? automationCommunityFilter : communities[0]?.id ?? "";
+    automationCommunityFilter !== "ALL" && automationCommunityFilter !== "BETH_HABAD"
+      ? automationCommunityFilter
+      : bethHabadCommunities[0]?.id ?? communities[0]?.id ?? "";
 
   const filteredTemplates = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -641,6 +734,104 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     window.location.reload();
   }
 
+  async function createPresetAutomationForBethHabad(presetId: string) {
+    if (bethHabadCommunities.length === 0) {
+      setStatus("Aucun compte Beth Habad à cibler.");
+      return;
+    }
+    setAutomationSaving(`beth-habad-${presetId}`);
+    const results = await Promise.all(
+      bethHabadCommunities.map((community) =>
+        fetch("/api/admin/automations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ communityId: community.id, presetId }),
+        })
+      )
+    );
+    setAutomationSaving(null);
+    const failed = results.filter((response) => !response.ok).length;
+    if (failed > 0) {
+      setStatus(`${failed} automatisation(s) Beth Habad n'ont pas pu être créées.`);
+      return;
+    }
+    window.location.reload();
+  }
+
+  function openAdminAutomationForm() {
+    setAdminAutomationForm(createDefaultAdminAutomationForm(selectedAutomationCommunity || communities[0]?.id || ""));
+    setAdminAutomationFormOpen(true);
+  }
+
+  function updateAdminAutomationForm(patch: Partial<AdminAutomationFormState>) {
+    setAdminAutomationForm((previous) => ({ ...previous, ...patch }));
+  }
+
+  function toggleAdminAutomationChannel(channel: string) {
+    setAdminAutomationForm((previous) => {
+      const channels = previous.channels.includes(channel)
+        ? previous.channels.filter((item) => item !== channel)
+        : [...previous.channels, channel];
+      return { ...previous, channels };
+    });
+  }
+
+  function buildAdminAutomationTriggerConfig() {
+    return {
+      day: adminAutomationForm.day,
+      time: adminAutomationForm.time,
+      date: adminAutomationForm.date,
+      repeat: adminAutomationForm.trigger === "DAILY" ? "daily" : "weekly",
+      days: [adminAutomationForm.day],
+      message: adminAutomationForm.message.trim(),
+      eventTitle: adminAutomationForm.name.trim(),
+    };
+  }
+
+  async function submitAdminAutomationForm() {
+    if (!adminAutomationForm.communityId) {
+      setStatus("Choisissez un compte cible.");
+      return;
+    }
+    if (!adminAutomationForm.name.trim()) {
+      setStatus("Donnez un nom à l'automatisation.");
+      return;
+    }
+    if (adminAutomationForm.trigger !== "MANUAL" && (!adminAutomationForm.date || !adminAutomationForm.time)) {
+      setStatus("Choisissez une date et une heure d'envoi.");
+      return;
+    }
+    if (adminAutomationForm.channels.length === 0) {
+      setStatus("Choisissez au moins un canal.");
+      return;
+    }
+
+    setAutomationSaving("admin-create");
+    const response = await fetch("/api/admin/automations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        communityId: adminAutomationForm.communityId,
+        name: adminAutomationForm.name.trim(),
+        description: adminAutomationForm.description.trim(),
+        trigger: adminAutomationForm.trigger,
+        triggerConfig: buildAdminAutomationTriggerConfig(),
+        contentType: adminAutomationForm.contentType,
+        channels: adminAutomationForm.channels,
+        isActive: adminAutomationForm.isActive,
+        nextRunAt: adminAutomationForm.trigger === "MANUAL" ? null : buildNextRunAt(adminAutomationForm.date, adminAutomationForm.time),
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    setAutomationSaving(null);
+    if (!response.ok) {
+      setStatus(payload.error ?? "Création impossible.");
+      return;
+    }
+    setAdminAutomationFormOpen(false);
+    window.location.reload();
+  }
+
   async function toggleAdminAutomation(automation: AdminAutomation) {
     setAutomationSaving(automation.id);
     const response = await fetch(`/api/admin/automations/${automation.id}`, {
@@ -657,6 +848,37 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     window.location.reload();
   }
 
+  async function editAdminAutomation(automation: AdminAutomation) {
+    const name = window.prompt("Nom de l'automatisation", automation.name);
+    if (!name || name.trim() === automation.name) return;
+    setAutomationSaving(automation.id);
+    const response = await fetch(`/api/admin/automations/${automation.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim() }),
+    });
+    setAutomationSaving(null);
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      setStatus(payload.error ?? "Modification impossible.");
+      return;
+    }
+    window.location.reload();
+  }
+
+  async function deleteAdminAutomation(automation: AdminAutomation) {
+    if (!window.confirm(`Supprimer l'automatisation "${automation.name}" ?`)) return;
+    setAutomationSaving(automation.id);
+    const response = await fetch(`/api/admin/automations/${automation.id}`, { method: "DELETE" });
+    setAutomationSaving(null);
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      setStatus(payload.error ?? "Suppression impossible.");
+      return;
+    }
+    window.location.reload();
+  }
+
   const navItems = [
     { id: "overview" as const, label: "Vue globale", icon: LayoutDashboard, value: formatNumber(metrics.databaseItemCount) },
     { id: "templates" as const, label: "Affiches", icon: ImageIcon, value: formatNumber(allTemplates.length) },
@@ -666,6 +888,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     { id: "communities" as const, label: "Beth Habad", icon: Building2, value: formatNumber(metrics.communityCount) },
     { id: "activity" as const, label: "Activité IA", icon: Bot, value: formatNumber(metrics.conversationCount) },
     { id: "data" as const, label: "Données", icon: Database, value: formatNumber(metrics.databaseItemCount) },
+    { id: "development" as const, label: "Développement", icon: PlayCircle, value: "UI" },
   ];
 
   const overviewCards = (
@@ -1100,7 +1323,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
               <div className={`rounded-[2rem] border p-5 ${panelClass}`}>
                 <h3 className={`flex items-center gap-2 text-xl font-black ${strongText}`}><Zap className="size-5 text-violet-500" />Automatisations prédéfinies</h3>
                 <p className={`mt-1 text-sm ${mutedText}`}>Choisissez une communauté puis ajoutez un modèle au compte client.</p>
-                <select value={automationCommunityFilter === "ALL" ? communities[0]?.id ?? "" : automationCommunityFilter} onChange={(event) => setAutomationCommunityFilter(event.target.value)} className={`mt-4 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>
+                <select value={selectedAutomationCommunity} onChange={(event) => setAutomationCommunityFilter(event.target.value)} className={`mt-4 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>
                   {communities.map((community) => <option key={community.id} value={community.id}>{community.name}{community.city ? ` · ${community.city}` : ""}</option>)}
                 </select>
                 <div className="mt-4 space-y-3">
@@ -1113,6 +1336,9 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                           <p className={`mt-1 text-xs leading-5 ${mutedText}`}>{preset.description}</p>
                           <button type="button" onClick={() => createPresetAutomation(preset.id)} disabled={automationSaving === preset.id} className="mt-3 rounded-xl bg-violet-600 px-3 py-2 text-xs font-black text-white hover:bg-violet-700 disabled:opacity-60">
                             {automationSaving === preset.id ? "Ajout..." : "Ajouter au compte"}
+                          </button>
+                          <button type="button" onClick={() => createPresetAutomationForBethHabad(preset.id)} disabled={automationSaving === `beth-habad-${preset.id}`} className="mt-2 rounded-xl border border-violet-200 bg-white px-3 py-2 text-xs font-black text-violet-700 hover:bg-violet-50 disabled:opacity-60">
+                            {automationSaving === `beth-habad-${preset.id}` ? "Création..." : `Créer pour ${bethHabadCommunities.length} Beth Habad`}
                           </button>
                         </div>
                       </div>
@@ -1127,10 +1353,17 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                     <h3 className={`text-xl font-black ${strongText}`}>Automatisations utilisateurs</h3>
                     <p className={`mt-1 text-sm ${mutedText}`}>{filteredAutomations.length} automatisation(s) affichée(s).</p>
                   </div>
-                  <select value={automationCommunityFilter} onChange={(event) => setAutomationCommunityFilter(event.target.value)} className={`rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>
-                    <option value="ALL">Tous les comptes</option>
-                    {communities.map((community) => <option key={community.id} value={community.id}>{community.name}</option>)}
-                  </select>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select value={automationCommunityFilter} onChange={(event) => setAutomationCommunityFilter(event.target.value)} className={`rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>
+                      <option value="ALL">Tous les comptes</option>
+                      <option value="BETH_HABAD">Beth Habad</option>
+                      {communities.map((community) => <option key={community.id} value={community.id}>{community.name}</option>)}
+                    </select>
+                    <button type="button" onClick={openAdminAutomationForm} className="inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-4 py-2 text-sm font-black text-white shadow-sm shadow-violet-200 hover:bg-violet-700">
+                      <Plus className="size-4" />
+                      Créer une automatisation
+                    </button>
+                  </div>
                 </div>
                 <div className="mt-4 space-y-3">
                   {filteredAutomations.map((automation) => {
@@ -1145,11 +1378,22 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                             <div className="mt-3 flex flex-wrap gap-2">
                               <span className="rounded-full bg-violet-500/15 px-2 py-1 text-xs font-bold text-violet-600">{automation.trigger}</span>
                               <span className={`rounded-full px-2 py-1 text-xs font-bold ${automation.isActive ? "bg-emerald-500/15 text-emerald-600" : "bg-slate-500/15 text-slate-500"}`}>{automation.isActive ? "Actif" : "Pause"}</span>
+                              {isBethHabadCommunity(communities.find((community) => community.id === automation.communityId)) && (
+                                <span className="rounded-full bg-blue-500/15 px-2 py-1 text-xs font-bold text-blue-700">Beth Habad</span>
+                              )}
                             </div>
                           </div>
-                          <button type="button" onClick={() => toggleAdminAutomation(automation)} disabled={automationSaving === automation.id} className={`rounded-xl px-3 py-2 text-xs font-black ${automation.isActive ? "bg-amber-500 text-white" : "bg-emerald-500 text-white"} disabled:opacity-60`}>
-                            {automationSaving === automation.id ? "Modification..." : automation.isActive ? "Mettre en pause" : "Activer"}
-                          </button>
+                          <div className="flex flex-wrap gap-2">
+                            <button type="button" onClick={() => toggleAdminAutomation(automation)} disabled={automationSaving === automation.id} className={`rounded-xl px-3 py-2 text-xs font-black ${automation.isActive ? "bg-amber-500 text-white" : "bg-emerald-500 text-white"} disabled:opacity-60`}>
+                              {automationSaving === automation.id ? "Modification..." : automation.isActive ? "Mettre en pause" : "Activer"}
+                            </button>
+                            <button type="button" onClick={() => editAdminAutomation(automation)} disabled={automationSaving === automation.id} className={`rounded-xl border px-3 py-2 text-xs font-black ${isDark ? "border-white/10 text-slate-200 hover:bg-white/10" : "border-slate-200 text-slate-700 hover:bg-slate-50"} disabled:opacity-60`}>
+                              Modifier
+                            </button>
+                            <button type="button" onClick={() => deleteAdminAutomation(automation)} disabled={automationSaving === automation.id} className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100 disabled:opacity-60">
+                              Supprimer
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -1157,6 +1401,151 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                   {filteredAutomations.length === 0 && <p className={`rounded-2xl border p-4 text-sm ${isDark ? "border-white/10 text-slate-400" : "border-slate-200 text-slate-500"}`}>Aucune automatisation pour ce filtre.</p>}
                 </div>
               </div>
+            </section>
+          )}
+
+          {adminAutomationFormOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">
+              <div className={`max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-[2rem] border p-5 shadow-2xl ${panelClass}`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className={`text-xl font-black ${strongText}`}>Créer une automatisation</h3>
+                    <p className={`mt-1 text-sm ${mutedText}`}>Choisissez un compte utilisateur et configurez une automatisation depuis le Super Admin.</p>
+                  </div>
+                  <button type="button" onClick={() => setAdminAutomationFormOpen(false)} className={`rounded-2xl border p-2 ${isDark ? "border-white/10 hover:bg-white/10" : "border-slate-200 hover:bg-slate-50"}`}>
+                    <X className="size-4" />
+                  </button>
+                </div>
+
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                  <label className={`space-y-1.5 text-sm font-bold ${strongText}`}>
+                    Compte cible
+                    <select value={adminAutomationForm.communityId} onChange={(event) => updateAdminAutomationForm({ communityId: event.target.value })} className={`w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>
+                      {communities.map((community) => (
+                        <option key={community.id} value={community.id}>
+                          {community.name}{community.city ? ` · ${community.city}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className={`space-y-1.5 text-sm font-bold ${strongText}`}>
+                    Nom
+                    <input value={adminAutomationForm.name} onChange={(event) => updateAdminAutomationForm({ name: event.target.value })} className={`w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} />
+                  </label>
+                  <label className={`space-y-1.5 text-sm font-bold ${strongText}`}>
+                    Déclencheur
+                    <select value={adminAutomationForm.trigger} onChange={(event) => updateAdminAutomationForm({ trigger: event.target.value })} className={`w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>
+                      {AUTOMATION_TRIGGER_TYPES.map((trigger) => <option key={trigger.value} value={trigger.value}>{trigger.label}</option>)}
+                    </select>
+                  </label>
+                  <label className={`space-y-1.5 text-sm font-bold ${strongText}`}>
+                    Type de contenu
+                    <select value={adminAutomationForm.contentType} onChange={(event) => updateAdminAutomationForm({ contentType: event.target.value })} className={`w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>
+                      {AUTOMATION_CONTENT_TYPES.map((contentType) => <option key={contentType.value} value={contentType.value}>{contentType.label}</option>)}
+                    </select>
+                  </label>
+                  {adminAutomationForm.trigger !== "MANUAL" && (
+                    <>
+                      <label className={`space-y-1.5 text-sm font-bold ${strongText}`}>
+                        Date d&apos;envoi
+                        <input type="date" value={adminAutomationForm.date} onChange={(event) => updateAdminAutomationForm({ date: event.target.value })} className={`w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} />
+                      </label>
+                      <label className={`space-y-1.5 text-sm font-bold ${strongText}`}>
+                        Jour
+                        <select value={adminAutomationForm.day} onChange={(event) => updateAdminAutomationForm({ day: event.target.value })} className={`w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>
+                          {AUTOMATION_DAY_TYPES.map((day) => <option key={day.value} value={day.value}>{day.label}</option>)}
+                        </select>
+                      </label>
+                      <label className={`space-y-1.5 text-sm font-bold ${strongText}`}>
+                        Heure
+                        <input type="time" value={adminAutomationForm.time} onChange={(event) => updateAdminAutomationForm({ time: event.target.value })} className={`w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} />
+                      </label>
+                    </>
+                  )}
+                  <label className={`space-y-1.5 text-sm font-bold ${strongText} md:col-span-2`}>
+                    Description
+                    <textarea value={adminAutomationForm.description} onChange={(event) => updateAdminAutomationForm({ description: event.target.value })} rows={2} className={`w-full resize-none rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} />
+                  </label>
+                  <label className={`space-y-1.5 text-sm font-bold ${strongText} md:col-span-2`}>
+                    Message à préparer
+                    <textarea value={adminAutomationForm.message} onChange={(event) => updateAdminAutomationForm({ message: event.target.value })} rows={3} placeholder="Exemple : Rappel du cours de Torah ce soir à 20h30." className={`w-full resize-none rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} />
+                  </label>
+                  <div className="space-y-2 md:col-span-2">
+                    <p className={`text-sm font-bold ${strongText}`}>Canaux</p>
+                    <div className="flex flex-wrap gap-2">
+                      {AUTOMATION_CHANNEL_TYPES.map((channel) => (
+                        <button
+                          key={channel}
+                          type="button"
+                          onClick={() => toggleAdminAutomationChannel(channel)}
+                          className={`rounded-full border px-3 py-1.5 text-xs font-black transition ${
+                            adminAutomationForm.channels.includes(channel)
+                              ? "border-violet-300 bg-violet-600 text-white"
+                              : isDark
+                                ? "border-white/10 text-slate-300 hover:bg-white/10"
+                                : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                          }`}
+                        >
+                          {channel}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <label className={`flex items-center justify-between rounded-2xl border px-3 py-2 text-sm font-bold md:col-span-2 ${isDark ? "border-white/10" : "border-slate-200"} ${strongText}`}>
+                    Automatisation active
+                    <input type="checkbox" checked={adminAutomationForm.isActive} onChange={(event) => updateAdminAutomationForm({ isActive: event.target.checked })} className="h-5 w-5 accent-violet-600" />
+                  </label>
+                </div>
+
+                <div className="mt-5 flex flex-wrap justify-end gap-2">
+                  <button type="button" onClick={() => setAdminAutomationFormOpen(false)} className={`rounded-2xl border px-4 py-2 text-sm font-black ${isDark ? "border-white/10 text-slate-200 hover:bg-white/10" : "border-slate-200 text-slate-700 hover:bg-slate-50"}`}>
+                    Annuler
+                  </button>
+                  <button type="button" onClick={submitAdminAutomationForm} disabled={automationSaving === "admin-create"} className="rounded-2xl bg-violet-600 px-4 py-2 text-sm font-black text-white hover:bg-violet-700 disabled:opacity-60">
+                    {automationSaving === "admin-create" ? "Création..." : "Créer l'automatisation"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === "development" && (
+            <section className="mt-6 space-y-6">
+              <div className={`rounded-[2rem] border p-5 shadow-sm ${panelClass}`}>
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                  <div>
+                    <h3 className={`text-xl font-black ${strongText}`}>Onboarding de demonstration</h3>
+                    <p className={`mt-2 max-w-3xl text-sm leading-6 ${mutedText}`}>
+                      Lancez une copie frontend du vrai onboarding avec les donnees fictives Chlomi-test et test.
+                      Les appels OAuth, upload et finalisation sont simules, sans creation de compte ni ecriture en base.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDevelopmentPreviewRun((run) => run + 1);
+                      setShowDevelopmentPreview(true);
+                    }}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-600"
+                  >
+                    <PlayCircle className="size-4" />
+                    Lancer l&apos;onboarding de demonstration
+                  </button>
+                </div>
+              </div>
+
+              {showDevelopmentPreview && (
+                <div className={`overflow-hidden rounded-[2rem] border shadow-sm ${isDark ? "border-white/10 bg-white" : "border-slate-200 bg-white"}`}>
+                  <OnboardingWizard
+                    key={developmentPreviewRun}
+                    userId="demo-user"
+                    userName="test"
+                    communityId="demo-community"
+                    initialData={demoOnboardingData}
+                    simulationMode
+                  />
+                </div>
+              )}
             </section>
           )}
 

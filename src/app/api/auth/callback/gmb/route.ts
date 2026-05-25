@@ -27,6 +27,11 @@ export async function GET(request: Request) {
   }
 
   const returnUrl = returnTo === 'gmb_popup' ? oauthDoneUrl : reviewsUrl;
+  const fail = (code: string, detail?: unknown) => {
+    if (detail) console.error(`[GMB Callback Error:${code}]`, detail);
+    returnUrl.searchParams.set('oauth', code);
+    return returnUrl;
+  };
 
   if (errorParam === 'access_denied') {
     returnUrl.searchParams.set('oauth', 'gmb_cancelled');
@@ -68,7 +73,9 @@ export async function GET(request: Request) {
 
     // 1. Récupérer les comptes GMB
     const accountMgmt = google.mybusinessaccountmanagement({ version: 'v1', auth: oauth2Client });
-    const accountsRes = await accountMgmt.accounts.list();
+    const accountsRes = await accountMgmt.accounts.list().catch((error) => {
+      throw new Error(`gmb_accounts_api_failed:${error instanceof Error ? error.message : 'unknown'}`);
+    });
     const accounts = accountsRes.data.accounts ?? [];
 
     if (accounts.length === 0) {
@@ -102,7 +109,7 @@ export async function GET(request: Request) {
     const expiresAt = tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null;
 
     // 3. Stocker le token dans Channel (type: GOOGLE_BUSINESS)
-    await admin.from('Channel').upsert(
+    const { error: upsertError } = await admin.from('Channel').upsert(
       {
         id: crypto.randomUUID(),
         communityId,
@@ -126,13 +133,20 @@ export async function GET(request: Request) {
       },
       { onConflict: 'communityId,type' }
     );
+    if (upsertError) {
+      console.error('[GMB Callback Upsert Error]', upsertError);
+      return NextResponse.redirect(fail('gmb_database_error', upsertError));
+    }
 
     returnUrl.searchParams.set('oauth', 'gmb_success');
     if (locationDisplayName) returnUrl.searchParams.set('location', locationDisplayName);
     return NextResponse.redirect(returnUrl);
   } catch (error) {
     console.error('[GMB Callback Error]', error);
-    returnUrl.searchParams.set('oauth', 'gmb_error');
-    return NextResponse.redirect(returnUrl);
+    const message = error instanceof Error ? error.message : '';
+    if (message.startsWith('gmb_accounts_api_failed:')) {
+      return NextResponse.redirect(fail('gmb_accounts_error', error));
+    }
+    return NextResponse.redirect(fail('gmb_error', error));
   }
 }

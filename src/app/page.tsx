@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 import { HeroAnimation } from "@/components/home/hero-animation";
 import {
@@ -18,38 +18,38 @@ import {
 
 const FEATURES = [
   {
-    label: "Gestion des réseaux sociaux",
+    label: "Gestion des rÃ©seaux sociaux",
     description: "Pilotez WhatsApp, Instagram, Facebook, Telegram et email depuis un seul espace.",
     icon: Share2,
     tone: "bg-blue-50 text-blue-700 border-blue-100",
   },
   {
     label: "Assistant du quotidien",
-    description: "Transformez une demande simple en action claire, contenu prêt ou automatisation.",
+    description: "Transformez une demande simple en action claire, contenu prÃªt ou automatisation.",
     icon: Bot,
     tone: "bg-cyan-50 text-cyan-700 border-cyan-100",
   },
   {
     label: "Contenus automatiques",
-    description: "Préparez annonces, textes, affiches et publications avec le contexte de votre communauté.",
+    description: "PrÃ©parez annonces, textes, affiches et publications avec le contexte de votre communautÃ©.",
     icon: PenLine,
     tone: "bg-amber-50 text-amber-700 border-amber-100",
   },
   {
-    label: "Messagerie connectée",
-    description: "Gardez les messages importants, réponses et relances au même endroit.",
+    label: "Messagerie connectÃ©e",
+    description: "Gardez les messages importants, rÃ©ponses et relances au mÃªme endroit.",
     icon: MessageCircle,
     tone: "bg-emerald-50 text-emerald-700 border-emerald-100",
   },
   {
     label: "Banque visuelle",
-    description: "Centralisez vos affiches, modèles, visuels et contenus réutilisables.",
+    description: "Centralisez vos affiches, modÃ¨les, visuels et contenus rÃ©utilisables.",
     icon: ImageIcon,
     tone: "bg-violet-50 text-violet-700 border-violet-100",
   },
   {
     label: "Agenda intelligent",
-    description: "Reliez événements, rappels, horaires et automatisations communautaires.",
+    description: "Reliez Ã©vÃ©nements, rappels, horaires et automatisations communautaires.",
     icon: CalendarDays,
     tone: "bg-slate-100 text-slate-700 border-slate-200",
   },
@@ -58,7 +58,7 @@ const FEATURES = [
 const WORKFLOW = [
   {
     label: "Demandez",
-    text: "Décrivez ce que vous voulez publier ou préparer.",
+    text: "DÃ©crivez ce que vous voulez publier ou prÃ©parer.",
     icon: MessageCircle,
     tone: "border-blue-100 bg-blue-50 text-blue-700",
     numberTone: "text-blue-500",
@@ -66,7 +66,7 @@ const WORKFLOW = [
   },
   {
     label: "Validez",
-    text: "L’IA propose un texte, une affiche ou une action.",
+    text: "Lâ€™IA propose un texte, une affiche ou une action.",
     icon: CheckCircle2,
     tone: "border-emerald-100 bg-emerald-50 text-emerald-700",
     numberTone: "text-emerald-500",
@@ -116,14 +116,14 @@ export default function HomePage() {
               className="inline-flex h-9 items-center gap-2 rounded-full px-4 transition hover:bg-white hover:text-blue-700 hover:shadow-sm"
             >
               <Share2 className="size-4" />
-              Fonctionnalités
+              FonctionnalitÃ©s
             </Link>
             <Link
               href="/method"
               className="inline-flex h-9 items-center gap-2 rounded-full px-4 transition hover:bg-white hover:text-emerald-700 hover:shadow-sm"
             >
               <CheckCircle2 className="size-4" />
-              Méthode
+              MÃ©thode
             </Link>
             <Link
               href="/blog"
@@ -165,11 +165,11 @@ export default function HomePage() {
           <div className="flex flex-col justify-center">
             <h1 className="max-w-3xl text-4xl font-black leading-[1.04] tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
               Une{" "}
-              <span className="text-blue-600">communication,</span> simplifiée.
+              <span className="text-blue-600">communication,</span> simplifiÃ©e.
             </h1>
 
             <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-              EasyCom AI centralise vos événements, messages, affiches et canaux de publication pour aider votre équipe à communiquer plus vite, avec un ton cohérent et des actions prêtes à valider.
+              EasyCom AI centralise vos Ã©vÃ©nements, messages, affiches et canaux de publication pour aider votre Ã©quipe Ã  communiquer plus vite, avec un ton cohÃ©rent et des actions prÃªtes Ã  valider.
             </p>
 
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3 sm:justify-start">
@@ -193,20 +193,20 @@ export default function HomePage() {
             <div className="mt-8 grid max-w-2xl gap-4 sm:grid-cols-3">
               {[
                 {
-                  title: "1 min à préparer",
-                  text: "Connectez-vous et suivez les 6 étapes pour nous dire qui vous êtes. Notre agent s’occupera du reste.",
+                  title: "1 min Ã  prÃ©parer",
+                  text: "Connectez-vous et suivez les 6 Ã©tapes pour nous dire qui vous Ãªtes. Notre agent sâ€™occupera du reste.",
                   icon: Clock3,
                   tone: "bg-blue-50 text-blue-700 border-blue-100",
                 },
                 {
-                  title: "Communication automatisée",
-                  text: "Les contenus récurrents se préparent sans repartir de zéro chaque semaine.",
+                  title: "Communication automatisÃ©e",
+                  text: "Les contenus rÃ©currents se prÃ©parent sans repartir de zÃ©ro chaque semaine.",
                   icon: RefreshCw,
                   tone: "bg-emerald-50 text-emerald-700 border-emerald-100",
                 },
                 {
-                  title: "Rappels programmés",
-                  text: "Les événements importants restent visibles au bon moment pour l’équipe.",
+                  title: "Rappels programmÃ©s",
+                  text: "Les Ã©vÃ©nements importants restent visibles au bon moment pour lâ€™Ã©quipe.",
                   icon: BellRing,
                   tone: "bg-amber-50 text-amber-700 border-amber-100",
                 },
@@ -245,12 +245,12 @@ export default function HomePage() {
       <section id="fonctionnalites" className="bg-slate-50 px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="max-w-2xl">
-            <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-600">Fonctionnalités</p>
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-600">FonctionnalitÃ©s</p>
             <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-              Une interface <span className="text-blue-600">calme</span> pour des journées chargées.
+              Une interface <span className="text-blue-600">calme</span> pour des journÃ©es chargÃ©es.
             </h2>
             <p className="mt-4 text-base leading-7 text-slate-600">
-              Chaque module est pensé pour réduire les allers-retours entre outils et garder le contexte de votre communauté au même endroit.
+              Chaque module est pensÃ© pour rÃ©duire les allers-retours entre outils et garder le contexte de votre communautÃ© au mÃªme endroit.
             </p>
           </div>
 
@@ -272,9 +272,9 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.16em] text-amber-600">Méthode</p>
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-amber-600">MÃ©thode</p>
               <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-                Du besoin à la publication, sans perdre le fil.
+                Du besoin Ã  la publication, sans perdre le fil.
               </h2>
             </div>
 
@@ -300,7 +300,7 @@ export default function HomePage() {
       <section className="bg-slate-50 px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="text-center">
-            <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-600">Témoignages</p>
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-600">TÃ©moignages</p>
             <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
               Ils simplifient leur <span className="text-blue-600">quotidien</span> avec EasyCom AI.
             </h2>
@@ -310,22 +310,22 @@ export default function HomePage() {
             {[
               {
                 name: "Marc L.",
-                role: "Gérant de restaurant",
-                content: "EasyCom a révolutionné notre gestion de salle. Nos rappels de réservation WhatsApp partent tout seuls, et l'IA m'aide à rédiger les menus de la semaine en 2 minutes.",
+                role: "GÃ©rant de restaurant",
+                content: "EasyCom a rÃ©volutionnÃ© notre gestion de salle. Nos rappels de rÃ©servation WhatsApp partent tout seuls, et l'IA m'aide Ã  rÃ©diger les menus de la semaine en 2 minutes.",
                 avatar: "ML",
                 color: "bg-blue-100 text-blue-700",
               },
               {
                 name: "Sarah J.",
                 role: "Coach Sportive",
-                content: "Mes élèves reçoivent leurs programmes et encouragements par message sans que j'y passe mes soirées. C'est comme avoir une assistante personnelle 24h/24.",
+                content: "Mes Ã©lÃ¨ves reÃ§oivent leurs programmes et encouragements par message sans que j'y passe mes soirÃ©es. C'est comme avoir une assistante personnelle 24h/24.",
                 avatar: "SJ",
                 color: "bg-emerald-100 text-emerald-700",
               },
               {
                 name: "Thomas D.",
                 role: "Agent Immobilier",
-                content: "Pour gérer les relances clients et les publications de nouveaux biens sur les réseaux, c'est l'outil parfait. Je gagne au moins 10h par semaine sur ma communication.",
+                content: "Pour gÃ©rer les relances clients et les publications de nouveaux biens sur les rÃ©seaux, c'est l'outil parfait. Je gagne au moins 10h par semaine sur ma communication.",
                 avatar: "TD",
                 color: "bg-amber-100 text-amber-700",
               },
@@ -352,27 +352,27 @@ export default function HomePage() {
           <div className="text-center mb-12">
             <p className="text-sm font-black uppercase tracking-[0.16em] text-indigo-600">FAQ</p>
             <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-              Questions fréquentes
+              Questions frÃ©quentes
             </h2>
           </div>
 
           <div className="space-y-4">
             {[
               {
-                q: "Est-ce que je peux utiliser EasyCom AI pour n'importe quelle activité ?",
-                a: "Absolument. Que vous soyez une association, un commerce de proximité, un coach ou une grande communauté, l'IA s'adapte à votre contexte spécifique dès la configuration.",
+                q: "Est-ce que je peux utiliser EasyCom AI pour n'importe quelle activitÃ© ?",
+                a: "Absolument. Que vous soyez une association, un commerce de proximitÃ©, un coach ou une grande communautÃ©, l'IA s'adapte Ã  votre contexte spÃ©cifique dÃ¨s la configuration.",
               },
               {
                 q: "Ai-je besoin de connaissances techniques ?",
-                a: "Aucune. L'interface est pensée pour être aussi simple qu'une conversation. Vous demandez, l'IA propose, vous validez.",
+                a: "Aucune. L'interface est pensÃ©e pour Ãªtre aussi simple qu'une conversation. Vous demandez, l'IA propose, vous validez.",
               },
               {
-                q: "Quels sont les canaux de diffusion supportés ?",
-                a: "Nous supportons actuellement WhatsApp, Instagram, Facebook, Telegram et l'envoi d'emails groupés.",
+                q: "Quels sont les canaux de diffusion supportÃ©s ?",
+                a: "Nous supportons actuellement WhatsApp, Instagram, Facebook, Telegram et l'envoi d'emails groupÃ©s.",
               },
               {
-                q: "Mes données sont-elles sécurisées ?",
-                a: "La sécurité est notre priorité. Vos données et celles de votre communauté sont chiffrées et nous respectons strictement le RGPD.",
+                q: "Mes donnÃ©es sont-elles sÃ©curisÃ©es ?",
+                a: "La sÃ©curitÃ© est notre prioritÃ©. Vos donnÃ©es et celles de votre communautÃ© sont chiffrÃ©es et nous respectons strictement le RGPD.",
               },
             ].map((item) => (
               <div key={item.q} className="rounded-2xl border border-slate-200 p-6">
@@ -389,7 +389,7 @@ export default function HomePage() {
           <div>
             <p className="text-sm font-bold text-blue-300">EasyCom AI</p>
             <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">
-              Donnez à votre équipe un espace clair pour communiquer.
+              Donnez Ã  votre Ã©quipe un espace clair pour communiquer.
             </h2>
           </div>
           <Link
@@ -403,10 +403,13 @@ export default function HomePage() {
 
         <div className="mx-auto mt-8 flex max-w-7xl flex-wrap gap-4 text-xs text-slate-400">
           <Link href="/privacy" className="hover:text-white hover:underline">
-            Politique de confidentialité
+            Politique de confidentialitÃ©
+          </Link>
+          <Link href="/legal/terms" className="hover:text-white hover:underline">
+            Conditions d&apos;utilisation
           </Link>
           <Link href="/data-deletion" className="hover:text-white hover:underline">
-            Suppression des données
+            Suppression des donnÃ©es
           </Link>
         </div>
       </section>

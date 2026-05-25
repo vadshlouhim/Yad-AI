@@ -84,7 +84,7 @@ export default async function AdminPage() {
       .order("updatedAt", { ascending: false }),
     admin
       .from("Community")
-      .select("id, name, city, plan, onboardingDone, createdAt, updatedAt")
+      .select("id, name, city, plan, onboardingDone, communityType, religiousStream, createdAt, updatedAt")
       .order("updatedAt", { ascending: false })
       .limit(50),
     admin

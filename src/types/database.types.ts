@@ -1190,7 +1190,7 @@ export type Database = {
       AutomationRunStatus: "RUNNING" | "SUCCESS" | "PARTIAL_SUCCESS" | "FAILED" | "SKIPPED"
       AutomationStatus: "ACTIVE" | "PAUSED" | "COMPLETED" | "FAILED" | "DRAFT"
       AutomationTrigger: "BEFORE_EVENT" | "EVENT_DAY" | "AFTER_EVENT" | "WEEKLY_SHABBAT" | "JEWISH_HOLIDAY" | "DAILY" | "CUSTOM_SCHEDULE" | "MANUAL"
-      ChannelType: "INSTAGRAM" | "FACEBOOK" | "WHATSAPP" | "TELEGRAM" | "EMAIL" | "WEB"
+      ChannelType: "INSTAGRAM" | "FACEBOOK" | "WHATSAPP" | "TELEGRAM" | "EMAIL" | "WEB" | "GOOGLE_BUSINESS"
       CommunityTone: "MODERN" | "TRADITIONAL" | "FORMAL" | "FRIENDLY" | "RELIGIOUS"
       CommunityType: "SYNAGOGUE" | "ASSOCIATION" | "SCHOOL" | "CENTER" | "OTHER"
       ContentStatus: "DRAFT" | "AI_PROPOSAL" | "READY_TO_PUBLISH" | "PENDING_VALIDATION" | "APPROVED" | "PUBLISHED" | "ARCHIVED"

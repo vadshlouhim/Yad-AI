@@ -17,6 +17,7 @@ const PUBLIC_ROUTES = [
 ];
 
 function isPublicRoute(pathname: string): boolean {
+  if (/^\/google[a-z0-9_-]+\.html$/i.test(pathname)) return true;
   return PUBLIC_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
@@ -26,7 +27,8 @@ function isApiRoute(pathname: string): boolean {
   return (
     pathname.startsWith("/api/webhooks") ||
     pathname.startsWith("/api/cron") ||
-    pathname.startsWith("/api/auth")
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/gmb")
   );
 }
 

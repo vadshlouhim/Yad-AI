@@ -46,6 +46,81 @@ type AutomationWithCommunity = Automation & {
   };
 };
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+async function sendAutomationEmail(params: {
+  automation: AutomationWithCommunity;
+  subject?: string;
+  body?: string;
+}): Promise<void> {
+  const supabase = createAdminClient();
+  const { automation } = params;
+  const apiKey = process.env.RESEND_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY manquant: impossible d'envoyer l'email.");
+  }
+
+  let toEmails: string[] = [];
+  const { data: members } = await supabase
+    .from("CommunityMember")
+    .select("email")
+    .eq("communityId", automation.community.id)
+    .eq("optInEmail", true)
+    .not("email", "is", null);
+
+  if (members && members.length > 0) {
+    toEmails = members.map((member) => member.email).filter((email): email is string => Boolean(email));
+  }
+  if (automation.community.email) {
+    toEmails.push(automation.community.email);
+  }
+  toEmails = Array.from(new Set(toEmails));
+
+  if (toEmails.length === 0) {
+    throw new Error("Aucun destinataire email trouve pour cette communaute.");
+  }
+
+  const resend = new Resend(apiKey);
+  const safeBody = escapeHtml(params.body?.trim() || "Aucun contenu")
+    .replace(/\n\n/g, "</p><p>")
+    .replace(/\n/g, "<br />");
+  const communityName = escapeHtml(automation.community.name);
+  const formattedContent = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${communityName}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1e293b;">
+  <div style="border-bottom: 3px solid #2563eb; padding-bottom: 16px; margin-bottom: 24px;">
+    <h1 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0;">${communityName}</h1>
+  </div>
+  <div style="font-size: 15px; line-height: 1.7; color: #334155;"><p>${safeBody}</p></div>
+  <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center;">
+    Envoye via <strong>EasyCom AI</strong> - Communication communautaire assistee par IA
+  </div>
+</body>
+</html>`;
+
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM ?? `${automation.community.name} <noreply@easycom-ai.com>`,
+    to: toEmails,
+    subject: params.subject || `Message de ${automation.community.name}`,
+    html: formattedContent,
+  });
+
+  console.log(`[Automation] Email envoye avec succes via Resend a ${toEmails.length} destinataires.`);
+}
+
 export async function runAutomationEngine(): Promise<void> {
   console.log("[Automation] Démarrage du moteur…");
 
@@ -136,10 +211,17 @@ async function shouldTrigger(automation: Automation, now: Date): Promise<boolean
     if (now > endOfDay(end)) return false;
   }
 
+  const nextRunAt = automation.nextRunAt ? new Date(automation.nextRunAt) : null;
+  const hasPreciseNextRun = nextRunAt !== null && !Number.isNaN(nextRunAt.getTime());
   if (automation.lastRunAt) {
     const lastRun = new Date(automation.lastRunAt);
-    if (lastRun >= startOfDay(now)) return false;
+    if (hasPreciseNextRun) {
+      if (lastRun >= nextRunAt) return false;
+    } else if (lastRun >= startOfDay(now)) {
+      return false;
+    }
   }
+  if (hasPreciseNextRun && now < nextRunAt) return false;
 
   switch (automation.trigger as AutomationTrigger) {
     case "WEEKLY_SHABBAT": {
@@ -178,12 +260,14 @@ async function shouldTrigger(automation: Automation, now: Date): Promise<boolean
     }
 
     case "CUSTOM_SCHEDULE": {
+      const repeat = String(config.repeat ?? "none");
+      if (repeat === "none" && hasPreciseNextRun) return now >= nextRunAt;
+
       const time = (config.time as string) ?? "09:00";
       const [hours, minutes] = time.split(":").map(Number);
       const inTimeWindow = now.getHours() === hours && now.getMinutes() < minutes + 30;
       if (!inTimeWindow) return false;
 
-      const repeat = String(config.repeat ?? "none");
       const date = typeof config.date === "string" ? config.date : null;
 
       if (repeat === "none") {
@@ -293,6 +377,14 @@ export async function executeAutomationActions(
           .single();
 
         if (!draft) break;
+
+        if (action.channels?.includes("EMAIL")) {
+          await sendAutomationEmail({
+            automation,
+            subject: `Message de ${automation.community.name}`,
+            body: generated.body,
+          });
+        }
 
         if (!action.requiresValidation && action.channels && action.channels.length > 0) {
           const { data: channels } = await supabase

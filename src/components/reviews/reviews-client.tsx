@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -39,12 +39,23 @@ interface ReviewsClientProps {
   locationDisplayName: string | null;
 }
 
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  gmb_cancelled: "Connexion annulée.",
+  gmb_missing_code: "Google n'a pas renvoyé de code de connexion.",
+  gmb_no_community: "Aucune communauté n'est associée à ce compte.",
+  gmb_no_token: "Google n'a pas renvoyé de token utilisable.",
+  gmb_no_account: "Aucun compte Google Business Profile n'a été trouvé.",
+  gmb_accounts_error: "Impossible de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée et que le compte a les droits nécessaires.",
+  gmb_database_error: "Connexion Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migration du canal GOOGLE_BUSINESS.",
+  gmb_error: "Erreur pendant la finalisation Google Business.",
+};
+
 function getAiAnalysis(review: GoogleReview, now: number) {
   if (review.answered) {
     return {
       level: "LOW" as const,
-      label: "Traité",
-      explanation: "Cet avis a déjà une réponse publiée.",
+      label: "TraitÃ©",
+      explanation: "Cet avis a dÃ©jÃ  une rÃ©ponse publiÃ©e.",
       color: "bg-slate-100 text-slate-700 border-slate-200",
       badgeIcon: <CheckCircle2 className="size-3.5" />,
     };
@@ -54,13 +65,13 @@ function getAiAnalysis(review: GoogleReview, now: number) {
 
   if (review.rating <= 2) {
     return isRecent
-      ? { level: "EXTREME" as const, label: "Extrême urgence", explanation: `Avis très négatif (${review.rating}★) reçu il y a moins de 24h — impact e-réputation immédiat.`, color: "bg-rose-100 text-rose-800 border-rose-200 animate-pulse", badgeIcon: <TriangleAlert className="size-3.5 text-rose-600" /> }
-      : { level: "URGENT" as const, label: "Urgent", explanation: `Avis négatif (${review.rating}★) sans réponse depuis plus de 24h.`, color: "bg-amber-100 text-amber-800 border-amber-200", badgeIcon: <BellRing className="size-3.5 text-amber-600" /> };
+      ? { level: "EXTREME" as const, label: "ExtrÃªme urgence", explanation: `Avis trÃ¨s nÃ©gatif (${review.rating}â˜…) reÃ§u il y a moins de 24h â€” impact e-rÃ©putation immÃ©diat.`, color: "bg-rose-100 text-rose-800 border-rose-200 animate-pulse", badgeIcon: <TriangleAlert className="size-3.5 text-rose-600" /> }
+      : { level: "URGENT" as const, label: "Urgent", explanation: `Avis nÃ©gatif (${review.rating}â˜…) sans rÃ©ponse depuis plus de 24h.`, color: "bg-amber-100 text-amber-800 border-amber-200", badgeIcon: <BellRing className="size-3.5 text-amber-600" /> };
   }
   if (review.rating === 3) {
-    return { level: "IMPORTANT" as const, label: "Important", explanation: "Avis mitigé à traiter — suggestions potentiellement constructives.", color: "bg-cyan-100 text-cyan-800 border-cyan-200", badgeIcon: <Sparkles className="size-3.5 text-cyan-600" /> };
+    return { level: "IMPORTANT" as const, label: "Important", explanation: "Avis mitigÃ© Ã  traiter â€” suggestions potentiellement constructives.", color: "bg-cyan-100 text-cyan-800 border-cyan-200", badgeIcon: <Sparkles className="size-3.5 text-cyan-600" /> };
   }
-  return { level: "LOW" as const, label: "Normal", explanation: `Avis positif (${review.rating}★) — répondre sous 7 jours pour fidéliser.`, color: "bg-slate-100 text-slate-700 border-slate-200", badgeIcon: <Clock3 className="size-3.5 text-slate-500" /> };
+  return { level: "LOW" as const, label: "Normal", explanation: `Avis positif (${review.rating}â˜…) â€” rÃ©pondre sous 7 jours pour fidÃ©liser.`, color: "bg-slate-100 text-slate-700 border-slate-200", badgeIcon: <Clock3 className="size-3.5 text-slate-500" /> };
 }
 
 export function ReviewsClient({ communityId, initialConnected, locationDisplayName: initialLocation }: ReviewsClientProps) {
@@ -100,9 +111,9 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
 
   useEffect(() => {
     if (isConnected) fetchReviews();
-  }, [isConnected]);
+  }, [isConnected, fetchReviews]);
 
-  // Écouter le postMessage du popup GMB OAuth
+  // Ã‰couter le postMessage du popup GMB OAuth
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       if (event.origin !== window.location.origin) return;
@@ -110,12 +121,12 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
         setIsConnected(true);
         setIsConnecting(false);
         if (event.data.location) setLocationName(event.data.location);
-        setNotice({ type: "success", message: `Google My Business connecté ! ${event.data.location ? `— ${event.data.location}` : ""}` });
+        setNotice({ type: "success", message: `Google My Business connectÃ© ! ${event.data.location ? `â€” ${event.data.location}` : ""}` });
         // Recharger les avis
         setTimeout(() => fetchReviews(), 500);
       } else if (event.data?.type === "gmb_oauth_error") {
         setIsConnecting(false);
-        setNotice({ type: "error", message: "Connexion annulée ou erreur." });
+        setNotice({ type: "error", message: OAUTH_ERROR_MESSAGES[event.data.oauth as string] ?? "Connexion annulée ou erreur." });
       }
     }
     window.addEventListener("message", handleMessage);
@@ -148,7 +159,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
     setIsAiDrafting(true);
     setAiDraft("");
 
-    // Appel au générateur IA existant (assistant)
+    // Appel au gÃ©nÃ©rateur IA existant (assistant)
     try {
       const res = await fetch("/api/ai/chat", {
         method: "POST",
@@ -156,7 +167,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
         body: JSON.stringify({
           messages: [{
             role: "user",
-            content: `Tu es un community manager expert. Rédige une réponse professionnelle et empathique à cet avis Google (${selectedReview.rating} étoile${selectedReview.rating > 1 ? "s" : ""}) de "${selectedReview.author}" :\n\n"${selectedReview.comment}"\n\nLa réponse doit être en français, courte (3-5 phrases), chaleureuse et adapter le ton au score. Ne pas mettre de signature générique. Réponds directement avec le texte de la réponse, sans explications.`,
+            content: `Tu es un community manager expert. RÃ©dige une rÃ©ponse professionnelle et empathique Ã  cet avis Google (${selectedReview.rating} Ã©toile${selectedReview.rating > 1 ? "s" : ""}) de "${selectedReview.author}" :\n\n"${selectedReview.comment}"\n\nLa rÃ©ponse doit Ãªtre en franÃ§ais, courte (3-5 phrases), chaleureuse et adapter le ton au score. Ne pas mettre de signature gÃ©nÃ©rique. RÃ©ponds directement avec le texte de la rÃ©ponse, sans explications.`,
           }],
         }),
       });
@@ -191,7 +202,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erreur lors de l'envoi");
 
-      // Mettre à jour localement
+      // Mettre Ã  jour localement
       setReviews((prev) =>
         prev.map((r) =>
           r.id === selectedReview.id
@@ -200,7 +211,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
         )
       );
       setReplyText("");
-      setNotice({ type: "success", message: "Réponse publiée sur Google ! ✓" });
+      setNotice({ type: "success", message: "RÃ©ponse publiÃ©e sur Google ! âœ“" });
       setTimeout(() => setNotice(null), 4000);
     } catch (err) {
       setNotice({ type: "error", message: (err as Error).message });
@@ -248,7 +259,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
             )}
             {!isConnected && (
               <p className="mt-1 text-sm text-cyan-100/80">
-                Connectez votre fiche Google My Business pour voir et répondre à vos avis.
+                Connectez votre fiche Google My Business pour voir et rÃ©pondre Ã  vos avis.
               </p>
             )}
           </div>
@@ -275,8 +286,8 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
               )}
             >
               {isConnecting ? (
-                <span className="flex items-center gap-2"><RefreshCw className="size-4 animate-spin" />Connexion…</span>
-              ) : isConnected ? "Déconnecter" : "Connecter Google My Business"}
+                <span className="flex items-center gap-2"><RefreshCw className="size-4 animate-spin" />Connexionâ€¦</span>
+              ) : isConnected ? "DÃ©connecter" : "Connecter Google My Business"}
             </Button>
           </div>
         </div>
@@ -299,16 +310,16 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-50">
               <Star className="size-8 fill-amber-400 text-amber-400" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900">Google My Business non connecté</h2>
+            <h2 className="text-xl font-bold text-slate-900">Google My Business non connectÃ©</h2>
             <p className="text-sm text-slate-500 leading-relaxed">
-              Connectez votre fiche d&apos;établissement Google pour récupérer vos vrais avis clients, analyser leur urgence par IA et y répondre directement.
+              Connectez votre fiche d&apos;Ã©tablissement Google pour rÃ©cupÃ©rer vos vrais avis clients, analyser leur urgence par IA et y rÃ©pondre directement.
             </p>
             <Button
               onClick={handleConnect}
               disabled={isConnecting}
               className="w-full rounded-full bg-cyan-700 text-white hover:bg-cyan-800 px-6 py-5 text-sm font-semibold"
             >
-              {isConnecting ? <><RefreshCw className="size-4 animate-spin mr-2" />Connexion…</> : "Connecter ma fiche Google"}
+              {isConnecting ? <><RefreshCw className="size-4 animate-spin mr-2" />Connexionâ€¦</> : "Connecter ma fiche Google"}
             </Button>
           </CardContent>
         </Card>
@@ -318,14 +329,14 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
             <AlertTriangle className="size-8 text-red-500 mx-auto" />
             <p className="text-sm font-semibold text-red-700">{error}</p>
             <Button size="sm" variant="outline" onClick={() => fetchReviews()} className="text-red-700 border-red-200">
-              Réessayer
+              RÃ©essayer
             </Button>
           </CardContent>
         </Card>
       ) : isLoading && reviews.length === 0 ? (
         <div className="flex items-center justify-center py-20 text-slate-400">
           <RefreshCw className="size-6 animate-spin mr-3" />
-          <span className="text-sm">Chargement des avis Google…</span>
+          <span className="text-sm">Chargement des avis Googleâ€¦</span>
         </div>
       ) : (
         <>
@@ -334,9 +345,9 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { label: "Total avis", value: counts.total, color: "text-slate-800", bg: "bg-slate-50 border-slate-200" },
-                { label: "Sans réponse", value: counts.unanswered, color: "text-cyan-700", bg: "bg-cyan-50 border-cyan-200" },
+                { label: "Sans rÃ©ponse", value: counts.unanswered, color: "text-cyan-700", bg: "bg-cyan-50 border-cyan-200" },
                 { label: "Urgents IA", value: counts.urgent, color: "text-rose-700", bg: "bg-rose-50 border-rose-200" },
-                { label: "Note moyenne", value: counts.avgRating ? `${counts.avgRating}★` : "—", color: "text-amber-700", bg: "bg-amber-50 border-amber-200" },
+                { label: "Note moyenne", value: counts.avgRating ? `${counts.avgRating}â˜…` : "â€”", color: "text-amber-700", bg: "bg-amber-50 border-amber-200" },
               ].map((stat) => (
                 <div key={stat.label} className={cn("rounded-2xl border p-4 text-center", stat.bg)}>
                   <p className={cn("text-2xl font-bold", stat.color)}>{stat.value}</p>
@@ -354,15 +365,15 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
                   <span>{reviews.length} avis</span>
                   {counts.unanswered > 0 && (
                     <span className="rounded-full bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5">
-                      {counts.unanswered} sans réponse
+                      {counts.unanswered} sans rÃ©ponse
                     </span>
                   )}
                 </CardTitle>
                 <div className="flex flex-wrap gap-1.5">
                   {[
                     { key: "ALL", label: `Tous (${counts.total})`, active: "bg-slate-900 text-white border-slate-900", inactive: "bg-white text-slate-600 border-slate-200 hover:bg-slate-50" },
-                    { key: "URGENT_ONLY", label: `🚨 Urgents (${counts.urgent})`, active: "bg-rose-600 text-white border-rose-600", inactive: "bg-rose-50 text-rose-700 border-rose-100 hover:bg-rose-100" },
-                    { key: "UNANSWERED", label: `Sans réponse (${counts.unanswered})`, active: "bg-cyan-700 text-white border-cyan-700", inactive: "bg-cyan-50 text-cyan-700 border-cyan-100 hover:bg-cyan-100" },
+                    { key: "URGENT_ONLY", label: `ðŸš¨ Urgents (${counts.urgent})`, active: "bg-rose-600 text-white border-rose-600", inactive: "bg-rose-50 text-rose-700 border-rose-100 hover:bg-rose-100" },
+                    { key: "UNANSWERED", label: `Sans rÃ©ponse (${counts.unanswered})`, active: "bg-cyan-700 text-white border-cyan-700", inactive: "bg-cyan-50 text-cyan-700 border-cyan-100 hover:bg-cyan-100" },
                     { key: "BAD_ONLY", label: `Critiques (${counts.bad})`, active: "bg-amber-600 text-white border-amber-600", inactive: "bg-amber-50 text-amber-700 border-amber-100 hover:bg-amber-100" },
                   ].map((f) => (
                     <button
@@ -416,7 +427,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
                           </span>
                           {rev.answered && (
                             <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                              Répondu ✓
+                              RÃ©pondu âœ“
                             </span>
                           )}
                         </div>
@@ -427,7 +438,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
               </CardContent>
             </Card>
 
-            {/* Détail + Réponse */}
+            {/* DÃ©tail + RÃ©ponse */}
             <Card className="lg:col-span-7 rounded-[28px] border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
               {selectedReview ? (
                 <div className="flex flex-col h-full">
@@ -464,12 +475,12 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
 
                     {selectedReview.answered && selectedReview.replyText && (
                       <div className="space-y-2">
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Réponse publiée</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">RÃ©ponse publiÃ©e</p>
                         <div className="flex flex-col max-w-[85%] ml-auto items-end space-y-1">
                           <div className="rounded-2xl p-4 text-sm leading-relaxed bg-cyan-700 text-white rounded-tr-none shadow-sm">
                             <p className="whitespace-pre-line">{selectedReview.replyText}</p>
                           </div>
-                          <span className="text-[10px] text-slate-400">Publié sur Google</span>
+                          <span className="text-[10px] text-slate-400">PubliÃ© sur Google</span>
                         </div>
                       </div>
                     )}
@@ -480,48 +491,48 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
                     <div className="mx-6 my-2 p-4 rounded-2xl bg-cyan-50 border border-cyan-200/80 shadow-sm space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-800">
-                          <Bot className="size-4 text-cyan-700 animate-bounce" />Réponse IA proposée
+                          <Bot className="size-4 text-cyan-700 animate-bounce" />RÃ©ponse IA proposÃ©e
                         </span>
                         <button onClick={() => setAiDraft("")} className="text-xs text-slate-400 hover:text-slate-600">Annuler</button>
                       </div>
                       <div className="text-xs text-slate-700 whitespace-pre-line leading-relaxed border-l-2 border-cyan-300 pl-3 max-h-[140px] overflow-y-auto">{aiDraft}</div>
                       <div className="flex justify-end">
                         <Button size="sm" onClick={() => { setReplyText(aiDraft); setAiDraft(""); }} className="rounded-full bg-cyan-700 text-white hover:bg-cyan-800 text-xs px-3 py-1">
-                          Insérer dans la réponse
+                          InsÃ©rer dans la rÃ©ponse
                         </Button>
                       </div>
                     </div>
                   )}
 
-                  {/* Zone de réponse */}
+                  {/* Zone de rÃ©ponse */}
                   {!selectedReview.answered ? (
                     <div className="border-t border-slate-100 p-4 bg-white space-y-3">
                       <Button size="sm" variant="outline" onClick={handleDraftWithAi} disabled={isAiDrafting}
                         className="rounded-full text-xs font-semibold text-cyan-700 border-cyan-200 bg-cyan-50/30 hover:bg-cyan-50 flex items-center gap-1.5">
-                        {isAiDrafting ? <><RefreshCw className="size-3 animate-spin" />Rédaction…</> : <><Sparkles className="size-3 text-cyan-600" />Rédiger avec EasyCom AI</>}
+                        {isAiDrafting ? <><RefreshCw className="size-3 animate-spin" />RÃ©dactionâ€¦</> : <><Sparkles className="size-3 text-cyan-600" />RÃ©diger avec EasyCom AI</>}
                       </Button>
                       <div className="flex gap-2">
                         <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)}
-                          placeholder={`Répondre à ${selectedReview.author}…`} rows={3}
+                          placeholder={`RÃ©pondre Ã  ${selectedReview.author}â€¦`} rows={3}
                           className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 resize-none" />
                         <Button onClick={handleSendReply} disabled={!replyText.trim() || isSending}
                           className="rounded-xl bg-cyan-700 text-white hover:bg-cyan-800 flex flex-col justify-center px-4 self-end h-[76px]">
                           {isSending ? <RefreshCw className="size-4 animate-spin" /> : <Send className="size-4 mb-1" />}
-                          <span className="text-[10px] font-semibold">{isSending ? "Envoi…" : "Publier"}</span>
+                          <span className="text-[10px] font-semibold">{isSending ? "Envoiâ€¦" : "Publier"}</span>
                         </Button>
                       </div>
                     </div>
                   ) : (
                     <div className="border-t border-slate-100 p-4 bg-slate-50 text-center text-xs text-slate-400">
-                      Avis traité. Pour modifier, rendez-vous sur Google My Business.
+                      Avis traitÃ©. Pour modifier, rendez-vous sur Google My Business.
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-12 text-slate-400">
                   <Star className="size-12 mb-3 text-slate-300" />
-                  <p className="text-sm font-semibold text-slate-700">Aucun avis sélectionné</p>
-                  <p className="text-xs text-slate-500 max-w-xs mt-1">Sélectionnez un avis dans la liste pour le lire et y répondre.</p>
+                  <p className="text-sm font-semibold text-slate-700">Aucun avis sÃ©lectionnÃ©</p>
+                  <p className="text-xs text-slate-500 max-w-xs mt-1">SÃ©lectionnez un avis dans la liste pour le lire et y rÃ©pondre.</p>
                 </div>
               )}
             </Card>
@@ -534,10 +545,11 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
 
 function generateFallbackReply(review: GoogleReview): string {
   if (review.rating <= 2) {
-    return `Bonjour ${review.author},\n\nNous vous remercions pour votre retour et nous nous excusons sincèrement pour cette expérience décevante. Vos remarques sont précieuses et nous permettront de nous améliorer. N'hésitez pas à nous contacter directement pour que nous puissions trouver une solution ensemble.\n\nCordialement,\nL'équipe`;
+    return `Bonjour ${review.author},\n\nNous vous remercions pour votre retour et nous nous excusons sincÃ¨rement pour cette expÃ©rience dÃ©cevante. Vos remarques sont prÃ©cieuses et nous permettront de nous amÃ©liorer. N'hÃ©sitez pas Ã  nous contacter directement pour que nous puissions trouver une solution ensemble.\n\nCordialement,\nL'Ã©quipe`;
   }
   if (review.rating === 3) {
-    return `Bonjour ${review.author},\n\nMerci pour votre retour équilibré. Nous prenons note de vos suggestions et travaillons continuellement à améliorer notre service. N'hésitez pas à nous faire part de toutes vos remarques.\n\nBien cordialement,\nL'équipe`;
+    return `Bonjour ${review.author},\n\nMerci pour votre retour Ã©quilibrÃ©. Nous prenons note de vos suggestions et travaillons continuellement Ã  amÃ©liorer notre service. N'hÃ©sitez pas Ã  nous faire part de toutes vos remarques.\n\nBien cordialement,\nL'Ã©quipe`;
   }
-  return `Bonjour ${review.author},\n\nMerci beaucoup pour ce retour positif ! Votre satisfaction est notre priorité et vos encouragements nous motivent chaque jour. Au plaisir de vous revoir bientôt !\n\nChaleureusement,\nL'équipe`;
+  return `Bonjour ${review.author},\n\nMerci beaucoup pour ce retour positif ! Votre satisfaction est notre prioritÃ© et vos encouragements nous motivent chaque jour. Au plaisir de vous revoir bientÃ´t !\n\nChaleureusement,\nL'Ã©quipe`;
 }
+

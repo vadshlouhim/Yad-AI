@@ -23,6 +23,7 @@ export interface OnboardingData {
   // Étape 1 — Identité
   communityName: string;
   communityType: string;
+  isBethHabad: boolean;
   description: string;
   city: string;
   country: string;
@@ -59,6 +60,7 @@ export interface OnboardingData {
 const defaultData: OnboardingData = {
   communityName: "",
   communityType: "ASSOCIATION",
+  isBethHabad: false,
   description: "",
   city: "",
   country: "France",
@@ -77,17 +79,47 @@ const defaultData: OnboardingData = {
   recurringEvents: [],
 };
 
+export const demoOnboardingData: OnboardingData = {
+  ...defaultData,
+  communityName: "Chlomi-test",
+  communityType: "ASSOCIATION",
+  isBethHabad: false,
+  description: "Structure fictive utilisee pour valider l'experience d'onboarding.",
+  city: "Paris",
+  email: "test@chlomi-test.local",
+  website: "https://chlomi-test.local",
+  signature: "L'equipe Chlomi-test",
+  hashtags: ["#ChlomiTest", "#DemoEasyCom"],
+  channels: [
+    { type: "WHATSAPP", name: "WhatsApp", handle: "" },
+    { type: "EMAIL", name: "Email / Newsletter", handle: "" },
+  ],
+  recurringEvents: [
+    { title: "Newsletter mensuelle", category: "NEWSLETTER" },
+    { title: "Communication mensuelle", category: "EVENT" },
+  ],
+};
+
 interface Props {
   userId: string;
   userName: string;
   communityId?: string;
   initialStep?: number;
+  initialData?: Partial<OnboardingData>;
+  simulationMode?: boolean;
 }
 
-export function OnboardingWizard({ userId, userName, communityId, initialStep = 0 }: Props) {
+export function OnboardingWizard({
+  userId,
+  userName,
+  communityId,
+  initialStep = 0,
+  initialData,
+  simulationMode = false,
+}: Props) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(initialStep);
-  const [data, setData] = useState<OnboardingData>(defaultData);
+  const [data, setData] = useState<OnboardingData>(() => ({ ...defaultData, ...initialData }));
   const [saving, setSaving] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
 
@@ -106,6 +138,14 @@ export function OnboardingWizard({ userId, userName, communityId, initialStep = 
   async function finishOnboarding() {
     setSaving(true);
     try {
+      if (simulationMode) {
+        window.setTimeout(() => {
+          setSaving(false);
+          setShowWelcome(true);
+        }, 450);
+        return;
+      }
+
       const res = await fetch("/api/onboarding/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -127,7 +167,14 @@ export function OnboardingWizard({ userId, userName, communityId, initialStep = 
   if (showWelcome) {
     return (
       <WelcomeAnimation
-        onComplete={() => router.push("/dashboard/assistant?welcome=true")}
+        onComplete={() => {
+          if (simulationMode) {
+            setShowWelcome(false);
+            setCurrentStep(STEPS.length - 1);
+            return;
+          }
+          router.push("/dashboard/assistant?welcome=true");
+        }}
       />
     );
   }
@@ -136,6 +183,11 @@ export function OnboardingWizard({ userId, userName, communityId, initialStep = 
     <div className="min-h-screen flex flex-col items-center px-4 py-8 sm:py-12">
       {/* En-tête */}
       <div className="w-full max-w-2xl mb-8 sm:mb-10 text-center space-y-2">
+        {simulationMode && (
+          <div className="mx-auto mb-4 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+            Simulation UI - aucune donnee n&apos;est enregistree
+          </div>
+        )}
         <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
           Bienvenue, {userName.split(" ")[0]} 👋
         </h1>
@@ -189,12 +241,12 @@ export function OnboardingWizard({ userId, userName, communityId, initialStep = 
 
       {/* Contenu de l'étape */}
       <div className="w-full max-w-2xl animate-fade-in">
-        {currentStep === 0 && <StepIdentity {...stepProps} />}
+        {currentStep === 0 && <StepIdentity {...stepProps} simulationMode={simulationMode} />}
         {currentStep === 1 && <StepEditorial {...stepProps} />}
-        {currentStep === 2 && <StepChannels {...stepProps} communityId={communityId} />}
+        {currentStep === 2 && <StepChannels {...stepProps} communityId={communityId} simulationMode={simulationMode} />}
         {currentStep === 3 && <StepRecurring {...stepProps} />}
         {currentStep === 4 && (
-          <StepFinish data={data} onFinish={finishOnboarding} onPrev={goPrev} saving={saving} />
+          <StepFinish data={data} onFinish={finishOnboarding} onPrev={goPrev} saving={saving} simulationMode={simulationMode} />
         )}
       </div>
     </div>

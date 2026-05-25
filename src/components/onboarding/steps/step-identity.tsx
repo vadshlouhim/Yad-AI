@@ -17,6 +17,7 @@ interface Props {
   updateData: (partial: Partial<OnboardingData>) => void;
   onNext: () => void;
   onPrev: () => void;
+  simulationMode?: boolean;
 }
 
 const COMMUNITY_TYPES = [
@@ -33,7 +34,7 @@ const COMMUNITY_TYPES = [
   { value: "OTHER", label: "Autre", icon: Layers, accent: "text-slate-500 bg-white border-slate-200" },
 ];
 
-export function StepIdentity({ data, updateData, onNext }: Props) {
+export function StepIdentity({ data, updateData, onNext, simulationMode = false }: Props) {
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
   const isValid = data.communityName.trim().length >= 2 && data.city.trim().length >= 2;
@@ -43,6 +44,11 @@ export function StepIdentity({ data, updateData, onNext }: Props) {
     setLogoError(null);
 
     try {
+      if (simulationMode) {
+        updateData({ logoUrl: URL.createObjectURL(file) });
+        return;
+      }
+
       const formData = new FormData();
       formData.append("file", file);
 
@@ -114,7 +120,7 @@ export function StepIdentity({ data, updateData, onNext }: Props) {
 
             <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
               {logoUploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-              {logoUploading ? "Téléversement..." : "Choisir un logo"}
+              {logoUploading ? "Téléversement..." : simulationMode ? "Simuler un logo" : "Choisir un logo"}
               <input
                 type="file"
                 accept="image/*"
@@ -148,7 +154,7 @@ export function StepIdentity({ data, updateData, onNext }: Props) {
                 <button
                   key={value}
                   type="button"
-                  onClick={() => updateData({ communityType: value })}
+                  onClick={() => updateData({ communityType: value, isBethHabad: value === "RELIGIOUS" ? data.isBethHabad : false })}
                   className={cn(
                     "flex items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 text-left text-sm transition-all",
                     selected
@@ -167,6 +173,18 @@ export function StepIdentity({ data, updateData, onNext }: Props) {
               );
             })}
           </div>
+          {data.communityType === "RELIGIOUS" && (
+            <label className="mt-3 flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={data.isBethHabad}
+                onChange={(event) => updateData({ isBethHabad: event.target.checked })}
+                className="h-4 w-4 rounded border-slate-300 text-blue-600"
+              />
+              <span className="font-semibold">בס״ד</span>
+              <span className="text-xs text-slate-500">Identifier ce lieu de culte comme Beth Habad</span>
+            </label>
+          )}
         </div>
 
         {/* Description — clé pour l'IA */}
@@ -269,11 +287,11 @@ export function StepIdentity({ data, updateData, onNext }: Props) {
 
         {/* Navigation */}
         <div className="pt-2">
-          <Button onClick={onNext} disabled={!isValid} size="lg" className="w-full">
+          <Button onClick={onNext} disabled={!simulationMode && !isValid} size="lg" className="w-full">
             Continuer
             <ChevronRight className="size-4" />
           </Button>
-          {!isValid && (
+          {!simulationMode && !isValid && (
             <p className="text-xs text-slate-400 text-center mt-2">
               Renseignez le nom et la ville pour continuer.
             </p>

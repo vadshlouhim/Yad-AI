@@ -1,0 +1,17 @@
+
+> easycom-ai@0.1.0 dev
+> next dev --hostname 127.0.0.1 --port 3000
+
+▲ Next.js 16.2.3 (Turbopack)
+- Local:         http://127.0.0.1:3000
+- Network:       http://127.0.0.1:3000
+- Environments: .env
+✓ Ready in 1222ms
+Creating turbopack project {
+  dir: 'C:\\Users\\chlom\\Desktop\\projet EASYCOM-AI\\Yad-AI',
+  testMode: true
+}
+[Automation Local Scheduler] Actif en developpement toutes les 30 secondes.
+
+ GET /dashboard/google-reviews 200 in 11.2s (next.js: 3.3s, proxy.ts: 1559ms, application-code: 6.3s)
+ GET /api/gmb/unread-count 200 in 5.2s (next.js: 4.7s, proxy.ts: 30ms, application-code: 402ms)

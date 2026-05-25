@@ -10,12 +10,22 @@ function GmbOAuthDoneContent() {
   const oauth = searchParams.get("oauth");
   const location = searchParams.get("location");
   const isSuccess = oauth === "gmb_success";
+  const errorMessages: Record<string, string> = {
+    gmb_cancelled: "Connexion annulée.",
+    gmb_missing_code: "Google n'a pas renvoyé de code de connexion.",
+    gmb_no_community: "Aucune communauté n'est associée à ce compte.",
+    gmb_no_token: "Google n'a pas renvoyé de token utilisable.",
+    gmb_no_account: "Aucun compte Google Business Profile n'a été trouvé.",
+    gmb_accounts_error: "Impossible de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée et que le compte a les droits nécessaires.",
+    gmb_database_error: "Connexion Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migration du canal GOOGLE_BUSINESS.",
+    gmb_error: "Erreur pendant la finalisation Google Business.",
+  };
 
   useEffect(() => {
     if (window.opener) {
       try {
         window.opener.postMessage(
-          { type: isSuccess ? "gmb_oauth_success" : "gmb_oauth_error", location },
+          { type: isSuccess ? "gmb_oauth_success" : "gmb_oauth_error", location, oauth },
           window.location.origin
         );
       } catch { /* cross-origin safety */ }
@@ -39,6 +49,11 @@ function GmbOAuthDoneContent() {
         </h1>
         {isSuccess && location && (
           <p className="text-sm text-slate-600 font-medium">{location}</p>
+        )}
+        {!isSuccess && (
+          <p className="max-w-md text-sm text-slate-600 font-medium">
+            {errorMessages[oauth ?? ""] ?? errorMessages.gmb_error}
+          </p>
         )}
         <p className="text-sm text-slate-500">Cette fenêtre va se fermer…</p>
       </div>

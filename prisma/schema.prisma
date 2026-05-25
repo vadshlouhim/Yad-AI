@@ -214,6 +214,7 @@ enum ChannelType {
   TELEGRAM
   EMAIL
   WEB
+  GOOGLE_BUSINESS
 }
 
 // ============================================================

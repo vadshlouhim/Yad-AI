@@ -3,6 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils";
 
+function normalizeCommunityType(value: unknown) {
+  if (value === "RELIGIOUS") return "SYNAGOGUE";
+  if (value === "SCHOOL" || value === "CENTER" || value === "ASSOCIATION" || value === "OTHER") return value;
+  return "ASSOCIATION";
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -20,6 +26,8 @@ export async function POST(request: Request) {
     }
 
     const admin = createAdminClient();
+    const communityType = normalizeCommunityType(data.communityType);
+    const religiousStream = communityType === "SYNAGOGUE" && data.isBethHabad ? "BETH_HABAD" : null;
 
     // Générer un slug unique
     const baseSlug = slugify(data.communityName);
@@ -47,8 +55,8 @@ export async function POST(request: Request) {
         website: data.website || null,
         address: data.address || null,
         logoUrl: data.logoUrl || null,
-        communityType: data.communityType || "ASSOCIATION",
-        religiousStream: null,
+        communityType,
+        religiousStream,
         tone: data.tone || "MODERN",
         language: data.language || "fr",
         signature: data.signature || null,
@@ -138,7 +146,8 @@ export async function POST(request: Request) {
         type: "COMMUNITY_PROFILE",
         key: "identity",
         value: {
-          communityType: data.communityType || "ASSOCIATION",
+          communityType,
+          religiousStream,
           description: data.description || null,
           city: data.city || null,
           country: data.country || "France",
@@ -155,7 +164,7 @@ export async function POST(request: Request) {
       action: "community.created",
       resource: "Community",
       resourceId: community.id,
-      newData: { name: community.name, slug: community.slug, communityType: community.communityType },
+      newData: { name: community.name, slug: community.slug, communityType: community.communityType, religiousStream },
     });
 
     return NextResponse.json({ success: true, communityId: community.id });

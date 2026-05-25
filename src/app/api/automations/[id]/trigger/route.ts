@@ -18,7 +18,7 @@ export async function POST(
   const { id } = await params;
   const { data: automation } = await admin
     .from("Automation")
-    .select("*, community:Community(id, name, city, timezone, tone, hashtags)")
+    .select("*, community:Community(id, name, city, timezone, tone, hashtags, email)")
     .eq("id", id)
     .eq("communityId", profile.communityId)
     .single();

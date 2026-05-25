@@ -14,6 +14,7 @@ interface Props {
   onNext: () => void;
   onPrev: () => void;
   communityId?: string;
+  simulationMode?: boolean;
 }
 
 type ConnectedStatus = {
@@ -101,7 +102,7 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   gmail_missing_code: "Connexion Gmail annulée.",
 };
 
-export function StepChannels({ data, updateData, onNext, onPrev, communityId }: Props) {
+export function StepChannels({ data, updateData, onNext, onPrev, communityId, simulationMode = false }: Props) {
   const searchParams = useSearchParams();
   const [connecting, setConnecting] = useState<string | null>(null);
   const [oauthNotice, setOauthNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -113,6 +114,7 @@ export function StepChannels({ data, updateData, onNext, onPrev, communityId }: 
     const provider = searchParams.get("provider");
     if (!oauth) return;
 
+    const timer = window.setTimeout(() => {
     if (oauth === "gmail_success" || (oauth === "success" && provider === "gmail")) {
       setConnected((prev) => ({ ...prev, EMAIL: true }));
       const channelDef = AVAILABLE_CHANNELS.find((c) => c.type === "EMAIL");
@@ -144,6 +146,10 @@ export function StepChannels({ data, updateData, onNext, onPrev, communityId }: 
     url.searchParams.delete("oauth");
     url.searchParams.delete("provider");
     window.history.replaceState({}, "", url.toString());
+
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [searchParams]);
 
   function toggleChannel(type: string) {
@@ -176,6 +182,22 @@ export function StepChannels({ data, updateData, onNext, onPrev, communityId }: 
 
   function handleOAuthConnect(provider: "facebook" | "instagram" | "gmail") {
     setConnecting(provider);
+    if (simulationMode) {
+      window.setTimeout(() => {
+        const providerKey = (provider === "gmail" ? "EMAIL" : provider.toUpperCase()) as keyof ConnectedStatus;
+        setConnected((prev) => ({ ...prev, [providerKey]: true }));
+        const channelDef = AVAILABLE_CHANNELS.find((channel) => channel.type === providerKey);
+        if (channelDef && !data.channels.find((channel) => channel.type === providerKey)) {
+          updateData({
+            channels: [...data.channels, { type: providerKey, name: channelDef.label, handle: "" }],
+          });
+        }
+        setOauthNotice({ type: "success", message: `${channelDef?.label ?? provider} connecte en simulation.` });
+        setConnecting(null);
+      }, 350);
+      return;
+    }
+
     let url: URL;
     if (provider === "gmail") {
       url = new URL("/api/email/gmail/auth", window.location.origin);
@@ -185,7 +207,7 @@ export function StepChannels({ data, updateData, onNext, onPrev, communityId }: 
     if (communityId) url.searchParams.set("communityId", communityId);
     // Retour vers l'onboarding (pas les Settings)
     url.searchParams.set("returnTo", "onboarding");
-    window.location.href = url.toString();
+    window.location.assign(url.toString());
   }
 
   function disconnectChannel(type: string) {
@@ -314,7 +336,7 @@ export function StepChannels({ data, updateData, onNext, onPrev, communityId }: 
                           ) : (
                             <ExternalLink className="size-3.5" />
                           )}
-                          {isConnecting ? "Redirection..." : "Connecter"}
+                          {isConnecting ? (simulationMode ? "Simulation..." : "Redirection...") : simulationMode ? "Simuler" : "Connecter"}
                         </Button>
                       )
                     ) : (
