@@ -210,6 +210,9 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('[GMB Callback Error]', error);
     const message = error instanceof Error ? error.message : '';
+    if (message.toLowerCase().includes('quota exceeded')) {
+      return NextResponse.redirect(fail('gmb_quota_exceeded', error));
+    }
     if (message.startsWith('gmb_accounts_api_failed:')) {
       return NextResponse.redirect(fail('gmb_accounts_error', error));
     }

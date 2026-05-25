@@ -16,6 +16,7 @@ function GmbOAuthDoneContent() {
     gmb_no_community: "Aucune communauté n'est associée à ce compte.",
     gmb_no_token: "Google n'a pas renvoyé de token utilisable.",
     gmb_no_account: "Aucun compte Google Business Profile n'a été trouvé.",
+    gmb_quota_exceeded: "Google a temporairement bloqué les appels car le quota par minute est dépassé. Attendez 1 à 2 minutes, puis réessayez une seule fois.",
     gmb_accounts_error: "Impossible de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée et que le compte a les droits nécessaires.",
     gmb_database_error: "Connexion Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migration du canal GOOGLE_BUSINESS.",
     gmb_error: "Erreur pendant la finalisation Google Business.",

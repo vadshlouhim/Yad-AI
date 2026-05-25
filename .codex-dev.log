@@ -52,3 +52,369 @@ Creating turbopack project {
  GET /api/auth/callback/gmb?state=eyJjb21tdW5pdHlJZCI6IjYzOWYxNDM3LTU4MmItNGY3Ni1hYjRjLTEzNmY2ZmE3ODc1MCIsInVzZXJJZCI6ImE2YzExY2YzLWRmY2YtNGE4OC1hMDhiLTE0YmRkNmI3MjRmYyIsInJldHVyblRvIjoiZ21iX3BvcHVwIiwiZXhwIjoxNzc5NzIyNjQxNTE3fQ&iss=https%3A%2F%2Faccounts.google.com&code=4%2F0AeoWuM9SekjGjC80pkX_uTMH-mrpazs9D9mU4Fbh3T_KcQ2SQfJU6oY_1RUBERhkxk4_hA&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fbusiness.manage 307 in 4.2s (next.js: 186ms, proxy.ts: 11ms, application-code: 4.0s)
  GET /dashboard/google-reviews/oauth-done?oauth=gmb_accounts_error 200 in 1183ms (next.js: 135ms, proxy.ts: 197ms, application-code: 850ms)
  GET /api/gmb/unread-count 200 in 392ms (next.js: 9ms, proxy.ts: 23ms, application-code: 361ms)
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+ GET /dashboard/google-reviews 200 in 9.9s (next.js: 1189ms, proxy.ts: 4.0s, application-code: 4.8s)
+ GET /dashboard/google-reviews 200 in 2.6s (next.js: 488ms, proxy.ts: 747ms, application-code: 1327ms)
+✓ Compiled in 5.8s
+[browser] ./src/components/reviews/reviews-client.tsx:47:74
+Unexpected token `no substitution template literal`. Expected identifier, string literal, numeric literal or [ for the computed key
+  45 | ...munauté n'est associée à ce compte.",
+  46 | ... renvoyé de token utilisable.",
+> 47 | ... Google Business Profile n'a été trouvé.",`r`n  gmb_quota_exceeded: "Google a temporair...
+     |                                           ^^^
+  48 | ...le de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée...
+  49 | ...n Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migratio...
+  50 | ... finalisation Google Business.",
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/reviews/reviews-client.tsx
+    ./src/app/dashboard/google-reviews/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/components/reviews/reviews-client.tsx:47:74
+Unexpected token `no substitution template literal`. Expected identifier, string literal, numeric literal or [ for the computed key
+  45 | ...munauté n'est associée à ce compte.",
+  46 | ... renvoyé de token utilisable.",
+> 47 | ... Google Business Profile n'a été trouvé.",`r`n  gmb_quota_exceeded: "Google a temporair...
+     |                                           ^^^
+  48 | ...le de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée...
+  49 | ...n Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migratio...
+  50 | ... finalisation Google Business.",
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/reviews/reviews-client.tsx
+    ./src/app/dashboard/google-reviews/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+⨯ ./src/components/reviews/reviews-client.tsx:47:74
+Unexpected token `no substitution template literal`. Expected identifier, string literal, numeric literal or [ for the computed key
+  [90m45 |[0m ...[32mmunauté n'est associée à ce compte."[0m,
+  [90m46 |[0m ...[32m renvoyé de token utilisable."[0m,
+[31m[1m>[0m [90m47 |[0m ...[32m Google Business Profile n'a été trouvé."[0m,[32m`r`[0mn  gmb_quota_exceeded: [32m"Google a temporair...[0m
+  [90m   |[0m                                           [31m[1m^^^[0m
+  [90m48 |[0m ...[32mle de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée...[0m
+  [90m49 |[0m ...[32mn Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migratio...[0m
+  [90m50 |[0m ...[32m finalisation Google Business."[0m,
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/reviews/reviews-client.tsx
+    ./src/app/dashboard/google-reviews/page.tsx
+
+
+[browser] ./src/components/reviews/reviews-client.tsx:47:74
+Unexpected token `no substitution template literal`. Expected identifier, string literal, numeric literal or [ for the computed key
+  45 | ...munauté n'est associée à ce compte.",
+  46 | ... renvoyé de token utilisable.",
+> 47 | ... Google Business Profile n'a été trouvé.",`r`n  gmb_quota_exceeded: "Google a temporair...
+     |                                           ^^^
+  48 | ...le de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée...
+  49 | ...n Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migratio...
+  50 | ... finalisation Google Business.",
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/reviews/reviews-client.tsx
+    ./src/app/dashboard/google-reviews/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/components/reviews/reviews-client.tsx:47:74
+Unexpected token `no substitution template literal`. Expected identifier, string literal, numeric literal or [ for the computed key
+  45 | ...munauté n'est associée à ce compte.",
+  46 | ... renvoyé de token utilisable.",
+> 47 | ... Google Business Profile n'a été trouvé.",`r`n  gmb_quota_exceeded: "Google a temporair...
+     |                                           ^^^
+  48 | ...le de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée...
+  49 | ...n Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migratio...
+  50 | ... finalisation Google Business.",
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/reviews/reviews-client.tsx
+    ./src/app/dashboard/google-reviews/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/components/reviews/reviews-client.tsx:47:74
+Unexpected token `no substitution template literal`. Expected identifier, string literal, numeric literal or [ for the computed key
+  45 | ...munauté n'est associée à ce compte.",
+  46 | ... renvoyé de token utilisable.",
+> 47 | ... Google Business Profile n'a été trouvé.",`r`n  gmb_quota_exceeded: "Google a temporair...
+     |                                           ^^^
+  48 | ...le de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée...
+  49 | ...n Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migratio...
+  50 | ... finalisation Google Business.",
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/reviews/reviews-client.tsx
+    ./src/app/dashboard/google-reviews/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+ GET /dashboard/google-reviews 500 in 4.3s (next.js: 1936ms, proxy.ts: 1064ms, application-code: 1325ms)
+⨯ ./src/components/reviews/reviews-client.tsx:47:74
+Unexpected token `no substitution template literal`. Expected identifier, string literal, numeric literal or [ for the computed key
+  [90m45 |[0m ...[32mmunauté n'est associée à ce compte."[0m,
+  [90m46 |[0m ...[32m renvoyé de token utilisable."[0m,
+[31m[1m>[0m [90m47 |[0m ...[32m Google Business Profile n'a été trouvé."[0m,[32m`r`[0mn  gmb_quota_exceeded: [32m"Google a temporair...[0m
+  [90m   |[0m                                           [31m[1m^^^[0m
+  [90m48 |[0m ...[32mle de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée...[0m
+  [90m49 |[0m ...[32mn Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migratio...[0m
+  [90m50 |[0m ...[32m finalisation Google Business."[0m,
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/reviews/reviews-client.tsx
+    ./src/app/dashboard/google-reviews/page.tsx
+
+
+⨯ ./src/components/reviews/reviews-client.tsx:47:74
+Unexpected token `no substitution template literal`. Expected identifier, string literal, numeric literal or [ for the computed key
+  [90m45 |[0m ...[32mmunauté n'est associée à ce compte."[0m,
+  [90m46 |[0m ...[32m renvoyé de token utilisable."[0m,
+[31m[1m>[0m [90m47 |[0m ...[32m Google Business Profile n'a été trouvé."[0m,[32m`r`[0mn  gmb_quota_exceeded: [32m"Google a temporair...[0m
+  [90m   |[0m                                           [31m[1m^^^[0m
+  [90m48 |[0m ...[32mle de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée...[0m
+  [90m49 |[0m ...[32mn Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migratio...[0m
+  [90m50 |[0m ...[32m finalisation Google Business."[0m,
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/reviews/reviews-client.tsx
+    ./src/app/dashboard/google-reviews/page.tsx
+
+
+[browser] ./src/components/reviews/reviews-client.tsx:47:74
+Unexpected token `no substitution template literal`. Expected identifier, string literal, numeric literal or [ for the computed key
+  45 | ...munauté n'est associée à ce compte.",
+  46 | ... renvoyé de token utilisable.",
+> 47 | ... Google Business Profile n'a été trouvé.",`r`n  gmb_quota_exceeded: "Google a temporair...
+     |                                           ^^^
+  48 | ...le de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée...
+  49 | ...n Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migratio...
+  50 | ... finalisation Google Business.",
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/reviews/reviews-client.tsx
+    ./src/app/dashboard/google-reviews/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/components/reviews/reviews-client.tsx:47:74
+Unexpected token `no substitution template literal`. Expected identifier, string literal, numeric literal or [ for the computed key
+  45 | ...munauté n'est associée à ce compte.",
+  46 | ... renvoyé de token utilisable.",
+> 47 | ... Google Business Profile n'a été trouvé.",`r`n  gmb_quota_exceeded: "Google a temporair...
+     |                                           ^^^
+  48 | ...le de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée...
+  49 | ...n Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migratio...
+  50 | ... finalisation Google Business.",
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/reviews/reviews-client.tsx
+    ./src/app/dashboard/google-reviews/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/components/reviews/reviews-client.tsx:47:74
+Unexpected token `no substitution template literal`. Expected identifier, string literal, numeric literal or [ for the computed key
+  45 | ...munauté n'est associée à ce compte.",
+  46 | ... renvoyé de token utilisable.",
+> 47 | ... Google Business Profile n'a été trouvé.",`r`n  gmb_quota_exceeded: "Google a temporair...
+     |                                           ^^^
+  48 | ...le de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée...
+  49 | ...n Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migratio...
+  50 | ... finalisation Google Business.",
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/reviews/reviews-client.tsx
+    ./src/app/dashboard/google-reviews/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/components/reviews/reviews-client.tsx:47:74
+Unexpected token `no substitution template literal`. Expected identifier, string literal, numeric literal or [ for the computed key
+  45 | ...munauté n'est associée à ce compte.",
+  46 | ... renvoyé de token utilisable.",
+> 47 | ... Google Business Profile n'a été trouvé.",`r`n  gmb_quota_exceeded: "Google a temporair...
+     |                                           ^^^
+  48 | ...le de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée...
+  49 | ...n Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migratio...
+  50 | ... finalisation Google Business.",
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/reviews/reviews-client.tsx
+    ./src/app/dashboard/google-reviews/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/components/reviews/reviews-client.tsx:47:74
+Unexpected token `no substitution template literal`. Expected identifier, string literal, numeric literal or [ for the computed key
+  45 | ...munauté n'est associée à ce compte.",
+  46 | ... renvoyé de token utilisable.",
+> 47 | ... Google Business Profile n'a été trouvé.",`r`n  gmb_quota_exceeded: "Google a temporair...
+     |                                           ^^^
+  48 | ...le de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée...
+  49 | ...n Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migratio...
+  50 | ... finalisation Google Business.",
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/reviews/reviews-client.tsx
+    ./src/app/dashboard/google-reviews/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+ GET /dashboard/google-reviews 500 in 2.5s (next.js: 989ms, proxy.ts: 834ms, application-code: 711ms)
+ GET /dashboard/google-reviews 500 in 2.8s (next.js: 1337ms, proxy.ts: 993ms, application-code: 474ms)
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[browser] ./src/components/reviews/reviews-client.tsx:47:74
+Unexpected token `no substitution template literal`. Expected identifier, string literal, numeric literal or [ for the computed key
+  45 | ...munauté n'est associée à ce compte.",
+  46 | ... renvoyé de token utilisable.",
+> 47 | ... Google Business Profile n'a été trouvé.",`r`n  gmb_quota_exceeded: "Google a temporair...
+     |                                           ^^^
+  48 | ...le de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée...
+  49 | ...n Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migratio...
+  50 | ... finalisation Google Business.",
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/reviews/reviews-client.tsx
+    ./src/app/dashboard/google-reviews/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] Uncaught Error: ./src/components/reviews/reviews-client.tsx:47:74
+Unexpected token `no substitution template literal`. Expected identifier, string literal, numeric literal or [ for the computed key
+  45 | ...munauté n'est associée à ce compte.",
+  46 | ... renvoyé de token utilisable.",
+> 47 | ... Google Business Profile n'a été trouvé.",`r`n  gmb_quota_exceeded: "Google a temporair...
+     |                                           ^^^
+  48 | ...le de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée...
+  49 | ...n Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migratio...
+  50 | ... finalisation Google Business.",
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/reviews/reviews-client.tsx
+    ./src/app/dashboard/google-reviews/page.tsx
+
+
+    at <unknown> (Error: ./src/components/reviews/reviews-client.tsx:47:74)
+    at <unknown> (Error: (./src/components/reviews/reviews-client.tsx:47:74)
+[browser] ./src/components/reviews/reviews-client.tsx:47:74
+Unexpected token `no substitution template literal`. Expected identifier, string literal, numeric literal or [ for the computed key
+  45 | ...munauté n'est associée à ce compte.",
+  46 | ... renvoyé de token utilisable.",
+> 47 | ... Google Business Profile n'a été trouvé.",`r`n  gmb_quota_exceeded: "Google a temporair...
+     |                                           ^^^
+  48 | ...le de lire les comptes Google Business. Vérifiez que l'API Business Profile est activée...
+  49 | ...n Google réussie, mais l'enregistrement en base a échoué. Il faut appliquer la migratio...
+  50 | ... finalisation Google Business.",
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/reviews/reviews-client.tsx
+    ./src/app/dashboard/google-reviews/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+ GET /dashboard/google-reviews 200 in 3.9s (next.js: 1395ms, proxy.ts: 202ms, application-code: 2.3s)
+⨯ Error: Module [project]/src/components/reviews/reviews-client.tsx [app-ssr] (ecmascript) was instantiated because it was required from module [project]/node_modules/next/dist/esm/build/templates/app-page.js?page=/dashboard/google-reviews/page { METADATA_0 => "[project]/src/app/favicon.ico.mjs { IMAGE => \"[project]/src/app/favicon.ico (static in ecmascript, tag client)\" } [app-rsc] (structured image object, ecmascript)", MODULE_1 => "[project]/src/app/layout.tsx [app-rsc] (ecmascript, Next.js Server Component)", MODULE_2 => "[project]/node_modules/next/dist/client/components/builtin/not-found.js [app-rsc] (ecmascript, Next.js Server Component)", MODULE_3 => "[project]/node_modules/next/dist/client/components/builtin/forbidden.js [app-rsc] (ecmascript, Next.js Server Component)", MODULE_4 => "[project]/node_modules/next/dist/client/components/builtin/unauthorized.js [app-rsc] (ecmascript, Next.js Server Component)", MODULE_5 => "[project]/src/app/global-error.tsx [app-rsc] (ecmascript, Next.js Server Component)", MODULE_6 => "[project]/src/app/dashboard/layout.tsx [app-rsc] (ecmascript, Next.js Server Component)", MODULE_7 => "[project]/src/app/dashboard/google-reviews/page.tsx [app-rsc] (ecmascript, Next.js Server Component)" } [app-rsc] (ecmascript) <locals>, but the module factory is not available.
+This is often caused by a stale browser cache, misconfigured Cache-Control headers, or a service worker serving outdated responses.
+To fix this, make sure your Cache-Control headers allow revalidation of chunks and review your service worker configuration. As an immediate workaround, try hard-reloading the page, clearing the browser cache, or unregistering any service workers.
+    at ignore-listed frames {
+  digest: '2082029620'
+}
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+ GET /dashboard/google-reviews 200 in 13.4s (next.js: 976ms, proxy.ts: 5.3s, application-code: 7.1s)
+ GET /api/gmb/unread-count 200 in 8.3s (next.js: 6.9s, proxy.ts: 26ms, application-code: 1357ms)
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+ GET /api/gmb/unread-count 200 in 1393ms (next.js: 209ms, proxy.ts: 256ms, application-code: 928ms)
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
