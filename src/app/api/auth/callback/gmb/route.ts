@@ -4,6 +4,38 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createGmbOAuth2Client, getGmbRedirectUri } from '@/lib/gmb';
 
+type GmbLocationCandidate = {
+  accountName: string;
+  locationName: string;
+  locationDisplayName: string | null;
+  searchableText: string;
+};
+
+function normalizeForMatch(value: string | null | undefined) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function scoreLocation(candidate: GmbLocationCandidate, community: { name?: string | null; city?: string | null } | null) {
+  const haystack = normalizeForMatch(candidate.searchableText);
+  const communityName = normalizeForMatch(community?.name);
+  const communityCity = normalizeForMatch(community?.city);
+  let score = 0;
+
+  if (communityName && haystack.includes(communityName)) score += 10;
+  if (communityCity && haystack.includes(communityCity)) score += 5;
+
+  for (const word of communityName.split(" ").filter((item) => item.length > 2)) {
+    if (haystack.includes(word)) score += 1;
+  }
+
+  return score;
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
@@ -60,6 +92,12 @@ export async function GET(request: Request) {
   }
 
   try {
+    const { data: community } = await admin
+      .from('Community')
+      .select('name, city')
+      .eq('id', communityId)
+      .single();
+
     const redirectUri = getGmbRedirectUri(url);
     const oauth2Client = createGmbOAuth2Client(redirectUri);
     const { tokens } = await oauth2Client.getToken(code);
@@ -83,29 +121,51 @@ export async function GET(request: Request) {
       return NextResponse.redirect(returnUrl);
     }
 
-    // Prendre le premier compte
-    const account = accounts[0];
-    const accountName = account.name!; // ex: "accounts/123456789"
-
-    // 2. Récupérer les établissements (locations)
+    // 2. Récupérer les établissements (locations) du compte Google connecté.
+    // On ne force jamais une fiche du projet : on choisit parmi les fiches
+    // accessibles par l'utilisateur, en privilégiant celle qui correspond à sa communauté.
     const bizInfo = google.mybusinessbusinessinformation({ version: 'v1', auth: oauth2Client });
-    let locationName: string | null = null;
-    let locationDisplayName: string | null = null;
+    const candidates: GmbLocationCandidate[] = [];
 
-    try {
-      const locRes = await bizInfo.accounts.locations.list({
-        parent: accountName,
-        readMask: 'name,title,storefrontAddress',
-      });
-      const locations = locRes.data.locations ?? [];
-      if (locations.length > 0) {
-        locationName = locations[0].name ?? null;
-        locationDisplayName = locations[0].title ?? null;
+    for (const account of accounts) {
+      const accountName = account.name;
+      if (!accountName) continue;
+
+      try {
+        const locRes = await bizInfo.accounts.locations.list({
+          parent: accountName,
+          readMask: 'name,title,storefrontAddress',
+        });
+        const locations = locRes.data.locations ?? [];
+        for (const location of locations) {
+          const address = location.storefrontAddress;
+          candidates.push({
+            accountName,
+            locationName: location.name ?? "",
+            locationDisplayName: location.title ?? null,
+            searchableText: [
+              account.accountName,
+              accountName,
+              location.name,
+              location.title,
+              address?.locality,
+              address?.administrativeArea,
+              address?.postalCode,
+              address?.addressLines?.join(" "),
+            ].filter(Boolean).join(" "),
+          });
+        }
+      } catch (error) {
+        console.warn(`[GMB Callback] Impossible de lire les fiches de ${accountName}`, error);
       }
-    } catch {
-      // Certains comptes n'ont pas encore de fiche — on continue
     }
 
+    const selectedLocation = candidates
+      .filter((candidate) => candidate.locationName)
+      .sort((left, right) => scoreLocation(right, community) - scoreLocation(left, community))[0] ?? null;
+    const accountName = selectedLocation?.accountName ?? accounts[0].name!;
+    const locationName = selectedLocation?.locationName ?? null;
+    const locationDisplayName = selectedLocation?.locationDisplayName ?? null;
     const expiresAt = tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null;
 
     // 3. Stocker le token dans Channel (type: GOOGLE_BUSINESS)
@@ -129,6 +189,12 @@ export async function GET(request: Request) {
           accountName,
           locationName: locationName ?? null,
           locationDisplayName: locationDisplayName ?? null,
+          availableLocations: candidates.map((candidate) => ({
+            accountName: candidate.accountName,
+            locationName: candidate.locationName,
+            locationDisplayName: candidate.locationDisplayName,
+            score: scoreLocation(candidate, community),
+          })),
         },
       },
       { onConflict: 'communityId,type' }

@@ -6,12 +6,49 @@
 - Local:         http://127.0.0.1:3000
 - Network:       http://127.0.0.1:3000
 - Environments: .env
-✓ Ready in 1222ms
+✓ Ready in 1556ms
 Creating turbopack project {
   dir: 'C:\\Users\\chlom\\Desktop\\projet EASYCOM-AI\\Yad-AI',
   testMode: true
 }
 [Automation Local Scheduler] Actif en developpement toutes les 30 secondes.
 
- GET /dashboard/google-reviews 200 in 11.2s (next.js: 3.3s, proxy.ts: 1559ms, application-code: 6.3s)
- GET /api/gmb/unread-count 200 in 5.2s (next.js: 4.7s, proxy.ts: 30ms, application-code: 402ms)
+ GET /dashboard/google-reviews 200 in 11.2s (next.js: 3.7s, proxy.ts: 2.6s, application-code: 4.9s)
+ GET /dashboard/google-reviews 200 in 1770ms (next.js: 43ms, proxy.ts: 303ms, application-code: 1423ms)
+ GET /api/gmb/unread-count 200 in 6.1s (next.js: 5.6s, proxy.ts: 20ms, application-code: 473ms)
+ GET /api/gmb/auth?communityId=639f1437-582b-4f76-ab4c-136f6fa78750&returnTo=gmb_popup 307 in 327ms (next.js: 214ms, proxy.ts: 19ms, application-code: 94ms)
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+ GET /dashboard/google-reviews 200 in 843ms (next.js: 14ms, proxy.ts: 149ms, application-code: 679ms)
+ GET /api/gmb/unread-count 200 in 199ms (next.js: 8ms, proxy.ts: 12ms, application-code: 178ms)
+ GET /api/gmb/auth?communityId=639f1437-582b-4f76-ab4c-136f6fa78750&returnTo=gmb_popup 307 in 108ms (next.js: 11ms, proxy.ts: 15ms, application-code: 82ms)
+ GET /dashboard/google-reviews 200 in 767ms (next.js: 8ms, proxy.ts: 129ms, application-code: 629ms)
+ GET /api/gmb/unread-count 200 in 219ms (next.js: 8ms, proxy.ts: 12ms, application-code: 199ms)
+ GET /api/gmb/auth?communityId=639f1437-582b-4f76-ab4c-136f6fa78750&returnTo=gmb_popup 307 in 94ms (next.js: 11ms, proxy.ts: 14ms, application-code: 69ms)
+[Automation] Démarrage du moteur…
+[Automation] 7 automatisations actives
+[GMB Callback Error] Error: gmb_accounts_api_failed:Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:589086053861'.
+    at <unknown> (src\app\api\auth\callback\gmb\route.ts:115:13)
+    at async GET (src\app\api\auth\callback\gmb\route.ts:114:25)
+  113 |     const accountMgmt = google.mybusinessaccountmanagement({ version: 'v1', auth: oauth2C...
+  114 |     const accountsRes = await accountMgmt.accounts.list().catch((error) => {
+> 115 |       throw new Error(`gmb_accounts_api_failed:${error instanceof Error ? error.message :...
+      |             ^
+  116 |     });
+  117 |     const accounts = accountsRes.data.accounts ?? [];
+  118 |
+[GMB Callback Error:gmb_accounts_error] Error: gmb_accounts_api_failed:Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:589086053861'.
+    at <unknown> (src\app\api\auth\callback\gmb\route.ts:115:13)
+    at async GET (src\app\api\auth\callback\gmb\route.ts:114:25)
+  113 |     const accountMgmt = google.mybusinessaccountmanagement({ version: 'v1', auth: oauth2C...
+  114 |     const accountsRes = await accountMgmt.accounts.list().catch((error) => {
+> 115 |       throw new Error(`gmb_accounts_api_failed:${error instanceof Error ? error.message :...
+      |             ^
+  116 |     });
+  117 |     const accounts = accountsRes.data.accounts ?? [];
+  118 |
+ GET /api/auth/callback/gmb?state=eyJjb21tdW5pdHlJZCI6IjYzOWYxNDM3LTU4MmItNGY3Ni1hYjRjLTEzNmY2ZmE3ODc1MCIsInVzZXJJZCI6ImE2YzExY2YzLWRmY2YtNGE4OC1hMDhiLTE0YmRkNmI3MjRmYyIsInJldHVyblRvIjoiZ21iX3BvcHVwIiwiZXhwIjoxNzc5NzIyNjQxNTE3fQ&iss=https%3A%2F%2Faccounts.google.com&code=4%2F0AeoWuM9SekjGjC80pkX_uTMH-mrpazs9D9mU4Fbh3T_KcQ2SQfJU6oY_1RUBERhkxk4_hA&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fbusiness.manage 307 in 4.2s (next.js: 186ms, proxy.ts: 11ms, application-code: 4.0s)
+ GET /dashboard/google-reviews/oauth-done?oauth=gmb_accounts_error 200 in 1183ms (next.js: 135ms, proxy.ts: 197ms, application-code: 850ms)
+ GET /api/gmb/unread-count 200 in 392ms (next.js: 9ms, proxy.ts: 23ms, application-code: 361ms)
