@@ -20,8 +20,8 @@ export default function TermsPage() {
         </p>
         <p className="leading-7 text-slate-600">
           Pour toute question contractuelle ou demande spécifique, contactez l’équipe à{" "}
-          <a className="font-semibold text-blue-600 underline" href="mailto:contact@shalom-ia.com">
-            contact@shalom-ia.com
+          <a className="font-semibold text-blue-600 underline" href="mailto:contact@easycom-AI.com">
+            contact@easycom-AI.com
           </a>
           .
         </p>

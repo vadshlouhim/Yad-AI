@@ -32,8 +32,8 @@ export default function DataDeletionPage() {
             </p>
             <p className="leading-7">
               Envoyez votre demande à :
-              <a className="ml-1 font-medium text-blue-600 hover:underline" href="mailto:contact@shalom-ia.com">
-                contact@shalom-ia.com
+              <a className="ml-1 font-medium text-blue-600 hover:underline" href="mailto:contact@easycom-AI.com">
+                contact@easycom-AI.com
               </a>
             </p>
           </section>

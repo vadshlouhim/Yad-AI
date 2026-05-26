@@ -84,7 +84,7 @@ export async function POST(request: Request) {
 
       const typedPreset = preset as PresetWithRhythms | null;
       if (!community || !typedPreset || !presetAppliesToCommunity(typedPreset, community)) {
-        return NextResponse.json({ error: "ScÃ©nario non disponible pour ce compte" }, { status: 403 });
+        return NextResponse.json({ error: "Scénario non disponible pour ce compte" }, { status: 403 });
       }
 
       const { data: automation, error } = await admin
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
 
       if (error || !automation) {
         console.error("[Automations preset POST]", error);
-        return NextResponse.json({ error: "CrÃ©ation Ã©chouÃ©e" }, { status: 500 });
+        return NextResponse.json({ error: "Création échouée" }, { status: 500 });
       }
 
       return NextResponse.json(automation, { status: 201 });

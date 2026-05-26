@@ -1,21 +1,18 @@
+import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { canAccessAdmin } from "@/lib/admin-access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { SettingsGeneralClient } from "@/components/settings/settings-general-client";
-import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Paramètres - EasyCom AI" };
+export const metadata: Metadata = { title: "Parametres - EasyCom AI" };
 
-type SettingsSection = "community" | "contacts" | "editorial" | "profile" | "interface";
+type SettingsSection = "community" | "contacts" | "editorial" | "profile";
 
 function getSettingsSection(value: string | string[] | undefined): SettingsSection {
   const section = Array.isArray(value) ? value[0] : value;
-  return section === "contacts" ||
-    section === "editorial" ||
-    section === "profile" ||
-    section === "interface"
+  return section === "contacts" || section === "editorial" || section === "profile"
     ? section
     : "community";
 }
@@ -66,12 +63,19 @@ export default async function SettingsPage({
   const { data: rhythms } = await rhythmQuery.eq("isActive", true);
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
-        <p className="text-sm text-slate-100">
-          Gérez ici vos réseaux sociaux, votre quotidien, vos contacts, la FAQ et le support.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <section className="overflow-hidden rounded-[1.75rem] border border-emerald-200 bg-emerald-700 shadow-[0_20px_48px_rgba(6,95,70,0.16)]">
+        <div className="bg-[linear-gradient(135deg,#047857,#059669,#10b981)] px-6 py-7 text-white sm:px-8">
+          <div className="max-w-3xl">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-50">Parametres</p>
+            <h1 className="mt-3 text-3xl font-black tracking-tight">Parametres</h1>
+            <p className="mt-3 text-sm leading-6 text-emerald-50">
+              Gerez ici vos reseaux sociaux, votre quotidien, vos contacts, la FAQ et le support.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <SettingsGeneralClient
         community={settingsCommunity}
         rhythms={rhythms ?? []}
@@ -89,3 +93,4 @@ export default async function SettingsPage({
     </div>
   );
 }
+

@@ -377,7 +377,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                   {cfg.authType === "oauth" && (
                     <div className="space-y-4">
                       <p className="text-sm text-slate-600 leading-relaxed">
-                        {cfg.description} La connexion se fait via le dialogue officiel Meta — aucun mot de passe n'est stocké.
+                        {cfg.description} La connexion se fait via le dialogue officiel Meta ??? aucun mot de passe n&apos;est stock??.
                       </p>
 
                       {isConnected ? (
@@ -435,7 +435,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                   {cfg.authType === "gmail-oauth" && (
                     <div className="space-y-4">
                       <p className="text-sm text-slate-600 leading-relaxed">
-                        {cfg.description} La connexion passe par le dialogue officiel Google — aucun mot de passe n'est stocké.
+                        {cfg.description} La connexion passe par le dialogue officiel Google ??? aucun mot de passe n&apos;est stock??.
                       </p>
 
                       {isConnected ? (
@@ -572,7 +572,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                         <div className="space-y-1">
                           <p className="text-sm font-semibold text-amber-800">Mode copier-coller</p>
                           <p className="text-xs text-amber-700 leading-relaxed">
-                            WhatsApp ne permet pas la publication automatique sans l'API Business officielle.
+                            WhatsApp ne permet pas la publication automatique sans l&apos;API Business officielle.
                             EasyCom AI génère le contenu optimisé avec un lien <code className="bg-amber-100 rounded px-1">wa.me</code> prêt à partager.
                           </p>
                         </div>
@@ -580,7 +580,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                       <div className="rounded-2xl border border-green-200 bg-green-50 p-4 flex gap-3">
                         <CheckCircle2 className="size-5 text-green-500 flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-green-700">
-                          Aucune configuration requise — WhatsApp est prêt à l'emploi dès maintenant.
+                          Aucune configuration requise ??? WhatsApp est pr??t ?? l&apos;emploi d??s maintenant.
                         </p>
                       </div>
                     </div>
@@ -598,13 +598,13 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
           <Info className="size-5 text-slate-500" />
         </div>
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-slate-800">Besoin d'aide pour configurer un canal ?</p>
+          <p className="text-sm font-semibold text-slate-800">Besoin d&apos;aide pour configurer un canal ?</p>
           <p className="text-xs text-slate-500 leading-relaxed">
             Consultez notre documentation ou contactez le support. Pour Instagram et Facebook,
-            assurez-vous d'avoir un <strong>compte professionnel</strong> et d'être <strong>administrateur</strong> de la Page.
+            assurez-vous d&apos;avoir un <strong>compte professionnel</strong> et d&apos;??tre <strong>administrateur</strong> de la Page.
           </p>
           <Link
-            href="mailto:contact@webfityou.com"
+            href="mailto:contact@easycom-AI.com"
             className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline font-medium mt-1"
           >
             Contacter le support

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -844,26 +843,6 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
             </div>
           </div>
 
-          {/* Social Network Connection Buttons */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-            {[
-              { id: "whatsapp", label: "WhatsApp", logo: SOCIAL_LOGOS.WHATSAPP, colorClass: "bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-700" },
-              { id: "instagram", label: "Instagram", logo: SOCIAL_LOGOS.INSTAGRAM, colorClass: "bg-gradient-to-br from-pink-600 via-rose-600 to-orange-500 text-white border-pink-500 hover:opacity-95" },
-              { id: "facebook", label: "Facebook", logo: SOCIAL_LOGOS.FACEBOOK, colorClass: "bg-blue-700 text-white border-blue-600 hover:bg-blue-800" },
-              { id: "telegram", label: "Telegram", logo: SOCIAL_LOGOS.TELEGRAM, colorClass: "bg-sky-600 text-white border-sky-500 hover:bg-sky-700" },
-              { id: "email", label: "Email / Gmail", logo: SOCIAL_LOGOS.EMAIL, colorClass: "bg-slate-800 text-white border-slate-700 hover:bg-slate-900" }
-            ].map((network) => (
-              <Link key={network.id} href="/dashboard/settings/channels" className="w-full">
-                <button className={cn(
-                  "w-full flex items-center justify-center gap-2 rounded-2xl border p-3.5 text-xs font-bold transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer",
-                  network.colorClass
-                )}>
-                  {network.logo}
-                  <span>Connecter {network.label}</span>
-                </button>
-              </Link>
-            ))}
-          </div>
         </div>
       )}
 
@@ -875,7 +854,7 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
                 Scénarios prédéfinis pour les <span className="text-blue-900">Synagogues / Beth Habad</span>
               </h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                Voici les automatisations qu&apos;EasyCom AI peut préparer de manière récurrente. Vous pouvez les activer, les désactiver ou ajouter vos propres automatisations régulières. À chaque contenu prêt, vous recevez une notification et pouvez le publier en un clic sur vos réseaux.
+                Activez vos automatisations r??currentes, choisissez les r??seaux de publication ??? Facebook, Instagram, WhatsApp ou tous ?? la fois ??? puis recevez une notification au bon moment. Vous validez, et EasyCom AI publie en un clic.
               </p>
             </div>
             <Badge variant="info" className="border border-blue-100 bg-blue-50 text-blue-700">
@@ -1024,7 +1003,7 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
             <div>
               <h2 className="text-lg font-bold text-slate-900">Mes automatisations</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Voici les automatisations qu&apos;EasyCom AI peut préparer de manière récurrente. Vous pouvez les activer, les désactiver ou ajouter vos propres automatisations régulières. À chaque contenu prêt, vous recevez une notification et pouvez le publier en un clic sur vos réseaux.
+                Activez vos automatisations r??currentes, choisissez les r??seaux de publication ??? Facebook, Instagram, WhatsApp ou tous ?? la fois ??? puis recevez une notification au bon moment. Vous validez, et EasyCom AI publie en un clic.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">

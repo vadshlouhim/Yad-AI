@@ -1,0 +1,931 @@
+⨯ ./src/components/settings/settings-general-client.tsx:268:74
+Expected ':', got ')'
+  [90m266 |[0m
+  [90m267 |[0m       [36mif[0m (!response.ok) {
+[31m[1m>[0m [90m268 |[0m         setLogoError(result.error ? [32m"Impossible de téléverser le logo."[0m);
+  [90m    |[0m                                                                        [31m[1m^[0m
+  [90m269 |[0m         [36mreturn[0m;
+  [90m270 |[0m       }
+  [90m271 |[0m
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx
+
+
+[browser] ./src/components/settings/settings-general-client.tsx:268:74
+Expected ':', got ')'
+  266 |
+  267 |       if (!response.ok) {
+> 268 |         setLogoError(result.error ? "Impossible de téléverser le logo.");
+      |                                                                        ^
+  269 |         return;
+  270 |       }
+  271 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/components/settings/settings-general-client.tsx:268:74
+Expected ':', got ')'
+  266 |
+  267 |       if (!response.ok) {
+> 268 |         setLogoError(result.error ? "Impossible de téléverser le logo.");
+      |                                                                        ^
+  269 |         return;
+  270 |       }
+  271 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/components/settings/settings-general-client.tsx:268:74
+Expected ':', got ')'
+  266 |
+  267 |       if (!response.ok) {
+> 268 |         setLogoError(result.error ? "Impossible de téléverser le logo.");
+      |                                                                        ^
+  269 |         return;
+  270 |       }
+  271 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+⨯ ./src/components/settings/settings-general-client.tsx:268:74
+Expected ':', got ')'
+  [90m266 |[0m
+  [90m267 |[0m       [36mif[0m (!response.ok) {
+[31m[1m>[0m [90m268 |[0m         setLogoError(result.error ? [32m"Impossible de téléverser le logo."[0m);
+  [90m    |[0m                                                                        [31m[1m^[0m
+  [90m269 |[0m         [36mreturn[0m;
+  [90m270 |[0m       }
+  [90m271 |[0m
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx
+
+
+[browser] ./src/components/settings/settings-general-client.tsx:268:74
+Expected ':', got ')'
+  266 |
+  267 |       if (!response.ok) {
+> 268 |         setLogoError(result.error ? "Impossible de téléverser le logo.");
+      |                                                                        ^
+  269 |         return;
+  270 |       }
+  271 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/components/settings/settings-general-client.tsx:268:74
+Expected ':', got ')'
+  266 |
+  267 |       if (!response.ok) {
+> 268 |         setLogoError(result.error ? "Impossible de téléverser le logo.");
+      |                                                                        ^
+  269 |         return;
+  270 |       }
+  271 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] Uncaught Error: ./src/components/settings/settings-general-client.tsx:268:74
+Expected ':', got ')'
+  266 |
+  267 |       if (!response.ok) {
+> 268 |         setLogoError(result.error ? "Impossible de téléverser le logo.");
+      |                                                                        ^
+  269 |         return;
+  270 |       }
+  271 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx
+
+
+    at <unknown> (Error: ./src/components/settings/settings-general-client.tsx:268:74)
+    at <unknown> (Error: (./src/components/settings/settings-general-client.tsx:268:74)
+[browser] ./src/components/settings/settings-general-client.tsx:268:74
+Expected ':', got ')'
+  266 |
+  267 |       if (!response.ok) {
+> 268 |         setLogoError(result.error ? "Impossible de téléverser le logo.");
+      |                                                                        ^
+  269 |         return;
+  270 |       }
+  271 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/components/settings/settings-general-client.tsx:268:74
+Expected ':', got ')'
+  266 |
+  267 |       if (!response.ok) {
+> 268 |         setLogoError(result.error ? "Impossible de téléverser le logo.");
+      |                                                                        ^
+  269 |         return;
+  270 |       }
+  271 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/components/settings/settings-general-client.tsx:268:74
+Expected ':', got ')'
+  266 |
+  267 |       if (!response.ok) {
+> 268 |         setLogoError(result.error ? "Impossible de téléverser le logo.");
+      |                                                                        ^
+  269 |         return;
+  270 |       }
+  271 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] Uncaught Error: ./src/components/settings/settings-general-client.tsx:268:74
+Expected ':', got ')'
+  266 |
+  267 |       if (!response.ok) {
+> 268 |         setLogoError(result.error ? "Impossible de téléverser le logo.");
+      |                                                                        ^
+  269 |         return;
+  270 |       }
+  271 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx
+
+
+    at <unknown> (Error: ./src/components/settings/settings-general-client.tsx:268:74)
+    at <unknown> (Error: (./src/components/settings/settings-general-client.tsx:268:74)
+[browser] ./src/components/settings/settings-general-client.tsx:268:74
+Expected ':', got ')'
+  266 |
+  267 |       if (!response.ok) {
+> 268 |         setLogoError(result.error ? "Impossible de téléverser le logo.");
+      |                                                                        ^
+  269 |         return;
+  270 |       }
+  271 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/components/settings/settings-general-client.tsx:268:74
+Expected ':', got ')'
+  266 |
+  267 |       if (!response.ok) {
+> 268 |         setLogoError(result.error ? "Impossible de téléverser le logo.");
+      |                                                                        ^
+  269 |         return;
+  270 |       }
+  271 |
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/components/settings/settings-general-client.tsx:451:69
+Expected '</', got '}'
+  449 | ...nt="outline" size="sm">
+  450 | ...Name={cn("text-xs px-2 py-0.5 rounded-full font-medium", PLAN_LABELS[community.plan]?....
+> 451 | ...ELS[community.plan]?.label ? community.plan}
+      |                                               ^
+  452 | ...
+  453 | ...
+  454 | ...ht className="size-3.5 ml-1" />
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/components/settings/settings-general-client.tsx:451:69
+Expected '</', got '}'
+  449 | ...nt="outline" size="sm">
+  450 | ...Name={cn("text-xs px-2 py-0.5 rounded-full font-medium", PLAN_LABELS[community.plan]?....
+> 451 | ...ELS[community.plan]?.label ? community.plan}
+      |                                               ^
+  452 | ...
+  453 | ...
+  454 | ...ht className="size-3.5 ml-1" />
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] Uncaught Error: ./src/components/settings/settings-general-client.tsx:451:69
+Expected '</', got '}'
+  449 | ...nt="outline" size="sm">
+  450 | ...Name={cn("text-xs px-2 py-0.5 rounded-full font-medium", PLAN_LABELS[community.plan]?....
+> 451 | ...ELS[community.plan]?.label ? community.plan}
+      |                                               ^
+  452 | ...
+  453 | ...
+  454 | ...ht className="size-3.5 ml-1" />
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx
+
+
+    at <unknown> (Error: ./src/components/settings/settings-general-client.tsx:451:69)
+    at <unknown> (Error: (./src/components/settings/settings-general-client.tsx:451:69)
+[browser] ./src/components/settings/settings-general-client.tsx:451:69
+Expected '</', got '}'
+  449 | ...nt="outline" size="sm">
+  450 | ...Name={cn("text-xs px-2 py-0.5 rounded-full font-medium", PLAN_LABELS[community.plan]?....
+> 451 | ...ELS[community.plan]?.label ? community.plan}
+      |                                               ^
+  452 | ...
+  453 | ...
+  454 | ...ht className="size-3.5 ml-1" />
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/components/settings/settings-general-client.tsx:451:69
+Expected '</', got '}'
+  449 | ...nt="outline" size="sm">
+  450 | ...Name={cn("text-xs px-2 py-0.5 rounded-full font-medium", PLAN_LABELS[community.plan]?....
+> 451 | ...ELS[community.plan]?.label ? community.plan}
+      |                                               ^
+  452 | ...
+  453 | ...
+  454 | ...ht className="size-3.5 ml-1" />
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] Uncaught Error: ./src/components/settings/settings-general-client.tsx:451:69
+Expected '</', got '}'
+  449 | ...nt="outline" size="sm">
+  450 | ...Name={cn("text-xs px-2 py-0.5 rounded-full font-medium", PLAN_LABELS[community.plan]?....
+> 451 | ...ELS[community.plan]?.label ? community.plan}
+      |                                               ^
+  452 | ...
+  453 | ...
+  454 | ...ht className="size-3.5 ml-1" />
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx
+
+
+    at <unknown> (Error: ./src/components/settings/settings-general-client.tsx:451:69)
+    at <unknown> (Error: (./src/components/settings/settings-general-client.tsx:451:69)
+[browser] ./src/components/settings/settings-general-client.tsx:451:69
+Expected '</', got '}'
+  449 | ...nt="outline" size="sm">
+  450 | ...Name={cn("text-xs px-2 py-0.5 rounded-full font-medium", PLAN_LABELS[community.plan]?....
+> 451 | ...ELS[community.plan]?.label ? community.plan}
+      |                                               ^
+  452 | ...
+  453 | ...
+  454 | ...ht className="size-3.5 ml-1" />
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/components/settings/settings-general-client.tsx:451:69
+Expected '</', got '}'
+  449 | ...nt="outline" size="sm">
+  450 | ...Name={cn("text-xs px-2 py-0.5 rounded-full font-medium", PLAN_LABELS[community.plan]?....
+> 451 | ...ELS[community.plan]?.label ? community.plan}
+      |                                               ^
+  452 | ...
+  453 | ...
+  454 | ...ht className="size-3.5 ml-1" />
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/settings/settings-general-client.tsx
+    ./src/app/dashboard/settings/page.tsx 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⨯ ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+⨯ ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] Uncaught Error: ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+⨯ ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] Uncaught Error: ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+⨯ ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] Uncaught Error: ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+⨯ ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] Uncaught Error: ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+⨯ ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] Uncaught Error: ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] Uncaught Error: ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+⨯ ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] Uncaught Error: ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] Uncaught Error: ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] Uncaught Error: ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] Uncaught Error: ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] Uncaught Error: ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+⨯ ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] Uncaught Error: ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default.
+
+
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/method/page.tsx
+'styled-jsx' cannot be imported from a Server Component module
+It only works in a Client Component but none of its parents are marked with 'use client', so they're Server Components by default. 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)

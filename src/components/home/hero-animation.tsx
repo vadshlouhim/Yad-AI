@@ -5,8 +5,8 @@ import { CheckCircle2 } from "lucide-react";
 
 // ─── Données de la conversation ───────────────────────────────────────────────
 
-const MSG_1 = "Prépare un rappel Shabbat pour ce vendredi soir";
-const MSG_2 = "Publie sur WhatsApp et Instagram";
+const MSG_1 = "Prépare un email de relance pour les clients inactifs";
+const MSG_2 = "Adapte-le aussi pour Instagram et Facebook";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,19 +35,19 @@ function BotCard1() {
   return (
     <div className="space-y-2.5 text-sm">
       <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-        Message préparé ✦
+        Message préparé
       </p>
       <div className="rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-3 leading-5 text-slate-800">
-        <p>🕯️ <strong>Rappel Shabbat — ce vendredi à 19h30</strong></p>
+        <p><strong>Objet : On vous accompagne pour relancer vos ventes</strong></p>
         <p className="mt-1 text-xs text-slate-500">
-          N&apos;oubliez pas d&apos;apporter votre siddour !
+          Bonjour, cela fait un moment. Voici une offre claire et limitée pour revenir cette semaine.
         </p>
       </div>
       <div className="flex flex-wrap gap-1.5">
         <span className="inline-flex items-center gap-1 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">
-          WhatsApp · Telegram
+          Email · CRM
         </span>
-        {["Texte prêt", "Horaire inclus"].map((label) => (
+        {["Texte prêt", "Version validée"].map((label) => (
           <span
             key={label}
             className="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700"
@@ -69,13 +69,13 @@ function BotCard2() {
           <CheckCircle2 className="size-4 text-emerald-600" />
         </div>
         <div>
-          <p className="font-bold text-slate-900">Envoyé à 47 membres</p>
-          <p className="text-xs text-slate-500">WhatsApp · Telegram · à l&apos;instant</p>
+          <p className="font-bold text-slate-900">Envoyé à 124 contacts</p>
+          <p className="text-xs text-slate-500">Email · Instagram · Facebook · à l&apos;instant</p>
         </div>
       </div>
       <span className="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
         <CheckCircle2 className="size-3" />
-        Publication réussie
+        Diffusion réussie
       </span>
     </div>
   );

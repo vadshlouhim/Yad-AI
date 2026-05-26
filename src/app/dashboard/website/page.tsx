@@ -33,7 +33,7 @@ export default function WebsiteCreationPage() {
           </p>
 
           <div className="mt-8 flex w-full flex-col items-center gap-4">
-            <Link href="mailto:contact@shalom-ia.com" className="w-full sm:w-auto">
+            <Link href="mailto:contact@easycom-AI.com" className="w-full sm:w-auto">
               <Button className="h-12 w-full rounded-2xl bg-sky-700 px-6 text-white shadow-[0_12px_28px_rgba(2,132,199,0.22)] transition-transform duration-200 hover:bg-sky-800 hover:shadow-[0_16px_34px_rgba(2,132,199,0.28)] active:scale-[0.98] sm:w-auto">
                 <Mail className="size-4" />
                 Contactez notre equipe professionnelle

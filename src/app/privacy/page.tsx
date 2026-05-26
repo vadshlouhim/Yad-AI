@@ -93,8 +93,8 @@ export default function PrivacyPage() {
             <h2 className="text-lg font-semibold text-slate-950">8. Contact</h2>
             <p className="leading-7">
               Pour toute question relative à cette politique ou à vos données, contactez-nous à :
-              <a className="ml-1 font-medium text-blue-600 hover:underline" href="mailto:contact@shalom-ia.com">
-                contact@shalom-ia.com
+              <a className="ml-1 font-medium text-blue-600 hover:underline" href="mailto:contact@easycom-AI.com">
+                contact@easycom-AI.com
               </a>
             </p>
           </section>

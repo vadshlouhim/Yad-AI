@@ -10,11 +10,11 @@ export async function POST(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Non autorisÃ©" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const admin = createAdminClient();
   const { data: profile } = await admin.from("profiles").select("email, role").eq("id", user.id).single();
-  if (!canAccessAdmin(profile)) return NextResponse.json({ error: "AccÃ¨s rÃ©servÃ© à l'admin global" }, { status: 403 });
+  if (!canAccessAdmin(profile)) return NextResponse.json({ error: "Accès réservé à l'admin global" }, { status: 403 });
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const communityId = typeof body.communityId === "string" ? body.communityId : "";

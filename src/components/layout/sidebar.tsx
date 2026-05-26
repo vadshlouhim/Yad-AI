@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { Bell, Bot, ChevronDown, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DASHBOARD_DESKTOP_CATEGORIES,
@@ -86,7 +86,7 @@ const DESKTOP_CATEGORY_CONTENT: Record<
   },
   RESSOURCES: {
     title: "RESSOURCES",
-    description: "Cours de Torah, affiches...",
+    description: "Notes, Banque visuelle...",
     accentBar: "bg-amber-500",
     iconSurface: "bg-amber-50",
     titleClass: "text-amber-700",
@@ -94,6 +94,17 @@ const DESKTOP_CATEGORY_CONTENT: Record<
     itemIcon: "text-amber-600",
     itemHover: "hover:bg-slate-50 hover:text-slate-900",
     itemActive: "bg-amber-50 text-slate-950 ring-1 ring-amber-100",
+  },
+  "CLIPS VIDEO": {
+    title: "CLIPS VIDEO",
+    description: "Clip récap AI",
+    accentBar: "bg-rose-500",
+    iconSurface: "bg-rose-50",
+    titleClass: "text-rose-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-rose-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-rose-50 text-slate-950 ring-1 ring-rose-100",
   },
   PARAMETRES: {
     title: "PARAMÈTRES",
@@ -109,6 +120,11 @@ const DESKTOP_CATEGORY_CONTENT: Record<
 };
 
 const ASSISTANT_ITEM = DASHBOARD_NAV_ITEMS.find((section) => section.section === "ASSISTANT IA")?.items[0] ?? null;
+const AUTOMATIONS_ITEM = {
+  href: "/dashboard/automations",
+  label: "Cr\u00E9er des automatisations",
+  icon: Zap,
+};
 
 function normalizeSectionKey(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -130,20 +146,14 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
     return pathname.startsWith(resolved) && resolved !== basePath;
   }
 
-  function categoryHasActiveItem(section: (typeof DASHBOARD_DESKTOP_CATEGORIES)[number]) {
-    return section.items.some((item) => isActive(item.href));
-  }
-
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(
-      DASHBOARD_DESKTOP_CATEGORIES.map((category) => [category.section, categoryHasActiveItem(category)])
-    )
+    Object.fromEntries(DASHBOARD_DESKTOP_CATEGORIES.map((category) => [category.section, false]))
   );
 
   return (
     <aside
       className={cn(
-        "hidden h-full flex-shrink-0 flex-col border-r border-slate-200 bg-slate-50 text-slate-700 transition-all duration-300 lg:flex",
+        "hidden h-full flex-shrink-0 flex-col border-r border-slate-200 bg-slate-50 text-slate-700 transition-all duration-300 md:flex",
         collapsed ? "w-20" : "w-80"
       )}
     >
@@ -197,24 +207,28 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
             <Link
               href={resolveHref(ASSISTANT_ITEM.href)}
               className={cn(
-                "flex items-center rounded-[1.2rem] bg-slate-900 px-4 py-3 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition-colors duration-200",
-                isActive(ASSISTANT_ITEM.href) ? "bg-slate-950" : "hover:bg-slate-800",
-                collapsed && "justify-center px-2 text-center"
+                "flex items-center rounded-[1.3rem] bg-gradient-to-r from-blue-600 via-sky-600 to-cyan-500 px-4 py-3 text-white shadow-[0_16px_30px_rgba(14,116,210,0.28)] ring-1 ring-sky-200/60 transition-all duration-200",
+                isActive(ASSISTANT_ITEM.href) ? "brightness-[0.98]" : "hover:brightness-[1.03]",
+                collapsed && "justify-center rounded-[1.4rem] border border-sky-300/40 bg-gradient-to-b from-blue-600 to-cyan-500 px-0 py-3"
               )}
               title={collapsed ? ASSISTANT_ITEM.label : undefined}
             >
               {!collapsed && (
                 <div className="flex min-w-0 items-center gap-2">
-                  {ASSISTANT_ITEM.icon && <ASSISTANT_ITEM.icon className="size-4 shrink-0 text-cyan-200" />}
+                  {ASSISTANT_ITEM.icon && <ASSISTANT_ITEM.icon className="size-4 shrink-0 text-cyan-50" />}
                   <p className="truncate text-[15px] font-semibold tracking-tight text-white">
-                    {ASSISTANT_ITEM.label}
+                    Accueil/Assistant IA
                   </p>
                   <p className="sr-only">
-                    {ASSISTANT_ITEM.label}
+                    Accueil/Assistant IA
                   </p>
                 </div>
               )}
-              {collapsed && <span className="text-xs font-semibold text-white">IA</span>}
+              {collapsed && (
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10">
+                  <Bot className="size-4 text-cyan-50" />
+                </span>
+              )}
             </Link>
           )}
 
@@ -222,9 +236,9 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
             <Link
               href={resolveHref(DASHBOARD_TOP_ITEM.href)}
               className={cn(
-                "flex items-center rounded-[1.2rem] bg-slate-900 px-4 py-3 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition-colors duration-200",
+                "flex items-center rounded-[1.2rem] bg-slate-900 px-4 py-3 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition-all duration-200",
                 isActive(DASHBOARD_TOP_ITEM.href) ? "bg-slate-950" : "hover:bg-slate-800",
-                collapsed && "justify-center px-2 text-center"
+                collapsed && "justify-center rounded-[1.4rem] border border-slate-800/50 bg-gradient-to-b from-slate-900 to-slate-800 px-0 py-3"
               )}
               title={collapsed ? DASHBOARD_TOP_ITEM.label : undefined}
             >
@@ -239,7 +253,35 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
                   </p>
                 </div>
               )}
-              {collapsed && <span className="text-xs font-semibold text-white">Notif</span>}
+              {collapsed && (
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10">
+                  <Bell className="size-4 text-cyan-200" />
+                </span>
+              )}
+            </Link>
+          </div>
+
+          <div className={cn("pb-3", collapsed && "pb-2")}>
+            <Link
+              href={resolveHref(AUTOMATIONS_ITEM.href)}
+              className={cn(
+                "flex items-center rounded-[1.2rem] bg-slate-900 px-4 py-3 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition-all duration-200",
+                isActive(AUTOMATIONS_ITEM.href) ? "bg-slate-950" : "hover:bg-slate-800",
+                collapsed && "justify-center rounded-[1.4rem] border border-slate-800/50 bg-gradient-to-b from-slate-900 to-slate-800 px-0 py-3"
+              )}
+              title={collapsed ? "Cr\u00E9er des automatisations" : undefined}
+            >
+              {!collapsed && (
+                <div className="flex min-w-0 items-center gap-2">
+                  <p className="truncate text-[15px] font-semibold tracking-tight text-white">{"Cr\u00E9er des automatisations"}</p>
+                  <p className="sr-only">{"Cr\u00E9er des automatisations"}</p>
+                </div>
+              )}
+              {collapsed && (
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10">
+                  <Zap className="size-4 text-cyan-200" />
+                </span>
+              )}
             </Link>
           </div>
 
@@ -252,7 +294,10 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
               return (
                 <div
                   key={category.section}
-                  className="rounded-[1.6rem] border border-slate-200 bg-white p-3 shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition duration-200 hover:border-slate-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.09)]"
+                  className={cn(
+                    "rounded-[1.6rem] border border-slate-200 bg-white p-3 shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition duration-200 hover:border-slate-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.09)]",
+                    collapsed && "rounded-[1.45rem] p-2.5"
+                  )}
                 >
                   <button
                     type="button"
@@ -264,12 +309,12 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
                     }
                     className={cn(
                       "flex w-full items-start gap-3 rounded-[1.15rem] px-1 py-1 text-left transition-all duration-200",
-                      collapsed && "justify-center px-2"
+                      collapsed && "justify-center rounded-[1.15rem] bg-slate-50 px-0 py-2.5 hover:bg-slate-100"
                     )}
                     aria-expanded={isOpen}
                     title={collapsed ? style.title : undefined}
                   >
-                    <span className={cn("mt-4 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full", style.iconSurface)}>
+                    <span className={cn("mt-4 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full", style.iconSurface, collapsed && "mt-0 h-11 w-11 rounded-2xl ring-1 ring-slate-200")}>
                       <category.icon className={cn("size-[18px]", style.itemIcon)} />
                     </span>
 
@@ -277,7 +322,7 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
                       <>
                         <div className="min-w-0 flex-1">
                           <div className={cn("mb-3 h-1 w-10 rounded-full", style.accentBar)} />
-                          <p className={cn("text-[15px] font-semibold tracking-tight", style.titleClass)}>{style.title}</p>
+                          <p className={cn("text-[15px] font-black tracking-tight", style.titleClass)}>{style.title}</p>
                           <p className={cn("mt-1.5 text-xs leading-5", style.descriptionClass)}>{style.description}</p>
                         </div>
                         <ChevronDown
@@ -299,7 +344,9 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
                     >
                       <div className="overflow-hidden">
                         <div className="mt-3 space-y-1.5 rounded-[1.2rem] bg-slate-50/80 p-2">
-                          {category.items.map((item) => {
+                          {category.items
+                            .filter((item) => !(category.section === "RESEAUX SOCIAUX" && item.href === "/dashboard/automations"))
+                            .map((item) => {
                             const active = isActive(item.href);
                             const isExternal = item.external || item.href.startsWith("mailto");
                             const resolvedHref = resolveHref(item.href);
@@ -312,12 +359,23 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
                                   rel={isExternal ? "noopener noreferrer" : undefined}
                                   className={cn(
                                     "flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all duration-200",
-                                    active ? style.itemActive : cn("text-slate-700", style.itemHover)
+                                    item.href === "/dashboard/settings?section=contacts" && !active
+                                      ? "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-100 hover:bg-emerald-100"
+                                      : active
+                                        ? style.itemActive
+                                        : cn("text-slate-700", style.itemHover)
                                   )}
                                 >
                                   {item.icon && (
                                     <item.icon
-                                      className={cn("size-4 flex-shrink-0", active ? "text-current" : style.itemIcon)}
+                                      className={cn(
+                                        "size-4 flex-shrink-0",
+                                        item.href === "/dashboard/settings?section=contacts" && !active
+                                          ? "text-emerald-600"
+                                          : active
+                                            ? "text-current"
+                                            : style.itemIcon
+                                      )}
                                     />
                                   )}
                                   <span className="flex min-w-0 flex-1 flex-col">
@@ -393,3 +451,5 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
     </aside>
   );
 }
+
+

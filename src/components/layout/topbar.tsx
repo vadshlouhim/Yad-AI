@@ -4,15 +4,101 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Bell, ChevronDown, LogOut, Menu, Search, Settings, User, X } from "lucide-react";
+import { Bell, Bot, ChevronDown, LogOut, Menu, Search, Settings, User, X, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DASHBOARD_NAV_ITEMS, DASHBOARD_SECTION_STYLES } from "./dashboard-nav";
+import { DASHBOARD_DESKTOP_CATEGORIES } from "./dashboard-nav";
 
 interface TopBarProps {
   communityName: string;
   userAvatar: string | null | undefined;
   userName: string;
   unreadNotifications: number;
+}
+
+const MOBILE_CATEGORY_CONTENT: Record<
+  string,
+  {
+    title: string;
+    description: string;
+    accentBar: string;
+    iconSurface: string;
+    titleClass: string;
+    descriptionClass: string;
+    itemIcon: string;
+    itemHover: string;
+    itemActive: string;
+  }
+> = {
+  "RESEAUX SOCIAUX": {
+    title: "RÉSEAUX SOCIAUX",
+    description: "Connecter & automatiser vos réseaux",
+    accentBar: "bg-blue-500",
+    iconSurface: "bg-blue-50",
+    titleClass: "text-blue-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-blue-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-blue-50 text-slate-950 ring-1 ring-blue-100",
+  },
+  EMAIL: {
+    title: "EMAIL & AVIS",
+    description: "Gérer vos emails, WhatsApp et avis",
+    accentBar: "bg-cyan-500",
+    iconSurface: "bg-cyan-50",
+    titleClass: "text-cyan-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-cyan-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-cyan-50 text-slate-950 ring-1 ring-cyan-100",
+  },
+  "AGENDA ET QUOTIDIEN": {
+    title: "ASSISTANT DU QUOTIDIEN",
+    description: "Votre quotidien bien organisé",
+    accentBar: "bg-violet-500",
+    iconSurface: "bg-violet-50",
+    titleClass: "text-violet-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-violet-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-violet-50 text-slate-950 ring-1 ring-violet-100",
+  },
+  RESSOURCES: {
+    title: "RESSOURCES",
+    description: "Notes, Banque visuelle...",
+    accentBar: "bg-amber-500",
+    iconSurface: "bg-amber-50",
+    titleClass: "text-amber-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-amber-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-amber-50 text-slate-950 ring-1 ring-amber-100",
+  },
+  "CLIPS VIDEO": {
+    title: "CLIPS VIDEO",
+    description: "Clip récap AI",
+    accentBar: "bg-rose-500",
+    iconSurface: "bg-rose-50",
+    titleClass: "text-rose-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-rose-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-rose-50 text-slate-950 ring-1 ring-rose-100",
+  },
+  PARAMETRES: {
+    title: "PARAMÈTRES",
+    description: "Paramètres et contacts",
+    accentBar: "bg-emerald-500",
+    iconSurface: "bg-emerald-50",
+    titleClass: "text-emerald-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-emerald-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-emerald-50 text-slate-950 ring-1 ring-emerald-100",
+  },
+};
+
+function normalizeSectionKey(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
 export function TopBar({ communityName, userAvatar, userName, unreadNotifications }: TopBarProps) {
@@ -22,11 +108,31 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [mobileOpenSections, setMobileOpenSections] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(DASHBOARD_DESKTOP_CATEGORIES.map((category) => [category.section, false]))
+  );
+
+  function getPageTitle() {
+    if (pathname.startsWith("/dashboard/assistant")) return "Assistant IA";
+    if (pathname.startsWith("/dashboard/automations")) return "Automatisations";
+    if (pathname.startsWith("/dashboard/notifications")) return "Notifications";
+    if (pathname.startsWith("/dashboard/whatsapp")) return "WhatsApp";
+    if (pathname.startsWith("/dashboard/facebook")) return "Facebook";
+    if (pathname.startsWith("/dashboard/instagram")) return "Instagram";
+    if (pathname.startsWith("/dashboard/email")) return "Email";
+    if (pathname.startsWith("/dashboard/google-reviews")) return "Avis Google";
+    if (pathname.startsWith("/dashboard/events")) return "Assistant du quotidien";
+    if (pathname.startsWith("/dashboard/clip-recap")) return "Clip récap AI";
+    if (pathname.startsWith("/dashboard/resources")) return "Mes ressources";
+    if (pathname.startsWith("/dashboard/templates")) return "Affiches";
+    if (pathname.startsWith("/dashboard/settings")) return "Parametres";
+    return "Accueil";
+  }
 
   const SEARCH_TARGETS = [
     { label: "Assistant IA", href: "/dashboard/assistant", keywords: ["assistant", "ia", "chat"] },
     { label: "Mon Agenda IA", href: "/dashboard/events", keywords: ["agenda", "quotidien", "cours", "rappel"] },
-    { label: "Automatisations", href: "/dashboard/automations", keywords: ["automatisation", "j-10", "j-5", "j-1"] },
+    { label: "Cr\u00E9er des automatisations", href: "/dashboard/automations", keywords: ["automatisation", "j-10", "j-5", "j-1"] },
     { label: "Affiches", href: "/dashboard/templates", keywords: ["affiche", "visuel", "template"] },
     { label: "Publications", href: "/dashboard/publications", keywords: ["publication", "historique"] },
     { label: "Parametres", href: "/dashboard/settings", keywords: ["parametre", "reglage", "contact", "faq"] },
@@ -40,6 +146,18 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  function getMenuSectionTitle(section: string) {
+    const map: Record<string, string> = {
+      "RESEAUX SOCIAUX": "Réseaux sociaux",
+      EMAIL: "Email et avis",
+      "AGENDA ET QUOTIDIEN": "Assistant du quotidien",
+      "CLIPS VIDEO": "Clips vidéo",
+      RESSOURCES: "Ressources",
+      PARAMETRES: "Paramètres",
+    };
+    return map[section] ?? section;
   }
 
   function submitSearch() {
@@ -56,10 +174,10 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
   return (
     <>
       <header className="z-10 flex h-16 flex-shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 lg:px-6">
-        <div className="lg:hidden">
+        <div className="md:hidden">
           <button
             onClick={() => setMobileNavOpen(true)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
             aria-label="Ouvrir la navigation"
           >
             <Menu className="size-5" />
@@ -68,8 +186,9 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
 
         <div className="flex-1 min-w-0">
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-800">{communityName}</p>
-            <p className="text-xs text-slate-400">Navigation principale</p>
+            <p className="truncate text-sm font-semibold text-slate-800">
+              {getPageTitle()}
+            </p>
           </div>
 
           <div className="hidden">
@@ -123,9 +242,6 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
                   </div>
                 )}
               </div>
-              <span className="hidden max-w-[120px] truncate text-sm font-medium text-slate-700 md:block">
-                {userName.split(" ")[0]}
-              </span>
               <ChevronDown className="size-3.5 text-slate-400" />
             </button>
 
@@ -171,71 +287,190 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
 
       {mobileNavOpen && (
         <>
-          <div className="fixed inset-0 z-40 bg-slate-950/45 lg:hidden" onClick={() => setMobileNavOpen(false)} />
-          <div className="fixed inset-y-0 left-0 z-50 w-[88vw] max-w-sm bg-slate-950 text-slate-200 shadow-2xl lg:hidden">
+          <div className="fixed inset-0 z-40 bg-slate-950/45 md:hidden" onClick={() => setMobileNavOpen(false)} />
+          <div className="fixed inset-y-0 left-0 z-50 w-[88vw] max-w-sm bg-slate-50 text-slate-700 shadow-2xl md:hidden">
             <div className="flex h-full flex-col">
-              <div className="flex items-center justify-between border-b border-slate-800 px-4 py-4">
+              <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-4">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-white">{communityName}</p>
-                  <p className="text-xs text-slate-400">Navigation</p>
+                  <p className="truncate text-sm font-semibold text-slate-900">{communityName}</p>
+                  <p className="text-xs text-slate-500">Navigation</p>
                 </div>
                 <button
                   onClick={() => setMobileNavOpen(false)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 text-slate-400 hover:bg-slate-900"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-100"
                   aria-label="Fermer la navigation"
                 >
                   <X className="size-5" />
                 </button>
               </div>
-              <nav className="flex-1 overflow-y-auto px-3 py-4">
-                {DASHBOARD_NAV_ITEMS.map((section) => {
-                  const sectionStyle = DASHBOARD_SECTION_STYLES[section.section];
-                  const isAssistantSection = section.section === "ASSISTANT IA";
-                  return (
-                    <div key={section.section} className="mb-6">
-                      {!isAssistantSection && (
-                        <p
+              <nav className="flex-1 overflow-y-auto bg-slate-50 px-3 py-4">
+                <div className="space-y-3">
+                  <Link
+                    href="/dashboard/assistant"
+                    onClick={() => setMobileNavOpen(false)}
+                    className={cn(
+                      "flex min-h-11 items-center gap-2 rounded-[1.3rem] bg-gradient-to-r from-blue-600 via-sky-600 to-cyan-500 px-4 py-3 text-white shadow-[0_16px_30px_rgba(14,116,210,0.28)] ring-1 ring-sky-200/60 transition-all duration-200",
+                      isActive("/dashboard/assistant") ? "brightness-[0.98]" : "hover:brightness-[1.03]",
+                    )}
+                  >
+                    <Bot className="size-4 shrink-0 text-cyan-50" />
+                    <p className="truncate text-[15px] font-semibold tracking-tight text-white">Accueil/Assistant IA</p>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileNavOpen(false);
+                      router.push("/dashboard/notifications");
+                    }}
+                    className={cn(
+                      "flex min-h-11 w-full items-center gap-2 rounded-[1.2rem] bg-slate-900 px-4 py-3 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition-colors duration-200",
+                      isActive("/dashboard/notifications") ? "bg-slate-950" : "hover:bg-slate-800",
+                    )}
+                  >
+                    <Bell className="size-4 shrink-0 text-cyan-200" />
+                    <p className="truncate text-[15px] font-semibold tracking-tight text-white">Notification</p>
+                  </button>
+
+                  <Link
+                    href="/dashboard/automations"
+                    onClick={() => setMobileNavOpen(false)}
+                    className={cn(
+                      "flex min-h-11 items-center gap-2 rounded-[1.2rem] bg-slate-900 px-4 py-3 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition-colors duration-200",
+                      isActive("/dashboard/automations") ? "bg-slate-950" : "hover:bg-slate-800",
+                    )}
+                  >
+                    <Zap className="size-4 shrink-0 text-cyan-200" />
+                    <p className="truncate text-[15px] font-semibold tracking-tight text-white">{"Cr\u00E9er des automatisations"}</p>
+                  </Link>
+
+                  {DASHBOARD_DESKTOP_CATEGORIES.map((category) => {
+                    const style =
+                      MOBILE_CATEGORY_CONTENT[normalizeSectionKey(category.section)] ?? MOBILE_CATEGORY_CONTENT.RESSOURCES;
+                    const isOpen = mobileOpenSections[category.section];
+
+                    return (
+                      <div
+                        key={category.section}
+                        className="rounded-[1.6rem] border border-slate-200 bg-white p-3 shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition duration-200"
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setMobileOpenSections((current) => ({
+                              ...current,
+                              [category.section]: !current[category.section],
+                            }))
+                          }
+                          className="flex w-full items-start gap-3 rounded-[1.15rem] px-1 py-1 text-left transition-all duration-200"
+                          aria-label={getMenuSectionTitle(category.section)}
+                          aria-expanded={isOpen}
+                        >
+                          <span className={cn("mt-4 flex h-10 w-10 shrink-0 items-center justify-center rounded-full", style.iconSurface)}>
+                            <category.icon className={cn("size-[18px]", style.itemIcon)} />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className={cn("mb-3 h-1 w-10 rounded-full", style.accentBar)} />
+                            <p className={cn("text-[15px] font-black tracking-tight", style.titleClass)}>{style.title}</p>
+                            <p className={cn("mt-1.5 text-xs leading-5", style.descriptionClass)}>{style.description}</p>
+                          </div>
+                          <ChevronDown
+                            className={cn(
+                              "mt-4 size-4 shrink-0 text-slate-400 transition-transform duration-300",
+                              isOpen && "rotate-180"
+                            )}
+                          />
+                        </button>
+
+                        <div
                           className={cn(
-                            "px-2 pb-2 text-[11px] font-bold uppercase tracking-[0.18em]",
-                            sectionStyle?.label ?? "text-slate-500",
+                            "grid transition-all duration-300 ease-out",
+                            isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                           )}
                         >
-                          {section.section}
-                        </p>
-                      )}
-                      <div className="space-y-1">
-                        {section.items.map((item) => {
-                          const active = isActive(item.href);
-                          return (
-                            <Link
-                              key={item.href}
-                              href={item.href}
-                              onClick={() => setMobileNavOpen(false)}
-                              className={cn(
-                                isAssistantSection
-                                  ? "flex items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-br from-slate-800 via-slate-900 to-[#050816] px-4 py-3.5 text-sm font-semibold text-white shadow-[0_12px_32px_rgba(2,6,23,0.35)] transition hover:from-slate-700 hover:via-slate-900 hover:to-[#0b1020]"
-                                  : "flex items-center gap-3 rounded-xl px-3 py-3 text-sm",
-                                isAssistantSection
-                                  ? active && "ring-1 ring-cyan-300/60 shadow-[0_14px_36px_rgba(34,211,238,0.18)]"
-                                  : active
-                                    ? sectionStyle?.itemActive
-                                    : "text-slate-300 hover:bg-slate-900",
-                              )}
-                            >
-                              {item.icon && <item.icon className="size-4" />}
-                              <span className="flex-1">{item.label}</span>
-                              {item.badge && (
-                                <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                                  {item.badge}
-                                </span>
-                              )}
-                            </Link>
-                          );
-                        })}
+                          <div className="overflow-hidden">
+                            <div className="mt-3 space-y-1.5 rounded-[1.2rem] bg-slate-50/80 p-2">
+                              {category.items
+                                .filter((item) => !(category.section === "RESEAUX SOCIAUX" && item.href === "/dashboard/automations"))
+                                .map((item) => {
+                                  const active = isActive(item.href);
+                                  const isExternal = item.external || item.href.startsWith("mailto");
+
+                                  return (
+                                    <div key={`${category.section}-${item.href}`} className="flex items-center gap-1.5">
+                                      <Link
+                                        href={item.href}
+                                        target={isExternal ? "_blank" : undefined}
+                                        rel={isExternal ? "noopener noreferrer" : undefined}
+                                        onClick={() => setMobileNavOpen(false)}
+                                        className={cn(
+                                          "flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all duration-200",
+                                          item.href === "/dashboard/settings?section=contacts" && !active
+                                            ? "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-100 hover:bg-emerald-100"
+                                            : active
+                                              ? style.itemActive
+                                              : cn("text-slate-700", style.itemHover)
+                                        )}
+                                      >
+                                        {item.icon && (
+                                          <item.icon
+                                            className={cn(
+                                              "size-4 shrink-0",
+                                              item.href === "/dashboard/settings?section=contacts" && !active
+                                                ? "text-emerald-600"
+                                                : active
+                                                  ? "text-current"
+                                                  : style.itemIcon
+                                            )}
+                                          />
+                                        )}
+                                        <span className="flex min-w-0 flex-1 flex-col">
+                                          <span className="truncate font-medium">{item.label}</span>
+                                          {item.description && (
+                                            <span
+                                              className={cn(
+                                                "mt-0.5 truncate text-[11px] leading-4",
+                                                active ? "text-current/70" : "text-slate-500"
+                                              )}
+                                            >
+                                              {item.description}
+                                            </span>
+                                          )}
+                                        </span>
+                                        {item.badge && (
+                                          <span className="shrink-0 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                            {item.badge}
+                                          </span>
+                                        )}
+                                        {item.href === "/dashboard/google-reviews" && (
+                                          <span
+                                            data-gmb-badge
+                                            style={{ display: "none" }}
+                                            className="shrink-0 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white"
+                                          />
+                                        )}
+                                      </Link>
+
+                                      {item.action && (
+                                        <Link
+                                          href={item.action.href}
+                                          onClick={() => setMobileNavOpen(false)}
+                                          className="shrink-0 rounded-xl px-2 py-1 text-[10px] font-semibold text-slate-500 transition-colors hover:bg-white hover:text-slate-800"
+                                          title={item.action.label}
+                                        >
+                                          {item.action.label}
+                                        </Link>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </nav>
             </div>
           </div>
@@ -244,3 +479,5 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
     </>
   );
 }
+
+

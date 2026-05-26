@@ -52,12 +52,12 @@ export default function ContactPage() {
                 Parlons de votre <span className="text-blue-600">projet</span>.
               </h1>
               <p className="text-lg text-slate-600 mb-12">
-                Vous avez une question, besoin d'une démo personnalisée ou d'un accompagnement spécifique ? Notre équipe est là pour vous aider.
+                Vous avez une question, besoin d&apos;une d??mo personnalis??e ou d&apos;un accompagnement sp??cifique ? Notre ??quipe est l?? pour vous aider.
               </p>
 
               <div className="space-y-8">
                 {[
-                  { icon: Mail, label: "Email", value: "contact@easycom-ai.com", color: "text-blue-600", bg: "bg-blue-50" },
+                  { icon: Mail, label: "Email", value: "contact@easycom-AI.com", color: "text-blue-600", bg: "bg-blue-50" },
                   { icon: MessageSquare, label: "Support", value: "Disponible 7j/7 via l'application", color: "text-emerald-600", bg: "bg-emerald-50" },
                   { icon: MapPin, label: "Bureaux", value: "Paris, France", color: "text-amber-600", bg: "bg-amber-50" }
                 ].map((item) => (

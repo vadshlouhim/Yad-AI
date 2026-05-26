@@ -105,6 +105,29 @@ const COMMUNITY_TYPE_OPTIONS = [
   { value: "OTHER", label: "Autre" },
 ];
 
+const COMMUNITY_TYPE_CHOICES = [
+  { value: "ASSOCIATION", saveValue: "ASSOCIATION", label: "Association / ONG" },
+  { value: "RELIGIOUS", saveValue: "SYNAGOGUE", label: "Lieu de culte" },
+  { value: "SCHOOL", saveValue: "SCHOOL", label: "Ecole / Formation" },
+  { value: "SPORT", saveValue: "OTHER", label: "Sport & Loisirs" },
+  { value: "CULTURE", saveValue: "OTHER", label: "Culture & Arts" },
+  { value: "PROFESSIONAL", saveValue: "OTHER", label: "Reseau professionnel" },
+  { value: "LOCAL", saveValue: "OTHER", label: "Quartier / Local" },
+  { value: "STUDENT", saveValue: "OTHER", label: "Etudiants / Campus" },
+  { value: "ONLINE", saveValue: "OTHER", label: "Communaute en ligne" },
+  { value: "CENTER", saveValue: "CENTER", label: "Centre communautaire" },
+  { value: "OTHER", saveValue: "OTHER", label: "Autre" },
+];
+
+function getCommunityTypeChoice(value: string) {
+  if (value === "SYNAGOGUE") return "RELIGIOUS";
+  return COMMUNITY_TYPE_CHOICES.some((option) => option.value === value) ? value : "OTHER";
+}
+
+function getCommunityTypeSaveValue(value: string) {
+  return COMMUNITY_TYPE_CHOICES.find((option) => option.value === value)?.saveValue ?? "OTHER";
+}
+
 const PLAN_LABELS: Record<string, { label: string; color: string }> = {
   FREE_TRIAL: { label: "Essai gratuit", color: "bg-slate-100 text-slate-700" },
   STARTER: { label: "Starter", color: "bg-blue-100 text-blue-700" },
@@ -131,7 +154,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
   const [logoUrl, setLogoUrl] = useState(community.logoUrl ?? "");
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
-  const [communityType, setCommunityType] = useState(community.communityType);
+  const [communityType, setCommunityType] = useState(getCommunityTypeChoice(community.communityType));
   const [rhythmId, setRhythmId] = useState(community.rhythmId ?? "");
   const [rhythmOther, setRhythmOther] = useState(
     community.rhythmId && rhythms.find((rhythm) => rhythm.id === community.rhythmId)?.slug !== "autre"
@@ -195,6 +218,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
 
   async function saveCommunity() {
     setSaving(true);
+    const savedCommunityType = getCommunityTypeSaveValue(communityType);
     try {
       await fetch("/api/community/settings", {
         method: "PATCH",
@@ -204,9 +228,9 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
           country, timezone, phone: phone || null, email: email || null,
           website: website || null, address: address || null,
           logoUrl: logoUrl || null,
-          communityType,
-          rhythmId: communityType === "SYNAGOGUE" && rhythmId ? rhythmId : null,
-          religiousStream: communityType === "SYNAGOGUE" ? religiousStream || null : null,
+          communityType: savedCommunityType,
+          rhythmId: savedCommunityType === "SYNAGOGUE" && rhythmId ? rhythmId : null,
+          religiousStream: savedCommunityType === "SYNAGOGUE" ? religiousStream || null : null,
         }),
       });
       router.refresh();
@@ -313,8 +337,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
       setPassword("");
       setConfirmPassword("");
       setPasswordSuccess(
-        data.message ??
-          "Mot de passe enregistré. Vous pouvez maintenant vous connecter avec votre email."
+        data.message ?? "Mot de passe enregistr?. Vous pouvez maintenant vous connecter avec votre email."
       );
       router.refresh();
     } catch {
@@ -421,20 +444,21 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
   }
 
   const navItems = [
-    { id: "interface" as const, label: "Interface", icon: Bot },
     { id: "community" as const, label: "Communauté", icon: Building2 },
     { id: "contacts" as const, label: "Contacts", icon: Users },
     { id: "editorial" as const, label: "Identité éditoriale", icon: Palette },
     { id: "profile" as const, label: "Mon profil", icon: User },
   ];
+  const settingsCardClass = "rounded-[1.9rem] border border-slate-200/90 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)]";
+  const settingsHeaderClass = "border-b border-slate-100 pb-5";
+  const settingsContentClass = "space-y-5 p-6 sm:p-7";
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="hidden">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Paramètres</h1>
-          <p className="text-slate-500 mt-1">Gérez vos réseaux, votre quotidien, vos contacts et l&apos;aide produit.</p>
+          <p className="text-slate-500 mt-1">Gerez ici vos reseaux sociaux, votre quotidien, vos contacts, la FAQ et le support.</p>
         </div>
         <div className="flex items-center gap-2">
           {profile.canAccessAdmin && (
@@ -458,13 +482,13 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 [&>*]:border-emerald-100 [&>*]:font-semibold [&>*]:shadow-sm [&>*]:transition [&>*]:hover:-translate-y-0.5 [&>*]:hover:border-emerald-200 [&>*]:hover:bg-emerald-50">
         <Link href="/dashboard/settings/channels" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Connexion réseaux sociaux</Link>
         <Link href="/dashboard/events" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Gestion du quotidien</Link>
         <button type="button" onClick={() => setActiveSection("contacts")} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50">Gestion des contacts</button>
         <Link href="/help" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">FAQ</Link>
-        <a href="mailto:contact@shalom-ia.com" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Contact</a>
-        <a href="mailto:contact@shalom-ia.com?subject=Suggestion%20Shalom%20IA" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Envoyer une suggestion</a>
+        <button type="button" onClick={() => setActiveSection("contacts")} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50">Ajoutez mes contacts</button>
+        <a href="mailto:contact@easycom-AI.com?subject=Suggestion%20EasyCom%20AI" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Envoyer une suggestion</a>
         {profile.canAccessAdmin && (
           <Link href="/admin" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 hover:bg-emerald-100">
             Admin global
@@ -482,8 +506,8 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
               className={cn(
                 "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left",
                 activeSection === item.id
-                  ? "bg-blue-600 text-white"
-                  : "text-slate-600 hover:bg-slate-100"
+                  ? "bg-emerald-600 text-white"
+                  : "text-slate-600 hover:bg-emerald-50 hover:text-emerald-800"
               )}
             >
               <item.icon className="size-4" />
@@ -502,14 +526,14 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
         {/* Contenu */}
         <div className="flex-1 space-y-4">
           {activeSection === "interface" && (
-            <Card>
-              <CardHeader>
+            <Card className={settingsCardClass}>
+              <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
                   <SlidersHorizontal className="size-4" />
                   Mode d&apos;utilisation
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className={settingsContentClass}>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {[
                     {
@@ -554,14 +578,14 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
 
           {/* Section communauté */}
           {activeSection === "community" && (
-            <Card>
-              <CardHeader>
+            <Card className={settingsCardClass}>
+              <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Building2 className="size-4" />
                   Informations de la communauté
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className={settingsContentClass}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">Nom</label>
@@ -572,28 +596,39 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                       className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Type</label>
-                    <select
-                      value={communityType}
-                      onChange={(e) => {
-                        setCommunityType(e.target.value);
-                        if (e.target.value !== "SYNAGOGUE") {
-                          setRhythmId("");
-                          setRhythmOther("");
-                          setReligiousStream("");
-                        }
-                      }}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 appearance-none bg-white"
-                    >
-                      {COMMUNITY_TYPE_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-sm font-semibold text-slate-800">Quel type de communauté êtes-vous ?</label>
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {COMMUNITY_TYPE_CHOICES.map((opt) => {
+                        const selected = communityType === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              setCommunityType(opt.value);
+                              if (opt.saveValue !== "SYNAGOGUE") {
+                                setRhythmId("");
+                                setRhythmOther("");
+                                setReligiousStream("");
+                              }
+                            }}
+                            className={cn(
+                              "rounded-xl border px-3 py-2.5 text-left text-sm font-semibold transition",
+                              selected
+                                ? "border-emerald-300 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-100"
+                                : "border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50"
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
-                {communityType === "SYNAGOGUE" && (
+                {getCommunityTypeSaveValue(communityType) === "SYNAGOGUE" && (
                   <div className="space-y-2 rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
                     <label className="text-sm font-medium text-slate-700">
                       Quel est le rythme ou le style de votre communauté ?
@@ -717,14 +752,14 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
           )}
 
           {activeSection === "contacts" && (
-            <Card>
-              <CardHeader>
+            <Card className={settingsCardClass}>
+              <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Users className="size-4" />
                   Contacts de la communauté
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-5">
+              <CardContent className={settingsContentClass}>
                 <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
                   Ces contacts sont les membres destinataires des messages WhatsApp et emails.
                   Ils ne sont pas administrateurs et n&apos;ont pas accès au dashboard. Vous pouvez
@@ -859,14 +894,14 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
 
           {/* Section éditoriale */}
           {activeSection === "editorial" && (
-            <Card>
-              <CardHeader>
+            <Card className={settingsCardClass}>
+              <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Palette className="size-4" />
                   Identité éditoriale
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-5">
+              <CardContent className={settingsContentClass}>
                 {/* Ton */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">Ton de communication</label>
@@ -942,14 +977,14 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
 
           {/* Section profil */}
           {activeSection === "profile" && (
-            <Card>
-              <CardHeader>
+            <Card className={settingsCardClass}>
+              <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
                   <User className="size-4" />
                   Mon profil
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className={settingsContentClass}>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">

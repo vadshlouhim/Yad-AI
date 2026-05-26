@@ -9,7 +9,7 @@ import {
   Plus, MessageSquare, Pencil, MoreHorizontal, PanelLeftOpen, Share2,
   X, SlidersHorizontal, PlayCircle, PauseCircle,
   Power, ExternalLink, Zap, CalendarDays, BookOpen, Gift, HeartHandshake,
-  Lightbulb, Clock3, Radio, Image as ImageIcon, Mail,
+  Lightbulb, Clock3, Radio, Mail,
 } from "lucide-react";
 import { CHANNEL_LABELS, cn } from "@/lib/utils";
 import { formatArticlePrice } from "@/lib/articles/shared";
@@ -166,6 +166,20 @@ const QUICK_PROMPT_STYLES = [
   "border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50",
 ];
 
+const ASSISTANT_PLACEHOLDER_SUGGESTIONS = [
+  "Prépare un email important à envoyer aujourd'hui",
+  "Propose 3 idées de publication pour Instagram et Facebook",
+  "Aide-moi à répondre à un avis Google négatif avec tact",
+  "Organise mon agenda communautaire de la semaine",
+  "Rédige un message WhatsApp clair et professionnel",
+];
+
+const ALL_FEATURES_PROMPT =
+  "Explique-moi clairement tout ce que EasyCom AI peut faire pour moi au quotidien. " +
+  "Je veux un tour complet et concret : automatisations, reseaux sociaux, WhatsApp, Facebook, Instagram, " +
+  "email, avis Google, agenda IA, assistant du quotidien, affiches, ressources communautaires, notifications, " +
+  "et tout ce que je peux lancer en un clic depuis mon espace.";
+
 function getQuickPromptStyle(index: number) {
   return QUICK_PROMPT_STYLES[index % QUICK_PROMPT_STYLES.length];
 }
@@ -318,6 +332,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   const [menuId, setMenuId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [simpleMainMenuOpen, setSimpleMainMenuOpen] = useState(false);
+  const [socialNetworksMenuOpen, setSocialNetworksMenuOpen] = useState(false);
   const [simpleHistoryOpen, setSimpleHistoryOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateSuggestion | null>(null);
   const [preparingPoster, setPreparingPoster] = useState(false);
@@ -337,6 +352,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   const [showDailyRoutineBubble, setShowDailyRoutineBubble] = useState(true);
   const [showAllFeaturesMobile, setShowAllFeaturesMobile] = useState(false);
   const [bubblePosition, setBubblePosition] = useState({ x: 24, y: 24 });
+  const [animatedPlaceholder, setAnimatedPlaceholder] = useState(ASSISTANT_PLACEHOLDER_SUGGESTIONS[0]);
   const bubbleDragState = useRef({ active: false, moved: false, offsetX: 0, offsetY: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -375,6 +391,50 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
     syncMobileMode();
     window.addEventListener("resize", syncMobileMode);
     return () => window.removeEventListener("resize", syncMobileMode);
+  }, []);
+
+  useEffect(() => {
+    const suggestions = ASSISTANT_PLACEHOLDER_SUGGESTIONS;
+    let suggestionIndex = 0;
+    let characterIndex = 0;
+    let deleting = false;
+    let timeoutId: number | undefined;
+
+    const run = () => {
+      const current = suggestions[suggestionIndex] ?? "";
+
+      if (!deleting) {
+        characterIndex += 1;
+        setAnimatedPlaceholder(current.slice(0, characterIndex));
+
+        if (characterIndex === current.length) {
+          deleting = true;
+          timeoutId = window.setTimeout(run, 1700);
+          return;
+        }
+
+        timeoutId = window.setTimeout(run, 42);
+        return;
+      }
+
+      characterIndex -= 1;
+      setAnimatedPlaceholder(current.slice(0, Math.max(characterIndex, 0)));
+
+      if (characterIndex === 0) {
+        deleting = false;
+        suggestionIndex = (suggestionIndex + 1) % suggestions.length;
+        timeoutId = window.setTimeout(run, 260);
+        return;
+      }
+
+      timeoutId = window.setTimeout(run, 24);
+    };
+
+    timeoutId = window.setTimeout(run, 900);
+
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
   }, []);
 
   // ── API calls ──
@@ -677,10 +737,10 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   const detailedMenuItems = DASHBOARD_NAV_ITEMS.flatMap((section) => section.items);
   const simpleMainButtons = [
     { label: "Automatisations", href: "/dashboard/automations", icon: Zap, accent: "bg-cyan-500", iconTone: "text-cyan-600", iconBg: "bg-cyan-50" },
-    { label: "Email", href: "/dashboard/email", icon: Mail, accent: "bg-blue-500", iconTone: "text-blue-600", iconBg: "bg-blue-50" },
+    { label: "Réseaux Sociaux", href: "#", icon: Share2, accent: "bg-indigo-500", iconTone: "text-indigo-600", iconBg: "bg-indigo-50", action: "social" as const },
+    { label: "Email", href: "/dashboard/email", icon: Mail, accent: "bg-sky-500", iconTone: "text-sky-600", iconBg: "bg-sky-50" },
+    { label: "Avis Google", href: "/dashboard/google-reviews", icon: Sparkles, accent: "bg-amber-500", iconTone: "text-amber-600", iconBg: "bg-amber-50" },
     { label: "Assistant du quotidien", href: "/dashboard/events", icon: CalendarDays, accent: "bg-violet-500", iconTone: "text-violet-600", iconBg: "bg-violet-50" },
-    { label: "Affiches", href: "/dashboard/templates", icon: ImageIcon, accent: "bg-amber-500", iconTone: "text-amber-600", iconBg: "bg-amber-50" },
-    { label: "Cours Torah IA", href: "/dashboard/torah", icon: BookOpen, accent: "bg-emerald-500", iconTone: "text-emerald-600", iconBg: "bg-emerald-50" },
   ] as const;
   const mobileQuickFeatureConfigs = [
     { href: "/dashboard/automations", label: "Mes automatisations" },
@@ -1690,7 +1750,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                 className="hidden items-center gap-2 rounded-full border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:from-blue-50 hover:to-sky-50 hover:text-blue-700"
               >
                 <PanelLeftOpen className="size-4" />
-                <span>menu pricipale</span>
+                <span>Menu</span>
               </button>
             )}
             <img
@@ -1832,7 +1892,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                   Votre temps est précieux — concentrez-vous sur l’essentiel. EasyComAI s’occupe du reste !
                 </p>
                 <p className="mx-auto mt-0.5 max-w-3xl text-sm leading-7 text-slate-500 sm:text-[15px]">
-                  (Publications récurrentes et programmées, agenda IA, assistant du quotidien, affiches, cours et ressources communautaires)
+                  (Publications récurrentes et automatisées, mail et Avis Google, agenda IA, assistant du quotidien, ressources communautaires)
                 </p>
               </div>
             )}
@@ -2005,23 +2065,76 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
             )}
 
             {assistantExperience === "simple" && (
-              <div className="mx-auto mb-5 grid w-full max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="mx-auto mb-5 grid w-full max-w-5xl grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
                 <div className="col-span-full mb-1 text-center">
                   <p className="text-sm font-bold tracking-tight text-slate-800">Actions rapides</p>
                 </div>
                 {simpleMainButtons.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="group rounded-[1.3rem] border border-slate-200 bg-white px-4 py-4 text-left shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.1)]"
-                  >
-                    <div className={cn("mb-3 h-1 w-10 rounded-full", item.accent)} />
-                    <span className={cn("mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl", item.iconBg, item.iconTone)}>
-                      <item.icon className="size-4.5" />
-                    </span>
-                    <p className="text-sm font-semibold leading-5 text-slate-800">{item.label}</p>
-                  </Link>
+                  item.action === "social" ? (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => setSocialNetworksMenuOpen((prev) => !prev)}
+                      className="group rounded-[1.3rem] border border-slate-200 bg-white px-4 py-4 text-left shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.1)]"
+                    >
+                      <div className={cn("mb-3 h-1 w-10 rounded-full", item.accent)} />
+                      <span className={cn("mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl", item.iconBg, item.iconTone)}>
+                        <item.icon className="size-4.5" />
+                      </span>
+                      <p className="text-sm font-semibold leading-5 text-slate-800">{item.label}</p>
+                    </button>
+                  ) : (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="group rounded-[1.3rem] border border-slate-200 bg-white px-4 py-4 text-left shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.1)]"
+                    >
+                      <div className={cn("mb-3 h-1 w-10 rounded-full", item.accent)} />
+                      <span className={cn("mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl", item.iconBg, item.iconTone)}>
+                        <item.icon className="size-4.5" />
+                      </span>
+                      <p className="text-sm font-semibold leading-5 text-slate-800">{item.label}</p>
+                    </Link>
+                  )
                 ))}
+                <div className="col-span-full pt-2">
+                  <button
+                    type="button"
+                    onClick={() => sendMessage(ALL_FEATURES_PROMPT)}
+                    className="group relative w-full overflow-hidden rounded-[1.6rem] border border-blue-200/80 bg-[linear-gradient(135deg,rgba(29,78,216,0.96),rgba(14,116,144,0.92),rgba(245,158,11,0.92))] px-5 py-4 text-left text-white shadow-[0_18px_36px_rgba(29,78,216,0.26)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_48px_rgba(29,78,216,0.3)]"
+                  >
+                    <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,transparent_10%,rgba(255,255,255,0.2)_32%,transparent_56%)] opacity-70 animate-[pulse_3.8s_ease-in-out_infinite]" />
+                    <div className="relative flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-[15px] font-black tracking-tight sm:text-base">
+                          {"Tout ce que EasyCom AI peut faire"}
+                        </p>
+                        <p className="mt-1 text-sm text-white/85">
+                          {"Decouvrez en un clic tout ce que l'assistant peut preparer, automatiser et gerer pour vous."}
+                        </p>
+                      </div>
+                      <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/16 ring-1 ring-white/20 backdrop-blur-sm transition group-hover:scale-105">
+                        <Sparkles className="size-5" />
+                      </span>
+                    </div>
+                  </button>
+                </div>
+                {socialNetworksMenuOpen && (
+                  <div className="col-span-full rounded-2xl border border-indigo-100 bg-indigo-50/50 p-3">
+                    <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-indigo-700">Réseaux Sociaux</p>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <Link href="/dashboard/whatsapp" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700">
+                        WhatsApp
+                      </Link>
+                      <Link href="/dashboard/facebook" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-200 hover:text-blue-700">
+                        Facebook
+                      </Link>
+                      <Link href="/dashboard/instagram" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-fuchsia-200 hover:text-fuchsia-700">
+                        Instagram
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -2827,12 +2940,29 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                 </div>
               </div>
             ))}
+            {loading && (
+              <div className="flex gap-3">
+                <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-amber-500">
+                  <Sparkles className="size-4 text-white" />
+                </div>
+                <div className="max-w-[88%] sm:max-w-[75%]">
+                  <div className="rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm ring-1 ring-slate-100">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-slate-500">EasyCom AI reflechit</span>
+                      <div className="relative h-7 w-4 overflow-hidden">
+                        <span className="absolute left-1/2 top-0 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-blue-700 animate-[bounce_1s_ease-in-out_infinite]" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
         )}
 
         {/* Input */}
-        <div className="border-t border-slate-200/80 bg-white/85 px-4 py-4 backdrop-blur-xl sm:px-6">
+        <div className="border-t border-slate-200/80 bg-slate-50/85 px-4 py-4 backdrop-blur-xl sm:px-6">
           <div className="mx-auto w-full max-w-3xl">
           {selectedTemplate && (
             <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -2862,37 +2992,47 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
               </div>
             </div>
           )}
-          <div className="rounded-3xl border border-blue-200/90 bg-gradient-to-br from-white via-sky-50/70 to-cyan-50/60 p-2.5 shadow-[0_18px_44px_rgba(14,165,233,0.14)] ring-1 ring-blue-100/80 transition focus-within:border-blue-400 focus-within:shadow-[0_20px_52px_rgba(59,130,246,0.2)]">
-            <div className="mb-2 flex items-center justify-between px-2">
-              <label htmlFor="assistant-specific-request" className="hidden items-center gap-1.5 text-xs font-bold text-blue-700 sm:inline-flex">
-                <Bot className="size-3.5" />
-                Assistant IA
-              </label>
-              <div className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-sky-100 bg-gradient-to-r from-sky-50 to-blue-50 px-3 py-1.5 text-xs font-semibold text-sky-700 shadow-sm sm:hidden">
-                <Bot className="size-3.5 text-sky-500" />
-                <span>Assistant IA</span>
+          <div className="rounded-[2rem] bg-white p-3 shadow-[0_20px_48px_rgba(15,23,42,0.16)]">
+            <div className="relative rounded-[calc(2rem-1px)] bg-white p-3">
+              <div className="mb-3 flex items-center justify-between px-2">
+                <label htmlFor="assistant-specific-request" className="hidden items-center gap-2 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-bold text-white sm:inline-flex">
+                  <Bot className="size-3.5 text-blue-200" />
+                  Assistant IA
+                </label>
+                <div className="mx-auto inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm sm:hidden">
+                  <Bot className="size-3.5 text-blue-200" />
+                  <span>Assistant IA</span>
+                </div>
+                <div className="hidden items-center gap-2 text-[11px] font-semibold text-slate-500 sm:flex">
+                  <span className="h-2 w-2 rounded-full bg-blue-700 animate-pulse" />
+                  En ligne
+                </div>
               </div>
-            </div>
-            <div className="flex items-end gap-2.5">
-              <textarea
-                id="assistant-specific-request"
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Écrivez votre demande, ou cliquez sur une suite suggérée…"
-                rows={2}
-                className="flex-1 resize-none rounded-2xl border border-blue-100 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
-              />
-              <Button
-                onClick={() => sendMessage()}
-                disabled={!input.trim() || loading}
-                size="icon"
-                className="h-11 w-11 flex-shrink-0 rounded-2xl bg-blue-600 text-white shadow-sm transition hover:bg-blue-700 disabled:bg-slate-300"
-                aria-label="Envoyer la demande"
-              >
-                <Send className="size-4" />
-              </Button>
+              <div className="relative overflow-hidden rounded-[1.7rem] bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,41,59,0.94),rgba(29,78,216,0.92))] p-[1.5px]">
+                <div className="pointer-events-none absolute inset-0 rounded-[1.7rem] bg-[conic-gradient(from_180deg_at_50%_50%,rgba(37,99,235,0.08),rgba(15,23,42,0.02),rgba(37,99,235,0.16),rgba(15,23,42,0.02),rgba(37,99,235,0.08))] animate-[spin_18s_linear_infinite]" />
+                <div className="pointer-events-none absolute inset-[1px] rounded-[calc(1.7rem-1px)] border border-blue-900/40" />
+                <div className="relative flex items-end gap-2.5 rounded-[calc(1.7rem-1px)] bg-white p-2">
+                  <textarea
+                    id="assistant-specific-request"
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={animatedPlaceholder}
+                    rows={2}
+                    className="flex-1 resize-none rounded-[1.35rem] border border-transparent bg-transparent px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-900/80"
+                  />
+                  <Button
+                    onClick={() => sendMessage()}
+                    size="icon"
+                    disabled={loading}
+                    className="h-12 w-12 flex-shrink-0 rounded-[1.35rem] bg-[linear-gradient(135deg,#0f172a,#1d4ed8)] text-white shadow-[0_10px_24px_rgba(30,64,175,0.24)] ring-1 ring-blue-300/40 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(30,64,175,0.32)] disabled:opacity-60"
+                    aria-label="Envoyer la demande"
+                  >
+                    <Send className="size-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
           </div>

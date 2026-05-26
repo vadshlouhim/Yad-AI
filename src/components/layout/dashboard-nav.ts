@@ -14,6 +14,7 @@ import {
   Mail,
   MessageCircle,
   MessageSquare,
+  Plus,
   Settings,
   Share2,
   ShoppingBag,
@@ -102,6 +103,19 @@ export const EmailIcon = (props: React.SVGProps<SVGSVGElement>) => {
   );
 };
 
+export const ResourcePlusIcon = (props: React.SVGProps<SVGSVGElement>) => {
+  return React.createElement(
+    "span",
+    {
+      className: `relative inline-flex ${props.className ?? ""}`,
+    },
+    React.createElement(BookOpen, { className: "h-full w-full" }),
+    React.createElement(Plus, {
+      className: "absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-emerald-500 p-[1px] text-white shadow-sm",
+    })
+  );
+};
+
 export interface DashboardNavItem {
   href: string;
   label: string;
@@ -182,9 +196,9 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     section: "RESEAUX SOCIAUX",
     items: [
       { href: "/dashboard/automations", label: "Automatisations", icon: Zap },
-      { href: "/dashboard/publish/whatsapp", label: "WhatsApp", icon: WhatsAppIcon },
-      { href: "/dashboard/publish/instagram", label: "Instagram", icon: InstagramIcon },
-      { href: "/dashboard/publish/facebook", label: "Facebook", icon: FacebookIcon },
+      { href: "/dashboard/whatsapp", label: "WhatsApp", icon: WhatsAppIcon },
+      { href: "/dashboard/instagram", label: "Instagram", icon: InstagramIcon },
+      { href: "/dashboard/facebook", label: "Facebook", icon: FacebookIcon },
       { href: "/dashboard/publish/telegram", label: "Telegram", icon: TelegramIcon },
       { href: "/dashboard/publications", label: "Historique des publications", icon: History },
     ],
@@ -196,8 +210,15 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "RESSOURCES",
     items: [
+      { href: "/dashboard/resources", label: "Mes Ressources", icon: ResourcePlusIcon },
       { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
       { href: "/dashboard/hebrew-calendar", label: "Calendrier hebraique", icon: Calendar },
+    ],
+  },
+  {
+    section: "CLIPS VIDEO",
+    items: [
+      { href: "/dashboard/clip-recap", label: "Clip récap AI", icon: Video },
     ],
   },
   {
@@ -210,7 +231,6 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "SERVICES",
     items: [
-      { href: "/dashboard/clip-recap", label: "Clip recap", icon: Video },
       { href: "https://boutique.shalom-ia.com", label: "Boutique", icon: ShoppingBag, external: true },
       { href: "/dashboard/website", label: "Creation site web", icon: Globe },
     ],
@@ -218,9 +238,9 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "PARAMETRES",
     items: [
+      { href: "/dashboard/settings?section=contacts", label: "Ajoutez mes contacts", icon: Plus },
       { href: "/dashboard/settings", label: "Parametres", icon: Settings },
       { href: "/help", label: "Aide & FAQ", icon: HelpCircle },
-      { href: "mailto:contact@shalom-ia.com", label: "Contact", icon: Mail },
     ],
   },
 ];
@@ -238,9 +258,9 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     icon: Share2,
     items: [
       { href: "/dashboard/automations", label: "Automatisations", icon: Zap },
-      { href: "/dashboard/publish/whatsapp", label: "WhatsApp", icon: WhatsAppIcon },
-      { href: "/dashboard/publish/instagram", label: "Instagram", icon: InstagramIcon },
-      { href: "/dashboard/publish/facebook", label: "Facebook", icon: FacebookIcon },
+      { href: "/dashboard/whatsapp", label: "WhatsApp", icon: WhatsAppIcon },
+      { href: "/dashboard/instagram", label: "Instagram", icon: InstagramIcon },
+      { href: "/dashboard/facebook", label: "Facebook", icon: FacebookIcon },
       { href: "/dashboard/publish/telegram", label: "Telegram", icon: TelegramIcon },
       { href: "/dashboard/publications", label: "Historique des publications", icon: History },
     ],
@@ -259,12 +279,17 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     items: [{ href: "/dashboard/events", label: "Agenda et quotidien", icon: CalendarDays }],
   },
   {
+    section: "CLIPS VIDEO",
+    icon: Video,
+    items: [{ href: "/dashboard/clip-recap", label: "Clip récap AI", icon: Video }],
+  },
+  {
     section: "RESSOURCES",
     icon: BookOpen,
     items: [
+      { href: "/dashboard/resources", label: "Mes Ressources", icon: ResourcePlusIcon },
       { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
       { href: "/dashboard/templates", label: "Affiches", icon: Image },
-      { href: "/dashboard/clip-recap", label: "Clip recap", icon: Video },
       { href: "https://boutique.shalom-ia.com", label: "Boutique", icon: ShoppingBag, external: true },
       { href: "/dashboard/website", label: "Creation site web", icon: Globe },
     ],
@@ -273,9 +298,9 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     section: "PARAMETRES",
     icon: Settings,
     items: [
+      { href: "/dashboard/settings?section=contacts", label: "Ajoutez mes contacts", icon: Plus },
       { href: "/dashboard/settings", label: "Parametres", icon: Settings },
       { href: "/help", label: "Aide & FAQ", icon: HelpCircle },
-      { href: "mailto:contact@shalom-ia.com", label: "Contact", icon: Mail },
     ],
   },
 ];
