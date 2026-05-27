@@ -63,7 +63,18 @@ const MOBILE_CATEGORY_CONTENT: Record<
     itemActive: "bg-violet-50 text-slate-950 ring-1 ring-violet-100",
   },
   RESSOURCES: {
-    title: "RESSOURCES",
+    title: "RESSOURCES & SERVICES",
+    description: "Notes, Banque visuelle...",
+    accentBar: "bg-amber-500",
+    iconSurface: "bg-amber-50",
+    titleClass: "text-amber-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-amber-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-amber-50 text-slate-950 ring-1 ring-amber-100",
+  },
+  "RESSOURCES & SERVICES": {
+    title: "RESSOURCES & SERVICES",
     description: "Notes, Banque visuelle...",
     accentBar: "bg-amber-500",
     iconSurface: "bg-amber-50",
@@ -124,6 +135,7 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
     if (pathname.startsWith("/dashboard/events")) return "Assistant du quotidien";
     if (pathname.startsWith("/dashboard/clip-recap")) return "Clip récap AI";
     if (pathname.startsWith("/dashboard/resources")) return "Mes ressources";
+    if (pathname.startsWith("/dashboard/referencement")) return "Referencement";
     if (pathname.startsWith("/dashboard/templates")) return "Affiches";
     if (pathname.startsWith("/dashboard/settings")) return "Parametres";
     return "Accueil";
@@ -134,6 +146,7 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
     { label: "Mon Agenda IA", href: "/dashboard/events", keywords: ["agenda", "quotidien", "cours", "rappel"] },
     { label: "Cr\u00E9er des automatisations", href: "/dashboard/automations", keywords: ["automatisation", "j-10", "j-5", "j-1"] },
     { label: "Affiches", href: "/dashboard/templates", keywords: ["affiche", "visuel", "template"] },
+    { label: "Referencement Google et IA", href: "/dashboard/referencement", keywords: ["referencement", "google", "seo", "ia"] },
     { label: "Publications", href: "/dashboard/publications", keywords: ["publication", "historique"] },
     { label: "Parametres", href: "/dashboard/settings", keywords: ["parametre", "reglage", "contact", "faq"] },
   ];
@@ -154,7 +167,8 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
       EMAIL: "Email et avis",
       "AGENDA ET QUOTIDIEN": "Assistant du quotidien",
       "CLIPS VIDEO": "Clips vidéo",
-      RESSOURCES: "Ressources",
+      RESSOURCES: "Ressources & Services",
+      "RESSOURCES & SERVICES": "Ressources & Services",
       PARAMETRES: "Paramètres",
     };
     return map[section] ?? section;

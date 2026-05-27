@@ -2,14 +2,21 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Bell, CheckCircle, AlertCircle, Clock, Zap, CreditCard,
-  Unplug, Info, Check, BellOff,
+  AlertCircle,
+  Bell,
+  BellOff,
+  Check,
+  CheckCircle,
+  Clock,
+  CreditCard,
+  Info,
+  Unplug,
+  Zap,
 } from "lucide-react";
-import { formatRelative, cn } from "@/lib/utils";
+import { cn, formatRelative } from "@/lib/utils";
 
 interface Notification {
   id: string;
@@ -48,78 +55,115 @@ export function NotificationsClient({ notifications }: Props) {
   async function markAsRead(id: string) {
     await fetch(`/api/notifications/${id}/read`, { method: "POST" });
     setItems((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true, readAt: new Date() } : n))
+      prev.map((notification) =>
+        notification.id === id ? { ...notification, isRead: true, readAt: new Date() } : notification,
+      ),
     );
   }
 
   async function markAllAsRead() {
     await fetch("/api/notifications/read-all", { method: "POST" });
-    setItems((prev) => prev.map((n) => ({ ...n, isRead: true, readAt: new Date() })));
+    setItems((prev) => prev.map((notification) => ({ ...notification, isRead: true, readAt: new Date() })));
   }
 
-  const unreadCount = items.filter((n) => !n.isRead).length;
+  const unreadCount = items.filter((notification) => !notification.isRead).length;
+  const readCount = items.length - unreadCount;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Notifications</h1>
-          <p className="text-slate-500 mt-1">
-            {unreadCount > 0
-              ? `${unreadCount} non lue${unreadCount > 1 ? "s" : ""}`
-              : "Aucune notification non lue"}
-          </p>
+      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)]">
+        <div className="bg-[linear-gradient(135deg,#0f172a,#1d4ed8,#0ea5e9)] px-5 py-6 text-white sm:px-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <div className="mb-3 h-1.5 w-10 rounded-full bg-cyan-200" />
+              <h1 className="text-2xl font-black tracking-tight sm:text-3xl">Notifications</h1>
+              <p className="mt-2 text-sm leading-6 text-blue-50">
+                Retrouvez les alertes importantes, les contenus prets et les actions qui demandent votre attention.
+              </p>
+            </div>
+
+            {unreadCount > 0 && (
+              <Button
+                variant="outline"
+                onClick={markAllAsRead}
+                className="h-11 rounded-2xl border-white/30 bg-white/10 px-4 text-white hover:bg-white/20 hover:text-white"
+              >
+                <Check className="size-4" />
+                Tout marquer comme lu
+              </Button>
+            )}
+          </div>
         </div>
-        {unreadCount > 0 && (
-          <Button variant="outline" size="sm" onClick={markAllAsRead}>
-            <Check className="size-4 mr-2" />
-            Tout marquer comme lu
-          </Button>
-        )}
-      </div>
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-3">
+        {[
+          { label: "Total", value: items.length, color: "border-slate-200 bg-white text-slate-900" },
+          { label: "Non lues", value: unreadCount, color: "border-blue-100 bg-blue-50 text-blue-800" },
+          { label: "Traitees", value: readCount, color: "border-emerald-100 bg-emerald-50 text-emerald-800" },
+        ].map((stat) => (
+          <div key={stat.label} className={cn("rounded-2xl border p-4 shadow-sm", stat.color)}>
+            <p className="text-2xl font-black">{stat.value}</p>
+            <p className="mt-1 text-xs font-semibold uppercase tracking-wide opacity-70">{stat.label}</p>
+          </div>
+        ))}
+      </section>
 
       {items.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-slate-400">
-            <BellOff className="size-12 mb-4" />
-            <p className="text-lg font-medium">Aucune notification</p>
-            <p className="text-sm">Vous serez notifié des événements importants ici.</p>
-          </CardContent>
-        </Card>
+        <section className="rounded-3xl border border-slate-200 bg-white px-5 py-14 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+            <BellOff className="size-7" />
+          </div>
+          <p className="text-lg font-bold text-slate-900">Aucune notification</p>
+          <p className="mt-2 text-sm text-slate-500">Vous serez notifie des evenements importants ici.</p>
+        </section>
       ) : (
-        <div className="space-y-2">
+        <section className="space-y-3">
           {items.map((notification) => (
-            <Card
+            <button
               key={notification.id}
-              className={cn(
-                "cursor-pointer transition-colors hover:bg-slate-50",
-                !notification.isRead && "border-l-4 border-l-blue-500 bg-blue-50/30"
-              )}
+              type="button"
               onClick={() => {
                 if (!notification.isRead) markAsRead(notification.id);
                 if (notification.link) router.push(notification.link);
               }}
+              className={cn(
+                "group flex w-full items-start gap-3 rounded-3xl border bg-white p-4 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_16px_36px_rgba(15,23,42,0.08)] sm:gap-4 sm:p-5",
+                !notification.isRead ? "border-blue-200 bg-blue-50/40" : "border-slate-200",
+              )}
             >
-              <CardContent className="flex items-start gap-4 py-4">
-                <div className="mt-0.5">
-                  {TYPE_ICON[notification.type] ?? <Bell className="size-5 text-slate-400" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className={cn("font-medium text-sm", !notification.isRead ? "text-slate-900" : "text-slate-600")}>
-                      {notification.title}
-                    </p>
-                    {!notification.isRead && (
-                      <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">Nouveau</Badge>
+              <span
+                className={cn(
+                  "mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-2xl border bg-white shadow-inner",
+                  !notification.isRead ? "border-blue-100" : "border-slate-100",
+                )}
+              >
+                {TYPE_ICON[notification.type] ?? <Bell className="size-5 text-slate-400" />}
+              </span>
+
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <span
+                    className={cn(
+                      "line-clamp-2 text-sm font-bold leading-5",
+                      !notification.isRead ? "text-slate-950" : "text-slate-700",
                     )}
-                  </div>
-                  <p className="text-sm text-slate-500 mt-0.5 line-clamp-2">{notification.body}</p>
-                  <p className="text-xs text-slate-400 mt-1">{formatRelative(notification.createdAt)}</p>
-                </div>
-              </CardContent>
-            </Card>
+                  >
+                    {notification.title}
+                  </span>
+                  {!notification.isRead && (
+                    <Badge className="w-fit shrink-0 border border-blue-100 bg-blue-100 text-blue-700">Nouveau</Badge>
+                  )}
+                </span>
+
+                <span className="mt-2 block text-sm leading-6 text-slate-500">{notification.body}</span>
+                <span className="mt-3 block text-xs font-semibold text-slate-400">
+                  {formatRelative(notification.createdAt)}
+                </span>
+              </span>
+            </button>
           ))}
-        </div>
+        </section>
       )}
     </div>
   );

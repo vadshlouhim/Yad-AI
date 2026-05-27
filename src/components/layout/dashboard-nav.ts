@@ -12,9 +12,9 @@ import {
   Image,
   LayoutDashboard,
   Mail,
-  MessageCircle,
-  MessageSquare,
+  Plane,
   Plus,
+  Search,
   Settings,
   Share2,
   ShoppingBag,
@@ -167,6 +167,10 @@ export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActiv
     label: "text-violet-300",
     itemActive: "bg-violet-600 text-white shadow-sm",
   },
+  "RESSOURCES & SERVICES": {
+    label: "text-violet-300",
+    itemActive: "bg-violet-600 text-white shadow-sm",
+  },
   "BANQUE VISUELLE": {
     label: "text-amber-300",
     itemActive: "bg-amber-600 text-white shadow-sm",
@@ -233,6 +237,12 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     items: [
       { href: "https://boutique.shalom-ia.com", label: "Boutique", icon: ShoppingBag, external: true },
       { href: "/dashboard/website", label: "Creation site web", icon: Globe },
+      { href: "/dashboard/referencement", label: "Referencement Google et IA", icon: Search },
+      {
+        href: "/dashboard/assistance-indemnisation-aerienne",
+        label: "Assistance Indemnisations",
+        icon: Plane,
+      },
     ],
   },
   {
@@ -284,7 +294,7 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     items: [{ href: "/dashboard/clip-recap", label: "Clip récap AI", icon: Video }],
   },
   {
-    section: "RESSOURCES",
+    section: "RESSOURCES & SERVICES",
     icon: BookOpen,
     items: [
       { href: "/dashboard/resources", label: "Mes Ressources", icon: ResourcePlusIcon },
@@ -292,6 +302,12 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
       { href: "/dashboard/templates", label: "Affiches", icon: Image },
       { href: "https://boutique.shalom-ia.com", label: "Boutique", icon: ShoppingBag, external: true },
       { href: "/dashboard/website", label: "Creation site web", icon: Globe },
+      { href: "/dashboard/referencement", label: "Referencement Google et IA", icon: Search },
+      {
+        href: "/dashboard/assistance-indemnisation-aerienne",
+        label: "Assistance Indemnisations",
+        icon: Plane,
+      },
     ],
   },
   {
