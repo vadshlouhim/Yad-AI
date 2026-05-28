@@ -124,8 +124,6 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
         setIsConnecting(false);
         if (event.data.location) setLocationName(event.data.location);
         setNotice({ type: "success", message: `Google My Business connecté ! ${event.data.location ? `- ${event.data.location}` : ""}` });
-        // Recharger les avis
-        setTimeout(() => fetchReviews(), 500);
       } else if (event.data?.type === "gmb_oauth_error") {
         setIsConnecting(false);
         setNotice({ type: "error", message: OAUTH_ERROR_MESSAGES[event.data.oauth as string] ?? "Connexion annulée ou erreur." });

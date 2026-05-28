@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createGmbOAuth2Client, getGmbRedirectUri } from '@/lib/gmb';
+import { getGmbCache, setGmbCache } from '@/lib/gmb-cache';
+
+const REVIEWS_CACHE_TTL_MS = 2 * 60 * 1000;
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -23,6 +26,16 @@ export async function GET(request: Request) {
 
   if (!channel?.refreshToken) {
     return NextResponse.json({ error: 'GMB non connecté' }, { status: 400 });
+  }
+
+  const cacheKey = `reviews:${profile.communityId}`;
+  const cached = getGmbCache<{
+    reviews: unknown[];
+    locationName: string | null;
+    locationDisplayName: string | null;
+  }>(cacheKey);
+  if (cached) {
+    return NextResponse.json(cached);
   }
 
   try {
@@ -76,11 +89,14 @@ export async function GET(request: Request) {
       repliedAt: r.reviewReply?.updateTime ?? null,
     }));
 
-    return NextResponse.json({
+    const payload = {
       reviews,
       locationName: settings?.locationName ?? null,
       locationDisplayName: (settings as { locationDisplayName?: string })?.locationDisplayName ?? null,
-    });
+    };
+
+    setGmbCache(cacheKey, payload, REVIEWS_CACHE_TTL_MS);
+    return NextResponse.json(payload);
   } catch (error) {
     console.error('[GMB Reviews Error]', error);
     return NextResponse.json({ error: (error as Error).message }, { status: 500 });

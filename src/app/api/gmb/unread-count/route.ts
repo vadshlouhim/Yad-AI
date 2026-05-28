@@ -6,6 +6,9 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createGmbOAuth2Client, getGmbRedirectUri } from '@/lib/gmb';
+import { getGmbCache, setGmbCache } from '@/lib/gmb-cache';
+
+const UNREAD_COUNT_CACHE_TTL_MS = 2 * 60 * 1000;
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -27,6 +30,12 @@ export async function GET(request: Request) {
 
   if (!channel?.refreshToken || !channel.isConnected) return NextResponse.json({ count: 0 });
 
+  const cacheKey = `unread-count:${profile.communityId}`;
+  const cached = getGmbCache<{ count: number; connected: boolean }>(cacheKey);
+  if (cached) {
+    return NextResponse.json(cached);
+  }
+
   try {
     const oauth2Client = createGmbOAuth2Client(getGmbRedirectUri(url));
     oauth2Client.setCredentials({ refresh_token: channel.refreshToken });
@@ -47,7 +56,9 @@ export async function GET(request: Request) {
     const reviews = data.reviews ?? [];
     const unanswered = reviews.filter((r: { reviewReply?: { comment?: string } }) => !r.reviewReply?.comment).length;
 
-    return NextResponse.json({ count: unanswered, connected: true });
+    const payload = { count: unanswered, connected: true };
+    setGmbCache(cacheKey, payload, UNREAD_COUNT_CACHE_TTL_MS);
+    return NextResponse.json(payload);
   } catch {
     return NextResponse.json({ count: 0 });
   }

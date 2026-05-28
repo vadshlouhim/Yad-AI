@@ -132,13 +132,14 @@ export async function GET(request: Request) {
     const bizInfo = google.mybusinessbusinessinformation({ version: 'v1', auth: oauth2Client });
     const candidates: GmbLocationCandidate[] = [];
 
-    for (const account of accounts) {
+    for (const account of accounts.slice(0, 3)) {
       const accountName = account.name;
       if (!accountName) continue;
 
       try {
         const locRes = await bizInfo.accounts.locations.list({
           parent: accountName,
+          pageSize: 10,
           readMask: 'name,title,storefrontAddress',
         });
         const locations = locRes.data.locations ?? [];
