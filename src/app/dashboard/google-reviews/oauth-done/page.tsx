@@ -7,6 +7,9 @@ import { Suspense } from "react";
 
 function GmbOAuthDoneContent() {
   const searchParams = useSearchParams();
+  const appOrigin =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
+    (typeof window !== "undefined" ? window.location.origin : "");
   const oauth = searchParams.get("oauth");
   const location = searchParams.get("location");
   const isSuccess = oauth === "gmb_success";
@@ -27,7 +30,7 @@ function GmbOAuthDoneContent() {
       try {
         window.opener.postMessage(
           { type: isSuccess ? "gmb_oauth_success" : "gmb_oauth_error", location, oauth },
-          window.location.origin
+          appOrigin
         );
       } catch { /* cross-origin safety */ }
       setTimeout(() => window.close(), 1200);
@@ -35,7 +38,7 @@ function GmbOAuthDoneContent() {
       // Accès direct → redirige vers la page avis
       window.location.href = "/dashboard/google-reviews?oauth=" + (oauth ?? "");
     }
-  }, [isSuccess, location, oauth]);
+  }, [appOrigin, isSuccess, location, oauth]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50">

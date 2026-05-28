@@ -36,14 +36,19 @@ function scoreLocation(candidate: GmbLocationCandidate, community: { name?: stri
   return score;
 }
 
+function getAppOrigin(fallbackOrigin: string) {
+  return (process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? fallbackOrigin).replace(/\/$/, "");
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const appOrigin = getAppOrigin(url.origin);
   const code = url.searchParams.get('code');
   const stateRaw = url.searchParams.get('state');
   const errorParam = url.searchParams.get('error');
 
-  const reviewsUrl = new URL('/dashboard/google-reviews', url.origin);
-  const oauthDoneUrl = new URL('/dashboard/google-reviews/oauth-done', url.origin);
+  const reviewsUrl = new URL('/dashboard/google-reviews', appOrigin);
+  const oauthDoneUrl = new URL('/dashboard/google-reviews/oauth-done', appOrigin);
 
   // Décoder le state
   let communityId: string | null = null;
@@ -77,7 +82,7 @@ export async function GET(request: Request) {
   // Vérifier l'auth Supabase
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.redirect(new URL('/auth/login', url.origin));
+  if (!user) return NextResponse.redirect(new URL('/auth/login', appOrigin));
 
   const admin = createAdminClient();
 

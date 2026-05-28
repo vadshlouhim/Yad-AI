@@ -10,6 +10,8 @@ const PUBLIC_ROUTES = [
   "/auth/reset-password",
   "/auth/callback",
   "/auth/error",
+  "/dashboard/email/oauth-done",
+  "/dashboard/google-reviews/oauth-done",
   "/privacy",
   "/data-deletion",
   "/help",

@@ -77,6 +77,7 @@ function getAiAnalysis(review: GoogleReview, now: number) {
 
 export function ReviewsClient({ communityId, initialConnected, locationDisplayName: initialLocation }: ReviewsClientProps) {
   const now = useMemo(() => Date.now(), []);
+  const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
 
   const [isConnected, setIsConnected] = useState(initialConnected);
   const [locationName, setLocationName] = useState(initialLocation);
@@ -117,7 +118,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
   // Écouter le postMessage du popup GMB OAuth
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
-      if (event.origin !== window.location.origin) return;
+      if (event.origin !== window.location.origin && event.origin !== appOrigin) return;
       if (event.data?.type === "gmb_oauth_success") {
         setIsConnected(true);
         setIsConnecting(false);
@@ -132,7 +133,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
     }
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [fetchReviews]);
+  }, [appOrigin, fetchReviews]);
 
   const handleConnect = () => {
     if (isConnecting) return;

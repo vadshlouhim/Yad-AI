@@ -3,13 +3,18 @@ import { oauth2Client } from '@/lib/gmail';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 
+function getAppOrigin(fallbackOrigin: string) {
+  return (process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? fallbackOrigin).replace(/\/$/, "");
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
+  const appOrigin = getAppOrigin(origin);
   const code = searchParams.get('code');
   const stateRaw = searchParams.get('state');
   const errorParam = searchParams.get('error');
 
-  const settingsUrl = new URL('/dashboard/settings/channels', origin);
+  const settingsUrl = new URL('/dashboard/settings/channels', appOrigin);
 
   // Décoder le state en premier pour récupérer returnTo même en cas d'erreur
   let communityId: string | null = null;
@@ -29,9 +34,9 @@ export async function GET(request: Request) {
   // Construire l'URL de retour selon returnTo
   const returnUrl =
     returnTo === 'onboarding'
-      ? new URL('/onboarding', origin)
+      ? new URL('/onboarding', appOrigin)
       : returnTo === 'email_popup'
-      ? new URL('/dashboard/email/oauth-done', origin)
+      ? new URL('/dashboard/email/oauth-done', appOrigin)
       : settingsUrl;
 
   // Accès refusé par l'utilisateur
@@ -49,7 +54,7 @@ export async function GET(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.redirect(new URL('/auth/login', origin));
+    return NextResponse.redirect(new URL('/auth/login', appOrigin));
   }
 
   // Récupérer communityId depuis le profil si pas dans le state

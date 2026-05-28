@@ -155,6 +155,7 @@ interface EmailClientProps {
 }
 
 export function EmailClient({ communityId, initialConnected, initialEmail }: EmailClientProps) {
+  const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
   const [googleConnected, setGoogleConnected] = useState(initialConnected);
   const [googleEmail, setGoogleEmail] = useState(initialEmail);
   const [emails, setEmails] = useState<EmailMessage[]>([]);
@@ -196,7 +197,7 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
   // Écouter le postMessage du popup OAuth Gmail
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
-      if (event.origin !== window.location.origin) return;
+      if (event.origin !== window.location.origin && event.origin !== appOrigin) return;
       if (event.data?.type === "gmail_oauth_success") {
         setGoogleConnected(true);
         setIsConnecting(false);
@@ -206,7 +207,7 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
     }
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, []);
+  }, [appOrigin]);
 
   const handleConnectGoogle = () => {
     if (googleConnected) {

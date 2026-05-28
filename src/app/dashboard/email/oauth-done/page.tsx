@@ -10,9 +10,13 @@ import { CheckCircle2 } from "lucide-react";
  */
 export default function GmailOAuthDonePage() {
   useEffect(() => {
+    const appOrigin =
+      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
+      window.location.origin;
+
     if (window.opener) {
       try {
-        window.opener.postMessage({ type: "gmail_oauth_success" }, window.location.origin);
+        window.opener.postMessage({ type: "gmail_oauth_success" }, appOrigin);
       } catch {
         // cross-origin safety
       }
