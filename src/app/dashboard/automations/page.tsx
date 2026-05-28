@@ -16,7 +16,7 @@ export default async function AutomationsPage() {
 
   const { data: automations } = await admin
     .from("Automation")
-    .select("*, event:Event(title, startDate), runs:AutomationRun(*)")
+    .select("*, event:Event(id, title, startDate), runs:AutomationRun(*)")
     .eq("communityId", communityId)
     .order("createdAt", { ascending: false });
 

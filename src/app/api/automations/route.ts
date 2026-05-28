@@ -52,6 +52,54 @@ function normalizeActions(body: Record<string, unknown>) {
   ];
 }
 
+function getEventStartDate(body: Record<string, unknown>) {
+  if (typeof body.nextRunAt !== "string" || !body.nextRunAt) return null;
+  const startDate = new Date(body.nextRunAt);
+  return Number.isNaN(startDate.getTime()) ? null : startDate.toISOString();
+}
+
+async function createCalendarEventForAutomation(
+  admin: ReturnType<typeof createAdminClient>,
+  communityId: string,
+  body: Record<string, unknown>
+) {
+  const startDate = getEventStartDate(body);
+  if (!startDate) return null;
+
+  const triggerConfig = body.triggerConfig && typeof body.triggerConfig === "object"
+    ? body.triggerConfig as Record<string, unknown>
+    : {};
+  const title = String(body.name ?? triggerConfig.eventTitle ?? "Nouvel evenement").trim();
+  const note = typeof triggerConfig.message === "string" ? triggerConfig.message.trim() : "";
+
+  const { data: event, error } = await admin
+    .from("Event")
+    .insert({
+      id: crypto.randomUUID(),
+      communityId,
+      title,
+      description: null,
+      startDate,
+      endDate: null,
+      category: "OTHER",
+      status: "SCHEDULED",
+      isRecurring: Boolean(triggerConfig.repeat && triggerConfig.repeat !== "none"),
+      recurrenceRule: triggerConfig.repeat ? triggerConfig as never : null,
+      isPublic: true,
+      notes: note || null,
+      updatedAt: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("[Automations POST] event insert error", error);
+    return null;
+  }
+
+  return event?.id ?? null;
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -137,13 +185,17 @@ export async function POST(request: Request) {
     const actions = presetConfig
       ? buildAutomationActions({ contentType: presetConfig.contentType, channels: presetChannels })
       : normalizeActions(body);
+    const eventId =
+      typeof body.eventId === "string" && body.eventId
+        ? body.eventId
+        : await createCalendarEventForAutomation(admin, profile.communityId, body);
 
     const { data: automation, error } = await admin
       .from("Automation")
       .insert({
         id: crypto.randomUUID(),
         communityId: profile.communityId,
-        eventId: typeof body.eventId === "string" && body.eventId ? body.eventId : null,
+        eventId,
         name,
         description: body.description === undefined
           ? presetConfig?.description ?? null

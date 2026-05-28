@@ -1842,7 +1842,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
         {showQuickPrompts && (
 	          <div className={cn(
               "flex-1 flex flex-col items-center justify-center px-4 py-8 sm:px-6",
-              assistantExperience === "simple" && "w-full justify-center overflow-y-auto pb-8 pt-8"
+              assistantExperience === "simple" && "w-full justify-start overflow-y-auto pb-8 pt-6 sm:pt-8"
             )}>
             <div className="mb-4 flex justify-center md:hidden">
               <img
@@ -1899,14 +1899,14 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                   <div className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 via-sky-500 to-cyan-400 shadow-[0_14px_28px_rgba(14,116,214,0.28)]">
                     <Hand className="animate-welcome-wave size-7 text-white" aria-hidden="true" />
                   </div>
-                  <h2 className="text-center text-2xl font-black tracking-tight text-slate-900 sm:text-left sm:text-3xl">
+                  <h2 className="text-center text-2xl font-black leading-tight tracking-tight text-slate-900 sm:text-left sm:text-3xl">
                     Bienvenue sur votre espace personnel
                   </h2>
                 </div>
-                <p className="mx-auto mt-2 max-w-3xl text-sm leading-7 text-slate-600 sm:text-[15px]">
+                <p className="mx-auto mt-2 max-w-3xl text-sm leading-7 text-slate-700 sm:text-[15px]">
                   Votre temps est precieux - concentrez-vous sur l&apos;essentiel. EasyComAI s&apos;occupe du reste !
                 </p>
-                <p className="mx-auto mt-0.5 max-w-3xl text-sm leading-7 text-slate-500 sm:text-[15px]">
+                <p className="mx-auto mt-0.5 max-w-3xl text-sm leading-7 text-slate-600 sm:text-[15px]">
                   (Publications recurrentes et automatisees, mail et Avis Google, agenda IA, assistant du quotidien, ressources communautaires)
                 </p>
               </div>

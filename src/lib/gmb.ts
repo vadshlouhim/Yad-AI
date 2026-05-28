@@ -19,6 +19,10 @@ export function createGmbOAuth2Client(redirectUri: string) {
  * Retourne l'URL de redirect GMB selon l'environnement.
  */
 export function getGmbRedirectUri(requestUrl?: URL): string {
+  if (process.env.GMB_REDIRECT_URI) {
+    return process.env.GMB_REDIRECT_URI;
+  }
+
   const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL;
   const base = appUrl?.replace(/\/$/, '') ?? requestUrl?.origin ?? 'http://localhost:3000';
   return `${base}/api/auth/callback/gmb`;

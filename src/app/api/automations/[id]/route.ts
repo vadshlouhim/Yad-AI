@@ -38,6 +38,67 @@ const CHANNELS = new Set<Database["public"]["Enums"]["ChannelType"]>([
   "WEB",
 ]);
 
+function getEventStartDate(body: Record<string, unknown>) {
+  if (typeof body.nextRunAt !== "string" || !body.nextRunAt) return null;
+  const startDate = new Date(body.nextRunAt);
+  return Number.isNaN(startDate.getTime()) ? null : startDate.toISOString();
+}
+
+async function upsertCalendarEventForAutomation(
+  admin: ReturnType<typeof createAdminClient>,
+  automation: { eventId?: string | null; communityId: string; name: string },
+  body: Record<string, unknown>
+) {
+  const startDate = getEventStartDate(body);
+  if (!startDate) return automation.eventId ?? null;
+
+  const triggerConfig = body.triggerConfig && typeof body.triggerConfig === "object"
+    ? body.triggerConfig as Record<string, unknown>
+    : {};
+  const title = String(body.name ?? triggerConfig.eventTitle ?? automation.name).trim();
+  const note = typeof triggerConfig.message === "string" ? triggerConfig.message.trim() : "";
+  const eventPayload = {
+    title,
+    description: null,
+    startDate,
+    endDate: null,
+    category: "OTHER" as const,
+    status: "SCHEDULED" as const,
+    isRecurring: Boolean(triggerConfig.repeat && triggerConfig.repeat !== "none"),
+    recurrenceRule: triggerConfig.repeat ? triggerConfig as never : null,
+    isPublic: true,
+    notes: note || null,
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (automation.eventId) {
+    const { error } = await admin
+      .from("Event")
+      .update(eventPayload)
+      .eq("id", automation.eventId)
+      .eq("communityId", automation.communityId);
+    if (error) console.error("[Automations PATCH] event update error", error);
+    return automation.eventId;
+  }
+
+  const { data: event, error } = await admin
+    .from("Event")
+    .insert({
+      id: crypto.randomUUID(),
+      communityId: automation.communityId,
+      ...eventPayload,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("[Automations PATCH] event insert error", error);
+    return null;
+  }
+
+  return event?.id ?? null;
+}
+
 async function getAuthorizedAutomation(automationId: string, userId: string) {
   const admin = createAdminClient();
   const { data: profile } = await admin.from("profiles").select("communityId").eq("id", userId).single();
@@ -83,6 +144,9 @@ export async function PATCH(
   if (body.triggerConfig !== undefined && typeof body.triggerConfig === "object") updateData.triggerConfig = body.triggerConfig;
   if (body.actions !== undefined && Array.isArray(body.actions)) updateData.actions = body.actions;
   if (body.nextRunAt !== undefined) updateData.nextRunAt = typeof body.nextRunAt === "string" && body.nextRunAt ? body.nextRunAt : null;
+  if (body.nextRunAt !== undefined || body.name !== undefined || body.triggerConfig !== undefined) {
+    updateData.eventId = await upsertCalendarEventForAutomation(admin, automation, body);
+  }
   if (body.contentType !== undefined || body.channels !== undefined || body.requiresValidation !== undefined) {
     const contentType = CONTENT_TYPES.has(body.contentType as never) ? body.contentType : "GENERAL";
     const channels = Array.isArray(body.channels)

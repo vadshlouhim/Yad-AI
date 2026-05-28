@@ -42,6 +42,7 @@ interface AutomationPreset {
 interface Automation {
   id: string;
   presetId?: string | null;
+  eventId?: string | null;
   name: string;
   description: string | null;
   trigger: string;
@@ -518,11 +519,7 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
     setForm((current) => ({ ...current, ...patch }));
   }
 
-  function updateRepeat(value: AutomationFormState["repeat"]) {
-    if (value === "daily") {
-      updateForm({ repeat: value, trigger: "DAILY" });
-      return;
-    }
+function updateRepeat(value: AutomationFormState["repeat"]) {
     updateForm({ repeat: value, trigger: "CUSTOM_SCHEDULE" });
   }
 
@@ -589,7 +586,7 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
       return;
     }
     if (form.trigger !== "MANUAL" && !form.date) {
-      setFeedback({ type: "error", text: "Veuillez choisir la date d'envoi automatique." });
+      setFeedback({ type: "error", text: "Veuillez choisir la date de l'evenement." });
       return;
     }
     if ((form.repeat === "weekly" || form.repeat === "custom") && form.trigger === "CUSTOM_SCHEDULE" && form.customDays.length === 0) {
@@ -606,14 +603,14 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
     try {
       const payload = {
         name: form.name,
-        description: form.description,
-        trigger: form.trigger,
-        triggerConfig: buildTriggerConfig(form),
-        contentType: form.contentType,
+        description: "",
+        trigger: "CUSTOM_SCHEDULE",
+        triggerConfig: buildTriggerConfig({ ...form, trigger: "CUSTOM_SCHEDULE" }),
+        contentType: "GENERAL",
         channels: form.channels,
         requiresValidation: true,
-        isActive: form.isActive,
-        nextRunAt: buildNextRunAt(form),
+        isActive: true,
+        nextRunAt: buildNextRunAt({ ...form, trigger: "CUSTOM_SCHEDULE" }),
       };
       const res = await fetch(form.id ? `/api/automations/${form.id}` : "/api/automations", {
         method: form.id ? "PATCH" : "POST",
@@ -958,7 +955,7 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
                         <span className="hidden" />
                         {false ? (
                         <Button>
-                          {existing.isActive ? (
+                          {existing!.isActive ? (
                             <>
                               <Pause className="size-3" />
                               Désactiver
@@ -1074,6 +1071,121 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
       )}
 
       {formOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+          <Card className="max-h-[90vh] w-full max-w-3xl overflow-hidden border-cyan-100 bg-white shadow-2xl shadow-slate-950/20">
+            <CardHeader className="bg-[linear-gradient(135deg,#0f172a,#164e63,#0e7490)] px-5 py-5 text-white">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-xl font-black">
+                    <Calendar className="size-5 text-cyan-200" />
+                    Nouvel événement
+                  </CardTitle>
+                  <p className="mt-1 text-sm leading-6 text-cyan-50">Configurez la date, l&apos;heure, les plateformes et la note associée.</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setFormOpen(false)} className="text-white hover:bg-white/15 hover:text-white">
+                  <X className="size-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="grid max-h-[calc(90vh-116px)] gap-4 overflow-y-auto bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_34%)] p-5 lg:grid-cols-2">
+              {feedback && (
+                <div className={cn(
+                  "lg:col-span-2 rounded-xl border px-3 py-2 text-sm",
+                  feedback.type === "success" ? "border-blue-200 bg-blue-50 text-blue-700" : "border-red-200 bg-red-50 text-red-700"
+                )}>
+                  {feedback.text}
+                </div>
+              )}
+              <label className="space-y-1.5 text-sm font-medium text-slate-700">
+                Titre de l&apos;événement
+                <input value={form.name} onChange={(event) => updateForm({ name: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100" />
+              </label>
+              <label className="space-y-1.5 text-sm font-medium text-slate-700">
+                Date
+                <input type="date" value={form.date} onChange={(event) => updateForm({ date: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100" />
+              </label>
+              <label className="space-y-1.5 text-sm font-medium text-slate-700">
+                Heure de l&apos;événement
+                <input type="time" value={form.time} onChange={(event) => updateForm({ time: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100" />
+              </label>
+              <label className="space-y-1.5 text-sm font-medium text-slate-700">
+                Choix de répétition
+                <select value={form.repeat} onChange={(event) => updateRepeat(event.target.value as AutomationFormState["repeat"])} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100">
+                  {REPEAT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </label>
+              {form.repeat !== "weekly" && form.repeat !== "custom" && (
+                <label className="space-y-1.5 text-sm font-medium text-slate-700">
+                  Jour
+                  <select value={form.day} onChange={(event) => updateForm({ day: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100">
+                    {DAY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </label>
+              )}
+              {(form.repeat === "weekly" || form.repeat === "custom") && (
+                <div className="space-y-2 lg:col-span-2">
+                  <p className="text-sm font-medium text-slate-700">Jours de répétition</p>
+                  <div className="flex flex-wrap gap-2">
+                    {DAY_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => toggleCustomDay(option.value)}
+                        className={cn("rounded-full border px-3 py-1.5 text-xs font-semibold transition", form.customDays.includes(option.value) ? "border-cyan-200 bg-cyan-50 text-cyan-800" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50")}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <label className="space-y-1.5 text-sm font-medium text-slate-700 lg:col-span-2">
+                Ajoutez une note
+                <textarea
+                  value={form.message}
+                  onChange={(event) => updateForm({ message: event.target.value })}
+                  rows={3}
+                  placeholder="Exemple : rappel du cours de Torah ce soir à 20h30 au Beth Habad."
+                  className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                />
+              </label>
+              <div className="space-y-2 lg:col-span-2">
+                <p className="text-sm font-medium text-slate-700">Plateformes</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { channel: "WHATSAPP", label: "WhatsApp", logo: SOCIAL_LOGOS.WHATSAPP },
+                    { channel: "INSTAGRAM", label: "Instagram", logo: SOCIAL_LOGOS.INSTAGRAM },
+                    { channel: "FACEBOOK", label: "Facebook", logo: SOCIAL_LOGOS.FACEBOOK },
+                    { channel: "TELEGRAM", label: "Telegram", logo: SOCIAL_LOGOS.TELEGRAM },
+                    { channel: "EMAIL", label: "Email", logo: SOCIAL_LOGOS.EMAIL },
+                  ].map((item) => (
+                    <button
+                      key={item.channel}
+                      type="button"
+                      onClick={() => toggleChannel(item.channel)}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition hover:scale-[1.02]",
+                        form.channels.includes(item.channel)
+                          ? "border-cyan-200 bg-cyan-50 text-cyan-800 ring-2 ring-cyan-100"
+                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                      )}
+                    >
+                      {item.logo}
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2 lg:col-span-2">
+                <Button type="button" variant="outline" className="ml-auto border-slate-200" onClick={() => setFormOpen(false)}>Annuler</Button>
+                <Button type="button" onClick={saveAutomation} loading={saving} className="bg-cyan-700 hover:bg-cyan-800"><Save className="size-4" />Enregistrer l&apos;événement</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {false && formOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4">
         <Card className="max-h-[90vh] w-full max-w-3xl overflow-y-auto border-blue-100 bg-white/95 shadow-xl shadow-blue-100/40">
           <CardHeader className="pb-3">
@@ -1092,9 +1204,9 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
             {feedback && (
               <div className={cn(
                 "lg:col-span-2 rounded-xl border px-3 py-2 text-sm",
-                feedback.type === "success" ? "border-blue-200 bg-blue-50 text-blue-700" : "border-red-200 bg-red-50 text-red-700"
+                feedback!.type === "success" ? "border-blue-200 bg-blue-50 text-blue-700" : "border-red-200 bg-red-50 text-red-700"
               )}>
-                {feedback.text}
+                {feedback!.text}
               </div>
             )}
             <label className="space-y-1.5 text-sm font-medium text-slate-700">

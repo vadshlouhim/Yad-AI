@@ -276,6 +276,10 @@ async function shouldTrigger(automation: Automation, now: Date): Promise<boolean
         return isWithinInterval(now, { start: startOfDay(targetDate), end: endOfDay(targetDate) });
       }
 
+      if (repeat === "daily") {
+        return true;
+      }
+
       if (repeat === "weekly") {
         const days = Array.isArray(config.days) && config.days.length > 0
           ? config.days.map((value) => DAY_TO_INDEX[String(value)]).filter((value) => value !== undefined)
@@ -404,15 +408,18 @@ export async function executeAutomationActions(
         }
 
         if (notifyUsers && notifyUsers.length > 0) {
+          const isScheduledEvent = automation.trigger === "CUSTOM_SCHEDULE" && Boolean(automation.eventId);
           await supabase.from("Notification").insert(
             notifyUsers.map((user) => ({
               id: crypto.randomUUID(),
               userId: user.id,
               communityId: automation.community.id,
-              type: "AI_CONTENT_READY" as const,
-              title: "Message pret a envoyer",
-              body: `Il est temps d'envoyer votre message sur ${channelsText} pour ${eventName}.`,
-              link: `/dashboard/content/${draft.id}`,
+              type: isScheduledEvent ? "EVENT_REMINDER" : "AI_CONTENT_READY",
+              title: isScheduledEvent ? `Evenement : ${eventName}` : "Message pret a envoyer",
+              body: isScheduledEvent
+                ? `C'est l'heure de l'evenement "${eventName}".`
+                : `Il est temps d'envoyer votre message sur ${channelsText} pour ${eventName}.`,
+              link: isScheduledEvent ? `/dashboard/events/${automation.eventId}` : `/dashboard/content/${draft.id}`,
             }))
           );
         }
@@ -536,6 +543,7 @@ function computeNextRunAt(automation: Automation, now: Date): Date | null {
       case "CUSTOM_SCHEDULE": {
         const repeat = String(config.repeat ?? "none");
         if (repeat === "none") return null;
+        if (repeat === "daily") return addDays(now, 1);
         if (repeat === "weekly" || repeat === "custom") return addDays(now, 7);
         if (repeat === "monthly") {
           const next = new Date(now);
