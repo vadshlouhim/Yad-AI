@@ -33,6 +33,8 @@ export async function GET(request: Request) {
     reviews: unknown[];
     locationName: string | null;
     locationDisplayName: string | null;
+    needsLocationSync?: boolean;
+    message?: string;
   }>(cacheKey);
   if (cached) {
     return NextResponse.json(cached);
@@ -50,7 +52,13 @@ export async function GET(request: Request) {
     const accountName = settings?.accountName;
 
     if (!locationName || !accountName) {
-      return NextResponse.json({ error: 'Aucun établissement configuré', needsReconnect: true }, { status: 400 });
+      return NextResponse.json({
+        reviews: [],
+        locationName: null,
+        locationDisplayName: null,
+        needsLocationSync: true,
+        message: 'Google Business est connecte. La selection de la fiche sera synchronisee ensuite.',
+      });
     }
 
     // Appel API GMB v4 pour les avis

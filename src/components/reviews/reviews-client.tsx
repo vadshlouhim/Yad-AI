@@ -103,6 +103,12 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
       if (!res.ok) throw new Error(data.error ?? "Erreur lors du chargement des avis");
       setReviews(data.reviews ?? []);
       if (data.locationDisplayName) setLocationName(data.locationDisplayName);
+      if (data.needsLocationSync) {
+        setNotice({
+          type: "success",
+          message: "Google Business est connecté. La récupération de la fiche et des avis sera synchronisée ensuite.",
+        });
+      }
       if (data.reviews?.length > 0 && !selectedId) setSelectedId(data.reviews[0].id);
     } catch (err) {
       setError((err as Error).message);
