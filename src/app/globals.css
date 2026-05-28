@@ -107,12 +107,25 @@ canvas {
   74%, 88% { opacity: 1; transform: translateY(0); }
   96%, 100% { opacity: 0; transform: translateY(10px); }
 }
+@keyframes welcomeWave {
+  0%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(16deg); }
+  20% { transform: rotate(-10deg); }
+  32% { transform: rotate(16deg); }
+  44% { transform: rotate(-4deg); }
+  56% { transform: rotate(12deg); }
+  68% { transform: rotate(0deg); }
+}
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
 .animate-mobile-feature-card-in { animation: mobileFeatureCardIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .animate-chat-home { animation: chatHome 7.5s ease-in-out infinite; }
 .animate-chat-input { animation: chatInput 7.5s ease-in-out infinite; }
 .animate-chat-note { animation: chatNote 7.5s ease-in-out infinite; }
 .animate-chat-actions { animation: chatActions 7.5s ease-in-out infinite; }
+.animate-welcome-wave {
+  animation: welcomeWave 2.4s ease-in-out infinite;
+  transform-origin: 70% 70%;
+}
 .typing-line {
   display: block;
   max-width: max-content;

@@ -2,7 +2,10 @@ import { google } from 'googleapis';
 
 const CLIENT_ID = process.env.GMAIL_CLIENT_ID;
 const CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
-const REDIRECT_URI = process.env.GMAIL_REDIRECT_URI || 'http://localhost:3000/api/auth/callback/google';
+const APP_URL = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+const REDIRECT_URI =
+  process.env.GMAIL_REDIRECT_URI ||
+  `${(APP_URL ?? 'http://localhost:3000').replace(/\/$/, '')}/api/auth/callback/google`;
 
 export const oauth2Client = new google.auth.OAuth2(
   CLIENT_ID,

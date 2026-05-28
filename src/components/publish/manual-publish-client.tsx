@@ -117,7 +117,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contentType: "GENERAL",
-          instructions: `RÃ©dige une publication pour ${brand.label}. ${aiPrompt}`,
+          instructions: `Redige une publication pour ${brand.label}. ${aiPrompt}`,
         }),
       });
       const data = await res.json();
@@ -128,7 +128,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
         alert(data.error);
       }
     } catch {
-      alert("Erreur lors de la gÃ©nÃ©ration avec l'IA.");
+      alert("Erreur lors de la generation avec l'IA.");
     } finally {
       setAiLoading(false);
     }
@@ -162,7 +162,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
         alert(data.error || "Une erreur est survenue lors de la publication.");
       }
     } catch {
-      alert("Erreur rÃ©seau lors de la publication.");
+      alert("Erreur reseau lors de la publication.");
     } finally {
       setLoading(false);
     }
@@ -170,7 +170,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
 
   // Format bold formatting in previews for WhatsApp (*text*) and generic Markdown
   function formatPreviewText(value: string) {
-    if (!value) return "Votre message s'affichera ici en temps rÃ©el...";
+    if (!value) return "Votre message s'affichera ici en temps reel...";
     let html = value
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -200,7 +200,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
             </div>
             <div>
               <h1 className="text-2xl font-bold">Publier sur {brand.label}</h1>
-              <p className="text-sm text-white/80">RÃ©digez et publiez manuellement vos annonces et Ã©vÃ©nements.</p>
+              <p className="text-sm text-white/80">Redigez et publiez manuellement vos annonces et evenements.</p>
             </div>
           </div>
           <Badge className="bg-white/20 text-white border-white/30 text-xs font-semibold py-1 px-3">
@@ -216,9 +216,9 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
             <div className="flex items-start gap-3">
               <AlertTriangle className="size-5 text-amber-600 mt-0.5 flex-shrink-0" />
               <div>
-                <h3 className="text-sm font-bold text-amber-800">Compte {brand.label} non connectÃ©</h3>
+                <h3 className="text-sm font-bold text-amber-800">Compte {brand.label} non connecte</h3>
                 <p className="text-xs text-amber-600/90 mt-0.5">
-                  Pour pouvoir envoyer vos messages automatiquement sans copier-coller ou pour dÃ©bloquer les automatisations complÃ¨tes, veuillez d&apos;abord lier votre compte.
+                  Pour pouvoir envoyer vos messages automatiquement sans copier-coller ou pour debloquer les automatisations completes, veuillez d&apos;abord lier votre compte.
                 </p>
               </div>
             </div>
@@ -238,11 +238,11 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
           <Card className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-blue-100/30">
             <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
               <Sparkles className="size-4 text-blue-600 animate-pulse" />
-              GÃ©nÃ©rer le message avec l&apos;IA EasyCom
+              Generer le message avec l&apos;IA EasyCom
             </h2>
             <div className="flex gap-2">
               <input
-                placeholder={platformKey === "INSTAGRAM" ? "Ex: Redige une annonce chaleureuse pour notre evenement de dimanche soir..." : "Ex: Rédige une annonce pour la Kabalat Chabbat de ce soir à 18h..."}
+                placeholder={platformKey === "INSTAGRAM" ? "Ex: Redige une annonce chaleureuse pour notre evenement de dimanche soir..." : "Ex: Redige une annonce pour la Kabalat Chabbat de ce soir a 18h..."}
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAIGenerate()}
@@ -254,7 +254,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
                 className="bg-blue-600 text-white hover:bg-blue-700 rounded-2xl cursor-pointer"
               >
                 {aiLoading ? <RefreshCw className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-                <span className="hidden sm:inline ml-1.5">GÃ©nÃ©rer</span>
+                <span className="hidden sm:inline ml-1.5">Generer</span>
               </Button>
             </div>
           </Card>
@@ -266,20 +266,20 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
                 className="w-full rounded-2xl border-pink-200 bg-white text-pink-700 shadow-sm transition-all duration-200 hover:bg-pink-50 hover:text-pink-800"
               >
                 <Sparkles className="size-4" />
-                Créer une automatisation Instagram
+                Creer une automatisation Instagram
               </Button>
             </Link>
           )}
 
 
           <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-blue-100/30 space-y-5">
-            <h2 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">{platformKey === "INSTAGRAM" ? "Message Instagram retravaillé par l'IA" : "Détails de la publication"}</h2>
+            <h2 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">{platformKey === "INSTAGRAM" ? "Message Instagram retravaille par l'IA" : "Details de la publication"}</h2>
 
             {platformKey === "EMAIL" && (
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Objet de l&apos;email</label>
                 <input
-                  placeholder="Ex: ConfÃ©rence communautaire exceptionnelle ce dimanche !"
+                  placeholder="Ex: Conference communautaire exceptionnelle ce dimanche !"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="flex h-10 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -310,7 +310,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
                 variant="outline"
                 onClick={() => {
                   navigator.clipboard.writeText(text);
-                  alert("Texte copiÃ© dans le presse-papiers !");
+                  alert("Texte copie dans le presse-papiers !");
                 }}
                 disabled={!text.trim()}
                 className="rounded-2xl border-slate-200 cursor-pointer"
@@ -335,10 +335,10 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
         <div className="lg:col-span-5 flex flex-col">
           <div className="sticky top-6">
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wide">PrÃ©visualisation en direct</h2>
+              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wide">Previsualisation en direct</h2>
               <Badge variant="secondary" className="text-[10px] py-0.5">
                 <Eye className="size-3 mr-1 text-slate-500" />
-                Rendu tÃ©lÃ©phone
+                Rendu telephone
               </Badge>
             </div>
 
@@ -360,7 +360,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
                 <div className="flex-1 p-3 overflow-y-auto space-y-2 flex flex-col justify-end pb-8" style={{ backgroundImage: "url('/images/whatsapp-bg-pattern.png')", backgroundSize: "cover" }}>
                   <div className="max-w-[85%] self-end bg-[#d9fdd3] rounded-2xl rounded-tr-none p-2.5 text-xs text-slate-800 shadow-sm relative">
                     <p className="break-words whitespace-pre-wrap leading-relaxed">{formatPreviewText(text)}</p>
-                    <span className="block text-[8px] text-slate-400 text-right mt-1.5">Aujourd&apos;hui Ã  12:00 âœ“âœ“</span>
+                    <span className="block text-[8px] text-slate-400 text-right mt-1.5">Aujourd&apos;hui a 12:00 OK</span>
                   </div>
                 </div>
               </div>
@@ -377,7 +377,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
                     </div>
                     <span className="text-[11px] font-bold text-slate-800">{communityName.toLowerCase().replace(/\s+/g, "")}</span>
                   </div>
-                  <span className="text-xs font-bold text-slate-800">Â·Â·Â·</span>
+                  <span className="text-xs font-bold text-slate-800">...</span>
                 </div>
 
                 {/* Instagram Photo placeholder */}
@@ -387,7 +387,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
                     <circle cx="8.5" cy="8.5" r="1.5" />
                     <polyline points="21 15 16 10 5 21" />
                   </svg>
-                  <p className="text-[10px] text-slate-400 mt-2 font-medium">Image de l&apos;Ã©vÃ©nement</p>
+                  <p className="text-[10px] text-slate-400 mt-2 font-medium">Image de l&apos;evenement</p>
                 </div>
 
                 {/* Instagram Actions */}
@@ -419,7 +419,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
                     </div>
                     <div>
                       <p className="text-[11px] font-bold text-slate-800">{communityName}</p>
-                      <span className="text-[8px] text-slate-400 flex items-center gap-0.5">Ã€ l&apos;instant Â· ðŸŒ</span>
+                      <span className="text-[8px] text-slate-400 flex items-center gap-0.5">A l&apos;instant - Web</span>
                     </div>
                   </div>
 
@@ -446,7 +446,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
                   </div>
                   <div>
                     <p className="text-[11px] font-bold truncate">{communityName}</p>
-                    <p className="text-[8px] text-white/70">1,240 abonnÃ©s</p>
+                    <p className="text-[8px] text-white/70">1,240 abonnes</p>
                   </div>
                 </div>
 
@@ -469,7 +469,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
               <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-md text-xs text-slate-700 min-h-[360px] flex flex-col">
                 <div className="border-b border-slate-100 pb-3 space-y-1.5">
                   <p><span className="font-semibold text-slate-400">De :</span> {communityName} &lt;onboarding@resend.dev&gt;</p>
-                  <p><span className="font-semibold text-slate-400">Ã€ :</span> membres-communaute@easycom-ai.com</p>
+                  <p><span className="font-semibold text-slate-400">A :</span> membres-communaute@easycom-ai.com</p>
                   <p><span className="font-semibold text-slate-400">Objet :</span> <span className="font-bold text-slate-800">{title || "(sans objet)"}</span></p>
                 </div>
                 <div className="flex-1 pt-4 leading-relaxed whitespace-pre-wrap text-slate-800">
@@ -488,7 +488,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
               <CheckCircle className="size-8" />
             </div>
-            <h3 className="text-lg font-bold text-slate-800">Publication traitÃ©e avec succÃ¨s !</h3>
+            <h3 className="text-lg font-bold text-slate-800">Publication traitee avec succes !</h3>
             
             {successData.fallbackText ? (
               <div className="mt-4 space-y-3">
@@ -501,7 +501,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
                 <Button
                   onClick={() => {
                     navigator.clipboard.writeText(successData.fallbackText || "");
-                    alert("CopiÃ© !");
+                    alert("Copie !");
                   }}
                   className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl cursor-pointer"
                 >
@@ -511,7 +511,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
               </div>
             ) : (
               <p className="mt-2 text-xs text-slate-500">
-                Votre publication a bien Ã©tÃ© envoyÃ©e sur {brand.label}.
+                Votre publication a bien ete envoyee sur {brand.label}.
               </p>
             )}
 

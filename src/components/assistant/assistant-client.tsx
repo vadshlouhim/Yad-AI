@@ -9,7 +9,7 @@ import {
   Plus, MessageSquare, Pencil, MoreHorizontal, PanelLeftOpen, Share2,
   X, SlidersHorizontal, PlayCircle, PauseCircle,
   Power, ExternalLink, Zap, CalendarDays, BookOpen, Gift, HeartHandshake,
-  Lightbulb, Clock3, Radio, Mail,
+  Lightbulb, Clock3, Radio, Mail, Hand,
 } from "lucide-react";
 import { CHANNEL_LABELS, cn } from "@/lib/utils";
 import { formatArticlePrice } from "@/lib/articles/shared";
@@ -173,6 +173,8 @@ const ASSISTANT_PLACEHOLDER_SUGGESTIONS = [
   "Organise mon agenda communautaire de la semaine",
   "Rédige un message WhatsApp clair et professionnel",
 ];
+
+const STATIC_ASSISTANT_PLACEHOLDER = "Decrivez votre demande a EasyCom AI...";
 
 const ALL_FEATURES_PROMPT =
   "Explique-moi clairement tout ce que EasyCom AI peut faire pour moi au quotidien. " +
@@ -353,9 +355,12 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   const [showAllFeaturesMobile, setShowAllFeaturesMobile] = useState(false);
   const [bubblePosition, setBubblePosition] = useState({ x: 24, y: 24 });
   const [animatedPlaceholder, setAnimatedPlaceholder] = useState(ASSISTANT_PLACEHOLDER_SUGGESTIONS[0]);
+  const [hasStartedPromptEntry, setHasStartedPromptEntry] = useState(false);
   const bubbleDragState = useRef({ active: false, moved: false, offsetX: 0, offsetY: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const showQuickPrompts = messages.length === 0;
+  const shouldAnimatePlaceholder = showQuickPrompts && !hasStartedPromptEntry && !loading;
 
   // Charger l'historique + routine au montage
   useEffect(() => {
@@ -394,6 +399,11 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   }, []);
 
   useEffect(() => {
+    if (!shouldAnimatePlaceholder) {
+      setAnimatedPlaceholder(STATIC_ASSISTANT_PLACEHOLDER);
+      return;
+    }
+
     const suggestions = ASSISTANT_PLACEHOLDER_SUGGESTIONS;
     let suggestionIndex = 0;
     let characterIndex = 0;
@@ -435,7 +445,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
     return () => {
       if (timeoutId) window.clearTimeout(timeoutId);
     };
-  }, []);
+  }, [shouldAnimatePlaceholder]);
 
   // ── API calls ──
 
@@ -547,6 +557,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   function startNewChat() {
     setActiveConversationId(null);
     setMessages([]);
+    setHasStartedPromptEntry(false);
     setSimpleHistoryOpen(false);
     if (assistantExperience === "detailed") {
       setHistoryOpen(false);
@@ -562,6 +573,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
     const messageContent = content ?? input.trim();
     if (!messageContent || loading) return;
 
+    setHasStartedPromptEntry(true);
     setInput("");
 
     let convId = activeConversationId;
@@ -722,7 +734,6 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
     window.localStorage.setItem("shalom-assistant-experience", mode);
   }
 
-  const showQuickPrompts = messages.length === 0;
   const groupedConversations = groupByDate(conversations);
   const quickPrompts = seasonalPrompts.length >= 4
     ? seasonalPrompts.slice(0, 4)
@@ -1884,6 +1895,25 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
 
             {assistantExperience === "simple" && (
               <div className="mb-6 w-full max-w-4xl px-5 py-2 text-center sm:px-8">
+                <div className="mx-auto inline-flex max-w-3xl flex-col items-center gap-3 rounded-[2rem] border border-blue-100/80 bg-white px-5 py-4 shadow-[0_18px_50px_rgba(37,99,235,0.10)] sm:flex-row sm:gap-4 sm:px-6">
+                  <div className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 via-sky-500 to-cyan-400 shadow-[0_14px_28px_rgba(14,116,214,0.28)]">
+                    <Hand className="animate-welcome-wave size-7 text-white" aria-hidden="true" />
+                  </div>
+                  <h2 className="text-center text-2xl font-black tracking-tight text-slate-900 sm:text-left sm:text-3xl">
+                    Bienvenue sur votre espace personnel
+                  </h2>
+                </div>
+                <p className="mx-auto mt-2 max-w-3xl text-sm leading-7 text-slate-600 sm:text-[15px]">
+                  Votre temps est precieux - concentrez-vous sur l&apos;essentiel. EasyComAI s&apos;occupe du reste !
+                </p>
+                <p className="mx-auto mt-0.5 max-w-3xl text-sm leading-7 text-slate-500 sm:text-[15px]">
+                  (Publications recurrentes et automatisees, mail et Avis Google, agenda IA, assistant du quotidien, ressources communautaires)
+                </p>
+              </div>
+            )}
+
+            {false && assistantExperience === "simple" && (
+              <div className="mb-6 w-full max-w-4xl px-5 py-2 text-center sm:px-8">
                 <div className="mb-2 text-3xl leading-none">👋</div>
                 <h2 className="text-2xl font-black text-slate-900 sm:text-3xl">
                   Bienvenue sur votre espace personnel
@@ -3016,11 +3046,17 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                     id="assistant-specific-request"
                     ref={inputRef}
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
+                    onChange={(e) => {
+                      const nextValue = e.target.value;
+                      if (!hasStartedPromptEntry && nextValue.trim().length > 0) {
+                        setHasStartedPromptEntry(true);
+                      }
+                      setInput(nextValue);
+                    }}
                     onKeyDown={handleKeyDown}
                     placeholder={animatedPlaceholder}
                     rows={2}
-                    className="flex-1 resize-none rounded-[1.35rem] border border-transparent bg-transparent px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-900/80"
+                    className="flex-1 resize-none rounded-[1.35rem] border border-transparent bg-transparent px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400"
                   />
                   <Button
                     onClick={() => sendMessage()}

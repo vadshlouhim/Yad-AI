@@ -285,6 +285,19 @@ const PREDEFINED_AUTOMATIONS: PredefinedAutomationCard[] = [
   },
 ];
 
+const QUICK_AUTOMATION_EVENT_ACTIONS = [
+  "Me rappeler",
+  "Envoyer un message",
+  "Publier un contenu",
+  "Répondre en un clic",
+  "Créer un récap",
+  "Suivre une demande",
+  "Surveiller une urgence",
+  "Créer une routine",
+  "Préparer avec l’IA",
+  "Déclencher après un événement",
+];
+
 const RUN_STATUS_ICON: Record<string, React.ReactNode> = {
   RUNNING: <RefreshCw className="size-3.5 text-blue-600 animate-spin" />,
   SUCCESS: <CheckCircle className="size-3.5 text-blue-600" />,
@@ -482,6 +495,15 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
 
   function openCreateForm() {
     setForm(defaultForm());
+    setFormOpen(true);
+    setFeedback(null);
+  }
+
+  function openCreateFormWithLabel(label: string) {
+    setForm({
+      ...defaultForm(),
+      name: label,
+    });
     setFormOpen(true);
     setFeedback(null);
   }
@@ -993,6 +1015,19 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
               <Plus className="size-4" />
               Ajouter une automatisation Récurrente
             </Button>
+          </div>
+          <div className="mt-4 flex flex-wrap justify-center gap-2.5">
+            {QUICK_AUTOMATION_EVENT_ACTIONS.map((label) => (
+              <Button
+                key={label}
+                type="button"
+                variant="outline"
+                onClick={() => openCreateFormWithLabel(label)}
+                className="rounded-full border-slate-200 bg-white px-4 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+              >
+                {label}
+              </Button>
+            ))}
           </div>
         </section>
       )}
