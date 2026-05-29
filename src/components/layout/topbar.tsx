@@ -135,7 +135,9 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
     if (pathname.startsWith("/dashboard/events")) return "Assistant du quotidien";
     if (pathname.startsWith("/dashboard/clip-recap")) return "Clip récap AI";
     if (pathname.startsWith("/dashboard/resources")) return "Mes ressources";
+    if (pathname.startsWith("/dashboard/boutique")) return "Boutique";
     if (pathname.startsWith("/dashboard/referencement")) return "Referencement";
+    if (pathname.startsWith("/dashboard/shabbat-times-auto")) return "Horaire de Chabbat";
     if (pathname.startsWith("/dashboard/templates")) return "Affiches";
     if (pathname.startsWith("/dashboard/settings")) return "Parametres";
     return "Accueil";
@@ -146,6 +148,8 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
     { label: "Mon Agenda IA", href: "/dashboard/events", keywords: ["agenda", "quotidien", "cours", "rappel"] },
     { label: "Cr\u00E9er des automatisations", href: "/dashboard/automations", keywords: ["automatisation", "j-10", "j-5", "j-1"] },
     { label: "Affiches", href: "/dashboard/templates", keywords: ["affiche", "visuel", "template"] },
+    { label: "Horaire de Chabbat auto", href: "/dashboard/shabbat-times-auto", keywords: ["chabbat", "shabbat", "horaire", "affiche"] },
+    { label: "Boutique", href: "/dashboard/boutique", keywords: ["boutique", "judaica", "rabbi", "shlihout"] },
     { label: "Referencement Google et IA", href: "/dashboard/referencement", keywords: ["referencement", "google", "seo", "ia"] },
     { label: "Publications", href: "/dashboard/publications", keywords: ["publication", "historique"] },
     { label: "Parametres", href: "/dashboard/settings", keywords: ["parametre", "reglage", "contact", "faq"] },

@@ -229,13 +229,13 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     section: "BANQUE VISUELLE",
     items: [
       { href: "/dashboard/templates", label: "Affiches", icon: Image },
-      { href: "/dashboard/hebrew-calendar", label: "Horaires de Chabbat", icon: Clock3 },
+      { href: "/dashboard/shabbat-times-auto", label: "Horaire de Chabbat auto", icon: Clock3 },
     ],
   },
   {
     section: "SERVICES",
     items: [
-      { href: "https://boutique.shalom-ia.com", label: "Boutique", icon: ShoppingBag, external: true },
+      { href: "/dashboard/boutique", label: "Boutique", icon: ShoppingBag },
       { href: "/dashboard/website", label: "Creation site web", icon: Globe },
       { href: "/dashboard/referencement", label: "Referencement Google et IA", icon: Search },
       {
@@ -300,7 +300,8 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
       { href: "/dashboard/resources", label: "Mes Ressources", icon: ResourcePlusIcon },
       { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
       { href: "/dashboard/templates", label: "Affiches", icon: Image },
-      { href: "https://boutique.shalom-ia.com", label: "Boutique", icon: ShoppingBag, external: true },
+      { href: "/dashboard/shabbat-times-auto", label: "Horaire de Chabbat auto", icon: Clock3 },
+      { href: "/dashboard/boutique", label: "Boutique", icon: ShoppingBag },
       { href: "/dashboard/website", label: "Creation site web", icon: Globe },
       { href: "/dashboard/referencement", label: "Referencement Google et IA", icon: Search },
       {

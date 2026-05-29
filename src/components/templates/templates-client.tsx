@@ -64,6 +64,11 @@ interface Props {
   templates: Template[];
   community: Community;
   plan: string;
+  galleryTitle?: string;
+  gallerySubtitle?: string;
+  showGalleryFilters?: boolean;
+  emptyTitle?: string;
+  emptyDescription?: string;
 }
 
 // ============================================================
@@ -312,7 +317,16 @@ function TemplateCard({
 
 type Step = "gallery" | "questions" | "preview";
 
-export function TemplatesClient({ templates, community, plan }: Props) {
+export function TemplatesClient({
+  templates,
+  community,
+  plan,
+  galleryTitle = "BANQUE D'AFFICHES",
+  gallerySubtitle = "Choisissez parmi plus de 250 affiches pretes a personnaliser, ajoutez vos informations, puis laissez l'IA adapter le modele et le publier en un clic.",
+  showGalleryFilters = true,
+  emptyTitle = "Aucune affiche trouvee",
+  emptyDescription = "Ajuste la recherche ou change de categorie pour elargir les resultats.",
+}: Props) {
   const [step, setStep] = useState<Step>("gallery");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -475,10 +489,10 @@ export function TemplatesClient({ templates, community, plan }: Props) {
             <div className="max-w-2xl">
               <div className="mb-3 h-1.5 w-10 rounded-full bg-amber-200/90" />
               <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">
-                BANQUE D&apos;AFFICHES
+                {galleryTitle}
               </h1>
               <p className="mt-2 text-sm leading-6 text-amber-50/90">
-                Choisissez parmi plus de 250 affiches prêtes à personnaliser, ajoutez vos informations, puis laissez l&apos;IA adapter le modèle et le publier en un clic.
+                {gallerySubtitle}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -504,6 +518,7 @@ export function TemplatesClient({ templates, community, plan }: Props) {
           </div>
         </div>
 
+        {showGalleryFilters && (
         <Card className="rounded-3xl border-slate-200 shadow-sm">
           <CardContent className="space-y-5 p-5">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -614,14 +629,15 @@ export function TemplatesClient({ templates, community, plan }: Props) {
             )}
           </CardContent>
         </Card>
+        )}
 
         {filteredTemplates.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16 text-slate-400">
               <ImageIcon className="size-16 mb-4" />
-              <p className="text-lg font-medium">Aucune affiche trouvée</p>
+              <p className="text-lg font-medium">{emptyTitle}</p>
               <p className="text-sm mt-1">
-                Ajuste la recherche ou change de catégorie pour élargir les résultats.
+                {emptyDescription}
               </p>
             </CardContent>
           </Card>
