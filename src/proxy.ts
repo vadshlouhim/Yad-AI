@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+﻿import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { updateSession } from "@/lib/supabase/session";
 
@@ -12,6 +12,9 @@ const PUBLIC_ROUTES = [
   "/auth/error",
   "/dashboard/email/oauth-done",
   "/dashboard/google-reviews/oauth-done",
+  "/method",
+  "/contact",
+  "/blog",
   "/privacy",
   "/data-deletion",
   "/help",
@@ -37,7 +40,7 @@ function isApiRoute(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Mode démo — entièrement public, pas d'auth Supabase requise
+  // Mode dÃ©mo â€” entiÃ¨rement public, pas d'auth Supabase requise
   if (pathname.startsWith("/demo")) {
     return NextResponse.next();
   }
@@ -47,16 +50,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Sans variables Supabase valides (dev sans .env.local) → autoriser les routes publiques
+  // Sans variables Supabase valides (dev sans .env.local) â†’ autoriser les routes publiques
   if (!isSupabaseConfigured()) {
     if (isPublicRoute(pathname)) return NextResponse.next();
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
-  // Rafraîchit la session Supabase + récupère l'utilisateur
+  // RafraÃ®chit la session Supabase + rÃ©cupÃ¨re l'utilisateur
   const { supabaseResponse, user } = await updateSession(request);
 
-  // Routes publiques — rediriger vers dashboard si déjà connecté
+  // Routes publiques â€” rediriger vers dashboard si dÃ©jÃ  connectÃ©
   if (isPublicRoute(pathname)) {
     if (user && (pathname === "/auth/login" || pathname === "/auth/register")) {
       const callbackUrl =
@@ -66,7 +69,7 @@ export async function proxy(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Pas connecté → login
+  // Pas connectÃ© â†’ login
   if (!user) {
     const loginUrl = new URL("/auth/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
@@ -81,3 +84,4 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
+

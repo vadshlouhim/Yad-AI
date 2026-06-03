@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -23,6 +23,7 @@ interface Notification {
   type: string;
   title: string;
   body: string;
+  data: unknown;
   isRead: boolean;
   readAt: Date | null;
   link: string | null;
@@ -51,6 +52,8 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
 export function NotificationsClient({ notifications }: Props) {
   const router = useRouter();
   const [items, setItems] = useState(notifications);
+  const [activeTab, setActiveTab] = useState<"active" | "archives">("active");
+  const [archiveLimit] = useState(() => Date.now() - 24 * 60 * 60 * 1000);
 
   async function markAsRead(id: string) {
     await fetch(`/api/notifications/${id}/read`, { method: "POST" });
@@ -66,8 +69,35 @@ export function NotificationsClient({ notifications }: Props) {
     setItems((prev) => prev.map((notification) => ({ ...notification, isRead: true, readAt: new Date() })));
   }
 
-  const unreadCount = items.filter((notification) => !notification.isRead).length;
-  const readCount = items.length - unreadCount;
+  async function deleteNotification(id: string) {
+    setItems((prev) => prev.filter((notification) => notification.id !== id));
+    await fetch(`/api/notifications/${id}`, { method: "DELETE" });
+  }
+
+  function buildTargetLink(notification: Notification) {
+    if (notification.type !== "AI_CONTENT_READY") return notification.link;
+
+    const data = notification.data && typeof notification.data === "object"
+      ? notification.data as { draftId?: unknown; channelTypes?: unknown }
+      : null;
+    const draftIdFromData = typeof data?.draftId === "string" ? data.draftId : null;
+    const draftIdFromLink = notification.link?.match(/\/dashboard\/content\/([^/?#]+)/)?.[1] ?? null;
+    const draftIdFromAssistantLink = notification.link ? new URL(notification.link, window.location.origin).searchParams.get("draftId") : null;
+    const draftId = draftIdFromData ?? draftIdFromLink ?? draftIdFromAssistantLink;
+    if (!draftId) return "/dashboard/assistant";
+
+    const channelTypes = Array.isArray(data?.channelTypes)
+      ? data.channelTypes.filter((channel): channel is string => typeof channel === "string")
+      : [];
+    const params = new URLSearchParams({ draftId, notificationId: notification.id });
+    if (channelTypes.length > 0) params.set("channelTypes", channelTypes.join(","));
+    return `/dashboard/assistant?${params.toString()}`;
+  }
+
+  const activeItems = items.filter((notification) => new Date(notification.createdAt).getTime() >= archiveLimit);
+  const archivedItems = items.filter((notification) => new Date(notification.createdAt).getTime() < archiveLimit);
+  const displayedItems = activeTab === "active" ? activeItems : archivedItems;
+  const unreadCount = activeItems.filter((notification) => !notification.isRead).length;
 
   return (
     <div className="space-y-6">
@@ -78,7 +108,7 @@ export function NotificationsClient({ notifications }: Props) {
               <div className="mb-3 h-1.5 w-10 rounded-full bg-cyan-200" />
               <h1 className="text-2xl font-black tracking-tight sm:text-3xl">Notifications</h1>
               <p className="mt-2 text-sm leading-6 text-blue-50">
-                Retrouvez les alertes importantes, les contenus prets et les actions qui demandent votre attention.
+                Retrouvez les alertes importantes, les contenus prêts et les actions qui demandent votre attention.
               </p>
             </div>
 
@@ -98,9 +128,9 @@ export function NotificationsClient({ notifications }: Props) {
 
       <section className="grid gap-3 sm:grid-cols-3">
         {[
-          { label: "Total", value: items.length, color: "border-slate-200 bg-white text-slate-900" },
+          { label: "Actives", value: activeItems.length, color: "border-slate-200 bg-white text-slate-900" },
           { label: "Non lues", value: unreadCount, color: "border-blue-100 bg-blue-50 text-blue-800" },
-          { label: "Traitees", value: readCount, color: "border-emerald-100 bg-emerald-50 text-emerald-800" },
+          { label: "Archives", value: archivedItems.length, color: "border-emerald-100 bg-emerald-50 text-emerald-800" },
         ].map((stat) => (
           <div key={stat.label} className={cn("rounded-2xl border p-4 shadow-sm", stat.color)}>
             <p className="text-2xl font-black">{stat.value}</p>
@@ -109,29 +139,70 @@ export function NotificationsClient({ notifications }: Props) {
         ))}
       </section>
 
-      {items.length === 0 ? (
+      <section className="flex flex-wrap gap-2">
+        {[
+          { value: "active" as const, label: "Notifications", count: activeItems.length },
+          { value: "archives" as const, label: "Archives", count: archivedItems.length },
+        ].map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => setActiveTab(tab.value)}
+            className={cn(
+              "rounded-full border px-4 py-2 text-sm font-bold transition",
+              activeTab === tab.value
+                ? "border-blue-200 bg-blue-600 text-white"
+                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+            )}
+          >
+            {tab.label} ({tab.count})
+          </button>
+        ))}
+      </section>
+
+      {displayedItems.length === 0 ? (
         <section className="rounded-3xl border border-slate-200 bg-white px-5 py-14 text-center shadow-sm">
           <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
             <BellOff className="size-7" />
           </div>
-          <p className="text-lg font-bold text-slate-900">Aucune notification</p>
-          <p className="mt-2 text-sm text-slate-500">Vous serez notifie des evenements importants ici.</p>
+          <p className="text-lg font-bold text-slate-900">{activeTab === "active" ? "Aucune notification" : "Aucune archive"}</p>
+          <p className="mt-2 text-sm text-slate-500">Vous serez notifié des événements importants ici.</p>
         </section>
       ) : (
         <section className="space-y-3">
-          {items.map((notification) => (
+          {displayedItems.map((notification) => (
             <button
               key={notification.id}
               type="button"
               onClick={() => {
                 if (!notification.isRead) markAsRead(notification.id);
-                if (notification.link) router.push(notification.link);
+                const targetLink = buildTargetLink(notification);
+                if (targetLink) router.push(targetLink);
               }}
               className={cn(
-                "group flex w-full items-start gap-3 rounded-3xl border bg-white p-4 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_16px_36px_rgba(15,23,42,0.08)] sm:gap-4 sm:p-5",
+                "group relative flex w-full items-start gap-3 rounded-3xl border bg-white p-4 pr-12 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_16px_36px_rgba(15,23,42,0.08)] sm:gap-4 sm:p-5 sm:pr-14",
                 !notification.isRead ? "border-blue-200 bg-blue-50/40" : "border-slate-200",
               )}
             >
+              <span
+                role="button"
+                tabIndex={0}
+                aria-label="Supprimer la notification"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void deleteNotification(notification.id);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    void deleteNotification(notification.id);
+                  }
+                }}
+                className="absolute right-3 top-3 z-10 inline-flex size-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+              >
+                X
+              </span>
               <span
                 className={cn(
                   "mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-2xl border bg-white shadow-inner",
@@ -168,3 +239,4 @@ export function NotificationsClient({ notifications }: Props) {
     </div>
   );
 }
+

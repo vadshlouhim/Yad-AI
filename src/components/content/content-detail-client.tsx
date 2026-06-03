@@ -60,6 +60,7 @@ interface Community {
 interface Props {
   draft: Draft;
   community: Community;
+  quickValidate?: boolean;
 }
 
 const PUBLICATION_STATUS_VARIANT: Record<string, "draft" | "info" | "ready" | "published" | "scheduled" | "failed"> = {
@@ -82,7 +83,7 @@ const CONTENT_STATUS_VARIANT: Record<string, "draft" | "info" | "ready" | "publi
   ARCHIVED: "draft",
 };
 
-export function ContentDetailClient({ draft, community }: Props) {
+export function ContentDetailClient({ draft, community, quickValidate = false }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -182,6 +183,12 @@ export function ContentDetailClient({ draft, community }: Props) {
   }
 
   const currentAdaptation = draft.channelAdaptations.find((a) => a.channelType === activeAdaptation);
+  const iaEditPrompt = encodeURIComponent(
+    `Modifie ce message pour qu'il soit pret a envoyer, avec mon style habituel:\\n\\n${body}`,
+  );
+  const iaModelPrompt = encodeURIComponent(
+    `Propose 5 variantes de publication pour ce message, avec styles differents (sobre, chaleureux, formel, court, inspirant):\\n\\n${body}`,
+  );
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -237,6 +244,28 @@ export function ContentDetailClient({ draft, community }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Éditeur principal */}
         <div className="lg:col-span-2 space-y-4">
+          {quickValidate && (
+            <Card className="border-blue-200 bg-blue-50/60">
+              <CardContent className="p-4">
+                <p className="text-sm font-semibold text-slate-900">Message pret a etre envoye</p>
+                <p className="mt-1 text-xs text-slate-600">
+                  Validez en un clic pour publier, ou ouvrez l&apos;assistant IA pour ajuster le texte et obtenir d&apos;autres modeles.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button size="sm" onClick={publishNow} loading={publishing}>
+                    <Send className="size-4" />
+                    Envoyer / Publier
+                  </Button>
+                  <Link href={`/dashboard/assistant?prefill=${iaEditPrompt}`}>
+                    <Button size="sm" variant="outline">Modifier avec l&apos;IA</Button>
+                  </Link>
+                  <Link href={`/dashboard/assistant?prefill=${iaModelPrompt}`}>
+                    <Button size="sm" variant="outline">Suggérer des modeles</Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardContent className="p-4 space-y-4">
               {/* Métadonnées */}

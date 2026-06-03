@@ -2,10 +2,27 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils";
+import {
+  GENERAL_DEFAULT_AUTOMATION_PUBLICATIONS,
+  isDefaultAutomationPublicationId,
+} from "@/lib/automation/suggested-publications";
+import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels";
 
 function normalizeCommunityType(value: unknown) {
-  if (value === "RELIGIOUS") return "SYNAGOGUE";
-  if (value === "SCHOOL" || value === "CENTER" || value === "ASSOCIATION" || value === "OTHER") return value;
+  if (value === "RELIGIOUS") return "OTHER";
+  if (
+    value === "SYNAGOGUE" ||
+    value === "SCHOOL" ||
+    value === "CENTER" ||
+    value === "ASSOCIATION" ||
+    value === "RESTAURANT" ||
+    value === "CATERER" ||
+    value === "SPORT_COACH" ||
+    value === "COMMERCE" ||
+    value === "BUSINESS" ||
+    value === "CONTENT_CREATOR" ||
+    value === "OTHER"
+  ) return value;
   return "ASSOCIATION";
 }
 
@@ -28,6 +45,11 @@ export async function POST(request: Request) {
     const admin = createAdminClient();
     const communityType = normalizeCommunityType(data.communityType);
     const religiousStream = communityType === "SYNAGOGUE" && data.isBethHabad ? "BETH_HABAD" : null;
+    const automationValidationMode = data.automationValidationMode === "automatic" ? "automatic" : "manual";
+    const automationNotificationLeadHours =
+      typeof data.automationNotificationLeadHours === "number" && Number.isFinite(data.automationNotificationLeadHours)
+        ? Math.max(0.25, data.automationNotificationLeadHours)
+        : 2;
 
     // Générer un slug unique
     const baseSlug = slugify(data.communityName);
@@ -62,6 +84,15 @@ export async function POST(request: Request) {
         signature: data.signature || null,
         hashtags: data.hashtags || [],
         editorialRules: data.editorialRules || null,
+        vocabulary: {
+          aiNotificationLeadHours: automationNotificationLeadHours,
+          automationValidationMode,
+          manualValidationBeforeSend: automationValidationMode === "manual",
+          communityProfileType: typeof data.communityType === "string" ? data.communityType : communityType,
+          communityProfileLabel: getCommunityProfileDisplayLabel(
+            typeof data.communityType === "string" ? data.communityType : communityType
+          ),
+        },
         onboardingDone: true,
         onboardingStep: 4,
         updatedAt: new Date().toISOString(),
@@ -123,6 +154,45 @@ export async function POST(request: Request) {
     }
 
     // 5. Initialiser la mémoire IA
+    if (Array.isArray(data.selectedAutomationScenarioIds) && data.selectedAutomationScenarioIds.length > 0) {
+      const selectedIds = data.selectedAutomationScenarioIds.map(String).filter(Boolean);
+      const dbSelectedIds = selectedIds.filter((id: string) => !isDefaultAutomationPublicationId(id));
+      const defaultSelectedPublications = GENERAL_DEFAULT_AUTOMATION_PUBLICATIONS.filter((publication) =>
+        selectedIds.includes(publication.id)
+      );
+      const { data: presets } = dbSelectedIds.length
+        ? await admin
+            .from("AutomationPreset")
+            .select("id, title, description, trigger, actions, clientTypes")
+            .in("id", dbSelectedIds)
+            .eq("isActive", true)
+        : { data: [] };
+
+      const applicablePresets = (presets ?? []).filter((preset) =>
+        Array.isArray(preset.clientTypes) && preset.clientTypes.includes(communityType as never)
+      );
+      const selectedPublications = [...applicablePresets, ...defaultSelectedPublications];
+
+      if (selectedPublications.length > 0) {
+        await admin.from("Automation").insert(
+          selectedPublications.map((preset) => ({
+            id: crypto.randomUUID(),
+            communityId: community.id,
+            presetId: isDefaultAutomationPublicationId(preset.id) ? null : preset.id,
+            name: preset.title,
+            description: preset.description ?? null,
+            trigger: preset.trigger,
+            triggerConfig: "triggerConfig" in preset ? preset.triggerConfig : {},
+            actions: preset.actions ?? [],
+            isActive: false,
+            status: "DRAFT",
+            nextRunAt: null,
+            updatedAt: new Date().toISOString(),
+          }))
+        );
+      }
+    }
+
     await admin.from("AIMemory").insert([
       {
         id: crypto.randomUUID(),

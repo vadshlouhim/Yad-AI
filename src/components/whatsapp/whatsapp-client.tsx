@@ -137,8 +137,7 @@ export function WhatsAppClient() {
           <div className="mb-3 h-1.5 w-10 rounded-full bg-emerald-200/90" />
           <h1 className="text-3xl font-bold tracking-tight text-white">WhatsApp</h1>
           <p className="mt-3 text-sm leading-6 text-emerald-50/90">
-            Parlez a l&apos;assistant IA et indiquez le message que vous souhaitez envoyer par WhatsApp. Vous pouvez aussi
-            creer des automatisations WhatsApp pour preparer vos messages a l&apos;avance.
+            Écrivez n’importe quel message à envoyer sur WhatsApp, l’IA le reformule et le publie automatiquement au bon moment et aux bonnes personnes.
           </p>
         </div>
       </section>
@@ -151,8 +150,7 @@ export function WhatsAppClient() {
             </div>
             <h2 className="text-xl font-semibold tracking-tight text-slate-950">Assistant IA WhatsApp</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Parlez a l&apos;assistant IA et indiquez le message que vous souhaitez envoyer par WhatsApp. Vous pouvez
-              aussi creer des automatisations WhatsApp pour preparer vos messages a l&apos;avance.
+              Écrivez n’importe quel message à envoyer sur WhatsApp, l’IA le reformule et le publie automatiquement au bon moment et aux bonnes personnes.
             </p>
           </div>
 
@@ -280,7 +278,7 @@ export function WhatsAppClient() {
             <div className="mb-3 h-1.5 w-10 rounded-full bg-emerald-500" />
             <h2 className="text-xl font-semibold tracking-tight text-slate-950">Automatisations WhatsApp</h2>
             <p className="mt-2 text-sm text-slate-600">
-              Retrouvez les scenarios deja presents dans Mes automatisations, prets a etre parametres pour WhatsApp.
+              Retrouvez les publications IA deja presentes dans Mes automatisations, pretes a etre parametrees pour WhatsApp.
             </p>
           </div>
           <Link href="/dashboard/automations" className="w-full sm:w-auto">

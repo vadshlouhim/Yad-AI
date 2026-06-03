@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Bell, Bot, ChevronDown, Zap } from "lucide-react";
+import { Bell, Bot, CalendarDays, ChevronDown, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DASHBOARD_DESKTOP_CATEGORIES,
@@ -74,7 +74,7 @@ const DESKTOP_CATEGORY_CONTENT: Record<
     itemActive: "bg-cyan-50 text-slate-950 ring-1 ring-cyan-100",
   },
   "AGENDA ET QUOTIDIEN": {
-    title: "ASSISTANT DU QUOTIDIEN",
+    title: "AGENDA CONNECTÉ IA",
     description: "Votre quotidien bien organisé",
     accentBar: "bg-violet-500",
     iconSurface: "bg-violet-50",
@@ -270,27 +270,27 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
                 </span>
               )}
             </Link>
-          </div>
-
-          <div className={cn("pb-3", collapsed && "pb-2")}>
             <Link
-              href={resolveHref(AUTOMATIONS_ITEM.href)}
+              href={resolveHref("/dashboard/events")}
               className={cn(
-                "flex items-center rounded-[1.2rem] bg-slate-900 px-4 py-3 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition-all duration-200",
-                isActive(AUTOMATIONS_ITEM.href) ? "bg-slate-950" : "hover:bg-slate-800",
+                "mt-2 flex items-center rounded-[1.2rem] bg-slate-900 px-4 py-3 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition-all duration-200",
+                isActive("/dashboard/events") ? "bg-slate-950" : "hover:bg-slate-800",
                 collapsed && "justify-center rounded-[1.4rem] border border-slate-800/50 bg-gradient-to-b from-slate-900 to-slate-800 px-0 py-3"
               )}
-              title={collapsed ? "Cr\u00E9er des automatisations" : undefined}
+              title={collapsed ? "Agenda connecté IA" : undefined}
             >
               {!collapsed && (
                 <div className="flex min-w-0 items-center gap-2">
-                  <p className="truncate text-[15px] font-semibold tracking-tight text-white">{"Cr\u00E9er des automatisations"}</p>
-                  <p className="sr-only">{"Cr\u00E9er des automatisations"}</p>
+                  <CalendarDays className="size-4 shrink-0 text-cyan-200" />
+                  <p className="truncate text-[15px] font-semibold tracking-tight text-white">Agenda connecté</p>
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white/95 text-[10px] font-black leading-none text-slate-900">
+                    IA
+                  </span>
                 </div>
               )}
               {collapsed && (
                 <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10">
-                  <Zap className="size-4 text-cyan-200" />
+                  <CalendarDays className="size-4 text-cyan-200" />
                 </span>
               )}
             </Link>
@@ -355,6 +355,20 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
                     >
                       <div className="overflow-hidden">
                         <div className="mt-3 space-y-1.5 rounded-[1.2rem] bg-slate-50/80 p-2">
+                          {category.section === "RESEAUX SOCIAUX" && (
+                            <Link
+                              href={resolveHref(AUTOMATIONS_ITEM.href)}
+                              className={cn(
+                                "flex min-w-0 items-center gap-2 rounded-[1.15rem] bg-blue-600 px-3 py-2.5 text-white shadow-[0_14px_26px_rgba(37,99,235,0.24)] ring-1 ring-blue-200/70 transition-all duration-200 hover:bg-blue-700",
+                                isActive(AUTOMATIONS_ITEM.href) && "bg-blue-700"
+                              )}
+                            >
+                              <Zap className="size-4 shrink-0 text-cyan-50" />
+                              <span className="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight">
+                                Créer des automatisations
+                              </span>
+                            </Link>
+                          )}
                           {category.items
                             .filter((item) => !(category.section === "RESEAUX SOCIAUX" && item.href === "/dashboard/automations"))
                             .map((item) => {

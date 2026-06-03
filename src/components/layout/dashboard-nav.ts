@@ -209,7 +209,10 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   },
   {
     section: "ASSISTANT PERSONNEL",
-    items: [{ href: "/dashboard/events", label: "Agenda et quotidien", icon: CalendarDays }],
+    items: [
+      { href: "/dashboard/events", label: "Agenda connecté IA", icon: CalendarDays },
+      { href: "/dashboard/daily-assistant", label: "Assistant du quotidien", icon: Bot },
+    ],
   },
   {
     section: "RESSOURCES",
@@ -258,7 +261,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
 export const MOBILE_PRIMARY_NAV: DashboardNavItem[] = [
   { href: "/dashboard/overview", label: "Accueil", icon: LayoutDashboard },
   { href: "/dashboard/assistant", label: "Assistant IA", icon: Bot },
-  { href: "/dashboard/events", label: "Personnel", icon: Calendar },
+  { href: "/dashboard/events", label: "Agenda IA", icon: Calendar },
   { href: "/dashboard/settings", label: "Reglages", icon: Settings },
 ];
 
@@ -286,7 +289,10 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
   {
     section: "AGENDA ET QUOTIDIEN",
     icon: CalendarDays,
-    items: [{ href: "/dashboard/events", label: "Agenda et quotidien", icon: CalendarDays }],
+    items: [
+      { href: "/dashboard/events", label: "Agenda connecté IA", icon: CalendarDays },
+      { href: "/dashboard/daily-assistant", label: "Assistant du quotidien", icon: Bot },
+    ],
   },
   {
     section: "CLIPS VIDEO",

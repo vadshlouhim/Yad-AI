@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database.types";
 import { AUTOMATION_PRESETS, buildAutomationActions } from "@/lib/automation/presets";
-import { presetAppliesToCommunity, type PresetWithRhythms } from "@/lib/automation/preset-utils";
+import { presetAppliesToCommunity, type PresetWithClientTypes } from "@/lib/automation/preset-utils";
 
 const TRIGGERS = new Set<Database["public"]["Enums"]["AutomationTrigger"]>([
   "BEFORE_EVENT",
@@ -40,12 +40,32 @@ const CHANNELS = new Set<Database["public"]["Enums"]["ChannelType"]>([
   "WEB",
 ]);
 
-function normalizeActions(body: Record<string, unknown>) {
+function getRequiresValidationDefault(vocabulary: unknown) {
+  if (vocabulary && typeof vocabulary === "object" && !Array.isArray(vocabulary)) {
+    const mode = (vocabulary as { automationValidationMode?: unknown; manualValidationBeforeSend?: unknown }).automationValidationMode;
+    const manual = (vocabulary as { manualValidationBeforeSend?: unknown }).manualValidationBeforeSend;
+    if (mode === "automatic" || manual === false) return false;
+  }
+  return true;
+}
+
+function applyValidationPreference(actions: unknown[], requiresValidation: boolean) {
+  return actions.map((action) => {
+    if (!action || typeof action !== "object") return action;
+    const item = action as Record<string, unknown>;
+    if (item.type === "CREATE_PUBLICATION" || item.type === "GENERATE_CONTENT") {
+      return { ...item, requiresValidation };
+    }
+    return item;
+  });
+}
+
+function normalizeActions(body: Record<string, unknown>, requiresValidationDefault: boolean) {
   const contentType = CONTENT_TYPES.has(body.contentType as never) ? body.contentType : "GENERAL";
   const channels = Array.isArray(body.channels)
     ? body.channels.filter((channel) => CHANNELS.has(channel as never))
     : [];
-  const requiresValidation = body.requiresValidation === undefined ? true : Boolean(body.requiresValidation);
+  const requiresValidation = body.requiresValidation === undefined ? requiresValidationDefault : Boolean(body.requiresValidation);
 
   return [
     ...buildAutomationActions({ contentType: String(contentType), channels: channels as string[], requiresValidation }),
@@ -121,19 +141,30 @@ export async function POST(request: Request) {
 
     if (typeof body.presetId === "string" && body.presetId) {
       const [{ data: community }, { data: preset }] = await Promise.all([
-        admin.from("Community").select("id, communityType, rhythmId").eq("id", profile.communityId).single(),
+        admin.from("Community").select("id, communityType, vocabulary").eq("id", profile.communityId).single(),
         admin
           .from("AutomationPreset")
-          .select("*, rhythms:AutomationPresetRhythm(id, rhythmId, rhythm:CommunityRhythm(id, name, slug, isActive))")
+          .select("*")
           .eq("id", body.presetId)
           .eq("isActive", true)
           .single(),
       ]);
 
-      const typedPreset = preset as PresetWithRhythms | null;
+      const typedPreset = preset as PresetWithClientTypes | null;
       if (!community || !typedPreset || !presetAppliesToCommunity(typedPreset, community)) {
-        return NextResponse.json({ error: "Scénario non disponible pour ce compte" }, { status: 403 });
+        return NextResponse.json({ error: "Publication IA non disponible pour ce compte" }, { status: 403 });
       }
+
+      const requiresValidationDefault = getRequiresValidationDefault(community.vocabulary);
+      const trigger = TRIGGERS.has(body.trigger as never) ? body.trigger : typedPreset.trigger;
+      const actions =
+        body.channels !== undefined || body.contentType !== undefined || body.requiresValidation !== undefined
+          ? normalizeActions(body, requiresValidationDefault)
+          : applyValidationPreference((typedPreset.actions ?? []) as unknown[], requiresValidationDefault);
+      const eventId =
+        typeof body.eventId === "string" && body.eventId
+          ? body.eventId
+          : await createCalendarEventForAutomation(admin, profile.communityId, body);
 
       const { data: automation, error } = await admin
         .from("Automation")
@@ -141,12 +172,12 @@ export async function POST(request: Request) {
           id: crypto.randomUUID(),
           communityId: profile.communityId,
           presetId: typedPreset.id,
-          eventId: typeof body.eventId === "string" && body.eventId ? body.eventId : null,
+          eventId,
           name: String(body.name ?? typedPreset.title).trim(),
           description: body.description === undefined ? typedPreset.description ?? null : String(body.description).trim() || null,
-          trigger: typedPreset.trigger,
+          trigger,
           triggerConfig: (body.triggerConfig ?? typedPreset.triggerConfig ?? {}) as never,
-          actions: (typedPreset.actions ?? []) as never,
+          actions: actions as never,
           isActive: body.isActive === undefined ? true : Boolean(body.isActive),
           status: body.isActive === false ? "PAUSED" : "ACTIVE",
           nextRunAt: typeof body.nextRunAt === "string" && body.nextRunAt ? body.nextRunAt : null,
@@ -165,6 +196,12 @@ export async function POST(request: Request) {
 
     const preset = body.preset as keyof typeof AUTOMATION_PRESETS | undefined;
     const presetConfig = preset ? AUTOMATION_PRESETS[preset] : null;
+    const { data: communitySettings } = await admin
+      .from("Community")
+      .select("vocabulary")
+      .eq("id", profile.communityId)
+      .single();
+    const requiresValidationDefault = getRequiresValidationDefault(communitySettings?.vocabulary);
 
     if (preset && !presetConfig) return NextResponse.json({ error: "Preset non supporté" }, { status: 400 });
 
@@ -183,8 +220,8 @@ export async function POST(request: Request) {
       : presetConfig ? [...presetConfig.channels] : [];
 
     const actions = presetConfig
-      ? buildAutomationActions({ contentType: presetConfig.contentType, channels: presetChannels })
-      : normalizeActions(body);
+      ? buildAutomationActions({ contentType: presetConfig.contentType, channels: presetChannels, requiresValidation: body.requiresValidation === undefined ? requiresValidationDefault : Boolean(body.requiresValidation) })
+      : normalizeActions(body, requiresValidationDefault);
     const eventId =
       typeof body.eventId === "string" && body.eventId
         ? body.eventId

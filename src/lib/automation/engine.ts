@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+﻿import { createAdminClient } from "@/lib/supabase/admin";
 import { generateContent } from "@/lib/ai/engine";
 import { createPublicationsFromDraft, publishToChannel } from "@/lib/publishing/publisher";
 import { getShabbatTimes, getNextHoliday } from "./hebcal";
@@ -43,6 +43,7 @@ type AutomationWithCommunity = Automation & {
     tone: string;
     hashtags: string[] | null;
     email: string | null;
+    vocabulary: unknown;
   };
 };
 
@@ -122,14 +123,14 @@ async function sendAutomationEmail(params: {
 }
 
 export async function runAutomationEngine(): Promise<void> {
-  console.log("[Automation] Démarrage du moteur…");
+  console.log("[Automation] DÃ©marrage du moteurâ€¦");
 
   const supabase = createAdminClient();
   const now = new Date();
 
   const { data: automations } = await supabase
     .from("Automation")
-    .select("*, community:Community(id,name,city,timezone,tone,hashtags,email)")
+    .select("*, community:Community(id,name,city,timezone,tone,hashtags,email,vocabulary)")
     .eq("isActive", true)
     .eq("status", "ACTIVE");
 
@@ -154,10 +155,12 @@ async function processAutomation(
   now: Date
 ): Promise<void> {
   const supabase = createAdminClient();
+  await prepareAutomationNotification(automation, now);
+
   const shouldRun = await shouldTrigger(automation, now);
   if (!shouldRun) return;
 
-  console.log(`[Automation] Déclenchement: ${automation.name} (${automation.trigger})`);
+  console.log(`[Automation] DÃ©clenchement: ${automation.name} (${automation.trigger})`);
 
   const { data: run } = await supabase
     .from("AutomationRun")
@@ -196,6 +199,140 @@ async function processAutomation(
       .eq("id", run.id);
     throw error;
   }
+}
+
+function getNotificationLeadHours(automation: AutomationWithCommunity) {
+  const vocabulary = automation.community.vocabulary;
+  if (vocabulary && typeof vocabulary === "object" && !Array.isArray(vocabulary)) {
+    const value = (vocabulary as { aiNotificationLeadHours?: unknown }).aiNotificationLeadHours;
+    if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
+  }
+  return 2;
+}
+
+function getPreparedForKey(nextRunAt: Date) {
+  return nextRunAt.toISOString();
+}
+
+const SOCIAL_NOTIFICATION_CHANNELS = new Set(["INSTAGRAM", "FACEBOOK", "WHATSAPP", "TELEGRAM"]);
+
+function hasSocialNotificationChannel(action: AutomationAction | undefined) {
+  return action?.channels?.some((channel) => SOCIAL_NOTIFICATION_CHANNELS.has(channel)) ?? false;
+}
+
+async function prepareAutomationNotification(automation: AutomationWithCommunity, now: Date): Promise<void> {
+  const supabase = createAdminClient();
+  const config = (automation.triggerConfig ?? {}) as Record<string, unknown>;
+  const nextRunAt = automation.nextRunAt ? new Date(automation.nextRunAt) : null;
+  if (!nextRunAt || Number.isNaN(nextRunAt.getTime()) || now >= nextRunAt) return;
+
+  const leadMs = getNotificationLeadHours(automation) * 60 * 60 * 1000;
+  if (nextRunAt.getTime() - now.getTime() > leadMs) return;
+
+  const preparedFor = getPreparedForKey(nextRunAt);
+  if (config.preparedValidationFor === preparedFor) return;
+
+  const actions = automation.actions as unknown as AutomationAction[];
+  const action = actions.find((item) => item.type === "GENERATE_CONTENT" && item.requiresValidation !== false);
+  const autoAction = actions.find((item) => item.type === "GENERATE_CONTENT");
+  const notificationAction = action ?? autoAction;
+  if (!hasSocialNotificationChannel(notificationAction)) return;
+
+  const { data: notifyUsers } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("communityId", automation.community.id)
+    .in("role", ["SUPER_ADMIN", "ADMIN"]);
+
+  if (!action) {
+    if (autoAction && notifyUsers && notifyUsers.length > 0) {
+      const leadHours = getNotificationLeadHours(automation);
+      await supabase.from("Notification").insert(
+        notifyUsers.map((user) => ({
+          id: crypto.randomUUID(),
+          userId: user.id,
+          communityId: automation.community.id,
+          type: "AUTOMATION_TRIGGERED",
+          title: "Publication automatique programmée",
+          body: `Cette publication partira automatiquement dans ${leadHours}h.`,
+          link: "/dashboard/automations",
+          data: { automationId: automation.id, preparedFor, channelTypes: autoAction.channels ?? [] },
+        })),
+      );
+    }
+
+    await supabase
+      .from("Automation")
+      .update({
+        triggerConfig: {
+          ...config,
+          preparedValidationFor: preparedFor,
+        } as never,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", automation.id);
+    return;
+  }
+
+  const triggerConfig = (automation.triggerConfig ?? {}) as Record<string, unknown>;
+  const configuredMessage = typeof triggerConfig.message === "string" ? triggerConfig.message.trim() : "";
+  const generated = configuredMessage
+    ? { body: configuredMessage, bodyHebrew: null, hashtags: [], cta: null }
+    : await generateContent({
+        communityId: automation.community.id,
+        contentType: (action.contentType ?? "GENERAL") as never,
+        eventId: automation.eventId ?? undefined,
+      });
+
+  const { data: draft } = await supabase
+    .from("ContentDraft")
+    .insert({
+      id: crypto.randomUUID(),
+      communityId: automation.community.id,
+      eventId: automation.eventId ?? null,
+      body: generated.body,
+      bodyHebrew: generated.bodyHebrew ?? null,
+      hashtags: generated.hashtags,
+      cta: generated.cta ?? null,
+      contentType: (action.contentType ?? "GENERAL") as never,
+      status: "AI_PROPOSAL",
+      aiGenerated: true,
+      aiModel: "gemini-2.5-flash",
+      updatedAt: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (!draft) return;
+
+  if (notifyUsers && notifyUsers.length > 0) {
+    const channels = action.channels ?? [];
+    const leadHours = getNotificationLeadHours(automation);
+    await supabase.from("Notification").insert(
+      notifyUsers.map((user) => ({
+        id: crypto.randomUUID(),
+        userId: user.id,
+        communityId: automation.community.id,
+        type: "AI_CONTENT_READY",
+        title: "Validation requise",
+        body: `Dans ${leadHours}h, votre publication sera envoyée. Validez ?`,
+        link: `/dashboard/assistant?draftId=${draft.id}`,
+        data: { draftId: draft.id, automationId: automation.id, preparedFor, channelTypes: channels },
+      })),
+    );
+  }
+
+  await supabase
+    .from("Automation")
+    .update({
+      triggerConfig: {
+        ...config,
+        preparedValidationFor: preparedFor,
+        preparedDraftId: draft.id,
+      } as never,
+      updatedAt: new Date().toISOString(),
+    })
+    .eq("id", automation.id);
 }
 
 async function shouldTrigger(automation: Automation, now: Date): Promise<boolean> {
@@ -340,6 +477,14 @@ export async function executeAutomationActions(
   for (const action of actions) {
     switch (action.type) {
       case "GENERATE_CONTENT": {
+        if (
+          action.requiresValidation !== false &&
+          automation.nextRunAt &&
+          triggerConfig.preparedValidationFor === automation.nextRunAt
+        ) {
+          break;
+        }
+
         let shabbatTimes = null;
         let hebrewDate: string | undefined;
 
@@ -390,12 +535,13 @@ export async function executeAutomationActions(
           });
         }
 
-        if (!action.requiresValidation && action.channels && action.channels.length > 0) {
+        const autoPublishChannels = (action.channels ?? []).filter((channel) => channel !== "WHATSAPP");
+        if (!action.requiresValidation && autoPublishChannels.length > 0) {
           const { data: channels } = await supabase
             .from("Channel")
             .select("id")
             .eq("communityId", automation.community.id)
-            .in("type", action.channels as never[])
+            .in("type", autoPublishChannels as never[])
             .eq("isActive", true);
 
           if (channels && channels.length > 0) {
@@ -415,11 +561,12 @@ export async function executeAutomationActions(
               userId: user.id,
               communityId: automation.community.id,
               type: isScheduledEvent ? "EVENT_REMINDER" : "AI_CONTENT_READY",
-              title: isScheduledEvent ? `Evenement : ${eventName}` : "Message pret a envoyer",
+              title: isScheduledEvent ? `Événement : ${eventName}` : "Message prêt à envoyer",
               body: isScheduledEvent
-                ? `C'est l'heure de l'evenement "${eventName}".`
+                ? `C'est l'heure de l'événement "${eventName}".`
                 : `Il est temps d'envoyer votre message sur ${channelsText} pour ${eventName}.`,
-              link: isScheduledEvent ? `/dashboard/events/${automation.eventId}` : `/dashboard/content/${draft.id}`,
+              link: isScheduledEvent ? `/dashboard/assistant?eventId=${automation.eventId}` : `/dashboard/assistant?draftId=${draft.id}`,
+              data: isScheduledEvent ? null : { draftId: draft.id, channelTypes: action.channels ?? [] },
             }))
           );
         }
@@ -460,7 +607,7 @@ export async function executeAutomationActions(
   </div>
   <div style="font-size: 15px; line-height: 1.7; color: #334155;"><p>${contentHtml}</p></div>
   <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center;">
-    Envoyé via <strong>EasyCom AI</strong> · Communication communautaire assistée par IA
+    EnvoyÃ© via <strong>EasyCom AI</strong> Â· Communication communautaire assistÃ©e par IA
   </div>
 </body>
 </html>`;
@@ -468,10 +615,10 @@ export async function executeAutomationActions(
             await resend.emails.send({
               from: process.env.EMAIL_FROM ?? `${automation.community.name} <noreply@easycom-ai.com>`,
               to: toEmails,
-              subject: action.emailSubject || "Message important de votre communauté",
+              subject: action.emailSubject || "Message important de votre communautÃ©",
               html: formattedContent,
             });
-            console.log(`[Automation] Email envoyé avec succès via Resend à ${toEmails.length} destinataires.`);
+            console.log(`[Automation] Email envoyÃ© avec succÃ¨s via Resend Ã  ${toEmails.length} destinataires.`);
           } catch (err) {
             console.error("[Automation] Erreur lors de l'envoi de l'email via Resend:", err);
             throw err;
@@ -523,7 +670,7 @@ export async function executeAutomationActions(
               communityId: automation.community.id,
               type: "AUTOMATION_TRIGGERED",
               title: action.notificationTitle || "Rappel automatique",
-              body: action.notificationBody || "Une automatisation s'est déclenchée.",
+              body: action.notificationBody || "Une automatisation s'est dÃ©clenchÃ©e.",
               link: "/dashboard",
             }))
           );
@@ -562,3 +709,4 @@ function computeNextRunAt(automation: Automation, now: Date): Date | null {
   }
   return nextRun;
 }
+

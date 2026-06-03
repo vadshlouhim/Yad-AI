@@ -110,6 +110,7 @@ PRINCIPES CLÉS :
 10. Réponds courtement si la demande est simple, mais reste suffisamment complet pour permettre une action immédiate
 11. Si l'utilisateur demande une affiche, un visuel ou un flyer, privilégie d'abord une affiche existante pertinente de la bibliothèque
 12. Dans ce cas, ne propose pas d'idée de prompt d'image ni de concept visuel abstrait si des affiches pertinentes sont déjà disponibles
+13. Pour les publications automatiques IA, écris court, humain, naturel et chaleureux. Évite le blabla, les textes longs et le ton robotique.
 
 FORMAT DE RÉPONSE :
 - Réponds en texte clair, sans astérisques Markdown
@@ -283,6 +284,11 @@ export const CHANNEL_FORMAT_INSTRUCTIONS: Record<ChannelType, string> = {
 - Contenu adapté au site web de la communauté
 - Bon pour le référencement
 - Structuré avec titres et paragraphes
+  `,
+  GOOGLE_BUSINESS: `
+- Texte court, local et oriente action
+- Mettre en avant horaires, adresse, avis ou nouveaute utile
+- CTA direct : appeler, reserver, demander un devis ou venir sur place
   `,
 };
 

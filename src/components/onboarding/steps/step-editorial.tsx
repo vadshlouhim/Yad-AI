@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -85,9 +85,9 @@ export function StepEditorial({ data, updateData, onNext, onPrev }: Props) {
         <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center mb-3">
           <Pen className="size-6 text-amber-600" />
         </div>
-        <CardTitle className="text-xl">Identité éditoriale</CardTitle>
+        <CardTitle className="text-xl">Style de communication</CardTitle>
         <CardDescription>
-          Définissez le ton que l&apos;IA appliquera à tous vos contenus.
+          Aidez l&apos;IA à comprendre votre ton pour créer des contenus qui vous ressemblent.
         </CardDescription>
       </CardHeader>
 
@@ -158,7 +158,7 @@ export function StepEditorial({ data, updateData, onNext, onPrev }: Props) {
           </select>
         </div>
 
-        {/* Signature — facultatif */}
+        {/* Signature - facultatif */}
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
             Signature de fin de publication
@@ -168,13 +168,13 @@ export function StepEditorial({ data, updateData, onNext, onPrev }: Props) {
             type="text"
             value={data.signature}
             onChange={(e) => updateData({ signature: e.target.value })}
-            placeholder={`Ex. L'équipe de ${data.communityName || "votre communauté"} 👋`}
+            placeholder={`Ex. L'équipe de ${data.communityName || "votre structure"}`}
             className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           />
           <p className="text-xs text-slate-400">Ajoutée automatiquement à la fin de chaque publication.</p>
         </div>
 
-        {/* Hashtags — facultatif */}
+        {/* Hashtags - facultatif */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
             Hashtags habituels
@@ -231,7 +231,7 @@ export function StepEditorial({ data, updateData, onNext, onPrev }: Props) {
           </div>
         </div>
 
-        {/* Règles éditoriales — facultatif */}
+        {/* Règles éditoriales - facultatif */}
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
             Règles éditoriales
@@ -240,7 +240,7 @@ export function StepEditorial({ data, updateData, onNext, onPrev }: Props) {
           <textarea
             value={data.editorialRules}
             onChange={(e) => updateData({ editorialRules: e.target.value })}
-            placeholder={`Ex. — Toujours mentionner l'adresse dans les posts d'événements\n— Utiliser un ton inclusif et bienveillant\n— Ajouter systématiquement un lien vers notre site`}
+            placeholder={`Ex. - Toujours mentionner l'adresse dans les posts d'événements\n- Utiliser un ton inclusif et bienveillant\n- Ajouter systématiquement un lien vers notre site`}
             rows={4}
             className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none"
           />
@@ -264,3 +264,5 @@ export function StepEditorial({ data, updateData, onNext, onPrev }: Props) {
     </Card>
   );
 }
+
+

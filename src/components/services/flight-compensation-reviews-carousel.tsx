@@ -40,17 +40,21 @@ const reviews: Review[] = [
 export function FlightCompensationReviewsCarousel() {
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const goToNext = useEffectEvent(() => {
+  const goToNextFromEffect = useEffectEvent(() => {
     setActiveIndex((current) => (current + 1) % reviews.length);
   });
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      goToNext();
+      goToNextFromEffect();
     }, 4800);
 
     return () => window.clearInterval(interval);
-  }, [goToNext]);
+  }, []);
+
+  const goToNext = () => {
+    setActiveIndex((current) => (current + 1) % reviews.length);
+  };
 
   const goToPrevious = () => {
     setActiveIndex((current) => (current - 1 + reviews.length) % reviews.length);

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import type { OnboardingData } from "../onboarding-wizard";
 import {
   Building2, MapPin, Phone, Mail, Globe, ChevronRight,
-  Heart, Landmark, GraduationCap, Trophy, Palette,
-  Briefcase, Home, BookOpen, Wifi, Users, Layers,
+  Heart, Landmark, GraduationCap, Trophy, Palette, UtensilsCrossed,
+  Briefcase, Home, BookOpen, Wifi, Users, Layers, Store, Video,
   Image as ImageIcon, Loader2, Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,12 @@ interface Props {
 }
 
 const COMMUNITY_TYPES = [
+  { value: "RESTAURANT", label: "Restaurateur", icon: UtensilsCrossed, accent: "text-orange-600 bg-orange-50 border-orange-200" },
+  { value: "CATERER", label: "Traiteur", icon: Store, accent: "text-amber-600 bg-amber-50 border-amber-200" },
+  { value: "SPORT_COACH", label: "Coach sportif", icon: Trophy, accent: "text-lime-700 bg-lime-50 border-lime-200" },
+  { value: "COMMERCE", label: "Commerce", icon: Store, accent: "text-green-600 bg-green-50 border-green-200" },
+  { value: "BUSINESS", label: "Entreprise", icon: Briefcase, accent: "text-slate-700 bg-slate-100 border-slate-200" },
+  { value: "CONTENT_CREATOR", label: "Créateur de contenu", icon: Video, accent: "text-pink-600 bg-pink-50 border-pink-200" },
   { value: "ASSOCIATION", label: "Association / ONG", icon: Heart, accent: "text-rose-600 bg-rose-50 border-rose-200" },
   { value: "RELIGIOUS", label: "Lieu de culte", icon: Landmark, accent: "text-purple-600 bg-purple-50 border-purple-200" },
   { value: "SCHOOL", label: "École / Formation", icon: GraduationCap, accent: "text-blue-600 bg-blue-50 border-blue-200" },
@@ -77,9 +83,9 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
         <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center mb-3">
           <Building2 className="size-6 text-blue-600" />
         </div>
-        <CardTitle className="text-xl">Identité de votre communauté</CardTitle>
+        <CardTitle className="text-xl">Identité de votre structure</CardTitle>
         <CardDescription>
-          Ces informations permettent à l&apos;IA de personnaliser tous vos contenus automatiquement.
+          Ces informations permettent à EasyCom AI de comprendre votre identité et de personnaliser vos contenus automatiquement.
         </CardDescription>
       </CardHeader>
 
@@ -88,7 +94,7 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
         {/* Nom */}
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700">
-            Nom de la communauté <span className="text-red-500">*</span>
+            Nom de votre structure <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -105,13 +111,13 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
               <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white">
                 {data.logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={data.logoUrl} alt="Logo de la communauté" className="h-full w-full object-contain p-2" />
+                  <img src={data.logoUrl} alt="Logo de votre structure" className="h-full w-full object-contain p-2" />
                 ) : (
                   <ImageIcon className="size-7 text-slate-400" />
                 )}
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900">Logo de la communauté</p>
+                <p className="text-sm font-semibold text-slate-900">Logo votre structure</p>
                 <p className="mt-1 text-xs leading-5 text-slate-500">
                   Ajoutez votre logo pour personnaliser vos contenus et votre espace.
                 </p>
@@ -142,19 +148,19 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
           )}
         </div>
 
-        {/* Type de communauté */}
+        {/* Type de structure */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-slate-700">
-            Quel type de communauté êtes-vous ?
+            Quel type de structure êtes-vous ?
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {COMMUNITY_TYPES.map(({ value, label, icon: Icon, accent }) => {
-              const selected = data.communityType === value;
+              const selected = data.communityType === value || (value === "RELIGIOUS" && data.communityType === "SYNAGOGUE");
               return (
                 <button
                   key={value}
                   type="button"
-                  onClick={() => updateData({ communityType: value, isBethHabad: value === "RELIGIOUS" ? data.isBethHabad : false })}
+                  onClick={() => updateData({ communityType: value, isBethHabad: false })}
                   className={cn(
                     "flex items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 text-left text-sm transition-all",
                     selected
@@ -173,26 +179,29 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
               );
             })}
           </div>
-          {data.communityType === "RELIGIOUS" && (
-            <label className="mt-3 flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={data.isBethHabad}
-                onChange={(event) => updateData({ isBethHabad: event.target.checked })}
-                className="h-4 w-4 rounded border-slate-300 text-blue-600"
-              />
-              <span className="font-semibold">בס״ד</span>
-              <span className="text-xs text-slate-500">Identifier ce lieu de culte comme Beth Habad</span>
-            </label>
+          {(data.communityType === "RELIGIOUS" || data.communityType === "SYNAGOGUE") && (
+            <button
+              type="button"
+              onClick={() => updateData({ communityType: "SYNAGOGUE", isBethHabad: true })}
+              className={cn(
+                "mt-3 flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition",
+                data.communityType === "SYNAGOGUE" && data.isBethHabad
+                  ? "border-blue-300 bg-blue-50 text-blue-700"
+                  : "border-blue-100 bg-blue-50/70 text-slate-700 hover:border-blue-200 hover:bg-blue-50"
+              )}
+            >
+              <span className="font-semibold">{"ב''ה"}</span>
+              <span className="text-xs text-slate-500">Identifier ce lieu de culte comme une Shoul</span>
+            </button>
           )}
         </div>
 
-        {/* Description — clé pour l'IA */}
+        {/* Description - clé pour l'IA */}
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700 flex items-center gap-2 flex-wrap">
-            Décrivez votre communauté en une phrase
+            Décrivez votre structure en une phrase
             <span className="text-xs font-normal text-slate-400 border border-slate-200 rounded-full px-2 py-0.5">
-              Facultatif — recommandé
+              Facultatif - recommandé
             </span>
           </label>
           <textarea
@@ -239,7 +248,7 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
           </div>
         </div>
 
-        {/* Contacts — facultatif */}
+        {/* Contacts - facultatif */}
         <div className="space-y-3">
           <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
             Contacts
@@ -301,3 +310,6 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
     </Card>
   );
 }
+
+
+

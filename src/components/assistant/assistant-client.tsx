@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -9,7 +9,7 @@ import {
   Plus, MessageSquare, Pencil, MoreHorizontal, PanelLeftOpen, Share2,
   X, SlidersHorizontal, PlayCircle, PauseCircle,
   Power, ExternalLink, Zap, CalendarDays, BookOpen, Gift, HeartHandshake,
-  Lightbulb, Clock3, Radio, Mail, Hand,
+  Lightbulb, Clock3, Radio, Mail,
 } from "lucide-react";
 import { CHANNEL_LABELS, cn } from "@/lib/utils";
 import { formatArticlePrice } from "@/lib/articles/shared";
@@ -128,6 +128,17 @@ interface Props {
   tone: string;
   channels: ChannelOption[];
   seasonalPrompts: QuickPrompt[];
+  initialPrompt?: string;
+  initialApprovalDraft?: ApprovalDraft | null;
+}
+
+interface ApprovalDraft {
+  id: string;
+  title: string | null;
+  body: string;
+  hashtags: string[];
+  status: string;
+  channelTypes: string[];
 }
 
 interface ChannelOption {
@@ -152,7 +163,7 @@ const QUICK_PROMPTS: QuickPrompt[] = [
   { label: "Plan Chabbat", description: "Post, affiche, horaires, rappel", prompt: "Prépare-moi un plan complet pour Chabbat cette semaine : message WhatsApp, post Instagram, affiche si disponible et rappel à programmer." },
   { label: "Créer automatisation", description: "Suggestions prêtes en un clic", prompt: "Propose-moi les automatisations les plus utiles pour mon Beth Habad et explique laquelle créer en premier." },
   { label: "Annonce événement", description: "J-10, J-5, J-1, jour J", prompt: "Aide-moi à préparer la communication complète d'un événement : annonce, rappels, visuel et canaux." },
-  { label: "Vœux de fête", description: "Texte + affiche + timing", prompt: "Prépare les voeux pour la prochaine fête juive avec texte, canaux recommandés et affiche si disponible." },
+  { label: "Vœux de fête", description: "Texte + affiche + timing", prompt: "Prépare les vœux pour la prochaine fête juive avec texte, canaux recommandés et affiche si disponible." },
   { label: "Cours de Torah", description: "Annonce et rappel régulier", prompt: "Prépare une annonce de cours de Torah hebdomadaire et propose une automatisation de rappel." },
   { label: "Collecte de fonds", description: "Message clair et sensible", prompt: "Écris une campagne de collecte de dons structurée avec message principal, WhatsApp, email et CTA." },
   { label: "Diagnostic compte", description: "Ce qui manque / quoi améliorer", prompt: "Fais un diagnostic simple de mon compte : automatisations, réseaux, quotidien, contenus et prochaines actions." },
@@ -174,13 +185,20 @@ const ASSISTANT_PLACEHOLDER_SUGGESTIONS = [
   "Rédige un message WhatsApp clair et professionnel",
 ];
 
-const STATIC_ASSISTANT_PLACEHOLDER = "Decrivez votre demande a EasyCom AI...";
+const STATIC_ASSISTANT_PLACEHOLDER = "Décrivez votre demande à EasyCom AI...";
 
-const ALL_FEATURES_PROMPT =
-  "Explique-moi clairement tout ce que EasyCom AI peut faire pour moi au quotidien. " +
-  "Je veux un tour complet et concret : automatisations, reseaux sociaux, WhatsApp, Facebook, Instagram, " +
-  "email, avis Google, agenda IA, assistant du quotidien, affiches, ressources communautaires, notifications, " +
-  "et tout ce que je peux lancer en un clic depuis mon espace.";
+const EASYCOM_FULL_MESSAGE =
+  "EasyCom AI vous aide à gérer toute votre communication depuis un seul espace intelligent.\n\n" +
+  "* Programmez vos publications sur WhatsApp, Instagram et Facebook, puis recevez une notification au bon moment avant validation.\n" +
+  "* Enregistrez vos contacts, organisez vos groupes et envoyez des messages bien rédigés, structurés et adaptés aux bonnes personnes.\n" +
+  "* Gérez vos emails intelligemment : l'IA trie les messages importants, repère les urgences et vous propose des réponses prêtes à envoyer.\n" +
+  "* Suivez vos avis Google : l'IA détecte les avis prioritaires, vous alerte et prépare une réponse professionnelle.\n" +
+  "* Utilisez l'Assistant du quotidien pour dire à l'IA un événement, une tâche ou un rappel, et il l'ajoute automatiquement dans votre Agenda IA.\n" +
+  "* Centralisez vos automatisations, publications prévues, rappels et événements dans votre Agenda IA avec des notifications au bon moment.\n" +
+  "* Créez des clips vidéo IA à partir de vos photos et vidéos, prêts à être publiés sur vos réseaux.\n" +
+  "* Notez vos ressources personnelles, organisez-les dans votre espace, puis publiez-les ou partagez-les en un clic.\n\n" +
+  "EasyCom AI prépare, organise et automatise vos actions tout en vous laissant le contrôle : l'IA propose, vous validez, puis elle agit.\n\n" +
+  "Cliquez dans le menu ou demandez à l'Assistant IA ce que vous souhaitez.";
 
 function getQuickPromptStyle(index: number) {
   return QUICK_PROMPT_STYLES[index % QUICK_PROMPT_STYLES.length];
@@ -283,7 +301,7 @@ function cleanConversationTitle(title: string) {
 }
 
 // ============================================================
-// HELPERS — Groupement par date
+// HELPERS â€” Groupement par date
 // ============================================================
 
 function groupByDate(conversations: ConversationSummary[]): { label: string; items: ConversationSummary[] }[] {
@@ -319,7 +337,15 @@ function groupByDate(conversations: ConversationSummary[]): { label: string; ite
 // COMPOSANT PRINCIPAL
 // ============================================================
 
-export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, channels, seasonalPrompts }: Props) {
+export function AssistantClient({
+  communityName,
+  communityLogoUrl,
+  tone: _tone,
+  channels,
+  seasonalPrompts,
+  initialPrompt,
+  initialApprovalDraft,
+}: Props) {
   void _tone;
   const router = useRouter();
   const [assistantExperience, setAssistantExperienceState] = useState<"simple" | "detailed">("simple");
@@ -334,7 +360,6 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   const [menuId, setMenuId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [simpleMainMenuOpen, setSimpleMainMenuOpen] = useState(false);
-  const [socialNetworksMenuOpen, setSocialNetworksMenuOpen] = useState(false);
   const [simpleHistoryOpen, setSimpleHistoryOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateSuggestion | null>(null);
   const [preparingPoster, setPreparingPoster] = useState(false);
@@ -344,6 +369,8 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   const [publishCaption, setPublishCaption] = useState("");
   const [buyingArticleId, setBuyingArticleId] = useState<string | null>(null);
   const [runningActionId, setRunningActionId] = useState<string | null>(null);
+  const [approvalDraft, setApprovalDraft] = useState<ApprovalDraft | null>(initialApprovalDraft ?? null);
+  const [approvingDraft, setApprovingDraft] = useState(false);
   const [editingPosterId, setEditingPosterId] = useState<string | null>(null);
   const [posterDraftEdits, setPosterDraftEdits] = useState<Record<string, string>>({});
   // Quotidien
@@ -377,6 +404,12 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   useEffect(() => {
     inputRef.current?.focus();
   }, [activeConversationId]);
+
+  useEffect(() => {
+    if (!initialPrompt) return;
+    setInput(initialPrompt);
+    setHasStartedPromptEntry(true);
+  }, [initialPrompt]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -447,7 +480,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
     };
   }, [shouldAnimatePlaceholder]);
 
-  // ── API calls ──
+  // â”€â”€ API calls â”€â”€
 
   async function fetchConversations() {
     const res = await fetch("/api/conversations");
@@ -467,6 +500,90 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
     } finally {
       setDailyRoutineLoading(false);
     }
+  }
+
+  function getApprovalChannelTypes() {
+    if (!approvalDraft) return [];
+    if (approvalDraft.channelTypes.length > 0) return approvalDraft.channelTypes;
+    return channels
+      .filter((channel) => channel.isActive && (channel.isConnected || channel.type === "WHATSAPP" || channel.type === "EMAIL"))
+      .map((channel) => channel.type);
+  }
+
+  async function publishApprovalDraft() {
+    if (!approvalDraft || approvingDraft) return;
+    const channelTypes = getApprovalChannelTypes();
+    if (channelTypes.length === 0) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: "Aucun canal actif n'est disponible pour envoyer ce message. Connectez ou activez un canal, puis réessayez.",
+          timestamp: new Date(),
+        },
+      ]);
+      return;
+    }
+
+    setApprovingDraft(true);
+    try {
+      const response = await fetch("/api/publishing/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ draftId: approvalDraft.id, channelTypes }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Publication impossible");
+
+      setApprovalDraft(null);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: `C'est validé. J'envoie ce message sur ${channelTypes.map((channel) => CHANNEL_LABELS[channel] ?? channel).join(", ")}.`,
+          timestamp: new Date(),
+        },
+      ]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: `Je n'ai pas pu envoyer le message pour le moment : ${(error as Error).message}`,
+          timestamp: new Date(),
+        },
+      ]);
+    } finally {
+      setApprovingDraft(false);
+    }
+  }
+
+  function startApprovalEditConversation() {
+    if (!approvalDraft) return;
+    setApprovalDraft(null);
+    setHasStartedPromptEntry(true);
+    setInput("");
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: `Que souhaitez-vous modifier dans ce message ?\n\n${approvalDraft.body}`,
+        timestamp: new Date(),
+      },
+    ]);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  function askForApprovalModels() {
+    if (!approvalDraft) return;
+    setApprovalDraft(null);
+    sendMessage(
+      `Propose des modèles de messages ou publications adaptés au contexte, en respectant mon style mémorisé. Message de départ :\n\n${approvalDraft.body}`,
+    );
   }
 
   async function saveDailyRoutine(items: RoutineItem[]) {
@@ -564,7 +681,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
     }
   }
 
-  // ── Chat ──
+  // â”€â”€ Chat â”€â”€
 
   const sendMessage = useCallback(async (
     content?: string,
@@ -689,7 +806,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: "Désolé, une erreur s'est produite. Veuillez réessayer.",
+          content: "DÃ©solÃ©, une erreur s'est produite. Veuillez rÃ©essayer.",
           timestamp: new Date(),
         },
       ]);
@@ -720,6 +837,18 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
       .replace(/\n/g, "<br />");
   }
 
+  function sendEasyComOverviewMessage() {
+    setHasStartedPromptEntry(true);
+    setMessages([
+      {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: EASYCOM_FULL_MESSAGE,
+        timestamp: new Date(),
+      },
+    ]);
+  }
+
   function setAssistantExperience(mode: "simple" | "detailed") {
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       setAssistantExperienceState("simple");
@@ -747,11 +876,11 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
     .filter((section) => section.items.length > 0);
   const detailedMenuItems = DASHBOARD_NAV_ITEMS.flatMap((section) => section.items);
   const simpleMainButtons = [
-    { label: "Automatisations", href: "/dashboard/automations", icon: Zap, accent: "bg-cyan-500", iconTone: "text-cyan-600", iconBg: "bg-cyan-50" },
-    { label: "Réseaux Sociaux", href: "#", icon: Share2, accent: "bg-indigo-500", iconTone: "text-indigo-600", iconBg: "bg-indigo-50", action: "social" as const },
-    { label: "Email", href: "/dashboard/email", icon: Mail, accent: "bg-sky-500", iconTone: "text-sky-600", iconBg: "bg-sky-50" },
-    { label: "Avis Google", href: "/dashboard/google-reviews", icon: Sparkles, accent: "bg-amber-500", iconTone: "text-amber-600", iconBg: "bg-amber-50" },
-    { label: "Assistant du quotidien", href: "/dashboard/events", icon: CalendarDays, accent: "bg-violet-500", iconTone: "text-violet-600", iconBg: "bg-violet-50" },
+    { label: "Créer des automatisations", href: "/dashboard/automations", icon: Zap, accent: "bg-blue-500", iconTone: "text-blue-600", iconBg: "bg-blue-50", mobileOnly: false },
+    { label: "Assistant du quotidien", href: "/dashboard/events", icon: CalendarDays, accent: "bg-violet-500", iconTone: "text-violet-600", iconBg: "bg-violet-50", mobileOnly: false },
+    { label: "Gérer mes email", href: "/dashboard/email", icon: Mail, accent: "bg-cyan-500", iconTone: "text-cyan-600", iconBg: "bg-cyan-50", mobileOnly: false },
+    { label: "Voir mes avis Google", href: "/dashboard/google-reviews", icon: Sparkles, accent: "bg-cyan-500", iconTone: "text-cyan-600", iconBg: "bg-cyan-50", mobileOnly: false },
+    { label: "Créer un clip vidéo", href: "/dashboard/clip-recap", icon: PlayCircle, accent: "bg-rose-500", iconTone: "text-rose-600", iconBg: "bg-rose-50", mobileOnly: true },
   ] as const;
   const mobileQuickFeatureConfigs = [
     { href: "/dashboard/automations", label: "Mes automatisations" },
@@ -877,7 +1006,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error ?? "Impossible de préparer l'affiche");
+        throw new Error(data.error ?? "Impossible de prÃ©parer l'affiche");
       }
 
       setMessages((prev) => [
@@ -902,7 +1031,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
           id: crypto.randomUUID(),
           role: "assistant",
           content:
-            "Je n'ai pas pu préparer l'affiche pour le moment. Réessaie après avoir précisé les textes principaux.",
+            "Je n'ai pas pu prÃ©parer l'affiche pour le moment. RÃ©essaie aprÃ¨s avoir prÃ©cisÃ© les textes principaux.",
           timestamp: new Date(),
         },
       ]);
@@ -920,10 +1049,10 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   function savePosterEdits(message: Message) {
     if (!message.posterDraft) return;
     const nextTexts = Object.fromEntries(
-      Object.entries(posterDraftEdits).map(([key, value]) => [key, value.trim() || "À confirmer"])
+      Object.entries(posterDraftEdits).map(([key, value]) => [key, value.trim() || "Ã€ confirmer"])
     );
     const missingFields = Object.entries(nextTexts)
-      .filter(([, value]) => value === "À confirmer")
+      .filter(([, value]) => value === "Ã€ confirmer")
       .map(([key]) => key);
 
     setMessages((prev) =>
@@ -937,13 +1066,13 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                 missingFields,
               },
               content: [
-                "J'ai mis à jour les textes de l'affiche avec vos modifications.",
+                "J'ai mis Ã  jour les textes de l'affiche avec vos modifications.",
                 "",
                 ...Object.entries(nextTexts).map(([key, value]) => `- ${key} : ${value}`),
                 "",
                 missingFields.length > 0
-                  ? `À confirmer : ${missingFields.join(", ")}.`
-                  : "Si tout est bon, vous pouvez générer l'affiche.",
+                  ? `Ã€ confirmer : ${missingFields.join(", ")}.`
+                  : "Si tout est bon, vous pouvez gÃ©nÃ©rer l'affiche.",
               ].join("\n"),
             }
           : item
@@ -969,7 +1098,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
             })),
             {
               role: "user",
-              content: `Régénère automatiquement les textes de l'affiche ${message.posterDraft.template.name} avec toutes les informations connues et ces corrections éventuelles : ${JSON.stringify(posterDraftEdits)}`,
+              content: `RÃ©gÃ©nÃ¨re automatiquement les textes de l'affiche ${message.posterDraft.template.name} avec toutes les informations connues et ces corrections Ã©ventuelles : ${JSON.stringify(posterDraftEdits)}`,
             },
           ],
         }),
@@ -977,7 +1106,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error ?? "Impossible de régénérer l'affiche");
+        throw new Error(data.error ?? "Impossible de rÃ©gÃ©nÃ©rer l'affiche");
       }
 
       setPosterDraftEdits(data.generatedTexts);
@@ -1003,7 +1132,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: "Je n'ai pas pu régénérer automatiquement les textes pour le moment.",
+          content: "Je n'ai pas pu rÃ©gÃ©nÃ©rer automatiquement les textes pour le moment.",
           timestamp: new Date(),
         },
       ]);
@@ -1013,7 +1142,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
   }
 
   function buildPosterPublicationDraft(posterDraft: PosterDraft): PublishDraft {
-    const orderedEntries = Object.entries(posterDraft.generatedTexts).filter(([, value]) => value && value !== "À confirmer");
+    const orderedEntries = Object.entries(posterDraft.generatedTexts).filter(([, value]) => value && value !== "Ã€ confirmer");
     const title = orderedEntries[0]?.[1] ?? posterDraft.template.name;
     const caption = orderedEntries
       .slice(1)
@@ -1043,7 +1172,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error ?? "Impossible de générer l'affiche");
+        throw new Error(data.error ?? "Impossible de gÃ©nÃ©rer l'affiche");
       }
 
       const publishDraft = buildPosterPublicationDraft(message.posterDraft);
@@ -1054,7 +1183,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
           id: crypto.randomUUID(),
           role: "assistant",
           content:
-            "L'affiche est prête. Tu peux l'ouvrir ou la télécharger ci-dessous.",
+            "L'affiche est prÃªte. Tu peux l'ouvrir ou la tÃ©lÃ©charger ci-dessous.",
           timestamp: new Date(),
           generatedImageUrl: data.imageUrl,
           publishDraft,
@@ -1074,7 +1203,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
           id: crypto.randomUUID(),
           role: "assistant",
           content:
-            "La génération finale de l'affiche a échoué. Vérifie la configuration Fal et réessaie.",
+            "La gÃ©nÃ©ration finale de l'affiche a Ã©chouÃ©. VÃ©rifie la configuration Fal et rÃ©essaie.",
           timestamp: new Date(),
         },
       ]);
@@ -1145,12 +1274,12 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
         error?: string;
       }) => {
         if (result.success) {
-          return `- ${CHANNEL_LABELS[result.channelType] ?? result.channelType} : envoyé`;
+          return `- ${CHANNEL_LABELS[result.channelType] ?? result.channelType} : envoyÃ©`;
         }
         if (result.fallbackUsed) {
-          return `- ${CHANNEL_LABELS[result.channelType] ?? result.channelType} : prêt en fallback`;
+          return `- ${CHANNEL_LABELS[result.channelType] ?? result.channelType} : prÃªt en fallback`;
         }
-        return `- ${CHANNEL_LABELS[result.channelType] ?? result.channelType} : échec${result.error ? ` (${result.error})` : ""}`;
+        return `- ${CHANNEL_LABELS[result.channelType] ?? result.channelType} : Ã©chec${result.error ? ` (${result.error})` : ""}`;
       });
 
       setMessages((prev) => [
@@ -1158,7 +1287,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: `Publication de l'affiche :\n${resultLines.join("\n")}\n\nTu peux retrouver le détail dans Publications.`,
+          content: `Publication de l'affiche :\n${resultLines.join("\n")}\n\nTu peux retrouver le dÃ©tail dans Publications.`,
           timestamp: new Date(),
         },
       ]);
@@ -1219,14 +1348,14 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
         }),
       });
 
-      if (!response.ok) throw new Error("Création échouée");
+      if (!response.ok) throw new Error("CrÃ©ation Ã©chouÃ©e");
 
       setMessages((prev) =>
         prev.map((item) =>
           item.id === message.id
             ? {
                 ...item,
-                content: `Créé : ${setup.name}.\nHeure : ${setup.time}\nCanaux : ${setup.channels.map((channel) => CHANNEL_LABELS[channel] ?? channel).join(", ")}`,
+                content: `CrÃ©Ã© : ${setup.name}.\nHeure : ${setup.time}\nCanaux : ${setup.channels.map((channel) => CHANNEL_LABELS[channel] ?? channel).join(", ")}`,
                 automationSetup: undefined,
               }
             : item
@@ -1240,7 +1369,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: "Je n'ai pas pu créer cette automatisation. Vérifiez les champs puis réessayez.",
+          content: "Je n'ai pas pu crÃ©er cette automatisation. VÃ©rifiez les champs puis rÃ©essayez.",
           timestamp: new Date(),
         },
       ]);
@@ -1273,14 +1402,14 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ presetId: card.action.presetId }),
         });
-        if (!response.ok) throw new Error("Création échouée");
+        if (!response.ok) throw new Error("CrÃ©ation Ã©chouÃ©e");
         router.refresh();
         setMessages((prev) => [
           ...prev,
           {
             id: crypto.randomUUID(),
             role: "assistant",
-            content: `Créé : ${card.title}. Vous pouvez l'activer, le mettre en pause ou le configurer depuis vos automatisations.`,
+            content: `CrÃ©Ã© : ${card.title}. Vous pouvez l'activer, le mettre en pause ou le configurer depuis vos automatisations.`,
             timestamp: new Date(),
           },
         ]);
@@ -1290,7 +1419,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
           {
             id: crypto.randomUUID(),
             role: "assistant",
-            content: "Je n'ai pas pu créer cette automatisation. Vérifiez vos droits ou réessayez.",
+            content: "Je n'ai pas pu crÃ©er cette automatisation. VÃ©rifiez vos droits ou rÃ©essayez.",
             timestamp: new Date(),
           },
         ]);
@@ -1308,7 +1437,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: `Configurons ${setup.name}. Remplissez ou ajustez ces informations, puis je la crée.`,
+          content: `Configurons ${setup.name}. Remplissez ou ajustez ces informations, puis je la crÃ©e.`,
           timestamp: new Date(),
           automationSetup: setup,
         },
@@ -1321,7 +1450,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
       let response: Response | null = null;
 
       if (card.action.kind === "send_email" && card.action.emailData) {
-        const confirmed = window.confirm(`Voulez-vous vraiment envoyer cet e-mail à ${card.action.emailData.to} ?\n\nSujet : ${card.action.emailData.subject}\n\n${card.action.emailData.body}`);
+        const confirmed = window.confirm(`Voulez-vous vraiment envoyer cet e-mail Ã  ${card.action.emailData.to} ?\n\nSujet : ${card.action.emailData.subject}\n\n${card.action.emailData.body}`);
         if (!confirmed) {
           setRunningActionId(null);
           return;
@@ -1355,7 +1484,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
       }
 
       if (response && !response.ok) {
-        throw new Error("Action échouée");
+        throw new Error("Action Ã©chouÃ©e");
       }
 
       setMessages((prev) =>
@@ -1374,19 +1503,19 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
             }
 
             if (card.action?.kind === "create_shabbat_automation" || card.action?.kind === "create_automation") {
-              return { ...actionCard, status: "Créée", action: undefined };
+              return { ...actionCard, status: "CrÃ©Ã©e", action: undefined };
             }
 
             if (card.action?.kind === "trigger_automation") {
-              return { ...actionCard, status: "Lancée" };
+              return { ...actionCard, status: "LancÃ©e" };
             }
 
             if (card.action?.kind === "delete_automation") {
-              return { ...actionCard, status: "Supprimée", action: undefined };
+              return { ...actionCard, status: "SupprimÃ©e", action: undefined };
             }
 
             if (card.action?.kind === "send_email") {
-              return { ...actionCard, status: "Envoyé", action: undefined };
+              return { ...actionCard, status: "EnvoyÃ©", action: undefined };
             }
 
             return actionCard;
@@ -1396,14 +1525,14 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
 
       const confirmation =
         card.action.kind === "toggle_automation"
-          ? `${card.action.isActive ? "Mis en pause" : "Activé"} : ${card.title}.`
+          ? `${card.action.isActive ? "Mis en pause" : "ActivÃ©"} : ${card.title}.`
           : card.action.kind === "trigger_automation"
-            ? `Lancé : ${card.title}.`
+            ? `LancÃ© : ${card.title}.`
             : card.action.kind === "delete_automation"
-              ? `Supprimé : ${card.title}.`
+              ? `SupprimÃ© : ${card.title}.`
               : card.action.kind === "send_email"
-                ? `E-mail envoyé avec succès à ${card.action.emailData?.to}.`
-                : `Créé : ${card.title}.`;
+                ? `E-mail envoyÃ© avec succÃ¨s Ã  ${card.action.emailData?.to}.`
+                : `CrÃ©Ã© : ${card.title}.`;
 
       setMessages((prev) => [
         ...prev,
@@ -1422,7 +1551,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: "Je n'ai pas pu appliquer cette action. Réessayez dans un instant.",
+          content: "Je n'ai pas pu appliquer cette action. RÃ©essayez dans un instant.",
           timestamp: new Date(),
         },
       ]);
@@ -1444,7 +1573,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
           : "h-[calc(100dvh-4rem)]"
       )}
     >
-      {/* ── Sidebar historique ── */}
+      {/* â”€â”€ Sidebar historique â”€â”€ */}
       {assistantExperience === "detailed" && historyOpen && (
         <div
           className="fixed inset-0 z-30 bg-slate-950/40 lg:hidden"
@@ -1465,14 +1594,14 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
           </Button>
         </div>
 
-        {/* Liste des conversations groupées par date */}
+        {/* Liste des conversations groupÃ©es par date */}
         <div className="flex-1 overflow-y-auto px-2 pb-4">
           <p className="px-2 py-1 text-xs font-semibold tracking-wide text-slate-600">
             Historique des conversations
           </p>
           {groupedConversations.length === 0 && (
             <p className="text-xs text-slate-400 text-center mt-8 px-4">
-              Vos conversations apparaîtront ici
+              Vos conversations apparaÃ®tront ici
             </p>
           )}
           {groupedConversations.map((group) => (
@@ -1587,7 +1716,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
             >
               <PanelLeftOpen className="size-4 text-slate-800" />
               <span className="text-slate-800">Menu principal</span>
-              Mode détaillé
+              Mode dÃ©taillÃ©
             </Link>
           </div>
           <div className="hidden flex-1 overflow-y-auto px-2 py-3">
@@ -1596,7 +1725,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
             </p>
             {groupedConversations.length === 0 && (
               <p className="px-4 py-8 text-center text-xs text-slate-400">
-                Vos conversations apparaîtront ici
+                Vos conversations apparaÃ®tront ici
               </p>
             )}
             {groupedConversations.map((group) => (
@@ -1685,7 +1814,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
             <div className="max-h-[calc(88vh-60px)] overflow-y-auto px-3 py-3 sm:px-4">
               {groupedConversations.length === 0 && (
                 <p className="px-4 py-10 text-center text-sm text-slate-400">
-                  Vos conversations apparaîtront ici
+                  Vos conversations apparaÃ®tront ici
                 </p>
               )}
               {groupedConversations.map((group) => (
@@ -1734,7 +1863,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
         </div>
       )}
 
-      {/* ── Zone de chat ── */}
+      {/* â”€â”€ Zone de chat â”€â”€ */}
 		      <div className={cn("flex-1 flex flex-col min-w-0", assistantExperience === "simple" && "w-full")}>
         {/* Header */}
         <div className={cn(
@@ -1786,7 +1915,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
               <div className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="truncate text-xs text-slate-500">
-                  {assistantExperience === "simple" ? "Assistant IA" : "Assistant principal · Prêt"}
+                  {assistantExperience === "simple" ? "Assistant IA" : "Assistant principal Â· PrÃªt"}
                 </span>
               </div>
             </div>
@@ -1831,26 +1960,59 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                 className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm transition"
               >
                 <SlidersHorizontal className="size-3.5" />
-                Mode détaillé
+                Mode dÃ©taillÃ©
               </button>
             )}
             </div>
           </div>
         </div>
 
+        {approvalDraft && (
+          <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+            <div className="mx-auto max-w-3xl rounded-2xl border border-blue-200 bg-white p-4 shadow-sm ring-1 ring-blue-50 sm:p-5">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
+                  <Sparkles className="size-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-black text-slate-950">
+                    {approvalDraft.title || "Message prêt à être envoyé"}
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-blue-700">
+                    {getApprovalChannelTypes().map((channel) => CHANNEL_LABELS[channel] ?? channel).join(" · ") || "Canal à confirmer"}
+                  </p>
+                  <div className="mt-3 whitespace-pre-wrap rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-800">
+                    {approvalDraft.body}
+                    {approvalDraft.hashtags.length > 0 && (
+                      <span className="mt-3 block text-blue-700">{approvalDraft.hashtags.join(" ")}</span>
+                    )}
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button size="sm" onClick={publishApprovalDraft} loading={approvingDraft}>
+                      <Send className="size-4" />
+                      Valider et envoyer
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={startApprovalEditConversation}>
+                      <MessageSquare className="size-4" />
+                      Modifier avec l&apos;IA
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={askForApprovalModels}>
+                      <Pencil className="size-4" />
+                      Proposer des modèles
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Quick prompts ou message vide */}
-        {showQuickPrompts && (
+        {showQuickPrompts && !approvalDraft && (
 	          <div className={cn(
               "flex-1 flex flex-col items-center justify-center px-4 py-8 sm:px-6",
               assistantExperience === "simple" && "w-full justify-start overflow-y-auto pb-8 pt-6 sm:pt-8"
             )}>
-            <div className="mb-4 flex justify-center md:hidden">
-              <img
-                src="/assistant-robot-mobile.png"
-                alt="Robot assistant EasyCom AI"
-                className="h-auto w-[86px] object-contain"
-              />
-            </div>
             <div className={cn(
               "hidden",
               assistantExperience === "simple" ? "rounded-full" : "rounded-2xl"
@@ -1859,7 +2021,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
             </div>
             <div className="hidden">
               <h2 className="mb-2 text-center text-2xl font-black text-slate-900">
-                Bienvenue 👋
+                Bienvenue
               </h2>
                 <p className="mb-8 max-w-md text-center text-sm text-slate-500">
                   Je prépare vos publications automatiquement <strong className="font-semibold text-slate-700">(J-10, J-5, J-1)</strong>,
@@ -1868,7 +2030,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                 </p>
             </div>
             <h2 className="hidden mb-2 text-center text-2xl font-black text-slate-900 md:hidden">
-              Bienvenue 👋
+              Bienvenue
             </h2>
               <p className="hidden mb-8 max-w-md text-center text-sm text-slate-500 md:hidden">
                 Je prépare vos publications automatiquement <strong className="font-semibold text-slate-700">(J-10, J-5, J-1)</strong>,
@@ -1877,7 +2039,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
               </p>
             <div className="hidden">
               <h2 className="mb-2 text-center text-xl font-bold text-slate-900 sm:text-2xl">
-                <span className="font-black">Bienvenue</span> 👋
+                <span className="font-black">Bienvenue</span>
               </h2>
                 <p className="mb-8 max-w-md text-center text-sm text-slate-500">
                   Je prépare vos publications automatiquement <strong className="font-semibold text-slate-700">(J-10, J-5, J-1)</strong>,
@@ -1895,34 +2057,42 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
 
             {assistantExperience === "simple" && (
               <div className="mb-6 w-full max-w-4xl px-5 py-2 text-center sm:px-8">
-                <div className="mx-auto inline-flex max-w-3xl flex-col items-center gap-3 rounded-[2rem] border border-blue-100/80 bg-white px-5 py-4 shadow-[0_18px_50px_rgba(37,99,235,0.10)] sm:flex-row sm:gap-4 sm:px-6">
-                  <div className="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 via-sky-500 to-cyan-400 shadow-[0_14px_28px_rgba(14,116,214,0.28)]">
-                    <Hand className="animate-welcome-wave size-7 text-white" aria-hidden="true" />
+                <div className="mx-auto inline-flex max-w-3xl flex-col items-center gap-3 px-2 py-1 sm:flex-row sm:gap-4">
+                  <div className="inline-flex h-14 w-14 shrink-0 items-center justify-center text-4xl">
+                    <span className="animate-welcome-wave" aria-hidden="true">👋</span>
                   </div>
-                  <h2 className="text-center text-2xl font-black leading-tight tracking-tight text-slate-900 sm:text-left sm:text-3xl">
-                    Bienvenue sur votre espace personnel
-                  </h2>
+                  <div className="inline-flex min-w-0 items-center gap-2">
+                    {communityLogoUrl && (
+                      <span
+                        className="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-cover bg-center shadow-sm"
+                        style={{ backgroundImage: `url(${communityLogoUrl})` }}
+                        aria-label="Logo EasyCom AI"
+                      />
+                    )}
+                    <h2 className="text-center text-2xl font-black leading-tight tracking-tight text-slate-900 sm:text-left sm:text-3xl">
+                      EasyCom AI
+                    </h2>
+                  </div>
                 </div>
                 <p className="mx-auto mt-2 max-w-3xl text-sm leading-7 text-slate-700 sm:text-[15px]">
-                  Votre temps est precieux - concentrez-vous sur l&apos;essentiel. EasyComAI s&apos;occupe du reste !
-                </p>
-                <p className="mx-auto mt-0.5 max-w-3xl text-sm leading-7 text-slate-600 sm:text-[15px]">
-                  (Publications recurrentes et automatisees, mail et Avis Google, agenda IA, assistant du quotidien, ressources communautaires)
+                  <strong className="font-black text-slate-900">Votre temps est précieux, concentrez-vous sur l’essentiel.</strong>
+                  <br />
+                  <span>EasyCom AI centralise et automatise toute votre communication depuis un seul espace.</span>
                 </p>
               </div>
             )}
 
             {false && assistantExperience === "simple" && (
               <div className="mb-6 w-full max-w-4xl px-5 py-2 text-center sm:px-8">
-                <div className="mb-2 text-3xl leading-none">👋</div>
+                <div className="mb-2 text-3xl leading-none">ðŸ‘‹</div>
                 <h2 className="text-2xl font-black text-slate-900 sm:text-3xl">
                   Bienvenue sur votre espace personnel
                 </h2>
                 <p className="mx-auto mt-2 max-w-3xl text-sm leading-7 text-slate-600 sm:text-[15px]">
-                  Votre temps est précieux — concentrez-vous sur l’essentiel. EasyComAI s’occupe du reste !
+                  Votre temps est prÃ©cieux â€” concentrez-vous sur lâ€™essentiel. EasyComAI sâ€™occupe du reste !
                 </p>
                 <p className="mx-auto mt-0.5 max-w-3xl text-sm leading-7 text-slate-500 sm:text-[15px]">
-                  (Publications récurrentes et automatisées, mail et Avis Google, agenda IA, assistant du quotidien, ressources communautaires)
+                  (Publications rÃ©currentes et automatisÃ©es, mail et Avis Google, agenda IA, assistant du quotidien, ressources communautaires)
                 </p>
               </div>
             )}
@@ -1970,7 +2140,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                     onClick={() => setShowAllFeaturesMobile((prev) => !prev)}
                     className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-[#1E88E5] via-[#009688] to-[#00897B] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(15,23,42,0.18)] transition hover:opacity-95"
                   >
-                    Toutes les fonctionnalités
+                    Toutes les fonctionnalitÃ©s
                   </button>
                 </div>
                 {showAllFeaturesMobile && (
@@ -2045,7 +2215,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                   },
                   {
                     title: "Pilotage",
-                    description: "réseaux, publications, actions à valider",
+                    description: "rÃ©seaux, publications, actions Ã  valider",
                     icon: SlidersHorizontal,
                     accent: "bg-emerald-500",
                     surface: "bg-emerald-50/60",
@@ -2075,14 +2245,14 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
               <div className="mb-5 hidden w-full max-w-3xl grid-cols-1 gap-2 md:grid md:grid-cols-2 lg:grid-cols-4">
                 {[
                   { label: "Plan Chabbat", icon: Sparkles, prompt: "Prépare-moi un plan complet pour Chabbat cette semaine : message WhatsApp, post Instagram, affiche si disponible et rappel à programmer." },
-                  { label: "Mes automatisations", icon: Zap, prompt: "Combien ai-je d'automatisations en cours ? Affiche uniquement celles déjà présentes sur mon Beth Habad." },
-                  { label: "Définir quotidien", icon: Power, prompt: "Je veux définir mon quotidien et créer les routines utiles." },
-                  { label: "Diagnostic compte", icon: SlidersHorizontal, prompt: "Fais un diagnostic simple de mon compte : automatisations, réseaux, quotidien, contenus et prochaines actions." },
+                  { label: "Mes automatisations", icon: Zap, prompt: "Combien ai-je d'automatisations en cours ? Affiche uniquement celles dÃ©jÃ  prÃ©sentes sur mon Beth Habad." },
+                  { label: "DÃ©finir quotidien", icon: Power, prompt: "Je veux dÃ©finir mon quotidien et crÃ©er les routines utiles." },
+                  { label: "Diagnostic compte", icon: SlidersHorizontal, prompt: "Fais un diagnostic simple de mon compte : automatisations, rÃ©seaux, quotidien, contenus et prochaines actions." },
                 ].map((item) => (
                   <button
                     key={item.label}
                     type="button"
-                    onClick={() => item.label === "Définir quotidien" ? setDailyRoutineMode(true) : sendMessage(item.prompt)}
+                    onClick={() => item.label === "DÃ©finir quotidien" ? setDailyRoutineMode(true) : sendMessage(item.prompt)}
                     className="flex min-h-20 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
@@ -2095,43 +2265,31 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
             )}
 
             {assistantExperience === "simple" && (
-              <div className="mx-auto mb-5 grid w-full max-w-5xl grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+              <div className="mx-auto mb-5 grid w-full max-w-5xl grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                 <div className="col-span-full mb-1 text-center">
                   <p className="text-sm font-bold tracking-tight text-slate-800">Actions rapides</p>
                 </div>
                 {simpleMainButtons.map((item) => (
-                  item.action === "social" ? (
-                    <button
-                      key={item.label}
-                      type="button"
-                      onClick={() => setSocialNetworksMenuOpen((prev) => !prev)}
-                      className="group rounded-[1.3rem] border border-slate-200 bg-white px-4 py-4 text-left shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.1)]"
-                    >
-                      <div className={cn("mb-3 h-1 w-10 rounded-full", item.accent)} />
-                      <span className={cn("mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl", item.iconBg, item.iconTone)}>
-                        <item.icon className="size-4.5" />
-                      </span>
-                      <p className="text-sm font-semibold leading-5 text-slate-800">{item.label}</p>
-                    </button>
-                  ) : (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="group rounded-[1.3rem] border border-slate-200 bg-white px-4 py-4 text-left shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.1)]"
-                    >
-                      <div className={cn("mb-3 h-1 w-10 rounded-full", item.accent)} />
-                      <span className={cn("mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl", item.iconBg, item.iconTone)}>
-                        <item.icon className="size-4.5" />
-                      </span>
-                      <p className="text-sm font-semibold leading-5 text-slate-800">{item.label}</p>
-                    </Link>
-                  )
+                  <Link
+                    key={`${item.href}-${item.label}`}
+                    href={item.href}
+                    className={cn(
+                      "group rounded-[1.3rem] border border-slate-200 bg-white px-4 py-4 text-left shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.1)]",
+                      item.mobileOnly ? "md:hidden" : ""
+                    )}
+                  >
+                    <div className={cn("mb-3 h-1 w-10 rounded-full", item.accent)} />
+                    <span className={cn("mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl", item.iconBg, item.iconTone)}>
+                      <item.icon className="size-4.5" />
+                    </span>
+                    <p className="text-sm font-semibold leading-5 text-slate-800">{item.label}</p>
+                  </Link>
                 ))}
                 <div className="col-span-full pt-2">
                   <button
                     type="button"
-                    onClick={() => sendMessage(ALL_FEATURES_PROMPT)}
-                    className="group relative w-full overflow-hidden rounded-[1.6rem] border border-blue-200/80 bg-[linear-gradient(135deg,rgba(29,78,216,0.96),rgba(14,116,144,0.92),rgba(245,158,11,0.92))] px-5 py-4 text-left text-white shadow-[0_18px_36px_rgba(29,78,216,0.26)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_48px_rgba(29,78,216,0.3)]"
+                    onClick={sendEasyComOverviewMessage}
+                    className="group relative w-full overflow-hidden rounded-[1.6rem] border border-blue-200/80 bg-[linear-gradient(135deg,rgba(37,99,235,0.96),rgba(14,116,214,0.92),rgba(56,189,248,0.90))] px-5 py-4 text-left text-white shadow-[0_18px_36px_rgba(37,99,235,0.24)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_48px_rgba(37,99,235,0.28)]"
                   >
                     <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,transparent_10%,rgba(255,255,255,0.2)_32%,transparent_56%)] opacity-70 animate-[pulse_3.8s_ease-in-out_infinite]" />
                     <div className="relative flex items-center justify-between gap-4">
@@ -2149,22 +2307,6 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                     </div>
                   </button>
                 </div>
-                {socialNetworksMenuOpen && (
-                  <div className="col-span-full rounded-2xl border border-indigo-100 bg-indigo-50/50 p-3">
-                    <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-indigo-700">Réseaux Sociaux</p>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                      <Link href="/dashboard/whatsapp" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-200 hover:text-emerald-700">
-                        WhatsApp
-                      </Link>
-                      <Link href="/dashboard/facebook" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-200 hover:text-blue-700">
-                        Facebook
-                      </Link>
-                      <Link href="/dashboard/instagram" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-fuchsia-200 hover:text-fuchsia-700">
-                        Instagram
-                      </Link>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -2253,13 +2395,13 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                         className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 rounded px-2 py-0.5 hover:bg-slate-100"
                       >
                         {copiedId === message.id ? (
-                          <><Check className="size-3" /> Copié</>
+                          <><Check className="size-3" /> CopiÃ©</>
                         ) : (
                           <><Copy className="size-3" /> Copier</>
                         )}
                       </button>
                       <button
-                        onClick={() => sendMessage("Reformule le contenu précédent d'une autre façon")}
+                        onClick={() => sendMessage("Reformule le contenu prÃ©cÃ©dent d'une autre faÃ§on")}
                         className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 rounded px-2 py-0.5 hover:bg-slate-100"
                       >
                         <RefreshCw className="size-3" /> Reformuler
@@ -2271,9 +2413,9 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                     <div className="mt-3 rounded-[1.7rem] border border-amber-100 bg-gradient-to-br from-white to-amber-50/80 p-4 shadow-sm">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-black text-slate-900">Informations à confirmer</p>
+                          <p className="text-sm font-black text-slate-900">Informations Ã  confirmer</p>
                           <p className="mt-1 text-xs text-slate-500">
-                            Ajustez les champs utiles avant création.
+                            Ajustez les champs utiles avant crÃ©ation.
                           </p>
                         </div>
                         <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-black text-amber-800">
@@ -2325,7 +2467,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
 
                           {message.automationSetup.trigger === "JEWISH_HOLIDAY" && (
                             <label className="grid gap-1.5">
-                              <span className="text-xs font-bold text-slate-700">Jours avant la fête</span>
+                              <span className="text-xs font-bold text-slate-700">Jours avant la fÃªte</span>
                               <input
                                 type="number"
                                 min={1}
@@ -2373,7 +2515,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                         </div>
 
                         <label className="flex items-center justify-between gap-3 rounded-2xl border border-white bg-white/80 px-3 py-2">
-                          <span className="text-xs font-bold text-slate-700">Activer dès maintenant</span>
+                          <span className="text-xs font-bold text-slate-700">Activer dÃ¨s maintenant</span>
                           <input
                             type="checkbox"
                             checked={message.automationSetup.isActive}
@@ -2391,14 +2533,14 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                           disabled={message.automationSetup.channels.length === 0 || message.automationSetup.name.trim().length < 2}
                         >
                           <Plus className="size-3.5" />
-                          Créer l’automatisation
+                          CrÃ©er lâ€™automatisation
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => updateAutomationSetup(message.id, buildAutomationSetupDraft(message.automationSetup!.preset))}
                         >
-                          Réinitialiser
+                          RÃ©initialiser
                         </Button>
                       </div>
                     </div>
@@ -2441,13 +2583,13 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                           : card.action.kind === "trigger_automation"
                             ? "Lancer"
                             : card.action.kind === "create_shabbat_automation" || card.action.kind === "create_automation"
-                              ? "Créer"
+                              ? "CrÃ©er"
                               : card.action.kind === "open_daily_routine"
                                 ? "Configurer"
                                 : card.action.kind === "send_email"
                                   ? "Confirmer l'envoi"
                                   : card.action.kind === "switch_detailed"
-                                    ? "Ouvrir les paramètres"
+                                    ? "Ouvrir les paramÃ¨tres"
                                     : "Appliquer"}
                       </Button>
                     ) : null;
@@ -2532,7 +2674,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                               >
                                 {communityLogoUrl && <span className="absolute inset-0 bg-slate-950/20" />}
                                 <span className="relative z-10 flex flex-col items-center leading-none">
-                                  <span className="text-lg font-black">✡</span>
+                                  <span className="text-lg font-black">âœ¡</span>
                                   {!communityLogoUrl && (
                                     <span className="mt-0.5 text-[10px] tracking-wide">{getCommunityInitials(communityName)}</span>
                                   )}
@@ -2545,12 +2687,12 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                             </div>}
                             <div className="text-center">
                               <p className="text-sm font-black text-slate-900">
-                                {showCreateOnlyPanel ? "Automatisations à créer" : "Vos automatisations"}
+                                {showCreateOnlyPanel ? "Automatisations Ã  crÃ©er" : "Vos automatisations"}
                               </p>
                               <p className="mt-1 text-xs text-slate-500">
                                 {showCreateOnlyPanel
                                   ? "Voici seulement les options disponibles en un clic."
-                                  : "Celles déjà installées sont séparées de celles que vous pouvez créer."}
+                                  : "Celles dÃ©jÃ  installÃ©es sont sÃ©parÃ©es de celles que vous pouvez crÃ©er."}
                               </p>
                             </div>
 
@@ -2558,8 +2700,8 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                               {!showCreateOnlyPanel && <div className="rounded-3xl border border-white bg-white/75 p-3 shadow-sm">
                                 <div className="mb-3 flex items-center justify-between gap-3">
                                   <div>
-                                    <p className="text-sm font-black text-slate-900">Déjà en place</p>
-                                    <p className="mt-0.5 text-xs text-slate-500">Automatisations configurées sur votre compte.</p>
+                                    <p className="text-sm font-black text-slate-900">DÃ©jÃ  en place</p>
+                                    <p className="mt-0.5 text-xs text-slate-500">Automatisations configurÃ©es sur votre compte.</p>
                                   </div>
                                   <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700">
                                     {currentAutomations.length}
@@ -2571,7 +2713,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                                   </div>
                                 ) : (
                                   <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">
-                                    <p className="text-sm font-bold text-slate-700">Aucune automatisation active pour l’instant.</p>
+                                    <p className="text-sm font-bold text-slate-700">Aucune automatisation active pour lâ€™instant.</p>
                                     <p className="mt-1 text-xs text-slate-500">Choisissez une option ci-dessous pour commencer.</p>
                                   </div>
                                 )}
@@ -2581,7 +2723,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                                 <div className="rounded-3xl border border-amber-100 bg-gradient-to-br from-white to-amber-50/80 p-3 shadow-sm">
                                   <div className="mb-3 flex items-center justify-between gap-3">
                                     <div>
-                                      <p className="text-sm font-black text-slate-900">À créer</p>
+                                      <p className="text-sm font-black text-slate-900">Ã€ crÃ©er</p>
                                       <p className="mt-0.5 text-xs text-slate-500">Automatisations disponibles en un clic.</p>
                                     </div>
                                     <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-black text-amber-800">
@@ -2602,7 +2744,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                                   size="sm"
                                   variant="outline"
                                   className="mt-2 h-8 rounded-full text-xs"
-                                  onClick={() => sendMessage("Propose-moi d'autres automatisations pertinentes pour mon Beth Habad, de façon courte et concrète.")}
+                                  onClick={() => sendMessage("Propose-moi d'autres automatisations pertinentes pour mon Beth Habad, de faÃ§on courte et concrÃ¨te.")}
                                 >
                                   <Sparkles className="size-3.5 text-amber-500" />
                                   Oui, propose-moi
@@ -2652,7 +2794,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                         <div>
                           <p className="text-sm font-black text-slate-900">Affiches les plus pertinentes</p>
                           <p className="mt-1 text-xs text-slate-500">
-                            Sélectionnées selon le thème demandé, les tags, la catégorie et les consignes IA.
+                            SÃ©lectionnÃ©es selon le thÃ¨me demandÃ©, les tags, la catÃ©gorie et les consignes IA.
                           </p>
                         </div>
                         <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-blue-700 shadow-sm">
@@ -2675,7 +2817,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                                 />
                               ) : (
                                 <div className="flex h-full items-center justify-center text-xs text-slate-400">
-                                  Aperçu indisponible
+                                  AperÃ§u indisponible
                                 </div>
                               )}
                               </div>
@@ -2707,7 +2849,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                                     loading={preparingPoster && selectedTemplate?.id === template.id}
                                     disabled={preparingPoster}
 	                                >
-	                                  Choisir et préparer
+	                                  Choisir et prÃ©parer
 	                                </Button>
                               </div>
                             </div>
@@ -2740,7 +2882,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                                 />
                               ) : (
                                 <div className="flex h-full items-center justify-center text-xs text-slate-400">
-                                  Aperçu indisponible
+                                  AperÃ§u indisponible
                                 </div>
                               )}
                             </div>
@@ -2809,7 +2951,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                           </div>
                           {message.posterDraft.missingFields.length > 0 && (
                             <p className="mt-2 text-xs text-amber-600">
-                              À confirmer : {message.posterDraft.missingFields.join(", ")}
+                              Ã€ confirmer : {message.posterDraft.missingFields.join(", ")}
                             </p>
                           )}
 	                          <div className="mt-3 flex gap-2">
@@ -2818,7 +2960,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
 	                              onClick={() => renderPoster(message)}
 	                              loading={renderingPoster}
 	                            >
-	                              Confirmer et générer
+	                              Confirmer et gÃ©nÃ©rer
 	                            </Button>
 	                            <Button
 	                              size="sm"
@@ -2834,7 +2976,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                                 <div>
                                   <p className="text-sm font-semibold text-slate-900">Modifier les textes</p>
                                   <p className="mt-1 text-xs text-slate-500">
-                                    Ajustez les champs à la main ou régénérez automatiquement avec les informations connues.
+                                    Ajustez les champs Ã  la main ou rÃ©gÃ©nÃ©rez automatiquement avec les informations connues.
                                   </p>
                                 </div>
                                 <Button
@@ -2844,7 +2986,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                                   loading={preparingPoster}
                                   className="shrink-0"
                                 >
-                                  Générer
+                                  GÃ©nÃ©rer
                                 </Button>
                               </div>
                               <div className="mt-3 grid gap-2">
@@ -2893,7 +3035,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                       <div className="rounded-xl border border-white/80 bg-white p-1 shadow-inner">
                         <img
                           src={message.generatedImageUrl}
-                          alt="Affiche générée"
+                          alt="Affiche gÃ©nÃ©rÃ©e"
                           className="w-full rounded-lg object-cover"
                         />
                       </div>
@@ -2904,7 +3046,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                           rel="noreferrer"
                           className="inline-flex text-sm font-medium text-blue-600 hover:underline"
                         >
-                          Ouvrir ou télécharger l&apos;affiche
+                          Ouvrir ou tÃ©lÃ©charger l&apos;affiche
                         </a>
                       </div>
                       {message.publishDraft && (
@@ -2914,7 +3056,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                             <p className="text-sm font-semibold text-slate-900">Publier cette affiche</p>
                           </div>
                           <p className="mt-1 text-xs text-slate-500">
-                            Choisis les réseaux souhaités puis ajuste la légende si besoin.
+                            Choisis les rÃ©seaux souhaitÃ©s puis ajuste la lÃ©gende si besoin.
                           </p>
                           <div className="mt-3 flex flex-wrap gap-2">
                             {channels.map((channel) => {
@@ -2998,10 +3140,10 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
             <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-slate-900">
-                  Template sélectionné : {selectedTemplate.name}
+                  Template sÃ©lectionnÃ© : {selectedTemplate.name}
                 </p>
                 <p className="text-xs text-slate-500">
-                  Décris les textes à remplacer, puis prépare l&apos;affiche.
+                  DÃ©cris les textes Ã  remplacer, puis prÃ©pare l&apos;affiche.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -3090,7 +3232,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
             className="group relative inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-600"
           >
             <span className="inline-flex h-2.5 w-2.5 rounded-full bg-white/90" />
-            <span>Définir mon quotidien</span>
+            <span>DÃ©finir mon quotidien</span>
             <span
               role="button"
               tabIndex={0}
@@ -3106,7 +3248,7 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
                 }
               }}
               className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
-              aria-label="Fermer le bouton définir mon quotidien"
+              aria-label="Fermer le bouton dÃ©finir mon quotidien"
             >
               <X className="size-3.5" />
             </span>
@@ -3128,3 +3270,6 @@ export function AssistantClient({ communityName, communityLogoUrl, tone: _tone, 
     </div>
   );
 }
+
+
+

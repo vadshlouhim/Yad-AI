@@ -1,10 +1,10 @@
-import { requireAuth } from "@/lib/auth";
+﻿import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { EventsClient } from "@/components/events/events-client";
 import { getShabbatTimes, getJewishHolidays } from "@/lib/automation/hebcal";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Mon Agenda IA - EasyCom AI" };
+export const metadata: Metadata = { title: "Agenda connecté IA - EasyCom AI" };
 
 const EVENT_STATUSES = ["DRAFT", "READY", "SCHEDULED", "PUBLISHED", "COMPLETED", "ARCHIVED"];
 
@@ -46,7 +46,7 @@ export default async function EventsPage({
 
   // Récupérer communauté + events + Chabbat (BDD ou API)
   const [{ data: community }, { data: events }, statusCounts] = await Promise.all([
-    admin.from("Community").select("name, city, timezone").eq("id", communityId).single(),
+    admin.from("Community").select("name, city, timezone, communityType, religiousStream").eq("id", communityId).single(),
     query,
     Promise.all(
       EVENT_STATUSES.map(async (status) => {
@@ -61,11 +61,12 @@ export default async function EventsPage({
   ]);
 
   const city = community?.city ?? "Paris";
-  const timezone = community?.timezone ?? "Europe/Paris";
+  const timezone = community?.timezone && community.timezone !== "UTC" ? community.timezone : "Europe/Paris";
   const calendarYears = [now.getFullYear(), now.getFullYear() + 1];
+  const isBethHabad = community?.communityType === "SYNAGOGUE" || community?.religiousStream === "BETH_HABAD";
 
   // Données Chabbat depuis la BDD
-  const shabbatRows = await (async () => {
+  const shabbatRows = isBethHabad ? await (async () => {
     const rows: ShabbatScheduleItem[] = [];
     for (const year of calendarYears) {
       const primaryToken = city.split(/[\s,'-]+/).find((t: string) => t.trim().length >= 3)?.trim() ?? city;
@@ -81,7 +82,7 @@ export default async function EventsPage({
       }
     }
     return rows;
-  })();
+  })() : [];
 
   // Prochains Chabbats (8 max)
   let shabbatItems = shabbatRows
@@ -97,7 +98,7 @@ export default async function EventsPage({
     }));
 
   // Fallback API si pas de BDD
-  if (!shabbatItems.length) {
+  if (isBethHabad && !shabbatItems.length) {
     const live = await getShabbatTimes({ city, timezone });
     if (live) {
       shabbatItems = [{
@@ -111,14 +112,14 @@ export default async function EventsPage({
   }
 
   // Fêtes depuis la BDD
-  const { data: holidayRows } = await admin
+  const { data: holidayRows } = isBethHabad ? await admin
     .from("HebrewCalendarReference")
     .select("gregorian_date, hebrew_date, holiday_name, holiday_name_hebrew")
     .eq("entry_type", "HOLIDAY")
     .in("calendar_year", calendarYears)
     .gte("gregorian_date", now.toISOString().slice(0, 10))
     .order("gregorian_date", { ascending: true })
-    .limit(20);
+    .limit(20) : { data: [] };
 
   let holidayItems = (holidayRows ?? []).map((h) => ({
     date: h.gregorian_date,
@@ -127,7 +128,7 @@ export default async function EventsPage({
     hebrewDate: h.hebrew_date ?? null,
   }));
 
-  if (!holidayItems.length) {
+  if (isBethHabad && !holidayItems.length) {
     const [curr, next] = await Promise.all([
       getJewishHolidays({ year: now.getFullYear() }),
       getJewishHolidays({ year: now.getFullYear() + 1 }),
@@ -165,8 +166,11 @@ export default async function EventsPage({
     <EventsClient
       events={normalizedEvents}
       statusCounts={statusCounts2}
-      shabbatItems={shabbatItems}
-      holidayItems={holidayItems}
+      shabbatItems={isBethHabad ? shabbatItems : []}
+      holidayItems={isBethHabad ? holidayItems : []}
+      isBethHabad={isBethHabad}
+      timezone={timezone}
     />
   );
 }
+

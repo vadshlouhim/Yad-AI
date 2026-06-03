@@ -1,11 +1,13 @@
-"use client";
+﻿"use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AutomationFloatButton } from "@/components/ui/float-button";
+import { getCommunityProfileDisplayLabel, getCommunityProfileLabel } from "@/lib/community/profile-labels";
+import { GENERAL_DEFAULT_PUBLICATION_CATEGORY, isDefaultAutomationPublicationId } from "@/lib/automation/suggested-publications";
 import {
   Zap, Plus, Play, Pause, Clock, CheckCircle, XCircle,
   AlertCircle, Calendar, RefreshCw, Settings, Trash2, X, Save,
@@ -37,6 +39,8 @@ interface AutomationPreset {
   triggerConfig: Record<string, unknown> | null;
   actions: AutomationAction[] | null;
   category: string;
+  clientTypes?: string[];
+  sortOrder?: number;
 }
 
 interface Automation {
@@ -62,10 +66,14 @@ interface Props {
   presets?: AutomationPreset[];
   recentRuns: AutomationRun[];
   embedded?: boolean;
+  requiresValidationDefault?: boolean;
+  communityType?: string;
+  profileLabel?: string;
 }
 
 interface AutomationFormState {
   id: string | null;
+  presetId: string | null;
   name: string;
   description: string;
   trigger: string;
@@ -83,33 +91,15 @@ interface AutomationFormState {
 }
 
 const TRIGGER_LABELS: Record<string, string> = {
-  WEEKLY_SHABBAT: "🕯️ Chabbat hebdomadaire",
-  JEWISH_HOLIDAY: "✨ Fête juive",
-  BEFORE_EVENT: "⏰ Avant un événement",
-  EVENT_DAY: "📅 Jour de l'événement",
-  AFTER_EVENT: "📋 Après un événement",
-  DAILY: "🌅 Quotidien",
-  CUSTOM_SCHEDULE: "⚙️ Planning personnalisé",
-  MANUAL: "👆 Manuel",
+  WEEKLY_SHABBAT: "ðŸ•¯ï¸ Chabbat hebdomadaire",
+  JEWISH_HOLIDAY: "âœ¨ FÃªte juive",
+  BEFORE_EVENT: "â° Avant un Ã©vÃ©nement",
+  EVENT_DAY: "ðŸ“… Jour de l'Ã©vÃ©nement",
+  AFTER_EVENT: "ðŸ“‹ AprÃ¨s un Ã©vÃ©nement",
+  DAILY: "ðŸŒ… Quotidien",
+  CUSTOM_SCHEDULE: "âš™ï¸ Planning personnalisÃ©",
+  MANUAL: "ðŸ‘† Manuel",
 };
-
-const TRIGGER_OPTIONS = [
-  { value: "WEEKLY_SHABBAT", label: "Chabbat hebdomadaire" },
-  { value: "DAILY", label: "Tous les jours" },
-  { value: "JEWISH_HOLIDAY", label: "Avant une fête juive" },
-  { value: "CUSTOM_SCHEDULE", label: "Planning personnalisé" },
-  { value: "MANUAL", label: "Manuel" },
-];
-
-const CONTENT_TYPES = [
-  { value: "SHABBAT_TIMES", label: "Horaires de Chabbat" },
-  { value: "DAILY_CONTENT", label: "Pensée du jour" },
-  { value: "COURSE_ANNOUNCEMENT", label: "Annonce de cours" },
-  { value: "HOLIDAY_GREETING", label: "Vœux de fête" },
-  { value: "EVENT_REMINDER", label: "Rappel événement" },
-  { value: "COMMUNITY_NEWS", label: "Actualité communauté" },
-  { value: "GENERAL", label: "Général" },
-];
 
 const CHANNEL_OPTIONS = ["INSTAGRAM", "FACEBOOK", "WHATSAPP", "TELEGRAM", "EMAIL"];
 const SOCIAL_LOGOS: Record<string, React.ReactNode> = {
@@ -152,15 +142,10 @@ const SOCIAL_LOGOS: Record<string, React.ReactNode> = {
   )
 };
 
-const CLIENT_PLATFORM_OPTIONS = [
-  { channel: "WHATSAPP", label: "WhatsApp", logo: SOCIAL_LOGOS.WHATSAPP, className: "bg-emerald-500 text-white border-emerald-300" },
-  { channel: "INSTAGRAM", label: "Instagram", logo: SOCIAL_LOGOS.INSTAGRAM, className: "bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 text-white border-pink-300" },
-  { channel: "FACEBOOK", label: "Facebook", logo: SOCIAL_LOGOS.FACEBOOK, className: "bg-blue-600 text-white border-blue-300" },
-  { channel: "TELEGRAM", label: "Telegram", logo: SOCIAL_LOGOS.TELEGRAM, className: "bg-sky-500 text-white border-sky-300" },
-  { channel: "EMAIL", label: "Email", logo: SOCIAL_LOGOS.EMAIL, className: "bg-slate-700 text-white border-slate-500" },
-];
+// Kept while older embedded automation UI is phased out.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const DEFAULT_AUTOMATION_DESCRIPTION =
-  "Vous recevrez une notification et vous pourrez publier automatiquement en un clic sur vos réseaux.";
+  "Vous recevrez une notification et vous pourrez publier automatiquement en un clic sur vos rÃ©seaux.";
 const DAY_OPTIONS = [
   { value: "monday", label: "Lundi" },
   { value: "tuesday", label: "Mardi" },
@@ -172,11 +157,11 @@ const DAY_OPTIONS = [
 ];
 
 const REPEAT_OPTIONS: Array<{ value: AutomationFormState["repeat"]; label: string }> = [
-  { value: "none", label: "Ne pas repeter" },
-  { value: "daily", label: "Tous les jours" },
-  { value: "weekly", label: "Toutes les semaines" },
-  { value: "monthly", label: "Tous les mois" },
-  { value: "custom", label: "Jours personnalises" },
+  { value: "none", label: "Une seule fois" },
+  { value: "daily", label: "Chaque jour" },
+  { value: "weekly", label: "Chaque semaine" },
+  { value: "monthly", label: "Chaque mois" },
+  { value: "custom", label: "Jours personnalisÃ©s" },
 ];
 
 interface PredefinedAutomationCard {
@@ -185,21 +170,35 @@ interface PredefinedAutomationCard {
   label: string;
   description: string;
   emoji: string;
+  category?: string;
   status: "preset" | "configurable" | "coming_soon";
   trigger?: string;
+  triggerConfig?: Record<string, unknown>;
   contentType?: string;
   requiresValidation?: boolean;
   channels?: string[];
   time?: string;
   day?: string;
+  assistantMessage?: string;
+  aiInstruction?: string;
 }
 
+type AssistantStatus = "idle" | "creating" | "created" | "error";
+
+interface AssistantMessage {
+  role: "assistant" | "user";
+  text: string;
+}
+
+type SuggestedCard = PredefinedAutomationCard & { matchingAutomation?: Automation };
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const PREDEFINED_AUTOMATIONS: PredefinedAutomationCard[] = [
   {
     key: "shabbat-times",
     label: "Horaires de Chabbat",
     description: "Publication hebdomadaire des horaires avec activation rapide.",
-    emoji: "🕯️",
+    emoji: "ðŸ•¯ï¸",
     status: "preset",
     trigger: "WEEKLY_SHABBAT",
     contentType: "GENERAL",
@@ -208,9 +207,9 @@ const PREDEFINED_AUTOMATIONS: PredefinedAutomationCard[] = [
   },
   {
     key: "activities",
-    label: "Activités",
-    description: "Préparez des annonces régulières pour vos événements et activités.",
-    emoji: "📅",
+    label: "ActivitÃ©s",
+    description: "PrÃ©parez des annonces rÃ©guliÃ¨res pour vos Ã©vÃ©nements et activitÃ©s.",
+    emoji: "ðŸ“…",
     status: "configurable",
     trigger: "CUSTOM_SCHEDULE",
     contentType: "GENERAL",
@@ -221,22 +220,22 @@ const PREDEFINED_AUTOMATIONS: PredefinedAutomationCard[] = [
   {
     key: "reminder-j10",
     label: "Rappels J-10",
-    description: "Structure visuelle prête pour les rappels avant événement.",
-    emoji: "⏳",
+    description: "Structure visuelle prÃªte pour les rappels avant Ã©vÃ©nement.",
+    emoji: "â³",
     status: "coming_soon",
   },
   {
     key: "reminder-j5",
     label: "Rappels J-5",
-    description: "Bloc prêt à connecter à une logique de rappels plus fine.",
-    emoji: "🔔",
+    description: "Bloc prÃªt Ã  connecter Ã  une logique de rappels plus fine.",
+    emoji: "ðŸ””",
     status: "coming_soon",
   },
   {
     key: "regular-courses",
-    label: "Cours réguliers",
-    description: "Planifiez vos cours récurrents avec un rythme personnalisable.",
-    emoji: "📘",
+    label: "Cours rÃ©guliers",
+    description: "Planifiez vos cours récurrents avec une fréquence personnalisable.",
+    emoji: "ðŸ“˜",
     status: "configurable",
     trigger: "CUSTOM_SCHEDULE",
     contentType: "COURSE_ANNOUNCEMENT",
@@ -246,9 +245,9 @@ const PREDEFINED_AUTOMATIONS: PredefinedAutomationCard[] = [
   },
   {
     key: "scheduled-posts",
-    label: "Publications programmées",
-    description: "Préparez à l'avance vos publications à heure fixe.",
-    emoji: "🗓️",
+    label: "Publications programmÃ©es",
+    description: "PrÃ©parez Ã  l'avance vos publications Ã  heure fixe.",
+    emoji: "ðŸ—“ï¸",
     status: "configurable",
     trigger: "CUSTOM_SCHEDULE",
     contentType: "GENERAL",
@@ -259,8 +258,8 @@ const PREDEFINED_AUTOMATIONS: PredefinedAutomationCard[] = [
   {
     key: "auto-messages",
     label: "Messages automatiques",
-    description: "Diffusez automatiquement un message ou une pensée du jour.",
-    emoji: "💬",
+    description: "Diffusez automatiquement un message ou une pensÃ©e du jour.",
+    emoji: "ðŸ’¬",
     status: "configurable",
     trigger: "DAILY",
     contentType: "DAILY_CONTENT",
@@ -270,33 +269,20 @@ const PREDEFINED_AUTOMATIONS: PredefinedAutomationCard[] = [
   {
     key: "follow-ups",
     label: "Relances",
-    description: "Carte prête pour vos relances futures sans casser l'existant.",
-    emoji: "📨",
+    description: "Carte prÃªte pour vos relances futures sans casser l'existant.",
+    emoji: "ðŸ“¨",
     status: "coming_soon",
   },
   {
     key: "important-notifications",
     label: "Notifications importantes",
-    description: "Préconfigurez vos communications urgentes ou essentielles.",
-    emoji: "🚨",
+    description: "PrÃ©configurez vos communications urgentes ou essentielles.",
+    emoji: "ðŸš¨",
     status: "configurable",
     trigger: "MANUAL",
     contentType: "COMMUNITY_NEWS",
     channels: ["EMAIL", "WHATSAPP", "TELEGRAM"],
   },
-];
-
-const QUICK_AUTOMATION_EVENT_ACTIONS = [
-  "Me rappeler",
-  "Envoyer un message",
-  "Publier un contenu",
-  "Répondre en un clic",
-  "Créer un récap",
-  "Suivre une demande",
-  "Surveiller une urgence",
-  "Créer une routine",
-  "Préparer avec l’IA",
-  "Déclencher après un événement",
 ];
 
 const RUN_STATUS_ICON: Record<string, React.ReactNode> = {
@@ -315,11 +301,12 @@ const RUN_STATUS_VARIANT: Record<string, "draft" | "info" | "ready" | "published
   SKIPPED: "draft",
 };
 
-function defaultForm(): AutomationFormState {
+function defaultForm(requiresValidation = true): AutomationFormState {
   const defaultSendAt = new Date(Date.now() + 5 * 60 * 1000);
   return {
     id: null,
-    name: "Nouvel evenement",
+    presetId: null,
+    name: "Nouvelle automatisation",
     description: "",
     trigger: "CUSTOM_SCHEDULE",
     repeat: "none",
@@ -327,11 +314,11 @@ function defaultForm(): AutomationFormState {
     date: formatDateInput(defaultSendAt),
     day: "friday",
     customDays: [],
-    daysBefore: "1",
+    daysBefore: "2",
     contentType: "GENERAL",
     channels: ["INSTAGRAM", "FACEBOOK", "WHATSAPP"],
     message: "",
-    requiresValidation: true,
+    requiresValidation,
     isActive: true,
   };
 }
@@ -380,6 +367,7 @@ function formFromAutomation(automation: Automation): AutomationFormState {
   })();
   return {
     id: automation.id,
+    presetId: automation.presetId ?? null,
     name: automation.name,
     description: automation.description ?? "",
     trigger: automation.trigger,
@@ -405,6 +393,9 @@ function buildTriggerConfig(form: AutomationFormState) {
     message: form.message.trim() || null,
   };
   if (form.trigger === "DAILY") return baseConfig;
+  if (form.trigger === "BEFORE_EVENT") return { ...baseConfig, daysBefore: Number(form.daysBefore) || 1 };
+  if (form.trigger === "AFTER_EVENT") return { ...baseConfig, daysAfter: Number(form.daysBefore) || 1 };
+  if (form.trigger === "EVENT_DAY") return baseConfig;
   if (form.trigger === "WEEKLY_SHABBAT") return { ...baseConfig, day: "friday", dayOfWeek: 5, daysBefore: Number(form.daysBefore) || 1 };
   if (form.trigger === "JEWISH_HOLIDAY") return { ...baseConfig, daysBeforeHoliday: Number(form.daysBefore) || 1 };
   if (form.trigger === "CUSTOM_SCHEDULE") {
@@ -419,34 +410,210 @@ function buildTriggerConfig(form: AutomationFormState) {
   return {};
 }
 
-export function AutomationsClient({ automations, presets = [], recentRuns, embedded = false }: Props) {
+const INVALID_PROFILE_LABELS = new Set([
+  "",
+  "OTHER",
+  "STRUCTURE",
+  "PROFIL",
+  "PROFILS",
+  "PROFIL UTILISATEUR",
+  "PROFILS UTILISATEUR",
+  "AUTRE PROFIL",
+  "AUTRES PROFILS",
+  "VOTRE PROFIL",
+]);
+
+function normalizeProfileLabel(value: string | null | undefined) {
+  return (value ?? "")
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+const DAY_INDEX: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
+
+const DAY_LABELS: Record<string, string> = {
+  sunday: "dimanche",
+  monday: "lundi",
+  tuesday: "mardi",
+  wednesday: "mercredi",
+  thursday: "jeudi",
+  friday: "vendredi",
+  saturday: "samedi",
+};
+
+function getConfigString(config: Record<string, unknown> | null | undefined, key: string) {
+  const value = config?.[key];
+  return typeof value === "string" ? value : "";
+}
+
+function getConfigNumber(config: Record<string, unknown> | null | undefined, key: string) {
+  const value = config?.[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function formatAssistantTime(time: string) {
+  const [hours = "10", minutes = "00"] = time.split(":");
+  return minutes === "00" ? `${Number(hours)}h` : `${Number(hours)}h${minutes}`;
+}
+
+function formatDayAndTime(day: string | undefined, time: string) {
+  if (!day) return formatAssistantTime(time);
+  const label = DAY_LABELS[day] ?? day;
+  const hour = Number(time.split(":")[0] ?? 10);
+  const period = hour < 12 ? " matin" : hour < 18 ? " après-midi" : " soir";
+  return `${label}${period} à ${formatAssistantTime(time)}`;
+}
+
+function getCardScheduleLabel(card: PredefinedAutomationCard) {
+  const config = card.triggerConfig ?? {};
+  const time = (card.time ?? getConfigString(config, "time")) || "10:00";
+  const day = (card.day ?? getConfigString(config, "day")) || undefined;
+  const repeat = getConfigString(config, "repeat");
+  const daysBefore = getConfigNumber(config, "daysBefore");
+  const dayOfMonth = getConfigNumber(config, "dayOfMonth");
+
+  if (card.trigger === "BEFORE_EVENT" && daysBefore) return `${daysBefore} jours avant à ${formatAssistantTime(time)}`;
+  if (card.trigger === "AFTER_EVENT") return `juste après l'événement`;
+  if (card.trigger === "EVENT_DAY") return `le matin de l'événement`;
+  if (card.trigger === "DAILY" || repeat === "daily") return `chaque matin à ${formatAssistantTime(time)}`;
+  if (repeat === "monthly" || dayOfMonth) return `le ${dayOfMonth ?? 15} du mois à ${formatAssistantTime(time)}`;
+  if (repeat === "weekly" || day) return formatDayAndTime(day ?? "friday", time);
+  return formatAssistantTime(time);
+}
+
+function getAssistantChannelsLabel(card: PredefinedAutomationCard) {
+  const channels = card.channels ?? [];
+  if (channels.length === 0) return "les canaux pourront être choisis plus tard";
+  const labels = channels.map((channel) => {
+    if (channel === "WHATSAPP") return "WhatsApp manuel";
+    if (channel === "EMAIL") return "Email";
+    return channel.charAt(0) + channel.slice(1).toLowerCase();
+  });
+  if (labels.length === 1) return labels[0];
+  return `${labels.slice(0, -1).join(", ")} et ${labels[labels.length - 1]}`;
+}
+
+function getAssistantMessage(card: PredefinedAutomationCard) {
+  if (card.assistantMessage) return card.assistantMessage;
+  return `Je vais préparer ${card.label.toLowerCase()} au bon moment. Je propose ${getCardScheduleLabel(card)}, avec ${getAssistantChannelsLabel(card)}. Ça vous convient ?`;
+}
+
+function isPositiveAssistantReply(value: string) {
+  const normalized = normalizeProfileLabel(value);
+  return /\b(OUI|OK|D ACCORD|DACCORD|VALID|VALIDE|PARFAIT|GO|YES)\b/.test(normalized);
+}
+
+function buildNextRunAtFromCard(card: PredefinedAutomationCard) {
+  const config = card.triggerConfig ?? {};
+  const time = (card.time ?? getConfigString(config, "time")) || "10:00";
+  const [rawHours = "10", rawMinutes = "00"] = time.split(":");
+  const hours = Number(rawHours);
+  const minutes = Number(rawMinutes);
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(Number.isFinite(hours) ? hours : 10, Number.isFinite(minutes) ? minutes : 0, 0, 0);
+
+  const repeat = getConfigString(config, "repeat");
+  const day = (card.day ?? getConfigString(config, "day")) || "";
+  const dayOfMonth = getConfigNumber(config, "dayOfMonth");
+
+  if (repeat === "monthly" || dayOfMonth) {
+    next.setDate(dayOfMonth ?? 15);
+    if (next <= now) next.setMonth(next.getMonth() + 1);
+    return next.toISOString();
+  }
+
+  if (repeat === "weekly" || day) {
+    const targetDay = DAY_INDEX[day] ?? DAY_INDEX.friday;
+    const diff = (targetDay - next.getDay() + 7) % 7;
+    next.setDate(next.getDate() + (diff === 0 && next <= now ? 7 : diff));
+    return next.toISOString();
+  }
+
+  if (next <= now) next.setDate(next.getDate() + 1);
+  return next.toISOString();
+}
+
+function buildAssistantTriggerConfig(card: PredefinedAutomationCard, note: string) {
+  const config = card.triggerConfig ?? {};
+  const time = (card.time ?? getConfigString(config, "time")) || "10:00";
+  const day = (card.day ?? getConfigString(config, "day")) || undefined;
+  const repeat = getConfigString(config, "repeat") || (card.trigger === "DAILY" ? "daily" : "none");
+
+  return {
+    ...config,
+    eventTitle: card.label,
+    time,
+    day,
+    repeat,
+    days: day ? [day] : Array.isArray(config.days) ? config.days : [],
+    message: note.trim() || null,
+    notificationHoursBefore: 2,
+    validationBeforeSend: true,
+    assistantActivated: true,
+    assistantInternalInstruction: card.aiInstruction ?? `L'utilisateur souhaite activer l'automatisation ${card.label}.`,
+    assistantVisibleReply: getAssistantMessage(card),
+    whatsappDeliveryMode: "manual_copy",
+    whatsappAutoSend: false,
+  };
+}
+
+export function AutomationsClient({ automations, presets = [], recentRuns, embedded = false, requiresValidationDefault = true, communityType = "OTHER", profileLabel: profileLabelProp }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [toggling, setToggling] = useState<string | null>(null);
   const [triggering, setTriggering] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
-  const [form, setForm] = useState<AutomationFormState>(() => defaultForm());
+  const [form, setForm] = useState<AutomationFormState>(() => defaultForm(requiresValidationDefault));
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [hiddenPresetIds, setHiddenPresetIds] = useState<string[]>([]);
+  const [expandedSpecificPresets, setExpandedSpecificPresets] = useState(false);
+  const [assistantCard, setAssistantCard] = useState<PredefinedAutomationCard | null>(null);
+  const [assistantMessages, setAssistantMessages] = useState<AssistantMessage[]>([]);
+  const [assistantInput, setAssistantInput] = useState("");
+  const [assistantNote, setAssistantNote] = useState("");
+  const [assistantStatus, setAssistantStatus] = useState<AssistantStatus>("idle");
   const activeCount = automations.filter((a) => a.isActive).length;
+  const profileLabelFromProps = profileLabelProp?.trim() ?? "";
+  const profileLabel = (
+    profileLabelFromProps && !INVALID_PROFILE_LABELS.has(normalizeProfileLabel(profileLabelFromProps))
+      ? profileLabelFromProps
+      : getCommunityProfileLabel(communityType, "plural") || getCommunityProfileDisplayLabel(communityType)
+  ).trim();
   const dynamicPresetCards: PredefinedAutomationCard[] = presets.map((preset) => {
     const generateAction = getGenerateAction({ actions: preset.actions } as Automation);
     const config = preset.triggerConfig ?? {};
     return {
       key: preset.id,
-      presetId: preset.id,
+      presetId: isDefaultAutomationPublicationId(preset.id) ? undefined : preset.id,
       label: preset.title,
-      description: preset.description ?? "Automatisation prédéfinie par l'admin global.",
-      emoji: preset.icon ?? "⚡",
+      description: preset.description ?? "Automatisation prÃ©dÃ©finie par l'admin global.",
+      emoji: preset.icon ?? "âš¡",
+      category: preset.category,
       status: "configurable",
       trigger: preset.trigger,
+      triggerConfig: preset.triggerConfig ?? {},
       contentType: generateAction?.contentType,
       channels: generateAction?.channels,
       time: typeof config.time === "string" ? config.time : undefined,
       day: typeof config.day === "string" ? config.day : undefined,
+      assistantMessage: typeof config.assistantMessage === "string" ? config.assistantMessage : undefined,
+      aiInstruction: typeof config.aiInstruction === "string" ? config.aiInstruction : undefined,
     };
   });
-  const predefinedCards = (dynamicPresetCards.length > 0 ? dynamicPresetCards : PREDEFINED_AUTOMATIONS).map((card) => {
+  const predefinedCards = dynamicPresetCards.map((card) => {
     const matchingAutomation = automations.find((automation) => {
       const generateAction = getGenerateAction(automation);
       if (card.presetId && automation.presetId === card.presetId) return true;
@@ -457,9 +624,23 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
 
     return { ...card, matchingAutomation };
   });
-  const shabbatAutomationId =
-    predefinedCards.find((card) => card.key === "shabbat-times")?.matchingAutomation?.id ?? null;
-  const visibleAutomations = automations.filter((automation) => automation.id !== shabbatAutomationId);
+  const visiblePresetCards = predefinedCards.filter((card) => !hiddenPresetIds.includes(card.key));
+  const profilePresetCards = visiblePresetCards.filter((card) => card.category !== GENERAL_DEFAULT_PUBLICATION_CATEGORY && card.category !== "GENERAL");
+  const generalPresetCards = visiblePresetCards.filter((card) => card.category === GENERAL_DEFAULT_PUBLICATION_CATEGORY || card.category === "GENERAL");
+  const visibleProfilePresetCards = expandedSpecificPresets ? profilePresetCards : profilePresetCards.slice(0, 10);
+  const visibleAutomations = automations;
+
+  useEffect(() => {
+    if (searchParams.get("newAutomation") !== "1") return;
+
+    setForm(defaultForm(requiresValidationDefault));
+    setFormOpen(true);
+    setFeedback(null);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("newAutomation");
+    router.replace(params.toString() ? `/dashboard/automations?${params.toString()}` : "/dashboard/automations", { scroll: false });
+  }, [requiresValidationDefault, router, searchParams]);
 
   function IosAutomationSwitch({
     active,
@@ -495,18 +676,78 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
   }
 
   function openCreateForm() {
-    setForm(defaultForm());
+    setForm(defaultForm(requiresValidationDefault));
     setFormOpen(true);
     setFeedback(null);
   }
 
-  function openCreateFormWithLabel(label: string) {
-    setForm({
-      ...defaultForm(),
-      name: label,
-    });
-    setFormOpen(true);
+  function openAssistantForPublication(card: PredefinedAutomationCard) {
+    setAssistantCard(card);
+    setAssistantMessages([{ role: "assistant", text: getAssistantMessage(card) }]);
+    setAssistantInput("");
+    setAssistantNote("");
+    setAssistantStatus("idle");
     setFeedback(null);
+  }
+
+  function closeAssistant() {
+    setAssistantCard(null);
+    setAssistantMessages([]);
+    setAssistantInput("");
+    setAssistantNote("");
+    setAssistantStatus("idle");
+  }
+
+  async function confirmAssistantAutomation(userText = "Oui") {
+    if (!assistantCard || assistantStatus === "creating" || assistantStatus === "created") return;
+    setAssistantStatus("creating");
+    setAssistantMessages((current) => [...current, { role: "user", text: userText }]);
+    const created = await createAutomationFromCard(assistantCard, undefined, assistantNote);
+    if (!created) {
+      setAssistantStatus("error");
+      setAssistantMessages((current) => [
+        ...current,
+        { role: "assistant", text: "Je n'ai pas pu l'ajouter pour l'instant. Réessayez dans un instant." },
+      ]);
+      return;
+    }
+    setAssistantStatus("created");
+    setAssistantMessages((current) => [
+      ...current,
+      { role: "assistant", text: "C'est noté, je l'ai ajouté à votre Agenda connecté IA." },
+    ]);
+  }
+
+  async function submitAssistantInput() {
+    const text = assistantInput.trim();
+    if (!text || !assistantCard) return;
+    setAssistantInput("");
+
+    if (isPositiveAssistantReply(text)) {
+      await confirmAssistantAutomation(text);
+      return;
+    }
+
+    setAssistantNote(text);
+    setAssistantMessages((current) => [
+      ...current,
+      { role: "user", text },
+      {
+        role: "assistant",
+        text: "Très bien, je garde cette précision. Je l'ajoute avec validation avant envoi et notification 2h avant ?",
+      },
+    ]);
+  }
+
+  async function hidePresetSuggestion(suggestionId: string) {
+    setHiddenPresetIds((current) => [...current, suggestionId]);
+    const response = await fetch(`/api/automations/presets/${suggestionId}/hide`, { method: "POST" });
+    if (!response.ok) {
+      setHiddenPresetIds((current) => current.filter((id) => id !== suggestionId));
+      alert("Impossible de masquer cette suggestion.");
+      return;
+    }
+    router.refresh();
   }
 
   function openEditForm(automation: Automation) {
@@ -530,40 +771,6 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
         ? current.channels.filter((item) => item !== channel)
         : [...current.channels, channel],
     }));
-  }
-
-  function getAutomationChannels(automation: Automation | null | undefined) {
-    if (!automation) return [];
-    return getGenerateAction(automation)?.channels ?? [];
-  }
-
-  async function updateAutomationChannels(automation: Automation, channels: string[]) {
-    setToggling(automation.id);
-    try {
-      const generateAction = getGenerateAction(automation);
-      const validationAction = getValidationAction(automation);
-      const res = await fetch(`/api/automations/${automation.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contentType: generateAction?.contentType ?? "GENERAL",
-          channels,
-          requiresValidation: validationAction?.requiresValidation ?? true,
-        }),
-      });
-      if (!res.ok) alert("Erreur lors de la mise à jour des plateformes.");
-      router.refresh();
-    } finally {
-      setToggling(null);
-    }
-  }
-
-  async function toggleAutomationChannel(automation: Automation, channel: string) {
-    const channels = getAutomationChannels(automation);
-    const nextChannels = channels.includes(channel)
-      ? channels.filter((item) => item !== channel)
-      : [...channels, channel];
-    await updateAutomationChannels(automation, nextChannels);
   }
 
   function toggleCustomDay(day: string) {
@@ -603,14 +810,15 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
     try {
       const payload = {
         name: form.name,
+        presetId: form.presetId ?? undefined,
         description: "",
-        trigger: "CUSTOM_SCHEDULE",
-        triggerConfig: buildTriggerConfig({ ...form, trigger: "CUSTOM_SCHEDULE" }),
-        contentType: "GENERAL",
+        trigger: form.trigger,
+        triggerConfig: buildTriggerConfig(form),
+        contentType: form.contentType,
         channels: form.channels,
-        requiresValidation: true,
-        isActive: true,
-        nextRunAt: buildNextRunAt({ ...form, trigger: "CUSTOM_SCHEDULE" }),
+        requiresValidation: form.requiresValidation,
+        isActive: form.isActive,
+        nextRunAt: buildNextRunAt(form),
       };
       const res = await fetch(form.id ? `/api/automations/${form.id}` : "/api/automations", {
         method: form.id ? "PATCH" : "POST",
@@ -664,7 +872,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
   }
 
   async function deleteAutomation(id: string) {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer cette automatisation ?")) return;
+    if (!confirm("ÃŠtes-vous sÃ»r de vouloir supprimer cette automatisation ?")) return;
     setDeleting(id);
     try {
       const res = await fetch(`/api/automations/${id}`, { method: "DELETE" });
@@ -677,7 +885,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
     }
   }
 
-  async function createAutomationFromCard(card: PredefinedAutomationCard, channels?: string[]) {
+  async function createAutomationFromCard(card: PredefinedAutomationCard, channels?: string[], note = "") {
     setSaving(true);
     try {
       const res = await fetch("/api/automations", {
@@ -685,24 +893,24 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: card.label,
-          description: "",
-          presetId: card.presetId,
+          description: card.description,
+          presetId: card.presetId && !isDefaultAutomationPublicationId(card.presetId) ? card.presetId : undefined,
           trigger: card.trigger ?? "CUSTOM_SCHEDULE",
-          triggerConfig: {
-            eventTitle: card.label,
-            time: card.time ?? "10:00",
-            day: card.day ?? "friday",
-            repeat: "none",
-            days: card.day ? [card.day] : [],
-          },
+          triggerConfig: buildAssistantTriggerConfig(card, note),
           contentType: card.contentType ?? "GENERAL",
-          channels: channels ?? card.channels ?? defaultForm().channels,
-          requiresValidation: true,
+          channels: channels ?? card.channels ?? [],
+          requiresValidation: card.requiresValidation ?? requiresValidationDefault,
           isActive: true,
+          nextRunAt: buildNextRunAtFromCard(card),
         }),
       });
-      if (res.ok) router.refresh();
-      else alert("Erreur lors de la création de l'automatisation.");
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        router.refresh();
+        return true;
+      }
+      setFeedback({ type: "error", text: data.error ?? "Erreur lors de la création de l'automatisation." });
+      return false;
     } finally {
       setSaving(false);
     }
@@ -717,124 +925,61 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
         body: JSON.stringify({ preset, channels }),
       });
       if (res.ok) router.refresh();
-      else alert("Erreur lors de la création de l'automatisation.");
+      else alert("Erreur lors de la crÃ©ation de l'automatisation.");
     } finally {
       setSaving(false);
     }
   }
 
   function renderAutomationCard(automation: Automation) {
-    const lastRun = automation.runs[0];
-    const generateAction = getGenerateAction(automation);
-
     return (
       <Card
         key={automation.id}
         className={cn(
-          "relative border border-slate-200/90 bg-white/95 transition-shadow hover:shadow-sm hover:shadow-blue-100/50",
+          "relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm transition-shadow hover:shadow-md hover:shadow-blue-100/50",
           !automation.isActive && "opacity-60"
         )}
       >
-        <CardContent className="p-4">
-          <div className="absolute right-3 top-3 flex items-center gap-1">
-            <button
-              type="button"
-              aria-label="Modifier l'automatisation"
-              onClick={() => openEditForm(automation)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-blue-600"
-            >
-              <Settings className="size-4" />
-            </button>
-            <button
-              type="button"
-              aria-label="Supprimer l'automatisation"
-              onClick={() => deleteAutomation(automation.id)}
-              disabled={deleting === automation.id}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-100 bg-red-50 text-red-600 shadow-sm transition hover:bg-red-100 disabled:cursor-wait disabled:opacity-60"
-            >
-              {deleting === automation.id ? <RefreshCw className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-            </button>
-          </div>
+        <CardContent className="p-4 pr-12">
+          <button
+            type="button"
+            aria-label="Supprimer l'automatisation"
+            onClick={() => deleteAutomation(automation.id)}
+            disabled={deleting === automation.id}
+            className="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-full border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-100 disabled:cursor-wait disabled:opacity-60"
+          >
+            {deleting === automation.id ? <RefreshCw className="size-3.5 animate-spin" /> : <X className="size-3.5" />}
+          </button>
 
-          <div className="flex flex-col gap-4 pr-20">
-            <div className={cn(
-              "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-xl",
-              automation.isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"
-            )}>
-              {TRIGGER_LABELS[automation.trigger]?.split(" ")[0] ?? "⚡"}
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="font-semibold text-slate-800">{automation.name}</p>
-                  {automation.description && <p className="mt-0.5 text-xs text-slate-500">{automation.description}</p>}
-                </div>
-                <Badge variant={automation.isActive ? "published" : "draft"} className="w-fit text-[11px]">
-                  {automation.isActive ? "Actif" : "Pause"}
-                </Badge>
-              </div>
-
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">
-                  {TRIGGER_LABELS[automation.trigger]?.slice(2) ?? automation.trigger}
-                </span>
-                {generateAction?.contentType && (
-                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">{generateAction.contentType}</span>
-                )}
-                {automation.event && (
-                  <span className="flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-xs text-sky-700">
-                    <Calendar className="size-3" />
-                    {automation.event.title}
-                  </span>
-                )}
-                {automation.nextRunAt && <span className="text-xs text-slate-500">Prochaine : {formatRelative(automation.nextRunAt)}</span>}
-                {automation.lastRunAt && <span className="text-xs text-slate-400">Derniere : {formatRelative(automation.lastRunAt)}</span>}
-              </div>
-
-              {generateAction?.channels && generateAction.channels.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {generateAction.channels.map((channel) => (
-                    <span key={channel} className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600">
-                      {SOCIAL_LOGOS[channel]}
-                      {channel}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {lastRun && (
-                <div className="mt-3 flex items-center gap-1.5">
-                  {RUN_STATUS_ICON[lastRun.status]}
-                  <span className="text-xs text-slate-500">
-                    {{ RUNNING: "En cours...", SUCCESS: "Succes", PARTIAL_SUCCESS: "Succes partiel", FAILED: "Echec", SKIPPED: "Ignore" }[lastRun.status] ?? lastRun.status}
-                    {" "}({formatRelative(lastRun.startedAt)})
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-1 flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <span className="text-xs font-semibold text-slate-500">
-                  {automation.isActive ? "Automatisation active" : "Automatisation desactivee"}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 rounded-full px-2.5 text-xs"
-                  onClick={() => triggerNow(automation.id)}
-                  loading={triggering === automation.id}
-                >
-                  <Play className="size-3" />
-                  Tester
-                </Button>
-              </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-black uppercase tracking-wide text-slate-900">{automation.name}</p>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                className="h-8 rounded-full bg-blue-600 px-3 text-xs text-white hover:bg-blue-700"
+                onClick={() => openEditForm(automation)}
+              >
+                <Settings className="size-3.5" />
+                Configurer
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-full px-3 text-xs"
+                onClick={() => triggerNow(automation.id)}
+                loading={triggering === automation.id}
+              >
+                <Play className="size-3.5" />
+                Tester
+              </Button>
               <IosAutomationSwitch
                 active={automation.isActive}
                 loading={toggling === automation.id}
                 onClick={() => toggleAutomation(automation.id, automation.isActive)}
               />
+              <span className="text-xs font-semibold text-slate-500">
+                {automation.isActive ? "Activée" : "Désactivée"}
+              </span>
             </div>
           </div>
         </CardContent>
@@ -842,189 +987,148 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
     );
   }
 
+  function renderSuggestedCard(card: SuggestedCard, index: number) {
+    const alreadyActive = Boolean(card.matchingAutomation);
+    return (
+      <Card
+        key={card.key}
+        className={cn(
+          "relative min-h-40 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-md hover:shadow-cyan-100/50",
+          alreadyActive && "bg-slate-50/80"
+        )}
+      >
+        <CardContent className="flex h-full flex-col p-4">
+          <button
+            type="button"
+            aria-label="Masquer cette suggestion"
+            onClick={() => void hidePresetSuggestion(card.key)}
+            className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+          >
+            <X className="size-3.5" />
+          </button>
+
+          <div className="flex items-start gap-3 pr-7">
+            <span className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-sm font-black",
+              ["border-cyan-100 bg-cyan-50 text-cyan-700", "border-slate-200 bg-slate-50 text-slate-700", "border-emerald-100 bg-emerald-50 text-emerald-700"][index % 3]
+            )}>
+              {card.emoji}
+            </span>
+            <div className="min-w-0">
+              <h3 className="line-clamp-2 text-sm font-black leading-5 text-slate-900">{card.label}</h3>
+              <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-500">{card.description}</p>
+            </div>
+          </div>
+
+          <div className="mt-auto flex items-center justify-between gap-3 pt-4">
+            {alreadyActive ? (
+              <Badge variant="published" className="border border-emerald-100 bg-emerald-50 text-emerald-700">
+                Déjà activée
+              </Badge>
+            ) : (
+              <span className="text-[11px] font-semibold text-slate-400">Assistant IA</span>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              disabled={alreadyActive || saving}
+              onClick={() => openAssistantForPublication(card)}
+              className="h-8 rounded-full bg-slate-950 px-3 text-xs text-white hover:bg-cyan-800 disabled:bg-slate-300"
+            >
+              <Zap className="size-3.5" />
+              {alreadyActive ? "Active" : "Activer"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  function renderSuggestedSection(params: {
+    title: ReactNode;
+    cards: SuggestedCard[];
+    emptyText?: string;
+    showMore?: boolean;
+  }) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-xl font-black text-slate-800">{params.title}</h2>
+          <Badge variant="info" className="w-fit border border-blue-100 bg-blue-50 text-blue-700">
+            {activeCount} active{activeCount > 1 ? "s" : ""}
+          </Badge>
+        </div>
+
+        {params.cards.length > 0 ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {params.cards.map((card, index) => renderSuggestedCard(card, index))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-600">
+            <p>{params.emptyText ?? "Aucune publication IA proposée n'est disponible pour le moment."}</p>
+          </div>
+        )}
+
+        {params.showMore && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setExpandedSpecificPresets(true)}
+            className="rounded-full border-slate-200 px-4"
+          >
+            Voir plus
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+
   return (
     <div className="space-y-6">
       {!embedded && (
         <div className="space-y-4">
           <div className="overflow-hidden rounded-3xl border border-cyan-800/60 bg-gradient-to-br from-[#081f36] via-[#0d304f] to-[#08192d] p-6 shadow-lg shadow-slate-950/35">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <div className="mb-3 h-1.5 w-10 rounded-full bg-cyan-300" />
-                <h1 className="mt-2 text-2xl font-bold text-white">Automatisations</h1>
-                <p className="mt-1 text-sm text-cyan-100/75">Gérez et configurez vos scénarios de publication sur vos réseaux sociaux.</p>
-              </div>
-              <div>
-                <Button onClick={openCreateForm} className="rounded-full bg-cyan-300 text-cyan-950 hover:bg-cyan-200 px-5 py-5 text-sm font-semibold transition-all">
-                  <Plus className="size-4 mr-1" />
-                  Nouvelle automatisation
-                </Button>
-              </div>
+            <div className="mb-3 h-1.5 w-10 rounded-full bg-cyan-300" />
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-white">Publications Automatisées IA</h1>
+            <div className="mt-5 rounded-2xl border border-cyan-200/30 bg-white/10 p-4 text-sm leading-6 text-cyan-50 shadow-inner shadow-cyan-950/20">
+              Programmez vos automatisations réseaux sociaux pour communiquer au bon moment et rester actif sur toutes vos plateformes. Elles seront ajoutées à votre Agenda IA.
             </div>
           </div>
 
         </div>
       )}
 
-      {false && !embedded && (
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-blue-100/30">
-          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="hidden">
-                Scénarios prédéfinis pour les <span className="text-blue-900">Synagogues / Beth Habad</span>
-              </h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                Activez vos automatisations r??currentes, choisissez les r??seaux de publication ??? Facebook, Instagram, WhatsApp ou tous ?? la fois ??? puis recevez une notification au bon moment. Vous validez, et EasyCom AI publie en un clic.
-              </p>
-            </div>
-            <Badge variant="info" className="border border-blue-100 bg-blue-50 text-blue-700">
-              {activeCount} active{activeCount > 1 ? "s" : ""}
-            </Badge>
-          </div>
+      {!embedded && (
+        <section className="space-y-6 rounded-2xl border border-blue-100 bg-white p-5 shadow-sm shadow-blue-100/30">
+          {profilePresetCards.length > 0 && renderSuggestedSection({
+            title: (
+              <>
+                Publications automatiques IA proposées pour les{" "}
+                <span className="text-[1.18em] font-black text-sky-500">{profileLabel}</span>
+              </>
+            ),
+            cards: visibleProfilePresetCards,
+            showMore: profilePresetCards.length > visibleProfilePresetCards.length,
+          })}
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {predefinedCards.map((card) => {
-              const existing = card.matchingAutomation;
-              const activeChannels = getAutomationChannels(existing);
+          {renderSuggestedSection({
+            title: "Automatisations de publications proposées",
+            cards: profilePresetCards.length > 0 ? generalPresetCards : visiblePresetCards,
+            emptyText: "Aucune publication IA proposée n'est encore disponible. Vous pouvez créer votre propre automatisation.",
+          })}
 
-              return (
-                <div
-                  key={card.key}
-                  className="rounded-2xl border border-slate-200 bg-slate-50/65 p-4 shadow-sm shadow-slate-200/70"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-xl shadow-inner shadow-blue-100">
-                      {card.emoji}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-semibold text-slate-900">{card.label}</p>
-                        <Badge
-                          variant={existing?.isActive ? "published" : "draft"}
-                          className="shrink-0 text-[10px]"
-                        >
-                          {existing?.isActive ? "Activé" : "Désactivé"}
-                        </Badge>
-                      </div>
-                      <p className="mt-1 text-xs leading-relaxed text-slate-500">{DEFAULT_AUTOMATION_DESCRIPTION}</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex items-center gap-2">
-                    {CLIENT_PLATFORM_OPTIONS.map((platform) => {
-                      const isPlatformActive = activeChannels.includes(platform.channel);
-                      return (
-                        <button
-                          key={platform.channel}
-                          type="button"
-                          aria-label={`${isPlatformActive ? "Désactiver" : "Activer"} ${platform.label}`}
-                          title={platform.label}
-                          onClick={() => {
-                            if (existing) {
-                              void toggleAutomationChannel(existing, platform.channel);
-                              return;
-                            }
-                            if (card.status === "preset") {
-                              void createPreset("WEEKLY_SHABBAT", [platform.channel]);
-                              return;
-                            }
-                            if (card.status === "configurable") {
-                              void createAutomationFromCard(card, [platform.channel]);
-                            }
-                          }}
-                          disabled={card.status === "coming_soon" || toggling === existing?.id || saving}
-                          className={cn(
-                            "flex h-9 w-9 items-center justify-center rounded-full border text-sm font-black shadow-sm transition hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40",
-                            platform.className,
-                            isPlatformActive ? "opacity-100 ring-2 ring-blue-200 ring-offset-2" : "opacity-45 grayscale"
-                          )}
-                        >
-                          {platform.logo}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap items-center gap-2">
-                    {existing ? (
-                      <>
-                        <AutomationFloatButton
-                          active={existing.isActive}
-                          loading={toggling === existing.id}
-                          onClick={() => toggleAutomation(existing.id, existing.isActive)}
-                        />
-                        <span className="hidden" />
-                        {false ? (
-                        <Button>
-                          {existing!.isActive ? (
-                            <>
-                              <Pause className="size-3" />
-                              Désactiver
-                            </>
-                          ) : (
-                            <>
-                              <Play className="size-3" />
-                              Activer
-                            </>
-                          )}
-                        </Button>
-                        ) : null}
-                      </>
-                    ) : card.status === "preset" ? (
-                      <Button
-                        size="sm"
-                        className="h-8 rounded-full bg-red-600 text-xs text-white hover:bg-red-700"
-                        onClick={() => createPreset("WEEKLY_SHABBAT")}
-                        loading={saving}
-                      >
-                        <Zap className="size-3" />
-                        Activer
-                      </Button>
-                    ) : card.status === "configurable" ? (
-                      <Button
-                        size="sm"
-                        className="h-8 rounded-full bg-red-600 text-xs text-white hover:bg-red-700"
-                        onClick={() => createAutomationFromCard(card)}
-                      >
-                        <Play className="size-3" />
-                        Activer
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled
-                        className="h-8 rounded-full border-slate-200 text-xs text-slate-400"
-                      >
-                        Bientôt disponible
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-5 flex justify-center border-t border-slate-100 pt-5">
+          <div className="mt-5 flex flex-col items-center gap-2 border-t border-slate-100 pt-5 text-center">
             <Button
               onClick={openCreateForm}
               className="rounded-full bg-blue-600 px-5 text-white shadow-sm shadow-blue-200 hover:bg-blue-700"
             >
               <Plus className="size-4" />
-              Ajouter une automatisation Récurrente
+              Créer une nouvelle automatisation de publication
             </Button>
-          </div>
-          <div className="mt-4 flex flex-wrap justify-center gap-2.5">
-            {QUICK_AUTOMATION_EVENT_ACTIONS.map((label) => (
-              <Button
-                key={label}
-                type="button"
-                variant="outline"
-                onClick={() => openCreateFormWithLabel(label)}
-                className="rounded-full border-slate-200 bg-white px-4 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-              >
-                {label}
-              </Button>
-            ))}
+            <p className="text-sm text-slate-500">
+              Choisissez parmi ces automatisations prédéfinies ou créez vos propres automatisations personnalisées.
+            </p>
           </div>
         </section>
       )}
@@ -1033,16 +1137,9 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-blue-100/30">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Mes automatisations</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Activez vos automatisations r??currentes, choisissez les r??seaux de publication ??? Facebook, Instagram, WhatsApp ou tous ?? la fois ??? puis recevez une notification au bon moment. Vous validez, et EasyCom AI publie en un clic.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={openCreateForm} className="rounded-full bg-blue-600 text-white hover:bg-blue-700">
-                <Plus className="size-4" />
-                Ajouter
-              </Button>
+              <div className="mb-3 h-1 w-8 rounded-full bg-blue-500" />
+              <h2 className="text-lg font-black text-slate-900">Automatisations actives</h2>
+              <p className="mt-1 text-sm text-slate-500">Gérez les publications automatisées déjà créées.</p>
             </div>
           </div>
 
@@ -1053,13 +1150,9 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                   <Zap className="size-7 text-slate-400" />
                 </div>
                 <div>
-                  <p className="font-semibold text-slate-700">Aucune automatisation personnalisee</p>
-                  <p className="mt-1 text-sm text-slate-400">Creez une automatisation ou activez un scenario ci-dessus.</p>
+                  <p className="font-semibold text-slate-700">Aucune automatisation active</p>
+                  <p className="mt-1 text-sm text-slate-400">Créez une automatisation ou activez une publication IA ci-dessus.</p>
                 </div>
-                <Button size="sm" onClick={openCreateForm} className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="size-4" />
-                  Creer une automatisation
-                </Button>
               </CardContent>
             </Card>
           ) : (
@@ -1067,6 +1160,19 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
               {automations.map((automation) => renderAutomationCard(automation))}
             </div>
           )}
+        </section>
+      )}
+
+      {!embedded && (
+        <section className="rounded-3xl border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-blue-50 p-5 text-center shadow-sm shadow-cyan-100/40">
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-cyan-400" />
+          <p className="text-sm font-semibold text-slate-700">Retrouvez vos automatisations créées dans votre Agenda IA.</p>
+          <Link href="/dashboard/events" className="mt-4 inline-flex">
+            <Button className="rounded-full bg-cyan-700 px-5 text-white hover:bg-cyan-800">
+              <Calendar className="size-4" />
+              Voir mon Agenda IA
+            </Button>
+          </Link>
         </section>
       )}
 
@@ -1078,9 +1184,11 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                 <div>
                   <CardTitle className="flex items-center gap-2 text-xl font-black">
                     <Calendar className="size-5 text-cyan-200" />
-                    Nouvel événement
+                    Nouvelle automatisation
                   </CardTitle>
-                  <p className="mt-1 text-sm leading-6 text-cyan-50">Configurez la date, l&apos;heure, les plateformes et la note associée.</p>
+                  <p className="mt-1 text-sm leading-6 text-cyan-50">
+                    Créez une automatisation réseaux sociaux ! Elle apparaîtra aussi dans votre Agenda IA.
+                  </p>
                 </div>
                 <Button variant="ghost" size="sm" onClick={() => setFormOpen(false)} className="text-white hover:bg-white/15 hover:text-white">
                   <X className="size-4" />
@@ -1097,7 +1205,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                 </div>
               )}
               <label className="space-y-1.5 text-sm font-medium text-slate-700">
-                Titre de l&apos;événement
+                Nom de l&apos;automatisation
                 <input value={form.name} onChange={(event) => updateForm({ name: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100" />
               </label>
               <label className="space-y-1.5 text-sm font-medium text-slate-700">
@@ -1105,23 +1213,23 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                 <input type="date" value={form.date} onChange={(event) => updateForm({ date: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100" />
               </label>
               <label className="space-y-1.5 text-sm font-medium text-slate-700">
-                Heure de l&apos;événement
+                Heure de publication
                 <input type="time" value={form.time} onChange={(event) => updateForm({ time: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100" />
               </label>
               <label className="space-y-1.5 text-sm font-medium text-slate-700">
-                Choix de répétition
+                Répétition
                 <select value={form.repeat} onChange={(event) => updateRepeat(event.target.value as AutomationFormState["repeat"])} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100">
                   {REPEAT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
               </label>
-              {form.repeat !== "weekly" && form.repeat !== "custom" && (
-                <label className="space-y-1.5 text-sm font-medium text-slate-700">
-                  Jour
-                  <select value={form.day} onChange={(event) => updateForm({ day: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100">
-                    {DAY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                  </select>
-                </label>
-              )}
+              <label className="space-y-1.5 text-sm font-medium text-slate-700">
+                Notification avant publication (en heures)
+                <input type="number" min="0" max="30" value={form.daysBefore} onChange={(event) => updateForm({ daysBefore: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100" />
+                <span className="block text-xs font-normal text-slate-500">Vous recevrez une notification {form.daysBefore || 2} heures avant la publication.</span>
+                <Link href="/dashboard/settings?section=editorial" className="block text-xs font-semibold text-cyan-700 hover:text-cyan-900">
+                  Modifier ce délai dans mes paramètres
+                </Link>
+              </label>
               {(form.repeat === "weekly" || form.repeat === "custom") && (
                 <div className="space-y-2 lg:col-span-2">
                   <p className="text-sm font-medium text-slate-700">Jours de répétition</p>
@@ -1140,12 +1248,12 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                 </div>
               )}
               <label className="space-y-1.5 text-sm font-medium text-slate-700 lg:col-span-2">
-                Ajoutez une note
+                Ajouter une note
                 <textarea
                   value={form.message}
                   onChange={(event) => updateForm({ message: event.target.value })}
                   rows={3}
-                  placeholder="Exemple : rappel du cours de Torah ce soir à 20h30 au Beth Habad."
+                  placeholder="Ajoutez une précision pour l'Assistant IA..."
                   className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                 />
               </label>
@@ -1176,158 +1284,140 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                   ))}
                 </div>
               </div>
+              <div className="space-y-2 lg:col-span-2">
+                <p className="text-sm font-medium text-slate-700">Mode d&apos;envoi</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {[
+                    {
+                      value: true,
+                      title: "Me demander avant chaque publication",
+                      description: "L'IA prépare, vous validez avant l'envoi.",
+                    },
+                    {
+                      value: false,
+                      title: "Publier automatiquement à l'heure prévue",
+                      description: "L'IA publie seule selon vos paramètres.",
+                    },
+                  ].map((option) => (
+                    <button
+                      key={String(option.value)}
+                      type="button"
+                      onClick={() => updateForm({ requiresValidation: option.value })}
+                      className={cn(
+                        "rounded-xl border p-3 text-left transition",
+                        form.requiresValidation === option.value
+                          ? "border-cyan-300 bg-cyan-50 text-cyan-900 ring-2 ring-cyan-100"
+                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      )}
+                    >
+                      <span className="block text-sm font-bold">{option.title}</span>
+                      <span className="mt-1 block text-xs leading-5 text-slate-500">{option.description}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="flex flex-wrap items-center justify-end gap-2 lg:col-span-2">
                 <Button type="button" variant="outline" className="ml-auto border-slate-200" onClick={() => setFormOpen(false)}>Annuler</Button>
-                <Button type="button" onClick={saveAutomation} loading={saving} className="bg-cyan-700 hover:bg-cyan-800"><Save className="size-4" />Enregistrer l&apos;événement</Button>
+                <Button type="button" onClick={saveAutomation} loading={saving} className="bg-cyan-700 hover:bg-cyan-800"><Save className="size-4" />Enregistrer l&apos;automatisation</Button>
               </div>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {false && formOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4">
-        <Card className="max-h-[90vh] w-full max-w-3xl overflow-y-auto border-blue-100 bg-white/95 shadow-xl shadow-blue-100/40">
-          <CardHeader className="pb-3">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Settings className="size-4 text-blue-600" />
-                  À quelle heure voulez-vous configurer cet événement ?
-                </CardTitle>
-                <p className="mt-1 text-sm text-slate-500">Configurez les horaires, la repetition, les plateformes et le message.</p>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => setFormOpen(false)}><X className="size-4" /></Button>
-            </div>
-          </CardHeader>
-          <CardContent className="grid gap-4 lg:grid-cols-2">
-            {feedback && (
-              <div className={cn(
-                "lg:col-span-2 rounded-xl border px-3 py-2 text-sm",
-                feedback!.type === "success" ? "border-blue-200 bg-blue-50 text-blue-700" : "border-red-200 bg-red-50 text-red-700"
-              )}>
-                {feedback!.text}
-              </div>
-            )}
-            <label className="space-y-1.5 text-sm font-medium text-slate-700">
-              Titre de l&apos;événement
-              <input value={form.name} onChange={(event) => updateForm({ name: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:bg-white" />
-            </label>
-            <label className="space-y-1.5 text-sm font-medium text-slate-700">
-              Date d&apos;envoi automatique
-              <input type="date" value={form.date} onChange={(event) => updateForm({ date: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:bg-white" />
-            </label>
-            <label className="space-y-1.5 text-sm font-medium text-slate-700">
-              Déclencheur
-              <select value={form.trigger} onChange={(event) => updateForm({ trigger: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:bg-white">
-                {TRIGGER_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </label>
-            <label className="space-y-1.5 text-sm font-medium text-slate-700 lg:col-span-2">
-              Description
-              <textarea value={form.description} onChange={(event) => updateForm({ description: event.target.value })} rows={3} className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:bg-white" />
-            </label>
-            {form.trigger !== "MANUAL" && (
-              <label className="space-y-1.5 text-sm font-medium text-slate-700">
-                Heure d&apos;envoi automatique
-                <input type="time" value={form.time} onChange={(event) => updateForm({ time: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:bg-white" />
-              </label>
-            )}
-            <label className="space-y-1.5 text-sm font-medium text-slate-700">
-              Choix de répétition
-              <select value={form.repeat} onChange={(event) => updateRepeat(event.target.value as AutomationFormState["repeat"])} className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:bg-white">
-                {REPEAT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </label>
-            {(form.trigger === "WEEKLY_SHABBAT" || form.trigger === "JEWISH_HOLIDAY") && (
-              <label className="space-y-1.5 text-sm font-medium text-slate-700">
-                Jours avant
-                <input type="number" min="0" max="30" value={form.daysBefore} onChange={(event) => updateForm({ daysBefore: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:bg-white" />
-              </label>
-            )}
-            {form.trigger === "CUSTOM_SCHEDULE" && form.repeat !== "weekly" && form.repeat !== "custom" && (
-              <label className="space-y-1.5 text-sm font-medium text-slate-700">
-                Jour
-                <select value={form.day} onChange={(event) => updateForm({ day: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:bg-white">
-                  {DAY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
-              </label>
-            )}
-            {(form.repeat === "weekly" || form.repeat === "custom") && (
-              <div className="space-y-2 lg:col-span-2">
-                <p className="text-sm font-medium text-slate-700">Jours de répétition</p>
-                <div className="flex flex-wrap gap-2">
-                  {DAY_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => toggleCustomDay(option.value)}
-                      className={cn("rounded-full border px-3 py-1.5 text-xs font-semibold transition", form.customDays.includes(option.value) ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 text-slate-500 hover:bg-slate-50")}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
+      {assistantCard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+          <Card className="w-full max-w-lg overflow-hidden border-cyan-100 bg-white shadow-2xl shadow-slate-950/20">
+            <CardHeader className="border-b border-slate-100 bg-slate-950 px-5 py-4 text-white">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-xl font-black">
+                    <Zap className="size-5 text-cyan-200" />
+                    Assistant IA
+                  </CardTitle>
+                  <p className="mt-1 text-sm text-slate-300">{assistantCard.label}</p>
                 </div>
+                <Button variant="ghost" size="sm" onClick={closeAssistant} className="text-white hover:bg-white/15 hover:text-white">
+                  <X className="size-4" />
+                </Button>
               </div>
-            )}
-            <label className="space-y-1.5 text-sm font-medium text-slate-700">
-              Type de contenu
-              <select value={form.contentType} onChange={(event) => updateForm({ contentType: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:bg-white">
-                {CONTENT_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-              </select>
-            </label>
-            <label className="space-y-1.5 text-sm font-medium text-slate-700 lg:col-span-2">
-              Quel message souhaitez-vous préparer pour cette automatisation ?
-              <textarea
-                value={form.message}
-                onChange={(event) => updateForm({ message: event.target.value })}
-                rows={3}
-                placeholder="Exemple : Bonjour, rappel du cours de Torah ce soir à 20h30 au Beth Habad. Nous vous attendons nombreux."
-                className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:bg-white"
-              />
-            </label>
-            <div className="space-y-2 lg:col-span-2">
-              <p className="text-sm font-medium text-slate-700">Plateformes</p>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { channel: "WHATSAPP", label: "WhatsApp", logo: SOCIAL_LOGOS.WHATSAPP },
-                  { channel: "INSTAGRAM", label: "Instagram", logo: SOCIAL_LOGOS.INSTAGRAM },
-                  { channel: "FACEBOOK", label: "Facebook", logo: SOCIAL_LOGOS.FACEBOOK },
-                  { channel: "TELEGRAM", label: "Telegram", logo: SOCIAL_LOGOS.TELEGRAM },
-                  { channel: "EMAIL", label: "Email", logo: SOCIAL_LOGOS.EMAIL },
-                ].map((item) => (
-                  <button
-                    key={item.channel}
-                    type="button"
-                    onClick={() => toggleChannel(item.channel)}
+            </CardHeader>
+            <CardContent className="space-y-4 bg-slate-50 p-5">
+              <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
+                {assistantMessages.map((message, index) => (
+                  <div
+                    key={`${message.role}-${index}`}
                     className={cn(
-                      "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition hover:scale-[1.02]",
-                      form.channels.includes(item.channel)
-                        ? "border-blue-200 bg-blue-50 text-blue-700 ring-2 ring-blue-100"
-                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                      "max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm",
+                      message.role === "assistant"
+                        ? "mr-auto border border-slate-200 bg-white text-slate-700"
+                        : "ml-auto bg-cyan-700 text-white"
                     )}
                   >
-                    {item.logo}
-                    {item.label}
-                  </button>
+                    {message.text}
+                  </div>
                 ))}
+                {assistantStatus === "creating" && (
+                  <div className="mr-auto inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">
+                    <RefreshCw className="size-4 animate-spin" />
+                    J&apos;ajoute l&apos;automatisation...
+                  </div>
+                )}
               </div>
-            </div>
-            <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm font-medium text-slate-700 lg:col-span-2">
-              Automatisation active
-              <input
-                type="checkbox"
-                checked={form.isActive}
-                onChange={(event) => updateForm({ isActive: event.target.checked })}
-                className="h-4 w-4 rounded border-slate-300 text-blue-600"
-              />
-            </label>
-            <div className="flex flex-wrap items-center justify-end gap-2 lg:col-span-2">
-              <Button type="button" variant="outline" className="ml-auto border-slate-200" onClick={() => setFormOpen(false)}>Annuler</Button>
-              <Button type="button" onClick={saveAutomation} loading={saving} className="bg-blue-600 hover:bg-blue-700"><Save className="size-4" />Enregistrer l&apos;automatisation</Button>
-            </div>
-          </CardContent>
-        </Card>
+
+              {assistantStatus === "created" ? (
+                <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
+                  <Button type="button" variant="outline" onClick={closeAssistant} className="rounded-full border-slate-200">
+                    Fermer
+                  </Button>
+                  <Link href="/dashboard/events">
+                    <Button className="rounded-full bg-cyan-700 text-white hover:bg-cyan-800">
+                      <Calendar className="size-4" />
+                      Voir dans mon Agenda connecté IA
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3 border-t border-slate-200 pt-4">
+                  <div className="flex gap-2">
+                    <input
+                      value={assistantInput}
+                      onChange={(event) => setAssistantInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          void submitAssistantInput();
+                        }
+                      }}
+                      placeholder="Répondez oui, ou précisez un détail..."
+                      className="min-w-0 flex-1 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => void submitAssistantInput()}
+                      disabled={assistantStatus === "creating"}
+                      className="rounded-full bg-cyan-700 px-4 text-white hover:bg-cyan-800"
+                    >
+                      Envoyer
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={closeAssistant} className="rounded-full border-slate-200">
+                      Annuler
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => void confirmAssistantAutomation()}
+                      loading={assistantStatus === "creating"}
+                      className="rounded-full bg-slate-950 text-white hover:bg-cyan-800"
+                    >
+                      Oui, ajoute-la
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -1361,7 +1451,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
               <Card key={automation.id} className={cn("border border-slate-200/90 bg-white/95 transition-shadow hover:shadow-sm hover:shadow-blue-100/50", !automation.isActive && "opacity-60")}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
-                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl", automation.isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500")}>{TRIGGER_LABELS[automation.trigger]?.split(" ")[0] ?? "⚡"}</div>
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl", automation.isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500")}>{TRIGGER_LABELS[automation.trigger]?.split(" ")[0] ?? "âš¡"}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div><p className="font-semibold text-slate-800">{automation.name}</p>{automation.description && <p className="text-xs text-slate-500 mt-0.5">{automation.description}</p>}</div>
@@ -1374,7 +1464,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                         {automation.nextRunAt && <span className="text-xs text-slate-500">Prochaine : {formatRelative(automation.nextRunAt)}</span>}
                         {automation.lastRunAt && <span className="text-xs text-slate-400">Dernière : {formatRelative(automation.lastRunAt)}</span>}
                       </div>
-                      {lastRun && <div className="flex items-center gap-1.5 mt-2">{RUN_STATUS_ICON[lastRun.status]}<span className="text-xs text-slate-500">{{ RUNNING: "En cours…", SUCCESS: "Succès", PARTIAL_SUCCESS: "Succès partiel", FAILED: "Échec", SKIPPED: "Ignoré" }[lastRun.status] ?? lastRun.status} ({formatRelative(lastRun.startedAt)})</span></div>}
+                      {lastRun && <div className="flex items-center gap-1.5 mt-2">{RUN_STATUS_ICON[lastRun.status]}<span className="text-xs text-slate-500">{{ RUNNING: "En cours...", SUCCESS: "Succès", PARTIAL_SUCCESS: "Succès partiel", FAILED: "Échec", SKIPPED: "Ignoré" }[lastRun.status] ?? lastRun.status} ({formatRelative(lastRun.startedAt)})</span></div>}
                       <div className="flex flex-wrap items-center gap-2 mt-3">
                         <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => toggleAutomation(automation.id, automation.isActive)} loading={toggling === automation.id}>{automation.isActive ? <><Pause className="size-3" /> Mettre en pause</> : <><Play className="size-3" /> Activer</>}</Button>
                         <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => triggerNow(automation.id)} loading={triggering === automation.id}><Play className="size-3" />Lancer maintenant</Button>

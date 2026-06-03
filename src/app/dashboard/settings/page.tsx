@@ -39,28 +39,13 @@ export default async function SettingsPage({
 
   const { data: community } = await admin
     .from("Community")
-    .select("id, name, slug, description, logoUrl, city, country, timezone, phone, email, website, address, postalCode, tone, language, signature, hashtags, mentions, editorialRules, communityType, religiousStream, onboardingDone, plan")
+    .select("id, name, slug, description, logoUrl, city, country, timezone, phone, email, website, address, postalCode, tone, language, signature, hashtags, mentions, editorialRules, communityType, religiousStream, onboardingDone, plan, vocabulary")
     .eq("id", communityId)
     .single();
 
   if (!community) {
     redirect("/onboarding");
   }
-
-  const settingsCommunity = {
-    ...community,
-    rhythmId: null,
-    hashtags: community.hashtags ?? [],
-    mentions: community.mentions ?? [],
-  };
-
-  const rhythmQuery = admin
-    .from("CommunityRhythm")
-    .select("id, name, slug, description, isActive, sortOrder")
-    .order("sortOrder", { ascending: true })
-    .order("name", { ascending: true });
-
-  const { data: rhythms } = await rhythmQuery.eq("isActive", true);
 
   return (
     <div className="space-y-6">
@@ -77,8 +62,11 @@ export default async function SettingsPage({
       </section>
 
       <SettingsGeneralClient
-        community={settingsCommunity}
-        rhythms={rhythms ?? []}
+        community={{
+          ...community,
+          hashtags: community.hashtags ?? [],
+          mentions: community.mentions ?? [],
+        }}
         initialSection={initialSection}
         profile={{
           name: profile.name ?? "",
@@ -93,4 +81,3 @@ export default async function SettingsPage({
     </div>
   );
 }
-

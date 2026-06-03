@@ -26,11 +26,11 @@ export async function GET() {
       messagesCount: res.data.messages?.length || 0,
       messages: res.data.messages
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Gmail Test Error:', error);
     return NextResponse.json({ 
       error: 'Erreur de connexion Gmail', 
-      details: error.message 
+      details: error instanceof Error ? error.message : 'Erreur inconnue'
     }, { status: 500 });
   }
 }

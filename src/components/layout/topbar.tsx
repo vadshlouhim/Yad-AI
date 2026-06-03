@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Bell, Bot, ChevronDown, LogOut, Menu, Search, Settings, User, X, Zap } from "lucide-react";
+import { Bell, Bot, CalendarDays, ChevronDown, LogOut, Menu, Search, Settings, User, X, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DASHBOARD_DESKTOP_CATEGORIES } from "./dashboard-nav";
 
@@ -52,7 +52,7 @@ const MOBILE_CATEGORY_CONTENT: Record<
     itemActive: "bg-cyan-50 text-slate-950 ring-1 ring-cyan-100",
   },
   "AGENDA ET QUOTIDIEN": {
-    title: "ASSISTANT DU QUOTIDIEN",
+    title: "AGENDA CONNECTÉ IA",
     description: "Votre quotidien bien organisé",
     accentBar: "bg-violet-500",
     iconSurface: "bg-violet-50",
@@ -132,7 +132,8 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
     if (pathname.startsWith("/dashboard/instagram")) return "Instagram";
     if (pathname.startsWith("/dashboard/email")) return "Email";
     if (pathname.startsWith("/dashboard/google-reviews")) return "Avis Google";
-    if (pathname.startsWith("/dashboard/events")) return "Assistant du quotidien";
+    if (pathname.startsWith("/dashboard/daily-assistant")) return "Assistant du quotidien";
+    if (pathname.startsWith("/dashboard/events")) return "Agenda connect\u00e9 IA";
     if (pathname.startsWith("/dashboard/clip-recap")) return "Clip récap AI";
     if (pathname.startsWith("/dashboard/resources")) return "Mes ressources";
     if (pathname.startsWith("/dashboard/boutique")) return "Boutique";
@@ -145,7 +146,8 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
 
   const SEARCH_TARGETS = [
     { label: "Assistant IA", href: "/dashboard/assistant", keywords: ["assistant", "ia", "chat"] },
-    { label: "Mon Agenda IA", href: "/dashboard/events", keywords: ["agenda", "quotidien", "cours", "rappel"] },
+    { label: "Agenda connect\u00e9 IA", href: "/dashboard/events", keywords: ["agenda", "quotidien", "cours", "rappel"] },
+    { label: "Assistant du quotidien", href: "/dashboard/daily-assistant", keywords: ["assistant", "quotidien", "rappel", "projet"] },
     { label: "Cr\u00E9er des automatisations", href: "/dashboard/automations", keywords: ["automatisation", "j-10", "j-5", "j-1"] },
     { label: "Affiches", href: "/dashboard/templates", keywords: ["affiche", "visuel", "template"] },
     { label: "Horaire de Chabbat auto", href: "/dashboard/shabbat-times-auto", keywords: ["chabbat", "shabbat", "horaire", "affiche"] },
@@ -169,7 +171,7 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
     const map: Record<string, string> = {
       "RESEAUX SOCIAUX": "Réseaux sociaux",
       EMAIL: "Email et avis",
-      "AGENDA ET QUOTIDIEN": "Assistant du quotidien",
+      "AGENDA ET QUOTIDIEN": "Agenda et quotidien",
       "CLIPS VIDEO": "Clips vidéo",
       RESSOURCES: "Ressources & Services",
       "RESSOURCES & SERVICES": "Ressources & Services",
@@ -349,17 +351,19 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
                     <Bell className="size-4 shrink-0 text-cyan-200" />
                     <p className="truncate text-[15px] font-semibold tracking-tight text-white">Notification</p>
                   </button>
-
                   <Link
-                    href="/dashboard/automations"
+                    href="/dashboard/events"
                     onClick={() => setMobileNavOpen(false)}
                     className={cn(
-                      "flex min-h-11 items-center gap-2 rounded-[1.2rem] bg-slate-900 px-4 py-3 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition-colors duration-200",
-                      isActive("/dashboard/automations") ? "bg-slate-950" : "hover:bg-slate-800",
+                      "mt-3 flex min-h-11 items-center gap-2 rounded-[1.2rem] bg-slate-900 px-4 py-3 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition-colors duration-200",
+                      isActive("/dashboard/events") ? "bg-slate-950" : "hover:bg-slate-800",
                     )}
                   >
-                    <Zap className="size-4 shrink-0 text-cyan-200" />
-                    <p className="truncate text-[15px] font-semibold tracking-tight text-white">{"Cr\u00E9er des automatisations"}</p>
+                    <CalendarDays className="size-4 shrink-0 text-cyan-200" />
+                    <p className="truncate text-[15px] font-semibold tracking-tight text-white">Agenda connecté</p>
+                    <span className="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white/95 text-[10px] font-black leading-none text-slate-900">
+                      IA
+                    </span>
                   </Link>
 
                   {DASHBOARD_DESKTOP_CATEGORIES.map((category) => {
@@ -408,6 +412,21 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
                         >
                           <div className="overflow-hidden">
                             <div className="mt-3 space-y-1.5 rounded-[1.2rem] bg-slate-50/80 p-2">
+                              {category.section === "RESEAUX SOCIAUX" && (
+                                <Link
+                                  href="/dashboard/automations"
+                                  onClick={() => setMobileNavOpen(false)}
+                                  className={cn(
+                                    "flex min-w-0 items-center gap-2 rounded-[1.15rem] bg-blue-600 px-3 py-2.5 text-white shadow-[0_14px_26px_rgba(37,99,235,0.24)] ring-1 ring-blue-200/70 transition-all duration-200 hover:bg-blue-700",
+                                    isActive("/dashboard/automations") && "bg-blue-700"
+                                  )}
+                                >
+                                  <Zap className="size-4 shrink-0 text-cyan-50" />
+                                  <span className="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight">
+                                    Créer des automatisations
+                                  </span>
+                                </Link>
+                              )}
                               {category.items
                                 .filter((item) => !(category.section === "RESEAUX SOCIAUX" && item.href === "/dashboard/automations"))
                                 .map((item) => {

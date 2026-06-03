@@ -51,20 +51,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { data, error } = await auth.admin.from("AutomationPreset").update(updateData).eq("id", id).select().single();
   if (error || !data) return NextResponse.json({ error: error?.message ?? "Modification impossible" }, { status: 400 });
 
-  if (Array.isArray(body.rhythmIds)) {
-    const rhythmIds = body.rhythmIds.map(String).filter(Boolean);
-    await auth.admin.from("AutomationPresetRhythm").delete().eq("presetId", id);
-    if (rhythmIds.length > 0) {
-      await auth.admin.from("AutomationPresetRhythm").insert(
-        rhythmIds.map((rhythmId) => ({
-          id: `preset_rhythm_${crypto.randomUUID()}`,
-          presetId: id,
-          rhythmId,
-        }))
-      );
-    }
-  }
-
   return NextResponse.json(data);
 }
 

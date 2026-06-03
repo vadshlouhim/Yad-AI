@@ -8,12 +8,16 @@ export const metadata: Metadata = { title: "Modifier le contenu — EasyCom AI" 
 
 export default async function ContentDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ quickValidate?: string }>;
 }) {
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
   const { id } = await params;
+  const parsedSearchParams = await searchParams;
+  const quickValidate = parsedSearchParams.quickValidate === "1";
   const admin = createAdminClient();
 
   const [{ data: draft }, { data: community }] = await Promise.all([
@@ -36,6 +40,7 @@ export default async function ContentDetailPage({
     <ContentDetailClient
       draft={draft as Parameters<typeof ContentDetailClient>[0]["draft"]}
       community={community!}
+      quickValidate={quickValidate}
     />
   );
 }

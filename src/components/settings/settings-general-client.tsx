@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Save, Building2, User, Palette, ChevronRight, ShieldCheck, Users, Smartphone, Trash2, Share2, Bot, SlidersHorizontal, Image as ImageIcon, Loader2, Upload } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels";
 
 interface Community {
   id: string;
@@ -30,18 +31,8 @@ interface Community {
   mentions: string[];
   editorialRules: string | null;
   communityType: string;
-  rhythmId: string | null;
-  religiousStream: string | null;
   plan: string;
-}
-
-interface CommunityRhythm {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  isActive: boolean;
-  sortOrder: number;
+  vocabulary?: Record<string, unknown> | null;
 }
 
 interface Profile {
@@ -54,7 +45,6 @@ interface Profile {
 
 interface Props {
   community: Community;
-  rhythms: CommunityRhythm[];
   profile: Profile;
   initialSection?: SettingsSection;
 }
@@ -91,41 +81,35 @@ interface NavigatorWithContacts extends Navigator {
 
 const TONE_OPTIONS = [
   { value: "MODERN", label: "Moderne", description: "Accessible et contemporain" },
-  { value: "TRADITIONAL", label: "Traditionnel", description: "Ancré dans la tradition" },
+  { value: "TRADITIONAL", label: "Traditionnel", description: "AncrÃ© dans la tradition" },
   { value: "FORMAL", label: "Formel", description: "Institutionnel et professionnel" },
   { value: "FRIENDLY", label: "Convivial", description: "Chaleureux et proche" },
-  { value: "RELIGIOUS", label: "Religieux", description: "Axé sur les valeurs spirituelles" },
-];
-
-const COMMUNITY_TYPE_OPTIONS = [
-  { value: "SYNAGOGUE", label: "Synagogue" },
-  { value: "ASSOCIATION", label: "Association" },
-  { value: "SCHOOL", label: "École" },
-  { value: "CENTER", label: "Centre communautaire" },
-  { value: "OTHER", label: "Autre" },
+  { value: "RELIGIOUS", label: "Religieux", description: "AxÃ© sur les valeurs spirituelles" },
 ];
 
 const COMMUNITY_TYPE_CHOICES = [
-  { value: "ASSOCIATION", saveValue: "ASSOCIATION", label: "Association / ONG" },
-  { value: "RELIGIOUS", saveValue: "SYNAGOGUE", label: "Lieu de culte" },
-  { value: "SCHOOL", saveValue: "SCHOOL", label: "Ecole / Formation" },
-  { value: "SPORT", saveValue: "OTHER", label: "Sport & Loisirs" },
-  { value: "CULTURE", saveValue: "OTHER", label: "Culture & Arts" },
-  { value: "PROFESSIONAL", saveValue: "OTHER", label: "Reseau professionnel" },
-  { value: "LOCAL", saveValue: "OTHER", label: "Quartier / Local" },
-  { value: "STUDENT", saveValue: "OTHER", label: "Etudiants / Campus" },
-  { value: "ONLINE", saveValue: "OTHER", label: "Communaute en ligne" },
-  { value: "CENTER", saveValue: "CENTER", label: "Centre communautaire" },
-  { value: "OTHER", saveValue: "OTHER", label: "Autre" },
+  "SYNAGOGUE",
+  "RESTAURANT",
+  "CATERER",
+  "SPORT_COACH",
+  "COMMERCE",
+  "BUSINESS",
+  "CONTENT_CREATOR",
+  "ASSOCIATION",
+  "RELIGIOUS",
+  "SCHOOL",
+  "SPORT",
+  "CULTURE",
+  "PROFESSIONAL",
+  "LOCAL",
+  "STUDENT",
+  "ONLINE",
+  "CENTER",
+  "OTHER",
 ];
 
 function getCommunityTypeChoice(value: string) {
-  if (value === "SYNAGOGUE") return "RELIGIOUS";
-  return COMMUNITY_TYPE_CHOICES.some((option) => option.value === value) ? value : "OTHER";
-}
-
-function getCommunityTypeSaveValue(value: string) {
-  return COMMUNITY_TYPE_CHOICES.find((option) => option.value === value)?.saveValue ?? "OTHER";
+  return COMMUNITY_TYPE_CHOICES.includes(value) ? value : "OTHER";
 }
 
 const PLAN_LABELS: Record<string, { label: string; color: string }> = {
@@ -135,7 +119,7 @@ const PLAN_LABELS: Record<string, { label: string; color: string }> = {
   ENTERPRISE: { label: "Enterprise", color: "bg-amber-100 text-amber-700" },
 };
 
-export function SettingsGeneralClient({ community, rhythms, profile, initialSection = "community" }: Props) {
+export function SettingsGeneralClient({ community, profile, initialSection = "community" }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
@@ -154,20 +138,26 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
   const [logoUrl, setLogoUrl] = useState(community.logoUrl ?? "");
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
-  const [communityType, setCommunityType] = useState(getCommunityTypeChoice(community.communityType));
-  const [rhythmId, setRhythmId] = useState(community.rhythmId ?? "");
-  const [rhythmOther, setRhythmOther] = useState(
-    community.rhythmId && rhythms.find((rhythm) => rhythm.id === community.rhythmId)?.slug !== "autre"
-      ? ""
-      : community.religiousStream ?? ""
-  );
-  const [religiousStream, setReligiousStream] = useState(community.religiousStream ?? "");
-
+  const communityProfileType = typeof community.vocabulary?.communityProfileType === "string"
+    ? community.vocabulary.communityProfileType
+    : getCommunityTypeChoice(community.communityType);
+  const communityTypeLabel =
+    getCommunityProfileDisplayLabel(communityProfileType) ||
+    getCommunityProfileDisplayLabel(community.communityType) ||
+    community.communityType;
   // Editorial form
   const [tone, setTone] = useState(community.tone);
   const [signature, setSignature] = useState(community.signature ?? "");
   const [hashtags, setHashtags] = useState(community.hashtags.join(" "));
   const [editorialRules, setEditorialRules] = useState(community.editorialRules ?? "");
+  const [notificationLeadHours, setNotificationLeadHours] = useState(() => {
+    const value = community.vocabulary?.aiNotificationLeadHours;
+    return typeof value === "number" && Number.isFinite(value) ? String(value) : "2";
+  });
+  const [automationValidationMode, setAutomationValidationMode] = useState<"manual" | "automatic">(() => {
+    const value = community.vocabulary?.automationValidationMode;
+    return value === "automatic" ? "automatic" : "manual";
+  });
 
   // Profile form
   const [profileName, setProfileName] = useState(profile.name);
@@ -218,7 +208,6 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
 
   async function saveCommunity() {
     setSaving(true);
-    const savedCommunityType = getCommunityTypeSaveValue(communityType);
     try {
       await fetch("/api/community/settings", {
         method: "PATCH",
@@ -228,9 +217,6 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
           country, timezone, phone: phone || null, email: email || null,
           website: website || null, address: address || null,
           logoUrl: logoUrl || null,
-          communityType: savedCommunityType,
-          rhythmId: savedCommunityType === "SYNAGOGUE" && rhythmId ? rhythmId : null,
-          religiousStream: savedCommunityType === "SYNAGOGUE" ? religiousStream || null : null,
         }),
       });
       router.refresh();
@@ -252,6 +238,12 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
           signature: signature || null,
           hashtags: hashtags.split(/\s+/).filter(Boolean),
           editorialRules: editorialRules || null,
+          vocabulary: {
+            ...(community.vocabulary ?? {}),
+            aiNotificationLeadHours: Math.max(0.25, Number(notificationLeadHours) || 2),
+            automationValidationMode,
+            manualValidationBeforeSend: automationValidationMode === "manual",
+          },
         }),
       });
       router.refresh();
@@ -289,14 +281,14 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
       const result = await response.json();
 
       if (!response.ok) {
-        setLogoError(result.error ?? "Impossible de téléverser le logo.");
+        setLogoError(result.error ?? "Impossible de tÃ©lÃ©verser le logo.");
         return;
       }
 
       setLogoUrl(result.logoUrl);
       router.refresh();
     } catch {
-      setLogoError("Impossible de téléverser le logo.");
+      setLogoError("Impossible de tÃ©lÃ©verser le logo.");
     } finally {
       setLogoUploading(false);
     }
@@ -307,7 +299,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
     setPasswordSuccess(null);
 
     if (password.length < 8) {
-      setPasswordError("Le mot de passe doit contenir au moins 8 caractères.");
+      setPasswordError("Le mot de passe doit contenir au moins 8 caractÃ¨res.");
       return;
     }
 
@@ -360,7 +352,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
   async function addMember() {
     setMemberError(null);
     if (!memberName.trim() && !memberEmail.trim() && !memberPhone.trim()) {
-      setMemberError("Ajoutez au moins un nom, email ou téléphone.");
+      setMemberError("Ajoutez au moins un nom, email ou tÃ©lÃ©phone.");
       return;
     }
 
@@ -434,19 +426,11 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
   }
 
   const authProviders = profile.authProviders.length > 0 ? profile.authProviders : ["email"];
-  const selectedRhythm = rhythms.find((rhythm) => rhythm.id === rhythmId);
-  const isOtherRhythm = selectedRhythm?.slug === "autre";
-
-  function selectRhythm(nextRhythmId: string) {
-    const rhythm = rhythms.find((item) => item.id === nextRhythmId);
-    setRhythmId(nextRhythmId);
-    setReligiousStream(rhythm?.slug === "autre" ? rhythmOther : rhythm?.name ?? "");
-  }
 
   const navItems = [
-    { id: "community" as const, label: "Communauté", icon: Building2 },
+    { id: "community" as const, label: "CommunautÃ©", icon: Building2 },
     { id: "contacts" as const, label: "Contacts", icon: Users },
-    { id: "editorial" as const, label: "Identité éditoriale", icon: Palette },
+    { id: "editorial" as const, label: "IdentitÃ© Ã©ditoriale", icon: Palette },
     { id: "profile" as const, label: "Mon profil", icon: User },
   ];
   const settingsCardClass = "rounded-[1.9rem] border border-slate-200/90 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)]";
@@ -457,7 +441,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
     <div className="space-y-6">
       <div className="hidden">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Paramètres</h1>
+          <h1 className="text-2xl font-bold text-slate-900">ParamÃ¨tres</h1>
           <p className="text-slate-500 mt-1">Gerez ici vos reseaux sociaux, votre quotidien, vos contacts, la FAQ et le support.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -483,7 +467,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 [&>*]:border-emerald-100 [&>*]:font-semibold [&>*]:shadow-sm [&>*]:transition [&>*]:hover:-translate-y-0.5 [&>*]:hover:border-emerald-200 [&>*]:hover:bg-emerald-50">
-        <Link href="/dashboard/settings/channels" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Connexion réseaux sociaux</Link>
+        <Link href="/dashboard/settings/channels" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Connexion rÃ©seaux sociaux</Link>
         <Link href="/dashboard/events" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Gestion du quotidien</Link>
         <Link href="/help" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">FAQ</Link>
         <button type="button" onClick={() => setActiveSection("contacts")} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50">Ajoutez mes contacts</button>
@@ -496,7 +480,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
       </div>
 
       <div className="flex gap-6">
-        {/* Nav latérale */}
+        {/* Nav latÃ©rale */}
         <nav className="w-48 flex-shrink-0 space-y-1">
           {navItems.map((item) => (
             <button
@@ -518,7 +502,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
             className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left text-slate-600 hover:bg-slate-100"
           >
             <Share2 className="size-4" />
-            Réseaux sociaux
+            RÃ©seaux sociaux
           </Link>
         </nav>
 
@@ -537,13 +521,13 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                   {[
                     {
                       value: "simple" as const,
-                      title: "Mode simplifié",
+                      title: "Mode simplifiÃ©",
                       description: "Assistant conversationnel en page principale, avec boutons d'action sur le compte.",
                     },
                     {
                       value: "detailed" as const,
-                      title: "Mode détaillé",
-                      description: "Interface experte avec historique, sections et réglages complets.",
+                      title: "Mode dÃ©taillÃ©",
+                      description: "Interface experte avec historique, sections et rÃ©glages complets.",
                     },
                   ].map((option) => (
                     <button
@@ -575,13 +559,13 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
             </Card>
           )}
 
-          {/* Section communauté */}
+          {/* Section communautÃ© */}
           {activeSection === "community" && (
             <Card className={settingsCardClass}>
               <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Building2 className="size-4" />
-                  Informations de la communauté
+                  Informations de la communautÃ©
                 </CardTitle>
               </CardHeader>
               <CardContent className={settingsContentClass}>
@@ -595,74 +579,16 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                       className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     />
                   </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <label className="text-sm font-semibold text-slate-800">Quel type de communauté êtes-vous ?</label>
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                      {COMMUNITY_TYPE_CHOICES.map((opt) => {
-                        const selected = communityType === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => {
-                              setCommunityType(opt.value);
-                              if (opt.saveValue !== "SYNAGOGUE") {
-                                setRhythmId("");
-                                setRhythmOther("");
-                                setReligiousStream("");
-                              }
-                            }}
-                            className={cn(
-                              "rounded-xl border px-3 py-2.5 text-left text-sm font-semibold transition",
-                              selected
-                                ? "border-emerald-300 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-100"
-                                : "border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50"
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-slate-700">Type de structure</label>
+                    <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700">
+                      {communityTypeLabel}
                     </div>
+                    <p className="text-xs text-slate-400">
+                      Ce choix est défini à la création du compte et ne peut pas être modifié ici.
+                    </p>
                   </div>
                 </div>
-
-                {getCommunityTypeSaveValue(communityType) === "SYNAGOGUE" && (
-                  <div className="space-y-2 rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
-                    <label className="text-sm font-medium text-slate-700">
-                      Quel est le rythme ou le style de votre communauté ?
-                    </label>
-                    <select
-                      value={rhythmId}
-                      onChange={(event) => selectRhythm(event.target.value)}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    >
-                      <option value="">Sélectionner un rythme</option>
-                      {rhythms.map((rhythm) => (
-                        <option key={rhythm.id} value={rhythm.id}>
-                          {rhythm.name}{!rhythm.isActive ? " (désactivé)" : ""}
-                        </option>
-                      ))}
-                    </select>
-                    {isOtherRhythm && (
-                      <input
-                        type="text"
-                        value={rhythmOther}
-                        onChange={(event) => {
-                          setRhythmOther(event.target.value);
-                          setReligiousStream(event.target.value);
-                        }}
-                        placeholder="Précisez le rythme de votre communauté"
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                      />
-                    )}
-                    {!rhythmId && religiousStream && (
-                      <p className="text-xs text-slate-500">
-                        Valeur historique conservée : {religiousStream}
-                      </p>
-                    )}
-                  </div>
-                )}
 
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">Description</label>
@@ -670,7 +596,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={3}
-                    placeholder="Présentez votre communauté en quelques mots…"
+                    placeholder="PrÃ©sentez votre communautÃ© en quelques motsâ€¦"
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-y"
                   />
                 </div>
@@ -709,7 +635,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Téléphone</label>
+                    <label className="text-sm font-medium text-slate-700">TÃ©lÃ©phone</label>
                     <input
                       type="tel"
                       value={phone}
@@ -731,17 +657,6 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                   />
                 </div>
 
-                <div className="hidden">
-                  <label className="text-sm font-medium text-slate-700">Courant religieux</label>
-                  <input
-                    type="text"
-                    value={religiousStream}
-                    onChange={(e) => setReligiousStream(e.target.value)}
-                    placeholder="Ashkénaze, Séfarade, Loubavitch…"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                </div>
-
                 <Button onClick={saveCommunity} loading={saving}>
                   <Save className="size-4" />
                   Sauvegarder
@@ -755,14 +670,14 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
               <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Users className="size-4" />
-                  Contacts de la communauté
+                  Contacts de la communautÃ©
                 </CardTitle>
               </CardHeader>
               <CardContent className={settingsContentClass}>
                 <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
                   Ces contacts sont les membres destinataires des messages WhatsApp et emails.
-                  Ils ne sont pas administrateurs et n&apos;ont pas accès au dashboard. Vous pouvez
-                  aussi renseigner leur profession, âge, ville et notes pour mieux personnaliser les communications.
+                  Ils ne sont pas administrateurs et n&apos;ont pas accÃ¨s au dashboard. Vous pouvez
+                  aussi renseigner leur profession, Ã¢ge, ville et notes pour mieux personnaliser les communications.
                 </div>
 
                 {memberError && (
@@ -790,7 +705,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                     type="tel"
                     value={memberPhone}
                     onChange={(event) => setMemberPhone(event.target.value)}
-                    placeholder="Téléphone WhatsApp"
+                    placeholder="TÃ©lÃ©phone WhatsApp"
                     className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                   <input
@@ -805,7 +720,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                     min="0"
                     value={memberAge}
                     onChange={(event) => setMemberAge(event.target.value)}
-                    placeholder="Âge"
+                    placeholder="Ã‚ge"
                     className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                   <input
@@ -825,7 +740,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                   <textarea
                     value={memberNotes}
                     onChange={(event) => setMemberNotes(event.target.value)}
-                    placeholder="Notes utiles : centres d'intérêt, préférences, informations de suivi…"
+                    placeholder="Notes utiles : centres d'intÃ©rÃªt, prÃ©fÃ©rences, informations de suiviâ€¦"
                     rows={2}
                     className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 lg:col-span-2"
                   />
@@ -847,12 +762,12 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                     <p className="text-sm font-semibold text-slate-900">
                       {members.length} membre{members.length > 1 ? "s" : ""}
                     </p>
-                    {membersLoading && <span className="text-xs text-slate-400">Chargement…</span>}
+                    {membersLoading && <span className="text-xs text-slate-400">Chargementâ€¦</span>}
                   </div>
                   <div className="divide-y divide-slate-100">
                     {members.length === 0 && !membersLoading ? (
                       <p className="px-4 py-8 text-center text-sm text-slate-400">
-                        Aucun contact enregistré pour le moment.
+                        Aucun contact enregistrÃ© pour le moment.
                       </p>
                     ) : (
                       members.map((member) => (
@@ -860,12 +775,12 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium text-slate-900">{member.displayName}</p>
                             <p className="truncate text-xs text-slate-500">
-                              {[member.email, member.phone].filter(Boolean).join(" · ") || "Contact sans canal"}
+                              {[member.email, member.phone].filter(Boolean).join(" Â· ") || "Contact sans canal"}
                             </p>
                             <p className="mt-1 line-clamp-2 text-xs text-slate-400">
                               {[member.profession, member.age ? `${member.age} ans` : null, member.city, member.familyStatus]
                                 .filter(Boolean)
-                                .join(" · ") || "Profil à compléter"}
+                                .join(" Â· ") || "Profil Ã  complÃ©ter"}
                               {member.notes ? ` - ${member.notes}` : ""}
                             </p>
                           </div>
@@ -891,13 +806,13 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
             </Card>
           )}
 
-          {/* Section éditoriale */}
+          {/* Section Ã©ditoriale */}
           {activeSection === "editorial" && (
             <Card className={settingsCardClass}>
               <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Palette className="size-4" />
-                  Identité éditoriale
+                  IdentitÃ© Ã©ditoriale
                 </CardTitle>
               </CardHeader>
               <CardContent className={settingsContentClass}>
@@ -934,36 +849,91 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                     type="text"
                     value={signature}
                     onChange={(e) => setSignature(e.target.value)}
-                    placeholder="- Votre communauté"
+                    placeholder="- Votre communautÃ©"
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
 
                 {/* Hashtags */}
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Hashtags par défaut</label>
+                  <label className="text-sm font-medium text-slate-700">Hashtags par dÃ©faut</label>
                   <input
                     type="text"
                     value={hashtags}
                     onChange={(e) => setHashtags(e.target.value)}
-                    placeholder="#shabbat #communauté #judaisme"
+                    placeholder="#shabbat #communautÃ© #judaisme"
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
-                  <p className="text-xs text-slate-400">Séparez les hashtags par des espaces</p>
+                  <p className="text-xs text-slate-400">SÃ©parez les hashtags par des espaces</p>
                 </div>
 
-                {/* Règles éditoriales */}
+                {/* RÃ¨gles Ã©ditoriales */}
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">
-                    Règles éditoriales <span className="text-slate-400 font-normal">(instructions pour l&apos;IA)</span>
+                    RÃ¨gles Ã©ditoriales <span className="text-slate-400 font-normal">(instructions pour l&apos;IA)</span>
                   </label>
                   <textarea
                     value={editorialRules}
                     onChange={(e) => setEditorialRules(e.target.value)}
                     rows={4}
-                    placeholder="Ex: Toujours inclure les horaires précis, utiliser le terme 'Chabbat' et non 'Sabbat', ne pas mentionner les billets de loterie…"
+                    placeholder="Ex: Toujours inclure les horaires prÃ©cis, utiliser le terme 'Chabbat' et non 'Sabbat', ne pas mentionner les billets de loterieâ€¦"
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-y"
                   />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">
+                    Délai de notification avant envoi (en heures)
+                  </label>
+                  <div className="flex max-w-xs items-center gap-2">
+                    <input
+                      type="number"
+                      min="0.25"
+                      step="0.25"
+                      value={notificationLeadHours}
+                      onChange={(e) => setNotificationLeadHours(e.target.value)}
+                      className="w-28 rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    />
+                    <span className="text-sm text-slate-500">heures avant l&apos;envoi</span>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    Choisissez combien d&apos;heures avant l&apos;envoi vous souhaitez être notifié.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Validation des automatisations
+                  </label>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {[
+                      {
+                        value: "manual" as const,
+                        title: "Validation manuelle",
+                        description: "RecommandÃ© : l'IA prÃ©pare le message, puis vous validez avant l'envoi.",
+                      },
+                      {
+                        value: "automatic" as const,
+                        title: "Envoi automatique",
+                        description: "Les automatisations partent seules au bon moment, sans validation manuelle.",
+                      },
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setAutomationValidationMode(option.value)}
+                        className={cn(
+                          "rounded-xl border p-4 text-left transition",
+                          automationValidationMode === option.value
+                            ? "border-blue-300 bg-blue-50 ring-2 ring-blue-100"
+                            : "border-slate-200 bg-white hover:bg-slate-50"
+                        )}
+                      >
+                        <span className="text-sm font-bold text-slate-900">{option.title}</span>
+                        <span className="mt-1 block text-xs leading-relaxed text-slate-500">{option.description}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <Button onClick={saveEditorial} loading={saving}>
@@ -990,22 +960,22 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                       <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white">
                         {logoUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={logoUrl} alt="Logo de la communauté" className="h-full w-full object-contain p-2" />
+                          <img src={logoUrl} alt="Logo de la communautÃ©" className="h-full w-full object-contain p-2" />
                         ) : (
                           <ImageIcon className="size-7 text-slate-400" />
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-slate-900">Logo de la communauté</p>
+                        <p className="text-sm font-semibold text-slate-900">Logo de la communautÃ©</p>
                         <p className="mt-1 text-sm text-slate-500">
-                          Ce logo sera utilisé pour personnaliser votre profil, vos contenus et votre espace.
+                          Ce logo sera utilisÃ© pour personnaliser votre profil, vos contenus et votre espace.
                         </p>
                       </div>
                     </div>
 
                     <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
                       {logoUploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-                      {logoUploading ? "Téléversement..." : "Changer le logo"}
+                      {logoUploading ? "TÃ©lÃ©versement..." : "Changer le logo"}
                       <input
                         type="file"
                         accept="image/*"
@@ -1028,7 +998,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Méthodes de connexion</label>
+                  <label className="text-sm font-medium text-slate-700">MÃ©thodes de connexion</label>
                   <div className="flex flex-wrap gap-2">
                     {authProviders.map((provider) => (
                       <Badge key={provider} variant="secondary" className="capitalize">
@@ -1037,7 +1007,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                     ))}
                   </div>
                   <p className="text-xs text-slate-400">
-                    Si vous utilisez Google, vous pouvez aussi définir un mot de passe ci-dessous pour vous connecter avec la même adresse email.
+                    Si vous utilisez Google, vous pouvez aussi dÃ©finir un mot de passe ci-dessous pour vous connecter avec la mÃªme adresse email.
                   </p>
                 </div>
 
@@ -1060,7 +1030,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                     className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-500 cursor-not-allowed"
                   />
                   <p className="text-xs text-slate-400">
-                    L&apos;email est géré par votre fournisseur d&apos;authentification.
+                    L&apos;email est gÃ©rÃ© par votre fournisseur d&apos;authentification.
                   </p>
                 </div>
 
@@ -1075,7 +1045,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                   <div className="space-y-1">
                     <h3 className="text-sm font-semibold text-slate-900">Connexion Google</h3>
                     <p className="text-sm text-slate-500">
-                      Connectez votre compte Google pour centraliser la réception et la gestion de vos e-mails et fiches d&apos;établissement.
+                      Connectez votre compte Google pour centraliser la rÃ©ception et la gestion de vos e-mails et fiches d&apos;Ã©tablissement.
                     </p>
                   </div>
                   <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -1087,8 +1057,8 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                         <p className="text-sm font-semibold text-slate-900">Google Email & Business</p>
                         <p className="text-xs text-slate-500">
                           {googleConnected
-                            ? `Connecté à : ${googleEmailAddress}`
-                            : "Non connecté"}
+                            ? `ConnectÃ© Ã  : ${googleEmailAddress}`
+                            : "Non connectÃ©"}
                         </p>
                       </div>
                     </div>
@@ -1097,7 +1067,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                       size="sm"
                       onClick={handleConnectGoogle}
                     >
-                      {googleConnected ? "Déconnecter" : "Connecter mon compte Google"}
+                      {googleConnected ? "DÃ©connecter" : "Connecter mon compte Google"}
                     </Button>
                   </div>
                 </div>
@@ -1107,7 +1077,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="size-4 text-slate-500" />
                       <h3 className="text-sm font-semibold text-slate-900">
-                        Définir ou modifier le mot de passe
+                        DÃ©finir ou modifier le mot de passe
                       </h3>
                     </div>
                     <p className="text-sm text-slate-500">
@@ -1135,7 +1105,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         autoComplete="new-password"
-                        placeholder="8 caractères minimum"
+                        placeholder="8 caractÃ¨res minimum"
                         className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       />
                     </div>
@@ -1147,7 +1117,7 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         autoComplete="new-password"
-                        placeholder="Répétez le mot de passe"
+                        placeholder="RÃ©pÃ©tez le mot de passe"
                         className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       />
                     </div>
@@ -1166,3 +1136,4 @@ export function SettingsGeneralClient({ community, rhythms, profile, initialSect
     </div>
   );
 }
+

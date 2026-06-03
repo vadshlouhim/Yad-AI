@@ -6,7 +6,7 @@ import { buildTemporalSystemContext } from "@/lib/ai/time-context";
 import { getStoredShabbatTimes } from "@/lib/ai/engine";
 import { getJewishHolidays, type JewishHoliday } from "@/lib/automation/hebcal";
 import { AUTOMATION_PRESETS, type AutomationPresetKey } from "@/lib/automation/presets";
-import { presetAppliesToCommunity, type PresetWithRhythms } from "@/lib/automation/preset-utils";
+import { presetAppliesToCommunity, type PresetWithClientTypes } from "@/lib/automation/preset-utils";
 import {
   buildArticleSuggestions,
   looksLikeArticleIntent,
@@ -65,7 +65,6 @@ interface CommunityContext {
   hashtags: string[] | null;
   editorialRules: string | null;
   communityType: string;
-  rhythmId: string | null;
   religiousStream: string | null;
 }
 
@@ -173,7 +172,7 @@ function buildAutomationCards(automations: AutomationSummary[]): AssistantAction
 
 function buildAutomationSuggestionCards(
   automations: AutomationSummary[],
-  presets: PresetWithRhythms[] = []
+  presets: PresetWithClientTypes[] = []
 ): AssistantActionCard[] {
   const existingNames = new Set(automations.map((automation) => normalizeIntent(automation.name)));
 
@@ -219,7 +218,7 @@ function buildCreateAutomationContent(suggestionCards: AssistantActionCard[]) {
     : "Toutes les automatisations disponibles sont déjà créées sur votre compte.";
 }
 
-function getSimplifiedShortcut(prompt: string, automations: AutomationSummary[], automationPresets: PresetWithRhythms[] = []): { content: string; actions: AssistantActionCard[] } | null {
+function getSimplifiedShortcut(prompt: string, automations: AutomationSummary[], automationPresets: PresetWithClientTypes[] = []): { content: string; actions: AssistantActionCard[] } | null {
   const intent = normalizeIntent(prompt);
   const talksAutomation = /automatisation|automation|programmation|automatique|automatiser|planifier|rappel automatique|publication automatique/.test(intent);
   const asksCurrentAutomations = /combien|nombre|mes automatisations|en cours|deja|déjà|active|actif|actives|etat|état|liste|voir/.test(intent);
@@ -357,7 +356,7 @@ export async function POST(request: Request) {
     const [{ data: dbCommunity }, { data: memories }, { data: candidateTemplates }, { data: candidateArticles }, { data: automations }, { data: automationPresets }, { data: gmailChannel }] = await Promise.all([
       admin
         .from("Community")
-        .select("name, city, timezone, tone, language, signature, hashtags, editorialRules, communityType, rhythmId, religiousStream")
+        .select("name, city, timezone, tone, language, signature, hashtags, editorialRules, communityType, religiousStream")
         .eq("id", profile.communityId)
         .single(),
       admin
@@ -393,7 +392,7 @@ export async function POST(request: Request) {
       isSimplifiedMode
         ? admin
             .from("AutomationPreset")
-            .select("*, rhythms:AutomationPresetRhythm(id, rhythmId, rhythm:CommunityRhythm(id, name, slug, isActive))")
+            .select("*")
             .eq("isActive", true)
             .order("sortOrder", { ascending: true })
             .limit(24)
@@ -417,7 +416,6 @@ export async function POST(request: Request) {
       hashtags: communityData.hashtags ?? [],
       editorialRules: communityData.editorialRules ?? null,
       communityType: communityData.communityType ?? "SYNAGOGUE",
-      rhythmId: communityData.rhythmId ?? null,
       religiousStream: communityData.religiousStream ?? null,
     };
 
@@ -676,10 +674,9 @@ export async function POST(request: Request) {
             return;
           }
 
-          const applicableAutomationPresets = ((automationPresets ?? []) as PresetWithRhythms[]).filter((preset) =>
+          const applicableAutomationPresets = ((automationPresets ?? []) as PresetWithClientTypes[]).filter((preset) =>
             presetAppliesToCommunity(preset, {
               communityType: community.communityType,
-              rhythmId: community.rhythmId,
             })
           );
 

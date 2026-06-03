@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  ArrowLeft, CheckCircle, AlertTriangle, Send, Copy, Sparkles, RefreshCw, Eye, MessageSquare, Heart, MessageCircle, Paperclip
+  ArrowLeft, CheckCircle, AlertTriangle, Send, Copy, Sparkles, RefreshCw, Eye, Heart, MessageCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +85,9 @@ const BRAND_STYLES: Record<string, { bg: string; text: string; border: string; l
     gradient: "from-slate-800 via-slate-700 to-slate-600",
   },
 };
+
+const CHANNEL_SHARED_DESCRIPTION =
+  "Écrivez n’importe quel message à envoyer sur WhatsApp, l’IA le reformule et le publie automatiquement au bon moment et aux bonnes personnes.";
 
 interface Props {
   platform: string;
@@ -200,7 +203,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
             </div>
             <div>
               <h1 className="text-2xl font-bold">Publier sur {brand.label}</h1>
-              <p className="text-sm text-white/80">Redigez et publiez manuellement vos annonces et evenements.</p>
+              <p className="max-w-2xl text-sm leading-6 text-white/85">{CHANNEL_SHARED_DESCRIPTION}</p>
             </div>
           </div>
           <Badge className="bg-white/20 text-white border-white/30 text-xs font-semibold py-1 px-3">

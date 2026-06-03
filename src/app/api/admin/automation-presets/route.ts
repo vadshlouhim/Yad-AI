@@ -27,7 +27,7 @@ export async function GET() {
 
   const { data, error } = await auth.admin
     .from("AutomationPreset")
-    .select("*, rhythms:AutomationPresetRhythm(id, rhythmId, rhythm:CommunityRhythm(id, name, slug, isActive))")
+    .select("*")
     .order("sortOrder", { ascending: true })
     .order("title", { ascending: true });
 
@@ -44,7 +44,6 @@ export async function POST(request: Request) {
   if (title.length < 2) return NextResponse.json({ error: "Titre trop court" }, { status: 400 });
 
   const trigger = AUTOMATION_TRIGGERS.has(body.trigger as never) ? body.trigger : "MANUAL";
-  const rhythmIds = Array.isArray(body.rhythmIds) ? body.rhythmIds.map(String).filter(Boolean) : [];
   const now = new Date().toISOString();
 
   const { data, error } = await auth.admin
@@ -59,7 +58,7 @@ export async function POST(request: Request) {
       triggerConfig: normalizeJsonObject(body.triggerConfig),
       actions: normalizeJsonArray(body.actions),
       isActive: body.isActive === undefined ? true : Boolean(body.isActive),
-      isGlobal: body.isGlobal === undefined ? rhythmIds.length === 0 : Boolean(body.isGlobal),
+      isGlobal: body.isGlobal === undefined ? true : Boolean(body.isGlobal),
       clientTypes: normalizeClientTypes(body.clientTypes),
       sortOrder: Number(body.sortOrder ?? 100),
       updatedAt: now,
@@ -68,16 +67,6 @@ export async function POST(request: Request) {
     .single();
 
   if (error || !data) return NextResponse.json({ error: error?.message ?? "Création impossible" }, { status: 400 });
-
-  if (rhythmIds.length > 0) {
-    await auth.admin.from("AutomationPresetRhythm").insert(
-      rhythmIds.map((rhythmId) => ({
-        id: `preset_rhythm_${crypto.randomUUID()}`,
-        presetId: data.id,
-        rhythmId,
-      }))
-    );
-  }
 
   return NextResponse.json(data, { status: 201 });
 }

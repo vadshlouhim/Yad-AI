@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/topbar";
 import { GmbNotificationBadge } from "@/components/layout/gmb-notification-badge";
+import { ensureTodayEventReminderNotifications } from "@/lib/notifications/event-reminders";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 
@@ -28,7 +29,7 @@ export default async function DashboardLayout({
 
   const { data: community } = await admin
     .from("Community")
-    .select("id, name, logoUrl, plan, onboardingDone, channels:Channel(type, isConnected)")
+    .select("id, name, logoUrl, plan, onboardingDone, timezone, channels:Channel(type, isConnected)")
     .eq("id", profile.communityId)
     .single();
 
@@ -39,6 +40,12 @@ export default async function DashboardLayout({
   if (!community.onboardingDone && !isSettingsPath) {
     redirect("/onboarding");
   }
+
+  await ensureTodayEventReminderNotifications(admin, {
+    userId: profile.id,
+    communityId: profile.communityId,
+    timezone: community.timezone,
+  });
 
   const { count: unreadCount } = await admin
     .from("Notification")

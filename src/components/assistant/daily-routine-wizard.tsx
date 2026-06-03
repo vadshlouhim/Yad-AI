@@ -179,7 +179,7 @@ export function DailyRoutineWizard({ communityName, onSave, onCancel, saving }: 
             <div className="rounded-xl border border-sky-100 bg-white px-4 py-3">
               <p className="text-sm font-semibold text-slate-700">Tu retrouves ces evenements du quotidien</p>
               <p className="mt-1 text-xs text-slate-500">
-                Selectionne les scenarios utiles puis ajuste la frequence, les jours et les canaux.
+                Selectionne les publications IA utiles puis ajuste la frequence, les jours et les canaux.
               </p>
             </div>
             <p className="text-sm font-medium text-slate-700">

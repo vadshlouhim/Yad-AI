@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { learnUserStylePreference } from "@/lib/ai/style-memory";
 
 async function getAuthorizedDraft(draftId: string, userId: string) {
   const admin = createAdminClient();
@@ -50,6 +51,7 @@ export async function PATCH(
 
   const body = await request.json();
   const admin = createAdminClient();
+  const originalBody = draft.body as string;
 
   const updateData: Record<string, unknown> = { updatedAt: new Date().toISOString() };
   if (body.title !== undefined) updateData.title = body.title;
@@ -59,6 +61,13 @@ export async function PATCH(
   if (body.scheduledAt !== undefined) updateData.scheduledAt = body.scheduledAt ? new Date(body.scheduledAt).toISOString() : null;
 
   const { data: updated } = await admin.from("ContentDraft").update(updateData).eq("id", id).select().single();
+  if (typeof body.body === "string") {
+    await learnUserStylePreference({
+      communityId: draft.communityId as string,
+      originalBody,
+      updatedBody: body.body,
+    });
+  }
   return NextResponse.json(updated);
 }
 

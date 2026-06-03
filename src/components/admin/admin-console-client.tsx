@@ -104,17 +104,6 @@ interface AdminAutomation {
   community: { id: string; name: string | null; city: string | null } | null;
 }
 
-interface AdminRhythm {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  isActive: boolean;
-  sortOrder: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
 interface AdminAutomationPreset {
   id: string;
   title: string;
@@ -131,11 +120,6 @@ interface AdminAutomationPreset {
   createdAt: string;
   updatedAt: string;
   usageCount: number;
-  rhythms?: Array<{
-    id: string;
-    rhythmId: string;
-    rhythm: { id: string; name: string; slug: string; isActive: boolean } | null;
-  }>;
 }
 
 interface RecentConversation {
@@ -153,12 +137,11 @@ interface Props {
   communities: AdminCommunity[];
   users: AdminUser[];
   automations: AdminAutomation[];
-  rhythms: AdminRhythm[];
   automationPresets: AdminAutomationPreset[];
   recentConversations: RecentConversation[];
 }
 
-type AdminSection = "overview" | "templates" | "rhythms" | "presets" | "automations" | "communities" | "activity" | "data" | "development";
+type AdminSection = "overview" | "templates" | "presets" | "automations" | "communities" | "activity" | "data" | "development";
 type ThemeMode = "light" | "dark";
 type AdminAutomationFormState = {
   communityId: string;
@@ -205,6 +188,19 @@ const AUTOMATION_DAY_TYPES = [
 ];
 const VISIBILITY_FILTERS = ["ALL", "GLOBAL", "LOCAL"] as const;
 const STATUS_FILTERS = ["ALL", "ACTIVE", "INACTIVE", "PREMIUM"] as const;
+const COMMUNITY_PROFILE_OPTIONS = [
+  { value: "SYNAGOGUE", label: "Synagogue" },
+  { value: "RESTAURANT", label: "Restaurateur" },
+  { value: "CATERER", label: "Traiteur" },
+  { value: "SPORT_COACH", label: "Coach sportif" },
+  { value: "ASSOCIATION", label: "Association" },
+  { value: "SCHOOL", label: "École" },
+  { value: "COMMERCE", label: "Commerce" },
+  { value: "BUSINESS", label: "Entreprise" },
+  { value: "CONTENT_CREATOR", label: "Créateur de contenu" },
+  { value: "CENTER", label: "Centre" },
+  { value: "OTHER", label: "Autre profil" },
+];
 const ADMIN_AUTOMATION_PRESETS = [
   { key: "WEEKLY_SHABBAT", logo: "🕯️", name: "Horaires de Chabbat", description: "Prépare les horaires chaque semaine.", trigger: "WEEKLY_SHABBAT" },
   { key: "DAILY_THOUGHT", logo: "✨", name: "Pensée du jour", description: "Prépare une pensée quotidienne.", trigger: "DAILY" },
@@ -298,14 +294,14 @@ function MetricCard({
   );
 }
 
-export function AdminConsoleClient({ metrics, templates, communities, users, automations, rhythms, automationPresets, recentConversations }: Props) {
+export function AdminConsoleClient({ metrics, templates, communities, users, automations, automationPresets, recentConversations }: Props) {
   const [selectedId, setSelectedId] = useState(templates[0]?.id ?? "");
-  const [selectedRhythmId, setSelectedRhythmId] = useState(rhythms[0]?.id ?? "");
   const [selectedPresetId, setSelectedPresetId] = useState(automationPresets[0]?.id ?? "");
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>("ALL");
   const [visibilityFilter, setVisibilityFilter] = useState<(typeof VISIBILITY_FILTERS)[number]>("ALL");
+  const [presetProfileFilter, setPresetProfileFilter] = useState("ALL");
   const [activeSection, setActiveSection] = useState<AdminSection>("overview");
   const [automationCommunityFilter, setAutomationCommunityFilter] = useState("ALL");
   const [theme, setTheme] = useState<ThemeMode>("light");
@@ -320,16 +316,18 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
   const [uploadingField, setUploadingField] = useState<"thumbnail" | "preview" | null>(null);
   const [automationSaving, setAutomationSaving] = useState<string | null>(null);
   const [drafts, setDrafts] = useState(() => new Map(templates.map((template) => [template.id, template])));
-  const [rhythmDrafts, setRhythmDrafts] = useState(() => new Map(rhythms.map((rhythm) => [rhythm.id, rhythm])));
   const [presetDrafts, setPresetDrafts] = useState(() => new Map(automationPresets.map((preset) => [preset.id, preset])));
 
   const isDark = theme === "dark";
   const selectedTemplate = drafts.get(selectedId) ?? Array.from(drafts.values())[0] ?? null;
-  const selectedRhythm = rhythmDrafts.get(selectedRhythmId) ?? Array.from(rhythmDrafts.values())[0] ?? null;
   const selectedPreset = presetDrafts.get(selectedPresetId) ?? Array.from(presetDrafts.values())[0] ?? null;
   const allTemplates = useMemo(() => Array.from(drafts.values()), [drafts]);
-  const allRhythms = useMemo(() => Array.from(rhythmDrafts.values()).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)), [rhythmDrafts]);
   const allPresets = useMemo(() => Array.from(presetDrafts.values()).sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title)), [presetDrafts]);
+  const filteredPresets = useMemo(() => {
+    if (presetProfileFilter === "ALL") return allPresets;
+    if (presetProfileFilter === "GENERAL_DEFAULT") return allPresets.filter((preset) => preset.category === "GENERAL_DEFAULT");
+    return allPresets.filter((preset) => preset.clientTypes?.includes(presetProfileFilter));
+  }, [allPresets, presetProfileFilter]);
   const templateStats = useMemo(() => {
     const active = allTemplates.filter((template) => template.isActive).length;
     const inactive = allTemplates.length - active;
@@ -399,20 +397,6 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     });
   }
 
-  function updateSelectedRhythm(patch: Partial<AdminRhythm>) {
-    if (!selectedRhythm) return;
-    const nextRhythm = { ...selectedRhythm, ...patch };
-    setRhythmDrafts((previous) => {
-      const next = new Map(previous);
-      next.set(nextRhythm.id, nextRhythm);
-      return next;
-    });
-  }
-
-  function getPresetRhythmIds(preset: AdminAutomationPreset) {
-    return (preset.rhythms ?? []).map((entry) => entry.rhythmId).filter(Boolean);
-  }
-
   function updateSelectedPreset(patch: Partial<AdminAutomationPreset>) {
     if (!selectedPreset) return;
     const nextPreset = { ...selectedPreset, ...patch };
@@ -423,19 +407,20 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     });
   }
 
-  function toggleSelectedPresetRhythm(rhythmId: string) {
-    if (!selectedPreset) return;
-    const currentIds = new Set(getPresetRhythmIds(selectedPreset));
-    if (currentIds.has(rhythmId)) currentIds.delete(rhythmId);
-    else currentIds.add(rhythmId);
-    updateSelectedPreset({
-      rhythms: Array.from(currentIds).map((id) => ({
-        id: `${selectedPreset.id}_${id}`,
-        rhythmId: id,
-        rhythm: allRhythms.find((rhythm) => rhythm.id === id) ?? null,
-      })),
-      isGlobal: currentIds.size === 0,
-    });
+  function getSelectedPresetTriggerConfig() {
+    const config = selectedPreset?.triggerConfig;
+    return config && typeof config === "object" && !Array.isArray(config)
+      ? config as Record<string, unknown>
+      : {};
+  }
+
+  function getSelectedPresetTriggerConfigText(key: string) {
+    const value = getSelectedPresetTriggerConfig()[key];
+    return typeof value === "string" ? value : "";
+  }
+
+  function updateSelectedPresetTriggerConfig(patch: Record<string, unknown>) {
+    updateSelectedPreset({ triggerConfig: { ...getSelectedPresetTriggerConfig(), ...patch } });
   }
 
   async function saveTemplate() {
@@ -577,77 +562,24 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     setStatus(`${kind === "thumbnail" ? "Miniature" : "Affiche"} convertie en WebP et envoyée.`);
   }
 
-  async function createRhythm() {
-    setStatus(null);
-    const response = await fetch("/api/admin/rhythms", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Nouveau rythme", isActive: true, sortOrder: allRhythms.length * 10 + 10 }),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setStatus(payload.error ?? "Impossible de créer le rythme.");
-      return;
-    }
-    setRhythmDrafts((previous) => new Map(previous).set(payload.id, payload));
-    setSelectedRhythmId(payload.id);
-    setActiveSection("rhythms");
-  }
-
-  async function saveRhythm() {
-    if (!selectedRhythm) return;
-    setStatus(null);
-    const response = await fetch(`/api/admin/rhythms/${selectedRhythm.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(selectedRhythm),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setStatus(payload.error ?? "Impossible d'enregistrer le rythme.");
-      return;
-    }
-    setRhythmDrafts((previous) => new Map(previous).set(payload.id, payload));
-    setStatus("Rythme enregistré.");
-  }
-
-  async function deleteRhythm(rhythm: AdminRhythm) {
-    if (!window.confirm(`Supprimer le rythme "${rhythm.name}" ? Les anciens comptes doivent rester compatibles.`)) return;
-    const response = await fetch(`/api/admin/rhythms/${rhythm.id}`, { method: "DELETE" });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      if (response.status === 409 && window.confirm(`${payload.error}\n\nVoulez-vous le désactiver à la place ?`)) {
-        await fetch(`/api/admin/rhythms/${rhythm.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ isActive: false }),
-        });
-        setRhythmDrafts((previous) => new Map(previous).set(rhythm.id, { ...rhythm, isActive: false }));
-      } else {
-        setStatus(payload.error ?? "Suppression impossible.");
-      }
-      return;
-    }
-    setRhythmDrafts((previous) => {
-      const next = new Map(previous);
-      next.delete(rhythm.id);
-      setSelectedRhythmId(next.keys().next().value ?? "");
-      return next;
-    });
-  }
-
   async function createAutomationPreset() {
     setStatus(null);
     const response = await fetch("/api/admin/automation-presets", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: "Nouveau scénario",
+        title: "Nouvelle publication IA",
         description: "Décrivez quand proposer cette automatisation.",
         category: "GENERAL",
         icon: "⚡",
         trigger: "MANUAL",
-        triggerConfig: {},
+        triggerConfig: {
+          aiInstruction: "Décrivez ici la logique IA interne. Elle ne sera pas affichée à l'utilisateur.",
+          assistantMessage: "Je vais préparer cette publication automatiquement. Ça vous convient ?",
+          notificationHoursBefore: 2,
+          whatsappDeliveryMode: "manual_copy",
+          whatsappAutoSend: false,
+        },
         actions: [],
         isActive: true,
         isGlobal: true,
@@ -657,10 +589,10 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      setStatus(payload.error ?? "Impossible de créer le scénario.");
+      setStatus(payload.error ?? "Impossible de créer la publication IA.");
       return;
     }
-    const nextPreset = { ...payload, rhythms: [], usageCount: 0 };
+    const nextPreset = { ...payload, usageCount: 0 };
     setPresetDrafts((previous) => new Map(previous).set(nextPreset.id, nextPreset));
     setSelectedPresetId(nextPreset.id);
     setActiveSection("presets");
@@ -673,17 +605,25 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...selectedPreset,
-        rhythmIds: getPresetRhythmIds(selectedPreset),
+        title: selectedPreset.title,
+        description: selectedPreset.description,
+        category: selectedPreset.category,
+        trigger: selectedPreset.trigger,
+        triggerConfig: selectedPreset.triggerConfig,
+        actions: selectedPreset.actions,
+        isActive: selectedPreset.isActive,
+        isGlobal: true,
+        clientTypes: selectedPreset.clientTypes,
+        sortOrder: selectedPreset.sortOrder,
       }),
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      setStatus(payload.error ?? "Impossible d'enregistrer le scénario.");
+      setStatus(payload.error ?? "Impossible d'enregistrer la publication IA.");
       return;
     }
     setPresetDrafts((previous) => new Map(previous).set(selectedPreset.id, { ...selectedPreset, ...payload }));
-    setStatus("Scénario enregistré.");
+    setStatus("Publication IA enregistrée.");
   }
 
   async function deleteAutomationPreset(preset: AdminAutomationPreset) {
@@ -732,6 +672,14 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
       return;
     }
     window.location.reload();
+  }
+
+  function toggleSelectedPresetClientType(clientType: string) {
+    if (!selectedPreset) return;
+    const currentTypes = new Set(selectedPreset.clientTypes ?? []);
+    if (currentTypes.has(clientType)) currentTypes.delete(clientType);
+    else currentTypes.add(clientType);
+    updateSelectedPreset({ clientTypes: Array.from(currentTypes) });
   }
 
   async function createPresetAutomationForBethHabad(presetId: string) {
@@ -882,8 +830,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
   const navItems = [
     { id: "overview" as const, label: "Vue globale", icon: LayoutDashboard, value: formatNumber(metrics.databaseItemCount) },
     { id: "templates" as const, label: "Affiches", icon: ImageIcon, value: formatNumber(allTemplates.length) },
-    { id: "rhythms" as const, label: "Rythmes", icon: SlidersHorizontal, value: formatNumber(allRhythms.length) },
-    { id: "presets" as const, label: "Scénarios", icon: Sparkles, value: formatNumber(allPresets.length) },
+    { id: "presets" as const, label: "Publications IA", icon: Sparkles, value: formatNumber(allPresets.length) },
     { id: "automations" as const, label: "Automatisations", icon: Zap, value: formatNumber(automations.length) },
     { id: "communities" as const, label: "Beth Habad", icon: Building2, value: formatNumber(metrics.communityCount) },
     { id: "activity" as const, label: "Activité IA", icon: Bot, value: formatNumber(metrics.conversationCount) },
@@ -1189,74 +1136,38 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
             </section>
           )}
 
-          {(activeSection === "overview" || activeSection === "rhythms") && (
-            <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-              <div className={`rounded-[2rem] border p-5 ${panelClass}`}>
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className={`text-xl font-black ${strongText}`}>Rythmes de communauté</h3>
-                    <p className={`mt-1 text-sm ${mutedText}`}>Ces choix alimentent l&apos;inscription et les scénarios adaptés.</p>
-                  </div>
-                  <button type="button" onClick={createRhythm} className="rounded-2xl bg-emerald-500 px-4 py-2 text-sm font-black text-white">
-                    <Plus className="mr-1 inline size-4" />Ajouter
-                  </button>
-                </div>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {allRhythms.map((rhythm) => (
-                    <button
-                      key={rhythm.id}
-                      type="button"
-                      onClick={() => setSelectedRhythmId(rhythm.id)}
-                      className={`rounded-3xl border p-4 text-left transition ${selectedRhythm?.id === rhythm.id ? "border-emerald-400 bg-emerald-50" : isDark ? "border-white/10 bg-slate-950/55" : "border-slate-200 bg-white"}`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className={`font-black ${strongText}`}>{rhythm.name}</p>
-                          <p className={`mt-1 text-xs ${mutedText}`}>{rhythm.slug}</p>
-                        </div>
-                        <span className={`rounded-full px-2 py-1 text-xs font-bold ${rhythm.isActive ? "bg-emerald-500/15 text-emerald-600" : "bg-slate-500/15 text-slate-500"}`}>
-                          {rhythm.isActive ? "Actif" : "Inactif"}
-                        </span>
-                      </div>
-                      {rhythm.description && <p className={`mt-3 text-sm ${mutedText}`}>{rhythm.description}</p>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <aside className={`rounded-[2rem] border p-5 ${panelClass}`}>
-                {selectedRhythm ? (
-                  <div className="space-y-4">
-                    <h3 className={`font-black ${strongText}`}>Fiche rythme</h3>
-                    <label className={`block text-sm font-semibold ${strongText}`}>Nom<input value={selectedRhythm.name} onChange={(event) => updateSelectedRhythm({ name: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
-                    <label className={`block text-sm font-semibold ${strongText}`}>Slug<input value={selectedRhythm.slug} onChange={(event) => updateSelectedRhythm({ slug: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
-                    <label className={`block text-sm font-semibold ${strongText}`}>Description<textarea value={selectedRhythm.description ?? ""} onChange={(event) => updateSelectedRhythm({ description: event.target.value })} rows={4} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
-                    <label className={`block text-sm font-semibold ${strongText}`}>Ordre<input type="number" value={selectedRhythm.sortOrder} onChange={(event) => updateSelectedRhythm({ sortOrder: Number(event.target.value) })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
-                    <button type="button" onClick={() => updateSelectedRhythm({ isActive: !selectedRhythm.isActive })} className={`w-full rounded-2xl px-4 py-3 text-sm font-black ${selectedRhythm.isActive ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-700"}`}>
-                      {selectedRhythm.isActive ? "Actif" : "Inactif"}
-                    </button>
-                    <button type="button" onClick={saveRhythm} className="w-full rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-black text-white"><Save className="mr-1 inline size-4" />Enregistrer</button>
-                    <button type="button" onClick={() => deleteRhythm(selectedRhythm)} className="w-full rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-black text-red-700"><Trash2 className="mr-1 inline size-4" />Supprimer</button>
-                  </div>
-                ) : <p className={`text-sm ${mutedText}`}>Aucun rythme.</p>}
-              </aside>
-            </section>
-          )}
-
           {(activeSection === "overview" || activeSection === "presets") && (
             <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
               <div className={`rounded-[2rem] border p-5 ${panelClass}`}>
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h3 className={`text-xl font-black ${strongText}`}>Scénarios / automatisations prédéfinies</h3>
-                    <p className={`mt-1 text-sm ${mutedText}`}>Associez chaque scénario à un ou plusieurs rythmes, ou rendez-le global.</p>
+                    <h3 className={`text-xl font-black ${strongText}`}>Publications automatiques IA proposées</h3>
+                    <p className={`mt-1 text-sm ${mutedText}`}>Créez les modèles proposés par défaut selon le profil utilisateur. L&apos;utilisateur choisira ensuite son horaire, sa date, sa récurrence et ses canaux.</p>
                   </div>
                   <button type="button" onClick={createAutomationPreset} className="rounded-2xl bg-violet-600 px-4 py-2 text-sm font-black text-white">
-                    <Plus className="mr-1 inline size-4" />Ajouter
+                    <Plus className="mr-1 inline size-4" />Ajouter une publication IA
                   </button>
                 </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {[{ value: "ALL", label: "Tous" }, { value: "GENERAL_DEFAULT", label: "Générales par défaut" }, ...COMMUNITY_PROFILE_OPTIONS].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setPresetProfileFilter(option.value)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-bold ${
+                        presetProfileFilter === option.value
+                          ? "border-blue-300 bg-blue-600 text-white"
+                          : isDark
+                            ? "border-white/10 text-slate-300"
+                            : "border-slate-200 text-slate-600"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {allPresets.map((preset) => (
+                  {filteredPresets.map((preset) => (
                     <div key={preset.id} className={`relative rounded-3xl border p-4 ${selectedPreset?.id === preset.id ? "border-violet-300 bg-violet-50" : isDark ? "border-white/10 bg-slate-950/55" : "border-slate-200 bg-white"}`}>
                       <button
                         type="button"
@@ -1268,11 +1179,15 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                       </button>
                       <button type="button" onClick={() => setSelectedPresetId(preset.id)} className="block w-full pr-8 text-left">
                         <p className={`font-black ${strongText}`}>{preset.icon ?? "⚡"} {preset.title}</p>
-                        <p className={`mt-1 text-xs ${mutedText}`}>{preset.category} · {preset.trigger}</p>
+                        <p className={`mt-1 text-xs ${mutedText}`}>{preset.category}</p>
                         <p className={`mt-2 line-clamp-2 text-sm ${mutedText}`}>{preset.description ?? "Aucune description."}</p>
                         <div className="mt-3 flex flex-wrap gap-2">
                           <span className={`rounded-full px-2 py-1 text-xs font-bold ${preset.isActive ? "bg-emerald-500/15 text-emerald-600" : "bg-slate-500/15 text-slate-500"}`}>{preset.isActive ? "Actif" : "Inactif"}</span>
-                          <span className="rounded-full bg-violet-500/15 px-2 py-1 text-xs font-bold text-violet-600">{preset.isGlobal ? "Global" : `${getPresetRhythmIds(preset).length} rythme(s)`}</span>
+                          {(preset.clientTypes ?? []).map((clientType) => (
+                            <span key={clientType} className="rounded-full bg-blue-500/15 px-2 py-1 text-xs font-bold text-blue-700">
+                              {COMMUNITY_PROFILE_OPTIONS.find((option) => option.value === clientType)?.label ?? clientType}
+                            </span>
+                          ))}
                           {preset.usageCount > 0 && <span className="rounded-full bg-amber-500/15 px-2 py-1 text-xs font-bold text-amber-700">{preset.usageCount} compte(s)</span>}
                         </div>
                       </button>
@@ -1284,36 +1199,60 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
               <aside className={`rounded-[2rem] border p-5 ${panelClass}`}>
                 {selectedPreset ? (
                   <div className="space-y-4">
-                    <h3 className={`font-black ${strongText}`}>Fiche scénario</h3>
+                    <h3 className={`font-black ${strongText}`}>Fiche publication IA</h3>
                     <label className={`block text-sm font-semibold ${strongText}`}>Titre<input value={selectedPreset.title} onChange={(event) => updateSelectedPreset({ title: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
                     <label className={`block text-sm font-semibold ${strongText}`}>Description<textarea value={selectedPreset.description ?? ""} onChange={(event) => updateSelectedPreset({ description: event.target.value })} rows={4} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <label className={`block text-sm font-semibold ${strongText}`}>Catégorie<input value={selectedPreset.category} onChange={(event) => updateSelectedPreset({ category: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
-                      <label className={`block text-sm font-semibold ${strongText}`}>Icône<input value={selectedPreset.icon ?? ""} onChange={(event) => updateSelectedPreset({ icon: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
-                    </div>
-                    <label className={`block text-sm font-semibold ${strongText}`}>Déclencheur<select value={selectedPreset.trigger} onChange={(event) => updateSelectedPreset({ trigger: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>{["MANUAL","WEEKLY_SHABBAT","DAILY","CUSTOM_SCHEDULE","JEWISH_HOLIDAY","BEFORE_EVENT","EVENT_DAY","AFTER_EVENT"].map((trigger) => <option key={trigger} value={trigger}>{trigger}</option>)}</select></label>
-                    <label className={`block text-sm font-semibold ${strongText}`}>Configuration par défaut (JSON)<textarea value={JSON.stringify(selectedPreset.triggerConfig ?? {}, null, 2)} onChange={(event) => { try { updateSelectedPreset({ triggerConfig: JSON.parse(event.target.value) }); } catch {} }} rows={5} className={`mt-2 w-full rounded-2xl border px-3 py-2 font-mono text-xs outline-none ${inputClass}`} /></label>
-                    <label className={`block text-sm font-semibold ${strongText}`}>Actions (JSON)<textarea value={JSON.stringify(selectedPreset.actions ?? [], null, 2)} onChange={(event) => { try { updateSelectedPreset({ actions: JSON.parse(event.target.value) }); } catch {} }} rows={6} className={`mt-2 w-full rounded-2xl border px-3 py-2 font-mono text-xs outline-none ${inputClass}`} /></label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => updateSelectedPreset({ isActive: !selectedPreset.isActive })} className={`rounded-2xl px-3 py-2 text-xs font-black ${selectedPreset.isActive ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-700"}`}>{selectedPreset.isActive ? "Actif" : "Inactif"}</button>
-                      <button type="button" onClick={() => updateSelectedPreset({ isGlobal: !selectedPreset.isGlobal, rhythms: selectedPreset.isGlobal ? selectedPreset.rhythms : [] })} className={`rounded-2xl px-3 py-2 text-xs font-black ${selectedPreset.isGlobal ? "bg-violet-600 text-white" : "bg-slate-200 text-slate-700"}`}>{selectedPreset.isGlobal ? "Global" : "Par rythme"}</button>
-                    </div>
+                    <label className={`block text-sm font-semibold ${strongText}`}>
+                      Logique IA interne
+                      <textarea
+                        value={getSelectedPresetTriggerConfigText("aiInstruction")}
+                        onChange={(event) => updateSelectedPresetTriggerConfig({ aiInstruction: event.target.value })}
+                        rows={4}
+                        className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}
+                      />
+                      <span className={`mt-1 block text-xs font-normal ${mutedText}`}>Visible seulement par le Super Admin. L&apos;utilisateur ne voit jamais ce prompt.</span>
+                    </label>
+                    <label className={`block text-sm font-semibold ${strongText}`}>
+                      Réponse courte de l&apos;Assistant IA
+                      <textarea
+                        value={getSelectedPresetTriggerConfigText("assistantMessage")}
+                        onChange={(event) => updateSelectedPresetTriggerConfig({ assistantMessage: event.target.value })}
+                        rows={3}
+                        className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}
+                      />
+                    </label>
+                    <label className={`block text-sm font-semibold ${strongText}`}>Catégorie éventuelle<input value={selectedPreset.category} onChange={(event) => updateSelectedPreset({ category: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
                     <div className="space-y-2">
-                      <p className={`text-sm font-semibold ${strongText}`}>Rythmes associés</p>
+                      <p className={`text-sm font-semibold ${strongText}`}>Profil utilisateur concerné</p>
                       <div className="flex flex-wrap gap-2">
-                        {allRhythms.map((rhythm) => {
-                          const selected = getPresetRhythmIds(selectedPreset).includes(rhythm.id);
+                        {COMMUNITY_PROFILE_OPTIONS.map((option) => {
+                          const selected = selectedPreset.clientTypes?.includes(option.value) ?? false;
                           return (
-                            <button key={rhythm.id} type="button" onClick={() => toggleSelectedPresetRhythm(rhythm.id)} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${selected ? "border-violet-300 bg-violet-600 text-white" : isDark ? "border-white/10 text-slate-300" : "border-slate-200 text-slate-600"}`}>
-                              {rhythm.name}
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => toggleSelectedPresetClientType(option.value)}
+                              className={`rounded-full border px-3 py-1.5 text-xs font-bold ${
+                                selected
+                                  ? "border-blue-300 bg-blue-600 text-white"
+                                  : isDark
+                                    ? "border-white/10 text-slate-300"
+                                    : "border-slate-200 text-slate-600"
+                              }`}
+                            >
+                              {option.label}
                             </button>
                           );
                         })}
                       </div>
+                      <p className={`text-xs ${mutedText}`}>
+                        Si aucun profil n&apos;est coché, cette publication IA ne sera proposée à aucun nouveau profil métier.
+                      </p>
                     </div>
+                    <button type="button" onClick={() => updateSelectedPreset({ isActive: !selectedPreset.isActive })} className={`w-full rounded-2xl px-3 py-2 text-xs font-black ${selectedPreset.isActive ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-700"}`}>{selectedPreset.isActive ? "Actif" : "Inactif"}</button>
                     <button type="button" onClick={saveAutomationPreset} className="w-full rounded-2xl bg-violet-600 px-4 py-3 text-sm font-black text-white"><Save className="mr-1 inline size-4" />Enregistrer</button>
                   </div>
-                ) : <p className={`text-sm ${mutedText}`}>Aucun scénario.</p>}
+                ) : <p className={`text-sm ${mutedText}`}>Aucune publication IA.</p>}
               </aside>
             </section>
           )}

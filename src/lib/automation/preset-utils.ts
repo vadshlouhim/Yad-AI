@@ -1,10 +1,6 @@
 import type { Database, Json, Tables } from "@/types/database.types";
 
-export type CommunityRhythm = Pick<Tables<"CommunityRhythm">, "id" | "name" | "slug" | "isActive">;
-
-export type PresetWithRhythms = Tables<"AutomationPreset"> & {
-  rhythms?: Array<{ rhythm?: CommunityRhythm | null; rhythmId?: string | null }>;
-};
+export type PresetWithClientTypes = Tables<"AutomationPreset">;
 
 export const AUTOMATION_TRIGGERS = new Set<Database["public"]["Enums"]["AutomationTrigger"]>([
   "BEFORE_EVENT",
@@ -22,6 +18,12 @@ export const COMMUNITY_TYPES = new Set<Database["public"]["Enums"]["CommunityTyp
   "ASSOCIATION",
   "SCHOOL",
   "CENTER",
+  "RESTAURANT",
+  "CATERER",
+  "SPORT_COACH",
+  "COMMERCE",
+  "BUSINESS",
+  "CONTENT_CREATOR",
   "OTHER",
 ]);
 
@@ -41,20 +43,10 @@ export function normalizeJsonArray(value: unknown): Json {
 }
 
 export function presetAppliesToCommunity(
-  preset: Pick<Tables<"AutomationPreset">, "isGlobal" | "clientTypes"> & {
-    rhythms?: Array<{ rhythmId?: string | null; rhythm?: { id: string } | null }>;
-  },
-  community: { communityType: string; rhythmId?: string | null }
+  preset: Pick<Tables<"AutomationPreset">, "clientTypes">,
+  community: { communityType: string }
 ) {
-  const typeApplies = preset.clientTypes.length === 0 || preset.clientTypes.includes(community.communityType as never);
-  if (!typeApplies) return false;
-
-  const rhythmIds = (preset.rhythms ?? [])
-    .map((entry) => entry.rhythmId ?? entry.rhythm?.id ?? null)
-    .filter(Boolean);
-
-  if (rhythmIds.length === 0) return preset.isGlobal;
-  return Boolean(community.rhythmId && rhythmIds.includes(community.rhythmId));
+  return preset.clientTypes.includes(community.communityType as never);
 }
 
 export function getGenerateAction(actions: unknown): { contentType?: string; channels?: string[] } | null {

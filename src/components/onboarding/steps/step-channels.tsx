@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -32,7 +32,6 @@ const AVAILABLE_CHANNELS = [
     description: "Publications + Stories",
     needsHandle: false,
     handlePlaceholder: "@votre_compte",
-    publishMode: "API Meta (connexion OAuth)",
     oauthProvider: "instagram" as const,
     canConnectNow: true,
   },
@@ -44,7 +43,6 @@ const AVAILABLE_CHANNELS = [
     description: "Posts sur votre Page",
     needsHandle: false,
     handlePlaceholder: "Nom de votre Page",
-    publishMode: "API Meta (connexion OAuth)",
     oauthProvider: "facebook" as const,
     canConnectNow: true,
   },
@@ -56,7 +54,6 @@ const AVAILABLE_CHANNELS = [
     description: "Canal ou groupe broadcast",
     needsHandle: false,
     handlePlaceholder: "",
-    publishMode: "Copier-coller guidé (pas de connexion requise)",
     oauthProvider: null,
     canConnectNow: false,
   },
@@ -68,19 +65,17 @@ const AVAILABLE_CHANNELS = [
     description: "Canal ou groupe",
     needsHandle: true,
     handlePlaceholder: "@votre_canal",
-    publishMode: "Bot Telegram (configuration dans les Paramètres)",
     oauthProvider: null,
     canConnectNow: false,
   },
   {
     type: "EMAIL",
-    label: "Email / Newsletter",
+    label: "Email",
     logo: "/logo/gmail-svgrepo-com.svg",
     logoBg: "bg-red-50 border border-red-100",
     description: "Envoi depuis votre boîte Gmail",
     needsHandle: false,
     handlePlaceholder: "",
-    publishMode: "Via Gmail OAuth (connexion directe)",
     oauthProvider: "gmail" as const,
     canConnectNow: true,
   },
@@ -245,17 +240,7 @@ export function StepChannels({ data, updateData, onNext, onPrev, communityId, si
               : <Info className="size-4 flex-shrink-0 mt-0.5" />}
             <p>{oauthNotice.message}</p>
           </div>
-        )}
-
-        {/* Info WhatsApp / Email */}
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex gap-2.5">
-          <Info className="size-4 text-amber-600 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-700 leading-relaxed">
-            <strong>Instagram, Facebook & Gmail</strong> : connexion directe via OAuth.
-            <br />
-            <strong>WhatsApp & Telegram</strong> : EasyCom AI prépare le contenu, vous diffusez manuellement ou via les Paramètres.
-          </p>
-        </div>
+        )}
 
         <div className="space-y-3">
           {AVAILABLE_CHANNELS.map((channel) => {
@@ -301,7 +286,6 @@ export function StepChannels({ data, updateData, onNext, onPrev, communityId, si
                       )}
                     </div>
                     <p className="text-xs text-slate-500">{channel.description}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{channel.publishMode}</p>
                   </div>
 
                   {/* Action à droite */}
@@ -393,3 +377,5 @@ export function StepChannels({ data, updateData, onNext, onPrev, communityId, si
     </Card>
   );
 }
+
+

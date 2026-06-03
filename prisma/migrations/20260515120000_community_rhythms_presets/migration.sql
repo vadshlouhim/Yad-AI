@@ -1,21 +1,7 @@
--- Dynamic community rhythms and automation presets managed from Admin global.
-
-ALTER TABLE public."Community"
-  ADD COLUMN IF NOT EXISTS "rhythmId" text;
+-- Automation presets managed from Admin global.
 
 ALTER TABLE public."Automation"
   ADD COLUMN IF NOT EXISTS "presetId" text;
-
-CREATE TABLE IF NOT EXISTS public."CommunityRhythm" (
-  id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  name text NOT NULL,
-  slug text NOT NULL UNIQUE,
-  description text,
-  "isActive" boolean NOT NULL DEFAULT true,
-  "sortOrder" integer NOT NULL DEFAULT 0,
-  "createdAt" timestamptz NOT NULL DEFAULT now(),
-  "updatedAt" timestamptz NOT NULL DEFAULT now()
-);
 
 CREATE TABLE IF NOT EXISTS public."AutomationPreset" (
   id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -34,23 +20,8 @@ CREATE TABLE IF NOT EXISTS public."AutomationPreset" (
   "updatedAt" timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS public."AutomationPresetRhythm" (
-  id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  "presetId" text NOT NULL REFERENCES public."AutomationPreset"(id) ON DELETE CASCADE,
-  "rhythmId" text NOT NULL REFERENCES public."CommunityRhythm"(id) ON DELETE CASCADE,
-  UNIQUE ("presetId", "rhythmId")
-);
-
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'Community_rhythmId_fkey'
-  ) THEN
-    ALTER TABLE public."Community"
-      ADD CONSTRAINT "Community_rhythmId_fkey"
-      FOREIGN KEY ("rhythmId") REFERENCES public."CommunityRhythm"(id) ON DELETE SET NULL;
-  END IF;
-
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint WHERE conname = 'Automation_presetId_fkey'
   ) THEN
@@ -60,28 +31,10 @@ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS "Community_rhythmId_idx" ON public."Community"("rhythmId");
-CREATE INDEX IF NOT EXISTS "CommunityRhythm_isActive_idx" ON public."CommunityRhythm"("isActive");
-CREATE INDEX IF NOT EXISTS "CommunityRhythm_sortOrder_idx" ON public."CommunityRhythm"("sortOrder");
 CREATE INDEX IF NOT EXISTS "Automation_presetId_idx" ON public."Automation"("presetId");
 CREATE INDEX IF NOT EXISTS "AutomationPreset_isActive_idx" ON public."AutomationPreset"("isActive");
 CREATE INDEX IF NOT EXISTS "AutomationPreset_isGlobal_idx" ON public."AutomationPreset"("isGlobal");
 CREATE INDEX IF NOT EXISTS "AutomationPreset_category_idx" ON public."AutomationPreset"(category);
-CREATE INDEX IF NOT EXISTS "AutomationPresetRhythm_rhythmId_idx" ON public."AutomationPresetRhythm"("rhythmId");
-
-INSERT INTO public."CommunityRhythm" (id, name, slug, description, "isActive", "sortOrder", "updatedAt")
-VALUES
-  ('rhythm_sefarade', 'Séfarade', 'sefarade', 'Communautes de tradition sefarade.', true, 10, now()),
-  ('rhythm_habad', 'Habad', 'habad', 'Communautes de tradition Habad / Loubavitch.', true, 20, now()),
-  ('rhythm_ashkenaze', 'Ashkénaze', 'ashkenaze', 'Communautes de tradition ashkenaze.', true, 30, now()),
-  ('rhythm_beth_habad', 'Beth Habad', 'beth-habad', 'Maisons Beth Habad et centres Loubavitch.', true, 40, now()),
-  ('rhythm_mixte', 'Communauté mixte', 'communaute-mixte', 'Communautes reunissant plusieurs traditions.', true, 50, now()),
-  ('rhythm_autre', 'Autre', 'autre', 'Rythme ou style personnalise.', true, 60, now())
-ON CONFLICT (slug) DO UPDATE SET
-  name = EXCLUDED.name,
-  description = EXCLUDED.description,
-  "sortOrder" = EXCLUDED."sortOrder",
-  "updatedAt" = now();
 
 INSERT INTO public."AutomationPreset" (
   id, title, description, category, icon, trigger, "triggerConfig", actions,
@@ -205,10 +158,3 @@ ON CONFLICT (id) DO UPDATE SET
   "clientTypes" = EXCLUDED."clientTypes",
   "sortOrder" = EXCLUDED."sortOrder",
   "updatedAt" = now();
-
-INSERT INTO public."AutomationPresetRhythm" ("presetId", "rhythmId")
-VALUES
-  ('preset_beth_habad_farbrenguen', 'rhythm_beth_habad'),
-  ('preset_beth_habad_farbrenguen', 'rhythm_habad'),
-  ('preset_sefarade_selihot', 'rhythm_sefarade')
-ON CONFLICT ("presetId", "rhythmId") DO NOTHING;

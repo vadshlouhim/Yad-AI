@@ -116,6 +116,10 @@ canvas {
   56% { transform: rotate(12deg); }
   68% { transform: rotate(0deg); }
 }
+@keyframes testimonialMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-50% - 0.75rem)); }
+}
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
 .animate-mobile-feature-card-in { animation: mobileFeatureCardIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .animate-chat-home { animation: chatHome 7.5s ease-in-out infinite; }
@@ -126,6 +130,7 @@ canvas {
   animation: welcomeWave 2.4s ease-in-out infinite;
   transform-origin: 70% 70%;
 }
+.animate-testimonial-marquee { animation: testimonialMarquee 42s linear infinite; }
 .typing-line {
   display: block;
   max-width: max-content;

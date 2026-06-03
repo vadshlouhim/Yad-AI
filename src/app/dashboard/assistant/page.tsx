@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/auth";
+﻿import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getJewishHolidays } from "@/lib/automation/hebcal";
 import { AssistantClient } from "@/components/assistant/assistant-client";
@@ -6,7 +6,11 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Assistant IA — EasyCom AI" };
 
-export default async function AssistantPage() {
+export default async function AssistantPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ channelTypes?: string; draftId?: string; eventId?: string; prefill?: string }>;
+}) {
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
   const admin = createAdminClient();
@@ -38,8 +42,7 @@ export default async function AssistantPage() {
 
   const nextHoliday = [...currentYearHolidays, ...nextYearHolidays]
     .filter((holiday) => new Date(holiday.date) >= new Date(now.getFullYear(), now.getMonth(), now.getDate()))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    [0];
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
 
   const programContext = upcomingEvents?.length
     ? upcomingEvents
@@ -79,6 +82,100 @@ export default async function AssistantPage() {
     },
   ];
 
+  const params = await searchParams;
+  const initialPrompt = typeof params.prefill === "string" ? params.prefill : undefined;
+  const requestedChannelTypes = typeof params.channelTypes === "string"
+    ? params.channelTypes.split(",").map((channel) => channel.trim()).filter(Boolean)
+    : [];
+  let approvalDraft = null as {
+    id: string;
+    title: string | null;
+    body: string;
+    hashtags: string[] | null;
+    status: string;
+  } | null;
+
+  if (params.draftId) {
+    const result = await admin
+      .from("ContentDraft")
+      .select("id, title, body, hashtags, status")
+      .eq("id", params.draftId)
+      .eq("communityId", communityId)
+      .single();
+    approvalDraft = result.data;
+  } else if (params.eventId) {
+    const existingDraft = await admin
+      .from("ContentDraft")
+      .select("id, title, body, hashtags, status")
+      .eq("eventId", params.eventId)
+      .eq("communityId", communityId)
+      .order("updatedAt", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    approvalDraft = existingDraft.data;
+
+    if (!approvalDraft) {
+      const { data: event } = await admin
+        .from("Event")
+        .select("id, title, description, startDate, location")
+        .eq("id", params.eventId)
+        .eq("communityId", communityId)
+        .single();
+
+      if (event) {
+        const eventDate = new Date(event.startDate).toLocaleString("fr-FR", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const body = [
+          `Bonjour à tous,`,
+          ``,
+          `Nous vous rappelons notre événement "${event.title}" prévu ${eventDate}.`,
+          event.location ? `Lieu : ${event.location}.` : null,
+          event.description ? `` : null,
+          event.description,
+          ``,
+          `Nous serons heureux de vous y retrouver.`,
+        ].filter(Boolean).join("\n");
+
+        const { data: createdDraft } = await admin
+          .from("ContentDraft")
+          .insert({
+            id: crypto.randomUUID(),
+            communityId,
+            eventId: event.id,
+            title: event.title,
+            body,
+            hashtags: community?.hashtags ?? [],
+            contentType: "EVENT_ANNOUNCEMENT",
+            status: "AI_PROPOSAL",
+            aiGenerated: true,
+            aiPromptUsed: "Assistant IA depuis Agenda connecté IA",
+            updatedAt: new Date().toISOString(),
+          })
+          .select("id, title, body, hashtags, status")
+          .single();
+        approvalDraft = createdDraft;
+      }
+    }
+  }
+  const defaultChannelTypes = (channels ?? [])
+    .filter((channel) => channel.isActive && (channel.isConnected || channel.type === "WHATSAPP" || channel.type === "EMAIL"))
+    .map((channel) => channel.type);
+  const initialApprovalDraft = approvalDraft
+    ? {
+        id: approvalDraft.id,
+        title: approvalDraft.title,
+        body: approvalDraft.body,
+        hashtags: approvalDraft.hashtags ?? [],
+        status: approvalDraft.status,
+        channelTypes: requestedChannelTypes.length > 0 ? requestedChannelTypes : defaultChannelTypes,
+      }
+    : null;
+
   return (
     <div className="space-y-4">
       <div className="hidden">
@@ -92,6 +189,8 @@ export default async function AssistantPage() {
         tone={community?.tone ?? "MODERN"}
         channels={channels ?? []}
         seasonalPrompts={quickActionPrompts}
+        initialPrompt={initialPrompt}
+        initialApprovalDraft={initialApprovalDraft}
       />
     </div>
   );

@@ -1,254 +1,455 @@
 
 > easycom-ai@0.1.0 dev
-> next dev --hostname 127.0.0.1 --port 3000
+> next dev
 
 ▲ Next.js 16.2.3 (Turbopack)
-- Local:         http://127.0.0.1:3000
-- Network:       http://127.0.0.1:3000
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.34:3000
 - Environments: .env
-✓ Ready in 1840ms
+✓ Ready in 1109ms
 Creating turbopack project {
   dir: 'C:\\Users\\chlom\\Desktop\\projet EASYCOM-AI\\Yad-AI',
   testMode: true
 }
-○ Compiling instrumentation Node.js ...
 [Automation Local Scheduler] Actif en developpement toutes les 30 secondes.
 
- GET / 200 in 14.1s (next.js: 4.9s, proxy.ts: 2.7s, application-code: 6.5s)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
- GET / 200 in 1433ms (next.js: 169ms, proxy.ts: 263ms, application-code: 1002ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
- GET / 200 in 806ms (next.js: 27ms, proxy.ts: 541ms, application-code: 238ms)
- GET /dashboard 200 in 838ms (next.js: 212ms, proxy.ts: 56ms, application-code: 571ms)
- GET /api/gmb/unread-count 200 in 3.5s (next.js: 3.0s, proxy.ts: 23ms, application-code: 559ms)
- GET /api/gmb/unread-count 200 in 3.6s (next.js: 2.9s, proxy.ts: 12ms, application-code: 694ms)
- GET /dashboard/assistant 200 in 3.9s (next.js: 150ms, proxy.ts: 3.0s, application-code: 741ms)
- GET /dashboard/assistant 200 in 679ms (next.js: 99ms, proxy.ts: 190ms, application-code: 390ms)
- GET /api/conversations 200 in 493ms (next.js: 130ms, proxy.ts: 68ms, application-code: 295ms)
- GET /api/community/daily-routine 200 in 585ms (next.js: 287ms, proxy.ts: 70ms, application-code: 228ms)
- GET /api/conversations 200 in 188ms (next.js: 6ms, proxy.ts: 62ms, application-code: 120ms)
- GET /api/community/daily-routine 200 in 206ms (next.js: 8ms, proxy.ts: 52ms, application-code: 146ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
- GET /api/gmb/unread-count 200 in 1026ms (next.js: 185ms, proxy.ts: 204ms, application-code: 637ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
- GET / 200 in 2.6s (next.js: 194ms, proxy.ts: 219ms, application-code: 2.2s)
- GET /auth/login 200 in 1269ms (next.js: 956ms, proxy.ts: 76ms, application-code: 237ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
- GET /auth/login 200 in 2.1s (next.js: 88ms, proxy.ts: 127ms, application-code: 1889ms)
- GET /dashboard/assistant 200 in 1949ms (next.js: 25ms, proxy.ts: 146ms, application-code: 1777ms)
- GET /dashboard/assistant 200 in 1574ms (next.js: 223ms, proxy.ts: 240ms, application-code: 1112ms)
- GET /api/conversations 200 in 376ms (next.js: 60ms, proxy.ts: 177ms, application-code: 139ms)
- GET /api/gmb/unread-count 200 in 445ms (next.js: 59ms, proxy.ts: 53ms, application-code: 333ms)
- GET /api/gmb/unread-count 200 in 493ms (next.js: 93ms, proxy.ts: 52ms, application-code: 348ms)
- GET /api/community/daily-routine 200 in 480ms (next.js: 30ms, proxy.ts: 163ms, application-code: 288ms)
- GET /api/conversations 200 in 365ms (next.js: 16ms, proxy.ts: 171ms, application-code: 177ms)
- GET /api/community/daily-routine 200 in 342ms (next.js: 15ms, proxy.ts: 105ms, application-code: 221ms)
- GET /dashboard/clip-recap 200 in 732ms (next.js: 398ms, proxy.ts: 188ms, application-code: 146ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
- GET /api/gmb/unread-count 200 in 617ms (next.js: 71ms, proxy.ts: 39ms, application-code: 507ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
- GET /api/gmb/unread-count 200 in 419ms (next.js: 25ms, proxy.ts: 33ms, application-code: 360ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-✓ Compiled in 10.7s
- GET /dashboard/assistant 200 in 7.7s (next.js: 3.3s, proxy.ts: 383ms, application-code: 4.1s)
- GET /dashboard/clip-recap 200 in 16.3s (next.js: 8.6s, proxy.ts: 1207ms, application-code: 6.5s)
- GET /dashboard/assistant 200 in 16.0s (next.js: 8.1s, proxy.ts: 578ms, application-code: 7.3s)
- GET /dashboard/clip-recap 200 in 4.2s (next.js: 309ms, proxy.ts: 448ms, application-code: 3.4s)
- GET /dashboard/assistant 200 in 4.2s (next.js: 346ms, proxy.ts: 452ms, application-code: 3.4s)
- GET /dashboard/assistant 200 in 2.6s (next.js: 278ms, proxy.ts: 1035ms, application-code: 1336ms)
- GET /dashboard/assistant 200 in 2.6s (next.js: 360ms, proxy.ts: 1035ms, application-code: 1253ms)
- GET /dashboard/assistant 200 in 2.7s (next.js: 314ms, proxy.ts: 1035ms, application-code: 1303ms)
- GET /dashboard/clip-recap 200 in 2.8s (next.js: 163ms, proxy.ts: 1042ms, application-code: 1570ms)
- GET /dashboard/clip-recap 200 in 2.8s (next.js: 225ms, proxy.ts: 1035ms, application-code: 1509ms)
- GET /dashboard/clip-recap 200 in 2.8s (next.js: 117ms, proxy.ts: 1035ms, application-code: 1621ms)
- GET /dashboard/assistant 200 in 4.3s (next.js: 238ms, proxy.ts: 441ms, application-code: 3.7s)
- GET /dashboard/clip-recap 200 in 1698ms (next.js: 59ms, proxy.ts: 1404ms, application-code: 234ms)
- GET /dashboard/clip-recap 200 in 4.4s (next.js: 469ms, proxy.ts: 1618ms, application-code: 2.3s)
- GET /dashboard/clip-recap 200 in 403ms (next.js: 205ms, proxy.ts: 85ms, application-code: 114ms)
- GET /dashboard/clip-recap 200 in 442ms (next.js: 77ms, proxy.ts: 84ms, application-code: 281ms)
- GET /dashboard/clip-recap 200 in 441ms (next.js: 18ms, proxy.ts: 79ms, application-code: 344ms)
- GET /auth/login?callbackUrl=%2Fdashboard%2Fassistance-indemnisation-aerienne 200 in 299ms (next.js: 62ms, proxy.ts: 16ms, application-code: 222ms)
- GET /api/conversations 200 in 2.9s (next.js: 109ms, proxy.ts: 2.6s, application-code: 234ms)
- GET /api/gmb/unread-count 200 in 3.0s (next.js: 2.5s, proxy.ts: 20ms, application-code: 429ms)
- GET /api/community/daily-routine 200 in 3.0s (next.js: 231ms, proxy.ts: 2.6s, application-code: 182ms)
- GET /api/gmb/unread-count 200 in 167ms (next.js: 7ms, proxy.ts: 7ms, application-code: 153ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-○ Compiling /dashboard/referencement ...
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
- GET /dashboard/referencement 200 in 9.3s (next.js: 9.0s, proxy.ts: 131ms, application-code: 176ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
- GET /dashboard/assistance-indemnisation-aerienne 200 in 2.7s (next.js: 2.5s, proxy.ts: 133ms, application-code: 92ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
- GET /api/gmb/unread-count 200 in 1366ms (next.js: 72ms, proxy.ts: 39ms, application-code: 1254ms)
- GET /api/gmb/unread-count 200 in 309ms (next.js: 18ms, proxy.ts: 16ms, application-code: 276ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
- GET /api/gmb/unread-count 200 in 337ms (next.js: 17ms, proxy.ts: 14ms, application-code: 306ms)
- GET /dashboard/assistant 200 in 730ms (next.js: 48ms, proxy.ts: 84ms, application-code: 598ms)
- GET /api/conversations 200 in 214ms (next.js: 21ms, proxy.ts: 57ms, application-code: 136ms)
- GET /api/gmb/unread-count 200 in 225ms (next.js: 18ms, proxy.ts: 54ms, application-code: 152ms)
- GET /api/community/daily-routine 200 in 262ms (next.js: 23ms, proxy.ts: 63ms, application-code: 177ms)
- GET /api/conversations 200 in 240ms (next.js: 28ms, proxy.ts: 76ms, application-code: 136ms)
- GET /api/community/daily-routine 200 in 267ms (next.js: 6ms, proxy.ts: 93ms, application-code: 168ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-✓ Compiled in 3.7s
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
- GET /dashboard/clip-recap 200 in 5.1s (next.js: 914ms, proxy.ts: 2.5s, application-code: 1672ms)
- GET /dashboard/assistant 200 in 4.4s (next.js: 594ms, proxy.ts: 3.0s, application-code: 761ms)
- GET /dashboard/clip-recap 200 in 1967ms (next.js: 24ms, proxy.ts: 1055ms, application-code: 888ms)
- GET /dashboard/assistant 200 in 1237ms (next.js: 32ms, proxy.ts: 305ms, application-code: 899ms)
- GET /dashboard/clip-recap 200 in 1032ms (next.js: 99ms, proxy.ts: 327ms, application-code: 607ms)
- GET /dashboard/clip-recap 200 in 1032ms (next.js: 285ms, proxy.ts: 326ms, application-code: 421ms)
- GET /dashboard/clip-recap 200 in 1039ms (next.js: 24ms, proxy.ts: 328ms, application-code: 688ms)
- GET /dashboard/assistant 200 in 766ms (next.js: 17ms, proxy.ts: 518ms, application-code: 231ms)
- GET /dashboard/assistant 200 in 714ms (next.js: 9ms, proxy.ts: 70ms, application-code: 636ms)
- GET /dashboard/assistant 200 in 668ms (next.js: 19ms, proxy.ts: 390ms, application-code: 259ms)
- GET /auth/login?callbackUrl=%2Fdashboard%2Fassistance-indemnisation-aerienne 200 in 634ms (next.js: 109ms, proxy.ts: 12ms, application-code: 513ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
- GET /dashboard/assistance-indemnisation-aerienne 200 in 1293ms (next.js: 424ms, proxy.ts: 462ms, application-code: 406ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
- GET /dashboard/referencement 200 in 407ms (next.js: 227ms, proxy.ts: 100ms, application-code: 80ms)
- GET /dashboard/settings 200 in 131ms (next.js: 14ms, proxy.ts: 96ms, application-code: 21ms)
- GET /dashboard/settings?section=contacts 200 in 774ms (next.js: 180ms, proxy.ts: 104ms, application-code: 489ms)
- GET /dashboard/settings 200 in 392ms (next.js: 5ms, proxy.ts: 63ms, application-code: 324ms)
- GET /api/community/members 200 in 528ms (next.js: 256ms, proxy.ts: 60ms, application-code: 212ms)
- GET /api/community/members 200 in 475ms (next.js: 6ms, proxy.ts: 293ms, application-code: 176ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
- GET /admin 200 in 1335ms (next.js: 266ms, proxy.ts: 134ms, application-code: 935ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-○ Compiling /api/admin/automation-presets ...
- POST /api/admin/automation-presets 400 in 4.2s (next.js: 3.7s, proxy.ts: 269ms, application-code: 308ms)
-✓ Compiled in 4.3s
- GET /dashboard/clip-recap 200 in 1232ms (next.js: 693ms, proxy.ts: 350ms, application-code: 189ms)
- GET /admin 200 in 1031ms (next.js: 233ms, proxy.ts: 65ms, application-code: 734ms)
- POST /api/admin/automation-presets 400 in 327ms (next.js: 75ms, proxy.ts: 55ms, application-code: 197ms)
- GET /auth/login?callbackUrl=%2Fdashboard%2Fsettings 200 in 566ms (next.js: 68ms, proxy.ts: 24ms, application-code: 474ms)
- GET /api/gmb/unread-count 200 in 4.3s (next.js: 3.6s, proxy.ts: 11ms, application-code: 732ms)
- POST /api/admin/automation-presets 400 in 296ms (next.js: 9ms, proxy.ts: 64ms, application-code: 224ms)
- POST /api/admin/automation-presets 400 in 230ms (next.js: 6ms, proxy.ts: 62ms, application-code: 162ms)
- POST /api/admin/automation-presets 400 in 211ms (next.js: 7ms, proxy.ts: 50ms, application-code: 155ms)
- POST /api/admin/automation-presets 400 in 247ms (next.js: 9ms, proxy.ts: 56ms, application-code: 182ms)
- POST /api/admin/automation-presets 400 in 203ms (next.js: 6ms, proxy.ts: 51ms, application-code: 147ms)
- POST /api/admin/automation-presets 400 in 198ms (next.js: 4ms, proxy.ts: 49ms, application-code: 144ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
- POST /api/admin/rhythms 400 in 1607ms (next.js: 1397ms, proxy.ts: 49ms, application-code: 160ms)
- POST /api/admin/rhythms 400 in 939ms (next.js: 675ms, proxy.ts: 61ms, application-code: 203ms)
- POST /api/admin/rhythms 400 in 209ms (next.js: 5ms, proxy.ts: 59ms, application-code: 145ms)
- POST /api/admin/rhythms 400 in 224ms (next.js: 9ms, proxy.ts: 56ms, application-code: 159ms)
- POST /api/admin/rhythms 400 in 202ms (next.js: 4ms, proxy.ts: 51ms, application-code: 147ms)
- POST /api/admin/rhythms 400 in 379ms (next.js: 11ms, proxy.ts: 168ms, application-code: 201ms)
- POST /api/admin/rhythms 400 in 272ms (next.js: 5ms, proxy.ts: 96ms, application-code: 171ms)
- POST /api/admin/rhythms 400 in 210ms (next.js: 4ms, proxy.ts: 61ms, application-code: 145ms)
- POST /api/admin/automation-presets 400 in 208ms (next.js: 10ms, proxy.ts: 52ms, application-code: 146ms)
- POST /api/admin/automation-presets 400 in 215ms (next.js: 8ms, proxy.ts: 51ms, application-code: 156ms)
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
-[Automation] Démarrage du moteur…
-[Automation] 7 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+ GET / 200 in 1387ms (next.js: 407ms, proxy.ts: 368ms, application-code: 612ms)
+[Automation] 3 automatisations actives
+ GET / 200 in 518ms (next.js: 12ms, proxy.ts: 240ms, application-code: 266ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /dashboard 200 in 458ms (next.js: 130ms, proxy.ts: 60ms, application-code: 269ms)
+ GET /onboarding 200 in 577ms (next.js: 142ms, proxy.ts: 62ms, application-code: 373ms)
+ GET /onboarding 200 in 408ms (next.js: 5ms, proxy.ts: 106ms, application-code: 297ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /api/email/gmail/auth?returnTo=onboarding 307 in 2.2s (next.js: 1997ms, proxy.ts: 94ms, application-code: 107ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /onboarding 200 in 653ms (next.js: 10ms, proxy.ts: 94ms, application-code: 549ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ POST /api/onboarding/complete 200 in 907ms (next.js: 170ms, proxy.ts: 126ms, application-code: 611ms)
+ GET /dashboard/assistant?welcome=true 200 in 1059ms (next.js: 136ms, proxy.ts: 110ms, application-code: 813ms)
+ GET /api/conversations 200 in 651ms (next.js: 120ms, proxy.ts: 223ms, application-code: 308ms)
+ GET /api/gmb/unread-count 200 in 672ms (next.js: 117ms, proxy.ts: 39ms, application-code: 517ms)
+ GET /api/gmb/unread-count 200 in 751ms (next.js: 165ms, proxy.ts: 36ms, application-code: 550ms)
+ GET /api/community/daily-routine 200 in 755ms (next.js: 256ms, proxy.ts: 223ms, application-code: 277ms)
+ GET /api/conversations 200 in 197ms (next.js: 26ms, proxy.ts: 83ms, application-code: 88ms)
+ GET /api/community/daily-routine 200 in 228ms (next.js: 4ms, proxy.ts: 65ms, application-code: 160ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /dashboard/events 200 in 1953ms (next.js: 121ms, proxy.ts: 99ms, application-code: 1733ms)
+ GET /dashboard/settings 200 in 567ms (next.js: 96ms, proxy.ts: 108ms, application-code: 363ms)
+ GET /api/community/members 200 in 389ms (next.js: 129ms, proxy.ts: 57ms, application-code: 203ms)
+ GET /api/community/members 200 in 235ms (next.js: 7ms, proxy.ts: 60ms, application-code: 168ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+✓ Compiled in 1887ms
+ GET /dashboard/settings 200 in 590ms (next.js: 171ms, proxy.ts: 203ms, application-code: 217ms)
+ GET /dashboard/settings 200 in 229ms (next.js: 3ms, proxy.ts: 106ms, application-code: 119ms)
+ GET /dashboard/settings 200 in 706ms (next.js: 160ms, proxy.ts: 281ms, application-code: 264ms)
+ GET /auth/login 200 in 88ms (next.js: 46ms, proxy.ts: 6ms, application-code: 37ms)
+ GET /dashboard/assistant 200 in 862ms (next.js: 16ms, proxy.ts: 76ms, application-code: 770ms)
+ GET /dashboard/assistant 200 in 1052ms (next.js: 18ms, proxy.ts: 99ms, application-code: 935ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /api/conversations 200 in 3.1s (next.js: 76ms, proxy.ts: 2.7s, application-code: 290ms)
+ GET /api/gmb/unread-count 200 in 3.1s (next.js: 2.6s, proxy.ts: 18ms, application-code: 535ms)
+ GET /api/community/daily-routine 200 in 3.1s (next.js: 198ms, proxy.ts: 2.7s, application-code: 232ms)
+ GET /api/gmb/unread-count 200 in 3.1s (next.js: 2.6s, proxy.ts: 34ms, application-code: 510ms)
+ GET /api/conversations 200 in 200ms (next.js: 5ms, proxy.ts: 86ms, application-code: 109ms)
+ GET /api/community/daily-routine 200 in 214ms (next.js: 3ms, proxy.ts: 63ms, application-code: 148ms)
+ GET /dashboard/settings 200 in 415ms (next.js: 7ms, proxy.ts: 50ms, application-code: 358ms)
+ GET /api/community/members 200 in 237ms (next.js: 34ms, proxy.ts: 56ms, application-code: 147ms)
+ GET /api/community/members 200 in 220ms (next.js: 6ms, proxy.ts: 66ms, application-code: 148ms)
+ GET /admin 200 in 828ms (next.js: 93ms, proxy.ts: 59ms, application-code: 676ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ POST /api/admin/automation-presets 400 in 916ms (next.js: 82ms, proxy.ts: 292ms, application-code: 541ms)
+ POST /api/admin/automation-presets 400 in 258ms (next.js: 7ms, proxy.ts: 87ms, application-code: 165ms)
+ POST /api/admin/rhythms 400 in 375ms (next.js: 140ms, proxy.ts: 47ms, application-code: 189ms)
+ POST /api/admin/rhythms 400 in 223ms (next.js: 6ms, proxy.ts: 52ms, application-code: 165ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /auth/login?callbackUrl=%2Fonboarding 200 in 238ms (next.js: 6ms, proxy.ts: 5ms, application-code: 228ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /dashboard/assistant 200 in 1353ms (next.js: 14ms, proxy.ts: 239ms, application-code: 1099ms)
+ GET /api/conversations 200 in 249ms (next.js: 8ms, proxy.ts: 118ms, application-code: 122ms)
+ GET /api/community/daily-routine 200 in 259ms (next.js: 13ms, proxy.ts: 71ms, application-code: 175ms)
+ GET /api/gmb/unread-count 200 in 283ms (next.js: 20ms, proxy.ts: 20ms, application-code: 243ms)
+ GET /dashboard/automations 200 in 1149ms (next.js: 170ms, proxy.ts: 96ms, application-code: 883ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+✓ Compiled in 261ms
+ GET /dashboard/automations 200 in 525ms (next.js: 5ms, proxy.ts: 81ms, application-code: 439ms)
+ GET /dashboard/automations 200 in 1161ms (next.js: 148ms, proxy.ts: 207ms, application-code: 806ms)
+ GET /dashboard/automations 200 in 505ms (next.js: 12ms, proxy.ts: 118ms, application-code: 375ms)
+ GET /dashboard/automations 200 in 505ms (next.js: 35ms, proxy.ts: 120ms, application-code: 350ms)
+ GET /dashboard/automations 200 in 539ms (next.js: 9ms, proxy.ts: 342ms, application-code: 188ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+✓ Compiled in 212ms
+ GET /dashboard/automations 200 in 586ms (next.js: 97ms, proxy.ts: 134ms, application-code: 355ms)
+ GET /dashboard/automations 200 in 278ms (next.js: 4ms, proxy.ts: 122ms, application-code: 152ms)
+ GET /dashboard/automations 200 in 438ms (next.js: 89ms, proxy.ts: 153ms, application-code: 196ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /dashboard/automations 200 in 1289ms (next.js: 151ms, proxy.ts: 419ms, application-code: 720ms)
+ GET /dashboard/settings 200 in 689ms (next.js: 36ms, proxy.ts: 87ms, application-code: 566ms)
+ GET /api/community/members 200 in 554ms (next.js: 170ms, proxy.ts: 54ms, application-code: 329ms)
+ GET /api/community/members 200 in 236ms (next.js: 7ms, proxy.ts: 55ms, application-code: 174ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+✓ Compiled in 398ms
+ GET /admin 200 in 1293ms (next.js: 79ms, proxy.ts: 96ms, application-code: 1119ms)
+ GET /admin 200 in 899ms (next.js: 140ms, proxy.ts: 209ms, application-code: 549ms)
+ GET /admin 200 in 683ms (next.js: 9ms, proxy.ts: 467ms, application-code: 208ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+✓ Compiled in 322ms
+ GET /admin 200 in 772ms (next.js: 170ms, proxy.ts: 215ms, application-code: 387ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+✓ Compiled in 149ms
+ GET /admin 200 in 510ms (next.js: 98ms, proxy.ts: 156ms, application-code: 256ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /dashboard/assistant 200 in 2.2s (next.js: 100ms, proxy.ts: 95ms, application-code: 2.0s)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /api/conversations 200 in 4.1s (next.js: 95ms, proxy.ts: 3.5s, application-code: 482ms)
+ GET /api/community/daily-routine 200 in 4.2s (next.js: 170ms, proxy.ts: 3.7s, application-code: 310ms)
+ GET /api/gmb/unread-count 200 in 4.3s (next.js: 3.5s, proxy.ts: 24ms, application-code: 834ms)
+ GET /dashboard/automations 200 in 970ms (next.js: 209ms, proxy.ts: 185ms, application-code: 575ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /dashboard/automations 200 in 1735ms (next.js: 713ms, proxy.ts: 523ms, application-code: 499ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /dashboard/automations 200 in 1328ms (next.js: 204ms, proxy.ts: 321ms, application-code: 803ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+✓ Compiled in 569ms
+ GET /dashboard/automations 200 in 2.7s (next.js: 1674ms, proxy.ts: 359ms, application-code: 676ms)
+ GET /dashboard/automations 200 in 566ms (next.js: 14ms, proxy.ts: 157ms, application-code: 396ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /dashboard/automations 200 in 2.1s (next.js: 163ms, proxy.ts: 250ms, application-code: 1717ms)
+ GET /dashboard/automations 200 in 4.8s (next.js: 1127ms, proxy.ts: 317ms, application-code: 3.3s)
+ GET /dashboard/automations 200 in 1605ms (next.js: 23ms, proxy.ts: 159ms, application-code: 1423ms)
+ GET /dashboard/automations 200 in 1659ms (next.js: 159ms, proxy.ts: 169ms, application-code: 1332ms)
+ GET /dashboard/automations 200 in 1702ms (next.js: 344ms, proxy.ts: 168ms, application-code: 1190ms)
+ GET /dashboard/automations 200 in 1765ms (next.js: 382ms, proxy.ts: 678ms, application-code: 704ms)
+ GET /dashboard/automations 200 in 2.2s (next.js: 188ms, proxy.ts: 185ms, application-code: 1868ms)
+ GET /dashboard/automations 200 in 2.3s (next.js: 108ms, proxy.ts: 255ms, application-code: 1958ms)
+ GET /dashboard/automations 200 in 1637ms (next.js: 51ms, proxy.ts: 229ms, application-code: 1356ms)
+ GET /dashboard/automations 200 in 1635ms (next.js: 231ms, proxy.ts: 254ms, application-code: 1150ms)
+ GET /dashboard/automations 200 in 1656ms (next.js: 651ms, proxy.ts: 262ms, application-code: 743ms)
+ GET /dashboard/automations 200 in 1670ms (next.js: 581ms, proxy.ts: 263ms, application-code: 826ms)
+ GET /dashboard/automations 200 in 3.1s (next.js: 35ms, proxy.ts: 134ms, application-code: 2.9s)
+ GET /dashboard/automations 200 in 3.1s (next.js: 323ms, proxy.ts: 146ms, application-code: 2.6s)
+ GET /dashboard/automations 200 in 3.0s (next.js: 678ms, proxy.ts: 384ms, application-code: 1937ms)
+ GET /dashboard/automations 200 in 3.0s (next.js: 803ms, proxy.ts: 614ms, application-code: 1601ms)
+ GET /dashboard/automations 200 in 3.0s (next.js: 810ms, proxy.ts: 932ms, application-code: 1236ms)
+ GET /dashboard/automations 200 in 3.0s (next.js: 1057ms, proxy.ts: 1333ms, application-code: 611ms)
+ GET /dashboard/automations 200 in 2.3s (next.js: 58ms, proxy.ts: 104ms, application-code: 2.1s)
+ GET /dashboard/automations 200 in 2.3s (next.js: 298ms, proxy.ts: 132ms, application-code: 1904ms)
+ GET /dashboard/automations 200 in 2.4s (next.js: 566ms, proxy.ts: 320ms, application-code: 1485ms)
+ GET /dashboard/automations 200 in 2.4s (next.js: 579ms, proxy.ts: 480ms, application-code: 1319ms)
+ GET /dashboard/automations 200 in 2.4s (next.js: 619ms, proxy.ts: 650ms, application-code: 1114ms)
+ GET /dashboard/automations 200 in 2.4s (next.js: 716ms, proxy.ts: 988ms, application-code: 647ms)
+ GET /dashboard/automations 200 in 3.3s (next.js: 48ms, proxy.ts: 182ms, application-code: 3.1s)
+ GET /dashboard/automations 200 in 3.3s (next.js: 425ms, proxy.ts: 162ms, application-code: 2.7s)
+ GET /dashboard/automations 200 in 3.2s (next.js: 333ms, proxy.ts: 881ms, application-code: 2.0s)
+ GET /dashboard/automations 200 in 3.2s (next.js: 929ms, proxy.ts: 946ms, application-code: 1357ms)
+ GET /dashboard/automations 200 in 3.3s (next.js: 578ms, proxy.ts: 873ms, application-code: 1800ms)
+ GET /dashboard/automations 200 in 3.2s (next.js: 1047ms, proxy.ts: 938ms, application-code: 1249ms)
+ GET /dashboard/automations 200 in 2.5s (next.js: 102ms, proxy.ts: 132ms, application-code: 2.2s)
+ GET /dashboard/automations 200 in 2.4s (next.js: 416ms, proxy.ts: 176ms, application-code: 1857ms)
+ GET /dashboard/automations 200 in 2.4s (next.js: 506ms, proxy.ts: 372ms, application-code: 1532ms)
+ GET /dashboard/automations 200 in 2.4s (next.js: 476ms, proxy.ts: 599ms, application-code: 1337ms)
+ GET /dashboard/automations 200 in 2.4s (next.js: 577ms, proxy.ts: 737ms, application-code: 1093ms)
+ GET /dashboard/automations 200 in 2.4s (next.js: 761ms, proxy.ts: 812ms, application-code: 842ms)
+ GET /dashboard/automations 200 in 7.1s (next.js: 30ms, proxy.ts: 105ms, application-code: 7.0s)
+ GET /dashboard/automations 200 in 7.2s (next.js: 283ms, proxy.ts: 109ms, application-code: 6.8s)
+ GET /dashboard/automations 200 in 8.8s (next.js: 5.1s, proxy.ts: 899ms, application-code: 2.8s)
+ GET /dashboard/automations 200 in 8.8s (next.js: 5.2s, proxy.ts: 915ms, application-code: 2.7s)
+ GET /dashboard/automations 200 in 8.8s (next.js: 4.9s, proxy.ts: 929ms, application-code: 3.0s)
+ GET /dashboard/automations 200 in 8.8s (next.js: 5.6s, proxy.ts: 352ms, application-code: 2.8s)
+ GET /dashboard/automations 200 in 2.5s (next.js: 21ms, proxy.ts: 997ms, application-code: 1455ms)
+ GET /dashboard/automations 200 in 2.4s (next.js: 138ms, proxy.ts: 938ms, application-code: 1338ms)
+ GET /dashboard/automations 200 in 2.7s (next.js: 17ms, proxy.ts: 129ms, application-code: 2.6s)
+ GET /dashboard/automations 200 in 2.8s (next.js: 245ms, proxy.ts: 232ms, application-code: 2.3s)
+ GET /dashboard/automations 200 in 2.8s (next.js: 343ms, proxy.ts: 423ms, application-code: 2.1s)
+ GET /dashboard/automations 200 in 2.8s (next.js: 537ms, proxy.ts: 449ms, application-code: 1858ms)
+ GET /dashboard/automations 200 in 2.1s (next.js: 48ms, proxy.ts: 534ms, application-code: 1507ms)
+ GET /dashboard/automations 200 in 1913ms (next.js: 407ms, proxy.ts: 318ms, application-code: 1189ms)
+ GET /dashboard/automations 200 in 2.0s (next.js: 29ms, proxy.ts: 99ms, application-code: 1873ms)
+ GET /dashboard/automations 200 in 1973ms (next.js: 104ms, proxy.ts: 240ms, application-code: 1629ms)
+ GET /dashboard/automations 200 in 1949ms (next.js: 336ms, proxy.ts: 271ms, application-code: 1342ms)
+ GET /dashboard/automations 200 in 1949ms (next.js: 533ms, proxy.ts: 266ms, application-code: 1149ms)
+ GET /dashboard/automations 200 in 1842ms (next.js: 80ms, proxy.ts: 890ms, application-code: 872ms)
+[Automation] DÃ©marrage du moteurâ€¦
+ GET /dashboard/automations 200 in 2.8s (next.js: 197ms, proxy.ts: 834ms, application-code: 1733ms)
+[Automation] 3 automatisations actives
+ GET /dashboard/automations 200 in 3.4s (next.js: 897ms, proxy.ts: 184ms, application-code: 2.3s)
+ GET /dashboard/automations 200 in 3.8s (next.js: 914ms, proxy.ts: 796ms, application-code: 2.1s)
+ GET /dashboard/automations 200 in 3.8s (next.js: 990ms, proxy.ts: 789ms, application-code: 2.0s)
+ GET /dashboard/automations 200 in 4.2s (next.js: 441ms, proxy.ts: 1377ms, application-code: 2.4s)
+ GET /dashboard/automations 200 in 2.1s (next.js: 44ms, proxy.ts: 1128ms, application-code: 896ms)
+ GET /dashboard/automations 200 in 3.8s (next.js: 50ms, proxy.ts: 2.2s, application-code: 1571ms)
+ GET /dashboard/automations 200 in 3.1s (next.js: 74ms, proxy.ts: 469ms, application-code: 2.5s)
+ GET /dashboard/automations 200 in 2.8s (next.js: 63ms, proxy.ts: 414ms, application-code: 2.3s)
+ GET /dashboard/automations 200 in 2.8s (next.js: 355ms, proxy.ts: 425ms, application-code: 1993ms)
+ GET /dashboard/automations 200 in 2.4s (next.js: 79ms, proxy.ts: 1089ms, application-code: 1199ms)
+ GET /dashboard/automations 200 in 1832ms (next.js: 350ms, proxy.ts: 324ms, application-code: 1158ms)
+ GET /dashboard/automations 200 in 1721ms (next.js: 443ms, proxy.ts: 435ms, application-code: 843ms)
+ GET /dashboard/automations 200 in 1783ms (next.js: 21ms, proxy.ts: 96ms, application-code: 1666ms)
+ GET /dashboard/automations 200 in 1738ms (next.js: 127ms, proxy.ts: 338ms, application-code: 1272ms)
+ GET /dashboard/automations 200 in 1749ms (next.js: 60ms, proxy.ts: 345ms, application-code: 1343ms)
+ GET /dashboard/automations 200 in 1489ms (next.js: 62ms, proxy.ts: 564ms, application-code: 863ms)
+ GET /dashboard/automations 200 in 1432ms (next.js: 255ms, proxy.ts: 548ms, application-code: 629ms)
+ GET /dashboard/automations 200 in 1507ms (next.js: 311ms, proxy.ts: 682ms, application-code: 514ms)
+ GET /dashboard/automations 200 in 1647ms (next.js: 19ms, proxy.ts: 92ms, application-code: 1536ms)
+ GET /dashboard/automations 200 in 1639ms (next.js: 109ms, proxy.ts: 309ms, application-code: 1220ms)
+ GET /dashboard/automations 200 in 1654ms (next.js: 52ms, proxy.ts: 321ms, application-code: 1281ms)
+ GET /dashboard/automations 200 in 1610ms (next.js: 55ms, proxy.ts: 731ms, application-code: 824ms)
+ GET /dashboard/automations 200 in 1420ms (next.js: 174ms, proxy.ts: 546ms, application-code: 701ms)
+ GET /dashboard/automations 200 in 1377ms (next.js: 382ms, proxy.ts: 516ms, application-code: 479ms)
+ GET /dashboard/automations 200 in 1542ms (next.js: 18ms, proxy.ts: 71ms, application-code: 1453ms)
+ GET /dashboard/automations 200 in 1536ms (next.js: 72ms, proxy.ts: 231ms, application-code: 1233ms)
+ GET /dashboard/automations 200 in 1523ms (next.js: 215ms, proxy.ts: 251ms, application-code: 1058ms)
+ GET /dashboard/automations 200 in 1556ms (next.js: 170ms, proxy.ts: 279ms, application-code: 1106ms)
+ GET /dashboard/automations 200 in 1529ms (next.js: 459ms, proxy.ts: 258ms, application-code: 813ms)
+ GET /dashboard/automations 200 in 1517ms (next.js: 527ms, proxy.ts: 245ms, application-code: 745ms)
+ GET /dashboard/automations 200 in 3.6s (next.js: 21ms, proxy.ts: 99ms, application-code: 3.5s)
+ GET /dashboard/automations 200 in 3.6s (next.js: 146ms, proxy.ts: 247ms, application-code: 3.2s)
+ GET /dashboard/automations 200 in 3.6s (next.js: 205ms, proxy.ts: 331ms, application-code: 3.1s)
+ GET /dashboard/automations 200 in 3.8s (next.js: 265ms, proxy.ts: 329ms, application-code: 3.3s)
+ GET /dashboard/automations 200 in 3.8s (next.js: 582ms, proxy.ts: 317ms, application-code: 2.9s)
+ GET /dashboard/automations 200 in 3.8s (next.js: 878ms, proxy.ts: 316ms, application-code: 2.6s)
+ GET /dashboard/automations 200 in 3.0s (next.js: 251ms, proxy.ts: 327ms, application-code: 2.4s)
+ GET /dashboard/automations 200 in 2.8s (next.js: 198ms, proxy.ts: 751ms, application-code: 1859ms)
+ GET /dashboard/automations 200 in 2.8s (next.js: 121ms, proxy.ts: 753ms, application-code: 1963ms)
+ GET /dashboard/automations 200 in 2.9s (next.js: 591ms, proxy.ts: 821ms, application-code: 1484ms)
+ GET /dashboard/automations 200 in 2.9s (next.js: 916ms, proxy.ts: 835ms, application-code: 1190ms)
+ GET /dashboard/automations 200 in 2.9s (next.js: 1003ms, proxy.ts: 817ms, application-code: 1126ms)
+ GET /dashboard/automations 200 in 2.4s (next.js: 52ms, proxy.ts: 281ms, application-code: 2.0s)
+ GET /dashboard/automations 200 in 2.2s (next.js: 66ms, proxy.ts: 469ms, application-code: 1689ms)
+ GET /dashboard/automations 200 in 2.1s (next.js: 465ms, proxy.ts: 394ms, application-code: 1277ms)
+ GET /dashboard/automations 200 in 2.2s (next.js: 388ms, proxy.ts: 471ms, application-code: 1356ms)
+ GET /dashboard/automations 200 in 2.1s (next.js: 862ms, proxy.ts: 364ms, application-code: 875ms)
+ GET /dashboard/automations 200 in 2.1s (next.js: 1076ms, proxy.ts: 479ms, application-code: 594ms)
+ GET /dashboard/automations 200 in 3.4s (next.js: 39ms, proxy.ts: 154ms, application-code: 3.2s)
+ GET /dashboard/automations 200 in 3.3s (next.js: 289ms, proxy.ts: 238ms, application-code: 2.8s)
+ GET /dashboard/automations 200 in 3.3s (next.js: 399ms, proxy.ts: 450ms, application-code: 2.5s)
+ GET /dashboard/automations 200 in 3.3s (next.js: 479ms, proxy.ts: 395ms, application-code: 2.4s)
+ GET /dashboard/automations 200 in 3.3s (next.js: 808ms, proxy.ts: 529ms, application-code: 1947ms)
+ GET /dashboard/automations 200 in 3.5s (next.js: 901ms, proxy.ts: 478ms, application-code: 2.1s)
+ GET /dashboard/automations 200 in 3.3s (next.js: 301ms, proxy.ts: 372ms, application-code: 2.6s)
+ GET /dashboard/automations 200 in 3.3s (next.js: 653ms, proxy.ts: 413ms, application-code: 2.2s)
+ GET /dashboard/automations 200 in 3.0s (next.js: 423ms, proxy.ts: 754ms, application-code: 1843ms)
+ GET /dashboard/automations 200 in 3.0s (next.js: 511ms, proxy.ts: 761ms, application-code: 1757ms)
+ GET /dashboard/automations 200 in 3.0s (next.js: 594ms, proxy.ts: 754ms, application-code: 1674ms)
+ GET /dashboard/automations 200 in 3.0s (next.js: 934ms, proxy.ts: 964ms, application-code: 1100ms)
+ GET /dashboard/automations 200 in 2.5s (next.js: 163ms, proxy.ts: 114ms, application-code: 2.2s)
+ GET /dashboard/automations 200 in 2.5s (next.js: 376ms, proxy.ts: 235ms, application-code: 1853ms)
+ GET /dashboard/automations 200 in 2.4s (next.js: 559ms, proxy.ts: 457ms, application-code: 1397ms)
+ GET /dashboard/automations 200 in 2.4s (next.js: 455ms, proxy.ts: 458ms, application-code: 1509ms)
+ GET /dashboard/automations 200 in 2.4s (next.js: 364ms, proxy.ts: 466ms, application-code: 1603ms)
+ GET /dashboard/automations 200 in 2.5s (next.js: 1068ms, proxy.ts: 521ms, application-code: 875ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /dashboard/automations 200 in 2.8s (next.js: 25ms, proxy.ts: 134ms, application-code: 2.6s)
+ GET /dashboard/automations 200 in 2.8s (next.js: 353ms, proxy.ts: 135ms, application-code: 2.3s)
+ GET /dashboard/automations 200 in 2.7s (next.js: 640ms, proxy.ts: 636ms, application-code: 1473ms)
+ GET /dashboard/automations 200 in 2.8s (next.js: 666ms, proxy.ts: 366ms, application-code: 1728ms)
+ GET /dashboard/automations 200 in 2.7s (next.js: 706ms, proxy.ts: 634ms, application-code: 1406ms)
+ GET /dashboard/automations 200 in 2.7s (next.js: 785ms, proxy.ts: 605ms, application-code: 1327ms)
+ GET /dashboard/automations 200 in 2.1s (next.js: 38ms, proxy.ts: 103ms, application-code: 1965ms)
+ GET /dashboard/automations 200 in 2.1s (next.js: 315ms, proxy.ts: 110ms, application-code: 1685ms)
+ GET /dashboard/automations 200 in 2.1s (next.js: 259ms, proxy.ts: 495ms, application-code: 1346ms)
+ GET /dashboard/automations 200 in 2.1s (next.js: 276ms, proxy.ts: 629ms, application-code: 1210ms)
+ GET /dashboard/automations 200 in 2.1s (next.js: 400ms, proxy.ts: 626ms, application-code: 1090ms)
+ GET /dashboard/automations 200 in 2.1s (next.js: 335ms, proxy.ts: 627ms, application-code: 1164ms)
+ GET /dashboard/automations 200 in 4.4s (next.js: 55ms, proxy.ts: 128ms, application-code: 4.2s)
+ GET /dashboard/automations 200 in 4.5s (next.js: 695ms, proxy.ts: 243ms, application-code: 3.5s)
+ GET /dashboard/automations 200 in 4.4s (next.js: 961ms, proxy.ts: 421ms, application-code: 3.0s)
+ GET /dashboard/automations 200 in 4.4s (next.js: 1235ms, proxy.ts: 684ms, application-code: 2.5s)
+ GET /dashboard/automations 200 in 4.4s (next.js: 1353ms, proxy.ts: 687ms, application-code: 2.4s)
+ GET /dashboard/automations 200 in 4.4s (next.js: 2.1s, proxy.ts: 735ms, application-code: 1585ms)
+ GET /dashboard/automations 200 in 4.5s (next.js: 528ms, proxy.ts: 294ms, application-code: 3.7s)
+ GET /dashboard/automations 200 in 4.5s (next.js: 219ms, proxy.ts: 1249ms, application-code: 3.0s)
+ GET /dashboard/automations 200 in 4.4s (next.js: 359ms, proxy.ts: 1144ms, application-code: 2.9s)
+ GET /dashboard/automations 200 in 4.5s (next.js: 443ms, proxy.ts: 1245ms, application-code: 2.8s)
+ GET /dashboard/automations 200 in 4.4s (next.js: 1444ms, proxy.ts: 1246ms, application-code: 1665ms)
+ GET /dashboard/automations 200 in 4.3s (next.js: 2.0s, proxy.ts: 1226ms, application-code: 993ms)
+ GET /dashboard/automations 200 in 1768ms (next.js: 331ms, proxy.ts: 251ms, application-code: 1185ms)
+ GET /dashboard/automations 200 in 1854ms (next.js: 42ms, proxy.ts: 272ms, application-code: 1540ms)
+ GET /dashboard/automations 200 in 1880ms (next.js: 121ms, proxy.ts: 271ms, application-code: 1487ms)
+ GET /dashboard/automations 200 in 1893ms (next.js: 214ms, proxy.ts: 252ms, application-code: 1427ms)
+ GET /dashboard/automations 200 in 1985ms (next.js: 69ms, proxy.ts: 1450ms, application-code: 465ms)
+ GET /dashboard/automations 200 in 1997ms (next.js: 101ms, proxy.ts: 1435ms, application-code: 461ms)
+ GET /dashboard/automations 200 in 1034ms (next.js: 106ms, proxy.ts: 131ms, application-code: 796ms)
+ GET /dashboard/automations 200 in 1009ms (next.js: 169ms, proxy.ts: 107ms, application-code: 733ms)
+ GET /dashboard/automations 200 in 1015ms (next.js: 144ms, proxy.ts: 110ms, application-code: 762ms)
+ GET /dashboard/automations 200 in 1044ms (next.js: 16ms, proxy.ts: 134ms, application-code: 895ms)
+ GET /dashboard/automations 200 in 978ms (next.js: 59ms, proxy.ts: 479ms, application-code: 441ms)
+ GET /dashboard/automations 200 in 982ms (next.js: 98ms, proxy.ts: 478ms, application-code: 406ms)
+ GET /dashboard/automations 200 in 1534ms (next.js: 25ms, proxy.ts: 68ms, application-code: 1442ms)
+ GET /dashboard/automations 200 in 1536ms (next.js: 194ms, proxy.ts: 83ms, application-code: 1258ms)
+ GET /dashboard/automations 200 in 1537ms (next.js: 236ms, proxy.ts: 82ms, application-code: 1219ms)
+ GET /dashboard/automations 200 in 1609ms (next.js: 456ms, proxy.ts: 353ms, application-code: 800ms)
+ GET /dashboard/automations 200 in 1575ms (next.js: 499ms, proxy.ts: 478ms, application-code: 598ms)
+ GET /dashboard/automations 200 in 1571ms (next.js: 517ms, proxy.ts: 622ms, application-code: 432ms)
+ GET /dashboard/automations 200 in 1817ms (next.js: 14ms, proxy.ts: 143ms, application-code: 1660ms)
+ GET /dashboard/automations 200 in 1797ms (next.js: 62ms, proxy.ts: 121ms, application-code: 1613ms)
+ GET /dashboard/automations 200 in 1808ms (next.js: 355ms, proxy.ts: 123ms, application-code: 1330ms)
+ GET /dashboard/automations 200 in 1774ms (next.js: 221ms, proxy.ts: 554ms, application-code: 999ms)
+ GET /dashboard/automations 200 in 1748ms (next.js: 289ms, proxy.ts: 532ms, application-code: 927ms)
+ GET /dashboard/automations 200 in 1779ms (next.js: 521ms, proxy.ts: 646ms, application-code: 611ms)
+ GET /dashboard/automations 200 in 1728ms (next.js: 10ms, proxy.ts: 86ms, application-code: 1632ms)
+ GET /dashboard/automations 200 in 1770ms (next.js: 98ms, proxy.ts: 74ms, application-code: 1597ms)
+ GET /dashboard/automations 200 in 1824ms (next.js: 449ms, proxy.ts: 74ms, application-code: 1301ms)
+ GET /dashboard/automations 200 in 1851ms (next.js: 290ms, proxy.ts: 486ms, application-code: 1075ms)
+ GET /dashboard/automations 200 in 1875ms (next.js: 349ms, proxy.ts: 478ms, application-code: 1047ms)
+ GET /dashboard/automations 200 in 1922ms (next.js: 476ms, proxy.ts: 651ms, application-code: 795ms)
+ GET /dashboard/automations 200 in 1434ms (next.js: 33ms, proxy.ts: 186ms, application-code: 1215ms)
+ GET /dashboard/automations 200 in 1433ms (next.js: 187ms, proxy.ts: 201ms, application-code: 1045ms)
+ GET /dashboard/automations 200 in 1386ms (next.js: 114ms, proxy.ts: 468ms, application-code: 805ms)
+ GET /dashboard/automations 200 in 1267ms (next.js: 160ms, proxy.ts: 348ms, application-code: 759ms)
+ GET /dashboard/automations 200 in 1265ms (next.js: 211ms, proxy.ts: 346ms, application-code: 708ms)
+ GET /dashboard/automations 200 in 1260ms (next.js: 553ms, proxy.ts: 424ms, application-code: 282ms)
+ GET /dashboard/automations 200 in 608ms (next.js: 8ms, proxy.ts: 74ms, application-code: 526ms)
+ GET /dashboard/automations 200 in 665ms (next.js: 212ms, proxy.ts: 80ms, application-code: 374ms)
+ GET /dashboard/automations 200 in 2.6s (next.js: 268ms, proxy.ts: 51ms, application-code: 2.3s)
+ GET /dashboard/automations 200 in 3.3s (next.js: 667ms, proxy.ts: 468ms, application-code: 2.1s)
+ GET /dashboard/automations 200 in 3.3s (next.js: 543ms, proxy.ts: 518ms, application-code: 2.2s)
+ GET /dashboard/automations 200 in 2.7s (next.js: 660ms, proxy.ts: 84ms, application-code: 1916ms)
+ GET /dashboard/automations 200 in 3.3s (next.js: 813ms, proxy.ts: 474ms, application-code: 1993ms)
+ GET /dashboard/automations 200 in 3.3s (next.js: 680ms, proxy.ts: 509ms, application-code: 2.1s)
+ GET /dashboard/automations 200 in 2.5s (next.js: 20ms, proxy.ts: 139ms, application-code: 2.4s)
+ GET /dashboard/automations 200 in 2.5s (next.js: 95ms, proxy.ts: 137ms, application-code: 2.3s)
+ GET /dashboard/automations 200 in 2.5s (next.js: 240ms, proxy.ts: 127ms, application-code: 2.2s)
+ GET /dashboard/automations 200 in 2.5s (next.js: 167ms, proxy.ts: 136ms, application-code: 2.2s)
+ GET /dashboard/automations 200 in 2.6s (next.js: 1214ms, proxy.ts: 129ms, application-code: 1211ms)
+ GET /dashboard/automations 200 in 2.6s (next.js: 916ms, proxy.ts: 1044ms, application-code: 669ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /dashboard/automations 200 in 3.2s (next.js: 134ms, proxy.ts: 146ms, application-code: 3.0s)
+ GET /dashboard/automations 200 in 3.3s (next.js: 42ms, proxy.ts: 147ms, application-code: 3.1s)
+ GET /dashboard/automations 200 in 3.3s (next.js: 509ms, proxy.ts: 134ms, application-code: 2.7s)
+ GET /dashboard/automations 200 in 3.3s (next.js: 699ms, proxy.ts: 336ms, application-code: 2.3s)
+ GET /dashboard/automations 200 in 3.3s (next.js: 611ms, proxy.ts: 633ms, application-code: 2.0s)
+ GET /dashboard/automations 200 in 3.3s (next.js: 555ms, proxy.ts: 883ms, application-code: 1866ms)
+ GET /dashboard/automations 200 in 2.1s (next.js: 6ms, proxy.ts: 127ms, application-code: 1950ms)
+ GET /dashboard/automations 200 in 2.1s (next.js: 268ms, proxy.ts: 255ms, application-code: 1549ms)
+ GET /dashboard/automations 200 in 2.1s (next.js: 43ms, proxy.ts: 265ms, application-code: 1778ms)
+ GET /dashboard/automations 200 in 2.1s (next.js: 334ms, proxy.ts: 253ms, application-code: 1486ms)
+ GET /dashboard/automations 200 in 2.0s (next.js: 958ms, proxy.ts: 212ms, application-code: 862ms)
+ GET /dashboard/automations 200 in 2.1s (next.js: 100ms, proxy.ts: 1428ms, application-code: 592ms)
+ GET /dashboard/automations 200 in 1817ms (next.js: 30ms, proxy.ts: 115ms, application-code: 1671ms)
+ GET /dashboard/automations 200 in 1790ms (next.js: 376ms, proxy.ts: 110ms, application-code: 1305ms)
+ GET /dashboard/automations 200 in 1798ms (next.js: 314ms, proxy.ts: 114ms, application-code: 1370ms)
+ GET /dashboard/automations 200 in 1802ms (next.js: 537ms, proxy.ts: 408ms, application-code: 857ms)
+ GET /dashboard/automations 200 in 1771ms (next.js: 596ms, proxy.ts: 375ms, application-code: 800ms)
+ GET /dashboard/automations 200 in 1512ms (next.js: 68ms, proxy.ts: 1075ms, application-code: 369ms)
+ GET /dashboard/automations 200 in 1800ms (next.js: 18ms, proxy.ts: 92ms, application-code: 1691ms)
+ GET /dashboard/automations 200 in 1797ms (next.js: 195ms, proxy.ts: 90ms, application-code: 1511ms)
+ GET /dashboard/automations 200 in 1803ms (next.js: 138ms, proxy.ts: 92ms, application-code: 1573ms)
+ GET /dashboard/automations 200 in 1814ms (next.js: 196ms, proxy.ts: 625ms, application-code: 993ms)
+ GET /dashboard/automations 200 in 1844ms (next.js: 273ms, proxy.ts: 738ms, application-code: 833ms)
+ GET /dashboard/automations 200 in 1539ms (next.js: 92ms, proxy.ts: 1003ms, application-code: 444ms)
+ GET /dashboard/automations 200 in 1458ms (next.js: 170ms, proxy.ts: 137ms, application-code: 1151ms)
+ GET /dashboard/automations 200 in 1454ms (next.js: 224ms, proxy.ts: 123ms, application-code: 1108ms)
+ GET /dashboard/automations 200 in 1480ms (next.js: 13ms, proxy.ts: 138ms, application-code: 1329ms)
+ GET /dashboard/automations 500 in 3.9s (next.js: 2.9s, proxy.ts: 137ms, application-code: 809ms)
+ GET /dashboard/automations 500 in 5.3s (next.js: 4.4s, proxy.ts: 683ms, application-code: 215ms)
+ GET /dashboard/automations 500 in 3.9s (next.js: 3.6s, proxy.ts: 129ms, application-code: 163ms)
+ GET /dashboard/automations 500 in 5.3s (next.js: 3.9s, proxy.ts: 1246ms, application-code: 132ms)
+ GET /dashboard/automations 500 in 3.9s (next.js: 3.7s, proxy.ts: 89ms, application-code: 99ms)
+ GET /dashboard/automations 500 in 5.3s (next.js: 4.6s, proxy.ts: 689ms, application-code: 63ms)
+ GET /dashboard/automations 500 in 732ms (next.js: 80ms, proxy.ts: 581ms, application-code: 71ms)
+ GET /dashboard/automations 500 in 743ms (next.js: 115ms, proxy.ts: 586ms, application-code: 43ms)
+ GET /dashboard/automations 500 in 945ms (next.js: 96ms, proxy.ts: 717ms, application-code: 132ms)
+ GET /dashboard/automations 500 in 929ms (next.js: 156ms, proxy.ts: 707ms, application-code: 65ms)
+ GET /dashboard/automations 500 in 937ms (next.js: 128ms, proxy.ts: 709ms, application-code: 99ms)
+ GET /dashboard/automations 500 in 934ms (next.js: 186ms, proxy.ts: 712ms, application-code: 36ms)
+ GET /dashboard/automations 500 in 415ms (next.js: 100ms, proxy.ts: 222ms, application-code: 93ms)
+ GET /dashboard/automations 500 in 399ms (next.js: 118ms, proxy.ts: 220ms, application-code: 62ms)
+ GET /dashboard/automations 500 in 424ms (next.js: 81ms, proxy.ts: 180ms, application-code: 163ms)
+ GET /dashboard/automations 500 in 422ms (next.js: 105ms, proxy.ts: 179ms, application-code: 138ms)
+ GET /dashboard/automations 500 in 417ms (next.js: 129ms, proxy.ts: 183ms, application-code: 105ms)
+ GET /dashboard/automations 500 in 414ms (next.js: 167ms, proxy.ts: 182ms, application-code: 66ms)
+ GET /dashboard/automations 500 in 374ms (next.js: 48ms, proxy.ts: 235ms, application-code: 91ms)
+ GET /dashboard/automations 500 in 378ms (next.js: 114ms, proxy.ts: 237ms, application-code: 27ms)
+ GET /dashboard/automations 500 in 116ms (next.js: 13ms, proxy.ts: 54ms, application-code: 49ms)
+ GET /dashboard/automations 500 in 131ms (next.js: 13ms, proxy.ts: 72ms, application-code: 46ms)
+ GET /dashboard/automations 500 in 251ms (next.js: 12ms, proxy.ts: 221ms, application-code: 19ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /dashboard/automations 500 in 731ms (next.js: 55ms, proxy.ts: 651ms, application-code: 25ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /auth/login?callbackUrl=%2Fdashboard%2Fautomations 500 in 312ms (next.js: 182ms, proxy.ts: 27ms, application-code: 102ms)
+ GET /auth/login?callbackUrl=%2Fadmin 500 in 333ms (next.js: 289ms, proxy.ts: 22ms, application-code: 22ms)
+ GET / 500 in 692ms (next.js: 408ms, proxy.ts: 272ms, application-code: 13ms)
+[Automation] DÃ©marrage du moteurâ€¦
+[Automation] 3 automatisations actives
+ GET /auth/login?callbackUrl=%2Fadmin 500 in 60ms (next.js: 16ms, proxy.ts: 16ms, application-code: 27ms)
+[?25h

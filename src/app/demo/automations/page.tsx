@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import { AutomationsClient } from "@/components/automations/automations-client";
 import { DEMO_AUTOMATIONS } from "@/lib/demo/data";
+import {
+  GENERAL_DEFAULT_AUTOMATION_PUBLICATIONS,
+  getDefaultAutomationPublicationsForProfile,
+} from "@/lib/automation/suggested-publications";
 
 type AutomationsProps = Parameters<typeof AutomationsClient>[0];
 
@@ -12,10 +17,17 @@ const DEMO_RECENT_RUNS = DEMO_AUTOMATION_ITEMS.flatMap((automation) => automatio
 export default function DemoAutomationsPage() {
   return (
     <div className="pt-10">
-      <AutomationsClient
-        automations={DEMO_AUTOMATION_ITEMS}
-        recentRuns={DEMO_RECENT_RUNS}
-      />
+      <Suspense fallback={null}>
+        <AutomationsClient
+          automations={DEMO_AUTOMATION_ITEMS}
+          presets={[
+            ...getDefaultAutomationPublicationsForProfile("SYNAGOGUE"),
+            ...GENERAL_DEFAULT_AUTOMATION_PUBLICATIONS,
+          ] as unknown as AutomationsProps["presets"]}
+          recentRuns={DEMO_RECENT_RUNS}
+          communityType="SYNAGOGUE"
+        />
+      </Suspense>
     </div>
   );
 }

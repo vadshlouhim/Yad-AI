@@ -208,7 +208,7 @@ export function DashboardClient({
                 upcomingEvents.map((event) => (
                   <Link
                     key={event.id}
-                    href={`/dashboard/events/${event.id}`}
+                    href={`/dashboard/assistant?eventId=${event.id}`}
                     className="flex items-start gap-3 rounded-xl p-3 hover:bg-slate-50 transition-colors group sm:items-center sm:gap-4"
                   >
                     <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 text-sm font-bold text-blue-700">

@@ -179,5 +179,22 @@ export async function DELETE(
 
   const admin = createAdminClient();
   await admin.from("Automation").delete().eq("id", id);
+
+  if (automation.eventId) {
+    const { count: remainingAutomationsForEvent } = await admin
+      .from("Automation")
+      .select("id", { count: "exact", head: true })
+      .eq("eventId", automation.eventId)
+      .eq("communityId", automation.communityId);
+
+    if ((remainingAutomationsForEvent ?? 0) === 0) {
+      await admin
+        .from("Event")
+        .update({ status: "ARCHIVED", updatedAt: new Date().toISOString() })
+        .eq("id", automation.eventId)
+        .eq("communityId", automation.communityId);
+    }
+  }
+
   return NextResponse.json({ success: true });
 }

@@ -6,21 +6,19 @@ import { StepIdentity } from "./steps/step-identity";
 import { StepEditorial } from "./steps/step-editorial";
 import { StepChannels } from "./steps/step-channels";
 import { StepRecurring } from "./steps/step-recurring";
-import { StepFinish } from "./steps/step-finish";
 import { WelcomeAnimation } from "./welcome-animation";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 
 const STEPS = [
-  { id: 0, label: "Identité", description: "Votre communauté" },
-  { id: 1, label: "Éditorial", description: "Ton & règles" },
+  { id: 0, label: "Identité", description: "Votre structure" },
+  { id: 1, label: "Style", description: "Ton & règles" },
   { id: 2, label: "Canaux", description: "Où diffuser" },
-  { id: 3, label: "Agenda", description: "Récurrences" },
-  { id: 4, label: "C'est parti !", description: "Finalisation" },
+  { id: 3, label: "C'est parti !", description: "Automatisations" },
 ];
 
 export interface OnboardingData {
-  // Étape 1 — Identité
+  // Étape 1 - Identité
   communityName: string;
   communityType: string;
   isBethHabad: boolean;
@@ -34,27 +32,39 @@ export interface OnboardingData {
   address: string;
   logoUrl: string;
 
-  // Étape 2 — Éditorial
+  // Étape 2 - Style
   tone: string;
   language: string;
   signature: string;
   hashtags: string[];
   editorialRules: string;
 
-  // Étape 3 — Canaux
+  // Étape 3 - Canaux
   channels: Array<{
     type: string;
     name: string;
     handle: string;
   }>;
 
-  // Étape 4 — Récurrences
+  // Étape 4 - Automatisations
   recurringEvents: Array<{
     title: string;
     category: string;
     dayOfWeek?: number;
     time?: string;
   }>;
+  selectedAutomationScenarioIds: string[];
+  automationNotificationLeadHours: number;
+  automationValidationMode: "manual" | "automatic";
+}
+
+export interface OnboardingAutomationPreset {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  icon: string | null;
+  clientTypes: string[];
 }
 
 const defaultData: OnboardingData = {
@@ -77,6 +87,9 @@ const defaultData: OnboardingData = {
   editorialRules: "",
   channels: [],
   recurringEvents: [],
+  selectedAutomationScenarioIds: [],
+  automationNotificationLeadHours: 2,
+  automationValidationMode: "manual",
 };
 
 export const demoOnboardingData: OnboardingData = {
@@ -84,15 +97,15 @@ export const demoOnboardingData: OnboardingData = {
   communityName: "Chlomi-test",
   communityType: "ASSOCIATION",
   isBethHabad: false,
-  description: "Structure fictive utilisee pour valider l'experience d'onboarding.",
+  description: "Structure fictive utilisée pour valider l'expérience d'onboarding.",
   city: "Paris",
   email: "test@chlomi-test.local",
   website: "https://chlomi-test.local",
-  signature: "L'equipe Chlomi-test",
+  signature: "L'équipe Chlomi-test",
   hashtags: ["#ChlomiTest", "#DemoEasyCom"],
   channels: [
     { type: "WHATSAPP", name: "WhatsApp", handle: "" },
-    { type: "EMAIL", name: "Email / Newsletter", handle: "" },
+    { type: "EMAIL", name: "Email", handle: "" },
   ],
   recurringEvents: [
     { title: "Newsletter mensuelle", category: "NEWSLETTER" },
@@ -106,6 +119,7 @@ interface Props {
   communityId?: string;
   initialStep?: number;
   initialData?: Partial<OnboardingData>;
+  automationPresets?: OnboardingAutomationPreset[];
   simulationMode?: boolean;
 }
 
@@ -115,10 +129,11 @@ export function OnboardingWizard({
   communityId,
   initialStep = 0,
   initialData,
+  automationPresets = [],
   simulationMode = false,
 }: Props) {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(initialStep);
+  const [currentStep, setCurrentStep] = useState(Math.min(initialStep, STEPS.length - 1));
   const [data, setData] = useState<OnboardingData>(() => ({ ...defaultData, ...initialData }));
   const [saving, setSaving] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -154,7 +169,6 @@ export function OnboardingWizard({
 
       if (!res.ok) throw new Error("Erreur lors de la sauvegarde");
 
-      // Déclenche l'animation de bienvenue avant la redirection
       setShowWelcome(true);
     } catch (err) {
       console.error(err);
@@ -180,74 +194,86 @@ export function OnboardingWizard({
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-4 py-8 sm:py-12">
-      {/* En-tête */}
-      <div className="w-full max-w-2xl mb-8 sm:mb-10 text-center space-y-2">
-        {simulationMode && (
-          <div className="mx-auto mb-4 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
-            Simulation UI - aucune donnee n&apos;est enregistree
-          </div>
-        )}
-        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-          Bienvenue, {userName.split(" ")[0]} 👋
-        </h1>
-        <p className="text-sm text-slate-500 sm:text-base">
-          Configurons votre communauté en 2 minutes — vous pourrez tout modifier ensuite.
-        </p>
-      </div>
+    <div className="min-h-screen bg-slate-100 px-4 py-8 sm:py-12">
+      <div className="mx-auto flex w-full max-w-3xl flex-col items-center">
+        <div className="mb-8 w-full overflow-hidden rounded-[2rem] border border-slate-800/10 bg-slate-950 p-6 text-center text-white shadow-xl shadow-slate-300/40 sm:mb-10 sm:p-8">
+          <div className="mx-auto mb-5 h-1.5 w-24 rounded-full bg-gradient-to-r from-blue-500 via-violet-500 to-emerald-400" />
+          {simulationMode && (
+            <div className="mx-auto mb-4 inline-flex rounded-full border border-amber-300/50 bg-amber-300/10 px-3 py-1 text-xs font-bold text-amber-100">
+              Simulation UI - aucune donnée n&apos;est enregistrée
+            </div>
+          )}
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-200">
+            Bienvenue, {userName.split(" ")[0]}
+          </p>
+          <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-4xl">
+            Configurez votre assistant IA personnel en quelques minutes
+          </h1>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-base">
+            Ces informations permettent à EasyCom AI de comprendre votre identité, votre ton et vos besoins pour personnaliser automatiquement vos contenus.
+          </p>
+        </div>
 
-      {/* Barre de progression */}
-      <div className="w-full max-w-2xl mb-8 sm:mb-10 overflow-x-auto">
-        <div className="relative flex min-w-[520px] items-center justify-between">
-          <div className="absolute left-0 right-0 top-4 h-0.5 bg-slate-200 -z-0" />
-          <div
-            className="absolute left-0 top-4 h-0.5 bg-blue-600 transition-all duration-500 -z-0"
-            style={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
-          />
+        <div className="mb-8 w-full max-w-2xl overflow-x-auto rounded-3xl border border-white bg-white/80 p-5 shadow-sm shadow-slate-200/80 sm:mb-10">
+          <div className="relative flex min-w-[460px] items-center justify-between">
+            <div className="absolute left-0 right-0 top-4 h-0.5 bg-slate-200 -z-0" />
+            <div
+              className="absolute left-0 top-4 h-0.5 bg-gradient-to-r from-blue-600 via-violet-500 to-emerald-500 transition-all duration-500 -z-0"
+              style={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
+            />
 
-          {STEPS.map((step) => {
-            const isCompleted = currentStep > step.id;
-            const isCurrent = currentStep === step.id;
+            {STEPS.map((step) => {
+              const isCompleted = currentStep > step.id;
+              const isCurrent = currentStep === step.id;
 
-            return (
-              <div key={step.id} className="flex flex-col items-center gap-2 z-10">
-                <div
-                  className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-all duration-300",
-                    isCompleted
-                      ? "bg-blue-600 border-blue-600 text-white"
-                      : isCurrent
-                      ? "bg-white border-blue-600 text-blue-600"
-                      : "bg-white border-slate-200 text-slate-400"
-                  )}
-                >
-                  {isCompleted ? <Check className="size-4" /> : step.id + 1}
-                </div>
-                <div className="text-center hidden sm:block">
-                  <p
+              return (
+                <div key={step.id} className="z-10 flex flex-col items-center gap-2">
+                  <div
                     className={cn(
-                      "text-xs font-medium",
-                      isCurrent ? "text-blue-600" : isCompleted ? "text-slate-700" : "text-slate-400"
+                      "flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all duration-300",
+                      isCompleted
+                        ? "border-blue-600 bg-blue-600 text-white"
+                        : isCurrent
+                          ? "border-blue-600 bg-white text-blue-600 shadow-md shadow-blue-100"
+                          : "border-slate-200 bg-white text-slate-400"
                     )}
                   >
-                    {step.label}
-                  </p>
+                    {isCompleted ? <Check className="size-4" /> : step.id + 1}
+                  </div>
+                  <div className="hidden text-center sm:block">
+                    <p
+                      className={cn(
+                        "text-xs font-bold",
+                        isCurrent ? "text-blue-700" : isCompleted ? "text-slate-700" : "text-slate-400"
+                      )}
+                    >
+                      {step.label}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-slate-400">{step.description}</p>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* Contenu de l'étape */}
-      <div className="w-full max-w-2xl animate-fade-in">
-        {currentStep === 0 && <StepIdentity {...stepProps} simulationMode={simulationMode} />}
-        {currentStep === 1 && <StepEditorial {...stepProps} />}
-        {currentStep === 2 && <StepChannels {...stepProps} communityId={communityId} simulationMode={simulationMode} />}
-        {currentStep === 3 && <StepRecurring {...stepProps} />}
-        {currentStep === 4 && (
-          <StepFinish data={data} onFinish={finishOnboarding} onPrev={goPrev} saving={saving} simulationMode={simulationMode} />
-        )}
+        <div className="w-full max-w-2xl animate-fade-in">
+          {currentStep === 0 && <StepIdentity {...stepProps} simulationMode={simulationMode} />}
+          {currentStep === 1 && <StepEditorial {...stepProps} />}
+          {currentStep === 2 && (
+            <StepChannels {...stepProps} communityId={communityId} simulationMode={simulationMode} />
+          )}
+          {currentStep === 3 && (
+            <StepRecurring
+              data={data}
+              updateData={updateData}
+              onPrev={goPrev}
+              onFinish={finishOnboarding}
+              saving={saving}
+              automationPresets={automationPresets}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

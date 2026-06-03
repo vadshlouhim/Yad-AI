@@ -3,9 +3,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { PublicationsClient } from "@/components/publications/publications-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Historique des publications — EasyCom AI" };
+export const metadata: Metadata = { title: "Historique des publications - EasyCom AI" };
 
-const PUBLICATION_STATUSES = ["PENDING", "SCHEDULED", "PUBLISHING", "PUBLISHED", "FAILED", "FALLBACK_READY", "CANCELLED"];
+const PUBLICATION_STATUSES = ["PUBLISHED", "FAILED"] as const;
 
 export default async function PublicationsPage({
   searchParams,
@@ -16,28 +16,30 @@ export default async function PublicationsPage({
   const communityId = profile.communityId!;
   const params = await searchParams;
   const admin = createAdminClient();
+  const status = params.status === "FAILED" ? "FAILED" : "PUBLISHED";
 
   let query = admin
     .from("Publication")
     .select("*, channel:Channel(type, name), event:Event(title, category), draft:ContentDraft(title, body)")
     .eq("communityId", communityId)
+    .in("status", [...PUBLICATION_STATUSES])
+    .eq("status", status)
     .order("scheduledAt", { ascending: false })
     .order("createdAt", { ascending: false })
     .limit(100);
 
-  if (params.status) query = query.eq("status", params.status);
   if (params.channel) query = query.eq("channelType", params.channel);
 
   const [{ data: publications }, statusCounts] = await Promise.all([
     query,
     Promise.all(
-      PUBLICATION_STATUSES.map(async (status) => {
+      PUBLICATION_STATUSES.map(async (publicationStatus) => {
         const { count } = await admin
           .from("Publication")
           .select("*", { count: "exact", head: true })
           .eq("communityId", communityId)
-          .eq("status", status);
-        return [status, count ?? 0] as [string, number];
+          .eq("status", publicationStatus);
+        return [publicationStatus, count ?? 0] as [string, number];
       })
     ),
   ]);
@@ -48,7 +50,7 @@ export default async function PublicationsPage({
     <PublicationsClient
       publications={(publications ?? []) as Parameters<typeof PublicationsClient>[0]["publications"]}
       statsByStatus={statsByStatus}
-      activeStatus={params.status}
+      activeStatus={status}
       activeChannel={params.channel}
     />
   );

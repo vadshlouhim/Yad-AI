@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { 
-  Send, 
+import {
+  Home,
+  Send,
   Mail, 
   MessageSquare, 
   MapPin,
@@ -32,11 +33,13 @@ export default function ContactPage() {
             <Image src="/easycom-ai-logo.png" alt="Logo" width={32} height={32} className="rounded-lg" />
             <span className="font-black text-slate-950">EasyCom AI</span>
           </Link>
-          <nav className="hidden gap-8 md:flex">
-            <Link href="/features" className="text-sm font-bold text-slate-600 hover:text-blue-600 transition">Fonctionnalités</Link>
-            <Link href="/method" className="text-sm font-bold text-slate-600 hover:text-blue-600 transition">Méthode</Link>
-            <Link href="/blog" className="text-sm font-bold text-slate-600 hover:text-blue-600 transition">Blog</Link>
-            <Link href="/contact" className="text-sm font-bold text-blue-600">Contact</Link>
+          <nav className="hidden items-center gap-6 text-sm font-semibold text-slate-600 md:flex">
+            <Link href="/" className="inline-flex h-9 items-center gap-2 rounded-full px-1 transition hover:text-blue-700">
+              <Home className="size-4" />
+              Accueil
+            </Link>
+            <Link href="/method" className="inline-flex h-9 items-center gap-2 rounded-full px-1 transition hover:text-blue-700">Notre Méthode</Link>
+            <Link href="/contact" className="inline-flex h-9 items-center gap-2 rounded-full px-1 text-blue-700">Contact</Link>
           </nav>
           <Link href="/auth/login" className="rounded-full bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 transition">
             Connexion
@@ -52,7 +55,7 @@ export default function ContactPage() {
                 Parlons de votre <span className="text-blue-600">projet</span>.
               </h1>
               <p className="text-lg text-slate-600 mb-12">
-                Vous avez une question, besoin d&apos;une d??mo personnalis??e ou d&apos;un accompagnement sp??cifique ? Notre ??quipe est l?? pour vous aider.
+                Vous avez une question, besoin d&apos;une démo personnalisée ou d&apos;un accompagnement spécifique ? Notre équipe est là pour vous aider.
               </p>
 
               <div className="space-y-8">
@@ -145,8 +148,8 @@ export default function ContactPage() {
           <h2 className="text-3xl font-black text-center mb-12">FAQ Contact & Support</h2>
           <div className="space-y-4">
             {[
-              { q: "Quels sont vos délais de réponse ?", a: "Nous répondons généralement en moins de 24h ouvrées. Pour les urgences, nos clients premium disposent d'un accès prioritaire." },
-              { q: "Proposez-vous des démos en direct ?", a: "Oui ! Indiquez-le dans votre message et nous conviendrons d'un créneau pour vous montrer la puissance de l'outil." },
+              { q: "Quels sont vos dÃ©lais de rÃ©ponse ?", a: "Nous rÃ©pondons gÃ©nÃ©ralement en moins de 24h ouvrÃ©es. Pour les urgences, nos clients premium disposent d'un accÃ¨s prioritaire." },
+              { q: "Proposez-vous des dÃ©mos en direct ?", a: "Oui ! Indiquez-le dans votre message et nous conviendrons d'un crÃ©neau pour vous montrer la puissance de l'outil." },
               { q: "Où êtes-vous basés ?", a: "Notre équipe est basée à Paris, mais nous travaillons avec des communautés et entreprises dans le monde entier." }
             ].map(faq => (
               <div key={faq.q} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
@@ -160,3 +163,5 @@ export default function ContactPage() {
     </main>
   );
 }
+
+

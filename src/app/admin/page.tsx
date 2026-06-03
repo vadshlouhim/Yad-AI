@@ -16,7 +16,6 @@ type CountableTable =
   | "ContentDraft"
   | "MediaFile"
   | "Template"
-  | "CommunityRhythm"
   | "AutomationPreset"
   | "Article"
   | "Automation"
@@ -57,7 +56,6 @@ export default async function AdminPage() {
     { data: communities },
     { data: users },
     { data: automations },
-    { data: rhythms },
     { data: automationPresets },
     { data: presetUsages },
     { data: recentConversations },
@@ -97,13 +95,8 @@ export default async function AdminPage() {
       .order("updatedAt", { ascending: false })
       .limit(200),
     admin
-      .from("CommunityRhythm")
-      .select("*")
-      .order("sortOrder", { ascending: true })
-      .order("name", { ascending: true }),
-    admin
       .from("AutomationPreset")
-      .select("*, rhythms:AutomationPresetRhythm(id, rhythmId, rhythm:CommunityRhythm(id, name, slug, isActive))")
+      .select("*")
       .order("sortOrder", { ascending: true })
       .order("title", { ascending: true }),
     admin.from("Automation").select("id, presetId").not("presetId", "is", null),
@@ -156,7 +149,6 @@ export default async function AdminPage() {
         ...automation,
         community: firstRelation(automation.community),
       }))}
-      rhythms={rhythms ?? []}
       automationPresets={(automationPresets ?? []).map((preset) => ({
         ...preset,
         usageCount: (presetUsages ?? []).filter((automation) => automation.presetId === preset.id).length,

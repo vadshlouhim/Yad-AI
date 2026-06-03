@@ -14,6 +14,18 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const { draftId, channelTypes, scheduledAt } = body;
+  if (!draftId || !Array.isArray(channelTypes)) {
+    return NextResponse.json({ error: "Parametres de publication invalides" }, { status: 400 });
+  }
+
+  const { data: draft } = await admin
+    .from("ContentDraft")
+    .select("id")
+    .eq("id", draftId)
+    .eq("communityId", profile.communityId)
+    .single();
+
+  if (!draft) return NextResponse.json({ error: "Brouillon introuvable" }, { status: 404 });
 
   const { data: channels } = await admin
     .from("Channel")

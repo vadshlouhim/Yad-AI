@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
@@ -52,6 +52,8 @@ interface Props {
   statusCounts: Record<string, number>;
   shabbatItems?: ShabbatItem[];
   holidayItems?: HolidayItem[];
+  isBethHabad?: boolean;
+  timezone?: string;
 }
 
 type ViewMode = "calendar" | "list";
@@ -76,7 +78,6 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("fr-FR", {
 });
 
 const MONTH_FORMATTER = new Intl.DateTimeFormat("fr-FR", { month: "short" });
-const TIME_FORMATTER = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 const DAY_SHORT_FORMATTER = new Intl.DateTimeFormat("fr-FR", { weekday: "short" });
 const MONTH_LONG_FORMATTER = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
 const MONTH_NAME_FORMATTER = new Intl.DateTimeFormat("fr-FR", { month: "long" });
@@ -100,6 +101,32 @@ function dayKey(value: Date | string) {
 
 function todayKey() {
   return dayKey(new Date());
+}
+
+function assistantEventHref(event: Event, timezone = "Europe/Paris") {
+  const params = new URLSearchParams({
+    eventId: event.id,
+    source: "agenda",
+    title: event.title,
+    date: formatFrenchDate(event.startDate),
+    time: formatTime(event.startDate, timezone),
+    type: EVENT_CATEGORY_LABELS[event.category] ?? event.category,
+  });
+  if (event.location) params.set("location", event.location);
+  params.set("context", `Agenda connecté IA - ${event.title} le ${formatFrenchDate(event.startDate)} à ${formatTime(event.startDate, timezone)}`);
+  params.set(
+    "prefill",
+    [
+      `J'ouvre cet élément depuis l'Agenda connecté IA.`,
+      `Nom : ${event.title}`,
+      `Date : ${formatFrenchDate(event.startDate)}`,
+      `Heure réelle : ${formatTime(event.startDate, timezone)}`,
+      `Type : ${EVENT_CATEGORY_LABELS[event.category] ?? event.category}`,
+      event.location ? `Lieu : ${event.location}` : null,
+      "Propose-moi l'action la plus utile : préparer une publication, programmer un rappel, modifier l'automatisation ou publier sur le bon canal.",
+    ].filter(Boolean).join("\n")
+  );
+  return `/dashboard/assistant?${params.toString()}`;
 }
 
 function startOfDay(date: Date) {
@@ -182,8 +209,12 @@ function formatMonth(value: Date | string) {
   return MONTH_FORMATTER.format(toDate(value)).replace(".", "");
 }
 
-function formatTime(value: Date | string) {
-  return TIME_FORMATTER.format(toDate(value));
+function formatTime(value: Date | string, timezone = "Europe/Paris") {
+  return new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: timezone,
+  }).format(toDate(value));
 }
 
 function groupEventsByDay(events: Event[]) {
@@ -219,7 +250,14 @@ function buildYearMonths(anchor: Date) {
   return Array.from({ length: 12 }, (_, month) => new Date(anchor.getFullYear(), month, 1));
 }
 
-export function EventsClient({ events, statusCounts, shabbatItems = [], holidayItems = [] }: Props) {
+export function EventsClient({
+  events,
+  statusCounts,
+  shabbatItems = [],
+  holidayItems = [],
+  isBethHabad = false,
+  timezone = "Europe/Paris",
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -245,7 +283,7 @@ export function EventsClient({ events, statusCounts, shabbatItems = [], holidayI
 
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const activeStatus = searchParams.get("status") ?? "";
-  const viewMode: ViewMode = searchParams.get("view") === "calendar" ? "calendar" : "list";
+  const viewMode: ViewMode = searchParams.get("view") === "list" ? "list" : "calendar";
   const activePeriod = PERIODS.some((period) => period.value === searchParams.get("period"))
     ? (searchParams.get("period") as CalendarPeriod)
     : "week";
@@ -316,32 +354,33 @@ export function EventsClient({ events, statusCounts, shabbatItems = [], holidayI
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="mb-3 h-1.5 w-10 rounded-full bg-violet-300" />
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">Mon Agenda IA</h1>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">Agenda connecté IA</h1>
             <p className="mt-2 text-sm text-violet-100/90">
               {totalAll} élément{totalAll !== 1 ? "s" : ""} planifié{totalAll !== 1 ? "s" : ""}
             </p>
           </div>
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
-            <Link href="/dashboard/hebrew-calendar" className="w-full sm:w-auto">
-              <Button
-                variant="outline"
-                className="w-full border-violet-200/40 bg-white/10 text-white hover:bg-white/20 hover:text-white sm:w-auto"
-              >
-                <Calendar className="size-4" />
-                Calendrier hébraïque
-              </Button>
-            </Link>
-            <Link href="/dashboard/events/new?recurring=1" className="w-full sm:w-auto">
+            {isBethHabad && (
+              <Link href="/dashboard/hebrew-calendar" className="w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  className="w-full border-violet-200/40 bg-white/10 text-white hover:bg-white/20 hover:text-white sm:w-auto"
+                >
+                  <Calendar className="size-4" />
+                  Calendrier hébraïque
+                </Button>
+              </Link>
+            )}
+            <Link href="/dashboard/automations?newAutomation=1" className="w-full sm:w-auto">
               <Button className="w-full bg-white text-violet-800 hover:bg-violet-100 active:bg-violet-200 focus-visible:ring-white sm:w-auto shadow-[0_12px_28px_rgba(15,23,42,0.25)]">
                 <Plus className="size-4" />
-                Ajouter un evenement
+                Créer une nouvelle automatisation
               </Button>
             </Link>
           </div>
         </div>
 
-        {/* Toggles calendrier hébraïque */}
-        <div className="mt-5 flex flex-wrap gap-3 border-t border-violet-100 pt-4">
+        {isBethHabad && <div className="mt-5 flex flex-wrap gap-3 border-t border-violet-100 pt-4">
           <p className="w-full text-xs font-semibold uppercase tracking-wide text-slate-500">Afficher dans l&apos;agenda :</p>
           <button
             type="button"
@@ -359,7 +398,7 @@ export function EventsClient({ events, statusCounts, shabbatItems = [], holidayI
             )}>
               {showShabbat && <span className="text-white text-[10px] leading-none">✓</span>}
             </span>
-            🕯️ Horaires de Chabbat
+            Horaires de Chabbat
           </button>
 
           <button
@@ -378,9 +417,9 @@ export function EventsClient({ events, statusCounts, shabbatItems = [], holidayI
             )}>
               {showHolidays && <span className="text-white text-[10px] leading-none">✓</span>}
             </span>
-            🕍 Fêtes juives
+            Fêtes juives
           </button>
-        </div>
+        </div>}
       </div>
 
       <Card className="rounded-2xl border-slate-200 shadow-sm max-md:border-cyan-200/70 max-md:bg-gradient-to-br max-md:from-white max-md:via-sky-50/60 max-md:to-cyan-50/60 max-md:shadow-[0_14px_32px_rgba(30,136,229,0.12)]">
@@ -461,12 +500,12 @@ export function EventsClient({ events, statusCounts, shabbatItems = [], holidayI
           </div>
           <div>
             <p className="font-semibold text-slate-700">Aucune date dans l&apos;agenda</p>
-            <p className="mt-1 text-sm text-slate-400">Créez votre premier événement pour commencer.</p>
+            <p className="mt-1 text-sm text-slate-400">Créez votre première automatisation pour commencer.</p>
           </div>
-          <Link href="/dashboard/events/new">
+          <Link href="/dashboard/automations?newAutomation=1">
             <Button variant="outline" className="border-violet-200 text-violet-700 hover:bg-violet-50">
               <Plus className="size-4" />
-              Créer un événement
+              Créer une nouvelle automatisation
             </Button>
           </Link>
         </div>
@@ -487,6 +526,8 @@ export function EventsClient({ events, statusCounts, shabbatItems = [], holidayI
             onDelete={deleteEvent}
             deletingId={deletingId}
             isPending={isPending}
+            isBethHabad={isBethHabad}
+            timezone={timezone}
           />
         ) : (
           <ListView
@@ -494,6 +535,8 @@ export function EventsClient({ events, statusCounts, shabbatItems = [], holidayI
             onDelete={deleteEvent}
             deletingId={deletingId}
             isPending={isPending}
+            isBethHabad={isBethHabad}
+            timezone={timezone}
           />
         )
       )}
@@ -516,6 +559,8 @@ function CalendarView({
   onDelete,
   deletingId,
   isPending,
+  isBethHabad,
+  timezone,
 }: {
   events: Event[];
   periodEvents: Event[];
@@ -531,6 +576,8 @@ function CalendarView({
   onDelete: (event: Event) => void;
   deletingId: string | null;
   isPending: boolean;
+  isBethHabad: boolean;
+  timezone: string;
 }) {
   return (
     <div className="space-y-4">
@@ -546,7 +593,7 @@ function CalendarView({
                 </div>
                 <div>
                   <p className="text-sm font-semibold capitalize text-slate-950">{formatFrenchDate(new Date())}</p>
-                  <p className="mt-1 text-sm font-medium text-violet-700 hebrew">{formatHebrewDate(new Date())}</p>
+                  {isBethHabad && <p className="mt-1 text-sm font-medium text-violet-700 hebrew">{formatHebrewDate(new Date())}</p>}
                 </div>
               </div>
             </div>
@@ -556,7 +603,7 @@ function CalendarView({
               </p>
               <div className="mt-2 space-y-1.5">
                 {todaysEvents.length > 0 ? todaysEvents.slice(0, 3).map((event) => (
-                  <MiniCalendarEvent key={event.id} event={event} />
+                  <MiniCalendarEvent key={event.id} event={event} timezone={timezone} />
                 )) : (
                   <p className="text-sm text-slate-400">Aucun événement prévu aujourd&apos;hui.</p>
                 )}
@@ -602,16 +649,16 @@ function CalendarView({
           </div>
 
           {period === "day" && (
-            <DayCalendar events={periodEvents} anchorDate={anchorDate} onDelete={onDelete} deletingId={deletingId} isPending={isPending} />
+            <DayCalendar events={periodEvents} anchorDate={anchorDate} onDelete={onDelete} deletingId={deletingId} isPending={isPending} isBethHabad={isBethHabad} timezone={timezone} />
           )}
           {period === "week" && (
-            <WeekCalendar events={events} anchorDate={anchorDate} shabbatByDate={shabbatByDate} holidayByDate={holidayByDate} />
+            <WeekCalendar events={events} anchorDate={anchorDate} shabbatByDate={isBethHabad ? shabbatByDate : undefined} holidayByDate={isBethHabad ? holidayByDate : undefined} isBethHabad={isBethHabad} timezone={timezone} />
           )}
           {period === "month" && (
-            <MonthCalendar events={events} anchorDate={anchorDate} shabbatByDate={shabbatByDate} holidayByDate={holidayByDate} />
+            <MonthCalendar events={events} anchorDate={anchorDate} shabbatByDate={isBethHabad ? shabbatByDate : undefined} holidayByDate={isBethHabad ? holidayByDate : undefined} isBethHabad={isBethHabad} timezone={timezone} />
           )}
           {period === "year" && (
-            <YearCalendar events={events} anchorDate={anchorDate} />
+            <YearCalendar events={events} anchorDate={anchorDate} timezone={timezone} />
           )}
         </CardContent>
       </Card>
@@ -624,11 +671,15 @@ function ListView({
   onDelete,
   deletingId,
   isPending,
+  isBethHabad,
+  timezone,
 }: {
   groupedEvents: ReturnType<typeof groupEventsByDay>;
   onDelete: (event: Event) => void;
   deletingId: string | null;
   isPending: boolean;
+  isBethHabad: boolean;
+  timezone: string;
 }) {
   return (
     <div className="space-y-5">
@@ -642,7 +693,7 @@ function ListView({
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold capitalize text-slate-950">{formatFrenchDate(group.date)}</p>
-                <p className="mt-1 text-sm font-medium text-violet-700 hebrew">{formatHebrewDate(group.date)}</p>
+                {isBethHabad && <p className="mt-1 text-sm font-medium text-violet-700 hebrew">{formatHebrewDate(group.date)}</p>}
               </div>
             </div>
             <p className="mt-3 text-xs text-slate-500">
@@ -657,6 +708,8 @@ function ListView({
                 event={event}
                 onDelete={onDelete}
                 deleting={deletingId === event.id || isPending}
+                isBethHabad={isBethHabad}
+                timezone={timezone}
               />
             ))}
           </div>
@@ -672,12 +725,16 @@ function DayCalendar({
   onDelete,
   deletingId,
   isPending,
+  isBethHabad,
+  timezone,
 }: {
   events: Event[];
   anchorDate: Date;
   onDelete: (event: Event) => void;
   deletingId: string | null;
   isPending: boolean;
+  isBethHabad: boolean;
+  timezone: string;
 }) {
   const isToday = dayKey(anchorDate) === todayKey();
 
@@ -688,7 +745,7 @@ function DayCalendar({
         isToday ? "border-violet-200 bg-violet-50" : "border-slate-200 bg-slate-50"
       )}>
         <p className="text-sm font-semibold capitalize text-slate-950">{formatFrenchDate(anchorDate)}</p>
-        <p className="mt-1 text-sm font-medium text-violet-700 hebrew">{formatHebrewDate(anchorDate)}</p>
+        {isBethHabad && <p className="mt-1 text-sm font-medium text-violet-700 hebrew">{formatHebrewDate(anchorDate)}</p>}
       </div>
       {events.length > 0 ? (
         <div className="space-y-3">
@@ -699,20 +756,22 @@ function DayCalendar({
               onDelete={onDelete}
               deleting={deletingId === event.id || isPending}
               compact
+              isBethHabad={isBethHabad}
+              timezone={timezone}
             />
           ))}
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-slate-200 py-12 text-center">
           <p className="text-sm font-semibold text-slate-600">Aucun événement ce jour</p>
-          <p className="mt-1 text-xs text-slate-400">Utilisez “Nouvel événement” pour ajouter une date.</p>
+          <p className="mt-1 text-xs text-slate-400">Créez une automatisation pour ajouter une date.</p>
         </div>
       )}
     </div>
   );
 }
 
-function WeekCalendar({ events, anchorDate, shabbatByDate, holidayByDate }: { events: Event[]; anchorDate: Date; shabbatByDate?: Map<string, ShabbatItem>; holidayByDate?: Map<string, HolidayItem[]> }) {
+function WeekCalendar({ events, anchorDate, shabbatByDate, holidayByDate, isBethHabad, timezone }: { events: Event[]; anchorDate: Date; shabbatByDate?: Map<string, ShabbatItem>; holidayByDate?: Map<string, HolidayItem[]>; isBethHabad: boolean; timezone: string }) {
   const weekStart = startOfWeek(anchorDate);
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
 
@@ -734,24 +793,24 @@ function WeekCalendar({ events, anchorDate, shabbatByDate, holidayByDate }: { ev
               <p className={cn("mt-1 text-2xl font-bold", isToday ? "text-violet-700" : "text-slate-950")}>
                 {day.getDate()}
               </p>
-              <p className="mt-1 truncate text-xs font-medium text-violet-700 hebrew">{formatHebrewDate(day)}</p>
+              {isBethHabad && <p className="mt-1 truncate text-xs font-medium text-violet-700 hebrew">{formatHebrewDate(day)}</p>}
             </div>
             <div className="space-y-2 p-2">
               {shabbat && (
                 <div className="rounded-md bg-amber-50 border border-amber-200 px-2 py-1">
-                  <p className="text-[11px] font-semibold text-amber-700">🕯️ Chabbat</p>
+                  <p className="text-[11px] font-semibold text-amber-700">Chabbat</p>
                   {shabbat.parasha && <p className="text-[10px] text-amber-600">{shabbat.parasha}</p>}
-                  <p className="text-[10px] text-amber-600">Entrée {shabbat.entry ?? "—"} · Sortie {shabbat.exit ?? "—"}</p>
+                  <p className="text-[10px] text-amber-600">Entrée {shabbat.entry ?? "-"} · Sortie {shabbat.exit ?? "-"}</p>
                 </div>
               )}
               {holidays?.map((h) => (
                 <div key={h.name} className="rounded-md bg-blue-50 border border-blue-200 px-2 py-1">
-                  <p className="text-[11px] font-semibold text-blue-700">🕍 {h.name}</p>
+                  <p className="text-[11px] font-semibold text-blue-700">{h.name}</p>
                   {h.nameHebrew && <p className="text-[10px] text-blue-500 hebrew">{h.nameHebrew}</p>}
                 </div>
               ))}
               {dayEvents.map((event) => (
-                <CalendarEventPill key={event.id} event={event} />
+                <CalendarEventPill key={event.id} event={event} timezone={timezone} />
               ))}
             </div>
           </div>
@@ -761,7 +820,7 @@ function WeekCalendar({ events, anchorDate, shabbatByDate, holidayByDate }: { ev
   );
 }
 
-function MonthCalendar({ events, anchorDate, shabbatByDate, holidayByDate }: { events: Event[]; anchorDate: Date; shabbatByDate?: Map<string, ShabbatItem>; holidayByDate?: Map<string, HolidayItem[]> }) {
+function MonthCalendar({ events, anchorDate, shabbatByDate, holidayByDate, isBethHabad, timezone }: { events: Event[]; anchorDate: Date; shabbatByDate?: Map<string, ShabbatItem>; holidayByDate?: Map<string, HolidayItem[]>; isBethHabad: boolean; timezone: string }) {
   const days = buildMonthDays(anchorDate);
 
   return (
@@ -798,21 +857,21 @@ function MonthCalendar({ events, anchorDate, shabbatByDate, holidayByDate }: { e
                   )}>
                     {day.getDate()}
                   </span>
-                  <span className="truncate text-[11px] font-medium text-violet-700 hebrew">{formatHebrewDate(day)}</span>
+                  {isBethHabad && <span className="truncate text-[11px] font-medium text-violet-700 hebrew">{formatHebrewDate(day)}</span>}
                 </div>
                 <div className="mt-1 space-y-1">
                   {shabbat && (
                     <div className="rounded bg-amber-50 border border-amber-200 px-1.5 py-0.5">
-                      <p className="text-[10px] font-semibold text-amber-700 truncate">🕯️ {shabbat.entry ?? "Chabbat"}</p>
+                      <p className="text-[10px] font-semibold text-amber-700 truncate">{shabbat.entry ?? "Chabbat"}</p>
                     </div>
                   )}
                   {holidays?.map((h) => (
                     <div key={h.name} className="rounded bg-blue-50 border border-blue-200 px-1.5 py-0.5">
-                      <p className="text-[10px] font-semibold text-blue-700 truncate">🕍 {h.name}</p>
+                      <p className="text-[10px] font-semibold text-blue-700 truncate">{h.name}</p>
                     </div>
                   ))}
                   {dayEvents.slice(0, 3).map((event) => (
-                    <CalendarEventPill key={event.id} event={event} compact />
+                    <CalendarEventPill key={event.id} event={event} compact timezone={timezone} />
                   ))}
                   {dayEvents.length > 3 && (
                     <p className="text-[11px] font-semibold text-slate-500">+{dayEvents.length - 3} autre{dayEvents.length - 3 > 1 ? "s" : ""}</p>
@@ -827,7 +886,7 @@ function MonthCalendar({ events, anchorDate, shabbatByDate, holidayByDate }: { e
   );
 }
 
-function YearCalendar({ events, anchorDate }: { events: Event[]; anchorDate: Date }) {
+function YearCalendar({ events, anchorDate, timezone }: { events: Event[]; anchorDate: Date; timezone: string }) {
   return (
     <div className="grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
       {buildYearMonths(anchorDate).map((month) => {
@@ -846,7 +905,7 @@ function YearCalendar({ events, anchorDate }: { events: Event[]; anchorDate: Dat
             </div>
             <div className="mt-3 space-y-1.5">
               {monthEvents.slice(0, 4).map((event) => (
-                <MiniCalendarEvent key={event.id} event={event} />
+                <MiniCalendarEvent key={event.id} event={event} timezone={timezone} />
               ))}
               {monthEvents.length === 0 && (
                 <p className="text-sm text-slate-400">Aucun événement</p>
@@ -862,17 +921,17 @@ function YearCalendar({ events, anchorDate }: { events: Event[]; anchorDate: Dat
   );
 }
 
-function CalendarEventPill({ event, compact = false }: { event: Event; compact?: boolean }) {
+function CalendarEventPill({ event, compact = false, timezone }: { event: Event; compact?: boolean; timezone: string }) {
   return (
     <Link
-      href={`/dashboard/events/${event.id}`}
+      href={assistantEventHref(event, timezone)}
       className={cn(
         "block rounded-lg border border-violet-100 bg-violet-600 px-2 py-1.5 text-white shadow-sm transition-colors hover:bg-violet-700",
         compact && "px-1.5 py-1"
       )}
     >
       <span className="block truncate text-[11px] font-semibold">
-        {formatTime(event.startDate)} · {event.title}
+        {formatTime(event.startDate, timezone)} · {event.title}
       </span>
       {!compact && event.location && (
         <span className="mt-0.5 block truncate text-[11px] text-violet-100">{event.location}</span>
@@ -881,13 +940,13 @@ function CalendarEventPill({ event, compact = false }: { event: Event; compact?:
   );
 }
 
-function MiniCalendarEvent({ event }: { event: Event }) {
+function MiniCalendarEvent({ event, timezone }: { event: Event; timezone: string }) {
   return (
     <Link
-      href={`/dashboard/events/${event.id}`}
+      href={assistantEventHref(event, timezone)}
       className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
     >
-      <span className="w-11 shrink-0 font-semibold text-violet-700">{formatTime(event.startDate)}</span>
+      <span className="w-11 shrink-0 font-semibold text-violet-700">{formatTime(event.startDate, timezone)}</span>
       <span className="truncate">{event.title}</span>
     </Link>
   );
@@ -898,11 +957,15 @@ function AgendaEventCard({
   onDelete,
   deleting,
   compact = false,
+  isBethHabad = false,
+  timezone,
 }: {
   event: Event;
   onDelete: (event: Event) => void;
   deleting: boolean;
   compact?: boolean;
+  isBethHabad?: boolean;
+  timezone: string;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const draftCount = event._count?.contentDrafts ?? 0;
@@ -918,10 +981,10 @@ function AgendaEventCard({
           )}>
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
               <Clock className="size-4 text-violet-600 max-md:text-violet-600" />
-              {formatTime(event.startDate)}
+              {formatTime(event.startDate, timezone)}
             </div>
             {event.endDate && (
-              <p className="text-xs text-slate-500">Fin {formatTime(event.endDate)}</p>
+              <p className="text-xs text-slate-500">Fin {formatTime(event.endDate, timezone)}</p>
             )}
           </div>
 
@@ -929,7 +992,7 @@ function AgendaEventCard({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <Link
-                  href={`/dashboard/events/${event.id}`}
+                  href={assistantEventHref(event, timezone)}
                   className="text-base font-semibold text-slate-950 transition-colors hover:text-violet-700"
                 >
                   {event.title}
@@ -957,8 +1020,8 @@ function AgendaEventCard({
                         <Link href={`/dashboard/events/${event.id}/edit`} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
                           <Edit className="size-4" /> Modifier
                         </Link>
-                        <Link href={`/dashboard/content/new?eventId=${event.id}`} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
-                          <Sparkles className="size-4" /> Générer contenu IA
+                        <Link href={assistantEventHref(event, timezone)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
+                          <Sparkles className="size-4" /> Ouvrir dans l&apos;Assistant IA
                         </Link>
                         <button
                           className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
@@ -982,7 +1045,7 @@ function AgendaEventCard({
                 <CalendarDays className="size-3" />
                 <span className="capitalize">{formatFrenchDate(event.startDate)}</span>
               </span>
-              <span className="font-medium text-violet-700 hebrew">{formatHebrewDate(event.startDate)}</span>
+              {isBethHabad && <span className="font-medium text-violet-700 hebrew">{formatHebrewDate(event.startDate)}</span>}
               {event.location && (
                 <span className="flex items-center gap-1">
                   <MapPin className="size-3" />
@@ -1000,13 +1063,13 @@ function AgendaEventCard({
               </span>
 
               {draftCount > 0 && (
-                <Link href={`/dashboard/events/${event.id}?tab=content`} className="flex items-center gap-1 text-xs text-slate-500 hover:text-violet-600 max-md:text-violet-700">
+                <Link href={assistantEventHref(event, timezone)} className="flex items-center gap-1 text-xs text-slate-500 hover:text-violet-600 max-md:text-violet-700">
                   <FileText className="size-3" />
                   {draftCount} contenu{draftCount > 1 ? "s" : ""}
                 </Link>
               )}
               {publicationCount > 0 && (
-                <Link href={`/dashboard/events/${event.id}?tab=publications`} className="flex items-center gap-1 text-xs text-slate-500 hover:text-violet-600 max-md:text-violet-700">
+                <Link href={assistantEventHref(event, timezone)} className="flex items-center gap-1 text-xs text-slate-500 hover:text-violet-600 max-md:text-violet-700">
                   <Send className="size-3" />
                   {publicationCount} publication{publicationCount > 1 ? "s" : ""}
                 </Link>
@@ -1018,3 +1081,4 @@ function AgendaEventCard({
     </Card>
   );
 }
+

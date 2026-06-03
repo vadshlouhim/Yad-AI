@@ -15,8 +15,9 @@ export async function PATCH(request: Request) {
     .eq("id", user.id)
     .single();
 
-  if (profileError || !profile?.communityId)
+  if (profileError || !profile?.communityId) {
     return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
+  }
 
   const body = await request.json();
 
@@ -24,8 +25,7 @@ export async function PATCH(request: Request) {
     "name", "description", "city", "country", "timezone",
     "phone", "email", "website", "address", "postalCode",
     "tone", "language", "signature", "hashtags", "mentions",
-    "editorialRules", "communityType", "rhythmId", "religiousStream",
-    "logoUrl", "coverUrl",
+    "editorialRules", "logoUrl", "coverUrl", "vocabulary",
   ];
 
   const data: Record<string, unknown> = { updatedAt: new Date().toISOString() };
@@ -40,24 +40,9 @@ export async function PATCH(request: Request) {
     .select()
     .single();
 
-  if (error?.code === "42703" && "rhythmId" in data) {
-    const retryData = { ...data };
-    delete retryData.rhythmId;
-    const { data: retryUpdated, error: retryError } = await admin
-      .from("Community")
-      .update(retryData)
-      .eq("id", profile.communityId)
-      .select()
-      .single();
-
-    if (retryError || !retryUpdated) {
-      return NextResponse.json({ error: "Mise à jour échouée" }, { status: 500 });
-    }
-
-    return NextResponse.json(retryUpdated);
+  if (error || !updated) {
+    return NextResponse.json({ error: "Mise à jour échouée" }, { status: 500 });
   }
-
-  if (error || !updated) return NextResponse.json({ error: "Mise à jour échouée" }, { status: 500 });
 
   return NextResponse.json(updated);
 }
@@ -75,8 +60,9 @@ export async function GET() {
     .eq("id", user.id)
     .single();
 
-  if (profileError || !profile?.communityId)
+  if (profileError || !profile?.communityId) {
     return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
+  }
 
   const { data: community, error } = await admin
     .from("Community")
@@ -84,7 +70,9 @@ export async function GET() {
     .eq("id", profile.communityId)
     .single();
 
-  if (error || !community) return NextResponse.json({ error: "Communauté introuvable" }, { status: 404 });
+  if (error || !community) {
+    return NextResponse.json({ error: "Communauté introuvable" }, { status: 404 });
+  }
 
   return NextResponse.json(community);
 }

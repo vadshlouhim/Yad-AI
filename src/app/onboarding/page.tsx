@@ -24,6 +24,13 @@ export default async function OnboardingPage(
   // Si on revient d'un OAuth (Meta ou Gmail), on démarre directement à l'étape Canaux
   const hasOAuthReturn = typeof params.oauth === "string";
   const initialStep = hasOAuthReturn ? 2 : profile.communityId ? 1 : 0;
+  const admin = createAdminClient();
+  const { data: automationPresets } = await admin
+    .from("AutomationPreset")
+    .select("id, title, description, category, icon, clientTypes")
+    .eq("isActive", true)
+    .order("sortOrder", { ascending: true })
+    .order("title", { ascending: true });
 
   return (
     <OnboardingWizard
@@ -31,6 +38,7 @@ export default async function OnboardingPage(
       userName={profile.name ?? ""}
       communityId={profile.communityId ?? undefined}
       initialStep={initialStep}
+      automationPresets={(automationPresets ?? []) as Parameters<typeof OnboardingWizard>[0]["automationPresets"]}
     />
   );
 }

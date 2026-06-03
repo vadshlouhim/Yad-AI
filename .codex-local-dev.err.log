@@ -1,58 +1,224 @@
-⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
-⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
-⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
-[browser] ⨯ unhandledRejection: Error: prompt() is not supported.
-    at editAdminAutomation (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/src_008n92h._.js:4941:29)
-    at onClick (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/src_008n92h._.js:7402:90)
-    at executeDispatch (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10329:13)
-    at runWithFiberInDEV (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:965:74)
-    at processDispatchQueue (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10355:41)
-    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10633:13)
-    at batchedUpdates$1 (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:2253:44)
-    at dispatchEventForPluginEventSystem (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10431:9)
-    at dispatchEvent (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:13002:37)
-    at dispatchDiscreteEvent (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:12984:64)
-[browser] ⨯ unhandledRejection: Error: prompt() is not supported.
-    at editAdminAutomation (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/src_008n92h._.js:4941:29)
-    at onClick (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/src_008n92h._.js:7402:90)
-    at executeDispatch (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10329:13)
-    at runWithFiberInDEV (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:965:74)
-    at processDispatchQueue (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10355:41)
-    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10633:13)
-    at batchedUpdates$1 (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:2253:44)
-    at dispatchEventForPluginEventSystem (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10431:9)
-    at dispatchEvent (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:13002:37)
-    at dispatchDiscreteEvent (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:12984:64)
-[browser] ⨯ unhandledRejection: Error: prompt() is not supported.
-    at editAdminAutomation (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/src_008n92h._.js:4941:29)
-    at onClick (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/src_008n92h._.js:7402:90)
-    at executeDispatch (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10329:13)
-    at runWithFiberInDEV (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:965:74)
-    at processDispatchQueue (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10355:41)
-    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10633:13)
-    at batchedUpdates$1 (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:2253:44)
-    at dispatchEventForPluginEventSystem (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10431:9)
-    at dispatchEvent (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:13002:37)
-    at dispatchDiscreteEvent (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:12984:64)
-[browser] ⨯ unhandledRejection: Error: prompt() is not supported.
-    at editAdminAutomation (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/src_008n92h._.js:4941:29)
-    at onClick (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/src_008n92h._.js:7402:90)
-    at executeDispatch (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10329:13)
-    at runWithFiberInDEV (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:965:74)
-    at processDispatchQueue (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10355:41)
-    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10633:13)
-    at batchedUpdates$1 (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:2253:44)
-    at dispatchEventForPluginEventSystem (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10431:9)
-    at dispatchEvent (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:13002:37)
-    at dispatchDiscreteEvent (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:12984:64)
-[browser] ⨯ unhandledRejection: Error: prompt() is not supported.
-    at editAdminAutomation (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/src_008n92h._.js:4941:29)
-    at onClick (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/src_008n92h._.js:7402:90)
-    at executeDispatch (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10329:13)
-    at runWithFiberInDEV (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:965:74)
-    at processDispatchQueue (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10355:41)
-    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10633:13)
-    at batchedUpdates$1 (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:2253:44)
-    at dispatchEventForPluginEventSystem (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:10431:9)
-    at dispatchEvent (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:13002:37)
-    at dispatchDiscreteEvent (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_058-ah~._.js:12984:64)
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+[browser] Uncaught Error: ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+[browser] Uncaught Error: ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+⨯ ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+
+[browser] Uncaught Error: ./src/app/dashboard/automations/page.tsx
+Reading source code for parsing failed
+An unexpected error happened while trying to read the source code to parse: failed to convert rope into string
+
+Caused by:
+- invalid utf-8 sequence of 1 bytes from index 623
+
+

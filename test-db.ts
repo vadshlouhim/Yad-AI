@@ -38,7 +38,7 @@ async function test() {
   // 2. Query Community
   const { data: community, error: communityError } = await admin
     .from("Community")
-    .select("id, name, slug, description, logoUrl, city, country, timezone, phone, email, website, address, postalCode, tone, language, signature, hashtags, mentions, editorialRules, communityType, rhythmId, religiousStream, onboardingDone, plan")
+    .select("id, name, slug, description, logoUrl, city, country, timezone, phone, email, website, address, postalCode, tone, language, signature, hashtags, mentions, editorialRules, communityType, religiousStream, onboardingDone, plan")
     .eq("id", profile.communityId)
     .single();
     
@@ -49,23 +49,7 @@ async function test() {
   
   console.log("Community found:", community.name, "Plan:", community.plan);
   
-  // 3. Query rhythms
-  const rhythmQuery = admin
-    .from("CommunityRhythm")
-    .select("id, name, slug, description, isActive, sortOrder")
-    .order("sortOrder", { ascending: true })
-    .order("name", { ascending: true });
-
-  const { data: rhythms, error: rhythmError } = community?.rhythmId
-    ? await rhythmQuery.or(`isActive.eq.true,id.eq.${community.rhythmId}`)
-    : await rhythmQuery.eq("isActive", true);
-    
-  if (rhythmError) {
-    console.error("Error reading CommunityRhythm:", rhythmError);
-    return;
-  }
-  
-  console.log("Rhythms found:", rhythms?.length);
+  console.log("Community type:", community.communityType);
 }
 
 test();

@@ -1,6 +1,6 @@
-﻿import { canAccessAdmin } from "@/lib/admin-access";
+import { canAccessAdmin } from "@/lib/admin-access";
 import { AUTOMATION_PRESETS, buildAutomationActions } from "@/lib/automation/presets";
-import { presetAppliesToCommunity, type PresetWithRhythms } from "@/lib/automation/preset-utils";
+import { presetAppliesToCommunity, type PresetWithClientTypes } from "@/lib/automation/preset-utils";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
@@ -22,18 +22,18 @@ export async function POST(request: Request) {
 
   if (typeof body.presetId === "string" && body.presetId) {
     const [{ data: community }, { data: preset }] = await Promise.all([
-      admin.from("Community").select("id, communityType, rhythmId").eq("id", communityId).single(),
+      admin.from("Community").select("id, communityType").eq("id", communityId).single(),
       admin
         .from("AutomationPreset")
-        .select("*, rhythms:AutomationPresetRhythm(id, rhythmId, rhythm:CommunityRhythm(id, name, slug, isActive))")
+        .select("*")
         .eq("id", body.presetId)
         .eq("isActive", true)
         .single(),
     ]);
 
-    const typedPreset = preset as PresetWithRhythms | null;
+    const typedPreset = preset as PresetWithClientTypes | null;
     if (!community || !typedPreset || !presetAppliesToCommunity(typedPreset, community)) {
-      return NextResponse.json({ error: "Scénario non disponible pour cette communauté" }, { status: 403 });
+      return NextResponse.json({ error: "Publication IA non disponible pour cette communauté" }, { status: 403 });
     }
 
     const { data, error } = await admin

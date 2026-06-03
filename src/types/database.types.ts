@@ -192,24 +192,6 @@ export type Database = {
         }
         Relationships: []
       }
-      AutomationPresetRhythm: {
-        Row: {
-          id: string
-          presetId: string
-          rhythmId: string
-        }
-        Insert: {
-          id: string
-          presetId: string
-          rhythmId: string
-        }
-        Update: {
-          id?: string
-          presetId?: string
-          rhythmId?: string
-        }
-        Relationships: []
-      }
       AutomationRun: {
         Row: {
           automationId: string
@@ -414,7 +396,6 @@ export type Database = {
           planExpiresAt: string | null
           postalCode: string | null
           religiousStream: string | null
-          rhythmId: string | null
           signature: string | null
           slug: string
           stripeCustomerId: string | null
@@ -447,7 +428,6 @@ export type Database = {
           planExpiresAt?: string | null
           postalCode?: string | null
           religiousStream?: string | null
-          rhythmId?: string | null
           signature?: string | null
           slug: string
           stripeCustomerId?: string | null
@@ -480,7 +460,6 @@ export type Database = {
           planExpiresAt?: string | null
           postalCode?: string | null
           religiousStream?: string | null
-          rhythmId?: string | null
           signature?: string | null
           slug?: string
           stripeCustomerId?: string | null
@@ -489,39 +468,6 @@ export type Database = {
           updatedAt?: string
           vocabulary?: Json | null
           website?: string | null
-        }
-        Relationships: []
-      }
-      CommunityRhythm: {
-        Row: {
-          createdAt: string
-          description: string | null
-          id: string
-          isActive: boolean
-          name: string
-          slug: string
-          sortOrder: number
-          updatedAt: string
-        }
-        Insert: {
-          createdAt?: string
-          description?: string | null
-          id: string
-          isActive?: boolean
-          name: string
-          slug: string
-          sortOrder?: number
-          updatedAt?: string
-        }
-        Update: {
-          createdAt?: string
-          description?: string | null
-          id?: string
-          isActive?: boolean
-          name?: string
-          slug?: string
-          sortOrder?: number
-          updatedAt?: string
         }
         Relationships: []
       }
@@ -1192,7 +1138,7 @@ export type Database = {
       AutomationTrigger: "BEFORE_EVENT" | "EVENT_DAY" | "AFTER_EVENT" | "WEEKLY_SHABBAT" | "JEWISH_HOLIDAY" | "DAILY" | "CUSTOM_SCHEDULE" | "MANUAL"
       ChannelType: "INSTAGRAM" | "FACEBOOK" | "WHATSAPP" | "TELEGRAM" | "EMAIL" | "WEB" | "GOOGLE_BUSINESS"
       CommunityTone: "MODERN" | "TRADITIONAL" | "FORMAL" | "FRIENDLY" | "RELIGIOUS"
-      CommunityType: "SYNAGOGUE" | "ASSOCIATION" | "SCHOOL" | "CENTER" | "OTHER"
+      CommunityType: "SYNAGOGUE" | "ASSOCIATION" | "SCHOOL" | "CENTER" | "RESTAURANT" | "CATERER" | "SPORT_COACH" | "COMMERCE" | "BUSINESS" | "CONTENT_CREATOR" | "OTHER"
       ContentStatus: "DRAFT" | "AI_PROPOSAL" | "READY_TO_PUBLISH" | "PENDING_VALIDATION" | "APPROVED" | "PUBLISHED" | "ARCHIVED"
       ContentType: "EVENT_ANNOUNCEMENT" | "EVENT_REMINDER" | "EVENT_DAY" | "EVENT_RECAP" | "SHABBAT_TIMES" | "HOLIDAY_GREETING" | "DAILY_CONTENT" | "COURSE_ANNOUNCEMENT" | "COMMUNITY_NEWS" | "FUNDRAISING" | "GENERAL" | "EVENT_POST"
       EventCategory: "SHABBAT" | "HOLIDAY" | "COURSE" | "PRAYER" | "COMMUNITY" | "YOUTH" | "CULTURAL" | "FUNDRAISING" | "ANNOUNCEMENT" | "OTHER"
