@@ -177,21 +177,14 @@ export default async function AssistantPage({
     : null;
 
   return (
-    <div className="space-y-4">
-      <div className="hidden">
-        <p className="text-sm text-slate-100">
-          Utilisez Assistant IA pour préparer vos publications, vos rappels et organiser votre quotidien avant validation.
-        </p>
-      </div>
-      <AssistantClient
-        communityName={community?.name ?? "Ma communauté"}
-        communityLogoUrl={community?.logoUrl ?? null}
-        tone={community?.tone ?? "MODERN"}
-        channels={channels ?? []}
-        seasonalPrompts={quickActionPrompts}
-        initialPrompt={initialPrompt}
-        initialApprovalDraft={initialApprovalDraft}
-      />
-    </div>
+    <AssistantClient
+      communityName={community?.name ?? "Ma communauté"}
+      communityLogoUrl={community?.logoUrl ?? null}
+      tone={community?.tone ?? "MODERN"}
+      channels={channels ?? []}
+      seasonalPrompts={quickActionPrompts}
+      initialPrompt={initialPrompt}
+      initialApprovalDraft={initialApprovalDraft}
+    />
   );
 }

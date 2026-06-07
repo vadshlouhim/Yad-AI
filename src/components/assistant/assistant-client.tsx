@@ -1569,7 +1569,7 @@ export function AssistantClient({
       className={cn(
         "flex min-h-0 overflow-hidden bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_42%)]",
         assistantExperience === "simple"
-          ? "h-[calc(100dvh-8rem)] min-h-[620px] rounded-3xl border border-slate-200/80 bg-white/70 shadow-[0_18px_42px_rgba(15,23,42,0.06)]"
+          ? "h-full min-h-full w-full bg-transparent"
           : "h-[calc(100dvh-4rem)]"
       )}
     >
@@ -1864,7 +1864,7 @@ export function AssistantClient({
       )}
 
       {/* â”€â”€ Zone de chat â”€â”€ */}
-		      <div className={cn("flex-1 flex flex-col min-w-0", assistantExperience === "simple" && "w-full")}>
+      <div className={cn("flex-1 flex flex-col min-w-0", assistantExperience === "simple" && "w-full")}>
         {/* Header */}
         <div className={cn(
           "flex items-center justify-between gap-3 border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur-xl sm:px-6",
@@ -2011,7 +2011,7 @@ export function AssistantClient({
         {showQuickPrompts && !approvalDraft && (
 	          <div className={cn(
               "flex-1 flex flex-col items-center justify-center px-4 py-8 sm:px-6",
-              assistantExperience === "simple" && "w-full justify-start overflow-y-auto pb-8 pt-6 sm:pt-8"
+              assistantExperience === "simple" && "w-full justify-start overflow-y-auto px-6 pb-4 pt-4 sm:px-8"
             )}>
             <div className={cn(
               "hidden",
@@ -2336,7 +2336,10 @@ export function AssistantClient({
 
         {/* Messages */}
         {!showQuickPrompts && (
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5 sm:px-6">
+          <div className={cn(
+            "flex-1 overflow-y-auto px-4 py-4 space-y-5 sm:px-6",
+            assistantExperience === "simple" && "px-6 py-3 sm:px-8"
+          )}>
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -3134,8 +3137,11 @@ export function AssistantClient({
         )}
 
         {/* Input */}
-        <div className="border-t border-slate-200/80 bg-slate-50/85 px-4 py-4 backdrop-blur-xl sm:px-6">
-          <div className="mx-auto w-full max-w-3xl">
+        <div className={cn(
+          "border-t border-slate-200/80 bg-slate-50/85 px-4 py-4 backdrop-blur-xl sm:px-6",
+          assistantExperience === "simple" && "border-t-0 bg-transparent px-6 pb-4 pt-0 backdrop-blur-0 sm:px-8"
+        )}>
+          <div className={cn("mx-auto w-full max-w-3xl", assistantExperience === "simple" && "max-w-none")}>
           {selectedTemplate && (
             <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -3164,52 +3170,62 @@ export function AssistantClient({
               </div>
             </div>
           )}
-          <div className="rounded-[2rem] bg-white p-3 shadow-[0_20px_48px_rgba(15,23,42,0.16)]">
-            <div className="relative rounded-[calc(2rem-1px)] bg-white p-3">
-              <div className="mb-3 flex items-center justify-between px-2">
-                <label htmlFor="assistant-specific-request" className="hidden items-center gap-2 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-bold text-white sm:inline-flex">
-                  <Bot className="size-3.5 text-blue-200" />
-                  Assistant IA
-                </label>
-                <div className="mx-auto inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm sm:hidden">
-                  <Bot className="size-3.5 text-blue-200" />
-                  <span>Assistant IA</span>
-                </div>
-                <div className="hidden items-center gap-2 text-[11px] font-semibold text-slate-500 sm:flex">
-                  <span className="h-2 w-2 rounded-full bg-blue-700 animate-pulse" />
-                  En ligne
-                </div>
+          <div
+            className={cn(
+              "rounded-[2rem] bg-white p-4 shadow-[0_20px_48px_rgba(15,23,42,0.16)]",
+              assistantExperience === "simple" &&
+                "rounded-[2rem] bg-white p-3 shadow-[0_20px_48px_rgba(15,23,42,0.16)]"
+            )}
+          >
+            <div className={cn("mb-3 flex items-center justify-between px-1", assistantExperience === "simple" && "px-2")}>
+              <label htmlFor="assistant-specific-request" className="hidden items-center gap-2 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-bold text-white sm:inline-flex">
+                <Bot className="size-3.5 text-blue-200" />
+                Assistant IA
+              </label>
+              <div className="mx-auto inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm sm:hidden">
+                <Bot className="size-3.5 text-blue-200" />
+                <span>Assistant IA</span>
               </div>
-              <div className="relative overflow-hidden rounded-[1.7rem] bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,41,59,0.94),rgba(29,78,216,0.92))] p-[1.5px]">
-                <div className="pointer-events-none absolute inset-0 rounded-[1.7rem] bg-[conic-gradient(from_180deg_at_50%_50%,rgba(37,99,235,0.08),rgba(15,23,42,0.02),rgba(37,99,235,0.16),rgba(15,23,42,0.02),rgba(37,99,235,0.08))] animate-[spin_18s_linear_infinite]" />
-                <div className="pointer-events-none absolute inset-[1px] rounded-[calc(1.7rem-1px)] border border-blue-900/40" />
-                <div className="relative flex items-end gap-2.5 rounded-[calc(1.7rem-1px)] bg-white p-2">
-                  <textarea
-                    id="assistant-specific-request"
-                    ref={inputRef}
-                    value={input}
-                    onChange={(e) => {
-                      const nextValue = e.target.value;
-                      if (!hasStartedPromptEntry && nextValue.trim().length > 0) {
-                        setHasStartedPromptEntry(true);
-                      }
-                      setInput(nextValue);
-                    }}
-                    onKeyDown={handleKeyDown}
-                    placeholder={animatedPlaceholder}
-                    rows={2}
-                    className="flex-1 resize-none rounded-[1.35rem] border border-transparent bg-transparent px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400"
-                  />
-                  <Button
-                    onClick={() => sendMessage()}
-                    size="icon"
-                    disabled={loading}
-                    className="h-12 w-12 flex-shrink-0 rounded-[1.35rem] bg-[linear-gradient(135deg,#0f172a,#1d4ed8)] text-white shadow-[0_10px_24px_rgba(30,64,175,0.24)] ring-1 ring-blue-300/40 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(30,64,175,0.32)] disabled:opacity-60"
-                    aria-label="Envoyer la demande"
-                  >
-                    <Send className="size-4" />
-                  </Button>
-                </div>
+              <div className="hidden items-center gap-2 text-[11px] font-semibold text-slate-500 sm:flex">
+                <span className="h-2 w-2 rounded-full bg-blue-700 animate-pulse" />
+                En ligne
+              </div>
+            </div>
+            <div className={cn(
+              "relative overflow-hidden rounded-[1.7rem] bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,41,59,0.94),rgba(29,78,216,0.92))] p-[1.5px]",
+              assistantExperience === "simple" && "rounded-[1.7rem]"
+            )}>
+              <div className="pointer-events-none absolute inset-0 rounded-[1.7rem] bg-[conic-gradient(from_180deg_at_50%_50%,rgba(37,99,235,0.08),rgba(15,23,42,0.02),rgba(37,99,235,0.16),rgba(15,23,42,0.02),rgba(37,99,235,0.08))] animate-[spin_18s_linear_infinite]" />
+              <div className="pointer-events-none absolute inset-[1px] rounded-[calc(1.7rem-1px)] border border-blue-900/40" />
+              <div className={cn(
+                "relative flex items-end gap-2.5 rounded-[calc(1.7rem-1px)] bg-white p-2",
+                assistantExperience === "simple" && "bg-white p-2"
+              )}>
+                <textarea
+                  id="assistant-specific-request"
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => {
+                    const nextValue = e.target.value;
+                    if (!hasStartedPromptEntry && nextValue.trim().length > 0) {
+                      setHasStartedPromptEntry(true);
+                    }
+                    setInput(nextValue);
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder={animatedPlaceholder}
+                  rows={2}
+                  className="flex-1 resize-none rounded-[1.35rem] border border-transparent bg-transparent px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400"
+                />
+                <Button
+                  onClick={() => sendMessage()}
+                  size="icon"
+                  disabled={loading}
+                  className="h-12 w-12 flex-shrink-0 rounded-[1.35rem] bg-[linear-gradient(135deg,#0f172a,#1d4ed8)] text-white shadow-[0_10px_24px_rgba(30,64,175,0.24)] ring-1 ring-blue-300/40 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(30,64,175,0.32)] disabled:opacity-60"
+                  aria-label="Envoyer la demande"
+                >
+                  <Send className="size-4" />
+                </Button>
               </div>
             </div>
           </div>
@@ -3270,6 +3286,3 @@ export function AssistantClient({
     </div>
   );
 }
-
-
-

@@ -68,10 +68,8 @@ export default async function DashboardLayout({
           unreadNotifications={unreadCount ?? 0}
         />
         <GmbNotificationBadge />
-        <main className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5 lg:p-6">
-          <div className="max-w-7xl mx-auto animate-fade-in pb-6 max-md:pb-2">
-            {children}
-          </div>
+        <main className="flex-1 overflow-y-auto w-full animate-fade-in">
+          {children}
         </main>
       </div>
     </div>
