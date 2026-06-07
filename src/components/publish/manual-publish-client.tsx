@@ -384,11 +384,34 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
             {platformKey === "INSTAGRAM" && imageUrl && (
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Affiche générée</label>
-                <div className="overflow-hidden rounded-3xl border border-pink-100 bg-slate-50 shadow-sm">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imageUrl} alt="Affiche Instagram générée" className="h-auto w-full object-cover" />
-                </div>
+                  <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Affiche générée</label>
+                  <div className="relative overflow-hidden rounded-3xl border border-pink-100 bg-slate-50 shadow-sm">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imageUrl}
+                      alt="Affiche Instagram générée"
+                      className={cn(
+                        "h-auto w-full object-cover transition duration-300",
+                        posterEditLoading ? "scale-[1.02] opacity-40 blur-[1px]" : ""
+                      )}
+                    />
+                    {posterEditLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-950/35 via-pink-950/20 to-orange-900/25 backdrop-blur-[2px]">
+                        <div className="mx-6 w-full max-w-sm rounded-[1.75rem] border border-white/30 bg-white/88 p-5 text-center shadow-2xl shadow-pink-950/20">
+                          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 text-white shadow-lg">
+                            <RefreshCw className="size-5 animate-spin" />
+                          </div>
+                          <p className="mt-4 text-sm font-black text-slate-900">Génération en cours</p>
+                          <p className="mt-1 text-xs leading-5 text-slate-600">
+                            L&apos;affiche est en train d&apos;être adaptée par l&apos;IA. Veuillez patienter en restant sur cette page.
+                          </p>
+                          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-pink-100">
+                            <div className="h-full w-1/2 animate-pulse rounded-full bg-gradient-to-r from-pink-500 via-rose-500 to-orange-400" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="rounded-3xl border border-pink-100 bg-gradient-to-br from-white to-rose-50 p-4 shadow-sm">
@@ -399,12 +422,24 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
                   <p className="mt-1 text-xs leading-5 text-slate-500">
                     Décrivez simplement la modification souhaitée. L&apos;IA garde la même direction artistique et ajuste le visuel.
                   </p>
+                  {posterEditLoading && (
+                    <div className="mt-3 rounded-2xl border border-pink-100 bg-white/90 px-3 py-2 text-xs font-medium text-pink-700 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-2.5 w-2.5">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pink-400 opacity-75" />
+                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-pink-500" />
+                        </span>
+                        Génération de l&apos;affiche en cours. Veuillez patienter en restant sur la page.
+                      </div>
+                    </div>
+                  )}
                   <div className="mt-3 flex gap-2">
                     <input
                       value={posterEditPrompt}
                       onChange={(e) => setPosterEditPrompt(e.target.value)}
                       placeholder="Ex: rends le titre plus percutant, ajoute un ton plus festif, raccourcis le sous-texte..."
-                      className="flex h-10 w-full rounded-2xl border border-pink-100 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2"
+                      disabled={posterEditLoading}
+                      className="flex h-10 w-full rounded-2xl border border-pink-100 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
                     />
                     <Button
                       type="button"
@@ -413,7 +448,7 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
                       className="rounded-2xl bg-pink-600 text-white hover:bg-pink-700"
                     >
                       {posterEditLoading ? <RefreshCw className="size-4 animate-spin" /> : <Wand2 className="size-4" />}
-                      <span className="hidden sm:inline ml-1.5">Adapter</span>
+                      <span className="hidden sm:inline ml-1.5">{posterEditLoading ? "Génération..." : "Adapter"}</span>
                     </Button>
                   </div>
                 </div>

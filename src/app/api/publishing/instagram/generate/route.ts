@@ -45,6 +45,18 @@ function buildInstagramCaption(content: {
   return parts.join("\n\n");
 }
 
+function buildFallbackPosterTexts(params: {
+  caption: string;
+  title: string;
+  hashtags: string[];
+}) {
+  return {
+    title: params.title,
+    description: params.caption,
+    hashtags: params.hashtags.slice(0, 5).join(" "),
+  };
+}
+
 async function generatePosterTexts(params: {
   community: {
     name?: string | null;
@@ -68,7 +80,7 @@ async function generatePosterTexts(params: {
   const designZones = (template.design as DesignZone[] | null) ?? [];
 
   if (designZones.length === 0) {
-    return {};
+    return null;
   }
 
   const zonesDescription = designZones
@@ -203,13 +215,20 @@ export async function POST(request: Request) {
       customInstructions: userPrompt,
     });
     const instagramCaption = buildInstagramCaption(generatedContent);
+    const title = buildInstagramTitle(instagramCaption, templateSuggestion.name);
 
-    const generatedTexts = await generatePosterTexts({
+    const generatedTexts =
+      (await generatePosterTexts({
       community,
       template: selectedTemplate,
       userPrompt,
       caption: instagramCaption,
-    });
+    })) ??
+      buildFallbackPosterTexts({
+        caption: instagramCaption,
+        title,
+        hashtags: generatedContent.hashtags ?? [],
+      });
 
     const renderedPoster = await renderTemplatePoster({
       admin,
@@ -219,7 +238,6 @@ export async function POST(request: Request) {
     });
 
     const draftId = crypto.randomUUID();
-    const title = buildInstagramTitle(instagramCaption, templateSuggestion.name);
     const now = new Date().toISOString();
 
     await admin.from("ContentDraft").insert({

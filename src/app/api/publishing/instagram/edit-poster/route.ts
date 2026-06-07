@@ -20,6 +20,13 @@ function removeAsterisks(value: string) {
   return value.replace(/\*/g, "");
 }
 
+function formatFallbackLabel(key: string) {
+  return key
+    .split("_")
+    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
+    .join(" ");
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -74,13 +81,13 @@ export async function POST(request: Request) {
     }
 
     const zones = (template.design as DesignZone[] | null) ?? [];
-    if (zones.length === 0) {
-      return NextResponse.json({ error: "Cette affiche n'est pas modifiable automatiquement." }, { status: 400 });
-    }
-
-    const zoneContext = zones
-      .map((zone) => `- ${zone.label} (id: ${zone.id}) : "${currentTexts[zone.id] ?? zone.defaultText ?? ""}"`)
-      .join("\n");
+    const zoneContext = zones.length > 0
+      ? zones
+          .map((zone) => `- ${zone.label} (id: ${zone.id}) : "${currentTexts[zone.id] ?? zone.defaultText ?? ""}"`)
+          .join("\n")
+      : Object.entries(currentTexts)
+          .map(([key, value]) => `- ${formatFallbackLabel(key)} (id: ${key}) : "${value}"`)
+          .join("\n");
 
     const prompt = `Tu modifies les textes d'une affiche Instagram existante.
 
@@ -106,6 +113,7 @@ Règles :
 - Génère des textes courts, nets et directement exploitables.
 - Ne renvoie aucun commentaire, aucune explication.
 - N'utilise jamais d'astérisques.
+- Si l'affiche ne contient pas de zones techniques explicites, utilise simplement les ids déjà fournis.
 
 Réponds UNIQUEMENT avec un JSON valide de la forme :
 { "zoneId": "nouveau texte" }`;
