@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Eye,
   RefreshCw,
+  Trash2,
   XCircle,
   Zap,
 } from "lucide-react";
@@ -145,6 +146,7 @@ function buildChannelPreview(pub: Publication) {
 export function PublicationsClient({ publications, statsByStatus, activeStatus, activeChannel }: Props) {
   const router = useRouter();
   const [retrying, setRetrying] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const currentChannel = activeChannel || "ALL";
   const currentStatus = activeStatus === "FAILED" ? "FAILED" : "PUBLISHED";
@@ -159,6 +161,25 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
       alert("Erreur lors de la relance.");
     } finally {
       setRetrying(null);
+    }
+  }
+
+  async function deletePublication(id: string) {
+    const confirmed = window.confirm("Supprimer cette publication de l'historique ?");
+    if (!confirmed) return;
+
+    setDeleting(id);
+    try {
+      const response = await fetch(`/api/publications/${id}`, { method: "DELETE" });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Suppression impossible.");
+      }
+      router.refresh();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Suppression impossible.");
+    } finally {
+      setDeleting(null);
     }
   }
 
@@ -258,6 +279,18 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
                   >
                     <Copy className="size-3" />
                     Copier le contenu
+                  </Button>
+                )}
+                {(pub.status === "PUBLISHED" || pub.status === "FAILED") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn("h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700", interactiveButtonClass)}
+                    onClick={() => deletePublication(pub.id)}
+                    loading={deleting === pub.id}
+                  >
+                    <Trash2 className="size-3" />
+                    Supprimer
                   </Button>
                 )}
               </div>

@@ -251,12 +251,15 @@ export const CHANNEL_FORMAT_INSTRUCTIONS: Record<ChannelType, string> = {
 - Format : uniquement du texte publiable tel quel
   `,
   FACEBOOK: `
-- Longueur idéale : 100-200 mots
-- Paragraphes courts et aérés
-- 3-5 hashtags maximum
-- Emojis pour structurer, pas pour décorer
-- CTA direct (bouton, lien direct)
-- Peut inclure une question pour générer de l'engagement
+- Longueur idéale : 60-140 mots
+- Écris un texte simple, clair, net et précis
+- Paragraphes courts et naturels
+- Pas de méta-commentaire, pas d'explication, pas de note interne
+- Pas de JSON visible dans le texte final
+- 0 à 4 emojis maximum, uniquement si pertinents
+- 3 à 5 hashtags maximum
+- Une version courte en hébreu est bienvenue si elle apporte vraiment quelque chose
+- Format : uniquement du texte publiable tel quel
   `,
   WHATSAPP: `
 - Longueur idéale : 80-150 mots

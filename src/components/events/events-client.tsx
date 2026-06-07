@@ -265,6 +265,7 @@ export function EventsClient({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showShabbat, setShowShabbat] = useState(false);
   const [showHolidays, setShowHolidays] = useState(false);
+  const hasSupplementaryCalendarData = isBethHabad && (shabbatItems.length > 0 || holidayItems.length > 0);
 
   // Index par date pour lookup rapide dans le calendrier
   const shabbatByDate = useMemo(() => {
@@ -348,6 +349,25 @@ export function EventsClient({
     }
   }
 
+  function toggleShabbat() {
+    if (viewMode !== "calendar") {
+      updateFilter("view", "calendar");
+    }
+    setShowShabbat((value) => !value);
+  }
+
+  function toggleHolidays() {
+    if (viewMode !== "calendar") {
+      updateFilter("view", "calendar");
+    }
+    setShowHolidays((value) => !value);
+  }
+
+  const shouldRenderCalendar =
+    viewMode === "calendar" &&
+    (events.length > 0 ||
+      (hasSupplementaryCalendarData && (showShabbat || showHolidays)));
+
   return (
     <div className="space-y-6">
       <div className="overflow-hidden rounded-3xl border border-violet-300/70 bg-gradient-to-br from-violet-950 via-violet-900 to-indigo-900 p-6 text-white shadow-[0_24px_56px_rgba(76,29,149,0.28)]">
@@ -384,7 +404,7 @@ export function EventsClient({
           <p className="w-full text-xs font-semibold uppercase tracking-wide text-slate-500">Afficher dans l&apos;agenda :</p>
           <button
             type="button"
-            onClick={() => setShowShabbat((v) => !v)}
+            onClick={toggleShabbat}
             className={cn(
               "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all",
               showShabbat
@@ -403,7 +423,7 @@ export function EventsClient({
 
           <button
             type="button"
-            onClick={() => setShowHolidays((v) => !v)}
+            onClick={toggleHolidays}
             className={cn(
               "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all",
               showHolidays
@@ -493,7 +513,7 @@ export function EventsClient({
         </CardContent>
       </Card>
 
-      {events.length === 0 ? (
+      {events.length === 0 && !shouldRenderCalendar ? (
         <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-slate-200 bg-white py-16 text-center max-md:border-cyan-200 max-md:bg-gradient-to-br max-md:from-white max-md:via-sky-50/60 max-md:to-emerald-50/60">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 max-md:bg-gradient-to-br max-md:from-[#1E88E5] max-md:to-[#00A7A0] max-md:shadow-[0_10px_24px_rgba(30,136,229,0.22)]">
             <CalendarDays className="size-7 text-slate-400 max-md:text-white" />
@@ -510,13 +530,15 @@ export function EventsClient({
           </Link>
         </div>
       ) : (
-        viewMode === "calendar" ? (
+        shouldRenderCalendar ? (
           <CalendarView
             events={events}
             periodEvents={periodEvents}
             todaysEvents={todaysEvents}
             period={activePeriod}
             anchorDate={anchorDate}
+            dayShabbatItem={showShabbat ? shabbatByDate.get(dayKey(anchorDate)) : undefined}
+            dayHolidayItems={showHolidays ? holidayByDate.get(dayKey(anchorDate)) : undefined}
             shabbatByDate={showShabbat ? shabbatByDate : undefined}
             holidayByDate={showHolidays ? holidayByDate : undefined}
             onPeriodChange={updatePeriod}
@@ -550,6 +572,8 @@ function CalendarView({
   todaysEvents,
   period,
   anchorDate,
+  dayShabbatItem,
+  dayHolidayItems,
   shabbatByDate,
   holidayByDate,
   onPeriodChange,
@@ -567,6 +591,8 @@ function CalendarView({
   todaysEvents: Event[];
   period: CalendarPeriod;
   anchorDate: Date;
+  dayShabbatItem?: ShabbatItem;
+  dayHolidayItems?: HolidayItem[];
   shabbatByDate?: Map<string, ShabbatItem>;
   holidayByDate?: Map<string, HolidayItem[]>;
   onPeriodChange: (period: CalendarPeriod) => void;
@@ -649,7 +675,17 @@ function CalendarView({
           </div>
 
           {period === "day" && (
-            <DayCalendar events={periodEvents} anchorDate={anchorDate} onDelete={onDelete} deletingId={deletingId} isPending={isPending} isBethHabad={isBethHabad} timezone={timezone} />
+            <DayCalendar
+              events={periodEvents}
+              anchorDate={anchorDate}
+              shabbatItem={isBethHabad ? dayShabbatItem : undefined}
+              holidayItems={isBethHabad ? dayHolidayItems : undefined}
+              onDelete={onDelete}
+              deletingId={deletingId}
+              isPending={isPending}
+              isBethHabad={isBethHabad}
+              timezone={timezone}
+            />
           )}
           {period === "week" && (
             <WeekCalendar events={events} anchorDate={anchorDate} shabbatByDate={isBethHabad ? shabbatByDate : undefined} holidayByDate={isBethHabad ? holidayByDate : undefined} isBethHabad={isBethHabad} timezone={timezone} />
@@ -722,6 +758,8 @@ function ListView({
 function DayCalendar({
   events,
   anchorDate,
+  shabbatItem,
+  holidayItems,
   onDelete,
   deletingId,
   isPending,
@@ -730,6 +768,8 @@ function DayCalendar({
 }: {
   events: Event[];
   anchorDate: Date;
+  shabbatItem?: ShabbatItem;
+  holidayItems?: HolidayItem[];
   onDelete: (event: Event) => void;
   deletingId: string | null;
   isPending: boolean;
@@ -746,6 +786,24 @@ function DayCalendar({
       )}>
         <p className="text-sm font-semibold capitalize text-slate-950">{formatFrenchDate(anchorDate)}</p>
         {isBethHabad && <p className="mt-1 text-sm font-medium text-violet-700 hebrew">{formatHebrewDate(anchorDate)}</p>}
+        {(shabbatItem || (holidayItems?.length ?? 0) > 0) && (
+          <div className="mt-3 space-y-2">
+            {shabbatItem && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                <p className="text-sm font-semibold text-amber-700">Horaires de Chabbat</p>
+                {shabbatItem.parasha && <p className="text-xs text-amber-600">{shabbatItem.parasha}</p>}
+                <p className="text-xs text-amber-600">Entrée {shabbatItem.entry ?? "-"} · Sortie {shabbatItem.exit ?? "-"}</p>
+              </div>
+            )}
+            {holidayItems?.map((holiday) => (
+              <div key={`${holiday.date}-${holiday.name}`} className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2">
+                <p className="text-sm font-semibold text-blue-700">{holiday.name}</p>
+                {holiday.nameHebrew && <p className="text-xs text-blue-500 hebrew">{holiday.nameHebrew}</p>}
+                {holiday.hebrewDate && <p className="text-xs text-blue-600">{holiday.hebrewDate}</p>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       {events.length > 0 ? (
         <div className="space-y-3">
@@ -1081,4 +1139,3 @@ function AgendaEventCard({
     </Card>
   );
 }
-

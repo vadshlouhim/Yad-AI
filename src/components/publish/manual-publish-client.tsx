@@ -112,6 +112,37 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
   const platformKey = platform.toUpperCase();
   const brand = BRAND_STYLES[platformKey] ?? BRAND_STYLES.EMAIL;
   const logo = SOCIAL_LOGOS[platformKey] ?? SOCIAL_LOGOS.EMAIL;
+  const isInstagram = platformKey === "INSTAGRAM";
+  const isFacebook = platformKey === "FACEBOOK";
+  const isVisualPlatform = isInstagram || isFacebook;
+  const visualLabel = isInstagram ? "Instagram" : isFacebook ? "Facebook" : brand.label;
+  const visualAccent = isInstagram
+    ? {
+        cardBorder: "border-pink-100",
+        cardBg: "bg-gradient-to-br from-white to-pink-50",
+        textAccent: "text-pink-500",
+        inputBorder: "border-pink-100",
+        ring: "focus-visible:ring-pink-500",
+        button: "bg-pink-600 hover:bg-pink-700",
+        overlay: "from-slate-950/35 via-pink-950/20 to-orange-900/25",
+        overlayIcon: "from-pink-500 via-rose-500 to-orange-400",
+        overlayBar: "from-pink-500 via-rose-500 to-orange-400",
+        softBg: "bg-pink-100",
+        softText: "text-pink-700",
+      }
+    : {
+        cardBorder: "border-blue-100",
+        cardBg: "bg-gradient-to-br from-white to-blue-50",
+        textAccent: "text-blue-600",
+        inputBorder: "border-blue-100",
+        ring: "focus-visible:ring-blue-500",
+        button: "bg-blue-600 hover:bg-blue-700",
+        overlay: "from-slate-950/35 via-blue-950/20 to-indigo-900/25",
+        overlayIcon: "from-blue-600 via-blue-500 to-indigo-500",
+        overlayBar: "from-blue-600 via-blue-500 to-indigo-500",
+        softBg: "bg-blue-100",
+        softText: "text-blue-700",
+      };
 
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
@@ -132,14 +163,18 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
     if (!aiPrompt.trim()) return;
     setAiLoading(true);
     try {
-      const isInstagram = platformKey === "INSTAGRAM";
+      const generateEndpoint = isInstagram
+        ? "/api/publishing/instagram/generate"
+        : isFacebook
+        ? "/api/publishing/facebook/generate"
+        : "/api/ai/generate-content";
       const res = await fetch(
-        isInstagram ? "/api/publishing/instagram/generate" : "/api/ai/generate-content",
+        generateEndpoint,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
-            isInstagram
+            isVisualPlatform
               ? { prompt: aiPrompt }
               : {
                   contentType: "GENERAL",
@@ -151,7 +186,7 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
       const data = await res.json();
       if (data.body) {
         setText(data.body);
-        if (isInstagram) {
+        if (isVisualPlatform) {
           setTitle(data.title ?? "");
           setImageUrl(data.imageUrl ?? null);
           setSelectedTemplate(data.template ?? null);
@@ -175,14 +210,14 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
     }
     setLoading(true);
     try {
-      const isInstagramWithImage = platformKey === "INSTAGRAM" && imageUrl && channelId;
+      const isVisualWithImage = isVisualPlatform && imageUrl && channelId;
       const res = await fetch(
-        isInstagramWithImage ? "/api/templates/publish" : "/api/publishing/manual-post",
+        isVisualWithImage ? "/api/templates/publish" : "/api/publishing/manual-post",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
-            isInstagramWithImage
+            isVisualWithImage
               ? {
                   imageUrl,
                   caption: text,
@@ -217,13 +252,15 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
   }
 
   async function handlePosterEdit() {
-    if (platformKey !== "INSTAGRAM" || !selectedTemplate || !posterEditPrompt.trim()) {
+    if (!isVisualPlatform || !selectedTemplate || !posterEditPrompt.trim()) {
       return;
     }
 
     setPosterEditLoading(true);
     try {
-      const response = await fetch("/api/publishing/instagram/edit-poster", {
+      const response = await fetch(
+        isInstagram ? "/api/publishing/instagram/edit-poster" : "/api/publishing/facebook/edit-poster",
+        {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -323,7 +360,13 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
             </h2>
             <div className="flex gap-2">
               <input
-                placeholder={platformKey === "INSTAGRAM" ? "Ex: Prépare un post Instagram pour notre soirée de dimanche et choisis une affiche adaptée..." : "Ex: Redige une annonce pour la Kabalat Chabbat de ce soir a 18h..."}
+                placeholder={
+                  isInstagram
+                    ? "Ex: Prépare un post Instagram pour notre soirée de dimanche et choisis une affiche adaptée..."
+                    : isFacebook
+                    ? "Ex: Prépare une publication Facebook pour notre soirée de dimanche et choisis une affiche adaptée..."
+                    : "Ex: Redige une annonce pour la Kabalat Chabbat de ce soir a 18h..."
+                }
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAIGenerate()}
@@ -340,10 +383,10 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
             </div>
           </Card>
 
-          {platformKey === "INSTAGRAM" && selectedTemplate && (
-            <Card className="rounded-3xl border border-pink-100 bg-gradient-to-br from-white to-pink-50 p-5 shadow-sm">
+          {isVisualPlatform && selectedTemplate && (
+            <Card className={cn("rounded-3xl border p-5 shadow-sm", visualAccent.cardBorder, visualAccent.cardBg)}>
               <div className="flex items-start gap-4">
-                <div className="h-24 w-24 overflow-hidden rounded-2xl border border-pink-100 bg-white shadow-sm">
+                <div className={cn("h-24 w-24 overflow-hidden rounded-2xl border bg-white shadow-sm", visualAccent.cardBorder)}>
                   {imageUrl || selectedTemplate.previewUrl || selectedTemplate.thumbnailUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -354,59 +397,66 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
                   ) : null}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold uppercase tracking-wide text-pink-500">Affiche sélectionnée</p>
+                  <p className={cn("text-xs font-bold uppercase tracking-wide", visualAccent.textAccent)}>Affiche sélectionnée</p>
                   <h3 className="mt-1 text-base font-bold text-slate-900">{selectedTemplate.name}</h3>
                   <p className="mt-1 text-sm text-slate-600">{selectedTemplate.reason}</p>
                   <p className="mt-2 text-xs text-slate-400">
-                    L&apos;affiche a été choisie automatiquement depuis la bibliothèque et adaptée au thème.
+                    L&apos;affiche a été choisie automatiquement depuis la bibliothèque et adaptée au thème pour {visualLabel}.
                   </p>
                 </div>
               </div>
             </Card>
           )}
 
-          {platformKey === "INSTAGRAM" && (
+          {isVisualPlatform && (
             <Link href="/dashboard/automations">
               <Button
                 variant="outline"
-                className="w-full rounded-2xl border-pink-200 bg-white text-pink-700 shadow-sm transition-all duration-200 hover:bg-pink-50 hover:text-pink-800"
+                className={cn(
+                  "w-full rounded-2xl bg-white shadow-sm transition-all duration-200",
+                  isInstagram
+                    ? "border-pink-200 text-pink-700 hover:bg-pink-50 hover:text-pink-800"
+                    : "border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+                )}
               >
                 <Sparkles className="size-4" />
-                Creer une automatisation Instagram
+                {isInstagram ? "Creer une automatisation Instagram" : "Creer une automatisation Facebook"}
               </Button>
             </Link>
           )}
 
 
           <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-blue-100/30 space-y-5">
-            <h2 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">{platformKey === "INSTAGRAM" ? "Message Instagram retravaillé par l'IA" : "Details de la publication"}</h2>
+            <h2 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">
+              {isVisualPlatform ? `Message ${visualLabel} retravaillé par l'IA` : "Details de la publication"}
+            </h2>
 
-            {platformKey === "INSTAGRAM" && imageUrl && (
+            {isVisualPlatform && imageUrl && (
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Affiche générée</label>
-                  <div className="relative overflow-hidden rounded-3xl border border-pink-100 bg-slate-50 shadow-sm">
+                  <div className={cn("relative overflow-hidden rounded-3xl border bg-slate-50 shadow-sm", visualAccent.cardBorder)}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={imageUrl}
-                      alt="Affiche Instagram générée"
+                      alt={`Affiche ${visualLabel} générée`}
                       className={cn(
                         "h-auto w-full object-cover transition duration-300",
                         posterEditLoading ? "scale-[1.02] opacity-40 blur-[1px]" : ""
                       )}
                     />
                     {posterEditLoading && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-950/35 via-pink-950/20 to-orange-900/25 backdrop-blur-[2px]">
+                      <div className={cn("absolute inset-0 flex items-center justify-center bg-gradient-to-br backdrop-blur-[2px]", visualAccent.overlay)}>
                         <div className="mx-6 w-full max-w-sm rounded-[1.75rem] border border-white/30 bg-white/88 p-5 text-center shadow-2xl shadow-pink-950/20">
-                          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 text-white shadow-lg">
+                          <div className={cn("mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-lg", visualAccent.overlayIcon)}>
                             <RefreshCw className="size-5 animate-spin" />
                           </div>
                           <p className="mt-4 text-sm font-black text-slate-900">Génération en cours</p>
                           <p className="mt-1 text-xs leading-5 text-slate-600">
                             L&apos;affiche est en train d&apos;être adaptée par l&apos;IA. Veuillez patienter en restant sur cette page.
                           </p>
-                          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-pink-100">
-                            <div className="h-full w-1/2 animate-pulse rounded-full bg-gradient-to-r from-pink-500 via-rose-500 to-orange-400" />
+                          <div className={cn("mt-4 h-1.5 overflow-hidden rounded-full", visualAccent.softBg)}>
+                            <div className={cn("h-full w-1/2 animate-pulse rounded-full bg-gradient-to-r", visualAccent.overlayBar)} />
                           </div>
                         </div>
                       </div>
@@ -414,20 +464,20 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
                   </div>
                 </div>
 
-                <div className="rounded-3xl border border-pink-100 bg-gradient-to-br from-white to-rose-50 p-4 shadow-sm">
+                <div className={cn("rounded-3xl border p-4 shadow-sm", visualAccent.cardBorder, visualAccent.cardBg)}>
                   <div className="flex items-center gap-2">
-                    <Wand2 className="size-4 text-pink-600" />
+                    <Wand2 className={cn("size-4", visualAccent.textAccent)} />
                     <p className="text-sm font-bold text-slate-900">Modifier l&apos;affiche avec l&apos;IA</p>
                   </div>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
                     Décrivez simplement la modification souhaitée. L&apos;IA garde la même direction artistique et ajuste le visuel.
                   </p>
                   {posterEditLoading && (
-                    <div className="mt-3 rounded-2xl border border-pink-100 bg-white/90 px-3 py-2 text-xs font-medium text-pink-700 shadow-sm">
+                    <div className={cn("mt-3 rounded-2xl border bg-white/90 px-3 py-2 text-xs font-medium shadow-sm", visualAccent.cardBorder, visualAccent.softText)}>
                       <div className="flex items-center gap-2">
                         <span className="relative flex h-2.5 w-2.5">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pink-400 opacity-75" />
-                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-pink-500" />
+                          <span className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-75", isInstagram ? "bg-pink-400" : "bg-blue-400")} />
+                          <span className={cn("relative inline-flex h-2.5 w-2.5 rounded-full", isInstagram ? "bg-pink-500" : "bg-blue-500")} />
                         </span>
                         Génération de l&apos;affiche en cours. Veuillez patienter en restant sur la page.
                       </div>
@@ -439,13 +489,17 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
                       onChange={(e) => setPosterEditPrompt(e.target.value)}
                       placeholder="Ex: rends le titre plus percutant, ajoute un ton plus festif, raccourcis le sous-texte..."
                       disabled={posterEditLoading}
-                      className="flex h-10 w-full rounded-2xl border border-pink-100 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+                      className={cn(
+                        "flex h-10 w-full rounded-2xl border bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70",
+                        visualAccent.inputBorder,
+                        visualAccent.ring
+                      )}
                     />
                     <Button
                       type="button"
                       onClick={handlePosterEdit}
                       disabled={posterEditLoading || !posterEditPrompt.trim()}
-                      className="rounded-2xl bg-pink-600 text-white hover:bg-pink-700"
+                      className={cn("rounded-2xl text-white", visualAccent.button)}
                     >
                       {posterEditLoading ? <RefreshCw className="size-4 animate-spin" /> : <Wand2 className="size-4" />}
                       <span className="hidden sm:inline ml-1.5">{posterEditLoading ? "Génération..." : "Adapter"}</span>
@@ -501,7 +555,7 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
 
               <Button
                 onClick={handlePublish}
-                disabled={loading || !text.trim() || !isConnected || (platformKey === "INSTAGRAM" && !imageUrl)}
+                disabled={loading || !text.trim() || !isConnected || (isVisualPlatform && !imageUrl)}
                 className={cn("rounded-2xl text-white font-bold cursor-pointer px-6", brand.bg, "hover:opacity-90")}
               >
                 {loading ? <RefreshCw className="size-4 animate-spin mr-1.5" /> : <Send className="size-4 mr-1.5" />}
@@ -614,12 +668,20 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
                     {formatPreviewText(text)}
                   </div>
 
-                  <div className="w-full h-32 bg-slate-100 rounded-lg flex flex-col items-center justify-center border border-slate-200">
-                    <svg className="size-8 text-slate-300" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <polyline points="21 15 16 10 5 21" />
-                    </svg>
+                  <div className="w-full h-32 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+                    {imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={imageUrl} alt="Prévisualisation Facebook" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full flex-col items-center justify-center">
+                        <svg className="size-8 text-slate-300" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <polyline points="21 15 16 10 5 21" />
+                        </svg>
+                        <p className="mt-2 text-[10px] font-medium text-slate-400">Affiche pertinente générée par l&apos;IA</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

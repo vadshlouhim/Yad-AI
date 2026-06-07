@@ -1,0 +1,301 @@
+import { NextResponse } from "next/server";
+import OpenAI from "openai";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { generateContent } from "@/lib/ai/engine";
+import { buildTemplateSuggestions } from "@/lib/templates/shared";
+import { renderTemplatePoster } from "@/lib/templates/render";
+
+const openrouter = new OpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY!,
+});
+
+type DesignZone = {
+  id: string;
+  label: string;
+  type: string;
+  defaultText: string;
+};
+
+function removeAsterisks(value: string) {
+  return value.replace(/\*/g, "");
+}
+
+function buildFacebookTitle(caption: string, fallback: string) {
+  const firstLine = caption
+    .split("\n")
+    .map((line) => line.trim())
+    .find(Boolean);
+
+  return firstLine ? firstLine.slice(0, 120) : fallback;
+}
+
+function buildFacebookCaption(content: {
+  body: string;
+  bodyHebrew?: string;
+  hashtags?: string[];
+}) {
+  const parts = [
+    content.body.trim(),
+    content.bodyHebrew?.trim() || "",
+    (content.hashtags ?? []).slice(0, 5).join(" ").trim(),
+  ].filter(Boolean);
+
+  return parts.join("\n\n");
+}
+
+function buildFallbackPosterTexts(params: {
+  caption: string;
+  title: string;
+  hashtags: string[];
+}) {
+  return {
+    title: params.title,
+    description: params.caption,
+    hashtags: params.hashtags.slice(0, 5).join(" "),
+  };
+}
+
+async function generatePosterTexts(params: {
+  community: {
+    name?: string | null;
+    city?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    website?: string | null;
+    address?: string | null;
+    religiousStream?: string | null;
+    tone?: string | null;
+  } | null;
+  template: {
+    name: string;
+    category: string;
+    design: unknown;
+  };
+  userPrompt: string;
+  caption: string;
+}) {
+  const { community, template, userPrompt, caption } = params;
+  const designZones = (template.design as DesignZone[] | null) ?? [];
+
+  if (designZones.length === 0) {
+    return null;
+  }
+
+  const zonesDescription = designZones
+    .map(
+      (zone) =>
+        `- "${zone.label}" (id: ${zone.id}, type: ${zone.type}) - texte par défaut : "${zone.defaultText}"`
+    )
+    .join("\n");
+
+  const prompt = `Tu prépares une affiche Facebook pour une communauté.
+
+Contexte de la communauté :
+- Nom : ${community?.name ?? "Non spécifié"}
+- Ville : ${community?.city ?? "Non spécifié"}
+- Téléphone : ${community?.phone ?? "Non spécifié"}
+- Email : ${community?.email ?? "Non spécifié"}
+- Site web : ${community?.website ?? "Non spécifié"}
+- Adresse : ${community?.address ?? "Non spécifié"}
+- Courant : ${community?.religiousStream ?? "Non spécifié"}
+- Ton : ${community?.tone ?? "MODERN"}
+
+Demande utilisateur :
+${userPrompt}
+
+Texte Facebook déjà préparé :
+${caption}
+
+Template choisi : "${template.name}" (catégorie : ${template.category})
+
+Zones éditables :
+${zonesDescription}
+
+Règles :
+- Génère un texte court, clair et directement publiable pour chaque zone.
+- Garde un style cohérent avec Facebook et avec le ton de la communauté.
+- Réutilise les informations déjà présentes dans la demande utilisateur et le texte Facebook.
+- N'ajoute pas de commentaire hors JSON.
+- N'utilise jamais d'astérisques.
+
+Réponds UNIQUEMENT en JSON valide avec la forme :
+{ "zoneId": "texte" }`;
+
+  const response = await openrouter.chat.completions.create({
+    model: "google/gemini-2.5-flash",
+    max_tokens: 1000,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const raw = response.choices[0]?.message?.content ?? "";
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+
+  if (!jsonMatch) {
+    throw new Error("Réponse IA invalide pour la génération de l'affiche Facebook");
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]) as Record<string, string>;
+  return Object.fromEntries(
+    Object.entries(parsed).map(([key, value]) => [key, removeAsterisks(String(value))])
+  );
+}
+
+export async function POST(request: Request) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const userPrompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
+
+    if (!userPrompt) {
+      return NextResponse.json({ error: "Le prompt Facebook est requis." }, { status: 400 });
+    }
+
+    const admin = createAdminClient();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("communityId")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile?.communityId) {
+      return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
+    }
+
+    const [{ data: community }, { data: templates }] = await Promise.all([
+      admin
+        .from("Community")
+        .select("name, city, phone, email, website, address, religiousStream, tone")
+        .eq("id", profile.communityId)
+        .single(),
+      admin
+        .from("Template")
+        .select("id, communityId, name, description, category, channelType, thumbnailUrl, previewUrl, tags, subCategory, isPremium, design, usageCount")
+        .or(`isGlobal.eq.true,communityId.eq.${profile.communityId}`)
+        .eq("isActive", true),
+    ]);
+
+    const eligibleTemplates = (templates ?? []).filter(
+      (template) => template.channelType === null || template.channelType === "FACEBOOK"
+    );
+
+    const templateSuggestion = buildTemplateSuggestions(eligibleTemplates, userPrompt, {
+      limit: 1,
+      communityId: profile.communityId,
+      forceAtLeastOne: true,
+    })[0];
+
+    if (!templateSuggestion) {
+      return NextResponse.json({ error: "Aucune affiche pertinente trouvée dans la bibliothèque." }, { status: 404 });
+    }
+
+    const { data: selectedTemplate } = await admin
+      .from("Template")
+      .select("*")
+      .eq("id", templateSuggestion.id)
+      .single();
+
+    if (!selectedTemplate) {
+      return NextResponse.json({ error: "Template Facebook introuvable." }, { status: 404 });
+    }
+
+    const generatedContent = await generateContent({
+      communityId: profile.communityId,
+      contentType: "GENERAL",
+      channelType: "FACEBOOK",
+      customInstructions: userPrompt,
+    });
+    const facebookCaption = buildFacebookCaption(generatedContent);
+    const title = buildFacebookTitle(facebookCaption, templateSuggestion.name);
+
+    const generatedTexts =
+      (await generatePosterTexts({
+        community,
+        template: selectedTemplate,
+        userPrompt,
+        caption: facebookCaption,
+      })) ??
+      buildFallbackPosterTexts({
+        caption: facebookCaption,
+        title,
+        hashtags: generatedContent.hashtags ?? [],
+      });
+
+    const renderedPoster = await renderTemplatePoster({
+      admin,
+      template: selectedTemplate,
+      communityId: profile.communityId,
+      generatedTexts,
+    });
+
+    const draftId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    await admin.from("ContentDraft").insert({
+      id: draftId,
+      communityId: profile.communityId,
+      title,
+      body: facebookCaption,
+      hashtags: generatedContent.hashtags ?? [],
+      imageUrl: renderedPoster.imageUrl,
+      contentType: "GENERAL",
+      status: "AI_PROPOSAL",
+      aiGenerated: true,
+      aiModel: "google/gemini-2.5-flash",
+      aiPromptUsed: userPrompt,
+      updatedAt: now,
+    });
+
+    await admin.from("ChannelAdaptation").upsert(
+      {
+        draftId,
+        channelType: "FACEBOOK",
+        title,
+        body: facebookCaption,
+        imageUrl: renderedPoster.imageUrl,
+        hashtags: generatedContent.hashtags ?? [],
+        status: "GENERATED",
+        updatedAt: now,
+        metadata: {
+          imageUrl: renderedPoster.imageUrl,
+          generatedTexts,
+          templateId: selectedTemplate.id,
+          templateName: selectedTemplate.name,
+        },
+      },
+      {
+        onConflict: "draftId,channelType",
+      }
+    );
+
+    return NextResponse.json({
+      body: facebookCaption,
+      title,
+      imageUrl: renderedPoster.imageUrl,
+      template: {
+        id: templateSuggestion.id,
+        name: templateSuggestion.name,
+        category: templateSuggestion.category,
+        reason: templateSuggestion.reason,
+        thumbnailUrl: templateSuggestion.thumbnailUrl,
+        previewUrl: templateSuggestion.previewUrl,
+      },
+      generatedTexts,
+    });
+  } catch (error) {
+    console.error("[Facebook Generate]", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Erreur serveur" },
+      { status: 500 }
+    );
+  }
+}
