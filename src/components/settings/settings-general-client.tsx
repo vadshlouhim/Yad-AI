@@ -81,10 +81,10 @@ interface NavigatorWithContacts extends Navigator {
 
 const TONE_OPTIONS = [
   { value: "MODERN", label: "Moderne", description: "Accessible et contemporain" },
-  { value: "TRADITIONAL", label: "Traditionnel", description: "AncrÃ© dans la tradition" },
+  { value: "TRADITIONAL", label: "Traditionnel", description: "Ancré dans la tradition" },
   { value: "FORMAL", label: "Formel", description: "Institutionnel et professionnel" },
   { value: "FRIENDLY", label: "Convivial", description: "Chaleureux et proche" },
-  { value: "RELIGIOUS", label: "Religieux", description: "AxÃ© sur les valeurs spirituelles" },
+  { value: "RELIGIOUS", label: "Religieux", description: "Axé sur les valeurs spirituelles" },
 ];
 
 const COMMUNITY_TYPE_CHOICES = [
@@ -281,14 +281,14 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
       const result = await response.json();
 
       if (!response.ok) {
-        setLogoError(result.error ?? "Impossible de tÃ©lÃ©verser le logo.");
+        setLogoError(result.error ?? "Impossible de téléverser le logo.");
         return;
       }
 
       setLogoUrl(result.logoUrl);
       router.refresh();
     } catch {
-      setLogoError("Impossible de tÃ©lÃ©verser le logo.");
+      setLogoError("Impossible de téléverser le logo.");
     } finally {
       setLogoUploading(false);
     }
@@ -299,7 +299,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
     setPasswordSuccess(null);
 
     if (password.length < 8) {
-      setPasswordError("Le mot de passe doit contenir au moins 8 caractÃ¨res.");
+      setPasswordError("Le mot de passe doit contenir au moins 8 caractères.");
       return;
     }
 
@@ -329,7 +329,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
       setPassword("");
       setConfirmPassword("");
       setPasswordSuccess(
-        data.message ?? "Mot de passe enregistr?. Vous pouvez maintenant vous connecter avec votre email."
+        data.message ?? "Mot de passe enregistré. Vous pouvez maintenant vous connecter avec votre email."
       );
       router.refresh();
     } catch {
@@ -352,7 +352,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
   async function addMember() {
     setMemberError(null);
     if (!memberName.trim() && !memberEmail.trim() && !memberPhone.trim()) {
-      setMemberError("Ajoutez au moins un nom, email ou tÃ©lÃ©phone.");
+      setMemberError("Ajoutez au moins un nom, email ou téléphone.");
       return;
     }
 
@@ -428,9 +428,9 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
   const authProviders = profile.authProviders.length > 0 ? profile.authProviders : ["email"];
 
   const navItems = [
-    { id: "community" as const, label: "CommunautÃ©", icon: Building2 },
+    { id: "community" as const, label: "Communauté", icon: Building2 },
     { id: "contacts" as const, label: "Contacts", icon: Users },
-    { id: "editorial" as const, label: "IdentitÃ© Ã©ditoriale", icon: Palette },
+    { id: "editorial" as const, label: "Identité éditoriale", icon: Palette },
     { id: "profile" as const, label: "Mon profil", icon: User },
   ];
   const settingsCardClass = "rounded-[1.9rem] border border-slate-200/90 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)]";
@@ -441,8 +441,8 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
     <div className="space-y-6">
       <div className="hidden">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">ParamÃ¨tres</h1>
-          <p className="text-slate-500 mt-1">Gerez ici vos reseaux sociaux, votre quotidien, vos contacts, la FAQ et le support.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Paramètres</h1>
+          <p className="text-slate-500 mt-1">Gérez ici vos réseaux sociaux, votre quotidien, vos contacts, la FAQ et le support.</p>
         </div>
         <div className="flex items-center gap-2">
           {profile.canAccessAdmin && (
@@ -467,7 +467,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
       </div>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 [&>*]:border-emerald-100 [&>*]:font-semibold [&>*]:shadow-sm [&>*]:transition [&>*]:hover:-translate-y-0.5 [&>*]:hover:border-emerald-200 [&>*]:hover:bg-emerald-50">
-        <Link href="/dashboard/settings/channels" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Connexion rÃ©seaux sociaux</Link>
+        <Link href="/dashboard/settings/channels" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Connexion réseaux sociaux</Link>
         <Link href="/dashboard/events" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Gestion du quotidien</Link>
         <Link href="/help" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">FAQ</Link>
         <button type="button" onClick={() => setActiveSection("contacts")} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50">Ajoutez mes contacts</button>
@@ -480,7 +480,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
       </div>
 
       <div className="flex gap-6">
-        {/* Nav latÃ©rale */}
+        {/* Nav latérale */}
         <nav className="w-48 flex-shrink-0 space-y-1">
           {navItems.map((item) => (
             <button
@@ -502,7 +502,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
             className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left text-slate-600 hover:bg-slate-100"
           >
             <Share2 className="size-4" />
-            RÃ©seaux sociaux
+            Réseaux sociaux
           </Link>
         </nav>
 
@@ -521,13 +521,13 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                   {[
                     {
                       value: "simple" as const,
-                      title: "Mode simplifiÃ©",
+                      title: "Mode simplifié",
                       description: "Assistant conversationnel en page principale, avec boutons d'action sur le compte.",
                     },
                     {
                       value: "detailed" as const,
-                      title: "Mode dÃ©taillÃ©",
-                      description: "Interface experte avec historique, sections et rÃ©glages complets.",
+                      title: "Mode détaillé",
+                      description: "Interface experte avec historique, sections et réglages complets.",
                     },
                   ].map((option) => (
                     <button
@@ -559,13 +559,13 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
             </Card>
           )}
 
-          {/* Section communautÃ© */}
+          {/* Section communauté */}
           {activeSection === "community" && (
             <Card className={settingsCardClass}>
               <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Building2 className="size-4" />
-                  Informations de la communautÃ©
+                  Informations de la communauté
                 </CardTitle>
               </CardHeader>
               <CardContent className={settingsContentClass}>
@@ -596,7 +596,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={3}
-                    placeholder="PrÃ©sentez votre communautÃ© en quelques motsâ€¦"
+                    placeholder="Présentez votre communauté en quelques mots..."
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-y"
                   />
                 </div>
@@ -635,7 +635,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">TÃ©lÃ©phone</label>
+                    <label className="text-sm font-medium text-slate-700">Téléphone</label>
                     <input
                       type="tel"
                       value={phone}
@@ -670,14 +670,14 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
               <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Users className="size-4" />
-                  Contacts de la communautÃ©
+                  Contacts de la communauté
                 </CardTitle>
               </CardHeader>
               <CardContent className={settingsContentClass}>
                 <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
                   Ces contacts sont les membres destinataires des messages WhatsApp et emails.
-                  Ils ne sont pas administrateurs et n&apos;ont pas accÃ¨s au dashboard. Vous pouvez
-                  aussi renseigner leur profession, Ã¢ge, ville et notes pour mieux personnaliser les communications.
+                  Ils ne sont pas administrateurs et n&apos;ont pas accès au dashboard. Vous pouvez
+                  aussi renseigner leur profession, âge, ville et notes pour mieux personnaliser les communications.
                 </div>
 
                 {memberError && (
@@ -705,7 +705,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                     type="tel"
                     value={memberPhone}
                     onChange={(event) => setMemberPhone(event.target.value)}
-                    placeholder="TÃ©lÃ©phone WhatsApp"
+                    placeholder="Téléphone WhatsApp"
                     className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                   <input
@@ -720,7 +720,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                     min="0"
                     value={memberAge}
                     onChange={(event) => setMemberAge(event.target.value)}
-                    placeholder="Ã‚ge"
+                    placeholder="Âge"
                     className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                   <input
@@ -740,7 +740,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                   <textarea
                     value={memberNotes}
                     onChange={(event) => setMemberNotes(event.target.value)}
-                    placeholder="Notes utiles : centres d'intÃ©rÃªt, prÃ©fÃ©rences, informations de suiviâ€¦"
+                    placeholder="Notes utiles : centres d'intérêt, préférences, informations de suivi..."
                     rows={2}
                     className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 lg:col-span-2"
                   />
@@ -762,12 +762,12 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                     <p className="text-sm font-semibold text-slate-900">
                       {members.length} membre{members.length > 1 ? "s" : ""}
                     </p>
-                    {membersLoading && <span className="text-xs text-slate-400">Chargementâ€¦</span>}
+                    {membersLoading && <span className="text-xs text-slate-400">Chargement...</span>}
                   </div>
                   <div className="divide-y divide-slate-100">
                     {members.length === 0 && !membersLoading ? (
                       <p className="px-4 py-8 text-center text-sm text-slate-400">
-                        Aucun contact enregistrÃ© pour le moment.
+                        Aucun contact enregistré pour le moment.
                       </p>
                     ) : (
                       members.map((member) => (
@@ -775,12 +775,12 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium text-slate-900">{member.displayName}</p>
                             <p className="truncate text-xs text-slate-500">
-                              {[member.email, member.phone].filter(Boolean).join(" Â· ") || "Contact sans canal"}
+                              {[member.email, member.phone].filter(Boolean).join(" · ") || "Contact sans canal"}
                             </p>
                             <p className="mt-1 line-clamp-2 text-xs text-slate-400">
                               {[member.profession, member.age ? `${member.age} ans` : null, member.city, member.familyStatus]
                                 .filter(Boolean)
-                                .join(" Â· ") || "Profil Ã  complÃ©ter"}
+                                .join(" · ") || "Profil à compléter"}
                               {member.notes ? ` - ${member.notes}` : ""}
                             </p>
                           </div>
@@ -806,13 +806,13 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
             </Card>
           )}
 
-          {/* Section Ã©ditoriale */}
+          {/* Section éditoriale */}
           {activeSection === "editorial" && (
             <Card className={settingsCardClass}>
               <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Palette className="size-4" />
-                  IdentitÃ© Ã©ditoriale
+                  Identité éditoriale
                 </CardTitle>
               </CardHeader>
               <CardContent className={settingsContentClass}>
@@ -849,34 +849,34 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                     type="text"
                     value={signature}
                     onChange={(e) => setSignature(e.target.value)}
-                    placeholder="- Votre communautÃ©"
+                    placeholder="- Votre communauté"
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
 
                 {/* Hashtags */}
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Hashtags par dÃ©faut</label>
+                  <label className="text-sm font-medium text-slate-700">Hashtags par défaut</label>
                   <input
                     type="text"
                     value={hashtags}
                     onChange={(e) => setHashtags(e.target.value)}
-                    placeholder="#shabbat #communautÃ© #judaisme"
+                    placeholder="#shabbat #communauté #judaisme"
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
-                  <p className="text-xs text-slate-400">SÃ©parez les hashtags par des espaces</p>
+                  <p className="text-xs text-slate-400">Séparez les hashtags par des espaces</p>
                 </div>
 
-                {/* RÃ¨gles Ã©ditoriales */}
+                {/* Règles éditoriales */}
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">
-                    RÃ¨gles Ã©ditoriales <span className="text-slate-400 font-normal">(instructions pour l&apos;IA)</span>
+                    Règles éditoriales <span className="text-slate-400 font-normal">(instructions pour l&apos;IA)</span>
                   </label>
                   <textarea
                     value={editorialRules}
                     onChange={(e) => setEditorialRules(e.target.value)}
                     rows={4}
-                    placeholder="Ex: Toujours inclure les horaires prÃ©cis, utiliser le terme 'Chabbat' et non 'Sabbat', ne pas mentionner les billets de loterieâ€¦"
+                    placeholder="Ex : toujours inclure les horaires précis, utiliser le terme 'Chabbat' et non 'Sabbat', ne pas mentionner les billets de loterie..."
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-y"
                   />
                 </div>
@@ -910,7 +910,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                       {
                         value: "manual" as const,
                         title: "Validation manuelle",
-                        description: "RecommandÃ© : l'IA prÃ©pare le message, puis vous validez avant l'envoi.",
+                        description: "Recommandé : l'IA prépare le message, puis vous validez avant l'envoi.",
                       },
                       {
                         value: "automatic" as const,
@@ -960,22 +960,22 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                       <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white">
                         {logoUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={logoUrl} alt="Logo de la communautÃ©" className="h-full w-full object-contain p-2" />
+                          <img src={logoUrl} alt="Logo de la communauté" className="h-full w-full object-contain p-2" />
                         ) : (
                           <ImageIcon className="size-7 text-slate-400" />
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-slate-900">Logo de la communautÃ©</p>
+                        <p className="text-sm font-semibold text-slate-900">Logo de la communauté</p>
                         <p className="mt-1 text-sm text-slate-500">
-                          Ce logo sera utilisÃ© pour personnaliser votre profil, vos contenus et votre espace.
+                          Ce logo sera utilisé pour personnaliser votre profil, vos contenus et votre espace.
                         </p>
                       </div>
                     </div>
 
                     <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
                       {logoUploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-                      {logoUploading ? "TÃ©lÃ©versement..." : "Changer le logo"}
+                      {logoUploading ? "Téléversement..." : "Changer le logo"}
                       <input
                         type="file"
                         accept="image/*"
@@ -998,7 +998,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">MÃ©thodes de connexion</label>
+                  <label className="text-sm font-medium text-slate-700">Méthodes de connexion</label>
                   <div className="flex flex-wrap gap-2">
                     {authProviders.map((provider) => (
                       <Badge key={provider} variant="secondary" className="capitalize">
@@ -1007,7 +1007,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                     ))}
                   </div>
                   <p className="text-xs text-slate-400">
-                    Si vous utilisez Google, vous pouvez aussi dÃ©finir un mot de passe ci-dessous pour vous connecter avec la mÃªme adresse email.
+                    Si vous utilisez Google, vous pouvez aussi définir un mot de passe ci-dessous pour vous connecter avec la même adresse email.
                   </p>
                 </div>
 
@@ -1030,7 +1030,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                     className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-500 cursor-not-allowed"
                   />
                   <p className="text-xs text-slate-400">
-                    L&apos;email est gÃ©rÃ© par votre fournisseur d&apos;authentification.
+                    L&apos;email est géré par votre fournisseur d&apos;authentification.
                   </p>
                 </div>
 
@@ -1045,7 +1045,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                   <div className="space-y-1">
                     <h3 className="text-sm font-semibold text-slate-900">Connexion Google</h3>
                     <p className="text-sm text-slate-500">
-                      Connectez votre compte Google pour centraliser la rÃ©ception et la gestion de vos e-mails et fiches d&apos;Ã©tablissement.
+                      Connectez votre compte Google pour centraliser la réception et la gestion de vos e-mails et fiches d&apos;établissement.
                     </p>
                   </div>
                   <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -1057,8 +1057,8 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                         <p className="text-sm font-semibold text-slate-900">Google Email & Business</p>
                         <p className="text-xs text-slate-500">
                           {googleConnected
-                            ? `ConnectÃ© Ã  : ${googleEmailAddress}`
-                            : "Non connectÃ©"}
+                            ? `Connecté à : ${googleEmailAddress}`
+                            : "Non connecté"}
                         </p>
                       </div>
                     </div>
@@ -1067,7 +1067,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                       size="sm"
                       onClick={handleConnectGoogle}
                     >
-                      {googleConnected ? "DÃ©connecter" : "Connecter mon compte Google"}
+                      {googleConnected ? "Déconnecter" : "Connecter mon compte Google"}
                     </Button>
                   </div>
                 </div>
@@ -1077,7 +1077,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="size-4 text-slate-500" />
                       <h3 className="text-sm font-semibold text-slate-900">
-                        DÃ©finir ou modifier le mot de passe
+                        Définir ou modifier le mot de passe
                       </h3>
                     </div>
                     <p className="text-sm text-slate-500">
@@ -1105,7 +1105,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         autoComplete="new-password"
-                        placeholder="8 caractÃ¨res minimum"
+                        placeholder="8 caractères minimum"
                         className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       />
                     </div>
@@ -1117,7 +1117,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         autoComplete="new-password"
-                        placeholder="RÃ©pÃ©tez le mot de passe"
+                        placeholder="Répétez le mot de passe"
                         className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       />
                     </div>
@@ -1136,4 +1136,3 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
     </div>
   );
 }
-

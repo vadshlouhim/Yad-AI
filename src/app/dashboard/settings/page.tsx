@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SettingsGeneralClient } from "@/components/settings/settings-general-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Parametres - EasyCom AI" };
+export const metadata: Metadata = { title: "Paramètres - EasyCom AI" };
 
 type SettingsSection = "community" | "contacts" | "editorial" | "profile";
 
@@ -52,10 +52,10 @@ export default async function SettingsPage({
       <section className="overflow-hidden rounded-[1.75rem] border border-emerald-200 bg-emerald-700 shadow-[0_20px_48px_rgba(6,95,70,0.16)]">
         <div className="bg-[linear-gradient(135deg,#047857,#059669,#10b981)] px-6 py-7 text-white sm:px-8">
           <div className="max-w-3xl">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-50">Parametres</p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight">Parametres</h1>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-50">Paramètres</p>
+            <h1 className="mt-3 text-3xl font-black tracking-tight">Paramètres</h1>
             <p className="mt-3 text-sm leading-6 text-emerald-50">
-              Gerez ici vos reseaux sociaux, votre quotidien, vos contacts, la FAQ et le support.
+              Gérez ici vos réseaux sociaux, votre quotidien, vos contacts, la FAQ et le support.
             </p>
           </div>
         </div>
