@@ -20,6 +20,7 @@ interface ChannelAdaptation {
   channelType: string;
   body: string;
   hashtags: string[];
+  imageUrl?: string | null;
 }
 
 interface Publication {
@@ -38,6 +39,7 @@ interface Draft {
   title: string | null;
   body: string;
   hashtags: string[];
+  imageUrl?: string | null;
   status: string;
   contentType: string;
   aiGenerated: boolean;
@@ -183,6 +185,7 @@ export function ContentDetailClient({ draft, community, quickValidate = false }:
   }
 
   const currentAdaptation = draft.channelAdaptations.find((a) => a.channelType === activeAdaptation);
+  const activeImageUrl = currentAdaptation?.imageUrl ?? draft.imageUrl ?? null;
   const iaEditPrompt = encodeURIComponent(
     `Modifie ce message pour qu'il soit pret a envoyer, avec mon style habituel:\\n\\n${body}`,
   );
@@ -325,6 +328,17 @@ export function ContentDetailClient({ draft, community, quickValidate = false }:
               )}
 
               {/* Corps */}
+              {activeImageUrl && (
+                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={activeImageUrl}
+                    alt={activeAdaptation ? `Visuel ${CHANNEL_LABELS[activeAdaptation]}` : "Visuel du brouillon"}
+                    className="h-auto w-full object-cover"
+                  />
+                </div>
+              )}
+
               <div className="relative">
                 <textarea
                   value={activeAdaptation && currentAdaptation ? currentAdaptation.body : body}

@@ -34,7 +34,7 @@ export default async function ManualPublishPage({ params }: Props) {
   const type = platform.toUpperCase();
   const { data: channel } = await admin
     .from("Channel")
-    .select("isConnected")
+    .select("id, isConnected")
     .eq("communityId", communityId)
     .eq("type", type)
     .maybeSingle();
@@ -52,6 +52,7 @@ export default async function ManualPublishPage({ params }: Props) {
     <div className="container max-w-6xl mx-auto py-6">
       <ManualPublishClient
         platform={platform}
+        channelId={channel?.id ?? null}
         isConnected={isConnected}
         communityName={communityName}
       />

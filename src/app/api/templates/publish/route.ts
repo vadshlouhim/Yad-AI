@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { adaptContentForChannel } from "@/lib/ai/engine";
 import { publishToChannel } from "@/lib/publishing/publisher";
 import type { Tables } from "@/types/database.types";
 
@@ -55,9 +56,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Aucun canal valide sélectionné" }, { status: 400 });
     }
 
+    const sourceContent = title ? `${title}\n\n${caption}` : caption;
+    const adaptedChannels = await Promise.all(
+      channels.map(async (channel) => {
+        try {
+          const adapted = await adaptContentForChannel({
+            communityId: profile.communityId,
+            originalContent: sourceContent,
+            targetChannel: channel.type,
+          });
+
+          return {
+            channel,
+            content: adapted.body?.trim() || caption,
+            hashtags: adapted.hashtags ?? [],
+            cta: adapted.cta ?? null,
+          };
+        } catch (error) {
+          console.error("[Templates Publish] Adaptation fallback", channel.type, error);
+          return {
+            channel,
+            content: caption,
+            hashtags: [],
+            cta: null,
+          };
+        }
+      })
+    );
+
     const publications: Publication[] = [];
 
-    for (const channel of channels) {
+    for (const { channel, content, hashtags, cta } of adaptedChannels) {
       const { data: publication } = await admin
         .from("Publication")
         .insert({
@@ -67,8 +96,14 @@ export async function POST(request: Request) {
           eventId: null,
           channelId: channel.id,
           channelType: channel.type,
-          content: title ? `**${title}**\n\n${caption}` : caption,
+          content,
           mediaUrls: [imageUrl],
+          metadata: {
+            title: title ?? null,
+            hashtags,
+            cta,
+            source: "template_poster",
+          },
           status: "PENDING",
           scheduledAt: null,
           updatedAt: new Date().toISOString(),

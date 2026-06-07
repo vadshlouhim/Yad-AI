@@ -238,6 +238,43 @@ function removeAsterisks(value: string) {
   return value.replace(/\*/g, "");
 }
 
+function extractQuotedField(raw: string, field: string) {
+  const match = raw.match(new RegExp(`"${field}"\\s*:\\s*"([\\s\\S]*?)"(?=\\s*,\\s*"|\\s*\\})`));
+  return match?.[1]
+    ?.replace(/\\"/g, "\"")
+    .replace(/\\n/g, "\n")
+    .trim();
+}
+
+function extractHashtagsField(raw: string) {
+  const match = raw.match(/"hashtags"\s*:\s*\[([\s\S]*?)\]/);
+  if (!match) return [] as string[];
+
+  return Array.from(match[1].matchAll(/#?[A-Za-zÀ-ÿ0-9_/-]+/g))
+    .map((entry) => entry[0].trim())
+    .filter(Boolean)
+    .map((tag) => (tag.startsWith("#") ? tag : `#${tag}`));
+}
+
+function extractGeneratedContentFromRaw(raw: string): GeneratedContent | null {
+  const body = extractQuotedField(raw, "body");
+  const bodyHebrew = extractQuotedField(raw, "bodyHebrew");
+  const cta = extractQuotedField(raw, "cta");
+  const hashtags = extractHashtagsField(raw);
+
+  if (!body && !bodyHebrew) {
+    return null;
+  }
+
+  return {
+    body: body ?? "",
+    bodyHebrew: bodyHebrew || undefined,
+    hashtags,
+    cta: cta || undefined,
+    raw,
+  };
+}
+
 function sanitizeGeneratedContent(content: GeneratedContent): GeneratedContent {
   return {
     ...content,
@@ -318,6 +355,11 @@ export async function generateContent(params: {
     }
   } catch {}
 
+  const recovered = extractGeneratedContentFromRaw(rawContent);
+  if (recovered) {
+    return sanitizeGeneratedContent(recovered);
+  }
+
   return sanitizeGeneratedContent({ body: rawContent, hashtags: community.hashtags ?? [], raw: rawContent });
 }
 
@@ -361,6 +403,11 @@ export async function adaptContentForChannel(params: {
     const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
     if (jsonMatch) return sanitizeGeneratedContent(JSON.parse(jsonMatch[0]) as GeneratedContent);
   } catch {}
+
+  const recovered = extractGeneratedContentFromRaw(rawContent);
+  if (recovered) {
+    return sanitizeGeneratedContent(recovered);
+  }
 
   return sanitizeGeneratedContent({ body: rawContent, hashtags: [], raw: rawContent });
 }

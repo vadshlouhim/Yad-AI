@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  ArrowLeft, CheckCircle, AlertTriangle, Send, Copy, Sparkles, RefreshCw, Eye, Heart, MessageCircle
+  ArrowLeft, CheckCircle, AlertTriangle, Send, Copy, Sparkles, RefreshCw, Eye, Heart, MessageCircle, Wand2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -91,11 +91,23 @@ const CHANNEL_SHARED_DESCRIPTION =
 
 interface Props {
   platform: string;
+  channelId: string | null;
   isConnected: boolean;
   communityName: string;
 }
 
-export function ManualPublishClient({ platform, isConnected, communityName }: Props) {
+type SuggestedTemplate = {
+  id: string;
+  name: string;
+  category: string;
+  reason: string;
+  thumbnailUrl: string | null;
+  previewUrl: string | null;
+};
+
+type GeneratedTexts = Record<string, string>;
+
+export function ManualPublishClient({ platform, channelId, isConnected, communityName }: Props) {
   const router = useRouter();
   const platformKey = platform.toUpperCase();
   const brand = BRAND_STYLES[platformKey] ?? BRAND_STYLES.EMAIL;
@@ -107,6 +119,11 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [successData, setSuccessData] = useState<{ show: boolean; fallbackText?: string } | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<SuggestedTemplate | null>(null);
+  const [generatedTexts, setGeneratedTexts] = useState<GeneratedTexts>({});
+  const [posterEditPrompt, setPosterEditPrompt] = useState("");
+  const [posterEditLoading, setPosterEditLoading] = useState(false);
 
   // Character counters limits
   const charLimit = platformKey === "WHATSAPP" ? 4096 : platformKey === "TELEGRAM" ? 4096 : undefined;
@@ -115,17 +132,31 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
     if (!aiPrompt.trim()) return;
     setAiLoading(true);
     try {
-      const res = await fetch("/api/ai/generate-content", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contentType: "GENERAL",
-          instructions: `Redige une publication pour ${brand.label}. ${aiPrompt}`,
-        }),
-      });
+      const isInstagram = platformKey === "INSTAGRAM";
+      const res = await fetch(
+        isInstagram ? "/api/publishing/instagram/generate" : "/api/ai/generate-content",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            isInstagram
+              ? { prompt: aiPrompt }
+              : {
+                  contentType: "GENERAL",
+                  instructions: `Redige une publication pour ${brand.label}. ${aiPrompt}`,
+                }
+          ),
+        }
+      );
       const data = await res.json();
       if (data.body) {
         setText(data.body);
+        if (isInstagram) {
+          setTitle(data.title ?? "");
+          setImageUrl(data.imageUrl ?? null);
+          setSelectedTemplate(data.template ?? null);
+          setGeneratedTexts(data.generatedTexts ?? {});
+        }
         setAiPrompt("");
       } else if (data.error) {
         alert(data.error);
@@ -144,19 +175,33 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/publishing/manual-post", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title || undefined,
-          text,
-          channelType: platformKey,
-        }),
-      });
+      const isInstagramWithImage = platformKey === "INSTAGRAM" && imageUrl && channelId;
+      const res = await fetch(
+        isInstagramWithImage ? "/api/templates/publish" : "/api/publishing/manual-post",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            isInstagramWithImage
+              ? {
+                  imageUrl,
+                  caption: text,
+                  title: title || undefined,
+                  channelIds: [channelId],
+                }
+              : {
+                  title: title || undefined,
+                  text,
+                  channelType: platformKey,
+                }
+          ),
+        }
+      );
       const data = await res.json();
       if (res.ok) {
-        // If WhatsApp or Email, they might be in FALLBACK_READY status
-        const isFallback = data.publications?.[0]?.status === "FALLBACK_READY";
+        const firstResult = Array.isArray(data.results) ? data.results[0] : data.publishResult;
+        const isFallback =
+          data.publications?.[0]?.status === "FALLBACK_READY" || Boolean(firstResult?.fallbackUsed);
         setSuccessData({
           show: true,
           fallbackText: isFallback ? text : undefined,
@@ -168,6 +213,39 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
       alert("Erreur reseau lors de la publication.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handlePosterEdit() {
+    if (platformKey !== "INSTAGRAM" || !selectedTemplate || !posterEditPrompt.trim()) {
+      return;
+    }
+
+    setPosterEditLoading(true);
+    try {
+      const response = await fetch("/api/publishing/instagram/edit-poster", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId: selectedTemplate.id,
+          generatedTexts,
+          caption: text,
+          editPrompt: posterEditPrompt,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Impossible de modifier l'affiche.");
+      }
+
+      setImageUrl(data.imageUrl ?? null);
+      setGeneratedTexts(data.generatedTexts ?? generatedTexts);
+      setPosterEditPrompt("");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Impossible de modifier l'affiche.");
+    } finally {
+      setPosterEditLoading(false);
     }
   }
 
@@ -241,11 +319,11 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
           <Card className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-blue-100/30">
             <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
               <Sparkles className="size-4 text-blue-600 animate-pulse" />
-              Generer le message avec l&apos;IA EasyCom
+              Générer le message avec l&apos;IA EasyCom
             </h2>
             <div className="flex gap-2">
               <input
-                placeholder={platformKey === "INSTAGRAM" ? "Ex: Redige une annonce chaleureuse pour notre evenement de dimanche soir..." : "Ex: Redige une annonce pour la Kabalat Chabbat de ce soir a 18h..."}
+                placeholder={platformKey === "INSTAGRAM" ? "Ex: Prépare un post Instagram pour notre soirée de dimanche et choisis une affiche adaptée..." : "Ex: Redige une annonce pour la Kabalat Chabbat de ce soir a 18h..."}
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAIGenerate()}
@@ -257,10 +335,35 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
                 className="bg-blue-600 text-white hover:bg-blue-700 rounded-2xl cursor-pointer"
               >
                 {aiLoading ? <RefreshCw className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-                <span className="hidden sm:inline ml-1.5">Generer</span>
+                <span className="hidden sm:inline ml-1.5">Générer</span>
               </Button>
             </div>
           </Card>
+
+          {platformKey === "INSTAGRAM" && selectedTemplate && (
+            <Card className="rounded-3xl border border-pink-100 bg-gradient-to-br from-white to-pink-50 p-5 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="h-24 w-24 overflow-hidden rounded-2xl border border-pink-100 bg-white shadow-sm">
+                  {imageUrl || selectedTemplate.previewUrl || selectedTemplate.thumbnailUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={imageUrl || selectedTemplate.previewUrl || selectedTemplate.thumbnailUrl || ""}
+                      alt={selectedTemplate.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : null}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold uppercase tracking-wide text-pink-500">Affiche sélectionnée</p>
+                  <h3 className="mt-1 text-base font-bold text-slate-900">{selectedTemplate.name}</h3>
+                  <p className="mt-1 text-sm text-slate-600">{selectedTemplate.reason}</p>
+                  <p className="mt-2 text-xs text-slate-400">
+                    L&apos;affiche a été choisie automatiquement depuis la bibliothèque et adaptée au thème.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {platformKey === "INSTAGRAM" && (
             <Link href="/dashboard/automations">
@@ -276,7 +379,46 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
 
 
           <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-blue-100/30 space-y-5">
-            <h2 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">{platformKey === "INSTAGRAM" ? "Message Instagram retravaille par l'IA" : "Details de la publication"}</h2>
+            <h2 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">{platformKey === "INSTAGRAM" ? "Message Instagram retravaillé par l'IA" : "Details de la publication"}</h2>
+
+            {platformKey === "INSTAGRAM" && imageUrl && (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Affiche générée</label>
+                <div className="overflow-hidden rounded-3xl border border-pink-100 bg-slate-50 shadow-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imageUrl} alt="Affiche Instagram générée" className="h-auto w-full object-cover" />
+                </div>
+                </div>
+
+                <div className="rounded-3xl border border-pink-100 bg-gradient-to-br from-white to-rose-50 p-4 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <Wand2 className="size-4 text-pink-600" />
+                    <p className="text-sm font-bold text-slate-900">Modifier l&apos;affiche avec l&apos;IA</p>
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Décrivez simplement la modification souhaitée. L&apos;IA garde la même direction artistique et ajuste le visuel.
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <input
+                      value={posterEditPrompt}
+                      onChange={(e) => setPosterEditPrompt(e.target.value)}
+                      placeholder="Ex: rends le titre plus percutant, ajoute un ton plus festif, raccourcis le sous-texte..."
+                      className="flex h-10 w-full rounded-2xl border border-pink-100 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:ring-offset-2"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handlePosterEdit}
+                      disabled={posterEditLoading || !posterEditPrompt.trim()}
+                      className="rounded-2xl bg-pink-600 text-white hover:bg-pink-700"
+                    >
+                      {posterEditLoading ? <RefreshCw className="size-4 animate-spin" /> : <Wand2 className="size-4" />}
+                      <span className="hidden sm:inline ml-1.5">Adapter</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {platformKey === "EMAIL" && (
               <div className="space-y-1.5">
@@ -324,7 +466,7 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
 
               <Button
                 onClick={handlePublish}
-                disabled={loading || !text.trim() || !isConnected}
+                disabled={loading || !text.trim() || !isConnected || (platformKey === "INSTAGRAM" && !imageUrl)}
                 className={cn("rounded-2xl text-white font-bold cursor-pointer px-6", brand.bg, "hover:opacity-90")}
               >
                 {loading ? <RefreshCw className="size-4 animate-spin mr-1.5" /> : <Send className="size-4 mr-1.5" />}
@@ -383,14 +525,21 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
                   <span className="text-xs font-bold text-slate-800">...</span>
                 </div>
 
-                {/* Instagram Photo placeholder */}
-                <div className="w-full aspect-square bg-slate-100 flex flex-col items-center justify-center border-b border-slate-100">
-                  <svg className="size-10 text-slate-300" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21 15 16 10 5 21" />
-                  </svg>
-                  <p className="text-[10px] text-slate-400 mt-2 font-medium">Image de l&apos;evenement</p>
+                {/* Instagram Photo */}
+                <div className="w-full aspect-square overflow-hidden border-b border-slate-100 bg-slate-100">
+                  {imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={imageUrl} alt="Prévisualisation Instagram" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full flex-col items-center justify-center">
+                      <svg className="size-10 text-slate-300" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                      </svg>
+                      <p className="text-[10px] text-slate-400 mt-2 font-medium">Affiche pertinente générée par l&apos;IA</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Instagram Actions */}
@@ -535,4 +684,3 @@ export function ManualPublishClient({ platform, isConnected, communityName }: Pr
     </div>
   );
 }
-

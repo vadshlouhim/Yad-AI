@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
   const { data: draft } = await admin
     .from("ContentDraft")
-    .select("*")
+    .select("*, event:Event(coverImageUrl)")
     .eq("id", draftId)
     .eq("communityId", profile.communityId)
     .single();
@@ -39,6 +39,7 @@ export async function POST(request: Request) {
           body: adapted.body,
           hashtags: adapted.hashtags ?? [],
           cta: adapted.cta ?? null,
+          imageUrl: resolveAdaptationImageUrl(draft, channelType),
           updatedAt: new Date().toISOString(),
         },
         { onConflict: "draftId,channelType" }
@@ -49,4 +50,18 @@ export async function POST(request: Request) {
   );
 
   return NextResponse.json({ adaptations: results });
+}
+
+function resolveAdaptationImageUrl(
+  draft: {
+    imageUrl?: string | null;
+    event?: { coverImageUrl?: string | null } | null;
+  },
+  channelType: string
+) {
+  if (!["INSTAGRAM", "FACEBOOK", "TELEGRAM", "WHATSAPP"].includes(channelType)) {
+    return null;
+  }
+
+  return draft.imageUrl ?? draft.event?.coverImageUrl ?? null;
 }

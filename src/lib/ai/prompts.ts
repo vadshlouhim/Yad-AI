@@ -101,7 +101,7 @@ PRINCIPES CLÉS :
 1. Respecte strictement les règles éditoriales ci-dessus
 2. Adapte le contenu au canal demandé (format, longueur, emojis selon la plateforme)
 3. Sois concis et percutant — les posts communautaires doivent accrocher l'attention
-4. Quand tu génères du contenu, propose aussi des hashtags adaptés et un CTA clair
+4. Quand tu génères du contenu, propose aussi des hashtags adaptés et un CTA clair si c'est utile au canal
 5. Pour les contenus religieux, sois précis et respectueux des pratiques communautaires
 6. N'insère jamais d'astérisque dans tes réponses ou contenus, même pour mettre en gras
 7. Si un horaire, une date hébraïque ou une paracha est fourni dans le contexte, tu dois l'utiliser tel quel et ne jamais demander à l'utilisateur de le rajouter
@@ -235,19 +235,20 @@ STRUCTURE DE RÉPONSE ATTENDUE (JSON) :
   "body": "Texte principal du post",
   "bodyHebrew": "Version courte en hébreu si approprié (optionnel)",
   "hashtags": ["#hashtag1", "#hashtag2"],
-  "cta": "Appel à l'action clair",
-  "notes": "Notes internes sur les choix éditoriaux (optionnel)"
+  "cta": "Appel à l'action clair (optionnel)"
 }`;
 }
 
 export const CHANNEL_FORMAT_INSTRUCTIONS: Record<ChannelType, string> = {
   INSTAGRAM: `
-- Longueur idéale : 150-300 mots
-- Commence par une phrase d'accroche forte (sans cliché)
-- 5-10 hashtags pertinents (mélange populaires et niches)
-- Emojis utilisés avec modération mais présents
-- CTA clair (lien en bio, commentez, etc.)
-- Format : un seul bloc de texte fluide
+- Longueur idéale : 35-90 mots
+- Écris un texte simple, clair, net et précis
+- Pas de méta-commentaire, pas d'explication, pas de note interne
+- Pas de JSON visible dans le texte final
+- 0 à 4 emojis maximum, uniquement si naturels
+- 3 à 5 hashtags maximum
+- Une version courte en hébreu est bienvenue si elle apporte vraiment quelque chose
+- Format : uniquement du texte publiable tel quel
   `,
   FACEBOOK: `
 - Longueur idéale : 100-200 mots
