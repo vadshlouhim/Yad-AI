@@ -78,8 +78,12 @@ export async function GET(request: Request, { params }: RouteParams) {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
 
-  const appId = process.env.META_APP_ID ?? process.env.FACEBOOK_APP_ID;
-  const appSecret = process.env.META_APP_SECRET ?? process.env.FACEBOOK_APP_SECRET;
+  const appId = provider === "instagram"
+    ? (process.env.INSTAGRAM_APP_ID ?? process.env.META_APP_ID ?? process.env.FACEBOOK_APP_ID)
+    : (process.env.META_APP_ID ?? process.env.FACEBOOK_APP_ID);
+  const appSecret = provider === "instagram"
+    ? (process.env.INSTAGRAM_APP_SECRET ?? process.env.META_APP_SECRET ?? process.env.FACEBOOK_APP_SECRET)
+    : (process.env.META_APP_SECRET ?? process.env.FACEBOOK_APP_SECRET);
 
   // Lire + supprimer le cookie en une seule fois
   const cookieStore = await cookies();
@@ -179,9 +183,24 @@ export async function GET(request: Request, { params }: RouteParams) {
       ? new Date(Date.now() + longLived.expires_in * 1000).toISOString()
       : null;
 
+    const { data: existingChannel } = await admin
+      .from("Channel")
+      .select("id, settings")
+      .eq("communityId", communityId)
+      .eq("type", type)
+      .maybeSingle();
+
+    const mergedSettings = {
+      ...(existingChannel?.settings && typeof existingChannel.settings === "object" ? existingChannel.settings : {}),
+      metaPageId: selectedPage.id,
+      metaPageName: selectedPage.name,
+      metaUserToken: longLived.access_token,
+      provider,
+    };
+
     await admin.from("Channel").upsert(
       {
-        id: crypto.randomUUID(),
+        id: existingChannel?.id ?? crypto.randomUUID(),
         communityId,
         type,
         name: CHANNEL_LABELS[type],
@@ -194,11 +213,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         isActive: true,
         lastSyncAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        settings: {
-          metaPageId: selectedPage.id,
-          metaPageName: selectedPage.name,
-          provider,
-        },
+        settings: mergedSettings,
       },
       { onConflict: "communityId,type" }
     );

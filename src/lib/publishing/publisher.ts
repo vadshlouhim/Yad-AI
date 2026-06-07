@@ -41,6 +41,7 @@ export async function publishToChannel(
     const payload: PublishPayload = {
       content: publication.content,
       mediaUrls: publication.mediaUrls ?? undefined,
+      hashtags: extractHashtags(publication.metadata),
     };
 
     let result: PublishResult;
@@ -176,7 +177,11 @@ export async function createPublicationsFromDraft(params: {
   const supabase = createAdminClient();
 
   const [{ data: draft }, { data: channels }] = await Promise.all([
-    supabase.from("ContentDraft").select("*, channelAdaptations:ChannelAdaptation(*)").eq("id", draftId).single(),
+    supabase
+      .from("ContentDraft")
+      .select("*, event:Event(coverImageUrl), channelAdaptations:ChannelAdaptation(*)")
+      .eq("id", draftId)
+      .single(),
     supabase.from("Channel").select("*").in("id", channelIds).eq("communityId", communityId),
   ]);
 
@@ -185,9 +190,17 @@ export async function createPublicationsFromDraft(params: {
   const publications: Publication[] = [];
 
   for (const channel of channels ?? []) {
-    const adaptation = (draft.channelAdaptations as Array<{ channelType: string; body: string }>)?.find(
+    const adaptation = (draft.channelAdaptations as Array<{
+      channelType: string;
+      body: string;
+      hashtags?: string[];
+      imageUrl?: string | null;
+      metadata?: Record<string, unknown> | null;
+    }>)?.find(
       (a) => a.channelType === channel.type
     );
+    const mediaUrls = resolvePublicationMediaUrls(draft, adaptation);
+    const hashtags = resolvePublicationHashtags(draft, adaptation);
 
     const { data: pub } = await supabase
       .from("Publication")
@@ -199,7 +212,8 @@ export async function createPublicationsFromDraft(params: {
         channelId: channel.id,
         channelType: channel.type,
         content: adaptation?.body ?? draft.body,
-        mediaUrls: [],
+        mediaUrls,
+        metadata: hashtags.length > 0 ? { hashtags } : null,
         status: scheduledAt ? "SCHEDULED" : "PENDING",
         scheduledAt: scheduledAt?.toISOString() ?? null,
         updatedAt: new Date().toISOString(),
@@ -211,4 +225,49 @@ export async function createPublicationsFromDraft(params: {
   }
 
   return publications;
+}
+
+function resolvePublicationMediaUrls(
+  draft: {
+    imageUrl?: string | null;
+    event?: { coverImageUrl?: string | null } | null;
+  },
+  adaptation?: { imageUrl?: string | null; metadata?: Record<string, unknown> | null }
+): string[] {
+  const metadataImageUrl =
+    adaptation?.metadata && typeof adaptation.metadata === "object" && typeof adaptation.metadata.imageUrl === "string"
+      ? adaptation.metadata.imageUrl
+      : null;
+
+  return [adaptation?.imageUrl, metadataImageUrl, draft.imageUrl, draft.event?.coverImageUrl]
+    .filter((value): value is string => typeof value === "string" && value.length > 0);
+}
+
+function resolvePublicationHashtags(
+  draft: { hashtags?: string[] | null },
+  adaptation?: { hashtags?: string[] | null }
+): string[] {
+  if (Array.isArray(adaptation?.hashtags) && adaptation.hashtags.length > 0) {
+    return adaptation.hashtags.filter(Boolean);
+  }
+
+  if (Array.isArray(draft.hashtags) && draft.hashtags.length > 0) {
+    return draft.hashtags.filter(Boolean);
+  }
+
+  return [];
+}
+
+function extractHashtags(metadata: unknown): string[] | undefined {
+  if (!metadata || typeof metadata !== "object" || !("hashtags" in metadata)) {
+    return undefined;
+  }
+
+  const hashtags = (metadata as { hashtags?: unknown }).hashtags;
+  if (!Array.isArray(hashtags)) {
+    return undefined;
+  }
+
+  const cleaned = hashtags.filter((value): value is string => typeof value === "string" && value.length > 0);
+  return cleaned.length > 0 ? cleaned : undefined;
 }

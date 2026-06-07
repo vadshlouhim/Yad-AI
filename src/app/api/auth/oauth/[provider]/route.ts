@@ -6,11 +6,18 @@ import { createHmac } from "crypto";
 type RouteParams = { params: Promise<{ provider: string }> };
 
 const META_SCOPES = {
-  facebook: ["pages_show_list", "pages_read_engagement", "pages_manage_posts"],
-  instagram: [
+  facebook: [
     "pages_show_list",
     "pages_read_engagement",
     "pages_manage_posts",
+    "pages_manage_metadata",
+  ],
+  instagram: [
+    "business_management",
+    "pages_show_list",
+    "pages_read_engagement",
+    "pages_manage_posts",
+    "pages_manage_metadata",
     "instagram_basic",
     "instagram_content_publish",
   ],
@@ -45,10 +52,14 @@ export async function GET(request: Request, { params }: RouteParams) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(new URL("/auth/login", request.url));
 
-  const appId = process.env.META_APP_ID ?? process.env.FACEBOOK_APP_ID;
-  const appSecret = process.env.META_APP_SECRET ?? process.env.FACEBOOK_APP_SECRET;
+  const appId = provider === "instagram"
+    ? (process.env.INSTAGRAM_APP_ID ?? process.env.META_APP_ID ?? process.env.FACEBOOK_APP_ID)
+    : (process.env.META_APP_ID ?? process.env.FACEBOOK_APP_ID);
+  const appSecret = provider === "instagram"
+    ? (process.env.INSTAGRAM_APP_SECRET ?? process.env.META_APP_SECRET ?? process.env.FACEBOOK_APP_SECRET)
+    : (process.env.META_APP_SECRET ?? process.env.FACEBOOK_APP_SECRET);
   if (!appId || !appSecret) {
-    return NextResponse.json({ error: "META_APP_ID ou META_APP_SECRET manquant" }, { status: 500 });
+    return NextResponse.json({ error: `${provider === "instagram" ? "INSTAGRAM" : "META"}_APP_ID ou _APP_SECRET manquant` }, { status: 500 });
   }
 
   const url = new URL(request.url);
