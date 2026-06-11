@@ -11,7 +11,7 @@ import {
   Plus, MessageSquare, Pencil, MoreHorizontal, PanelLeftOpen, Share2,
   X, SlidersHorizontal, PlayCircle, PauseCircle,
   Power, ExternalLink, Zap, CalendarDays, BookOpen, Gift, HeartHandshake,
-  Lightbulb, Clock3, Radio, Mail, ChevronDown, User, Settings, LogOut,
+  Lightbulb, Clock3, Mail, ChevronDown, User, Settings, LogOut,
 } from "lucide-react";
 import { CHANNEL_LABELS, cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
