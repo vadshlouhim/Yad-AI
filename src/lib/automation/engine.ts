@@ -123,7 +123,7 @@ async function sendAutomationEmail(params: {
 }
 
 export async function runAutomationEngine(): Promise<void> {
-  console.log("[Automation] DÃ©marrage du moteurâ€¦");
+  console.log("[Automation] Démarrage du moteur…");
 
   const supabase = createAdminClient();
   const now = new Date();
@@ -160,7 +160,7 @@ async function processAutomation(
   const shouldRun = await shouldTrigger(automation, now);
   if (!shouldRun) return;
 
-  console.log(`[Automation] DÃ©clenchement: ${automation.name} (${automation.trigger})`);
+  console.log(`[Automation] Déclenchement: ${automation.name} (${automation.trigger})`);
 
   const { data: run } = await supabase
     .from("AutomationRun")
@@ -607,7 +607,7 @@ export async function executeAutomationActions(
   </div>
   <div style="font-size: 15px; line-height: 1.7; color: #334155;"><p>${contentHtml}</p></div>
   <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center;">
-    EnvoyÃ© via <strong>EasyCom AI</strong> Â· Communication communautaire assistÃ©e par IA
+    Envoyé via <strong>EasyCom AI</strong> · Communication communautaire assistée par IA
   </div>
 </body>
 </html>`;
@@ -615,10 +615,10 @@ export async function executeAutomationActions(
             await resend.emails.send({
               from: process.env.EMAIL_FROM ?? `${automation.community.name} <noreply@easycom-ai.com>`,
               to: toEmails,
-              subject: action.emailSubject || "Message important de votre communautÃ©",
+              subject: action.emailSubject || "Message important de votre communauté",
               html: formattedContent,
             });
-            console.log(`[Automation] Email envoyÃ© avec succÃ¨s via Resend Ã  ${toEmails.length} destinataires.`);
+            console.log(`[Automation] Email envoyé avec succès via Resend à ${toEmails.length} destinataires.`);
           } catch (err) {
             console.error("[Automation] Erreur lors de l'envoi de l'email via Resend:", err);
             throw err;
@@ -670,7 +670,7 @@ export async function executeAutomationActions(
               communityId: automation.community.id,
               type: "AUTOMATION_TRIGGERED",
               title: action.notificationTitle || "Rappel automatique",
-              body: action.notificationBody || "Une automatisation s'est dÃ©clenchÃ©e.",
+              body: action.notificationBody || "Une automatisation s'est déclenchée.",
               link: "/dashboard",
             }))
           );

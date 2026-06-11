@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Bell, Bot, CalendarDays, ChevronDown, Zap } from "lucide-react";
+import { Bell, Bot, ChevronDown, Zap, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DASHBOARD_DESKTOP_CATEGORIES,
@@ -145,6 +145,7 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [flyoutSection, setFlyoutSection] = useState<string | null>(null);
 
   function resolveHref(href: string) {
     if (href.startsWith("http") || href.startsWith("mailto")) return href;
@@ -228,10 +229,10 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
                 <div className="flex min-w-0 items-center gap-2">
                   {ASSISTANT_ITEM.icon && <ASSISTANT_ITEM.icon className="size-4 shrink-0 text-cyan-50" />}
                   <p className="truncate text-[15px] font-semibold tracking-tight text-white">
-                    Accueil/Assistant IA
+                    Assistant IA
                   </p>
                   <p className="sr-only">
-                    Accueil/Assistant IA
+                    Assistant IA
                   </p>
                 </div>
               )}
@@ -270,30 +271,6 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
                 </span>
               )}
             </Link>
-            <Link
-              href={resolveHref("/dashboard/events")}
-              className={cn(
-                "mt-2 flex items-center rounded-[1.2rem] bg-slate-900 px-4 py-3 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition-all duration-200",
-                isActive("/dashboard/events") ? "bg-slate-950" : "hover:bg-slate-800",
-                collapsed && "justify-center rounded-[1.4rem] border border-slate-800/50 bg-gradient-to-b from-slate-900 to-slate-800 px-0 py-3"
-              )}
-              title={collapsed ? "Agenda connecté IA" : undefined}
-            >
-              {!collapsed && (
-                <div className="flex min-w-0 items-center gap-2">
-                  <CalendarDays className="size-4 shrink-0 text-cyan-200" />
-                  <p className="truncate text-[15px] font-semibold tracking-tight text-white">Agenda connecté</p>
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white/95 text-[10px] font-black leading-none text-slate-900">
-                    IA
-                  </span>
-                </div>
-              )}
-              {collapsed && (
-                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10">
-                  <CalendarDays className="size-4 text-cyan-200" />
-                </span>
-              )}
-            </Link>
           </div>
 
           <div className="space-y-3 pt-3">
@@ -307,25 +284,30 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
                   key={category.section}
                   className={cn(
                     "rounded-[1.6rem] border border-slate-200 bg-white p-3 shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition duration-200 hover:border-slate-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.09)]",
-                    collapsed && "rounded-[1.45rem] p-2.5"
+                    collapsed && "border-0 bg-transparent p-0 shadow-none hover:border-0 hover:shadow-none"
                   )}
                 >
                   <button
                     type="button"
                     onClick={() =>
-                      setOpenSections((current) => ({
-                        ...current,
-                        [category.section]: !current[category.section],
-                      }))
+                      collapsed
+                        ? setFlyoutSection(category.section)
+                        : setOpenSections((current) => ({
+                            ...current,
+                            [category.section]: !current[category.section],
+                          }))
                     }
                     className={cn(
                       "flex w-full items-start gap-3 rounded-[1.15rem] px-1 py-1 text-left transition-all duration-200",
-                      collapsed && "justify-center rounded-[1.15rem] bg-slate-50 px-0 py-2.5 hover:bg-slate-100"
+                      collapsed && "justify-center rounded-xl px-0 py-2 hover:bg-slate-100"
                     )}
                     aria-expanded={isOpen}
                     title={collapsed ? style.title : undefined}
                   >
-                    <span className={cn("mt-4 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full", style.iconSurface, collapsed && "mt-0 h-11 w-11 rounded-2xl ring-1 ring-slate-200")}>
+                    <span className={cn(
+                      "flex flex-shrink-0 items-center justify-center",
+                      collapsed ? "mt-0 h-10 w-10" : cn("mt-4 h-10 w-10 rounded-full", style.iconSurface)
+                    )}>
                       <category.icon className={cn("size-[18px]", style.itemIcon)} />
                     </span>
 
@@ -473,6 +455,83 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
           )}
         </div>
       </div>
+
+      {/* Panneau des suggestions (sidebar réduit) */}
+      {collapsed && flyoutSection && (() => {
+        const cat = DASHBOARD_DESKTOP_CATEGORIES.find((c) => c.section === flyoutSection);
+        if (!cat) return null;
+        const style = DESKTOP_CATEGORY_CONTENT[normalizeSectionKey(cat.section)] ?? DESKTOP_CATEGORY_CONTENT.RESSOURCES;
+        return (
+          <div
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+            onClick={() => setFlyoutSection(null)}
+          >
+            <div
+              className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <p className="text-base font-semibold tracking-tight text-slate-900">{style.title}</p>
+                <button
+                  type="button"
+                  onClick={() => setFlyoutSection(null)}
+                  className="rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                  aria-label="Fermer"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {cat.section === "RESEAUX SOCIAUX" && (
+                  <Link
+                    href={resolveHref(AUTOMATIONS_ITEM.href)}
+                    onClick={() => setFlyoutSection(null)}
+                    className="flex items-center gap-3 rounded-2xl bg-blue-600 p-3 text-white transition hover:bg-blue-700 sm:col-span-2"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                      <Zap className="size-[18px]" />
+                    </span>
+                    <span className="text-sm font-semibold">Créer des automatisations</span>
+                  </Link>
+                )}
+                {cat.items
+                  .filter((item) => !(cat.section === "RESEAUX SOCIAUX" && item.href === "/dashboard/automations"))
+                  .map((item) => {
+                    const isExternal = item.external || item.href.startsWith("mailto");
+                    const active = isActive(item.href);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={resolveHref(item.href)}
+                        target={isExternal ? "_blank" : undefined}
+                        rel={isExternal ? "noopener noreferrer" : undefined}
+                        onClick={() => setFlyoutSection(null)}
+                        className={cn(
+                          "flex items-center gap-3 rounded-2xl border p-3 transition",
+                          active
+                            ? "border-slate-300 bg-slate-50"
+                            : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                        )}
+                      >
+                        {item.icon && (
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100">
+                            <item.icon className={cn("size-[18px]", style.itemIcon)} />
+                          </span>
+                        )}
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold text-slate-900">{item.label}</span>
+                          {item.description && (
+                            <span className="block truncate text-xs text-slate-500">{item.description}</span>
+                          )}
+                        </span>
+                      </Link>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </aside>
   );
 }

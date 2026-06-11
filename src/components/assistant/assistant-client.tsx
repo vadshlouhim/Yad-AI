@@ -3,15 +3,18 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ensurePushRegistered } from "@/lib/push/client";
 import { Button } from "@/components/ui/button";
+import { MessageLoading } from "@/components/ui/message-loading";
 import {
-  Send, Sparkles, Bot, Copy, Check, RefreshCw, Trash2,
+  Send, Sparkles, Bot, Copy, Check, RefreshCw, Trash2, Info,
   Plus, MessageSquare, Pencil, MoreHorizontal, PanelLeftOpen, Share2,
   X, SlidersHorizontal, PlayCircle, PauseCircle,
   Power, ExternalLink, Zap, CalendarDays, BookOpen, Gift, HeartHandshake,
-  Lightbulb, Clock3, Radio, Mail,
+  Lightbulb, Clock3, Radio, Mail, ChevronDown, User, Settings, LogOut,
 } from "lucide-react";
 import { CHANNEL_LABELS, cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 import { formatArticlePrice } from "@/lib/articles/shared";
 import { startArticleCheckout } from "@/lib/articles/checkout-client";
 import { AUTOMATION_PRESETS, type AutomationPresetKey } from "@/lib/automation/presets";
@@ -102,11 +105,14 @@ interface AssistantActionCard {
   status?: string;
   href?: string;
   action?: {
-    kind: "toggle_automation" | "trigger_automation" | "delete_automation" | "create_automation" | "create_shabbat_automation" | "open_daily_routine" | "switch_detailed" | "send_email";
+    kind: "toggle_automation" | "trigger_automation" | "delete_automation" | "create_automation" | "create_shabbat_automation" | "open_daily_routine" | "switch_detailed" | "send_email" | "confirm_pending" | "done";
     automationId?: string;
     isActive?: boolean;
     preset?: AutomationPresetKey;
     presetId?: string;
+    pendingActionId?: string;
+    actionKind?: string;
+    payload?: Record<string, unknown>;
     emailData?: {
       to: string;
       subject: string;
@@ -130,6 +136,9 @@ interface Props {
   seasonalPrompts: QuickPrompt[];
   initialPrompt?: string;
   initialApprovalDraft?: ApprovalDraft | null;
+  userName?: string;
+  userAvatar?: string | null;
+  communitySubtitle?: string;
 }
 
 interface ApprovalDraft {
@@ -301,7 +310,7 @@ function cleanConversationTitle(title: string) {
 }
 
 // ============================================================
-// HELPERS â€” Groupement par date
+// HELPERS — Groupement par date
 // ============================================================
 
 function groupByDate(conversations: ConversationSummary[]): { label: string; items: ConversationSummary[] }[] {
@@ -345,9 +354,19 @@ export function AssistantClient({
   seasonalPrompts,
   initialPrompt,
   initialApprovalDraft,
+  userName,
+  userAvatar,
+  communitySubtitle,
 }: Props) {
   void _tone;
   const router = useRouter();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/auth/login");
+  }
   const [assistantExperience, setAssistantExperienceState] = useState<"simple" | "detailed">("simple");
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -355,6 +374,7 @@ export function AssistantClient({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [capabilitiesOpen, setCapabilitiesOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [menuId, setMenuId] = useState<string | null>(null);
@@ -395,7 +415,66 @@ export function AssistantClient({
     fetchDailyRoutine();
     setAssistantExperienceState("simple");
     window.localStorage.setItem("shalom-assistant-experience", "simple");
+    // Réenregistre le push si déjà autorisé (silencieux).
+    ensurePushRegistered();
+    // Lien profond depuis email/push : ?action=<id> → afficher la carte à valider.
+    void handleDeepLinkAction();
   }, []);
+
+  async function handleDeepLinkAction() {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const actionId = params.get("action");
+    if (!actionId) return;
+    try {
+      const res = await fetch(`/api/ai/action?id=${encodeURIComponent(actionId)}`);
+      if (!res.ok) return;
+      const { action } = (await res.json()) as {
+        action?: { id: string; kind: string; summary: string; status: string };
+      };
+      if (!action) return;
+      // Nettoie l'URL.
+      window.history.replaceState({}, "", window.location.pathname);
+
+      if (action.status !== "PENDING") {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content:
+              action.status === "CONFIRMED"
+                ? "Cette action a déjà été validée. ✅"
+                : "Cette action n'est plus en attente.",
+            timestamp: new Date(),
+          },
+        ]);
+        return;
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: "Voici l'action en attente de votre validation :",
+          timestamp: new Date(),
+          assistantActions: [
+            {
+              id: `pending-${action.id}`,
+              type: action.kind.includes("automation") ? "automation" : action.kind === "send_email" ? "email" : "creation",
+              title: "Action à valider",
+              description: action.summary,
+              status: "À valider",
+              action: { kind: "confirm_pending", pendingActionId: action.id, actionKind: action.kind },
+            },
+          ],
+        },
+      ]);
+    } catch {
+      // silencieux
+    }
+  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -806,7 +885,7 @@ export function AssistantClient({
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: "DÃ©solÃ©, une erreur s'est produite. Veuillez rÃ©essayer.",
+          content: "Désolé, une erreur s'est produite. Veuillez réessayer.",
           timestamp: new Date(),
         },
       ]);
@@ -1006,7 +1085,7 @@ export function AssistantClient({
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error ?? "Impossible de prÃ©parer l'affiche");
+        throw new Error(data.error ?? "Impossible de préparer l'affiche");
       }
 
       setMessages((prev) => [
@@ -1031,7 +1110,7 @@ export function AssistantClient({
           id: crypto.randomUUID(),
           role: "assistant",
           content:
-            "Je n'ai pas pu prÃ©parer l'affiche pour le moment. RÃ©essaie aprÃ¨s avoir prÃ©cisÃ© les textes principaux.",
+            "Je n'ai pas pu préparer l'affiche pour le moment. Réessaie après avoir précisé les textes principaux.",
           timestamp: new Date(),
         },
       ]);
@@ -1049,10 +1128,10 @@ export function AssistantClient({
   function savePosterEdits(message: Message) {
     if (!message.posterDraft) return;
     const nextTexts = Object.fromEntries(
-      Object.entries(posterDraftEdits).map(([key, value]) => [key, value.trim() || "Ã€ confirmer"])
+      Object.entries(posterDraftEdits).map(([key, value]) => [key, value.trim() || "À confirmer"])
     );
     const missingFields = Object.entries(nextTexts)
-      .filter(([, value]) => value === "Ã€ confirmer")
+      .filter(([, value]) => value === "À confirmer")
       .map(([key]) => key);
 
     setMessages((prev) =>
@@ -1066,13 +1145,13 @@ export function AssistantClient({
                 missingFields,
               },
               content: [
-                "J'ai mis Ã  jour les textes de l'affiche avec vos modifications.",
+                "J'ai mis à jour les textes de l'affiche avec vos modifications.",
                 "",
                 ...Object.entries(nextTexts).map(([key, value]) => `- ${key} : ${value}`),
                 "",
                 missingFields.length > 0
-                  ? `Ã€ confirmer : ${missingFields.join(", ")}.`
-                  : "Si tout est bon, vous pouvez gÃ©nÃ©rer l'affiche.",
+                  ? `À confirmer : ${missingFields.join(", ")}.`
+                  : "Si tout est bon, vous pouvez générer l'affiche.",
               ].join("\n"),
             }
           : item
@@ -1098,7 +1177,7 @@ export function AssistantClient({
             })),
             {
               role: "user",
-              content: `RÃ©gÃ©nÃ¨re automatiquement les textes de l'affiche ${message.posterDraft.template.name} avec toutes les informations connues et ces corrections Ã©ventuelles : ${JSON.stringify(posterDraftEdits)}`,
+              content: `Régénère automatiquement les textes de l'affiche ${message.posterDraft.template.name} avec toutes les informations connues et ces corrections éventuelles : ${JSON.stringify(posterDraftEdits)}`,
             },
           ],
         }),
@@ -1106,7 +1185,7 @@ export function AssistantClient({
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error ?? "Impossible de rÃ©gÃ©nÃ©rer l'affiche");
+        throw new Error(data.error ?? "Impossible de régénérer l'affiche");
       }
 
       setPosterDraftEdits(data.generatedTexts);
@@ -1132,7 +1211,7 @@ export function AssistantClient({
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: "Je n'ai pas pu rÃ©gÃ©nÃ©rer automatiquement les textes pour le moment.",
+          content: "Je n'ai pas pu régénérer automatiquement les textes pour le moment.",
           timestamp: new Date(),
         },
       ]);
@@ -1142,7 +1221,7 @@ export function AssistantClient({
   }
 
   function buildPosterPublicationDraft(posterDraft: PosterDraft): PublishDraft {
-    const orderedEntries = Object.entries(posterDraft.generatedTexts).filter(([, value]) => value && value !== "Ã€ confirmer");
+    const orderedEntries = Object.entries(posterDraft.generatedTexts).filter(([, value]) => value && value !== "À confirmer");
     const title = orderedEntries[0]?.[1] ?? posterDraft.template.name;
     const caption = orderedEntries
       .slice(1)
@@ -1172,7 +1251,7 @@ export function AssistantClient({
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error ?? "Impossible de gÃ©nÃ©rer l'affiche");
+        throw new Error(data.error ?? "Impossible de générer l'affiche");
       }
 
       const publishDraft = buildPosterPublicationDraft(message.posterDraft);
@@ -1183,7 +1262,7 @@ export function AssistantClient({
           id: crypto.randomUUID(),
           role: "assistant",
           content:
-            "L'affiche est prÃªte. Tu peux l'ouvrir ou la tÃ©lÃ©charger ci-dessous.",
+            "L'affiche est prête. Tu peux l'ouvrir ou la télécharger ci-dessous.",
           timestamp: new Date(),
           generatedImageUrl: data.imageUrl,
           publishDraft,
@@ -1203,7 +1282,7 @@ export function AssistantClient({
           id: crypto.randomUUID(),
           role: "assistant",
           content:
-            "La gÃ©nÃ©ration finale de l'affiche a Ã©chouÃ©. VÃ©rifie la configuration Fal et rÃ©essaie.",
+            "La génération finale de l'affiche a échoué. Vérifie la configuration Fal et réessaie.",
           timestamp: new Date(),
         },
       ]);
@@ -1274,12 +1353,12 @@ export function AssistantClient({
         error?: string;
       }) => {
         if (result.success) {
-          return `- ${CHANNEL_LABELS[result.channelType] ?? result.channelType} : envoyÃ©`;
+          return `- ${CHANNEL_LABELS[result.channelType] ?? result.channelType} : envoyé`;
         }
         if (result.fallbackUsed) {
-          return `- ${CHANNEL_LABELS[result.channelType] ?? result.channelType} : prÃªt en fallback`;
+          return `- ${CHANNEL_LABELS[result.channelType] ?? result.channelType} : prêt en fallback`;
         }
-        return `- ${CHANNEL_LABELS[result.channelType] ?? result.channelType} : Ã©chec${result.error ? ` (${result.error})` : ""}`;
+        return `- ${CHANNEL_LABELS[result.channelType] ?? result.channelType} : échec${result.error ? ` (${result.error})` : ""}`;
       });
 
       setMessages((prev) => [
@@ -1287,7 +1366,7 @@ export function AssistantClient({
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: `Publication de l'affiche :\n${resultLines.join("\n")}\n\nTu peux retrouver le dÃ©tail dans Publications.`,
+          content: `Publication de l'affiche :\n${resultLines.join("\n")}\n\nTu peux retrouver le détail dans Publications.`,
           timestamp: new Date(),
         },
       ]);
@@ -1348,14 +1427,14 @@ export function AssistantClient({
         }),
       });
 
-      if (!response.ok) throw new Error("CrÃ©ation Ã©chouÃ©e");
+      if (!response.ok) throw new Error("Création échouée");
 
       setMessages((prev) =>
         prev.map((item) =>
           item.id === message.id
             ? {
                 ...item,
-                content: `CrÃ©Ã© : ${setup.name}.\nHeure : ${setup.time}\nCanaux : ${setup.channels.map((channel) => CHANNEL_LABELS[channel] ?? channel).join(", ")}`,
+                content: `Créé : ${setup.name}.\nHeure : ${setup.time}\nCanaux : ${setup.channels.map((channel) => CHANNEL_LABELS[channel] ?? channel).join(", ")}`,
                 automationSetup: undefined,
               }
             : item
@@ -1369,7 +1448,7 @@ export function AssistantClient({
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: "Je n'ai pas pu crÃ©er cette automatisation. VÃ©rifiez les champs puis rÃ©essayez.",
+          content: "Je n'ai pas pu créer cette automatisation. Vérifiez les champs puis réessayez.",
           timestamp: new Date(),
         },
       ]);
@@ -1394,6 +1473,64 @@ export function AssistantClient({
       return;
     }
 
+    // Carte informative "Fait" (mode AUTO) — aucune action au clic.
+    if (card.action.kind === "done") {
+      return;
+    }
+
+    // Carte "À valider" (mode CONFIRM) — confirme l'exécution de l'action en attente.
+    if (card.action.kind === "confirm_pending" && card.action.pendingActionId) {
+      setRunningActionId(card.id);
+      try {
+        const response = await fetch("/api/ai/action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            actionId: card.action.pendingActionId,
+            kind: card.action.actionKind,
+            payload: card.action.payload,
+            decision: "confirm",
+          }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) throw new Error(data.message || "Échec");
+
+        setMessages((prev) =>
+          prev.map((message) => ({
+            ...message,
+            assistantActions: message.assistantActions?.map((actionCard) =>
+              actionCard.id === card.id
+                ? { ...actionCard, status: "Validé", action: { kind: "done", actionKind: card.action?.actionKind } }
+                : actionCard
+            ),
+          }))
+        );
+        router.refresh();
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: data.message || `Validé : ${card.title}.`,
+            timestamp: new Date(),
+          },
+        ]);
+      } catch (error) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: error instanceof Error ? error.message : "Je n'ai pas pu exécuter cette action.",
+            timestamp: new Date(),
+          },
+        ]);
+      } finally {
+        setRunningActionId(null);
+      }
+      return;
+    }
+
     if ((card.action.kind === "create_shabbat_automation" || card.action.kind === "create_automation") && card.action.presetId) {
       setRunningActionId(card.id);
       try {
@@ -1402,14 +1539,14 @@ export function AssistantClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ presetId: card.action.presetId }),
         });
-        if (!response.ok) throw new Error("CrÃ©ation Ã©chouÃ©e");
+        if (!response.ok) throw new Error("Création échouée");
         router.refresh();
         setMessages((prev) => [
           ...prev,
           {
             id: crypto.randomUUID(),
             role: "assistant",
-            content: `CrÃ©Ã© : ${card.title}. Vous pouvez l'activer, le mettre en pause ou le configurer depuis vos automatisations.`,
+            content: `Créé : ${card.title}. Vous pouvez l'activer, le mettre en pause ou le configurer depuis vos automatisations.`,
             timestamp: new Date(),
           },
         ]);
@@ -1419,7 +1556,7 @@ export function AssistantClient({
           {
             id: crypto.randomUUID(),
             role: "assistant",
-            content: "Je n'ai pas pu crÃ©er cette automatisation. VÃ©rifiez vos droits ou rÃ©essayez.",
+            content: "Je n'ai pas pu créer cette automatisation. Vérifiez vos droits ou réessayez.",
             timestamp: new Date(),
           },
         ]);
@@ -1437,7 +1574,7 @@ export function AssistantClient({
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: `Configurons ${setup.name}. Remplissez ou ajustez ces informations, puis je la crÃ©e.`,
+          content: `Configurons ${setup.name}. Remplissez ou ajustez ces informations, puis je la crée.`,
           timestamp: new Date(),
           automationSetup: setup,
         },
@@ -1450,7 +1587,7 @@ export function AssistantClient({
       let response: Response | null = null;
 
       if (card.action.kind === "send_email" && card.action.emailData) {
-        const confirmed = window.confirm(`Voulez-vous vraiment envoyer cet e-mail Ã  ${card.action.emailData.to} ?\n\nSujet : ${card.action.emailData.subject}\n\n${card.action.emailData.body}`);
+        const confirmed = window.confirm(`Voulez-vous vraiment envoyer cet e-mail à ${card.action.emailData.to} ?\n\nSujet : ${card.action.emailData.subject}\n\n${card.action.emailData.body}`);
         if (!confirmed) {
           setRunningActionId(null);
           return;
@@ -1484,7 +1621,7 @@ export function AssistantClient({
       }
 
       if (response && !response.ok) {
-        throw new Error("Action Ã©chouÃ©e");
+        throw new Error("Action échouée");
       }
 
       setMessages((prev) =>
@@ -1503,19 +1640,19 @@ export function AssistantClient({
             }
 
             if (card.action?.kind === "create_shabbat_automation" || card.action?.kind === "create_automation") {
-              return { ...actionCard, status: "CrÃ©Ã©e", action: undefined };
+              return { ...actionCard, status: "Créée", action: undefined };
             }
 
             if (card.action?.kind === "trigger_automation") {
-              return { ...actionCard, status: "LancÃ©e" };
+              return { ...actionCard, status: "Lancée" };
             }
 
             if (card.action?.kind === "delete_automation") {
-              return { ...actionCard, status: "SupprimÃ©e", action: undefined };
+              return { ...actionCard, status: "Supprimée", action: undefined };
             }
 
             if (card.action?.kind === "send_email") {
-              return { ...actionCard, status: "EnvoyÃ©", action: undefined };
+              return { ...actionCard, status: "Envoyé", action: undefined };
             }
 
             return actionCard;
@@ -1525,14 +1662,14 @@ export function AssistantClient({
 
       const confirmation =
         card.action.kind === "toggle_automation"
-          ? `${card.action.isActive ? "Mis en pause" : "ActivÃ©"} : ${card.title}.`
+          ? `${card.action.isActive ? "Mis en pause" : "Activé"} : ${card.title}.`
           : card.action.kind === "trigger_automation"
-            ? `LancÃ© : ${card.title}.`
+            ? `Lancé : ${card.title}.`
             : card.action.kind === "delete_automation"
-              ? `SupprimÃ© : ${card.title}.`
+              ? `Supprimé : ${card.title}.`
               : card.action.kind === "send_email"
-                ? `E-mail envoyÃ© avec succÃ¨s Ã  ${card.action.emailData?.to}.`
-                : `CrÃ©Ã© : ${card.title}.`;
+                ? `E-mail envoyé avec succès à ${card.action.emailData?.to}.`
+                : `Créé : ${card.title}.`;
 
       setMessages((prev) => [
         ...prev,
@@ -1551,7 +1688,7 @@ export function AssistantClient({
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: "Je n'ai pas pu appliquer cette action. RÃ©essayez dans un instant.",
+          content: "Je n'ai pas pu appliquer cette action. Réessayez dans un instant.",
           timestamp: new Date(),
         },
       ]);
@@ -1594,14 +1731,14 @@ export function AssistantClient({
           </Button>
         </div>
 
-        {/* Liste des conversations groupÃ©es par date */}
+        {/* Liste des conversations groupées par date */}
         <div className="flex-1 overflow-y-auto px-2 pb-4">
           <p className="px-2 py-1 text-xs font-semibold tracking-wide text-slate-600">
             Historique des conversations
           </p>
           {groupedConversations.length === 0 && (
             <p className="text-xs text-slate-400 text-center mt-8 px-4">
-              Vos conversations apparaÃ®tront ici
+              Vos conversations apparaîtront ici
             </p>
           )}
           {groupedConversations.map((group) => (
@@ -1716,7 +1853,7 @@ export function AssistantClient({
             >
               <PanelLeftOpen className="size-4 text-slate-800" />
               <span className="text-slate-800">Menu principal</span>
-              Mode dÃ©taillÃ©
+              Mode détaillé
             </Link>
           </div>
           <div className="hidden flex-1 overflow-y-auto px-2 py-3">
@@ -1725,7 +1862,7 @@ export function AssistantClient({
             </p>
             {groupedConversations.length === 0 && (
               <p className="px-4 py-8 text-center text-xs text-slate-400">
-                Vos conversations apparaÃ®tront ici
+                Vos conversations apparaîtront ici
               </p>
             )}
             {groupedConversations.map((group) => (
@@ -1814,7 +1951,7 @@ export function AssistantClient({
             <div className="max-h-[calc(88vh-60px)] overflow-y-auto px-3 py-3 sm:px-4">
               {groupedConversations.length === 0 && (
                 <p className="px-4 py-10 text-center text-sm text-slate-400">
-                  Vos conversations apparaÃ®tront ici
+                  Vos conversations apparaîtront ici
                 </p>
               )}
               {groupedConversations.map((group) => (
@@ -1893,34 +2030,27 @@ export function AssistantClient({
                 <span>Menu</span>
               </button>
             )}
-            <img
-              src="/easycom-ai-logo.png"
-              alt="Logo EasyCom AI"
-              className="h-9 w-9 shrink-0 rounded-lg object-contain md:hidden"
-            />
-            <div className={cn(
-              "hidden w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 via-sky-500 to-amber-400 items-center justify-center shadow-sm shrink-0 md:flex",
-              assistantExperience === "simple" && "rounded-full"
-            )}>
-              <Bot className="size-4 text-white" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-900 shadow-sm">
+              <Bot className="size-5 text-white" />
             </div>
-            <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-2">
               <h1 className="truncate text-base font-bold text-slate-900">
-                {assistantExperience === "simple"
-                  ? "EasyCom AI"
-                  : activeConversationId
+                {assistantExperience === "detailed" && activeConversationId
                   ? conversations.find((c) => c.id === activeConversationId)?.title ?? "Conversation"
-                  : "Assistant IA"}
+                  : "EasyCom Agent"}
               </h1>
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="truncate text-xs text-slate-500">
-                  {assistantExperience === "simple" ? "Assistant IA" : "Assistant principal Â· PrÃªt"}
-                </span>
-              </div>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCapabilitiesOpen(true)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
+              aria-label="Tout ce que l'assistant peut faire"
+              title="Tout ce que l'assistant peut faire"
+            >
+              <Info className="size-4" />
+            </button>
             {assistantExperience === "simple" && (
               <button
                 type="button"
@@ -1942,6 +2072,62 @@ export function AssistantClient({
                 <span className="hidden sm:inline">Historique des communications</span>
               </button>
             )}
+            {/* Menu profil — fusionné depuis le topbar (desktop) */}
+            <div className="relative hidden md:block">
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen((v) => !v)}
+                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1.5 shadow-sm transition hover:bg-slate-50"
+                aria-label="Menu du compte"
+              >
+                <span className="h-7 w-7 overflow-hidden rounded-full bg-slate-200">
+                  {userAvatar ? (
+                    <img src={userAvatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-slate-600">
+                      {(userName || communityName).substring(0, 2).toUpperCase()}
+                    </span>
+                  )}
+                </span>
+                <ChevronDown className="size-3.5 text-slate-400" />
+              </button>
+              {userMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
+                  <div className="absolute right-0 top-full z-20 mt-1 w-56 rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+                    <div className="border-b border-slate-100 px-4 py-3">
+                      <p className="truncate text-sm font-semibold text-slate-800">{communityName}</p>
+                      {communitySubtitle && <p className="mt-0.5 truncate text-xs text-slate-400">{communitySubtitle}</p>}
+                    </div>
+                    <Link
+                      href="/dashboard/settings?section=profile"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <User className="size-4" />
+                      Mon profil
+                    </Link>
+                    <Link
+                      href="/dashboard/settings"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <Settings className="size-4" />
+                      Paramètres
+                    </Link>
+                    <div className="mt-1 border-t border-slate-100 pt-1">
+                      <button
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                      >
+                        <LogOut className="size-4" />
+                        Se déconnecter
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
             <div className="hidden items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
             {assistantExperience === "detailed" && (
               <button
@@ -1960,7 +2146,7 @@ export function AssistantClient({
                 className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm transition"
               >
                 <SlidersHorizontal className="size-3.5" />
-                Mode dÃ©taillÃ©
+                Mode détaillé
               </button>
             )}
             </div>
@@ -2089,10 +2275,10 @@ export function AssistantClient({
                   Bienvenue sur votre espace personnel
                 </h2>
                 <p className="mx-auto mt-2 max-w-3xl text-sm leading-7 text-slate-600 sm:text-[15px]">
-                  Votre temps est prÃ©cieux â€” concentrez-vous sur lâ€™essentiel. EasyComAI sâ€™occupe du reste !
+                  Votre temps est précieux — concentrez-vous sur l&apos;essentiel. EasyComAI s&apos;occupe du reste !
                 </p>
                 <p className="mx-auto mt-0.5 max-w-3xl text-sm leading-7 text-slate-500 sm:text-[15px]">
-                  (Publications rÃ©currentes et automatisÃ©es, mail et Avis Google, agenda IA, assistant du quotidien, ressources communautaires)
+                  (Publications récurrentes et automatisées, mail et Avis Google, agenda IA, assistant du quotidien, ressources communautaires)
                 </p>
               </div>
             )}
@@ -2140,7 +2326,7 @@ export function AssistantClient({
                     onClick={() => setShowAllFeaturesMobile((prev) => !prev)}
                     className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-[#1E88E5] via-[#009688] to-[#00897B] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(15,23,42,0.18)] transition hover:opacity-95"
                   >
-                    Toutes les fonctionnalitÃ©s
+                    Toutes les fonctionnalités
                   </button>
                 </div>
                 {showAllFeaturesMobile && (
@@ -2215,7 +2401,7 @@ export function AssistantClient({
                   },
                   {
                     title: "Pilotage",
-                    description: "rÃ©seaux, publications, actions Ã  valider",
+                    description: "réseaux, publications, actions à valider",
                     icon: SlidersHorizontal,
                     accent: "bg-emerald-500",
                     surface: "bg-emerald-50/60",
@@ -2245,14 +2431,14 @@ export function AssistantClient({
               <div className="mb-5 hidden w-full max-w-3xl grid-cols-1 gap-2 md:grid md:grid-cols-2 lg:grid-cols-4">
                 {[
                   { label: "Plan Chabbat", icon: Sparkles, prompt: "Prépare-moi un plan complet pour Chabbat cette semaine : message WhatsApp, post Instagram, affiche si disponible et rappel à programmer." },
-                  { label: "Mes automatisations", icon: Zap, prompt: "Combien ai-je d'automatisations en cours ? Affiche uniquement celles dÃ©jÃ  prÃ©sentes sur mon Beth Habad." },
-                  { label: "DÃ©finir quotidien", icon: Power, prompt: "Je veux dÃ©finir mon quotidien et crÃ©er les routines utiles." },
-                  { label: "Diagnostic compte", icon: SlidersHorizontal, prompt: "Fais un diagnostic simple de mon compte : automatisations, rÃ©seaux, quotidien, contenus et prochaines actions." },
+                  { label: "Mes automatisations", icon: Zap, prompt: "Combien ai-je d'automatisations en cours ? Affiche uniquement celles déjà présentes sur mon Beth Habad." },
+                  { label: "Définir quotidien", icon: Power, prompt: "Je veux définir mon quotidien et créer les routines utiles." },
+                  { label: "Diagnostic compte", icon: SlidersHorizontal, prompt: "Fais un diagnostic simple de mon compte : automatisations, réseaux, quotidien, contenus et prochaines actions." },
                 ].map((item) => (
                   <button
                     key={item.label}
                     type="button"
-                    onClick={() => item.label === "DÃ©finir quotidien" ? setDailyRoutineMode(true) : sendMessage(item.prompt)}
+                    onClick={() => item.label === "Définir quotidien" ? setDailyRoutineMode(true) : sendMessage(item.prompt)}
                     className="flex min-h-20 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
@@ -2285,28 +2471,6 @@ export function AssistantClient({
                     <p className="text-sm font-semibold leading-5 text-slate-800">{item.label}</p>
                   </Link>
                 ))}
-                <div className="col-span-full pt-2">
-                  <button
-                    type="button"
-                    onClick={sendEasyComOverviewMessage}
-                    className="group relative w-full overflow-hidden rounded-[1.6rem] border border-blue-200/80 bg-[linear-gradient(135deg,rgba(37,99,235,0.96),rgba(14,116,214,0.92),rgba(56,189,248,0.90))] px-5 py-4 text-left text-white shadow-[0_18px_36px_rgba(37,99,235,0.24)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_48px_rgba(37,99,235,0.28)]"
-                  >
-                    <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,transparent_10%,rgba(255,255,255,0.2)_32%,transparent_56%)] opacity-70 animate-[pulse_3.8s_ease-in-out_infinite]" />
-                    <div className="relative flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-[15px] font-black tracking-tight sm:text-base">
-                          {"Tout ce que EasyCom AI peut faire"}
-                        </p>
-                        <p className="mt-1 text-sm text-white/85">
-                          {"Decouvrez en un clic tout ce que l'assistant peut preparer, automatiser et gerer pour vous."}
-                        </p>
-                      </div>
-                      <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/16 ring-1 ring-white/20 backdrop-blur-sm transition group-hover:scale-105">
-                        <Sparkles className="size-5" />
-                      </span>
-                    </div>
-                  </button>
-                </div>
               </div>
             )}
 
@@ -2348,16 +2512,15 @@ export function AssistantClient({
                   message.role === "user" ? "flex-row-reverse" : "flex-row"
                 )}
               >
-                <div
-                  className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5",
-                    message.role === "user" ? "bg-blue-600" : "bg-amber-500"
-                  )}
-                >
+                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 mt-0.5 border border-slate-200 bg-white">
                   {message.role === "user" ? (
-                    <span className="text-xs text-white font-bold">U</span>
+                    communityLogoUrl ? (
+                      <img src={communityLogoUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-xs font-bold text-slate-700">{getCommunityInitials(communityName)}</span>
+                    )
                   ) : (
-                    <Sparkles className="size-4 text-white" />
+                    <Bot className="size-4 text-slate-700" />
                   )}
                 </div>
 
@@ -2398,13 +2561,13 @@ export function AssistantClient({
                         className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 rounded px-2 py-0.5 hover:bg-slate-100"
                       >
                         {copiedId === message.id ? (
-                          <><Check className="size-3" /> CopiÃ©</>
+                          <><Check className="size-3" /> Copié</>
                         ) : (
                           <><Copy className="size-3" /> Copier</>
                         )}
                       </button>
                       <button
-                        onClick={() => sendMessage("Reformule le contenu prÃ©cÃ©dent d'une autre faÃ§on")}
+                        onClick={() => sendMessage("Reformule le contenu précédent d'une autre façon")}
                         className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 rounded px-2 py-0.5 hover:bg-slate-100"
                       >
                         <RefreshCw className="size-3" /> Reformuler
@@ -2416,9 +2579,9 @@ export function AssistantClient({
                     <div className="mt-3 rounded-[1.7rem] border border-amber-100 bg-gradient-to-br from-white to-amber-50/80 p-4 shadow-sm">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-black text-slate-900">Informations Ã  confirmer</p>
+                          <p className="text-sm font-black text-slate-900">Informations à confirmer</p>
                           <p className="mt-1 text-xs text-slate-500">
-                            Ajustez les champs utiles avant crÃ©ation.
+                            Ajustez les champs utiles avant création.
                           </p>
                         </div>
                         <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-black text-amber-800">
@@ -2470,7 +2633,7 @@ export function AssistantClient({
 
                           {message.automationSetup.trigger === "JEWISH_HOLIDAY" && (
                             <label className="grid gap-1.5">
-                              <span className="text-xs font-bold text-slate-700">Jours avant la fÃªte</span>
+                              <span className="text-xs font-bold text-slate-700">Jours avant la fête</span>
                               <input
                                 type="number"
                                 min={1}
@@ -2518,7 +2681,7 @@ export function AssistantClient({
                         </div>
 
                         <label className="flex items-center justify-between gap-3 rounded-2xl border border-white bg-white/80 px-3 py-2">
-                          <span className="text-xs font-bold text-slate-700">Activer dÃ¨s maintenant</span>
+                          <span className="text-xs font-bold text-slate-700">Activer dès maintenant</span>
                           <input
                             type="checkbox"
                             checked={message.automationSetup.isActive}
@@ -2536,14 +2699,14 @@ export function AssistantClient({
                           disabled={message.automationSetup.channels.length === 0 || message.automationSetup.name.trim().length < 2}
                         >
                           <Plus className="size-3.5" />
-                          CrÃ©er lâ€™automatisation
+                          Créer l&apos;automatisation
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => updateAutomationSetup(message.id, buildAutomationSetupDraft(message.automationSetup!.preset))}
                         >
-                          RÃ©initialiser
+                          Réinitialiser
                         </Button>
                       </div>
                     </div>
@@ -2555,14 +2718,13 @@ export function AssistantClient({
                     const currentAutomations = automationCards.filter((card) => card.type === "automation");
                     const availableAutomations = automationCards.filter((card) => card.type !== "automation");
                     const activeCount = automationCards.filter((card) => card.status === "Actif").length;
-                    const visualCards = automationCards.slice(0, 5);
                     const showCreateOnlyPanel = currentAutomations.length === 0 && availableAutomations.length > 0;
 
-                    const renderActionButton = (card: AssistantActionCard) => card.action ? (
+                    const renderActionButton = (card: AssistantActionCard) => card.action && card.action.kind !== "done" ? (
                       <Button
                         size="sm"
                         className="h-8 text-xs"
-                        variant={card.action.kind === "delete_automation" ? "destructive" : card.action.kind === "send_email" ? "default" : "default"}
+                        variant={card.action.kind === "delete_automation" || card.action.actionKind === "delete_automation" ? "destructive" : "default"}
                         onClick={() => runAssistantAction(card)}
                         loading={runningActionId === card.id}
                       >
@@ -2578,6 +2740,8 @@ export function AssistantClient({
                           <Send className="size-3.5" />
                         ) : card.action.kind === "switch_detailed" ? (
                           <SlidersHorizontal className="size-3.5" />
+                        ) : card.action.kind === "confirm_pending" ? (
+                          <Check className="size-3.5" />
                         ) : (
                           <Power className="size-3.5" />
                         )}
@@ -2586,14 +2750,16 @@ export function AssistantClient({
                           : card.action.kind === "trigger_automation"
                             ? "Lancer"
                             : card.action.kind === "create_shabbat_automation" || card.action.kind === "create_automation"
-                              ? "CrÃ©er"
+                              ? "Créer"
                               : card.action.kind === "open_daily_routine"
                                 ? "Configurer"
                                 : card.action.kind === "send_email"
                                   ? "Confirmer l'envoi"
                                   : card.action.kind === "switch_detailed"
-                                    ? "Ouvrir les paramÃ¨tres"
-                                    : "Appliquer"}
+                                    ? "Ouvrir les paramètres"
+                                    : card.action.kind === "confirm_pending"
+                                      ? "Confirmer"
+                                      : "Appliquer"}
                       </Button>
                     ) : null;
 
@@ -2602,25 +2768,22 @@ export function AssistantClient({
                       return (
                         <div
                           key={card.id}
-                          className={cn(
-                            "rounded-2xl border bg-gradient-to-br p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
-                            getAutomationTone(card)
-                          )}
+                          className="group rounded-2xl border border-slate-200 bg-white p-4 transition duration-200 hover:border-slate-300 hover:shadow-[0_8px_24px_rgba(15,23,42,0.06)]"
                         >
                           <div className="flex items-start gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/85 shadow-sm">
-                              <Icon className="size-5" />
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition group-hover:bg-slate-900 group-hover:text-white">
+                              <Icon className="size-[18px]" />
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-start justify-between gap-2">
-                                <p className="line-clamp-2 text-sm font-black leading-snug text-slate-900">{card.title}</p>
+                                <p className="truncate text-sm font-semibold tracking-tight text-slate-900">{card.title}</p>
                                 {card.status && (
-                                  <span className="shrink-0 rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-black text-slate-600">
+                                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
                                     {card.status}
                                   </span>
                                 )}
                               </div>
-                              <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">{card.description}</p>
+                              <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{card.description}</p>
                               <div className="mt-3">{renderActionButton(card)}</div>
                             </div>
                           </div>
@@ -2631,128 +2794,67 @@ export function AssistantClient({
                     return (
                       <div className="mt-3 space-y-3">
                         {automationCards.length > 0 && (
-                          <div className={cn(
-                            "overflow-hidden rounded-[2rem] p-4 shadow-sm ring-1 ring-white",
-                            showCreateOnlyPanel
-                              ? "border border-amber-100 bg-gradient-to-br from-white to-amber-50/80"
-                              : "border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-amber-50"
-                          )}>
-                            {!showCreateOnlyPanel && <div className="relative mx-auto flex h-48 max-w-md items-center justify-center">
-                              <div className="absolute inset-8 rounded-full border border-dashed border-blue-200" />
-                              <div className="absolute h-20 w-20 animate-ping rounded-full bg-blue-200/30" />
-                              <div className="absolute h-32 w-32 animate-pulse rounded-full bg-amber-200/20" />
-                              {visualCards.map((card, index) => {
-                                const Icon = getAutomationIcon(card);
-                                const positions = [
-                                  "left-8 top-5",
-                                  "right-8 top-8",
-                                  "left-10 bottom-8",
-                                  "right-12 bottom-6",
-                                  "top-2 left-1/2 -translate-x-1/2",
-                                ];
-                                return (
-                                  <div
-                                    key={card.id}
-                                    className={cn(
-                                      "group/icon absolute flex h-12 w-12 items-center justify-center rounded-2xl border bg-white shadow-lg transition hover:z-20 hover:-translate-y-1 hover:shadow-xl",
-                                      positions[index % positions.length]
-                                    )}
-                                    style={{ animation: "bounce 2.8s infinite", animationDelay: `${index * 180}ms` }}
-                                    aria-label={card.title}
-                                  >
-                                    <Icon className="size-5 text-blue-700" />
-                                    <div className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 min-w-max -translate-x-1/2 rounded-full border border-slate-200 bg-white/95 px-3 py-1.5 text-[11px] font-bold text-slate-800 opacity-0 shadow-lg shadow-slate-950/10 backdrop-blur transition duration-150 group-hover/icon:opacity-100">
-                                      {card.title.replace(/^[^\p{L}\p{N}]+/u, "").trim()}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                              <div
-                                className={cn(
-                                  "relative z-10 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-slate-900 text-sm font-black text-white shadow-2xl",
-                                  communityLogoUrl && "bg-cover bg-center"
-                                )}
-                                style={communityLogoUrl ? { backgroundImage: `url(${communityLogoUrl})` } : undefined}
-                                aria-label={communityName}
-                              >
-                                {communityLogoUrl && <span className="absolute inset-0 bg-slate-950/20" />}
-                                <span className="relative z-10 flex flex-col items-center leading-none">
-                                  <span className="text-lg font-black">âœ¡</span>
-                                  {!communityLogoUrl && (
-                                    <span className="mt-0.5 text-[10px] tracking-wide">{getCommunityInitials(communityName)}</span>
-                                  )}
-                                </span>
+                          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <div className="mb-5 flex flex-col items-center text-center">
+                              <div className="relative mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white">
+                                <Zap className="size-5" />
+                                <span className="absolute inset-0 rounded-2xl ring-1 ring-slate-300 motion-safe:animate-[ping_2.6s_cubic-bezier(0,0,0.2,1)_infinite]" />
                               </div>
-                              <div className="absolute bottom-1 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white bg-white/90 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm">
-                                <Radio className="size-3.5 text-emerald-500" />
-                                {activeCount} active{activeCount > 1 ? "s" : ""}
-                              </div>
-                            </div>}
-                            <div className="text-center">
-                              <p className="text-sm font-black text-slate-900">
-                                {showCreateOnlyPanel ? "Automatisations Ã  crÃ©er" : "Vos automatisations"}
+                              <p className="text-base font-semibold tracking-tight text-slate-900">
+                                {showCreateOnlyPanel ? "Automatisations à créer" : "Vos automatisations"}
                               </p>
-                              <p className="mt-1 text-xs text-slate-500">
+                              <p className="mt-1 max-w-sm text-xs leading-5 text-slate-500">
                                 {showCreateOnlyPanel
-                                  ? "Voici seulement les options disponibles en un clic."
-                                  : "Celles dÃ©jÃ  installÃ©es sont sÃ©parÃ©es de celles que vous pouvez crÃ©er."}
+                                  ? "Activez en un clic ce qui vous est proposé."
+                                  : `${activeCount} active${activeCount > 1 ? "s" : ""} · tout se gère depuis un seul endroit.`}
                               </p>
                             </div>
 
-                            <div className="mt-4 space-y-4">
-                              {!showCreateOnlyPanel && <div className="rounded-3xl border border-white bg-white/75 p-3 shadow-sm">
-                                <div className="mb-3 flex items-center justify-between gap-3">
-                                  <div>
-                                    <p className="text-sm font-black text-slate-900">DÃ©jÃ  en place</p>
-                                    <p className="mt-0.5 text-xs text-slate-500">Automatisations configurÃ©es sur votre compte.</p>
+                            <div className="space-y-6">
+                              {!showCreateOnlyPanel && (
+                                <section>
+                                  <div className="mb-2.5 flex items-center justify-between">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">Déjà en place</p>
+                                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                                      {currentAutomations.length}
+                                    </span>
                                   </div>
-                                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-black text-emerald-700">
-                                    {currentAutomations.length}
-                                  </span>
-                                </div>
-                                {currentAutomations.length > 0 ? (
-                                  <div className="grid gap-2 md:grid-cols-2">
-                                    {currentAutomations.map(renderCompactCard)}
-                                  </div>
-                                ) : (
-                                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center">
-                                    <p className="text-sm font-bold text-slate-700">Aucune automatisation active pour lâ€™instant.</p>
-                                    <p className="mt-1 text-xs text-slate-500">Choisissez une option ci-dessous pour commencer.</p>
-                                  </div>
-                                )}
-                              </div>}
+                                  {currentAutomations.length > 0 ? (
+                                    <div className="grid gap-2.5 md:grid-cols-2">
+                                      {currentAutomations.map(renderCompactCard)}
+                                    </div>
+                                  ) : (
+                                    <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-center">
+                                      <p className="text-xs text-slate-500">Aucune automatisation pour l&apos;instant.</p>
+                                    </div>
+                                  )}
+                                </section>
+                              )}
 
                               {availableAutomations.length > 0 && (
-                                <div className="rounded-3xl border border-amber-100 bg-gradient-to-br from-white to-amber-50/80 p-3 shadow-sm">
-                                  <div className="mb-3 flex items-center justify-between gap-3">
-                                    <div>
-                                      <p className="text-sm font-black text-slate-900">Ã€ crÃ©er</p>
-                                      <p className="mt-0.5 text-xs text-slate-500">Automatisations disponibles en un clic.</p>
-                                    </div>
-                                    <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-black text-amber-800">
+                                <section>
+                                  <div className="mb-2.5 flex items-center justify-between">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">À créer</p>
+                                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
                                       {availableAutomations.length}
                                     </span>
                                   </div>
-                                  <div className="grid gap-2 md:grid-cols-2">
+                                  <div className="grid gap-2.5 md:grid-cols-2">
                                     {availableAutomations.map(renderCompactCard)}
                                   </div>
-                                </div>
+                                </section>
                               )}
 
-                              {!showCreateOnlyPanel && availableAutomations.length > 0 && <div className="rounded-2xl border border-white bg-white/80 p-3 text-center shadow-sm">
-                                <p className="text-sm font-bold text-slate-900">
-                                  Voulez-vous que je vous propose d&apos;autres automatisations pertinentes ?
-                                </p>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="mt-2 h-8 rounded-full text-xs"
-                                  onClick={() => sendMessage("Propose-moi d'autres automatisations pertinentes pour mon Beth Habad, de faÃ§on courte et concrÃ¨te.")}
+                              {!showCreateOnlyPanel && availableAutomations.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => sendMessage("Propose-moi d'autres automatisations pertinentes pour mon Beth Habad, de façon courte et concrète.")}
+                                  className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 py-2.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
                                 >
-                                  <Sparkles className="size-3.5 text-amber-500" />
-                                  Oui, propose-moi
-                                </Button>
-                              </div>}
+                                  <Sparkles className="size-3.5" />
+                                  Proposer d&apos;autres automatisations
+                                </button>
+                              )}
                             </div>
                           </div>
                         )}
@@ -2797,7 +2899,7 @@ export function AssistantClient({
                         <div>
                           <p className="text-sm font-black text-slate-900">Affiches les plus pertinentes</p>
                           <p className="mt-1 text-xs text-slate-500">
-                            SÃ©lectionnÃ©es selon le thÃ¨me demandÃ©, les tags, la catÃ©gorie et les consignes IA.
+                            Sélectionnées selon le thème demandé, les tags, la catégorie et les consignes IA.
                           </p>
                         </div>
                         <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-blue-700 shadow-sm">
@@ -2820,7 +2922,7 @@ export function AssistantClient({
                                 />
                               ) : (
                                 <div className="flex h-full items-center justify-center text-xs text-slate-400">
-                                  AperÃ§u indisponible
+                                  Aperçu indisponible
                                 </div>
                               )}
                               </div>
@@ -2852,7 +2954,7 @@ export function AssistantClient({
                                     loading={preparingPoster && selectedTemplate?.id === template.id}
                                     disabled={preparingPoster}
 	                                >
-	                                  Choisir et prÃ©parer
+	                                  Choisir et préparer
 	                                </Button>
                               </div>
                             </div>
@@ -2885,7 +2987,7 @@ export function AssistantClient({
                                 />
                               ) : (
                                 <div className="flex h-full items-center justify-center text-xs text-slate-400">
-                                  AperÃ§u indisponible
+                                  Aperçu indisponible
                                 </div>
                               )}
                             </div>
@@ -2954,7 +3056,7 @@ export function AssistantClient({
                           </div>
                           {message.posterDraft.missingFields.length > 0 && (
                             <p className="mt-2 text-xs text-amber-600">
-                              Ã€ confirmer : {message.posterDraft.missingFields.join(", ")}
+                              À confirmer : {message.posterDraft.missingFields.join(", ")}
                             </p>
                           )}
 	                          <div className="mt-3 flex gap-2">
@@ -2963,7 +3065,7 @@ export function AssistantClient({
 	                              onClick={() => renderPoster(message)}
 	                              loading={renderingPoster}
 	                            >
-	                              Confirmer et gÃ©nÃ©rer
+	                              Confirmer et générer
 	                            </Button>
 	                            <Button
 	                              size="sm"
@@ -2979,7 +3081,7 @@ export function AssistantClient({
                                 <div>
                                   <p className="text-sm font-semibold text-slate-900">Modifier les textes</p>
                                   <p className="mt-1 text-xs text-slate-500">
-                                    Ajustez les champs Ã  la main ou rÃ©gÃ©nÃ©rez automatiquement avec les informations connues.
+                                    Ajustez les champs à la main ou régénérez automatiquement avec les informations connues.
                                   </p>
                                 </div>
                                 <Button
@@ -2989,7 +3091,7 @@ export function AssistantClient({
                                   loading={preparingPoster}
                                   className="shrink-0"
                                 >
-                                  GÃ©nÃ©rer
+                                  Générer
                                 </Button>
                               </div>
                               <div className="mt-3 grid gap-2">
@@ -3038,7 +3140,7 @@ export function AssistantClient({
                       <div className="rounded-xl border border-white/80 bg-white p-1 shadow-inner">
                         <img
                           src={message.generatedImageUrl}
-                          alt="Affiche gÃ©nÃ©rÃ©e"
+                          alt="Affiche générée"
                           className="w-full rounded-lg object-cover"
                         />
                       </div>
@@ -3049,7 +3151,7 @@ export function AssistantClient({
                           rel="noreferrer"
                           className="inline-flex text-sm font-medium text-blue-600 hover:underline"
                         >
-                          Ouvrir ou tÃ©lÃ©charger l&apos;affiche
+                          Ouvrir ou télécharger l&apos;affiche
                         </a>
                       </div>
                       {message.publishDraft && (
@@ -3059,7 +3161,7 @@ export function AssistantClient({
                             <p className="text-sm font-semibold text-slate-900">Publier cette affiche</p>
                           </div>
                           <p className="mt-1 text-xs text-slate-500">
-                            Choisis les rÃ©seaux souhaitÃ©s puis ajuste la lÃ©gende si besoin.
+                            Choisis les réseaux souhaités puis ajuste la légende si besoin.
                           </p>
                           <div className="mt-3 flex flex-wrap gap-2">
                             {channels.map((channel) => {
@@ -3117,16 +3219,15 @@ export function AssistantClient({
             ))}
             {loading && (
               <div className="flex gap-3">
-                <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-amber-500">
-                  <Sparkles className="size-4 text-white" />
+                <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white">
+                  <Bot className="size-4 text-slate-700" />
                 </div>
                 <div className="max-w-[88%] sm:max-w-[75%]">
                   <div className="rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm ring-1 ring-slate-100">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-semibold text-slate-500">EasyCom AI reflechit</span>
-                      <div className="relative h-7 w-4 overflow-hidden">
-                        <span className="absolute left-1/2 top-0 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-blue-700 animate-[bounce_1s_ease-in-out_infinite]" />
-                      </div>
+                    <div className="flex items-center">
+                      <span className="text-slate-400">
+                        <MessageLoading />
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -3146,10 +3247,10 @@ export function AssistantClient({
             <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-slate-900">
-                  Template sÃ©lectionnÃ© : {selectedTemplate.name}
+                  Template sélectionné : {selectedTemplate.name}
                 </p>
                 <p className="text-xs text-slate-500">
-                  DÃ©cris les textes Ã  remplacer, puis prÃ©pare l&apos;affiche.
+                  Décris les textes à remplacer, puis prépare l&apos;affiche.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -3170,63 +3271,33 @@ export function AssistantClient({
               </div>
             </div>
           )}
-          <div
-            className={cn(
-              "rounded-[2rem] bg-white p-4 shadow-[0_20px_48px_rgba(15,23,42,0.16)]",
-              assistantExperience === "simple" &&
-                "rounded-[2rem] bg-white p-3 shadow-[0_20px_48px_rgba(15,23,42,0.16)]"
-            )}
-          >
-            <div className={cn("mb-3 flex items-center justify-between px-1", assistantExperience === "simple" && "px-2")}>
-              <label htmlFor="assistant-specific-request" className="hidden items-center gap-2 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-bold text-white sm:inline-flex">
-                <Bot className="size-3.5 text-blue-200" />
-                Assistant IA
-              </label>
-              <div className="mx-auto inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm sm:hidden">
-                <Bot className="size-3.5 text-blue-200" />
-                <span>Assistant IA</span>
-              </div>
-              <div className="hidden items-center gap-2 text-[11px] font-semibold text-slate-500 sm:flex">
-                <span className="h-2 w-2 rounded-full bg-blue-700 animate-pulse" />
-                En ligne
-              </div>
-            </div>
-            <div className={cn(
-              "relative overflow-hidden rounded-[1.7rem] bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,41,59,0.94),rgba(29,78,216,0.92))] p-[1.5px]",
-              assistantExperience === "simple" && "rounded-[1.7rem]"
-            )}>
-              <div className="pointer-events-none absolute inset-0 rounded-[1.7rem] bg-[conic-gradient(from_180deg_at_50%_50%,rgba(37,99,235,0.08),rgba(15,23,42,0.02),rgba(37,99,235,0.16),rgba(15,23,42,0.02),rgba(37,99,235,0.08))] animate-[spin_18s_linear_infinite]" />
-              <div className="pointer-events-none absolute inset-[1px] rounded-[calc(1.7rem-1px)] border border-blue-900/40" />
-              <div className={cn(
-                "relative flex items-end gap-2.5 rounded-[calc(1.7rem-1px)] bg-white p-2",
-                assistantExperience === "simple" && "bg-white p-2"
-              )}>
-                <textarea
-                  id="assistant-specific-request"
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => {
-                    const nextValue = e.target.value;
-                    if (!hasStartedPromptEntry && nextValue.trim().length > 0) {
-                      setHasStartedPromptEntry(true);
-                    }
-                    setInput(nextValue);
-                  }}
-                  onKeyDown={handleKeyDown}
-                  placeholder={animatedPlaceholder}
-                  rows={2}
-                  className="flex-1 resize-none rounded-[1.35rem] border border-transparent bg-transparent px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400"
-                />
-                <Button
-                  onClick={() => sendMessage()}
-                  size="icon"
-                  disabled={loading}
-                  className="h-12 w-12 flex-shrink-0 rounded-[1.35rem] bg-[linear-gradient(135deg,#0f172a,#1d4ed8)] text-white shadow-[0_10px_24px_rgba(30,64,175,0.24)] ring-1 ring-blue-300/40 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(30,64,175,0.32)] disabled:opacity-60"
-                  aria-label="Envoyer la demande"
-                >
-                  <Send className="size-4" />
-                </Button>
-              </div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-2 shadow-sm transition focus-within:border-slate-300 focus-within:shadow-md">
+            <div className="flex items-end gap-2">
+              <textarea
+                id="assistant-specific-request"
+                ref={inputRef}
+                value={input}
+                onChange={(e) => {
+                  const nextValue = e.target.value;
+                  if (!hasStartedPromptEntry && nextValue.trim().length > 0) {
+                    setHasStartedPromptEntry(true);
+                  }
+                  setInput(nextValue);
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder={animatedPlaceholder}
+                rows={1}
+                className="max-h-40 flex-1 resize-none bg-transparent px-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+              />
+              <Button
+                onClick={() => sendMessage()}
+                size="icon"
+                disabled={loading}
+                className="h-9 w-9 flex-shrink-0 rounded-full bg-slate-900 text-white transition hover:bg-slate-800 disabled:opacity-50"
+                aria-label="Envoyer la demande"
+              >
+                <Send className="size-4" />
+              </Button>
             </div>
           </div>
           </div>
@@ -3248,7 +3319,7 @@ export function AssistantClient({
             className="group relative inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-600"
           >
             <span className="inline-flex h-2.5 w-2.5 rounded-full bg-white/90" />
-            <span>DÃ©finir mon quotidien</span>
+            <span>Définir mon quotidien</span>
             <span
               role="button"
               tabIndex={0}
@@ -3264,7 +3335,7 @@ export function AssistantClient({
                 }
               }}
               className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
-              aria-label="Fermer le bouton dÃ©finir mon quotidien"
+              aria-label="Fermer le bouton définir mon quotidien"
             >
               <X className="size-3.5" />
             </span>
@@ -3280,6 +3351,62 @@ export function AssistantClient({
               onCancel={() => setDailyRoutineMode(false)}
               saving={savingRoutine}
             />
+          </div>
+        </div>
+      )}
+
+      {capabilitiesOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+          onClick={() => setCapabilitiesOpen(false)}
+        >
+          <div
+            className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 bg-gradient-to-br from-blue-600 via-sky-500 to-amber-400 px-6 py-5 text-white">
+              <div>
+                <p className="text-lg font-black tracking-tight">Tout ce que votre assistant peut faire</p>
+                <p className="mt-1 text-sm text-white/85">
+                  Demandez-le simplement dans le chat : l&apos;assistant prépare, vous validez, il agit.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCapabilitiesOpen(false)}
+                className="shrink-0 rounded-full bg-white/15 p-2 text-white transition hover:bg-white/25"
+                aria-label="Fermer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 gap-3 overflow-y-auto p-5 sm:grid-cols-2">
+              {[
+                { icon: Sparkles, tone: "bg-violet-100 text-violet-700", title: "Créer du contenu", desc: "Posts, annonces et textes d'affiches adaptés à chaque réseau." },
+                { icon: Share2, tone: "bg-blue-100 text-blue-700", title: "Publier", desc: "Instagram, Facebook, WhatsApp, Telegram — directement ou en brouillon." },
+                { icon: Zap, tone: "bg-amber-100 text-amber-700", title: "Automatiser", desc: "Créer, activer ou mettre en pause des automatisations récurrentes." },
+                { icon: CalendarDays, tone: "bg-emerald-100 text-emerald-700", title: "Gérer l'agenda", desc: "Ajouter événements et rappels, retrouvés dans l'Agenda connecté IA." },
+                { icon: Send, tone: "bg-sky-100 text-sky-700", title: "Envoyer des emails", desc: "Préparer et envoyer des emails à votre communauté." },
+                { icon: Gift, tone: "bg-rose-100 text-rose-700", title: "Vie juive", desc: "Horaires de Chabbat, fêtes et parachiot pris en compte automatiquement." },
+                { icon: HeartHandshake, tone: "bg-teal-100 text-teal-700", title: "Vérifier vos canaux", desc: "Voir ce qui est connecté et ce qu'il reste à configurer." },
+                { icon: Bot, tone: "bg-slate-100 text-slate-700", title: "Mémoriser vos préférences", desc: "Ton, signature, habitudes : l'assistant s'en souvient pour la suite." },
+              ].map((cap) => (
+                <div key={cap.title} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm">
+                  <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", cap.tone)}>
+                    <cap.icon className="size-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-900">{cap.title}</p>
+                    <p className="mt-0.5 text-xs leading-5 text-slate-500">{cap.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-slate-100 px-5 py-4">
+              <Button onClick={() => setCapabilitiesOpen(false)} className="w-full">
+                J&apos;ai compris
+              </Button>
+            </div>
           </div>
         </div>
       )}

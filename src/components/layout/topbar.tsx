@@ -124,7 +124,7 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
   );
 
   function getPageTitle() {
-    if (pathname.startsWith("/dashboard/assistant")) return "Assistant IA";
+    if (pathname.startsWith("/dashboard/assistant")) return "";
     if (pathname.startsWith("/dashboard/automations")) return "Automatisations";
     if (pathname.startsWith("/dashboard/notifications")) return "Notifications";
     if (pathname.startsWith("/dashboard/whatsapp")) return "WhatsApp";
@@ -193,7 +193,11 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
 
   return (
     <>
-      <header className="z-10 flex h-16 flex-shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 lg:px-6">
+      <header className={cn(
+        "z-10 flex h-16 flex-shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 lg:px-6",
+        // Sur la page assistant, l'en-tête du chat fait office de barre sur desktop.
+        pathname.startsWith("/dashboard/assistant") && "md:hidden"
+      )}>
         <div className="md:hidden">
           <button
             onClick={() => setMobileNavOpen(true)}
@@ -334,7 +338,7 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
                     )}
                   >
                     <Bot className="size-4 shrink-0 text-cyan-50" />
-                    <p className="truncate text-[15px] font-semibold tracking-tight text-white">Accueil/Assistant IA</p>
+                    <p className="truncate text-[15px] font-semibold tracking-tight text-white">Assistant IA</p>
                   </Link>
 
                   <button

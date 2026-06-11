@@ -2,6 +2,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getJewishHolidays } from "@/lib/automation/hebcal";
 import { AssistantClient } from "@/components/assistant/assistant-client";
+import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Assistant IA — EasyCom AI" };
@@ -185,6 +186,9 @@ export default async function AssistantPage({
       seasonalPrompts={quickActionPrompts}
       initialPrompt={initialPrompt}
       initialApprovalDraft={initialApprovalDraft}
+      userName={profile.name ?? ""}
+      userAvatar={profile.avatarUrl ?? null}
+      communitySubtitle={getCommunityProfileDisplayLabel(community?.communityType)}
     />
   );
 }

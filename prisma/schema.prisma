@@ -25,11 +25,13 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  community     Community?     @relation(fields: [communityId], references: [id])
-  auditLogs     AuditLog[]
-  notifications Notification[]
-  conversations Conversation[]
-  mediaFiles    MediaFile[]
+  community         Community?         @relation(fields: [communityId], references: [id])
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  conversations     Conversation[]
+  mediaFiles        MediaFile[]
+  pendingActions    PendingAction[]
+  pushSubscriptions PushSubscription[]
 
   @@index([email])
   @@index([communityId])
@@ -102,6 +104,7 @@ model Community {
   subscriptions   Subscription[]
   aiMemory        AIMemory[]
   auditLogs       AuditLog[]
+  pendingActions  PendingAction[]
 
   @@index([slug])
   @@index([plan])
@@ -711,6 +714,59 @@ model Notification {
   @@index([communityId])
   @@index([isRead])
   @@index([createdAt])
+}
+
+// ============================================================
+// ASSISTANT IA — actions en attente de validation (mode CONFIRM)
+// ============================================================
+
+model PendingAction {
+  id          String              @id @default(cuid())
+  communityId String
+  userId      String?             @db.Uuid
+  kind        String              // ex: "create_automation", "send_email", "publish_content"
+  summary     String              @db.Text   // résumé lisible présenté à l'utilisateur
+  payload     Json                // arguments exacts de l'action à exécuter
+  status      PendingActionStatus @default(PENDING)
+  token       String              @unique     // jeton pour lien profond / sécurité
+  source      String              @default("chat") // "chat" | "automation"
+  resolvedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([communityId])
+  @@index([userId])
+  @@index([status])
+  @@index([token])
+}
+
+enum PendingActionStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  EXPIRED
+}
+
+// ============================================================
+// NOTIFICATIONS PUSH WEB — abonnements navigateur (VAPID)
+// ============================================================
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String   @db.Uuid
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 enum NotificationType {

@@ -92,12 +92,12 @@ interface AutomationFormState {
 
 const TRIGGER_LABELS: Record<string, string> = {
   WEEKLY_SHABBAT: "ðŸ•¯ï¸ Chabbat hebdomadaire",
-  JEWISH_HOLIDAY: "âœ¨ FÃªte juive",
-  BEFORE_EVENT: "â° Avant un Ã©vÃ©nement",
-  EVENT_DAY: "ðŸ“… Jour de l'Ã©vÃ©nement",
-  AFTER_EVENT: "ðŸ“‹ AprÃ¨s un Ã©vÃ©nement",
+  JEWISH_HOLIDAY: "✨ Fête juive",
+  BEFORE_EVENT: "â° Avant un événement",
+  EVENT_DAY: "ðŸ“… Jour de l'événement",
+  AFTER_EVENT: "ðŸ“‹ Après un événement",
   DAILY: "ðŸŒ… Quotidien",
-  CUSTOM_SCHEDULE: "âš™ï¸ Planning personnalisÃ©",
+  CUSTOM_SCHEDULE: "âš™ï¸ Planning personnalisé",
   MANUAL: "ðŸ‘† Manuel",
 };
 
@@ -145,7 +145,7 @@ const SOCIAL_LOGOS: Record<string, React.ReactNode> = {
 // Kept while older embedded automation UI is phased out.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const DEFAULT_AUTOMATION_DESCRIPTION =
-  "Vous recevrez une notification et vous pourrez publier automatiquement en un clic sur vos rÃ©seaux.";
+  "Vous recevrez une notification et vous pourrez publier automatiquement en un clic sur vos réseaux.";
 const DAY_OPTIONS = [
   { value: "monday", label: "Lundi" },
   { value: "tuesday", label: "Mardi" },
@@ -161,7 +161,7 @@ const REPEAT_OPTIONS: Array<{ value: AutomationFormState["repeat"]; label: strin
   { value: "daily", label: "Chaque jour" },
   { value: "weekly", label: "Chaque semaine" },
   { value: "monthly", label: "Chaque mois" },
-  { value: "custom", label: "Jours personnalisÃ©s" },
+  { value: "custom", label: "Jours personnalisés" },
 ];
 
 interface PredefinedAutomationCard {
@@ -207,8 +207,8 @@ const PREDEFINED_AUTOMATIONS: PredefinedAutomationCard[] = [
   },
   {
     key: "activities",
-    label: "ActivitÃ©s",
-    description: "PrÃ©parez des annonces rÃ©guliÃ¨res pour vos Ã©vÃ©nements et activitÃ©s.",
+    label: "Activités",
+    description: "Préparez des annonces régulières pour vos événements et activités.",
     emoji: "ðŸ“…",
     status: "configurable",
     trigger: "CUSTOM_SCHEDULE",
@@ -220,20 +220,20 @@ const PREDEFINED_AUTOMATIONS: PredefinedAutomationCard[] = [
   {
     key: "reminder-j10",
     label: "Rappels J-10",
-    description: "Structure visuelle prÃªte pour les rappels avant Ã©vÃ©nement.",
+    description: "Structure visuelle prête pour les rappels avant événement.",
     emoji: "â³",
     status: "coming_soon",
   },
   {
     key: "reminder-j5",
     label: "Rappels J-5",
-    description: "Bloc prÃªt Ã  connecter Ã  une logique de rappels plus fine.",
+    description: "Bloc prêt à connecter à une logique de rappels plus fine.",
     emoji: "ðŸ””",
     status: "coming_soon",
   },
   {
     key: "regular-courses",
-    label: "Cours rÃ©guliers",
+    label: "Cours réguliers",
     description: "Planifiez vos cours récurrents avec une fréquence personnalisable.",
     emoji: "ðŸ“˜",
     status: "configurable",
@@ -245,8 +245,8 @@ const PREDEFINED_AUTOMATIONS: PredefinedAutomationCard[] = [
   },
   {
     key: "scheduled-posts",
-    label: "Publications programmÃ©es",
-    description: "PrÃ©parez Ã  l'avance vos publications Ã  heure fixe.",
+    label: "Publications programmées",
+    description: "Préparez à l'avance vos publications à heure fixe.",
     emoji: "ðŸ—“ï¸",
     status: "configurable",
     trigger: "CUSTOM_SCHEDULE",
@@ -258,7 +258,7 @@ const PREDEFINED_AUTOMATIONS: PredefinedAutomationCard[] = [
   {
     key: "auto-messages",
     label: "Messages automatiques",
-    description: "Diffusez automatiquement un message ou une pensÃ©e du jour.",
+    description: "Diffusez automatiquement un message ou une pensée du jour.",
     emoji: "ðŸ’¬",
     status: "configurable",
     trigger: "DAILY",
@@ -269,14 +269,14 @@ const PREDEFINED_AUTOMATIONS: PredefinedAutomationCard[] = [
   {
     key: "follow-ups",
     label: "Relances",
-    description: "Carte prÃªte pour vos relances futures sans casser l'existant.",
+    description: "Carte prête pour vos relances futures sans casser l'existant.",
     emoji: "ðŸ“¨",
     status: "coming_soon",
   },
   {
     key: "important-notifications",
     label: "Notifications importantes",
-    description: "PrÃ©configurez vos communications urgentes ou essentielles.",
+    description: "Préconfigurez vos communications urgentes ou essentielles.",
     emoji: "ðŸš¨",
     status: "configurable",
     trigger: "MANUAL",
@@ -599,7 +599,7 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
       key: preset.id,
       presetId: isDefaultAutomationPublicationId(preset.id) ? undefined : preset.id,
       label: preset.title,
-      description: preset.description ?? "Automatisation prÃ©dÃ©finie par l'admin global.",
+      description: preset.description ?? "Automatisation prédéfinie par l'admin global.",
       emoji: preset.icon ?? "âš¡",
       category: preset.category,
       status: "configurable",
@@ -872,7 +872,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
   }
 
   async function deleteAutomation(id: string) {
-    if (!confirm("ÃŠtes-vous sÃ»r de vouloir supprimer cette automatisation ?")) return;
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette automatisation ?")) return;
     setDeleting(id);
     try {
       const res = await fetch(`/api/automations/${id}`, { method: "DELETE" });
@@ -925,7 +925,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
         body: JSON.stringify({ preset, channels }),
       });
       if (res.ok) router.refresh();
-      else alert("Erreur lors de la crÃ©ation de l'automatisation.");
+      else alert("Erreur lors de la création de l'automatisation.");
     } finally {
       setSaving(false);
     }

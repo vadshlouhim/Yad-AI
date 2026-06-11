@@ -9,6 +9,7 @@ import { Save, Building2, User, Palette, ChevronRight, ShieldCheck, Users, Smart
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels";
+import { enablePushNotifications } from "@/lib/push/client";
 
 interface Community {
   id: string;
@@ -921,7 +922,11 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                       <button
                         key={option.value}
                         type="button"
-                        onClick={() => setAutomationValidationMode(option.value)}
+                        onClick={() => {
+                          setAutomationValidationMode(option.value);
+                          // Active les notifications push (geste utilisateur) si validation manuelle.
+                          if (option.value === "manual") void enablePushNotifications();
+                        }}
                         className={cn(
                           "rounded-xl border p-4 text-left transition",
                           automationValidationMode === option.value

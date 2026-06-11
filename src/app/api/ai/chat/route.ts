@@ -5,8 +5,6 @@ import { buildSystemPrompt, buildMemoryContext, buildDailyRoutineSystemPrompt, t
 import { buildTemporalSystemContext } from "@/lib/ai/time-context";
 import { getStoredShabbatTimes } from "@/lib/ai/engine";
 import { getJewishHolidays, type JewishHoliday } from "@/lib/automation/hebcal";
-import { AUTOMATION_PRESETS, type AutomationPresetKey } from "@/lib/automation/presets";
-import { presetAppliesToCommunity, type PresetWithClientTypes } from "@/lib/automation/preset-utils";
 import {
   buildArticleSuggestions,
   looksLikeArticleIntent,
@@ -19,41 +17,15 @@ import {
   resolveTemplateAssetUrl,
 } from "@/lib/templates/shared";
 import { analyzeTemplateVisuals } from "@/lib/templates/analysis";
+import { runAssistant } from "@/lib/ai/assistant/runner";
 import OpenAI from "openai";
-import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 const openrouter = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
   apiKey: process.env.OPENROUTER_API_KEY!,
 });
 
-interface AssistantActionCard {
-  id: string;
-  type: "automation" | "setting" | "navigation" | "creation";
-  title: string;
-  description: string;
-  status?: string;
-  href?: string;
-  action?: {
-    kind: "toggle_automation" | "trigger_automation" | "create_automation" | "create_shabbat_automation" | "open_daily_routine" | "switch_detailed";
-    automationId?: string;
-    isActive?: boolean;
-    preset?: AutomationPresetKey;
-    presetId?: string;
-  };
-}
-
-interface AutomationSummary {
-  id: string;
-  presetId?: string | null;
-  name: string;
-  description: string | null;
-  trigger: string;
-  isActive: boolean;
-  status: string;
-  nextRunAt: string | null;
-  lastRunAt: string | null;
-}
+const MODEL = "deepseek/deepseek-chat";
 
 interface CommunityContext {
   name: string;
@@ -66,10 +38,8 @@ interface CommunityContext {
   editorialRules: string | null;
   communityType: string;
   religiousStream: string | null;
-}
-
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Erreur inconnue";
+  vocabulary: { automationValidationMode?: string } | null;
+  assistantActionMode: "AUTO" | "CONFIRM";
 }
 
 function getErrorDebug(error: unknown) {
@@ -81,13 +51,9 @@ function getErrorDebug(error: unknown) {
 }
 
 function isShabbatRequest(text: string): boolean {
-  const normalized = text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-
-  return ["chabbat", "shabbat", "paracha", "havdala", "bougies", "kiddouch", "kidouch"].some((keyword) =>
-    normalized.includes(keyword)
+  const normalized = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return ["chabbat", "shabbat", "paracha", "havdala", "bougies", "kiddouch", "kidouch"].some((k) =>
+    normalized.includes(k)
   );
 }
 
@@ -100,10 +66,13 @@ function formatFrenchDate(value: string): string {
   });
 }
 
-function getUpcomingHoliday(holidays: JewishHoliday[], now: Date) {
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
-  return getUpcomingHolidays(holidays, now, 1)[0] ?? null;
+function cleanConversationTitle(value: string | null | undefined) {
+  return (value ?? "")
+    .replace(/\*\*/g, "")
+    .replace(/[*_`#]/g, "")
+    .replace(/^["'«\s]+|["'»\s.]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function getUpcomingHolidays(holidays: JewishHoliday[], now: Date, limit = 8) {
@@ -115,213 +84,15 @@ function getUpcomingHolidays(holidays: JewishHoliday[], now: Date, limit = 8) {
     .slice(0, limit);
 }
 
-function removeAsterisks(value: string) {
-  return value.replace(/\*/g, "");
-}
-
-function cleanConversationTitle(value: string | null | undefined) {
-  return (value ?? "")
-    .replace(/\*\*/g, "")
-    .replace(/[*_`#]/g, "")
-    .replace(/^["'«\s]+|["'»\s.]+$/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function normalizeIntent(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-function formatRelativeDate(value: string | null) {
-  if (!value) return null;
-  return new Date(value).toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function buildAutomationCards(automations: AutomationSummary[]): AssistantActionCard[] {
-  return automations.map((automation) => {
-    const nextRun = formatRelativeDate(automation.nextRunAt);
-    const lastRun = formatRelativeDate(automation.lastRunAt);
-    const description = [
-      automation.description,
-      nextRun ? `Prochaine execution : ${nextRun}` : null,
-      lastRun ? `Derniere execution : ${lastRun}` : null,
-    ].filter(Boolean).join(" ");
-
-    return {
-      id: `automation-${automation.id}`,
-      type: "automation",
-      title: automation.name,
-      description: description || `Declencheur : ${automation.trigger}`,
-      status: automation.isActive ? "Actif" : "Pause",
-      action: {
-        kind: "toggle_automation",
-        automationId: automation.id,
-        isActive: automation.isActive,
-      },
-    };
-  });
-}
-
-function buildAutomationSuggestionCards(
-  automations: AutomationSummary[],
-  presets: PresetWithClientTypes[] = []
-): AssistantActionCard[] {
-  const existingNames = new Set(automations.map((automation) => normalizeIntent(automation.name)));
-
-  if (presets.length > 0) {
-    const existingPresetIds = new Set(automations.map((automation) => "presetId" in automation ? String((automation as AutomationSummary & { presetId?: string | null }).presetId ?? "") : ""));
-    return presets
-      .filter((preset) => !existingPresetIds.has(preset.id) && !existingNames.has(normalizeIntent(preset.title)))
-      .map((preset) => ({
-        id: `suggest-${preset.id}`,
-        type: "creation",
-        title: `${preset.icon ?? "⚡"} ${preset.title}`,
-        description: `${preset.description ?? "Automatisation prédéfinie par l'admin global."}`,
-        status: "Disponible",
-        action: { kind: "create_automation", presetId: preset.id },
-      }));
+function buildActionModeNote(mode: "AUTO" | "CONFIRM"): string {
+  if (mode === "AUTO") {
+    return `\n\nMODE D'EXÉCUTION : AUTOMATIQUE.
+- Quand tu utilises un outil qui modifie le compte, il est exécuté immédiatement.
+- Confirme alors clairement ce qui a été fait, sans demander d'autorisation.`;
   }
-
-  return (Object.entries(AUTOMATION_PRESETS) as Array<[AutomationPresetKey, typeof AUTOMATION_PRESETS[AutomationPresetKey]]>)
-    .filter(([, preset]) => !existingNames.has(normalizeIntent(preset.name)))
-    .map(([key, preset]) => ({
-      id: `suggest-${key.toLowerCase().replace(/_/g, "-")}`,
-      type: "creation",
-      title: `${preset.logo} ${preset.name}`,
-      description: `${preset.description} Canaux proposés : ${preset.channels.join(", ")}.`,
-      status: "Disponible",
-      action: { kind: "create_automation", preset: key },
-    }));
-}
-
-function buildCurrentAutomationContent(automations: AutomationSummary[]) {
-  const activeCount = automations.filter((automation) => automation.isActive).length;
-
-  return [
-    automations.length > 0
-      ? `Vous avez ${automations.length} automatisation${automations.length > 1 ? "s" : ""}, dont ${activeCount} active${activeCount > 1 ? "s" : ""}.`
-      : "Vous n’avez encore aucune automatisation.",
-  ].join("\n");
-}
-
-function buildCreateAutomationContent(suggestionCards: AssistantActionCard[]) {
-  return suggestionCards.length > 0
-    ? "Voici uniquement les automatisations que vous pouvez encore créer."
-    : "Toutes les automatisations disponibles sont déjà créées sur votre compte.";
-}
-
-function getSimplifiedShortcut(prompt: string, automations: AutomationSummary[], automationPresets: PresetWithClientTypes[] = []): { content: string; actions: AssistantActionCard[] } | null {
-  const intent = normalizeIntent(prompt);
-  const talksAutomation = /automatisation|automation|programmation|automatique|automatiser|planifier|rappel automatique|publication automatique/.test(intent);
-  const asksCurrentAutomations = /combien|nombre|mes automatisations|en cours|deja|déjà|active|actif|actives|etat|état|liste|voir/.test(intent);
-  const asksCreateAutomations = /creer|cree|créer|crée|ajoute|ajouter|mettre en place|autres|propose|pertinentes|a creer|à créer|disponibles/.test(intent);
-
-  if (talksAutomation) {
-    const suggestionCards = buildAutomationSuggestionCards(automations, automationPresets);
-
-    if (asksCurrentAutomations) {
-      return {
-        content: buildCurrentAutomationContent(automations),
-        actions: buildAutomationCards(automations),
-      };
-    }
-
-    if (asksCreateAutomations) {
-      return {
-        content: buildCreateAutomationContent(suggestionCards),
-        actions: suggestionCards,
-      };
-    }
-
-    return {
-      content: automations.length > 0
-        ? buildCurrentAutomationContent(automations)
-        : buildCreateAutomationContent(suggestionCards),
-      actions: [
-        ...buildAutomationCards(automations),
-        ...(automations.length > 0 ? [] : suggestionCards),
-      ],
-    };
-  }
-
-  if (/quotidien|routine|agenda/.test(intent)) {
-    return {
-      content: [
-        "Je peux vous aider à définir le quotidien de la communauté.",
-        "",
-        "On va simplement préciser :",
-        "- contenus réguliers",
-        "- jours et horaires",
-        "- canaux de publication",
-        "- rappels utiles",
-        "",
-        "Cliquez sur le bouton pour commencer.",
-      ].join("\n"),
-      actions: [
-        {
-          id: "open-daily-routine",
-          type: "setting",
-          title: "Définir mon quotidien",
-          description: "Configurer les elements recurrents de la communaute.",
-          status: "Assistant",
-          action: { kind: "open_daily_routine" },
-        },
-      ],
-    };
-  }
-
-  if (/parametre|reglage|profil|communaute|identite|ton|signature|hashtag|reseau|instagram|facebook|whatsapp|telegram/.test(intent)) {
-    return {
-      content: [
-        "Je peux vérifier les réglages importants du compte.",
-        "",
-        "À contrôler :",
-        "- identité de la communauté",
-        "- ton et signature",
-        "- réseaux connectés",
-        "- automatisations actives",
-        "",
-        "Pour modifier ces réglages, passez en mode détaillé.",
-      ].join("\n"),
-      actions: [
-        {
-          id: "switch-detailed-settings",
-          type: "navigation",
-          title: "Passer en mode détaillé",
-          description: "Affiche les menus experts pour modifier les parametres avances.",
-          href: "/dashboard/settings?section=interface",
-          action: { kind: "switch_detailed" },
-        },
-      ],
-    };
-  }
-
-  return null;
-}
-
-function buildSimplifiedResponseRules(params: { automations: AutomationSummary[] }) {
-  return `\n\nMODE SIMPLIFIE — RÈGLES DE RÉPONSE POUR RESPONSABLE BETH HABAD :
-- L'utilisateur veut piloter son Beth Habad depuis le chat, sans interface complexe.
-- Réponds court, simple et clair.
-- Pas de titres rigides comme Résumé, Action recommandée, Informations utilisées, À confirmer ou Prochaine étape.
-- Commence directement par la réponse utile.
-- 2 à 5 lignes maximum dans la majorité des cas.
-- Utilise des puces seulement si cela rend la réponse plus lisible.
-- Une seule question à la fois si une information manque.
-- Quand tu proposes plusieurs choix, limite à 3 ou 4 options dans le texte.
-- Quand une action doit modifier le compte, explique l'action et laisse l'utilisateur utiliser les boutons quand ils sont affichés.
-- Ne prétends jamais avoir modifié un paramètre si aucun bouton ou appel d'action ne l'a fait.
-- Pour les affiches : propose les textes préremplis, puis demande seulement si l'utilisateur veut modifier ou valider.
-- Pour les automatisations : affiche clairement ce qui existe et les boutons disponibles.
-- Automatisations connues : ${params.automations.map((automation) => `${automation.name} (${automation.isActive ? "active" : "pause"})`).join(", ") || "aucune"}.`;
+  return `\n\nMODE D'EXÉCUTION : VALIDATION MANUELLE.
+- Quand tu utilises un outil qui modifie le compte, l'action n'est PAS exécutée tout de suite : elle est proposée à l'utilisateur sous forme de carte à valider.
+- Ne prétends jamais qu'une action est faite. Dis qu'elle attend sa confirmation via le bouton affiché.`;
 }
 
 export async function POST(request: Request) {
@@ -335,6 +106,7 @@ export async function POST(request: Request) {
     if (!profile?.communityId) {
       return NextResponse.json({ error: "Communauté non configurée" }, { status: 400 });
     }
+    const communityId = profile.communityId as string;
 
     const body = await request.json();
     const { messages, conversationId, selectedTemplateId, templateAction, mode } = body as {
@@ -346,23 +118,22 @@ export async function POST(request: Request) {
     };
 
     const isDailyRoutineMode = mode === "daily_routine";
-    const isSimplifiedMode = mode === "simplified";
 
     const lastUserMessage = messages[messages.length - 1];
     const isUserPrompt = lastUserMessage?.role === "user";
     const hasExplicitVisualIntent = isUserPrompt && looksLikeTemplateIntent(lastUserMessage.content);
     const hasExplicitArticleIntent = isUserPrompt && looksLikeArticleIntent(lastUserMessage.content);
 
-    const [{ data: dbCommunity }, { data: memories }, { data: candidateTemplates }, { data: candidateArticles }, { data: automations }, { data: automationPresets }, { data: gmailChannel }] = await Promise.all([
+    const [{ data: dbCommunity }, { data: memories }, { data: candidateTemplates }, { data: candidateArticles }, { data: gmailChannel }] = await Promise.all([
       admin
         .from("Community")
-        .select("name, city, timezone, tone, language, signature, hashtags, editorialRules, communityType, religiousStream")
-        .eq("id", profile.communityId)
+        .select("name, city, timezone, tone, language, signature, hashtags, editorialRules, communityType, religiousStream, vocabulary")
+        .eq("id", communityId)
         .single(),
       admin
         .from("AIMemory")
         .select("*")
-        .eq("communityId", profile.communityId)
+        .eq("communityId", communityId)
         .order("relevance", { ascending: false })
         .limit(10),
       isUserPrompt
@@ -370,7 +141,7 @@ export async function POST(request: Request) {
             .from("Template")
             .select("id, communityId, name, description, category, channelType, thumbnailUrl, previewUrl, tags, subCategory, isPremium, design, usageCount")
             .eq("isActive", true)
-            .or(`isGlobal.eq.true,communityId.eq.${profile.communityId}`)
+            .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
             .limit(250)
         : Promise.resolve({ data: [] }),
       isUserPrompt
@@ -378,33 +149,17 @@ export async function POST(request: Request) {
             .from("Article")
             .select("id, communityId, slug, name, description, priceCents, currency, imageUrl, tags")
             .eq("isActive", true)
-            .or(`isGlobal.eq.true,communityId.eq.${profile.communityId}`)
+            .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
             .limit(60)
         : Promise.resolve({ data: [] }),
-      isSimplifiedMode
-        ? admin
-            .from("Automation")
-            .select("id, presetId, name, description, trigger, isActive, status, nextRunAt, lastRunAt")
-            .eq("communityId", profile.communityId)
-            .order("createdAt", { ascending: false })
-            .limit(12)
-        : Promise.resolve({ data: [] }),
-      isSimplifiedMode
-        ? admin
-            .from("AutomationPreset")
-            .select("*")
-            .eq("isActive", true)
-            .order("sortOrder", { ascending: true })
-            .limit(24)
-        : Promise.resolve({ data: [] }),
-      // Vérifier si Gmail est connecté pour cette communauté
       admin
         .from("Channel")
         .select("isConnected, handle")
-        .eq("communityId", profile.communityId)
+        .eq("communityId", communityId)
         .eq("type", "EMAIL")
         .maybeSingle(),
     ]);
+
     const communityData = (dbCommunity as Partial<CommunityContext> | null) ?? {};
     const community: CommunityContext = {
       name: communityData.name ?? "Ma communauté",
@@ -417,12 +172,16 @@ export async function POST(request: Request) {
       editorialRules: communityData.editorialRules ?? null,
       communityType: communityData.communityType ?? "SYNAGOGUE",
       religiousStream: communityData.religiousStream ?? null,
+      vocabulary: communityData.vocabulary ?? null,
+      // Mode d'action de l'assistant dérivé de la préférence de validation existante
+      // (onboarding + paramètres) : "automatic" → AUTO, sinon validation manuelle (CONFIRM).
+      assistantActionMode: communityData.vocabulary?.automationValidationMode === "automatic" ? "AUTO" : "CONFIRM",
     };
 
     const { data: dailyRoutineMemory } = await admin
       .from("AIMemory")
       .select("value")
-      .eq("communityId", profile.communityId)
+      .eq("communityId", communityId)
       .eq("type", "RECURRING_CONTENT")
       .eq("key", "daily_routine")
       .maybeSingle();
@@ -430,15 +189,12 @@ export async function POST(request: Request) {
     const now = new Date();
     const timezone = community.timezone ?? "Europe/Paris";
     const [shabbatContext, currentYearHolidays, nextYearHolidays] = await Promise.all([
-      getStoredShabbatTimes({
-        city: community.city ?? "Paris",
-        timezone,
-      }),
+      getStoredShabbatTimes({ city: community.city ?? "Paris", timezone }),
       getJewishHolidays({ year: now.getFullYear() }),
       getJewishHolidays({ year: now.getFullYear() + 1 }),
     ]);
     const upcomingHolidays = getUpcomingHolidays([...currentYearHolidays, ...nextYearHolidays], now);
-    const nextHoliday = getUpcomingHoliday(upcomingHolidays, now);
+    const nextHoliday = upcomingHolidays[0] ?? null;
     const temporalContext = buildTemporalSystemContext({
       timezone,
       city: community.city,
@@ -451,36 +207,25 @@ export async function POST(request: Request) {
     const templateSuggestions = isUserPrompt && hasExplicitVisualIntent
       ? buildTemplateSuggestions(candidateTemplates ?? [], lastUserMessage.content, {
           limit: 3,
-          communityId: profile.communityId,
+          communityId,
           forceAtLeastOne: hasExplicitVisualIntent,
         })
       : [];
     const articleSuggestions = isUserPrompt
       ? buildArticleSuggestions(candidateArticles ?? [], lastUserMessage.content, {
           limit: 3,
-          communityId: profile.communityId,
+          communityId,
           forceAtLeastOne: hasExplicitArticleIntent,
         })
       : [];
-    const shouldSuggestTemplates =
-      !selectedTemplateId &&
-      templateSuggestions.length > 0 &&
-      hasExplicitVisualIntent;
+    const shouldSuggestTemplates = !selectedTemplateId && templateSuggestions.length > 0 && hasExplicitVisualIntent;
     const shouldSuggestArticles =
       articleSuggestions.length > 0 &&
       (hasExplicitArticleIntent || articleSuggestions.some((article) => article.confidence >= 8));
 
     let selectedTemplateContext = "";
     let selectedTemplate:
-      | {
-          id: string;
-          name: string;
-          category: string;
-          thumbnailUrl: string | null;
-          previewUrl: string | null;
-          design: unknown;
-          editableZoneCount: number;
-        }
+      | { id: string; name: string; category: string; thumbnailUrl: string | null; previewUrl: string | null; design: unknown; editableZoneCount: number }
       | null = null;
 
     if (selectedTemplateId) {
@@ -488,7 +233,7 @@ export async function POST(request: Request) {
         .from("Template")
         .select("id, name, category, thumbnailUrl, previewUrl, design")
         .eq("id", selectedTemplateId)
-        .or(`isGlobal.eq.true,communityId.eq.${profile.communityId}`)
+        .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
         .single();
 
       if (template) {
@@ -514,19 +259,18 @@ export async function POST(request: Request) {
       : temporalContext + "\n\n" +
         buildSystemPrompt({ ...community, dailyRoutine }) +
         buildMemoryContext(memories ?? []) +
-      (isUserPrompt && isShabbatRequest(lastUserMessage.content) && shabbatContext
-        ? `\n\nCONTEXTE TEMPOREL CHABBAT :
+        (isUserPrompt && isShabbatRequest(lastUserMessage.content) && shabbatContext
+          ? `\n\nCONTEXTE TEMPOREL CHABBAT :
 - Quand l'utilisateur parle de "Chabbat" sans autre précision, il s'agit par défaut du prochain Chabbat à venir.
 - Prochain Chabbat : ${shabbatContext.date ? formatFrenchDate(shabbatContext.date) : "Non précisé"}
 - Date hébraïque : ${shabbatContext.hebrewDate || "Non précisée"}
 - Paracha : ${shabbatContext.parasha || "Non précisée"}
 - Allumage des bougies : ${shabbatContext.entry || "Non précisé"}
 - Havdala : ${shabbatContext.exit || "Non précisée"}
-- Ces horaires viennent du calendrier hébraïque enregistré pour la communauté, ou d'une source de secours si la ville n'est pas disponible.
-- Utilise ces informations comme référence par défaut pour la conversation en cours, sauf si l'utilisateur donne une autre date explicite.
-- Ne demande pas à l'utilisateur de rajouter les horaires, ils sont déjà fournis ici.`
-        : "") +
-      selectedTemplateContext;
+- Utilise ces informations comme référence par défaut, sauf si l'utilisateur donne une autre date explicite.`
+          : "") +
+        selectedTemplateContext +
+        buildActionModeNote(community.assistantActionMode);
 
     if (conversationId && lastUserMessage?.role === "user") {
       await admin.from("ConversationMessage").insert({
@@ -542,426 +286,9 @@ export async function POST(request: Request) {
 
     const stream = new ReadableStream({
       async start(controller) {
-        try {
-          if (shouldSuggestTemplates) {
-            try {
-              await admin.from("AuditLog").insert(
-                templateSuggestions.map((template, index) => ({
-                  id: crypto.randomUUID(),
-                  userId: user.id,
-                  communityId: profile.communityId,
-                  action: "template.suggested",
-                  resource: "Template",
-                  resourceId: template.id,
-                  newData: {
-                    source: "ai.chat",
-                    prompt: lastUserMessage.content,
-                    rank: index + 1,
-                  },
-                }))
-              );
-            } catch (auditError) {
-              console.error("[AI Chat] Erreur audit suggestions templates:", auditError);
-            }
-
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({
-                  type: "template_suggestions",
-                  templates: templateSuggestions,
-                })}\n\n`
-              )
-            );
-          }
-
-          if (shouldSuggestArticles) {
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({
-                  type: "article_suggestions",
-                  articles: articleSuggestions,
-                })}\n\n`
-              )
-            );
-          }
-
-          if (shouldSuggestTemplates) {
-            const intro = "J’ai trouvé des affiches pertinentes. Choisissez-en une et je préparerai les textes.\n\n";
-            fullResponse += intro;
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ content: intro })}\n\n`)
-            );
-          }
-
-          if (shouldSuggestArticles) {
-            const intro = hasExplicitArticleIntent
-              ? "J'ai aussi trouvé dans ta boutique des articles pertinents par rapport à ta demande. Tu peux voir le produit, son prix, puis ouvrir l'article ou commander directement.\n\n"
-              : "Je t'ai aussi repéré quelques articles de ta boutique qui peuvent être pertinents dans ce contexte. Tu peux les voir juste en dessous.\n\n";
-            fullResponse += intro;
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ content: intro })}\n\n`)
-            );
-          }
-
-          if (hasExplicitVisualIntent && shouldSuggestTemplates && !selectedTemplateId) {
-            const selectionMessage =
-              "Je te propose de choisir directement parmi ces affiches pertinentes. Clique sur Choisir sur celle qui te correspond le mieux, et je préparerai ensuite les textes exacts à remplacer dessus.\n\nSi tu veux, tu peux aussi me préciser un angle plus précis comme la fête, le type d'événement, la date ou le public visé.";
-            fullResponse += selectionMessage;
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ content: selectionMessage })}\n\n`)
-            );
-            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-
-            if (conversationId && fullResponse) {
-              await admin.from("ConversationMessage").insert({
-                id: crypto.randomUUID(),
-                conversationId,
-                role: "assistant",
-                content: fullResponse,
-              });
-
-              await admin
-                .from("Conversation")
-                .update({ updatedAt: new Date().toISOString() })
-                .eq("id", conversationId);
-
-              generateTitle(conversationId, lastUserMessage.content, fullResponse, admin).catch(console.error);
-            }
-
-            controller.close();
-            return;
-          }
-
-          if (selectedTemplate && templateAction === "select") {
-            const templateImageUrl = selectedTemplate.previewUrl ?? selectedTemplate.thumbnailUrl;
-            const visualAnalysis = await analyzeTemplateVisuals({
-              imageUrl: templateImageUrl,
-              templateName: selectedTemplate.name,
-              category: selectedTemplate.category,
-              userRequest: messages.findLast((message) => message.role === "user" && message.content !== lastUserMessage.content)?.content
-                ?? lastUserMessage.content,
-            });
-
-            fullResponse = visualAnalysis.elements.length > 0
-              ? buildTemplateSelectionPromptFromAnalysis({
-                  templateName: selectedTemplate.name,
-                  summary: visualAnalysis.summary,
-                  elements: visualAnalysis.elements,
-                })
-              : buildTemplateSelectionPrompt(selectedTemplate);
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ content: fullResponse })}\n\n`)
-            );
-            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-
-            if (conversationId && fullResponse) {
-              await admin.from("ConversationMessage").insert({
-                id: crypto.randomUUID(),
-                conversationId,
-                role: "assistant",
-                content: fullResponse,
-              });
-
-              await admin
-                .from("Conversation")
-                .update({ updatedAt: new Date().toISOString() })
-                .eq("id", conversationId);
-
-              generateTitle(conversationId, lastUserMessage.content, fullResponse, admin).catch(console.error);
-            }
-
-            controller.close();
-            return;
-          }
-
-          const applicableAutomationPresets = ((automationPresets ?? []) as PresetWithClientTypes[]).filter((preset) =>
-            presetAppliesToCommunity(preset, {
-              communityType: community.communityType,
-            })
-          );
-
-          const simplifiedShortcut = isSimplifiedMode && isUserPrompt
-            ? getSimplifiedShortcut(lastUserMessage.content, (automations ?? []) as AutomationSummary[], applicableAutomationPresets)
-            : null;
-
-          if (simplifiedShortcut) {
-            fullResponse = simplifiedShortcut.content;
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ content: simplifiedShortcut.content })}\n\n`)
-            );
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({
-                  type: "assistant_actions",
-                  actions: simplifiedShortcut.actions,
-                })}\n\n`
-              )
-            );
-            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-
-            if (conversationId && fullResponse) {
-              await admin.from("ConversationMessage").insert({
-                id: crypto.randomUUID(),
-                conversationId,
-                role: "assistant",
-                content: fullResponse,
-              });
-
-              await admin
-                .from("Conversation")
-                .update({ updatedAt: new Date().toISOString() })
-                .eq("id", conversationId);
-
-              generateTitle(conversationId, lastUserMessage.content, fullResponse, admin).catch(console.error);
-            }
-
-            controller.close();
-            return;
-          }
-
-          const simplifiedSystemContext = isSimplifiedMode
-            ? buildSimplifiedResponseRules({ automations: (automations ?? []) as AutomationSummary[] })
-            : "";
-
-          const currentMessages: ChatCompletionMessageParam[] = [
-            { role: "system", content: systemPrompt + simplifiedSystemContext },
-            ...messages.slice(-20),
-          ];
-
-          let needsToolExecution = true;
-          let maxLoops = 3;
-          while (needsToolExecution && maxLoops > 0) {
-            maxLoops--;
-            const tempResponse = await openrouter.chat.completions.create({
-              model: "deepseek/deepseek-chat",
-              max_tokens: 2048,
-              stream: false,
-              messages: currentMessages,
-              tools: [
-                {
-                  type: "function",
-                  function: {
-                    name: "update_community_settings",
-                    description: "Modifie les paramètres globaux de la communauté",
-                    parameters: {
-                      type: "object",
-                      properties: {
-                        tone: { type: "string", description: "Ton (MODERN, TRADITIONAL, FORMAL, FRIENDLY, RELIGIOUS)" },
-                        signature: { type: "string" },
-                        name: { type: "string" },
-                        city: { type: "string" }
-                      }
-                    }
-                  }
-                },
-                {
-                  type: "function",
-                  function: {
-                    name: "toggle_automation",
-                    description: "Active ou désactive une automatisation",
-                    parameters: {
-                      type: "object",
-                      properties: {
-                        automationId: { type: "string" },
-                        isActive: { type: "boolean" }
-                      },
-                      required: ["automationId", "isActive"]
-                    }
-                  }
-                },
-                {
-                  type: "function",
-                  function: {
-                    name: "delete_automation",
-                    description: "Supprime définitivement une automatisation",
-                    parameters: {
-                      type: "object",
-                      properties: {
-                        automationId: { type: "string" }
-                      },
-                      required: ["automationId"]
-                    }
-                  }
-                },
-                {
-                  type: "function",
-                  function: {
-                    name: "create_automation",
-                    description: "Crée une nouvelle automatisation personnalisée (e.g. envoi d'emails Resend, messages, notifications, avec récurrence)",
-                    parameters: {
-                      type: "object",
-                      properties: {
-                        name: { type: "string", description: "Nom de l'automatisation" },
-                        description: { type: "string", description: "Description optionnelle" },
-                        trigger: { 
-                          type: "string", 
-                          enum: ["BEFORE_EVENT", "EVENT_DAY", "AFTER_EVENT", "WEEKLY_SHABBAT", "JEWISH_HOLIDAY", "DAILY", "CUSTOM_SCHEDULE", "MANUAL"],
-                          description: "Type de déclencheur"
-                        },
-                        triggerConfig: {
-                          type: "object",
-                          properties: {
-                            time: { type: "string", description: "Heure au format HH:MM (ex: '14:30')" },
-                            date: { type: "string", description: "Date spécifique YYYY-MM-DD" },
-                            repeat: { type: "string", enum: ["none", "weekly", "monthly", "custom"] },
-                            days: { type: "array", items: { type: "string" }, description: "Jours de répétition (ex: ['friday', 'sunday'])" },
-                            startDate: { type: "string", description: "Date de commencement YYYY-MM-DD" },
-                            endDate: { type: "string", description: "Date de fin YYYY-MM-DD" }
-                          }
-                        },
-                        actions: {
-                          type: "array",
-                          items: {
-                            type: "object",
-                            properties: {
-                              type: { type: "string", enum: ["GENERATE_CONTENT", "SEND_EMAIL", "SEND_MESSAGE", "CREATE_NOTIFICATION"] },
-                              contentType: { type: "string", description: "Pour GENERATE_CONTENT (ex: GENERAL, SHABBAT)" },
-                              channels: { type: "array", items: { type: "string" }, description: "Canaux de diffusion pour SEND_MESSAGE ou GENERATE_CONTENT" },
-                              requiresValidation: { type: "boolean", description: "Si vrai, génère un brouillon plutôt que de publier directement" },
-                              emailSubject: { type: "string", description: "Pour SEND_EMAIL (Sujet de l'email)" },
-                              emailBody: { type: "string", description: "Pour SEND_EMAIL (Contenu HTML ou texte de l'email)" },
-                              messageText: { type: "string", description: "Pour SEND_MESSAGE (Texte brut à envoyer)" },
-                              notificationTitle: { type: "string", description: "Pour CREATE_NOTIFICATION (Titre)" },
-                              notificationBody: { type: "string", description: "Pour CREATE_NOTIFICATION (Corps du message)" }
-                            },
-                            required: ["type"]
-                          }
-                        }
-                      },
-                      required: ["name", "trigger", "actions"]
-                    }
-                  }
-                },
-                {
-                  type: "function",
-                  function: {
-                    name: "send_email",
-                    description: gmailChannel?.isConnected
-                      ? `Prépare et envoie un e-mail depuis la boîte Gmail connectée (${gmailChannel.handle ?? "Gmail"}). Une confirmation sera demandée à l'utilisateur avant l'envoi réel.`
-                      : "Prépare un e-mail à envoyer. Une confirmation sera demandée à l'utilisateur avant l'envoi réel via le canal email configuré.",
-                    parameters: {
-                      type: "object",
-                      properties: {
-                        to: { type: "string", description: "Adresse e-mail du destinataire" },
-                        subject: { type: "string", description: "Sujet de l'e-mail" },
-                        body: { type: "string", description: "Contenu textuel ou corps du message de l'e-mail" }
-                      },
-                      required: ["to", "subject", "body"]
-                    }
-                  }
-                }
-              ]
-            });
-
-            const responseMessage = tempResponse.choices[0]?.message;
-            if (!responseMessage) break;
-
-            if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
-              currentMessages.push(responseMessage);
-              
-              for (const toolCall of responseMessage.tool_calls) {
-                let result = "Action exécutée avec succès";
-                try {
-                  if (toolCall.type !== "function") {
-                    continue;
-                  }
-                  const toolFunction = toolCall.function;
-                  const args = JSON.parse(toolFunction.arguments) as Record<string, unknown>;
-                  if (toolFunction.name === "update_community_settings") {
-                    await admin.from("Community").update(args).eq("id", profile.communityId);
-                  } else if (toolFunction.name === "toggle_automation") {
-                    await admin.from("Automation").update({ isActive: args.isActive }).eq("id", args.automationId);
-                  } else if (toolFunction.name === "delete_automation") {
-                    await admin.from("Automation").delete().eq("id", args.automationId);
-                  } else if (toolFunction.name === "create_automation") {
-                    const id = crypto.randomUUID();
-                    const automationData = {
-                      id,
-                      communityId: profile.communityId,
-                      name: String(args.name ?? "Automatisation"),
-                      description: typeof args.description === "string" ? args.description : null,
-                      trigger: String(args.trigger ?? "CUSTOM_SCHEDULE"),
-                      triggerConfig: args.triggerConfig && typeof args.triggerConfig === "object" ? args.triggerConfig : {},
-                      actions: Array.isArray(args.actions) ? args.actions : [],
-                      isActive: true,
-                      status: "ACTIVE"
-                    };
-                    await admin.from("Automation").insert(automationData);
-                    result = `Automatisation '${automationData.name}' créée avec succès (ID: ${id})`;
-                  } else if (toolFunction.name === "send_email") {
-                    const emailTo = String(args.to ?? "");
-                    const emailSubject = String(args.subject ?? "");
-                    const emailBody = String(args.body ?? "");
-                    result = `Brouillon d'e-mail préparé pour ${emailTo}. En attente de confirmation de l'utilisateur.`;
-                    controller.enqueue(
-                      encoder.encode(`data: ${JSON.stringify({ 
-                        type: "assistant_actions", 
-                        actions: [{
-                          id: crypto.randomUUID(),
-                          type: "email",
-                          title: `Envoi d'e-mail à ${emailTo}`,
-                          description: `Sujet : ${emailSubject}\n\n${emailBody}`,
-                          action: {
-                            kind: "send_email",
-                            emailData: {
-                              to: emailTo,
-                              subject: emailSubject,
-                              body: emailBody
-                            }
-                          }
-                        }]
-                      })}\n\n`)
-                    );
-                  }
-                  
-                  // Notifier le frontend qu'une action a eu lieu pour qu'il recharge éventuellement les données
-                  controller.enqueue(
-                    encoder.encode(`data: ${JSON.stringify({ type: "system_updated", action: toolFunction.name })}\n\n`)
-                  );
-                } catch (e) {
-                  result = "Erreur: " + getErrorMessage(e);
-                }
-                currentMessages.push({
-                  role: "tool",
-                  tool_call_id: toolCall.id,
-                  content: result
-                });
-              }
-            } else {
-              needsToolExecution = false;
-            }
-          }
-
-          const openrouterStream = await openrouter.chat.completions.create({
-            model: "deepseek/deepseek-chat",
-            max_tokens: 2048,
-            stream: true,
-            messages: currentMessages,
-          });
-
-          for await (const chunk of openrouterStream) {
-            const delta = chunk.choices[0]?.delta?.content;
-            if (delta) {
-              const cleanDelta = removeAsterisks(delta);
-              fullResponse += cleanDelta;
-              const data = JSON.stringify({ content: cleanDelta });
-              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-            }
-          }
-
-          // Détecter [QUOTIDIEN_PRET] dans le mode daily_routine
-          if (isDailyRoutineMode && fullResponse.includes("[QUOTIDIEN_PRET]")) {
-            // Retirer la balise du texte affiché
-            fullResponse = fullResponse.replace("[QUOTIDIEN_PRET]", "").trim();
-            controller.enqueue(
-              encoder.encode(
-                `data: ${JSON.stringify({ type: "daily_routine_ready" })}\n\n`
-              )
-            );
-          }
-
+        const send = (obj: unknown) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
+        const persistAndClose = async () => {
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-
           if (conversationId && fullResponse) {
             await admin.from("ConversationMessage").insert({
               id: crypto.randomUUID(),
@@ -969,20 +296,81 @@ export async function POST(request: Request) {
               role: "assistant",
               content: fullResponse,
             });
-
-            await admin
-              .from("Conversation")
-              .update({ updatedAt: new Date().toISOString() })
-              .eq("id", conversationId);
-
-            generateTitle(conversationId, lastUserMessage.content, fullResponse, admin).catch(console.error);
+            await admin.from("Conversation").update({ updatedAt: new Date().toISOString() }).eq("id", conversationId);
+            generateTitle(conversationId, lastUserMessage?.content ?? "", fullResponse, admin).catch(console.error);
           }
+          controller.close();
+        };
+
+        try {
+          // ── Suggestions d'affiches (intention visuelle explicite) ──
+          if (shouldSuggestTemplates) {
+            send({ type: "template_suggestions", templates: templateSuggestions });
+          }
+          if (shouldSuggestArticles) {
+            send({ type: "article_suggestions", articles: articleSuggestions });
+          }
+
+          if (hasExplicitVisualIntent && shouldSuggestTemplates && !selectedTemplateId) {
+            const selectionMessage =
+              "Je te propose de choisir directement parmi ces affiches pertinentes. Clique sur Choisir sur celle qui te correspond le mieux, et je préparerai ensuite les textes exacts à remplacer dessus.\n\nSi tu veux, tu peux aussi me préciser un angle plus précis comme la fête, le type d'événement, la date ou le public visé.";
+            fullResponse += selectionMessage;
+            send({ content: selectionMessage });
+            await persistAndClose();
+            return;
+          }
+
+          // ── Sélection d'un template → analyse visuelle ──
+          if (selectedTemplate && templateAction === "select") {
+            const templateImageUrl = selectedTemplate.previewUrl ?? selectedTemplate.thumbnailUrl;
+            const visualAnalysis = await analyzeTemplateVisuals({
+              imageUrl: templateImageUrl,
+              templateName: selectedTemplate.name,
+              category: selectedTemplate.category,
+              userRequest:
+                messages.findLast((m) => m.role === "user" && m.content !== lastUserMessage.content)?.content ??
+                lastUserMessage.content,
+            });
+            fullResponse =
+              visualAnalysis.elements.length > 0
+                ? buildTemplateSelectionPromptFromAnalysis({
+                    templateName: selectedTemplate.name,
+                    summary: visualAnalysis.summary,
+                    elements: visualAnalysis.elements,
+                  })
+                : buildTemplateSelectionPrompt(selectedTemplate);
+            send({ content: fullResponse });
+            await persistAndClose();
+            return;
+          }
+
+          // ── Assistant unifié (agent + outils) ──
+          fullResponse = await runAssistant({
+            openrouter,
+            model: MODEL,
+            systemPrompt,
+            messages,
+            admin,
+            communityId,
+            userId: user.id,
+            actionMode: isDailyRoutineMode ? "AUTO" : community.assistantActionMode,
+            gmailConnected: Boolean(gmailChannel?.isConnected),
+            emit: {
+              delta: (text) => send({ content: text }),
+              event: (obj) => send(obj),
+            },
+          });
+
+          // ── Détection [QUOTIDIEN_PRET] dans le mode daily_routine ──
+          if (isDailyRoutineMode && fullResponse.includes("[QUOTIDIEN_PRET]")) {
+            fullResponse = fullResponse.replace("[QUOTIDIEN_PRET]", "").trim();
+            send({ type: "daily_routine_ready" });
+          }
+
+          await persistAndClose();
         } catch (error) {
           console.error("[AI Chat] Erreur streaming:", getErrorDebug(error));
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ error: "Erreur IA" })}\n\n`)
-          );
-        } finally {
+          send({ error: "Erreur IA" });
           controller.close();
         }
       },
@@ -992,7 +380,7 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
+        Connection: "keep-alive",
       },
     });
   } catch (error) {
@@ -1008,29 +396,21 @@ async function generateTitle(
   admin: ReturnType<typeof createAdminClient>
 ) {
   try {
-    const { data: conversation } = await admin
-      .from("Conversation")
-      .select("title")
-      .eq("id", conversationId)
-      .single();
-
+    const { data: conversation } = await admin.from("Conversation").select("title").eq("id", conversationId).single();
     const currentTitle = conversation?.title?.trim();
-    if (currentTitle && currentTitle !== "Nouvelle conversation") {
-      return;
-    }
+    if (currentTitle && currentTitle !== "Nouvelle conversation") return;
 
     const response = await openrouter.chat.completions.create({
-      model: "deepseek/deepseek-chat",
+      model: MODEL,
       max_tokens: 40,
       messages: [
         {
           role: "system",
           content: [
-            "Tu renommes une conversation EasyCom AI pour l'historique utilisateur.",
+            "Tu renommes une conversation pour l'historique utilisateur.",
             "Génère un titre clair, concret et mémorisable en français.",
-            "Le titre doit résumer le thème principal, pas être générique.",
             "3 à 6 mots maximum.",
-            "Texte brut uniquement : pas de Markdown, pas de **gras**, pas de guillemets, pas de point final, pas d'emoji.",
+            "Texte brut uniquement : pas de Markdown, pas de guillemets, pas de point final, pas d'emoji.",
             "Évite : Nouvelle conversation, Assistant IA, Aide, Discussion.",
           ].join("\n"),
         },
@@ -1043,10 +423,7 @@ async function generateTitle(
 
     const title = cleanConversationTitle(response.choices[0]?.message?.content);
     if (title) {
-      await admin
-        .from("Conversation")
-        .update({ title, updatedAt: new Date().toISOString() })
-        .eq("id", conversationId);
+      await admin.from("Conversation").update({ title, updatedAt: new Date().toISOString() }).eq("id", conversationId);
     }
   } catch (error) {
     console.error("[AI Chat] Erreur génération titre:", error);

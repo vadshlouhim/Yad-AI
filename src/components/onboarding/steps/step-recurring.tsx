@@ -8,6 +8,7 @@ import {
   GENERAL_DEFAULT_PUBLICATION_CATEGORY,
 } from "@/lib/automation/suggested-publications";
 import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels";
+import { enablePushNotifications } from "@/lib/push/client";
 import { Calendar, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -120,7 +121,10 @@ export function StepRecurring({
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => updateData({ automationValidationMode: option.value })}
+                    onClick={() => {
+                      updateData({ automationValidationMode: option.value });
+                      if (option.value === "manual") void enablePushNotifications();
+                    }}
                     className={cn(
                       "rounded-xl border p-3 text-left transition",
                       data.automationValidationMode === option.value

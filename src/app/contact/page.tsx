@@ -148,8 +148,8 @@ export default function ContactPage() {
           <h2 className="text-3xl font-black text-center mb-12">FAQ Contact & Support</h2>
           <div className="space-y-4">
             {[
-              { q: "Quels sont vos dÃ©lais de rÃ©ponse ?", a: "Nous rÃ©pondons gÃ©nÃ©ralement en moins de 24h ouvrÃ©es. Pour les urgences, nos clients premium disposent d'un accÃ¨s prioritaire." },
-              { q: "Proposez-vous des dÃ©mos en direct ?", a: "Oui ! Indiquez-le dans votre message et nous conviendrons d'un crÃ©neau pour vous montrer la puissance de l'outil." },
+              { q: "Quels sont vos délais de réponse ?", a: "Nous répondons généralement en moins de 24h ouvrées. Pour les urgences, nos clients premium disposent d'un accès prioritaire." },
+              { q: "Proposez-vous des démos en direct ?", a: "Oui ! Indiquez-le dans votre message et nous conviendrons d'un créneau pour vous montrer la puissance de l'outil." },
               { q: "Où êtes-vous basés ?", a: "Notre équipe est basée à Paris, mais nous travaillons avec des communautés et entreprises dans le monde entier." }
             ].map(faq => (
               <div key={faq.q} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">

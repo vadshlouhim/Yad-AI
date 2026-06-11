@@ -40,7 +40,7 @@ function isApiRoute(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Mode dÃ©mo â€” entiÃ¨rement public, pas d'auth Supabase requise
+  // Mode démo — entièrement public, pas d'auth Supabase requise
   if (pathname.startsWith("/demo")) {
     return NextResponse.next();
   }
@@ -56,10 +56,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
-  // RafraÃ®chit la session Supabase + rÃ©cupÃ¨re l'utilisateur
+  // Rafraîchit la session Supabase + récupère l'utilisateur
   const { supabaseResponse, user } = await updateSession(request);
 
-  // Routes publiques â€” rediriger vers dashboard si dÃ©jÃ  connectÃ©
+  // Routes publiques — rediriger vers dashboard si déjà connecté
   if (isPublicRoute(pathname)) {
     if (user && (pathname === "/auth/login" || pathname === "/auth/register")) {
       const callbackUrl =
@@ -69,7 +69,7 @@ export async function proxy(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Pas connectÃ© â†’ login
+  // Pas connecté â†’ login
   if (!user) {
     const loginUrl = new URL("/auth/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
