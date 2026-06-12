@@ -1,19 +1,19 @@
-// Service worker — notifications push web (Yad.ia)
+// Service worker — notifications push web (EasyCom IA)
 
 self.addEventListener("push", (event) => {
   let payload = {};
   try {
     payload = event.data ? event.data.json() : {};
   } catch {
-    payload = { title: "Yad.ia", body: event.data ? event.data.text() : "" };
+    payload = { title: "EasyCom IA", body: event.data ? event.data.text() : "" };
   }
 
-  const title = payload.title || "Yad.ia";
+  const title = payload.title || "EasyCom IA";
   const options = {
     body: payload.body || "",
     icon: "/easycom-ai-logo.png",
     badge: "/easycom-ai-logo.png",
-    tag: payload.tag || "yad-ia",
+    tag: payload.tag || "easycom-ia",
     data: { url: payload.url || "/dashboard/assistant" },
     requireInteraction: false,
   };

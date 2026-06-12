@@ -6,8 +6,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { CheckCircle2, CalendarDays, Sparkles, Share2, Users } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Créer un compte — Yad.ia",
-  description: "Démarrez avec Yad.ia gratuitement",
+  title: "Créer un compte — EasyCom IA",
+  description: "Démarrez avec EasyCom IA gratuitement",
 };
 
 export default function RegisterPage() {
@@ -21,16 +21,16 @@ export default function RegisterPage() {
         <div className="flex items-center gap-3">
           <img
             src="/easycom-ai-logo.png"
-            alt="Logo Yad.ia"
+            alt="Logo EasyCom IA"
             className="h-10 w-10 rounded-xl bg-white/15 object-cover p-0.5"
           />
-          <span className="text-xl font-bold tracking-tight">Yad.ia</span>
+          <span className="text-xl font-bold tracking-tight">EasyCom IA</span>
         </div>
 
         <div className="space-y-6">
           <div className="space-y-3">
             <h1 className="text-4xl font-bold leading-tight">
-              Découvrez Yad.ia
+              Découvrez EasyCom IA
             </h1>
             <p className="text-blue-200 text-lg leading-relaxed">
               Explorez l&apos;application et configurez votre communauté en moins de 2 minutes.
@@ -55,7 +55,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="text-blue-300 text-sm">
-          © {new Date().getFullYear()} Yad.ia — Communication communautaire augmentée
+          © {new Date().getFullYear()} EasyCom IA — Communication communautaire augmentée
         </div>
       </div>
 
@@ -65,10 +65,10 @@ export default function RegisterPage() {
           <div className="lg:hidden flex items-center gap-3 justify-center mb-4 sm:mb-8">
             <img
               src="/easycom-ai-logo.png"
-              alt="Logo Yad.ia"
+              alt="Logo EasyCom IA"
               className="h-10 w-10 rounded-xl object-cover"
             />
-            <span className="text-xl font-bold text-slate-900">Yad.ia</span>
+            <span className="text-xl font-bold text-slate-900">EasyCom IA</span>
           </div>
 
           <div className="space-y-2">

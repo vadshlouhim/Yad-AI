@@ -298,7 +298,7 @@ export function DashboardClient({
                   <Bot className="size-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">Assistant Yad.ia</p>
+                  <p className="text-sm font-semibold text-white">Assistant EasyCom IA</p>
                   <p className="text-xs text-blue-300">Propulsé par Claude</p>
                 </div>
               </div>

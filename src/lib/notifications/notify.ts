@@ -6,7 +6,7 @@ import { actionLabelFor } from "@/lib/ai/assistant/actions";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME?.replace(/^"|"$/g, "") ?? "Yad.ia";
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME?.replace(/^"|"$/g, "") ?? "EasyCom IA";
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
 interface PendingActionRecord {

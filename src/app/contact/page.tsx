@@ -31,7 +31,7 @@ export default function ContactPage() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
             <Image src="/easycom-ai-logo.png" alt="Logo" width={32} height={32} className="rounded-lg" />
-            <span className="font-black text-slate-950">Yad.ia</span>
+            <span className="font-black text-slate-950">EasyCom IA</span>
           </Link>
           <nav className="hidden items-center gap-6 text-sm font-semibold text-slate-600 md:flex">
             <Link href="/" className="inline-flex h-9 items-center gap-2 rounded-full px-1 transition hover:text-blue-700">

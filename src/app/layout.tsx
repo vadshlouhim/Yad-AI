@@ -3,11 +3,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    template: "%s - Yad.ia",
-    default: "Yad.ia - Communication communautaire assistee par IA",
+    template: "%s - EasyCom IA",
+    default: "EasyCom IA - Communication communautaire assistee par IA",
   },
   description:
-    "Yad.ia est le copilote IA de communication de votre communaute. Centralisez, preparez et diffusez votre communication sur tous vos canaux.",
+    "EasyCom IA est le copilote IA de communication de votre communaute. Centralisez, preparez et diffusez votre communication sur tous vos canaux.",
   keywords: ["communaute juive", "communication", "IA", "Chabbat", "reseaux sociaux"],
 };
 

@@ -194,10 +194,10 @@ const ASSISTANT_PLACEHOLDER_SUGGESTIONS = [
   "Rédige un message WhatsApp clair et professionnel",
 ];
 
-const STATIC_ASSISTANT_PLACEHOLDER = "Décrivez votre demande à Yad.ia...";
+const STATIC_ASSISTANT_PLACEHOLDER = "Décrivez votre demande à l'Assistant IA...";
 
-const YADIA_FULL_MESSAGE =
-  "Yad.ia vous aide à gérer toute votre communication depuis un seul espace intelligent.\n\n" +
+const EASYCOM_FULL_MESSAGE =
+  "L'Assistant IA vous aide à gérer toute votre communication depuis un seul espace intelligent.\n\n" +
   "* Programmez vos publications sur WhatsApp, Instagram et Facebook, puis recevez une notification au bon moment avant validation.\n" +
   "* Enregistrez vos contacts, organisez vos groupes et envoyez des messages bien rédigés, structurés et adaptés aux bonnes personnes.\n" +
   "* Gérez vos emails intelligemment : l'IA trie les messages importants, repère les urgences et vous propose des réponses prêtes à envoyer.\n" +
@@ -206,7 +206,7 @@ const YADIA_FULL_MESSAGE =
   "* Centralisez vos automatisations, publications prévues, rappels et événements dans votre Agenda IA avec des notifications au bon moment.\n" +
   "* Créez des clips vidéo IA à partir de vos photos et vidéos, prêts à être publiés sur vos réseaux.\n" +
   "* Notez vos ressources personnelles, organisez-les dans votre espace, puis publiez-les ou partagez-les en un clic.\n\n" +
-  "Yad.ia prépare, organise et automatise vos actions tout en vous laissant le contrôle : l'IA propose, vous validez, puis elle agit.\n\n" +
+  "L'Assistant IA prépare, organise et automatise vos actions tout en vous laissant le contrôle : l'IA propose, vous validez, puis elle agit.\n\n" +
   "Cliquez dans le menu ou demandez à l'Assistant IA ce que vous souhaitez.";
 
 function getQuickPromptStyle(index: number) {
@@ -406,7 +406,7 @@ export function AssistantClient({
     fetchConversations();
     fetchDailyRoutine();
     setAssistantExperienceState("simple");
-    window.localStorage.setItem("shalom-assistant-experience", "simple");
+    window.localStorage.setItem("easycom-assistant-experience", "simple");
     // Réenregistre le push si déjà autorisé (silencieux).
     ensurePushRegistered();
     // Lien profond depuis email/push : ?action=<id> → afficher la carte à valider.
@@ -908,13 +908,13 @@ export function AssistantClient({
       .replace(/\n/g, "<br />");
   }
 
-  function sendYadiaOverviewMessage() {
+  function sendEasycomOverviewMessage() {
     setHasStartedPromptEntry(true);
     setMessages([
       {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: YADIA_FULL_MESSAGE,
+        content: EASYCOM_FULL_MESSAGE,
         timestamp: new Date(),
       },
     ]);
@@ -923,7 +923,7 @@ export function AssistantClient({
   function setAssistantExperience(mode: "simple" | "detailed") {
     if (typeof window !== "undefined" && window.innerWidth < 768) {
       setAssistantExperienceState("simple");
-      window.localStorage.setItem("shalom-assistant-experience", "simple");
+      window.localStorage.setItem("easycom-assistant-experience", "simple");
       return;
     }
     if (mode === "simple") {
@@ -931,7 +931,7 @@ export function AssistantClient({
       setMenuId(null);
     }
     setAssistantExperienceState(mode);
-    window.localStorage.setItem("shalom-assistant-experience", mode);
+    window.localStorage.setItem("easycom-assistant-experience", mode);
   }
 
   const groupedConversations = groupByDate(conversations);
@@ -959,7 +959,7 @@ export function AssistantClient({
     { href: "/dashboard/email", label: "Email & Avis" },
     { href: "/dashboard/torah", label: "Cours de Torah IA" },
     { href: "/dashboard/templates", label: "Affiches" },
-    { href: "https://boutique.shalom-ia.com", label: "Boutiques" },
+    { href: "https://boutique.easycom-ia.com", label: "Boutiques" },
   ];
   const mobileSimpleFeatures = mobileQuickFeatureConfigs
     .map(({ href, label }) => {
@@ -1457,7 +1457,7 @@ export function AssistantClient({
     }
     if (card.action.kind === "switch_detailed") {
       if (typeof window !== "undefined") {
-        window.localStorage.setItem("shalom-assistant-experience", "detailed");
+        window.localStorage.setItem("easycom-assistant-experience", "detailed");
       }
       setAssistantExperienceState("detailed");
       setShowAllFeaturesMobile(true);
@@ -2029,7 +2029,7 @@ export function AssistantClient({
               <h1 className="truncate text-base font-bold text-slate-900">
                 {assistantExperience === "detailed" && activeConversationId
                   ? conversations.find((c) => c.id === activeConversationId)?.title ?? "Conversation"
-                  : "Agent Yad.ia"}
+                  : "Assistant IA"}
               </h1>
             </div>
           </div>
@@ -2244,18 +2244,18 @@ export function AssistantClient({
                       <span
                         className="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-cover bg-center shadow-sm"
                         style={{ backgroundImage: `url(${communityLogoUrl})` }}
-                        aria-label="Logo Yad.ia"
+                        aria-label="Logo Assistant IA"
                       />
                     )}
                     <h2 className="text-center text-2xl font-black leading-tight tracking-tight text-slate-900 sm:text-left sm:text-3xl">
-                      Yad.ia
+                      Assistant IA
                     </h2>
                   </div>
                 </div>
                 <p className="mx-auto mt-2 max-w-3xl text-sm leading-7 text-slate-700 sm:text-[15px]">
                   <strong className="font-black text-slate-900">Votre temps est précieux, concentrez-vous sur l’essentiel.</strong>
                   <br />
-                  <span>Yad.ia centralise et automatise toute votre communication depuis un seul espace.</span>
+                  <span>L&apos;Assistant IA centralise et automatise toute votre communication depuis un seul espace.</span>
                 </p>
               </div>
             )}
@@ -2267,7 +2267,7 @@ export function AssistantClient({
                   Bienvenue sur votre espace personnel
                 </h2>
                 <p className="mx-auto mt-2 max-w-3xl text-sm leading-7 text-slate-600 sm:text-[15px]">
-                  Votre temps est précieux — concentrez-vous sur l&apos;essentiel. Yad.ia s&apos;occupe du reste !
+                  Votre temps est précieux — concentrez-vous sur l&apos;essentiel. l&apos;Assistant IA s&apos;occupe du reste !
                 </p>
                 <p className="mx-auto mt-0.5 max-w-3xl text-sm leading-7 text-slate-500 sm:text-[15px]">
                   (Publications récurrentes et automatisées, mail et Avis Google, agenda IA, assistant du quotidien, ressources communautaires)

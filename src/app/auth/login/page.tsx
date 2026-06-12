@@ -6,8 +6,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { CalendarDays, Sparkles, Radio, Users } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Connexion — Yad.ia",
-  description: "Connectez-vous à votre espace Yad.ia",
+  title: "Connexion — EasyCom IA",
+  description: "Connectez-vous à votre espace EasyCom IA",
 };
 
 export default function LoginPage() {
@@ -21,10 +21,10 @@ export default function LoginPage() {
         <div className="flex items-center gap-3">
           <img
             src="/easycom-ai-logo.png"
-            alt="Logo Yad.ia"
+            alt="Logo EasyCom IA"
             className="h-10 w-10 rounded-xl bg-white/15 object-cover p-0.5"
           />
-          <span className="text-xl font-bold tracking-tight">Yad.ia</span>
+          <span className="text-xl font-bold tracking-tight">EasyCom IA</span>
         </div>
 
         <div className="space-y-6">
@@ -54,7 +54,7 @@ export default function LoginPage() {
         </div>
 
         <div className="text-blue-300 text-sm">
-          © {new Date().getFullYear()} Yad.ia — Communication communautaire augmentée
+          © {new Date().getFullYear()} EasyCom IA — Communication communautaire augmentée
         </div>
       </div>
 
@@ -65,10 +65,10 @@ export default function LoginPage() {
           <div className="lg:hidden flex items-center gap-3 justify-center mb-4 sm:mb-8">
             <img
               src="/easycom-ai-logo.png"
-              alt="Logo Yad.ia"
+              alt="Logo EasyCom IA"
               className="h-10 w-10 rounded-xl object-cover"
             />
-            <span className="text-xl font-bold text-slate-900">Yad.ia</span>
+            <span className="text-xl font-bold text-slate-900">EasyCom IA</span>
           </div>
 
           <div className="space-y-2">

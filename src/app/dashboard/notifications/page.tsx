@@ -4,7 +4,7 @@ import { NotificationsClient } from "@/components/notifications/notifications-cl
 import { ensureTodayEventReminderNotifications } from "@/lib/notifications/event-reminders";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Notifications — Yad.ia" };
+export const metadata: Metadata = { title: "Notifications — EasyCom IA" };
 
 export default async function NotificationsPage() {
   const { profile } = await requireAuth();

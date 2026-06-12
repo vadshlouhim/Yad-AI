@@ -1,4 +1,4 @@
-# Configurer Facebook dans Yad.ia
+# Configurer Facebook dans EasyCom IA
 
 Ce guide est basé sur le code actuel du projet.
 

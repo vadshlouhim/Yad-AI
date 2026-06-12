@@ -102,7 +102,7 @@ export const demoOnboardingData: OnboardingData = {
   email: "test@chlomi-test.local",
   website: "https://chlomi-test.local",
   signature: "L'équipe Chlomi-test",
-  hashtags: ["#ChlomiTest", "#DemoYadia"],
+  hashtags: ["#ChlomiTest", "#DemoEasycom"],
   channels: [
     { type: "WHATSAPP", name: "WhatsApp", handle: "" },
     { type: "EMAIL", name: "Email", handle: "" },
@@ -210,7 +210,7 @@ export function OnboardingWizard({
             Configurez votre assistant IA personnel en quelques minutes
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-base">
-            Ces informations permettent à Yad.ia de comprendre votre identité, votre ton et vos besoins pour personnaliser automatiquement vos contenus.
+            Ces informations permettent à EasyCom IA de comprendre votre identité, votre ton et vos besoins pour personnaliser automatiquement vos contenus.
           </p>
         </div>
 

@@ -49,7 +49,7 @@ const DEFAULT_EMAILS: EmailMessage[] = [
     sender: "Sarah Cohen",
     senderEmail: "chlomitaieb@gmail.com",
     subject: "Demande urgente : Horaires de Chabbat et inscription repas",
-    body: "Bonjour l'équipe d'Yad.ia, nous venons d'arriver dans la région et nous aimerions assister aux offices de ce week-end. Pouvez-vous nous donner les horaires précis de l'entrée et sortie de Chabbat pour notre ville de Paris ? De plus, reste-t-il de la place pour le dîner communautaire de vendredi soir ? C'est très important car nous sommes avec des enfants en bas âge. Merci !",
+    body: "Bonjour l'équipe d'EasyCom IA, nous venons d'arriver dans la région et nous aimerions assister aux offices de ce week-end. Pouvez-vous nous donner les horaires précis de l'entrée et sortie de Chabbat pour notre ville de Paris ? De plus, reste-t-il de la place pour le dîner communautaire de vendredi soir ? C'est très important car nous sommes avec des enfants en bas âge. Merci !",
     date: "Il y a 10 min",
     timestamp: new Date(Date.now() - 10 * 60000),
     read: false,
@@ -57,7 +57,7 @@ const DEFAULT_EMAILS: EmailMessage[] = [
     history: [
       {
         role: "user",
-        body: "Bonjour l'équipe d'Yad.ia, nous venons d'arriver dans la région et nous aimerions assister aux offices de ce week-end. Pouvez-vous nous donner les horaires précis de l'entrée et sortie de Chabbat pour notre ville de Paris ? De plus, reste-t-il de la place pour le dîner communautaire de vendredi soir ? C'est très important car nous sommes avec des enfants en bas âge. Merci !",
+        body: "Bonjour l'équipe d'EasyCom IA, nous venons d'arriver dans la région et nous aimerions assister aux offices de ce week-end. Pouvez-vous nous donner les horaires précis de l'entrée et sortie de Chabbat pour notre ville de Paris ? De plus, reste-t-il de la place pour le dîner communautaire de vendredi soir ? C'est très important car nous sommes avec des enfants en bas âge. Merci !",
         date: "Il y a 10 min",
       }
     ],
@@ -297,13 +297,13 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
     setTimeout(() => {
       let draftText = "";
       if (selectedMail.id === "mail-1") {
-        draftText = `Bonjour Sarah,\n\nBienvenue à Paris ! C'est un plaisir de vous accueillir dans notre communauté.\n\nVoici les horaires de Chabbat pour ce week-end à Paris :\n- Entrée de Chabbat : 21h12\n- Sortie de Chabbat : 22h24\n\nPour ce qui est du dîner communautaire de vendredi soir, il nous reste effectivement quelques places adaptées aux familles. Pouvez-vous nous confirmer le nombre exact d'adultes et d'enfants afin de valider votre réservation ?\n\nNous restons à votre entière disposition.\n\nChabbat Chalom,\nL'équipe Yad.ia`;
+        draftText = `Bonjour Sarah,\n\nBienvenue à Paris ! C'est un plaisir de vous accueillir dans notre communauté.\n\nVoici les horaires de Chabbat pour ce week-end à Paris :\n- Entrée de Chabbat : 21h12\n- Sortie de Chabbat : 22h24\n\nPour ce qui est du dîner communautaire de vendredi soir, il nous reste effectivement quelques places adaptées aux familles. Pouvez-vous nous confirmer le nombre exact d'adultes et d'enfants afin de valider votre réservation ?\n\nNous restons à votre entière disposition.\n\nChabbat Chalom,\nL'équipe EasyCom IA`;
       } else if (selectedMail.id === "mail-2") {
-        draftText = `Shalom David,\n\nNous vous présentons toutes nos excuses pour ce contretemps technique. Après vérification de notre base de données, vos accès pour les cours de Torah IA ont bien été activés.\n\nUn e-mail de connexion automatique contenant votre mot de passe temporaire vient de vous être renvoyé à l'adresse david.a@example.com. Pensez à vérifier vos courriers indésirables (spams) si vous ne le voyez pas dans votre boîte de réception d'ici quelques minutes.\n\nNous vous souhaitons d'excellents moments d'étude en ligne.\n\nCordialement,\nL'équipe Yad.ia`;
+        draftText = `Shalom David,\n\nNous vous présentons toutes nos excuses pour ce contretemps technique. Après vérification de notre base de données, vos accès pour les cours de Torah IA ont bien été activés.\n\nUn e-mail de connexion automatique contenant votre mot de passe temporaire vient de vous être renvoyé à l'adresse david.a@example.com. Pensez à vérifier vos courriers indésirables (spams) si vous ne le voyez pas dans votre boîte de réception d'ici quelques minutes.\n\nNous vous souhaitons d'excellents moments d'étude en ligne.\n\nCordialement,\nL'équipe EasyCom IA`;
       } else if (selectedMail.id === "mail-3") {
-        draftText = `Bonjour Miriam,\n\nUn grand merci pour vos encouragements ! Nous transmettons vos chaleureux remerciements à l'équipe technique.\n\nC'est avec grand plaisir que nous vous envoyons ci-joint le fichier haute définition (PDF 300 DPI) optimisé pour un tirage A2 grand format.\n\nExcellente kermesse à toute la communauté !\n\nBien chaleureusement,\nL'équipe Yad.ia`;
+        draftText = `Bonjour Miriam,\n\nUn grand merci pour vos encouragements ! Nous transmettons vos chaleureux remerciements à l'équipe technique.\n\nC'est avec grand plaisir que nous vous envoyons ci-joint le fichier haute définition (PDF 300 DPI) optimisé pour un tirage A2 grand format.\n\nExcellente kermesse à toute la communauté !\n\nBien chaleureusement,\nL'équipe EasyCom IA`;
       } else {
-        draftText = `Bonjour Jérôme,\n\nNous vous remercions pour votre intérêt pour notre boutique solidaire.\n\nNous acceptons avec joie les dons de vêtements neufs pour les fêtes. Concernant les déductions fiscales, notre structure étant reconnue d'utilité publique, nous pouvons effectivement vous délivrer un reçu Cerfa de don en nature sur présentation de la facture ou justificatif de valeur d'achat des vêtements neufs concernés.\n\nN'hésitez pas à nous recontacter pour organiser le dépôt.\n\nBien cordialement,\nL'équipe Yad.ia`;
+        draftText = `Bonjour Jérôme,\n\nNous vous remercions pour votre intérêt pour notre boutique solidaire.\n\nNous acceptons avec joie les dons de vêtements neufs pour les fêtes. Concernant les déductions fiscales, notre structure étant reconnue d'utilité publique, nous pouvons effectivement vous délivrer un reçu Cerfa de don en nature sur présentation de la facture ou justificatif de valeur d'achat des vêtements neufs concernés.\n\nN'hésitez pas à nous recontacter pour organiser le dépôt.\n\nBien cordialement,\nL'équipe EasyCom IA`;
       }
       setAiDraft(draftText);
       setIsAiDrafting(false);
@@ -378,7 +378,7 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
             <div className="mb-3 h-1.5 w-10 rounded-full bg-cyan-300" />
             <h1 className="mt-2 text-2xl font-bold text-white">Email</h1>
             <p className="mt-1 text-sm text-cyan-100/80">
-              Gérez votre messagerie Google et automatisez les réponses à vos e-mails grâce à l&apos;intelligence artificielle de Yad.ia.
+              Gérez votre messagerie Google et automatisez les réponses à vos e-mails grâce à l&apos;intelligence artificielle de EasyCom IA.
             </p>
           </div>
           <div>
@@ -731,7 +731,7 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
                       ) : (
                         <>
                           <Sparkles className="size-3 text-cyan-600" />
-                          Rédiger avec Yad.ia
+                          Rédiger avec EasyCom IA
                         </>
                       )}
                     </Button>

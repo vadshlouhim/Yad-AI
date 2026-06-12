@@ -108,7 +108,7 @@ async function sendAutomationEmail(params: {
   </div>
   <div style="font-size: 15px; line-height: 1.7; color: #334155;"><p>${safeBody}</p></div>
   <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center;">
-    Envoye via <strong>Yad.ia</strong> - Communication communautaire assistee par IA
+    Envoye via <strong>EasyCom IA</strong> - Communication communautaire assistee par IA
   </div>
 </body>
 </html>`;
@@ -629,7 +629,7 @@ export async function executeAutomationActions(
   </div>
   <div style="font-size: 15px; line-height: 1.7; color: #334155;"><p>${contentHtml}</p></div>
   <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center;">
-    Envoyé via <strong>Yad.ia</strong> · Communication communautaire assistée par IA
+    Envoyé via <strong>EasyCom IA</strong> · Communication communautaire assistée par IA
   </div>
 </body>
 </html>`;

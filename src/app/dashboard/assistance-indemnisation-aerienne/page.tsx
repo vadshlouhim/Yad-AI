@@ -4,7 +4,7 @@ import { MessageCircle, Plane } from "lucide-react";
 import { FlightCompensationReviewsCarousel } from "@/components/services/flight-compensation-reviews-carousel";
 import { Button } from "@/components/ui/button";
 
-export const metadata: Metadata = { title: "Assistance Indemnisations - Yad.ia" };
+export const metadata: Metadata = { title: "Assistance Indemnisations - EasyCom IA" };
 
 const whatsappUrl =
   "https://wa.me/33668508898?text=Bonjour%2C%20je%20souhaite%20%C3%AAtre%20accompagn%C3%A9%20pour%20mes%20d%C3%A9marches%20en%20cas%20de%20vol%20retard%C3%A9%20ou%20annul%C3%A9.";

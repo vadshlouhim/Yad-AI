@@ -85,7 +85,7 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
         </div>
         <CardTitle className="text-xl">Identité de votre structure</CardTitle>
         <CardDescription>
-          Ces informations permettent à Yad.ia de comprendre votre identité et de personnaliser vos contenus automatiquement.
+          Ces informations permettent à EasyCom IA de comprendre votre identité et de personnaliser vos contenus automatiquement.
         </CardDescription>
       </CardHeader>
 

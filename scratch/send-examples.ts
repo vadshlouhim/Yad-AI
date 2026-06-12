@@ -30,7 +30,7 @@ const examples = [
   },
   {
     subject: "📖 Rappel de Cours - Guémara & Halakha",
-    title: "Centre Communautaire Yad-IA",
+    title: "Centre Communautaire EasyCom IA",
     content: `Chers amis,<br/><br/>
     Nous avons le plaisir de vous rappeler nos cours de la semaine :<br/><br/>
     <strong>Cours de Talmud (Baba Metzia) :</strong><br/>
@@ -42,7 +42,7 @@ const examples = [
     Venez nombreux étudier et partager un moment d'inspiration !`,
   },
   {
-    subject: "✨ Pensée hassidique du jour - Yad.ia",
+    subject: "✨ Pensée hassidique du jour - EasyCom IA",
     title: "L'Étincelle Quotidienne",
     content: `Bonjour,<br/><br/>
     Voici votre pensée quotidienne pour démarrer la journée :<br/><br/>
@@ -53,7 +53,7 @@ const examples = [
   },
   {
     subject: "🎉 Hag Sameah ! Voeux de Chavouot",
-    title: "Communauté Yad-IA",
+    title: "Communauté EasyCom IA",
     content: `Chers membres,<br/><br/>
     À l'approche de la fête de <strong>Chavouot</strong>, moment du Don de notre sainte Torah, toute l'équipe de la communauté vous souhaite un chaleureux <strong>Hag Sameah</strong> !<br/><br/>
     Ne manquez pas notre programme spécial :<br/>
@@ -86,7 +86,7 @@ async function sendAll() {
       ${example.content}
     </div>
     <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center;">
-      Envoyé via <strong>Yad.ia</strong> · Assistant de communication intelligent
+      Envoyé via <strong>EasyCom IA</strong> · Assistant de communication intelligent
     </div>
   </div>
 </body>

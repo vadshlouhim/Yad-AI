@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Conditions d’utilisation - Yad.ia",
+  title: "Conditions d’utilisation - EasyCom IA",
 };
 
 export default function TermsPage() {
@@ -14,7 +14,7 @@ export default function TermsPage() {
         </Link>
         <h1 className="text-3xl font-bold">Conditions d’utilisation</h1>
         <p className="leading-7 text-slate-600">
-          Yad.ia aide les communautés à préparer, organiser et diffuser leurs contenus.
+          EasyCom IA aide les communautés à préparer, organiser et diffuser leurs contenus.
           L’utilisateur reste responsable des informations saisies, des validations finales et
           des publications envoyées vers ses canaux.
         </p>

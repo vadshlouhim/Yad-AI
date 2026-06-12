@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Horaire de Chabbat — Yad.ia" };
+export const metadata: Metadata = { title: "Horaire de Chabbat — EasyCom IA" };
 
 export default async function ShabbatTimesAutoPage() {
   const { profile } = await requireAuth();

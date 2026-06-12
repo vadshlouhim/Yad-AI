@@ -449,7 +449,7 @@ export function DailyRoutineWizard({ communityName, onSave, onCancel, saving }: 
 
             <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
               <p className="text-xs text-blue-700 leading-relaxed">
-                <strong>Yad.ia</strong> mémorisera ces actions et vous proposera proactivement les contenus au bon moment.
+                <strong>EasyCom IA</strong> mémorisera ces actions et vous proposera proactivement les contenus au bon moment.
                 Vous pourrez toujours modifier via le bouton <strong>Mon quotidien</strong> dans l&apos;assistant.
               </p>
             </div>

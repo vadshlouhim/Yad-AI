@@ -50,7 +50,7 @@ const STEPS = [
 const METHOD_POINTS = [
   {
     title: "Une IA qui s’adapte à vous",
-    description: "Yad.ia apprend votre métier, votre ton, vos habitudes et vos préférences pour créer une communication qui vous ressemble.",
+    description: "EasyCom IA apprend votre métier, votre ton, vos habitudes et vos préférences pour créer une communication qui vous ressemble.",
   },
   {
     title: "Toute votre communication centralisée",
@@ -62,7 +62,7 @@ const METHOD_POINTS = [
   },
   {
     title: "Une communication régulière sans effort",
-    description: "Yad.ia vous aide à rester visible avec des publications et automatisations programmées au bon moment.",
+    description: "EasyCom IA vous aide à rester visible avec des publications et automatisations programmées au bon moment.",
   },
   {
     title: "Un gain de temps immédiat",
@@ -76,9 +76,9 @@ export default function MethodPage() {
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
-            <Image src="/easycom-ai-logo.png" alt="Logo Yad.ia" width={32} height={32} className="rounded-lg" />
+            <Image src="/easycom-ai-logo.png" alt="Logo EasyCom IA" width={32} height={32} className="rounded-lg" />
             <div className="leading-tight">
-              <p className="font-black text-slate-950">Yad.ia</p>
+              <p className="font-black text-slate-950">EasyCom IA</p>
               <p className="text-xs font-medium text-slate-500">Votre assistant communication IA</p>
             </div>
           </Link>

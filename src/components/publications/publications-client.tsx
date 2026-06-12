@@ -138,7 +138,7 @@ function buildChannelPreview(pub: Publication) {
     return `Objet: ${pub.event?.title ?? pub.draft?.title ?? "Information communautaire"}\n\n${text}`;
   }
   if (pub.channelType === "INSTAGRAM") {
-    return `${text}\n\n#communaute #shalomia`;
+    return `${text}\n\n#communaute #easycomia`;
   }
   return text;
 }

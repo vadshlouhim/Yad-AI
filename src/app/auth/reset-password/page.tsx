@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Réinitialiser le mot de passe - Yad.ia",
+  title: "Réinitialiser le mot de passe - EasyCom IA",
 };
 
 export default function ResetPasswordPage() {

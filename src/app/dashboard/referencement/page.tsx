@@ -3,10 +3,10 @@ import Link from "next/link";
 import { MessageCircle, Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export const metadata: Metadata = { title: "Referencement - Yad.ia" };
+export const metadata: Metadata = { title: "Referencement - EasyCom IA" };
 
 const whatsappMessage = encodeURIComponent(
-  "Bonjour, je souhaite en savoir plus sur le referencement Google et IA avec Yad.ia.",
+  "Bonjour, je souhaite en savoir plus sur le referencement Google et IA avec EasyCom IA.",
 );
 
 export default function ReferencementPage() {

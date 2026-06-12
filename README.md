@@ -1,4 +1,4 @@
-# Yad.ia / Shalom IA
+# EasyCom IA / EasyCom IA
 
 Assistant IA de communication pour Beth Habad, communautés juives et structures associatives. Le produit centralise le contexte de chaque communauté, propose des contenus, prépare des affiches, pilote des automatisations et aide l'utilisateur a publier plus vite sur ses canaux.
 
@@ -45,13 +45,13 @@ flowchart TB
 
 ## Maquette de Fonctionnement
 
-Cette maquette sert de reference visuelle pour comprendre l'articulation generale de Shalom IA : assistant central, automatisations, affiches, calendrier, donnees communautaires et pilotage admin.
+Cette maquette sert de reference visuelle pour comprendre l'articulation generale de EasyCom IA : assistant central, automatisations, affiches, calendrier, donnees communautaires et pilotage admin.
 
-![Maquette de fonctionnement Shalom IA](docs/assets/fonctionnement-shalom-ia.png)
+![Maquette de fonctionnement EasyCom IA](docs/assets/fonctionnement-easycom-ia.png)
 
 ## Vision Produit
 
-Yad.ia est organise autour de deux experiences principales :
+EasyCom IA est organise autour de deux experiences principales :
 
 | Mode | Role | Utilisateur cible |
 | --- | --- | --- |
@@ -75,7 +75,7 @@ sequenceDiagram
   participant API as /api/ai/chat
   participant DB as Supabase
   participant IA as Modele IA
-  participant ACT as Actions Yad.ia
+  participant ACT as Actions EasyCom IA
 
   U->>A: Demande: prepare une affiche Chabbat
   A->>API: Message + conversation + mode
