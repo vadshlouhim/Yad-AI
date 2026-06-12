@@ -1,10 +1,22 @@
 import { NextResponse } from 'next/server';
-import { oauth2Client } from '@/lib/gmail';
+import { createGmailOAuth2Client, getGmailRedirectUri } from '@/lib/gmail';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 
 function getAppOrigin(fallbackOrigin: string) {
   return (process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? fallbackOrigin).replace(/\/$/, "");
+}
+
+function classifyGmailOAuthError(error: unknown): string {
+  const maybeError = error as {
+    code?: number;
+    response?: { data?: { error?: string; error_description?: string } };
+  };
+  const googleError = maybeError.response?.data?.error;
+  if (googleError === 'invalid_client') return 'gmail_invalid_client';
+  if (googleError === 'invalid_grant') return 'gmail_invalid_grant';
+  if (googleError === 'redirect_uri_mismatch') return 'gmail_redirect_uri_mismatch';
+  return 'gmail_error';
 }
 
 export async function GET(request: Request) {
@@ -75,6 +87,8 @@ export async function GET(request: Request) {
 
   try {
     // Échanger le code contre des tokens
+    const redirectUri = getGmailRedirectUri(new URL(request.url));
+    const oauth2Client = createGmailOAuth2Client(redirectUri);
     const { tokens } = await oauth2Client.getToken(code);
 
     if (!tokens.refresh_token && !tokens.access_token) {
@@ -129,7 +143,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(returnUrl);
   } catch (error) {
     console.error('[Gmail Callback Error]', error);
-    returnUrl.searchParams.set('oauth', 'gmail_error');
+    returnUrl.searchParams.set('oauth', classifyGmailOAuthError(error));
     return NextResponse.redirect(returnUrl);
   }
 }

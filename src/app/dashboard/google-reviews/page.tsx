@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ReviewsClient } from "@/components/reviews/reviews-client";
 
-export const metadata: Metadata = { title: "Avis Google — Easycom AI" };
+export const metadata: Metadata = { title: "Avis Google — Yad.ia" };
 
 export default async function GoogleReviewsPage() {
   const { profile } = await requireAuth();

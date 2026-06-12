@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { EmailClient } from "@/components/email/email-client";
 
-export const metadata: Metadata = { title: "Messagerie Email — Easycom AI" };
+export const metadata: Metadata = { title: "Messagerie Email — Yad.ia" };
 
 export default async function EmailPage() {
   const { profile } = await requireAuth();

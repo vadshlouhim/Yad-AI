@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +49,7 @@ const DEFAULT_EMAILS: EmailMessage[] = [
     sender: "Sarah Cohen",
     senderEmail: "chlomitaieb@gmail.com",
     subject: "Demande urgente : Horaires de Chabbat et inscription repas",
-    body: "Bonjour l'équipe d'Easycom AI, nous venons d'arriver dans la région et nous aimerions assister aux offices de ce week-end. Pouvez-vous nous donner les horaires précis de l'entrée et sortie de Chabbat pour notre ville de Paris ? De plus, reste-t-il de la place pour le dîner communautaire de vendredi soir ? C'est très important car nous sommes avec des enfants en bas âge. Merci !",
+    body: "Bonjour l'équipe d'Yad.ia, nous venons d'arriver dans la région et nous aimerions assister aux offices de ce week-end. Pouvez-vous nous donner les horaires précis de l'entrée et sortie de Chabbat pour notre ville de Paris ? De plus, reste-t-il de la place pour le dîner communautaire de vendredi soir ? C'est très important car nous sommes avec des enfants en bas âge. Merci !",
     date: "Il y a 10 min",
     timestamp: new Date(Date.now() - 10 * 60000),
     read: false,
@@ -56,7 +57,7 @@ const DEFAULT_EMAILS: EmailMessage[] = [
     history: [
       {
         role: "user",
-        body: "Bonjour l'équipe d'Easycom AI, nous venons d'arriver dans la région et nous aimerions assister aux offices de ce week-end. Pouvez-vous nous donner les horaires précis de l'entrée et sortie de Chabbat pour notre ville de Paris ? De plus, reste-t-il de la place pour le dîner communautaire de vendredi soir ? C'est très important car nous sommes avec des enfants en bas âge. Merci !",
+        body: "Bonjour l'équipe d'Yad.ia, nous venons d'arriver dans la région et nous aimerions assister aux offices de ce week-end. Pouvez-vous nous donner les horaires précis de l'entrée et sortie de Chabbat pour notre ville de Paris ? De plus, reste-t-il de la place pour le dîner communautaire de vendredi soir ? C'est très important car nous sommes avec des enfants en bas âge. Merci !",
         date: "Il y a 10 min",
       }
     ],
@@ -154,7 +155,24 @@ interface EmailClientProps {
   initialEmail: string;
 }
 
+const GMAIL_OAUTH_MESSAGES: Record<string, { tone: "success" | "error"; text: string }> = {
+  gmail_success: { tone: "success", text: "Gmail connecté avec succès." },
+  gmail_cancelled: { tone: "error", text: "Connexion Gmail annulée." },
+  gmail_missing_code: { tone: "error", text: "Google n'a pas renvoyé de code d'autorisation." },
+  gmail_missing_env: { tone: "error", text: "Configuration Gmail manquante côté serveur." },
+  gmail_invalid_client: {
+    tone: "error",
+    text: "Client Gmail invalide : vérifiez que GMAIL_CLIENT_ID et GMAIL_CLIENT_SECRET correspondent au même client OAuth Google.",
+  },
+  gmail_invalid_grant: { tone: "error", text: "Code ou refresh token Gmail invalide. Révoquez l'accès Google puis reconnectez Gmail." },
+  gmail_redirect_uri_mismatch: { tone: "error", text: "URL de redirection Gmail non autorisée dans Google Cloud." },
+  gmail_no_token: { tone: "error", text: "Aucun token Gmail reçu. Réessayez en forçant le consentement." },
+  gmail_no_community: { tone: "error", text: "Communauté introuvable. Vérifiez votre profil." },
+  gmail_error: { tone: "error", text: "Erreur lors de la connexion Gmail. Réessayez." },
+};
+
 export function EmailClient({ communityId, initialConnected, initialEmail }: EmailClientProps) {
+  const searchParams = useSearchParams();
   const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
   const [googleConnected, setGoogleConnected] = useState(initialConnected);
   const [googleEmail, setGoogleEmail] = useState(initialEmail);
@@ -169,6 +187,10 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
   const [searchQuery, setSearchQuery] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [oauthNotice, setOauthNotice] = useState<{ tone: "success" | "error"; text: string } | null>(() => {
+    const status = searchParams.get("oauth");
+    return status ? GMAIL_OAUTH_MESSAGES[status] ?? null : null;
+  });
 
   const fetchEmails = async () => {
     setIsLoading(true);
@@ -201,8 +223,13 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
       if (event.data?.type === "gmail_oauth_success") {
         setGoogleConnected(true);
         setIsConnecting(false);
+        setOauthNotice(GMAIL_OAUTH_MESSAGES.gmail_success);
         // Recharger la page pour récupérer les données à jour depuis le serveur
         window.location.reload();
+      } else if (event.data?.type === "gmail_oauth_error") {
+        setIsConnecting(false);
+        const status = typeof event.data.oauth === "string" ? event.data.oauth : "gmail_error";
+        setOauthNotice(GMAIL_OAUTH_MESSAGES[status] ?? GMAIL_OAUTH_MESSAGES.gmail_error);
       }
     }
     window.addEventListener("message", handleMessage);
@@ -270,13 +297,13 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
     setTimeout(() => {
       let draftText = "";
       if (selectedMail.id === "mail-1") {
-        draftText = `Bonjour Sarah,\n\nBienvenue à Paris ! C'est un plaisir de vous accueillir dans notre communauté.\n\nVoici les horaires de Chabbat pour ce week-end à Paris :\n- Entrée de Chabbat : 21h12\n- Sortie de Chabbat : 22h24\n\nPour ce qui est du dîner communautaire de vendredi soir, il nous reste effectivement quelques places adaptées aux familles. Pouvez-vous nous confirmer le nombre exact d'adultes et d'enfants afin de valider votre réservation ?\n\nNous restons à votre entière disposition.\n\nChabbat Chalom,\nL'équipe Easycom AI`;
+        draftText = `Bonjour Sarah,\n\nBienvenue à Paris ! C'est un plaisir de vous accueillir dans notre communauté.\n\nVoici les horaires de Chabbat pour ce week-end à Paris :\n- Entrée de Chabbat : 21h12\n- Sortie de Chabbat : 22h24\n\nPour ce qui est du dîner communautaire de vendredi soir, il nous reste effectivement quelques places adaptées aux familles. Pouvez-vous nous confirmer le nombre exact d'adultes et d'enfants afin de valider votre réservation ?\n\nNous restons à votre entière disposition.\n\nChabbat Chalom,\nL'équipe Yad.ia`;
       } else if (selectedMail.id === "mail-2") {
-        draftText = `Shalom David,\n\nNous vous présentons toutes nos excuses pour ce contretemps technique. Après vérification de notre base de données, vos accès pour les cours de Torah IA ont bien été activés.\n\nUn e-mail de connexion automatique contenant votre mot de passe temporaire vient de vous être renvoyé à l'adresse david.a@example.com. Pensez à vérifier vos courriers indésirables (spams) si vous ne le voyez pas dans votre boîte de réception d'ici quelques minutes.\n\nNous vous souhaitons d'excellents moments d'étude en ligne.\n\nCordialement,\nL'équipe Easycom AI`;
+        draftText = `Shalom David,\n\nNous vous présentons toutes nos excuses pour ce contretemps technique. Après vérification de notre base de données, vos accès pour les cours de Torah IA ont bien été activés.\n\nUn e-mail de connexion automatique contenant votre mot de passe temporaire vient de vous être renvoyé à l'adresse david.a@example.com. Pensez à vérifier vos courriers indésirables (spams) si vous ne le voyez pas dans votre boîte de réception d'ici quelques minutes.\n\nNous vous souhaitons d'excellents moments d'étude en ligne.\n\nCordialement,\nL'équipe Yad.ia`;
       } else if (selectedMail.id === "mail-3") {
-        draftText = `Bonjour Miriam,\n\nUn grand merci pour vos encouragements ! Nous transmettons vos chaleureux remerciements à l'équipe technique.\n\nC'est avec grand plaisir que nous vous envoyons ci-joint le fichier haute définition (PDF 300 DPI) optimisé pour un tirage A2 grand format.\n\nExcellente kermesse à toute la communauté !\n\nBien chaleureusement,\nL'équipe Easycom AI`;
+        draftText = `Bonjour Miriam,\n\nUn grand merci pour vos encouragements ! Nous transmettons vos chaleureux remerciements à l'équipe technique.\n\nC'est avec grand plaisir que nous vous envoyons ci-joint le fichier haute définition (PDF 300 DPI) optimisé pour un tirage A2 grand format.\n\nExcellente kermesse à toute la communauté !\n\nBien chaleureusement,\nL'équipe Yad.ia`;
       } else {
-        draftText = `Bonjour Jérôme,\n\nNous vous remercions pour votre intérêt pour notre boutique solidaire.\n\nNous acceptons avec joie les dons de vêtements neufs pour les fêtes. Concernant les déductions fiscales, notre structure étant reconnue d'utilité publique, nous pouvons effectivement vous délivrer un reçu Cerfa de don en nature sur présentation de la facture ou justificatif de valeur d'achat des vêtements neufs concernés.\n\nN'hésitez pas à nous recontacter pour organiser le dépôt.\n\nBien cordialement,\nL'équipe Easycom AI`;
+        draftText = `Bonjour Jérôme,\n\nNous vous remercions pour votre intérêt pour notre boutique solidaire.\n\nNous acceptons avec joie les dons de vêtements neufs pour les fêtes. Concernant les déductions fiscales, notre structure étant reconnue d'utilité publique, nous pouvons effectivement vous délivrer un reçu Cerfa de don en nature sur présentation de la facture ou justificatif de valeur d'achat des vêtements neufs concernés.\n\nN'hésitez pas à nous recontacter pour organiser le dépôt.\n\nBien cordialement,\nL'équipe Yad.ia`;
       }
       setAiDraft(draftText);
       setIsAiDrafting(false);
@@ -351,7 +378,7 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
             <div className="mb-3 h-1.5 w-10 rounded-full bg-cyan-300" />
             <h1 className="mt-2 text-2xl font-bold text-white">Email</h1>
             <p className="mt-1 text-sm text-cyan-100/80">
-              Gérez votre messagerie Google et automatisez les réponses à vos e-mails grâce à l&apos;intelligence artificielle de Easycom AI.
+              Gérez votre messagerie Google et automatisez les réponses à vos e-mails grâce à l&apos;intelligence artificielle de Yad.ia.
             </p>
           </div>
           <div>
@@ -392,6 +419,20 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
           </div>
         </div>
       </div>
+
+      {oauthNotice && (
+        <div
+          className={cn(
+            "flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm",
+            oauthNotice.tone === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          )}
+        >
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+          <p>{oauthNotice.text}</p>
+        </div>
+      )}
 
       {/* Encarts de priorité IA */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -690,7 +731,7 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
                       ) : (
                         <>
                           <Sparkles className="size-3 text-cyan-600" />
-                          Rédiger avec Easycom AI
+                          Rédiger avec Yad.ia
                         </>
                       )}
                     </Button>

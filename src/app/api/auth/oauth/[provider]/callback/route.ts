@@ -163,6 +163,8 @@ export async function GET(request: Request, { params }: RouteParams) {
     pagesUrl.searchParams.set("access_token", longLived.access_token);
     const pagesResponse = await fetchJson<{ data: MetaPage[] }>(pagesUrl.toString());
 
+    console.log("[Meta OAuth] Pages response:", JSON.stringify(pagesResponse, null, 2));
+
     const selectedPage = pagesResponse.data.find((page) =>
       provider === "instagram" ? Boolean(page.instagram_business_account?.id) : Boolean(page.access_token)
     );
