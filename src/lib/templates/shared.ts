@@ -513,7 +513,18 @@ export function buildTemplateSuggestions(
   const fallbackMatches = options?.forceAtLeastOne
     ? candidateTemplates.filter(({ score }) => score >= 1.5)
     : [];
-  const eligibleMatches = strictMatches.length > 0 ? strictMatches : fallbackMatches;
+  // forceAtLeastOne doit VRAIMENT garantir un résultat dès qu'il existe des
+  // templates. Sur une demande générique (« génère une affiche »), tous les
+  // templates globaux ont un score 0 et ne passent aucun seuil : on retombe
+  // alors sur la liste complète déjà triée par pertinence décroissante.
+  const eligibleMatches =
+    strictMatches.length > 0
+      ? strictMatches
+      : fallbackMatches.length > 0
+        ? fallbackMatches
+        : options?.forceAtLeastOne
+          ? candidateTemplates
+          : [];
   const candidatePool = eligibleMatches
     .slice(0, Math.max(limit * 6, 12))
     .sort((left, right) => {

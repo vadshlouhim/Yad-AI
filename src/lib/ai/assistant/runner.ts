@@ -65,35 +65,66 @@ export async function runAssistant(params: RunAssistantParams): Promise<string> 
 
   while (maxLoops > 0) {
     maxLoops--;
-    const response = await openrouter.chat.completions.create({
+
+    // Appel en streaming : on diffuse le texte token par token et on accumule en
+    // parallèle d'éventuels appels d'outils émis par fragments.
+    const stream = await openrouter.chat.completions.create({
       model,
       max_tokens: 2048,
-      stream: false,
+      stream: true,
       messages: currentMessages,
       tools,
     });
 
-    const msg = response.choices[0]?.message;
-    if (!msg) break;
+    let content = "";
+    let streamedToUser = false;
+    const toolAcc: Array<{ id?: string; name?: string; args: string }> = [];
 
-    if (!msg.tool_calls || msg.tool_calls.length === 0) {
-      // Réponse finale.
-      const finalText = (msg.content ?? "").trim();
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta;
+      if (!delta) continue;
+
+      if (delta.content) {
+        content += delta.content;
+        emit.delta(delta.content);
+        streamedToUser = true;
+      }
+
+      for (const tc of delta.tool_calls ?? []) {
+        const idx = tc.index ?? 0;
+        if (!toolAcc[idx]) toolAcc[idx] = { args: "" };
+        if (tc.id) toolAcc[idx].id = tc.id;
+        if (tc.function?.name) toolAcc[idx].name = tc.function.name;
+        if (tc.function?.arguments) toolAcc[idx].args += tc.function.arguments;
+      }
+    }
+
+    const toolCalls = toolAcc.filter(Boolean);
+
+    if (toolCalls.length === 0) {
+      // Réponse finale : déjà diffusée en direct ci-dessus.
       if (cards.length > 0) emit.event({ type: "assistant_actions", actions: cards });
-      const text = finalText || fallbackText(cards, actionMode);
-      streamChunks(text, emit);
+      const text = content.trim() || fallbackText(cards, actionMode);
+      if (!streamedToUser) streamChunks(text, emit);
       return text;
     }
 
-    // Le modèle veut utiliser des outils.
-    currentMessages.push(msg);
+    // Le modèle veut utiliser des outils : on reconstitue le message assistant.
+    currentMessages.push({
+      role: "assistant",
+      content: content || null,
+      tool_calls: toolCalls.map((tc, i) => ({
+        id: tc.id ?? `call_${i}`,
+        type: "function",
+        function: { name: tc.name ?? "", arguments: tc.args || "{}" },
+      })),
+    });
 
-    for (const toolCall of msg.tool_calls) {
-      if (toolCall.type !== "function") continue;
-      const name = toolCall.function.name;
+    for (const toolCall of toolCalls) {
+      const name = toolCall.name ?? "";
       let args: Record<string, unknown> = {};
       try {
-        args = JSON.parse(toolCall.function.arguments || "{}");
+        args = JSON.parse(toolCall.args || "{}");
       } catch {
         args = {};
       }
@@ -111,7 +142,7 @@ export async function runAssistant(params: RunAssistantParams): Promise<string> 
 
       currentMessages.push({
         role: "tool",
-        tool_call_id: toolCall.id,
+        tool_call_id: toolCall.id ?? `call_${name}`,
         content: toolResult,
       });
     }

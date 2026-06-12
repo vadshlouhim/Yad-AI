@@ -25,7 +25,12 @@ const openrouter = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY!,
 });
 
-const MODEL = "deepseek/deepseek-chat";
+const MODEL = "google/gemini-2.5-flash";
+
+// La boucle d'agent enchaîne plusieurs appels au modèle : on relève la limite de
+// durée bien au-dessus des 10 s par défaut de Netlify pour ne pas couper le flux.
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 interface CommunityContext {
   name: string;
