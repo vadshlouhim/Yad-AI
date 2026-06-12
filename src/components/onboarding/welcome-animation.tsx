@@ -14,7 +14,7 @@ interface Props {
  * 2 → "2"
  * 3 → "1"
  * 4 → white flash
- * 5 → "Bienvenue sur / EasyCom AI"
+ * 5 → "Bienvenue sur / Yad.ia"
  * 6 → logo + sparkle badge
  * 7 → exit fade-out
  * 8 → done (calls onComplete)
@@ -105,7 +105,7 @@ export function WelcomeAnimation({ onComplete }: Props) {
             Bienvenue sur
           </p>
 
-          {/* "EasyCom AI" */}
+          {/* "Yad.ia" */}
           <h1
             className="text-white font-black tracking-tight"
             style={{
@@ -115,7 +115,7 @@ export function WelcomeAnimation({ onComplete }: Props) {
               animation: "wSlide 0.65s 0.1s cubic-bezier(0.22, 1, 0.36, 1) both",
             }}
           >
-            EasyCom AI
+            Yad.ia
           </h1>
 
           {/* ── Logo + sparkle badge ── */}
@@ -132,7 +132,7 @@ export function WelcomeAnimation({ onComplete }: Props) {
                 />
                 <img
                   src="/easycom-ai-logo.png"
-                  alt="EasyCom AI"
+                  alt="Yad.ia"
                   className="relative h-20 w-20 rounded-2xl object-cover shadow-2xl"
                 />
               </div>

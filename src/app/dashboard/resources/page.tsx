@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { BookOpen, FileAudio, FileText, Upload, WandSparkles } from "lucide-react";
 
-export const metadata: Metadata = { title: "Mes ressources - EasyCom AI" };
+export const metadata: Metadata = { title: "Mes ressources - Yad.ia" };
 
 const resourceCards = [
   {
@@ -65,7 +65,7 @@ export default function ResourcesPage() {
         <h2 className="mt-4 text-xl font-black text-slate-900">Espace de téléversement à venir</h2>
         <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500">
           La prochaine étape consistera à déposer ici vos fichiers audio et vos documents pour les centraliser,
-          puis les publier rapidement dans EasyCom AI.
+          puis les publier rapidement dans Yad.ia.
         </p>
       </section>
     </div>

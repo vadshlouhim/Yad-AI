@@ -1,4 +1,4 @@
-# Prompts visuels EasyCom AI
+# Prompts visuels Yad.ia
 
 Ce document regroupe les prompts liés a la generation, l'adaptation et l'edition des affiches/visuels dans l'application.
 

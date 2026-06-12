@@ -516,7 +516,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
                     <div className="border-t border-slate-100 p-4 bg-white space-y-3">
                       <Button size="sm" variant="outline" onClick={handleDraftWithAi} disabled={isAiDrafting}
                         className="rounded-full text-xs font-semibold text-cyan-700 border-cyan-200 bg-cyan-50/30 hover:bg-cyan-50 flex items-center gap-1.5">
-                        {isAiDrafting ? <><RefreshCw className="size-3 animate-spin" />Rédaction...</> : <><Sparkles className="size-3 text-cyan-600" />Rédiger avec EasyCom AI</>}
+                        {isAiDrafting ? <><RefreshCw className="size-3 animate-spin" />Rédaction...</> : <><Sparkles className="size-3 text-cyan-600" />Rédiger avec Yad.ia</>}
                       </Button>
                       <div className="flex gap-2">
                         <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)}

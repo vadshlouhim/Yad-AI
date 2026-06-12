@@ -5,7 +5,7 @@ import { AssistantClient } from "@/components/assistant/assistant-client";
 import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Assistant IA — EasyCom AI" };
+export const metadata: Metadata = { title: "Assistant IA — Yad.ia" };
 
 export default async function AssistantPage({
   searchParams,
@@ -61,8 +61,8 @@ export default async function AssistantPage({
   const quickActionPrompts = [
     {
       label: "Communication automatique",
-      description: "EasyCom AI peut préparer, programmer et publier vos contenus au bon moment",
-      prompt: `Explique comment EasyCom AI peut préparer, programmer et publier automatiquement les contenus au bon moment pour ma communauté. Appuie-toi si utile sur ce programme :\n${programContext}`,
+      description: "Yad.ia peut préparer, programmer et publier vos contenus au bon moment",
+      prompt: `Explique comment Yad.ia peut préparer, programmer et publier automatiquement les contenus au bon moment pour ma communauté. Appuie-toi si utile sur ce programme :\n${programContext}`,
     },
     {
       label: "Horaires de Chabbat",
@@ -71,14 +71,14 @@ export default async function AssistantPage({
     },
     {
       label: "Assistant personnel",
-      description: "EasyCom AI devient votre assistant du quotidien : \"Publier le rappel J-5\"",
-      prompt: `Montre comment EasyCom AI peut agir comme assistant du quotidien, par exemple pour publier un rappel J-5, J-1 ou jour J. Programme connu :\n${programContext}`,
+      description: "Yad.ia devient votre assistant du quotidien : \"Publier le rappel J-5\"",
+      prompt: `Montre comment Yad.ia peut agir comme assistant du quotidien, par exemple pour publier un rappel J-5, J-1 ou jour J. Programme connu :\n${programContext}`,
     },
     {
       label: "Banque d'affiches",
       description: "Accédez à une banque de +250 affiches préremplies sur tous les thèmes juifs",
       prompt: nextHoliday
-        ? `Présente la banque d'affiches de EasyCom AI et propose des affiches pertinentes pour ${nextHoliday.name}.`
+        ? `Présente la banque d'affiches de Yad.ia et propose des affiches pertinentes pour ${nextHoliday.name}.`
         : "Présente la banque de plus de 250 affiches préremplies sur les thèmes juifs et aide-moi à choisir une affiche adaptée.",
     },
   ];

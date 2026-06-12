@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ExternalLink, Frame, ShoppingBag, Store } from "lucide-react";
 
-export const metadata: Metadata = { title: "Boutique - EasyCom AI" };
+export const metadata: Metadata = { title: "Boutique - Yad.ia" };
 
 const shopLinks = [
   {

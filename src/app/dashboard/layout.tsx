@@ -9,7 +9,7 @@ import { headers } from "next/headers";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: { template: "%s — EasyCom AI", default: "Dashboard — EasyCom AI" },
+  title: { template: "%s — Yad.ia", default: "Dashboard — Yad.ia" },
 };
 
 export default async function DashboardLayout({

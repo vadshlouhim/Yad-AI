@@ -3,15 +3,15 @@ import type { Metadata } from "next";
 import { ChevronLeft, HelpCircle, Mail, Sparkles } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "FAQ - EasyCom AI",
-  description: "Foire aux questions courantes et support EasyCom AI",
+  title: "FAQ - Yad.ia",
+  description: "Foire aux questions courantes et support Yad.ia",
 };
 
 const FAQ_ITEMS = [
   {
     question: "Comment connecter mes reseaux sociaux ?",
     answer:
-      "Depuis Parametres puis Connexion reseaux sociaux, choisissez le canal a connecter et suivez le parcours propose pour autoriser EasyCom AI.",
+      "Depuis Parametres puis Connexion reseaux sociaux, choisissez le canal a connecter et suivez le parcours propose pour autoriser Yad.ia.",
   },
   {
     question: "A quoi servent les automatisations ?",
@@ -21,7 +21,7 @@ const FAQ_ITEMS = [
   {
     question: "Est-ce que les publications partent automatiquement ?",
     answer:
-      "Selon le canal connecte et votre configuration, EasyCom AI peut preparer, programmer ou publier. Certains canaux demandent une validation ou une connexion prealable.",
+      "Selon le canal connecte et votre configuration, Yad.ia peut preparer, programmer ou publier. Certains canaux demandent une validation ou une connexion prealable.",
   },
   {
     question: "Comment voir mes notifications importantes ?",
@@ -49,14 +49,14 @@ const FAQ_ITEMS = [
       "Vous pouvez lui demander de rediger un email, preparer une publication, proposer des automatisations, repondre a un avis Google, organiser votre semaine ou preparer un visuel.",
   },
   {
-    question: "Comment repondre a un avis Google avec EasyCom AI ?",
+    question: "Comment repondre a un avis Google avec Yad.ia ?",
     answer:
       "Dans Avis Google, l'assistant peut vous aider a formuler une reponse rapide, polie et adaptee au contexte du message recu.",
   },
   {
     question: "Puis-je preparer du contenu pour WhatsApp, Facebook et Instagram ?",
     answer:
-      "Oui. EasyCom AI peut vous aider a adapter le meme message pour plusieurs canaux avec un ton et un format plus coherents pour chacun.",
+      "Oui. Yad.ia peut vous aider a adapter le meme message pour plusieurs canaux avec un ton et un format plus coherents pour chacun.",
   },
   {
     question: "Comment retrouver mes ressources ?",
@@ -79,7 +79,7 @@ const FAQ_ITEMS = [
       "Retournez dans Parametres puis Connexion reseaux sociaux pour reconnecter le canal concerne. Cela permet de retablir les publications et les actions liees.",
   },
   {
-    question: "Puis-je utiliser EasyCom AI depuis mon telephone ?",
+    question: "Puis-je utiliser Yad.ia depuis mon telephone ?",
     answer:
       "Oui. L'interface est prevue pour fonctionner aussi sur mobile et tablette afin de suivre vos actions, notifications et contenus en deplacement.",
   },

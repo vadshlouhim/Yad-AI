@@ -108,7 +108,7 @@ async function sendAutomationEmail(params: {
   </div>
   <div style="font-size: 15px; line-height: 1.7; color: #334155;"><p>${safeBody}</p></div>
   <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center;">
-    Envoye via <strong>EasyCom AI</strong> - Communication communautaire assistee par IA
+    Envoye via <strong>Yad.ia</strong> - Communication communautaire assistee par IA
   </div>
 </body>
 </html>`;
@@ -248,17 +248,23 @@ async function prepareAutomationNotification(automation: AutomationWithCommunity
   if (!action) {
     if (autoAction && notifyUsers && notifyUsers.length > 0) {
       const leadHours = getNotificationLeadHours(automation);
+      const notifTitle = "Publication automatique programmée";
+      const notifBody = `Cette publication partira automatiquement dans ${leadHours}h.`;
+      const notifLink = "/dashboard/automations";
       await supabase.from("Notification").insert(
         notifyUsers.map((user) => ({
           id: crypto.randomUUID(),
           userId: user.id,
           communityId: automation.community.id,
           type: "AUTOMATION_TRIGGERED",
-          title: "Publication automatique programmée",
-          body: `Cette publication partira automatiquement dans ${leadHours}h.`,
-          link: "/dashboard/automations",
+          title: notifTitle,
+          body: notifBody,
+          link: notifLink,
           data: { automationId: automation.id, preparedFor, channelTypes: autoAction.channels ?? [] },
         })),
+      );
+      await Promise.allSettled(
+        notifyUsers.map((user) => notifyUser(supabase, user.id, { title: notifTitle, body: notifBody, link: notifLink }))
       );
     }
 
@@ -309,17 +315,23 @@ async function prepareAutomationNotification(automation: AutomationWithCommunity
   if (notifyUsers && notifyUsers.length > 0) {
     const channels = action.channels ?? [];
     const leadHours = getNotificationLeadHours(automation);
+    const notifTitle = "Validation requise";
+    const notifBody = `Dans ${leadHours}h, votre publication sera envoyée. Validez ?`;
+    const notifLink = `/dashboard/assistant?draftId=${draft.id}`;
     await supabase.from("Notification").insert(
       notifyUsers.map((user) => ({
         id: crypto.randomUUID(),
         userId: user.id,
         communityId: automation.community.id,
         type: "AI_CONTENT_READY",
-        title: "Validation requise",
-        body: `Dans ${leadHours}h, votre publication sera envoyée. Validez ?`,
-        link: `/dashboard/assistant?draftId=${draft.id}`,
+        title: notifTitle,
+        body: notifBody,
+        link: notifLink,
         data: { draftId: draft.id, automationId: automation.id, preparedFor, channelTypes: channels },
       })),
+    );
+    await Promise.allSettled(
+      notifyUsers.map((user) => notifyUser(supabase, user.id, { title: notifTitle, body: notifBody, link: notifLink }))
     );
   }
 
@@ -617,7 +629,7 @@ export async function executeAutomationActions(
   </div>
   <div style="font-size: 15px; line-height: 1.7; color: #334155;"><p>${contentHtml}</p></div>
   <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center;">
-    Envoyé via <strong>EasyCom AI</strong> · Communication communautaire assistée par IA
+    Envoyé via <strong>Yad.ia</strong> · Communication communautaire assistée par IA
   </div>
 </body>
 </html>`;
@@ -725,4 +737,3 @@ function computeNextRunAt(automation: Automation, now: Date): Date | null {
   }
   return nextRun;
 }
-

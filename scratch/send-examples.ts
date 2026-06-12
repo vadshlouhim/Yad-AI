@@ -42,7 +42,7 @@ const examples = [
     Venez nombreux étudier et partager un moment d'inspiration !`,
   },
   {
-    subject: "✨ Pensée hassidique du jour - EasyCom AI",
+    subject: "✨ Pensée hassidique du jour - Yad.ia",
     title: "L'Étincelle Quotidienne",
     content: `Bonjour,<br/><br/>
     Voici votre pensée quotidienne pour démarrer la journée :<br/><br/>
@@ -86,7 +86,7 @@ async function sendAll() {
       ${example.content}
     </div>
     <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center;">
-      Envoyé via <strong>EasyCom AI</strong> · Assistant de communication intelligent
+      Envoyé via <strong>Yad.ia</strong> · Assistant de communication intelligent
     </div>
   </div>
 </body>

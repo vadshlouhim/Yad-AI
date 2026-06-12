@@ -31,7 +31,7 @@ export function GmbNotificationBadge() {
 
       // Mettre à jour le title de la page si on est sur les avis
       if (window.location.pathname.includes("google-reviews") && count > 0) {
-        document.title = `(${count}) Avis Google — EasyCom AI`;
+        document.title = `(${count}) Avis Google — Yad.ia`;
       }
     } catch {
       // Non bloquant

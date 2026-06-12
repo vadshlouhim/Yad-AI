@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight, Globe, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export const metadata: Metadata = { title: "Site web - EasyCom AI" };
+export const metadata: Metadata = { title: "Site web - Yad.ia" };
 
 export default function WebsiteCreationPage() {
   return (

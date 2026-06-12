@@ -37,7 +37,7 @@ const PLANS = [
     name: "Essai gratuit",
     price: 0,
     period: "",
-    description: "Pour découvrir EasyCom AI",
+    description: "Pour découvrir Yad.ia",
     features: [
       "30 publications / mois",
       "50 générations IA / mois",

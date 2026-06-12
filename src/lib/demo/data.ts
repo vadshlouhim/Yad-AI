@@ -1,5 +1,5 @@
 /**
- * EasyCom AI — Données de démonstration
+ * Yad.ia — Données de démonstration
  * Activé via NEXT_PUBLIC_DEMO_MODE=true
  * Simule une communauté "Beth Habad Paris Marais" avec données réalistes
  */

@@ -1,5 +1,5 @@
 // ============================================================
-// EasyCom AI — Intégration Hebcal
+// Yad.ia — Intégration Hebcal
 // Calendrier hébraïque, horaires Chabbat, fêtes
 // API gratuite : https://www.hebcal.com/home/195/jewish-calendar-rest-api
 // ============================================================

@@ -67,7 +67,7 @@ const CHANNEL_CONFIG: Record<string, {
     brandColor: "from-green-500 to-emerald-400",
     brandBorder: "border-green-200",
     brandText: "text-green-600",
-    description: "Diffusez via WhatsApp. EasyCom AI génère des textes prêts à envoyer.",
+    description: "Diffusez via WhatsApp. Yad.ia génère des textes prêts à envoyer.",
     authType: "manual",
     badge: "Copier-coller",
   },
@@ -89,7 +89,7 @@ const CHANNEL_CONFIG: Record<string, {
     brandColor: "from-red-500 to-orange-400",
     brandBorder: "border-red-200",
     brandText: "text-red-600",
-    description: "Connectez votre compte Gmail pour envoyer des emails depuis EasyCom AI.",
+    description: "Connectez votre compte Gmail pour envoyer des emails depuis Yad.ia.",
     authType: "gmail-oauth",
     badge: "Gmail OAuth",
   },
@@ -109,7 +109,7 @@ const OAUTH_MESSAGES: Record<string, { tone: "success" | "error"; text: string }
   no_instagram_business: { tone: "error", text: "Aucun compte Instagram Pro lié à une Page Facebook." },
   error: { tone: "error", text: "Connexion refusée par Meta. Vérifiez l'URL de redirection." },
   // Gmail
-  gmail_success: { tone: "success", text: "Gmail connecté avec succès ! Vous pouvez maintenant envoyer des emails depuis EasyCom AI." },
+  gmail_success: { tone: "success", text: "Gmail connecté avec succès ! Vous pouvez maintenant envoyer des emails depuis Yad.ia." },
   gmail_cancelled: { tone: "error", text: "Connexion Gmail annulée." },
   gmail_missing_code: { tone: "error", text: "Google n'a pas renvoyé de code d'autorisation." },
   gmail_no_token: { tone: "error", text: "Aucun token reçu de Google. Réessayez avec 'consent' forcé." },
@@ -200,7 +200,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Canaux de diffusion</h1>
             <p className="text-sm text-slate-500">
-              Connectez vos réseaux sociaux pour publier directement depuis EasyCom AI
+              Connectez vos réseaux sociaux pour publier directement depuis Yad.ia
             </p>
           </div>
         </div>
@@ -573,7 +573,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                           <p className="text-sm font-semibold text-amber-800">Mode copier-coller</p>
                           <p className="text-xs text-amber-700 leading-relaxed">
                             WhatsApp ne permet pas la publication automatique sans l&apos;API Business officielle.
-                            EasyCom AI génère le contenu optimisé avec un lien <code className="bg-amber-100 rounded px-1">wa.me</code> prêt à partager.
+                            Yad.ia génère le contenu optimisé avec un lien <code className="bg-amber-100 rounded px-1">wa.me</code> prêt à partager.
                           </p>
                         </div>
                       </div>

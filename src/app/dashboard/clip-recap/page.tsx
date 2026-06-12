@@ -3,7 +3,7 @@ import Link from "next/link";
 import { MessageCircle, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export const metadata: Metadata = { title: "Clip video - EasyCom AI" };
+export const metadata: Metadata = { title: "Clip video - Yad.ia" };
 
 export default function ClipRecapPage() {
   return (

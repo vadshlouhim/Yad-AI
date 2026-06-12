@@ -27,7 +27,7 @@ export interface DailyRoutine {
 }
 
 export function buildDailyRoutineSystemPrompt(communityName: string, city?: string | null): string {
-  return `Tu es EasyCom AI, l'assistant de communication de "${communityName}"${city ? ` (${city})` : ""}.
+  return `Tu es Yad.ia, l'assistant de communication de "${communityName}"${city ? ` (${city})` : ""}.
 
 Tu aides l'administrateur à définir sa ROUTINE QUOTIDIENNE : les actions de communication récurrentes de sa communauté.
 
@@ -78,7 +78,7 @@ export function buildSystemPrompt(community: {
     OTHER: "structure communautaire",
   }[community.communityType] ?? "communauté";
 
-  return `Tu es EasyCom AI, l'assistant IA de communication de "${community.name}", une ${communityTypeDesc}${community.city ? ` basée à ${community.city}` : ""}${community.religiousStream ? `, de tradition ${community.religiousStream}` : ""}.
+  return `Tu es Yad.ia, l'assistant IA de communication de "${community.name}", une ${communityTypeDesc}${community.city ? ` basée à ${community.city}` : ""}${community.religiousStream ? `, de tradition ${community.religiousStream}` : ""}.
 
 TON ET STYLE :
 - Ton : ${toneDesc}

@@ -857,7 +857,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                 <Sparkles className="size-3.5" />
                 Admin global
               </div>
-              <h1 className={`mt-4 text-2xl font-black leading-tight ${strongText}`}>Pilotage EasyCom AI</h1>
+              <h1 className={`mt-4 text-2xl font-black leading-tight ${strongText}`}>Pilotage Yad.ia</h1>
               <p className={`mt-2 text-sm leading-6 ${mutedText}`}>Supervisez les structures, les usages IA, les données et surtout la banque d&apos;affiches.</p>
             </div>
 

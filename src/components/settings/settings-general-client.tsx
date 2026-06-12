@@ -472,7 +472,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
         <Link href="/dashboard/events" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Gestion du quotidien</Link>
         <Link href="/help" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">FAQ</Link>
         <button type="button" onClick={() => setActiveSection("contacts")} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50">Ajoutez mes contacts</button>
-        <a href="mailto:contact@easycom-AI.com?subject=Suggestion%20EasyCom%20AI" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Envoyer une suggestion</a>
+        <a href="mailto:contact@easycom-AI.com?subject=Suggestion%20Yad.ia" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Envoyer une suggestion</a>
         {profile.canAccessAdmin && (
           <Link href="/admin" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 hover:bg-emerald-100">
             Admin global

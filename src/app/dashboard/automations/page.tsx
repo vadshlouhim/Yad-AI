@@ -10,7 +10,7 @@ import {
 import { getCommunityProfileDisplayLabel, getCommunityProfileLabel } from "@/lib/community/profile-labels";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Publications Automatisées IA - EasyCom AI" };
+export const metadata: Metadata = { title: "Publications Automatisées IA - Yad.ia" };
 
 const INVALID_PROFILE_VALUES = new Set([
   "",

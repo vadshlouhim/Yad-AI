@@ -194,10 +194,10 @@ const ASSISTANT_PLACEHOLDER_SUGGESTIONS = [
   "Rédige un message WhatsApp clair et professionnel",
 ];
 
-const STATIC_ASSISTANT_PLACEHOLDER = "Décrivez votre demande à EasyCom AI...";
+const STATIC_ASSISTANT_PLACEHOLDER = "Décrivez votre demande à Yad.ia...";
 
-const EASYCOM_FULL_MESSAGE =
-  "EasyCom AI vous aide à gérer toute votre communication depuis un seul espace intelligent.\n\n" +
+const YADIA_FULL_MESSAGE =
+  "Yad.ia vous aide à gérer toute votre communication depuis un seul espace intelligent.\n\n" +
   "* Programmez vos publications sur WhatsApp, Instagram et Facebook, puis recevez une notification au bon moment avant validation.\n" +
   "* Enregistrez vos contacts, organisez vos groupes et envoyez des messages bien rédigés, structurés et adaptés aux bonnes personnes.\n" +
   "* Gérez vos emails intelligemment : l'IA trie les messages importants, repère les urgences et vous propose des réponses prêtes à envoyer.\n" +
@@ -206,7 +206,7 @@ const EASYCOM_FULL_MESSAGE =
   "* Centralisez vos automatisations, publications prévues, rappels et événements dans votre Agenda IA avec des notifications au bon moment.\n" +
   "* Créez des clips vidéo IA à partir de vos photos et vidéos, prêts à être publiés sur vos réseaux.\n" +
   "* Notez vos ressources personnelles, organisez-les dans votre espace, puis publiez-les ou partagez-les en un clic.\n\n" +
-  "EasyCom AI prépare, organise et automatise vos actions tout en vous laissant le contrôle : l'IA propose, vous validez, puis elle agit.\n\n" +
+  "Yad.ia prépare, organise et automatise vos actions tout en vous laissant le contrôle : l'IA propose, vous validez, puis elle agit.\n\n" +
   "Cliquez dans le menu ou demandez à l'Assistant IA ce que vous souhaitez.";
 
 function getQuickPromptStyle(index: number) {
@@ -397,6 +397,8 @@ export function AssistantClient({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const showQuickPrompts = messages.length === 0;
+  const hasStreamingAssistantMessage =
+    loading && messages.some((message) => message.role === "assistant" && !message.content);
   const shouldAnimatePlaceholder = showQuickPrompts && !hasStartedPromptEntry && !loading;
 
   // Charger l'historique + routine au montage
@@ -906,13 +908,13 @@ export function AssistantClient({
       .replace(/\n/g, "<br />");
   }
 
-  function sendEasyComOverviewMessage() {
+  function sendYadiaOverviewMessage() {
     setHasStartedPromptEntry(true);
     setMessages([
       {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: EASYCOM_FULL_MESSAGE,
+        content: YADIA_FULL_MESSAGE,
         timestamp: new Date(),
       },
     ]);
@@ -2027,7 +2029,7 @@ export function AssistantClient({
               <h1 className="truncate text-base font-bold text-slate-900">
                 {assistantExperience === "detailed" && activeConversationId
                   ? conversations.find((c) => c.id === activeConversationId)?.title ?? "Conversation"
-                  : "EasyCom Agent"}
+                  : "Agent Yad.ia"}
               </h1>
             </div>
           </div>
@@ -2242,18 +2244,18 @@ export function AssistantClient({
                       <span
                         className="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-cover bg-center shadow-sm"
                         style={{ backgroundImage: `url(${communityLogoUrl})` }}
-                        aria-label="Logo EasyCom AI"
+                        aria-label="Logo Yad.ia"
                       />
                     )}
                     <h2 className="text-center text-2xl font-black leading-tight tracking-tight text-slate-900 sm:text-left sm:text-3xl">
-                      EasyCom AI
+                      Yad.ia
                     </h2>
                   </div>
                 </div>
                 <p className="mx-auto mt-2 max-w-3xl text-sm leading-7 text-slate-700 sm:text-[15px]">
                   <strong className="font-black text-slate-900">Votre temps est précieux, concentrez-vous sur l’essentiel.</strong>
                   <br />
-                  <span>EasyCom AI centralise et automatise toute votre communication depuis un seul espace.</span>
+                  <span>Yad.ia centralise et automatise toute votre communication depuis un seul espace.</span>
                 </p>
               </div>
             )}
@@ -2265,7 +2267,7 @@ export function AssistantClient({
                   Bienvenue sur votre espace personnel
                 </h2>
                 <p className="mx-auto mt-2 max-w-3xl text-sm leading-7 text-slate-600 sm:text-[15px]">
-                  Votre temps est précieux — concentrez-vous sur l&apos;essentiel. EasyComAI s&apos;occupe du reste !
+                  Votre temps est précieux — concentrez-vous sur l&apos;essentiel. Yad.ia s&apos;occupe du reste !
                 </p>
                 <p className="mx-auto mt-0.5 max-w-3xl text-sm leading-7 text-slate-500 sm:text-[15px]">
                   (Publications récurrentes et automatisées, mail et Avis Google, agenda IA, assistant du quotidien, ressources communautaires)
@@ -2532,14 +2534,8 @@ export function AssistantClient({
                         dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content) }}
                       />
                     ) : (
-                      <div className="flex gap-1 py-1">
-                        {[0, 1, 2].map((i) => (
-                          <div
-                            key={i}
-                            className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"
-                            style={{ animationDelay: `${i * 0.15}s` }}
-                          />
-                        ))}
+                      <div className="flex py-1 text-slate-400">
+                        <MessageLoading />
                       </div>
                     )}
                   </div>
@@ -3207,7 +3203,7 @@ export function AssistantClient({
                 </div>
               </div>
             ))}
-            {loading && (
+            {loading && !hasStreamingAssistantMessage && (
               <div className="flex gap-3">
                 <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white">
                   <Bot className="size-4 text-slate-700" />

@@ -6,7 +6,7 @@ import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Admin global - EasyCom AI" };
+export const metadata: Metadata = { title: "Admin global - Yad.ia" };
 
 type CountableTable =
   | "profiles"

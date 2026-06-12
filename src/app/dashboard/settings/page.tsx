@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SettingsGeneralClient } from "@/components/settings/settings-general-client";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Paramètres - EasyCom AI" };
+export const metadata: Metadata = { title: "Paramètres - Yad.ia" };
 
 type SettingsSection = "community" | "contacts" | "editorial" | "profile";
 

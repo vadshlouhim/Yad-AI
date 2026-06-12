@@ -204,7 +204,7 @@ export function HeroAnimation() {
         <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
         <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
         <span className="mx-auto text-xs font-semibold text-slate-500">
-          EasyCom AI — Messages
+          Yad.ia — Messages
         </span>
         {/* balance visuelle */}
         <span className="h-2.5 w-2.5 opacity-0" />

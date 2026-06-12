@@ -63,7 +63,7 @@ const FEATURES = [
   },
   {
     label: "Communication régulière",
-    description: "EasyCom AI vous aide à rester actif, visible et cohérent sur tous vos canaux de communication.",
+    description: "Yad.ia vous aide à rester actif, visible et cohérent sur tous vos canaux de communication.",
     icon: Share2,
     tone: "border-teal-200 text-teal-700 bg-teal-50",
     line: "bg-teal-600",
@@ -86,7 +86,7 @@ const SOCIAL_CHANNELS = [
 ];
 
 const TESTIMONIALS = [
-  { name: "Marc L.", role: "Gérant de restaurant", content: "EasyCom AI m'aide à garder une communication régulière sans y passer mes soirées.", avatar: "ML", color: "bg-blue-100 text-blue-700" },
+  { name: "Marc L.", role: "Gérant de restaurant", content: "Yad.ia m'aide à garder une communication régulière sans y passer mes soirées.", avatar: "ML", color: "bg-blue-100 text-blue-700" },
   { name: "Sarah J.", role: "Coach sportive", content: "Je prépare mes annonces, mes rappels et mes réponses beaucoup plus vite.", avatar: "SJ", color: "bg-emerald-100 text-emerald-700" },
   { name: "Thomas D.", role: "Agent immobilier", content: "Les publications et relances sont mieux organisées, et je gagne plusieurs heures par semaine.", avatar: "TD", color: "bg-amber-100 text-amber-700" },
   { name: "Nadia B.", role: "Responsable association", content: "Tout est centralisé : réseaux sociaux, emails, avis et messages importants.", avatar: "NB", color: "bg-violet-100 text-violet-700" },
@@ -106,7 +106,7 @@ export default function HomePage() {
           <Link href="/" className="flex items-center gap-3">
             <Image
               src="/easycom-ai-logo.png"
-              alt="Logo EasyCom AI"
+              alt="Logo Yad.ia"
               width={40}
               height={40}
               sizes="40px"
@@ -114,7 +114,7 @@ export default function HomePage() {
               priority
             />
             <div className="leading-tight">
-              <p className="text-sm font-black tracking-tight text-slate-950">EasyCom AI</p>
+              <p className="text-sm font-black tracking-tight text-slate-950">Yad.ia</p>
               <p className="text-xs font-medium text-slate-500">Votre assistant communication IA</p>
             </div>
           </Link>
@@ -163,7 +163,7 @@ export default function HomePage() {
             </h1>
 
             <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-              EasyCom AI centralise{" "}
+              Yad.ia centralise{" "}
               <span className="font-bold text-blue-600">Facebook</span>,{" "}
               <span className="font-bold text-pink-600">Instagram</span>,{" "}
               <span className="font-bold text-emerald-600">WhatsApp</span>,{" "}
@@ -230,7 +230,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-4xl text-center">
             <h2 className="text-[clamp(1.75rem,6vw,2.5rem)] font-black leading-tight tracking-tight text-slate-950">
-              <span className="text-blue-600">Votre temps est précieux</span> EasyCom AI centralise, prépare et{" "}
+              <span className="text-blue-600">Votre temps est précieux</span> Yad.ia centralise, prépare et{" "}
               <span className="text-blue-600">automatise votre communication</span>
             </h2>
           </div>
@@ -255,7 +255,7 @@ export default function HomePage() {
           <div className="text-center">
             <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-600">Témoignages</p>
             <h2 className="mt-3 text-[clamp(1.75rem,6vw,2.25rem)] font-black tracking-tight text-slate-950">
-              EasyCom AI les aide à mieux gérer leur communication au quotidien
+              Yad.ia les aide à mieux gérer leur communication au quotidien
             </h2>
           </div>
 
@@ -292,7 +292,7 @@ export default function HomePage() {
           <div className="space-y-4">
             {[
               {
-                q: "Est-ce que je peux utiliser EasyCom AI pour n'importe quelle activité ?",
+                q: "Est-ce que je peux utiliser Yad.ia pour n'importe quelle activité ?",
                 a: "Absolument. Que vous soyez une association, un commerce de proximité, un coach ou une grande communauté, l'IA s'adapte à votre contexte spécifique dès la configuration.",
               },
               {
@@ -320,9 +320,9 @@ export default function HomePage() {
       <section className="border-t border-slate-200 bg-slate-950 px-4 py-12 text-white sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm font-bold text-blue-300">EasyCom AI</p>
+            <p className="text-sm font-bold text-blue-300">Yad.ia</p>
             <h2 className="mt-2 text-[clamp(1.5rem,5.4vw,1.875rem)] font-black tracking-tight">
-              Concentrez-vous sur l&apos;essentiel. EasyComAI s&apos;occupe du reste !
+              Concentrez-vous sur l&apos;essentiel. Yad.ia s&apos;occupe du reste !
             </h2>
           </div>
           <Link

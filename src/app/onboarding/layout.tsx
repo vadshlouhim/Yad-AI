@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Configuration de votre communauté — EasyCom AI",
+  title: "Configuration de votre communauté — Yad.ia",
 };
 
 export default function OnboardingLayout({
@@ -17,10 +17,10 @@ export default function OnboardingLayout({
           <div className="flex items-center gap-2.5">
             <img
               src="/easycom-ai-logo.png"
-              alt="Logo EasyCom AI"
+              alt="Logo Yad.ia"
               className="h-8 w-8 rounded-lg object-cover"
             />
-            <span className="font-semibold text-slate-900">EasyCom AI</span>
+            <span className="font-semibold text-slate-900">Yad.ia</span>
           </div>
           <span className="hidden sm:block text-xs text-slate-400">Configuration initiale</span>
         </div>

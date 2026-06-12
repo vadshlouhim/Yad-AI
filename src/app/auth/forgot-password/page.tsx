@@ -2,7 +2,7 @@ import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Mot de passe oublié - EasyCom AI",
+  title: "Mot de passe oublié - Yad.ia",
 };
 
 export default function ForgotPasswordPage() {

@@ -356,7 +356,7 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
           <Card className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-blue-100/30">
             <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
               <Sparkles className="size-4 text-blue-600 animate-pulse" />
-              Générer le message avec l&apos;IA EasyCom
+              Générer le message avec l&apos;IA Yad.ia
             </h2>
             <div className="flex gap-2">
               <input

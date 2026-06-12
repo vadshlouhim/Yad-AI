@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { platform } = await params;
   const capitalized = platform.charAt(0).toUpperCase() + platform.slice(1);
   return {
-    title: `Publier sur ${capitalized} - EasyCom AI`,
+    title: `Publier sur ${capitalized} - Yad.ia`,
   };
 }
 
