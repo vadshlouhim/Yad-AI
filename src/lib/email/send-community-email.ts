@@ -74,10 +74,38 @@ export async function sendCommunityEmail(
   if (gmailChannel?.refreshToken && gmailChannel.isConnected) {
     try {
       const gmail = getGmailClient(gmailChannel.refreshToken);
+
+      // L'adresse d'expédition doit être valide : un From "<>" est rejeté.
+      // Beaucoup de canaux ont un handle vide (scope OAuth incomplet à la connexion) :
+      // on récupère alors l'adresse réelle via l'API, et on la sauvegarde pour la suite.
+      let fromAddress = (gmailChannel.handle ?? "").trim();
+      if (!fromAddress) {
+        try {
+          const profile = await gmail.users.getProfile({ userId: "me" });
+          fromAddress = profile.data.emailAddress?.trim() ?? "";
+          if (fromAddress) {
+            await admin
+              .from("Channel")
+              .update({ handle: fromAddress })
+              .eq("communityId", communityId)
+              .eq("type", "EMAIL");
+          }
+        } catch (error) {
+          console.error("[Email] Récupération adresse Gmail échouée:", (error as Error).message);
+        }
+      }
+      if (!fromAddress) {
+        return {
+          success: false,
+          error:
+            "Adresse Gmail introuvable. Reconnecte ta boîte Gmail dans Paramètres → Canaux pour autoriser l'envoi.",
+        };
+      }
+
       const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString("base64")}?=`;
       const messageParts = [
         `To: ${to}`,
-        `From: ${communityName} <${gmailChannel.handle ?? "me"}>`,
+        `From: ${communityName} <${fromAddress}>`,
         "Content-Type: text/html; charset=utf-8",
         "MIME-Version: 1.0",
         `Subject: ${utf8Subject}`,
@@ -93,7 +121,7 @@ export async function sendCommunityEmail(
       const res = await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
       return { success: true, provider: "gmail", id: res.data.id };
     } catch (error) {
-      console.error("[Email] Échec Gmail, fallback Resend:", (error as Error).message);
+      return { success: false, error: `Échec de l'envoi Gmail : ${(error as Error).message}` };
     }
   }
 

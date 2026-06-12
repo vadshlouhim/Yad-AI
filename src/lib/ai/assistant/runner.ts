@@ -146,6 +146,16 @@ export async function runAssistant(params: RunAssistantParams): Promise<string> 
         content: toolResult,
       });
     }
+
+    // Court-circuit (essentiel sur Netlify Free, cap 10 s) : si tous les outils de ce
+    // tour étaient des actions déjà matérialisées en cartes (email, événement, réglage…),
+    // on conclut sans 2ᵉ appel au modèle — la carte + un message déterministe suffisent.
+    if (cards.length > 0 && toolCalls.every((tc) => isMutatingAction(tc.name ?? ""))) {
+      emit.event({ type: "assistant_actions", actions: cards });
+      const text = fallbackText(cards, actionMode);
+      streamChunks(text, emit);
+      return text;
+    }
   }
 
   // Sécurité : boucle épuisée sans réponse finale.

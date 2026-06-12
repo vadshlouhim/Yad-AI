@@ -36,5 +36,8 @@ export const getGmailClient = (refreshToken: string) => {
 
 export const GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/gmail.send',
-  'https://www.googleapis.com/auth/gmail.readonly'
+  'https://www.googleapis.com/auth/gmail.readonly',
+  // Nécessaire pour récupérer l'adresse email du compte à la connexion (handle du canal).
+  'https://www.googleapis.com/auth/userinfo.email',
+  'openid'
 ];
