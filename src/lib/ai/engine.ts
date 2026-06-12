@@ -128,7 +128,10 @@ export async function getStoredShabbatTimes(params: {
   const years = [now.getFullYear(), now.getFullYear() + 1];
 
   for (const year of years) {
-    let scheduleRow: { city_name: string; shabbat_schedule: unknown } | null = null;
+    // Lignes candidates par ordre de préférence : ville exacte, ville approchée,
+    // puis Paris (repli). On garde la PREMIÈRE qui contient un Chabbat à venir —
+    // ainsi une ligne de ville sans horaire futur ne masque plus le repli Paris.
+    const candidates: Array<{ city_name: string; shabbat_schedule: unknown } | null> = [];
 
     if (params.city) {
       const exactMatch = await supabase
@@ -137,63 +140,61 @@ export async function getStoredShabbatTimes(params: {
         .eq("year", year)
         .eq("city_name", params.city)
         .maybeSingle();
+      candidates.push(exactMatch.data as { city_name: string; shabbat_schedule: unknown } | null);
 
-      scheduleRow = exactMatch.data as typeof scheduleRow;
+      const primaryToken =
+        params.city
+          .split(/[\s,'-]+/)
+          .find((token) => token.trim().length >= 3)
+          ?.trim() ?? params.city;
 
-      if (!scheduleRow) {
-        const primaryToken =
-          params.city
-            .split(/[\s,'-]+/)
-            .find((token) => token.trim().length >= 3)
-            ?.trim() ?? params.city;
-
-        const closeMatches = await supabase
-          .from("FranceCityShabbatSchedule")
-          .select("city_name, shabbat_schedule")
-          .eq("year", year)
-          .ilike("city_name", `%${primaryToken}%`)
-          .limit(50);
-
-        const rows = (closeMatches.data ?? []) as Array<{ city_name: string; shabbat_schedule: unknown }>;
-        const normalizedCity = normalizeCityName(params.city);
-        scheduleRow =
-          rows.find((row) => normalizeCityName(row.city_name) === normalizedCity) ??
-          rows.find((row) => normalizeCityName(row.city_name).includes(normalizedCity)) ??
-          rows.find((row) => normalizedCity.includes(normalizeCityName(row.city_name))) ??
-          rows[0] ??
-          null;
-      }
-    }
-
-    if (!scheduleRow) {
-      const parisFallback = await supabase
+      const closeMatches = await supabase
         .from("FranceCityShabbatSchedule")
         .select("city_name, shabbat_schedule")
         .eq("year", year)
-        .eq("city_code", "75056")
-        .maybeSingle();
-      scheduleRow = parisFallback.data as typeof scheduleRow;
+        .ilike("city_name", `%${primaryToken}%`)
+        .limit(50);
+
+      const rows = (closeMatches.data ?? []) as Array<{ city_name: string; shabbat_schedule: unknown }>;
+      const normalizedCity = normalizeCityName(params.city);
+      candidates.push(
+        rows.find((row) => normalizeCityName(row.city_name) === normalizedCity) ??
+          rows.find((row) => normalizeCityName(row.city_name).includes(normalizedCity)) ??
+          rows.find((row) => normalizedCity.includes(normalizeCityName(row.city_name))) ??
+          rows[0] ??
+          null
+      );
     }
 
-    const schedule = Array.isArray(scheduleRow?.shabbat_schedule)
-      ? scheduleRow.shabbat_schedule as Array<{
-          gregorian_date: string;
-          hebrew_date?: string | null;
-          parasha?: string | null;
-          shabbat_entry_time?: string | null;
-          shabbat_exit_time?: string | null;
-        }>
-      : [];
+    const parisFallback = await supabase
+      .from("FranceCityShabbatSchedule")
+      .select("city_name, shabbat_schedule")
+      .eq("year", year)
+      .eq("city_code", "75056")
+      .maybeSingle();
+    candidates.push(parisFallback.data as { city_name: string; shabbat_schedule: unknown } | null);
 
-    const next = getNextShabbatFromSchedule(schedule, now);
-    if (next?.shabbat_entry_time) {
-      return {
-        date: next.gregorian_date,
-        hebrewDate: next.hebrew_date ?? undefined,
-        parasha: next.parasha ?? undefined,
-        entry: next.shabbat_entry_time,
-        exit: next.shabbat_exit_time ?? "",
-      };
+    for (const scheduleRow of candidates) {
+      const schedule = Array.isArray(scheduleRow?.shabbat_schedule)
+        ? scheduleRow.shabbat_schedule as Array<{
+            gregorian_date: string;
+            hebrew_date?: string | null;
+            parasha?: string | null;
+            shabbat_entry_time?: string | null;
+            shabbat_exit_time?: string | null;
+          }>
+        : [];
+
+      const next = getNextShabbatFromSchedule(schedule, now);
+      if (next?.shabbat_entry_time) {
+        return {
+          date: next.gregorian_date,
+          hebrewDate: next.hebrew_date ?? undefined,
+          parasha: next.parasha ?? undefined,
+          entry: next.shabbat_entry_time,
+          exit: next.shabbat_exit_time ?? "",
+        };
+      }
     }
   }
 

@@ -26,6 +26,13 @@ import { cn } from "@/lib/utils";
 
 type Priority = "EXTREME" | "URGENT" | "IMPORTANT" | "LOW";
 
+const PRIORITY_ORDER: Record<Priority, number> = {
+  EXTREME: 0,
+  URGENT: 1,
+  IMPORTANT: 2,
+  LOW: 3,
+};
+
 interface EmailMessage {
   id: string;
   sender: string;
@@ -266,7 +273,7 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
   }, [emails, selectedMailId]);
 
   const filteredEmails = useMemo(() => {
-    return emails.filter((mail) => {
+    const filtered = emails.filter((mail) => {
       // Filtre recherche
       const matchesSearch =
         mail.sender.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -279,35 +286,72 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
 
       return matchesSearch && matchesPriority;
     });
-  }, [emails, searchQuery, activePriorityTab]);
 
-  const handleClassify = () => {
+    // Une fois classés par l'IA, on trie du plus urgent au moins urgent.
+    if (hasClassified) {
+      return [...filtered].sort(
+        (a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
+      );
+    }
+    return filtered;
+  }, [emails, searchQuery, activePriorityTab, hasClassified]);
+
+  const handleClassify = async () => {
+    if (emails.length === 0 || isClassifying) return;
     setIsClassifying(true);
-    setTimeout(() => {
-      setIsClassifying(false);
+    try {
+      const response = await fetch("/api/email/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emails: emails.map((m) => ({ id: m.id, sender: m.sender, subject: m.subject, body: m.body })),
+        }),
+      });
+      if (!response.ok) {
+        alert("La classification IA a échoué. Réessayez dans un instant.");
+        return;
+      }
+      const data = await response.json();
+      const byId = new Map<string, Priority>();
+      for (const c of data.classifications ?? []) {
+        if (c?.id && c?.priority) byId.set(String(c.id), c.priority as Priority);
+      }
+      setEmails((prev) => prev.map((m) => (byId.has(m.id) ? { ...m, priority: byId.get(m.id)! } : m)));
       setHasClassified(true);
-    }, 2000);
+    } catch {
+      alert("Impossible de contacter le service de classification IA.");
+    } finally {
+      setIsClassifying(false);
+    }
   };
 
-  const handleDraftWithAi = () => {
-    if (!selectedMail) return;
+  const handleDraftWithAi = async () => {
+    if (!selectedMail || isAiDrafting) return;
     setIsAiDrafting(true);
     setAiDraft("");
-
-    setTimeout(() => {
-      let draftText = "";
-      if (selectedMail.id === "mail-1") {
-        draftText = `Bonjour Sarah,\n\nBienvenue à Paris ! C'est un plaisir de vous accueillir dans notre communauté.\n\nVoici les horaires de Chabbat pour ce week-end à Paris :\n- Entrée de Chabbat : 21h12\n- Sortie de Chabbat : 22h24\n\nPour ce qui est du dîner communautaire de vendredi soir, il nous reste effectivement quelques places adaptées aux familles. Pouvez-vous nous confirmer le nombre exact d'adultes et d'enfants afin de valider votre réservation ?\n\nNous restons à votre entière disposition.\n\nChabbat Chalom,\nL'équipe EasyCom IA`;
-      } else if (selectedMail.id === "mail-2") {
-        draftText = `Shalom David,\n\nNous vous présentons toutes nos excuses pour ce contretemps technique. Après vérification de notre base de données, vos accès pour les cours de Torah IA ont bien été activés.\n\nUn e-mail de connexion automatique contenant votre mot de passe temporaire vient de vous être renvoyé à l'adresse david.a@example.com. Pensez à vérifier vos courriers indésirables (spams) si vous ne le voyez pas dans votre boîte de réception d'ici quelques minutes.\n\nNous vous souhaitons d'excellents moments d'étude en ligne.\n\nCordialement,\nL'équipe EasyCom IA`;
-      } else if (selectedMail.id === "mail-3") {
-        draftText = `Bonjour Miriam,\n\nUn grand merci pour vos encouragements ! Nous transmettons vos chaleureux remerciements à l'équipe technique.\n\nC'est avec grand plaisir que nous vous envoyons ci-joint le fichier haute définition (PDF 300 DPI) optimisé pour un tirage A2 grand format.\n\nExcellente kermesse à toute la communauté !\n\nBien chaleureusement,\nL'équipe EasyCom IA`;
-      } else {
-        draftText = `Bonjour Jérôme,\n\nNous vous remercions pour votre intérêt pour notre boutique solidaire.\n\nNous acceptons avec joie les dons de vêtements neufs pour les fêtes. Concernant les déductions fiscales, notre structure étant reconnue d'utilité publique, nous pouvons effectivement vous délivrer un reçu Cerfa de don en nature sur présentation de la facture ou justificatif de valeur d'achat des vêtements neufs concernés.\n\nN'hésitez pas à nous recontacter pour organiser le dépôt.\n\nBien cordialement,\nL'équipe EasyCom IA`;
+    try {
+      const response = await fetch("/api/email/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sender: selectedMail.sender,
+          subject: selectedMail.subject,
+          body: selectedMail.body,
+          history: selectedMail.history.map((h) => ({ role: h.role, body: h.body })),
+        }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        alert(`Rédaction IA échouée : ${err.error ?? "réessayez."}`);
+        return;
       }
-      setAiDraft(draftText);
+      const data = await response.json();
+      setAiDraft(data.draft ?? "");
+    } catch {
+      alert("Impossible de contacter le service de rédaction IA.");
+    } finally {
       setIsAiDrafting(false);
-    }, 1500);
+    }
   };
 
   const handleInsertDraft = () => {
