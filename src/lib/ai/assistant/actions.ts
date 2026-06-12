@@ -51,6 +51,8 @@ export type ActionKind =
   | "toggle_automation"
   | "delete_automation"
   | "send_email"
+  | "email_community"
+  | "create_event"
   | "generate_content"
   | "publish_content";
 
@@ -62,6 +64,8 @@ export const MUTATING_ACTIONS: ActionKind[] = [
   "toggle_automation",
   "delete_automation",
   "send_email",
+  "email_community",
+  "create_event",
   "publish_content",
 ];
 
@@ -76,6 +80,8 @@ const ACTION_LABELS: Record<string, string> = {
   delete_automation: "Supprimer une automatisation",
   update_community_settings: "Modifier les réglages",
   send_email: "Envoyer un email",
+  email_community: "Email à la communauté",
+  create_event: "Ajouter à l'agenda",
   generate_content: "Générer un contenu",
   publish_content: "Publier un contenu",
 };
@@ -114,6 +120,10 @@ export function summarizeAction(kind: string, payload: Record<string, unknown>):
       return "Supprimer définitivement une automatisation.";
     case "send_email":
       return `Envoyer un email à ${String(payload.to ?? "?")} — objet : « ${String(payload.subject ?? "")} ».`;
+    case "email_community":
+      return `Envoyer un email à toute la communauté — objet : « ${String(payload.subject ?? "")} ».`;
+    case "create_event":
+      return `Ajouter à l'agenda : « ${String(payload.title ?? "")} »${payload.date ? ` le ${String(payload.date)}${payload.time ? ` à ${String(payload.time)}` : ""}` : ""}.`;
     case "generate_content":
       return `Générer un contenu ${String(payload.contentType ?? "GENERAL")}${payload.instructions ? ` : ${String(payload.instructions)}` : ""}.`;
     case "publish_content": {
@@ -236,6 +246,60 @@ export async function executeAction(
         return result.success
           ? { success: true, message: `Email envoyé à ${payload.to} (via ${result.provider}).` }
           : { success: false, message: result.error ?? "Échec de l'envoi de l'email." };
+      }
+
+      case "email_community": {
+        const subject = String(payload.subject ?? "");
+        const body = String(payload.body ?? payload.bodyText ?? "");
+        if (!subject || !body) return { success: false, message: "Sujet ou corps de l'email manquant." };
+        const { data: members } = await admin
+          .from("CommunityMember")
+          .select("email")
+          .eq("communityId", communityId)
+          .eq("optInEmail", true)
+          .not("email", "is", null)
+          .limit(500);
+        const emails = Array.from(
+          new Set((members ?? []).map((m: { email: string | null }) => m.email).filter(Boolean))
+        ) as string[];
+        if (emails.length === 0) return { success: false, message: "Aucun contact avec email (opt-in) trouvé." };
+        let sent = 0;
+        for (const to of emails.slice(0, 200)) {
+          const r = await sendCommunityEmail(admin, communityId, { to, subject, bodyText: body });
+          if (r.success) sent++;
+        }
+        return { success: sent > 0, message: `Email envoyé à ${sent} contact${sent > 1 ? "s" : ""}.` };
+      }
+
+      case "create_event": {
+        const title = String(payload.title ?? "").trim();
+        if (!title) return { success: false, message: "Titre de l'événement manquant." };
+        const { data: community } = await admin.from("Community").select("timezone").eq("id", communityId).single();
+        const timezone = (community as { timezone?: string } | null)?.timezone ?? "Europe/Paris";
+        const dateStr = typeof payload.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(payload.date) ? payload.date : null;
+        const rawTime = typeof payload.time === "string" && /^\d{1,2}:\d{2}$/.test(payload.time) ? payload.time : "10:00";
+        const timeStr = rawTime.length === 4 ? `0${rawTime}` : rawTime;
+        const start = dateStr
+          ? fromZonedTime(`${dateStr}T${timeStr}:00`, timezone)
+          : new Date(Date.now() + 24 * 60 * 60 * 1000);
+        const nowIso = new Date().toISOString();
+        const eventId = crypto.randomUUID();
+        await admin.from("Event").insert({
+          id: eventId,
+          communityId,
+          title,
+          description: typeof payload.description === "string" ? payload.description : null,
+          startDate: start.toISOString(),
+          endDate: new Date(start.getTime() + 60 * 60 * 1000).toISOString(),
+          category: "OTHER",
+          status: "DRAFT",
+          isRecurring: false,
+          isPublic: false,
+          notes: "Ajouté depuis l'assistant IA.",
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        });
+        return { success: true, message: `« ${title} » ajouté à votre agenda.`, data: { eventId } };
       }
 
       case "generate_content": {

@@ -1,4 +1,3 @@
-import { Resend } from "resend";
 import { getGmailClient } from "@/lib/gmail";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
@@ -14,7 +13,7 @@ export interface SendCommunityEmailParams {
 
 export interface SendCommunityEmailResult {
   success: boolean;
-  provider?: "gmail" | "resend";
+  provider?: "gmail";
   id?: string | null;
   error?: string;
 }
@@ -40,8 +39,10 @@ function buildHtml(communityName: string, bodyText: string): string {
 </body></html>`;
 }
 
-// Envoie un email au nom de la communauté.
-// Priorité : Gmail OAuth si connecté, sinon fallback Resend.
+// Envoie un email au nom de la communauté, à la demande explicite de l'utilisateur.
+// Part TOUJOURS de la boîte mail de l'utilisateur (Gmail OAuth) — jamais de Resend.
+// Resend est réservé aux notifications système (cf. lib/notifications/notify.ts).
+// Si aucune boîte n'est connectée : on renvoie une erreur claire, pas de fallback.
 // Logique centralisée, réutilisée par l'API email et par l'assistant IA.
 export async function sendCommunityEmail(
   admin: Admin,
@@ -96,23 +97,11 @@ export async function sendCommunityEmail(
     }
   }
 
-  // ── Fallback Resend ──
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    return { success: false, error: "Aucun canal email configuré (Gmail ou Resend)." };
-  }
-
-  try {
-    const resend = new Resend(apiKey);
-    const { data, error } = await resend.emails.send({
-      from: process.env.EMAIL_FROM?.replace(/^"|"$/g, "") ?? "onboarding@resend.dev",
-      to: [to],
-      subject,
-      html: htmlContent,
-    });
-    if (error) return { success: false, error: error.message };
-    return { success: true, provider: "resend", id: data?.id };
-  } catch (error) {
-    return { success: false, error: (error as Error).message };
-  }
+  // Pas de fallback Resend ici : un email demandé par l'utilisateur doit partir
+  // de SA boîte. Si Gmail n'est pas connecté (ou a échoué), on le dit clairement.
+  return {
+    success: false,
+    error:
+      "Aucune boîte mail connectée. Connecte ton compte Gmail dans Paramètres → Canaux pour envoyer des emails en ton nom.",
+  };
 }

@@ -114,6 +114,46 @@ export function buildTools(opts: { gmailConnected: boolean }): ChatCompletionToo
     {
       type: "function",
       function: {
+        name: "email_community",
+        description: "Envoie un email à TOUS les contacts de la communauté qui ont accepté les emails (opt-in).",
+        parameters: {
+          type: "object",
+          properties: {
+            subject: { type: "string" },
+            body: { type: "string", description: "Contenu de l'email" },
+          },
+          required: ["subject", "body"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "create_event",
+        description: "Ajoute un événement, un rappel ou une date dans l'Agenda connecté IA de la communauté.",
+        parameters: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            date: { type: "string", description: "YYYY-MM-DD" },
+            time: { type: "string", description: "HH:MM (défaut 10:00)" },
+            description: { type: "string" },
+          },
+          required: ["title"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "list_events",
+        description: "Liste les prochains événements de l'agenda de la communauté (lecture seule).",
+        parameters: { type: "object", properties: {} },
+      },
+    },
+    {
+      type: "function",
+      function: {
         name: "generate_content",
         description: "Génère un contenu (post/annonce) et l'enregistre comme brouillon. Sans danger, à utiliser librement.",
         parameters: {

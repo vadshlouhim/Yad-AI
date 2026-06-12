@@ -282,16 +282,6 @@ function getAutomationIcon(card: AssistantActionCard) {
   return Zap;
 }
 
-function getAutomationTone(card: AssistantActionCard) {
-  const key = `${card.action?.preset ?? ""} ${card.title}`.toLowerCase();
-  if (/shabbat|chabbat/.test(key)) return "from-amber-50 to-orange-100 text-amber-700 border-amber-200";
-  if (/thought|pensée|pensee/.test(key)) return "from-sky-50 to-blue-100 text-blue-700 border-blue-200";
-  if (/course|cours/.test(key)) return "from-indigo-50 to-violet-100 text-indigo-700 border-indigo-200";
-  if (/holiday|fête|fetes|voeux|vœux/.test(key)) return "from-rose-50 to-pink-100 text-rose-700 border-rose-200";
-  if (/don|donation|collecte/.test(key)) return "from-emerald-50 to-teal-100 text-emerald-700 border-emerald-200";
-  return "from-slate-50 to-slate-100 text-slate-700 border-slate-200";
-}
-
 function getCommunityInitials(name: string) {
   return name
     .split(/\s+/)

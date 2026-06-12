@@ -355,9 +355,20 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
             </p>
           </div>
           <div>
-            <div className="flex flex-col items-end gap-1">
+            <div className="flex flex-col items-end gap-2">
               {googleConnected && googleEmail && (
                 <p className="text-xs text-cyan-200/70">{googleEmail}</p>
+              )}
+              {googleConnected && (
+                <Button
+                  variant="outline"
+                  onClick={fetchEmails}
+                  disabled={isLoading}
+                  className="rounded-full border-cyan-200/40 bg-white/10 px-5 py-5 text-sm font-semibold text-white transition hover:bg-white/20"
+                >
+                  <RefreshCw className={cn("size-4", isLoading && "animate-spin")} />
+                  {isLoading ? "Actualisation…" : "Actualiser les emails"}
+                </Button>
               )}
               <Button
                 variant={googleConnected ? "destructive" : "outline"}
@@ -546,17 +557,23 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
                       !mail.read ? "bg-slate-50/20 font-semibold" : ""
                     )}
                   >
-                    <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                    <div className="relative h-9 w-9 flex-shrink-0 rounded-full bg-slate-100 flex items-center justify-center">
                       <User className="size-5 text-slate-500" />
+                      {!mail.read && (
+                        <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-cyan-600 ring-2 ring-white" />
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-bold text-slate-900 truncate">{mail.sender}</span>
-                        <span className="text-[10px] text-slate-400 flex-shrink-0">{mail.date}</span>
+                        <span className={cn("truncate text-sm text-slate-900", !mail.read ? "font-bold" : "font-semibold")}>
+                          {mail.sender}
+                        </span>
+                        <span className="flex-shrink-0 text-[11px] text-slate-400">{mail.date}</span>
                       </div>
-                      <p className="text-xs text-cyan-700 truncate mb-1">{mail.senderEmail}</p>
-                      <p className="text-sm text-slate-800 truncate mb-1">{mail.subject}</p>
-                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{mail.body}</p>
+                      <p className={cn("truncate text-sm", !mail.read ? "font-semibold text-slate-900" : "text-slate-700")}>
+                        {mail.subject}
+                      </p>
+                      <p className="mt-0.5 line-clamp-1 text-xs text-slate-400">{mail.body}</p>
 
                       {hasClassified && (
                         <div className="mt-2">

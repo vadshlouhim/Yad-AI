@@ -40,11 +40,11 @@ export interface RunAssistantParams {
   emit: AssistantEmit;
 }
 
-const READ_ONLY_TOOLS = new Set(["list_automations", "check_channels"]);
+const READ_ONLY_TOOLS = new Set(["list_automations", "check_channels", "list_events"]);
 
 function cardTypeFor(kind: string): AssistantActionCard["type"] {
   if (kind.includes("automation")) return "automation";
-  if (kind === "send_email") return "email";
+  if (kind === "send_email" || kind === "email_community") return "email";
   if (kind === "update_community_settings") return "setting";
   return "creation";
 }
@@ -156,6 +156,17 @@ async function handleToolCall(ctx: ToolCtx): Promise<string> {
         .select("type, isConnected, isActive, handle")
         .eq("communityId", communityId);
       return JSON.stringify({ channels: data ?? [] });
+    }
+    if (name === "list_events") {
+      const { data } = await admin
+        .from("Event")
+        .select("title, startDate, location, category, status")
+        .eq("communityId", communityId)
+        .gte("startDate", new Date().toISOString())
+        .neq("status", "ARCHIVED")
+        .order("startDate", { ascending: true })
+        .limit(15);
+      return JSON.stringify({ events: data ?? [] });
     }
   }
 

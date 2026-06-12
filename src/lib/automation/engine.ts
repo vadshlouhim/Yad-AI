@@ -2,6 +2,7 @@
 import { generateContent } from "@/lib/ai/engine";
 import { createPublicationsFromDraft, publishToChannel } from "@/lib/publishing/publisher";
 import { getShabbatTimes, getNextHoliday } from "./hebcal";
+import { notifyUser } from "@/lib/notifications/notify";
 import { addDays, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 import type { Tables, Enums } from "@/types/database.types";
 import { Resend } from "resend";
@@ -555,19 +556,28 @@ export async function executeAutomationActions(
 
         if (notifyUsers && notifyUsers.length > 0) {
           const isScheduledEvent = automation.trigger === "CUSTOM_SCHEDULE" && Boolean(automation.eventId);
+          const notifTitle = isScheduledEvent ? `Événement : ${eventName}` : "Message prêt à envoyer";
+          const notifBody = isScheduledEvent
+            ? `C'est l'heure de l'événement "${eventName}".`
+            : `Il est temps d'envoyer votre message sur ${channelsText} pour ${eventName}.`;
+          const notifLink = isScheduledEvent
+            ? `/dashboard/assistant?eventId=${automation.eventId}`
+            : `/dashboard/assistant?draftId=${draft.id}`;
           await supabase.from("Notification").insert(
             notifyUsers.map((user) => ({
               id: crypto.randomUUID(),
               userId: user.id,
               communityId: automation.community.id,
               type: isScheduledEvent ? "EVENT_REMINDER" : "AI_CONTENT_READY",
-              title: isScheduledEvent ? `Événement : ${eventName}` : "Message prêt à envoyer",
-              body: isScheduledEvent
-                ? `C'est l'heure de l'événement "${eventName}".`
-                : `Il est temps d'envoyer votre message sur ${channelsText} pour ${eventName}.`,
-              link: isScheduledEvent ? `/dashboard/assistant?eventId=${automation.eventId}` : `/dashboard/assistant?draftId=${draft.id}`,
+              title: notifTitle,
+              body: notifBody,
+              link: notifLink,
               data: isScheduledEvent ? null : { draftId: draft.id, channelTypes: action.channels ?? [] },
             }))
+          );
+          // Email + push (scénario « app fermée »)
+          await Promise.allSettled(
+            notifyUsers.map((user) => notifyUser(supabase, user.id, { title: notifTitle, body: notifBody, link: notifLink }))
           );
         }
         break;
@@ -663,16 +673,22 @@ export async function executeAutomationActions(
 
       case "CREATE_NOTIFICATION": {
         if (notifyUsers && notifyUsers.length > 0) {
+          const notifTitle = action.notificationTitle || "Rappel automatique";
+          const notifBody = action.notificationBody || "Une automatisation s'est déclenchée.";
           await supabase.from("Notification").insert(
             notifyUsers.map((user) => ({
               id: crypto.randomUUID(),
               userId: user.id,
               communityId: automation.community.id,
               type: "AUTOMATION_TRIGGERED",
-              title: action.notificationTitle || "Rappel automatique",
-              body: action.notificationBody || "Une automatisation s'est déclenchée.",
+              title: notifTitle,
+              body: notifBody,
               link: "/dashboard",
             }))
+          );
+          // Email + push (scénario « app fermée »)
+          await Promise.allSettled(
+            notifyUsers.map((user) => notifyUser(supabase, user.id, { title: notifTitle, body: notifBody, link: "/dashboard" }))
           );
         }
         break;

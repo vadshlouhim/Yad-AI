@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import type { createAdminClient } from "@/lib/supabase/admin";
-import { renderPendingActionEmail } from "./pending-action-email";
+import { renderPendingActionEmail, renderNotificationEmail } from "./pending-action-email";
 import { sendPushToUser } from "./push";
 import { actionLabelFor } from "@/lib/ai/assistant/actions";
 
@@ -69,6 +69,52 @@ export async function notifyPendingAction(
   ]);
 }
 
+// Notifie un utilisateur (email + push) pour un événement générique
+// (rappel, automatisation, contenu prêt…). L'in-app Notification est gérée à part.
+export async function notifyUser(
+  admin: Admin,
+  userId: string,
+  params: { title: string; body: string; link: string }
+): Promise<void> {
+  const ctaUrl = `${APP_URL}${params.link.startsWith("/") ? "" : "/"}${params.link}`;
+
+  let recipientEmail: string | null = null;
+  let recipientName: string | null = null;
+  const { data: profile } = await admin.from("profiles").select("email, name").eq("id", userId).maybeSingle();
+  recipientEmail = (profile as { email?: string } | null)?.email ?? null;
+  recipientName = (profile as { name?: string } | null)?.name ?? null;
+
+  await Promise.allSettled([
+    // Email
+    (async () => {
+      const apiKey = process.env.RESEND_API_KEY;
+      if (!apiKey || !recipientEmail) return;
+      const { subject, html, text } = renderNotificationEmail({
+        appName: APP_NAME,
+        title: params.title,
+        body: params.body,
+        ctaUrl,
+        ctaLabel: `Ouvrir ${APP_NAME}`,
+        recipientName,
+      });
+      try {
+        const resend = new Resend(apiKey);
+        await resend.emails.send({
+          from: process.env.EMAIL_FROM?.replace(/^"|"$/g, "") ?? `${APP_NAME} <noreply@easycom-ai.com>`,
+          to: recipientEmail,
+          subject,
+          html,
+          text,
+        });
+      } catch (error) {
+        console.error("[Notify] Échec email notifyUser:", (error as Error).message);
+      }
+    })(),
+    // Push
+    sendPushToUser(admin, userId, { title: params.title, body: params.body, url: params.link }),
+  ]);
+}
+
 async function sendPendingActionEmail(params: {
   recipientEmail: string | null;
   recipientName: string | null;
@@ -96,7 +142,7 @@ async function sendPendingActionEmail(params: {
   try {
     const resend = new Resend(apiKey);
     await resend.emails.send({
-      from: process.env.EMAIL_FROM?.replace(/^"|"$/g, "") ?? `${APP_NAME} <noreply@yad-ia.com>`,
+      from: process.env.EMAIL_FROM?.replace(/^"|"$/g, "") ?? `${APP_NAME} <noreply@easycom-ai.com>`,
       to: params.recipientEmail,
       subject,
       html,

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Bell, Bot, ChevronDown, Zap, X } from "lucide-react";
+import { Bell, Bot, ChevronDown, Zap, X, User, Settings, LogOut } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import {
   DASHBOARD_DESKTOP_CATEGORIES,
@@ -146,6 +147,13 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [flyoutSection, setFlyoutSection] = useState<string | null>(null);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/auth/login");
+  }
 
   function resolveHref(href: string) {
     if (href.startsWith("http") || href.startsWith("mailto")) return href;
@@ -436,8 +444,16 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
         </div>
       </nav>
 
-      <div className="border-t border-slate-200 bg-white p-4">
-        <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
+      <div className="relative border-t border-slate-200 bg-white p-4">
+        <button
+          type="button"
+          onClick={() => setAccountMenuOpen((v) => !v)}
+          className={cn(
+            "flex w-full items-center gap-3 rounded-xl px-1 py-1 text-left transition hover:bg-slate-50",
+            collapsed && "justify-center"
+          )}
+          aria-label="Menu du compte"
+        >
           <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-full bg-slate-200">
             {userAvatar ? (
               <img src={userAvatar} alt={userName} className="h-full w-full object-cover" />
@@ -448,12 +464,52 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
             )}
           </div>
           {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-slate-800">{userName}</p>
-              <p className="text-xs text-slate-500">Administrateur</p>
-            </div>
+            <>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-slate-800">{userName}</p>
+                <p className="truncate text-xs text-slate-500">{community?.name ?? "Administrateur"}</p>
+              </div>
+              <ChevronDown className={cn("size-4 shrink-0 text-slate-400 transition", accountMenuOpen && "rotate-180")} />
+            </>
           )}
-        </div>
+        </button>
+
+        {accountMenuOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setAccountMenuOpen(false)} />
+            <div className="absolute bottom-full left-3 z-50 mb-2 w-56 rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+              <div className="border-b border-slate-100 px-4 py-3">
+                <p className="truncate text-sm font-semibold text-slate-800">{userName}</p>
+                <p className="mt-0.5 truncate text-xs text-slate-400">{community?.name}</p>
+              </div>
+              <Link
+                href={resolveHref("/dashboard/settings?section=profile")}
+                onClick={() => setAccountMenuOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
+              >
+                <User className="size-4" />
+                Mon profil
+              </Link>
+              <Link
+                href={resolveHref("/dashboard/settings")}
+                onClick={() => setAccountMenuOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
+              >
+                <Settings className="size-4" />
+                Paramètres
+              </Link>
+              <div className="mt-1 border-t border-slate-100 pt-1">
+                <button
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                >
+                  <LogOut className="size-4" />
+                  Se déconnecter
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Panneau des suggestions (sidebar réduit) */}

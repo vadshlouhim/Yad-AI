@@ -95,6 +95,29 @@ function buildActionModeNote(mode: "AUTO" | "CONFIRM"): string {
 - Ne prétends jamais qu'une action est faite. Dis qu'elle attend sa confirmation via le bouton affiché.`;
 }
 
+function buildGroundingContext(
+  events: Array<{ title: string; startDate: string; location: string | null }> | null,
+  contactsCount: number | null
+): string {
+  const parts: string[] = [];
+  if (typeof contactsCount === "number") parts.push(`Nombre de contacts (avec opt-in possible) : ${contactsCount}.`);
+  if (events && events.length > 0) {
+    parts.push("Prochains événements de l'Agenda connecté IA :");
+    for (const e of events) {
+      const d = new Date(e.startDate).toLocaleDateString("fr-FR", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      parts.push(`- ${e.title} (${d}${e.location ? `, ${e.location}` : ""})`);
+    }
+  }
+  if (parts.length === 0) return "";
+  return `\n\nÉTAT ACTUEL DE LA COMMUNAUTÉ :\n${parts.join("\n")}\n- Appuie-toi sur ces informations pour proposer des actions concrètes (rappels, emails, publications liés à ces événements).`;
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -124,7 +147,7 @@ export async function POST(request: Request) {
     const hasExplicitVisualIntent = isUserPrompt && looksLikeTemplateIntent(lastUserMessage.content);
     const hasExplicitArticleIntent = isUserPrompt && looksLikeArticleIntent(lastUserMessage.content);
 
-    const [{ data: dbCommunity }, { data: memories }, { data: candidateTemplates }, { data: candidateArticles }, { data: gmailChannel }] = await Promise.all([
+    const [{ data: dbCommunity }, { data: memories }, { data: candidateTemplates }, { data: candidateArticles }, { data: gmailChannel }, { data: upcomingEvents }, { count: contactsCount }] = await Promise.all([
       admin
         .from("Community")
         .select("name, city, timezone, tone, language, signature, hashtags, editorialRules, communityType, religiousStream, vocabulary")
@@ -158,6 +181,18 @@ export async function POST(request: Request) {
         .eq("communityId", communityId)
         .eq("type", "EMAIL")
         .maybeSingle(),
+      admin
+        .from("Event")
+        .select("title, startDate, location")
+        .eq("communityId", communityId)
+        .gte("startDate", new Date().toISOString())
+        .neq("status", "ARCHIVED")
+        .order("startDate", { ascending: true })
+        .limit(5),
+      admin
+        .from("CommunityMember")
+        .select("id", { count: "exact", head: true })
+        .eq("communityId", communityId),
     ]);
 
     const communityData = (dbCommunity as Partial<CommunityContext> | null) ?? {};
@@ -270,7 +305,11 @@ export async function POST(request: Request) {
 - Utilise ces informations comme référence par défaut, sauf si l'utilisateur donne une autre date explicite.`
           : "") +
         selectedTemplateContext +
-        buildActionModeNote(community.assistantActionMode);
+        buildActionModeNote(community.assistantActionMode) +
+        buildGroundingContext(
+          (upcomingEvents as Array<{ title: string; startDate: string; location: string | null }> | null) ?? null,
+          contactsCount ?? null
+        );
 
     if (conversationId && lastUserMessage?.role === "user") {
       await admin.from("ConversationMessage").insert({
