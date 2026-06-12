@@ -16,7 +16,7 @@ import {
 import {
   Plus, Search, Calendar, CalendarDays, MapPin,
   FileText, Send, MoreHorizontal, Edit, Trash2, Sparkles, Clock, LayoutList,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Zap,
 } from "lucide-react";
 
 interface Event {
@@ -47,11 +47,32 @@ export interface HolidayItem {
   hebrewDate: string | null;
 }
 
+export interface AutomationItem {
+  id: string;
+  name: string;
+  trigger: string;
+  nextRunAt: string | null;
+  repeat: string;
+  days: string[];
+  time: string | null;
+  dayOfMonth: number | null;
+  endDate: string | null;
+  channels: string[];
+}
+
+interface AutomationOccurrence {
+  id: string;
+  name: string;
+  time: string;
+  channels: string[];
+}
+
 interface Props {
   events: Event[];
   statusCounts: Record<string, number>;
   shabbatItems?: ShabbatItem[];
   holidayItems?: HolidayItem[];
+  automations?: AutomationItem[];
   isBethHabad?: boolean;
   timezone?: string;
 }
@@ -250,11 +271,89 @@ function buildYearMonths(anchor: Date) {
   return Array.from({ length: 12 }, (_, month) => new Date(anchor.getFullYear(), month, 1));
 }
 
+const WEEKDAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+// Fenêtre de dates affichée selon la période courante (pour projeter les automatisations).
+function visibleRange(anchor: Date, period: CalendarPeriod): [Date, Date] {
+  if (period === "day") return [startOfDay(anchor), startOfDay(anchor)];
+  if (period === "week") {
+    const start = startOfWeek(anchor);
+    return [start, addDays(start, 6)];
+  }
+  if (period === "month") {
+    const days = buildMonthDays(anchor);
+    return [days[0], days[days.length - 1]];
+  }
+  return [startOfYear(anchor), new Date(anchor.getFullYear(), 11, 31)];
+}
+
+// L'automatisation tombe-t-elle ce jour précis ? (mêmes règles que le moteur d'exécution)
+function automationOccursOn(automation: AutomationItem, date: Date) {
+  if (!automation.nextRunAt) return false;
+  const base = toDate(automation.nextRunAt);
+  if (Number.isNaN(base.getTime())) return false;
+  const day = startOfDay(date);
+  if (day < startOfDay(base)) return false;
+  if (automation.endDate) {
+    const end = toDate(automation.endDate);
+    if (!Number.isNaN(end.getTime()) && day > startOfDay(end)) return false;
+  }
+  switch (automation.repeat) {
+    case "daily":
+      return true;
+    case "weekly":
+    case "custom":
+      return automation.days.length > 0
+        ? automation.days.includes(WEEKDAY_NAMES[day.getDay()])
+        : day.getDay() === base.getDay();
+    case "monthly":
+      return day.getDate() === (automation.dayOfMonth ?? base.getDate());
+    default:
+      return dayKey(date) === dayKey(base);
+  }
+}
+
+function automationTime(automation: AutomationItem, timezone: string) {
+  if (automation.time && /^\d{1,2}:\d{2}$/.test(automation.time)) return automation.time;
+  if (automation.nextRunAt) return formatTime(automation.nextRunAt, timezone);
+  return "";
+}
+
+// Construit l'index date → occurrences d'automatisations sur la fenêtre visible.
+function buildAutomationIndex(
+  automations: AutomationItem[],
+  anchor: Date,
+  period: CalendarPeriod,
+  timezone: string
+) {
+  const map = new Map<string, AutomationOccurrence[]>();
+  if (automations.length === 0) return map;
+  const [rangeStart, rangeEnd] = visibleRange(anchor, period);
+  for (let cursor = new Date(rangeStart); cursor <= rangeEnd; cursor = addDays(cursor, 1)) {
+    const key = dayKey(cursor);
+    for (const automation of automations) {
+      if (!automationOccursOn(automation, cursor)) continue;
+      const occurrence: AutomationOccurrence = {
+        id: automation.id,
+        name: automation.name,
+        time: automationTime(automation, timezone),
+        channels: automation.channels,
+      };
+      map.set(key, [...(map.get(key) ?? []), occurrence]);
+    }
+  }
+  for (const [, items] of map) {
+    items.sort((left, right) => left.time.localeCompare(right.time));
+  }
+  return map;
+}
+
 export function EventsClient({
   events,
   statusCounts,
   shabbatItems = [],
   holidayItems = [],
+  automations = [],
   isBethHabad = false,
   timezone = "Europe/Paris",
 }: Props) {
@@ -265,7 +364,9 @@ export function EventsClient({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showShabbat, setShowShabbat] = useState(false);
   const [showHolidays, setShowHolidays] = useState(false);
+  const [showAutomations, setShowAutomations] = useState(true);
   const hasSupplementaryCalendarData = isBethHabad && (shabbatItems.length > 0 || holidayItems.length > 0);
+  const hasAutomations = automations.length > 0;
 
   // Index par date pour lookup rapide dans le calendrier
   const shabbatByDate = useMemo(() => {
@@ -303,6 +404,14 @@ export function EventsClient({
   const periodEvents = useMemo(
     () => events.filter((event) => isSamePeriod(toDate(event.startDate), anchorDate, activePeriod)),
     [events, anchorDate, activePeriod]
+  );
+  const automationByDate = useMemo(
+    () => (showAutomations ? buildAutomationIndex(automations, anchorDate, activePeriod, timezone) : new Map<string, AutomationOccurrence[]>()),
+    [automations, anchorDate, activePeriod, timezone, showAutomations]
+  );
+  const todaysAutomations = useMemo(
+    () => (showAutomations ? automations.filter((automation) => automationOccursOn(automation, new Date())) : []),
+    [automations, showAutomations]
   );
 
   function updateFilter(key: string, value: string) {
@@ -363,9 +472,17 @@ export function EventsClient({
     setShowHolidays((value) => !value);
   }
 
+  function toggleAutomations() {
+    if (viewMode !== "calendar") {
+      updateFilter("view", "calendar");
+    }
+    setShowAutomations((value) => !value);
+  }
+
   const shouldRenderCalendar =
     viewMode === "calendar" &&
     (events.length > 0 ||
+      (hasAutomations && showAutomations) ||
       (hasSupplementaryCalendarData && (showShabbat || showHolidays)));
 
   return (
@@ -377,6 +494,9 @@ export function EventsClient({
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">Agenda connecté IA</h1>
             <p className="mt-2 text-sm text-violet-100/90">
               {totalAll} élément{totalAll !== 1 ? "s" : ""} planifié{totalAll !== 1 ? "s" : ""}
+              {hasAutomations && (
+                <> · {automations.length} automatisation{automations.length !== 1 ? "s" : ""} active{automations.length !== 1 ? "s" : ""}</>
+              )}
             </p>
           </div>
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
@@ -400,9 +520,30 @@ export function EventsClient({
           </div>
         </div>
 
-        {isBethHabad && <div className="mt-5 flex flex-wrap gap-3 border-t border-violet-100 pt-4">
-          <p className="w-full text-xs font-semibold uppercase tracking-wide text-slate-500">Afficher dans l&apos;agenda :</p>
-          <button
+        {(isBethHabad || hasAutomations) && <div className="mt-5 flex flex-wrap gap-3 border-t border-violet-200/40 pt-4">
+          <p className="w-full text-xs font-semibold uppercase tracking-wide text-violet-100/80">Afficher dans l&apos;agenda :</p>
+          {hasAutomations && (
+            <button
+              type="button"
+              onClick={toggleAutomations}
+              className={cn(
+                "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all",
+                showAutomations
+                  ? "border-cyan-400 bg-cyan-50 text-cyan-700"
+                  : "border-white/30 bg-white/10 text-white hover:border-cyan-300 hover:text-cyan-100"
+              )}
+            >
+              <span className={cn(
+                "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+                showAutomations ? "border-cyan-500 bg-cyan-500" : "border-white/50"
+              )}>
+                {showAutomations && <span className="text-white text-[10px] leading-none">✓</span>}
+              </span>
+              <Zap className="size-3.5" />
+              Automatisations
+            </button>
+          )}
+          {isBethHabad && <button
             type="button"
             onClick={toggleShabbat}
             className={cn(
@@ -419,9 +560,9 @@ export function EventsClient({
               {showShabbat && <span className="text-white text-[10px] leading-none">✓</span>}
             </span>
             Horaires de Chabbat
-          </button>
+          </button>}
 
-          <button
+          {isBethHabad && <button
             type="button"
             onClick={toggleHolidays}
             className={cn(
@@ -438,7 +579,7 @@ export function EventsClient({
               {showHolidays && <span className="text-white text-[10px] leading-none">✓</span>}
             </span>
             Fêtes juives
-          </button>
+          </button>}
         </div>}
       </div>
 
@@ -541,6 +682,8 @@ export function EventsClient({
             dayHolidayItems={showHolidays ? holidayByDate.get(dayKey(anchorDate)) : undefined}
             shabbatByDate={showShabbat ? shabbatByDate : undefined}
             holidayByDate={showHolidays ? holidayByDate : undefined}
+            automationByDate={automationByDate}
+            todaysAutomations={todaysAutomations}
             onPeriodChange={updatePeriod}
             onToday={goToday}
             onPrevious={() => setAnchorDate((date) => moveAnchor(date, activePeriod, -1))}
@@ -576,6 +719,8 @@ function CalendarView({
   dayHolidayItems,
   shabbatByDate,
   holidayByDate,
+  automationByDate,
+  todaysAutomations,
   onPeriodChange,
   onToday,
   onPrevious,
@@ -595,6 +740,8 @@ function CalendarView({
   dayHolidayItems?: HolidayItem[];
   shabbatByDate?: Map<string, ShabbatItem>;
   holidayByDate?: Map<string, HolidayItem[]>;
+  automationByDate: Map<string, AutomationOccurrence[]>;
+  todaysAutomations: AutomationItem[];
   onPeriodChange: (period: CalendarPeriod) => void;
   onToday: () => void;
   onPrevious: () => void;
@@ -625,13 +772,31 @@ function CalendarView({
             </div>
             <div className="min-w-0 rounded-2xl border border-white/80 bg-white/80 p-3 shadow-sm lg:w-96">
               <p className="text-xs font-semibold text-slate-500">
-                {todaysEvents.length} événement{todaysEvents.length !== 1 ? "s" : ""} aujourd&apos;hui
+                {todaysEvents.length} événement{todaysEvents.length !== 1 ? "s" : ""}
+                {todaysAutomations.length > 0 && (
+                  <span className="text-cyan-600"> · {todaysAutomations.length} automatisation{todaysAutomations.length !== 1 ? "s" : ""}</span>
+                )}
+                {" "}aujourd&apos;hui
               </p>
               <div className="mt-2 space-y-1.5">
-                {todaysEvents.length > 0 ? todaysEvents.slice(0, 3).map((event) => (
+                {todaysEvents.slice(0, 3).map((event) => (
                   <MiniCalendarEvent key={event.id} event={event} timezone={timezone} />
-                )) : (
-                  <p className="text-sm text-slate-400">Aucun événement prévu aujourd&apos;hui.</p>
+                ))}
+                {todaysAutomations.slice(0, 3).map((automation) => (
+                  <Link
+                    key={automation.id}
+                    href="/dashboard/automations"
+                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-cyan-700 hover:bg-cyan-50"
+                  >
+                    <span className="flex w-11 shrink-0 items-center gap-1 font-semibold">
+                      <Zap className="size-3" />
+                      {automationTime(automation, timezone)}
+                    </span>
+                    <span className="truncate">{automation.name}</span>
+                  </Link>
+                ))}
+                {todaysEvents.length === 0 && todaysAutomations.length === 0 && (
+                  <p className="text-sm text-slate-400">Rien de prévu aujourd&apos;hui.</p>
                 )}
               </div>
             </div>
@@ -680,6 +845,7 @@ function CalendarView({
               anchorDate={anchorDate}
               shabbatItem={isBethHabad ? dayShabbatItem : undefined}
               holidayItems={isBethHabad ? dayHolidayItems : undefined}
+              dayAutomations={automationByDate.get(dayKey(anchorDate))}
               onDelete={onDelete}
               deletingId={deletingId}
               isPending={isPending}
@@ -688,13 +854,13 @@ function CalendarView({
             />
           )}
           {period === "week" && (
-            <WeekCalendar events={events} anchorDate={anchorDate} shabbatByDate={isBethHabad ? shabbatByDate : undefined} holidayByDate={isBethHabad ? holidayByDate : undefined} isBethHabad={isBethHabad} timezone={timezone} />
+            <WeekCalendar events={events} anchorDate={anchorDate} shabbatByDate={isBethHabad ? shabbatByDate : undefined} holidayByDate={isBethHabad ? holidayByDate : undefined} automationByDate={automationByDate} isBethHabad={isBethHabad} timezone={timezone} />
           )}
           {period === "month" && (
-            <MonthCalendar events={events} anchorDate={anchorDate} shabbatByDate={isBethHabad ? shabbatByDate : undefined} holidayByDate={isBethHabad ? holidayByDate : undefined} isBethHabad={isBethHabad} timezone={timezone} />
+            <MonthCalendar events={events} anchorDate={anchorDate} shabbatByDate={isBethHabad ? shabbatByDate : undefined} holidayByDate={isBethHabad ? holidayByDate : undefined} automationByDate={automationByDate} isBethHabad={isBethHabad} timezone={timezone} />
           )}
           {period === "year" && (
-            <YearCalendar events={events} anchorDate={anchorDate} timezone={timezone} />
+            <YearCalendar events={events} anchorDate={anchorDate} automationByDate={automationByDate} timezone={timezone} />
           )}
         </CardContent>
       </Card>
@@ -760,6 +926,7 @@ function DayCalendar({
   anchorDate,
   shabbatItem,
   holidayItems,
+  dayAutomations,
   onDelete,
   deletingId,
   isPending,
@@ -770,6 +937,7 @@ function DayCalendar({
   anchorDate: Date;
   shabbatItem?: ShabbatItem;
   holidayItems?: HolidayItem[];
+  dayAutomations?: AutomationOccurrence[];
   onDelete: (event: Event) => void;
   deletingId: string | null;
   isPending: boolean;
@@ -786,8 +954,24 @@ function DayCalendar({
       )}>
         <p className="text-sm font-semibold capitalize text-slate-950">{formatFrenchDate(anchorDate)}</p>
         {isBethHabad && <p className="mt-1 text-sm font-medium text-violet-700 hebrew">{formatHebrewDate(anchorDate)}</p>}
-        {(shabbatItem || (holidayItems?.length ?? 0) > 0) && (
+        {(shabbatItem || (holidayItems?.length ?? 0) > 0 || (dayAutomations?.length ?? 0) > 0) && (
           <div className="mt-3 space-y-2">
+            {dayAutomations?.map((automation, index) => (
+              <Link
+                key={`${automation.id}-${index}`}
+                href="/dashboard/automations"
+                className="flex items-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 transition-colors hover:bg-cyan-100"
+              >
+                <Zap className="size-4 shrink-0 text-cyan-600" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-cyan-700">{automation.name}</p>
+                  <p className="text-xs text-cyan-600">
+                    Publication automatique{automation.time ? ` à ${automation.time}` : ""}
+                    {automation.channels.length > 0 ? ` · ${automation.channels.join(", ")}` : ""}
+                  </p>
+                </div>
+              </Link>
+            ))}
             {shabbatItem && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
                 <p className="text-sm font-semibold text-amber-700">Horaires de Chabbat</p>
@@ -829,7 +1013,7 @@ function DayCalendar({
   );
 }
 
-function WeekCalendar({ events, anchorDate, shabbatByDate, holidayByDate, isBethHabad, timezone }: { events: Event[]; anchorDate: Date; shabbatByDate?: Map<string, ShabbatItem>; holidayByDate?: Map<string, HolidayItem[]>; isBethHabad: boolean; timezone: string }) {
+function WeekCalendar({ events, anchorDate, shabbatByDate, holidayByDate, automationByDate, isBethHabad, timezone }: { events: Event[]; anchorDate: Date; shabbatByDate?: Map<string, ShabbatItem>; holidayByDate?: Map<string, HolidayItem[]>; automationByDate: Map<string, AutomationOccurrence[]>; isBethHabad: boolean; timezone: string }) {
   const weekStart = startOfWeek(anchorDate);
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
 
@@ -840,6 +1024,7 @@ function WeekCalendar({ events, anchorDate, shabbatByDate, holidayByDate, isBeth
         const dayEvents = eventsForDate(events, day);
         const shabbat = shabbatByDate?.get(key);
         const holidays = holidayByDate?.get(key);
+        const dayAutomations = automationByDate.get(key);
         const isToday = key === todayKey();
         return (
           <div key={key} className={cn("min-h-[34rem] bg-white", isToday && "bg-violet-50/60")}>
@@ -867,6 +1052,9 @@ function WeekCalendar({ events, anchorDate, shabbatByDate, holidayByDate, isBeth
                   {h.nameHebrew && <p className="text-[10px] text-blue-500 hebrew">{h.nameHebrew}</p>}
                 </div>
               ))}
+              {dayAutomations?.map((automation, index) => (
+                <AutomationPill key={`${automation.id}-${index}`} automation={automation} />
+              ))}
               {dayEvents.map((event) => (
                 <CalendarEventPill key={event.id} event={event} timezone={timezone} />
               ))}
@@ -878,7 +1066,7 @@ function WeekCalendar({ events, anchorDate, shabbatByDate, holidayByDate, isBeth
   );
 }
 
-function MonthCalendar({ events, anchorDate, shabbatByDate, holidayByDate, isBethHabad, timezone }: { events: Event[]; anchorDate: Date; shabbatByDate?: Map<string, ShabbatItem>; holidayByDate?: Map<string, HolidayItem[]>; isBethHabad: boolean; timezone: string }) {
+function MonthCalendar({ events, anchorDate, shabbatByDate, holidayByDate, automationByDate, isBethHabad, timezone }: { events: Event[]; anchorDate: Date; shabbatByDate?: Map<string, ShabbatItem>; holidayByDate?: Map<string, HolidayItem[]>; automationByDate: Map<string, AutomationOccurrence[]>; isBethHabad: boolean; timezone: string }) {
   const days = buildMonthDays(anchorDate);
 
   return (
@@ -897,6 +1085,7 @@ function MonthCalendar({ events, anchorDate, shabbatByDate, holidayByDate, isBet
             const dayEvents = eventsForDate(events, day);
             const shabbat = shabbatByDate?.get(key);
             const holidays = holidayByDate?.get(key);
+            const dayAutomations = automationByDate.get(key) ?? [];
             const isToday = key === todayKey();
             const isOutsideMonth = day.getMonth() !== anchorDate.getMonth();
             return (
@@ -928,6 +1117,12 @@ function MonthCalendar({ events, anchorDate, shabbatByDate, holidayByDate, isBet
                       <p className="text-[10px] font-semibold text-blue-700 truncate">{h.name}</p>
                     </div>
                   ))}
+                  {dayAutomations.slice(0, 2).map((automation, index) => (
+                    <AutomationPill key={`${automation.id}-${index}`} automation={automation} compact />
+                  ))}
+                  {dayAutomations.length > 2 && (
+                    <p className="text-[10px] font-semibold text-cyan-600">+{dayAutomations.length - 2} automatisation{dayAutomations.length - 2 > 1 ? "s" : ""}</p>
+                  )}
                   {dayEvents.slice(0, 3).map((event) => (
                     <CalendarEventPill key={event.id} event={event} compact timezone={timezone} />
                   ))}
@@ -944,11 +1139,21 @@ function MonthCalendar({ events, anchorDate, shabbatByDate, holidayByDate, isBet
   );
 }
 
-function YearCalendar({ events, anchorDate, timezone }: { events: Event[]; anchorDate: Date; timezone: string }) {
+function YearCalendar({ events, anchorDate, automationByDate, timezone }: { events: Event[]; anchorDate: Date; automationByDate: Map<string, AutomationOccurrence[]>; timezone: string }) {
+  const automationCountByMonth = useMemo(() => {
+    const counts = new Array(12).fill(0);
+    for (const [key, items] of automationByDate) {
+      const month = Number(key.slice(5, 7)) - 1;
+      if (month >= 0 && month < 12) counts[month] += items.length;
+    }
+    return counts;
+  }, [automationByDate]);
+
   return (
     <div className="grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
       {buildYearMonths(anchorDate).map((month) => {
         const monthEvents = events.filter((event) => isSamePeriod(toDate(event.startDate), month, "month"));
+        const monthAutomationCount = automationCountByMonth[month.getMonth()];
         const isCurrentMonth = new Date().getFullYear() === month.getFullYear() && new Date().getMonth() === month.getMonth();
         return (
           <div key={month.toISOString()} className={cn(
@@ -957,16 +1162,27 @@ function YearCalendar({ events, anchorDate, timezone }: { events: Event[]; ancho
           )}>
             <div className="flex items-center justify-between gap-2">
               <h3 className="font-bold capitalize text-slate-950">{MONTH_NAME_FORMATTER.format(month)}</h3>
-              <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-500 shadow-sm">
-                {monthEvents.length}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-500 shadow-sm">
+                  {monthEvents.length}
+                </span>
+                {monthAutomationCount > 0 && (
+                  <span className="flex items-center gap-0.5 rounded-full bg-cyan-50 px-2 py-0.5 text-xs font-semibold text-cyan-700 shadow-sm">
+                    <Zap className="size-3" />
+                    {monthAutomationCount}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="mt-3 space-y-1.5">
               {monthEvents.slice(0, 4).map((event) => (
                 <MiniCalendarEvent key={event.id} event={event} timezone={timezone} />
               ))}
-              {monthEvents.length === 0 && (
+              {monthEvents.length === 0 && monthAutomationCount === 0 && (
                 <p className="text-sm text-slate-400">Aucun événement</p>
+              )}
+              {monthEvents.length === 0 && monthAutomationCount > 0 && (
+                <p className="text-sm text-cyan-600">{monthAutomationCount} publication{monthAutomationCount > 1 ? "s" : ""} automatique{monthAutomationCount > 1 ? "s" : ""}</p>
               )}
               {monthEvents.length > 4 && (
                 <p className="text-xs font-semibold text-slate-500">+{monthEvents.length - 4} événement{monthEvents.length - 4 > 1 ? "s" : ""}</p>
@@ -976,6 +1192,24 @@ function YearCalendar({ events, anchorDate, timezone }: { events: Event[]; ancho
         );
       })}
     </div>
+  );
+}
+
+function AutomationPill({ automation, compact = false }: { automation: AutomationOccurrence; compact?: boolean }) {
+  return (
+    <Link
+      href="/dashboard/automations"
+      title={`Automatisation : ${automation.name}`}
+      className={cn(
+        "flex items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-2 py-1 text-cyan-700 shadow-sm transition-colors hover:bg-cyan-100",
+        compact && "px-1.5 py-0.5"
+      )}
+    >
+      <Zap className={cn("shrink-0", compact ? "size-3" : "size-3.5")} />
+      <span className={cn("block truncate font-semibold", compact ? "text-[10px]" : "text-[11px]")}>
+        {automation.time ? `${automation.time} · ` : ""}{automation.name}
+      </span>
+    </Link>
   );
 }
 

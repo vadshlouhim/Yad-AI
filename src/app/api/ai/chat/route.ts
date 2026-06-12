@@ -19,6 +19,65 @@ import {
 import { analyzeTemplateVisuals } from "@/lib/templates/analysis";
 import { runAssistant } from "@/lib/ai/assistant/runner";
 import OpenAI from "openai";
+import type { ChatCompletionContentPart } from "openai/resources/chat/completions";
+
+interface ChatAttachment {
+  url: string;
+  type: string;
+  name: string;
+}
+
+interface IncomingMessage {
+  role: "user" | "assistant";
+  content: string;
+  attachments?: ChatAttachment[];
+}
+
+function isImageAttachment(att: ChatAttachment) {
+  return att.type?.startsWith("image/");
+}
+
+// Texte enrichi (mention des pièces jointes) pour la persistance et l'analyse d'intention.
+function describeAttachments(attachments: ChatAttachment[] | undefined): string {
+  if (!attachments || attachments.length === 0) return "";
+  const labels = attachments.map((att) =>
+    isImageAttachment(att) ? `image jointe « ${att.name} »` : `document joint « ${att.name} » (${att.url})`
+  );
+  return `\n\n[Pièces jointes : ${labels.join(", ")}]`;
+}
+
+// Convertit les messages entrants en messages modèle, en intégrant les images
+// jointes sous forme de parts multimodales analysables par le modèle de vision.
+function toModelMessages(
+  messages: IncomingMessage[]
+): Array<{ role: "user" | "assistant"; content: string | ChatCompletionContentPart[] }> {
+  return messages.map((m) => {
+    const attachments = m.attachments ?? [];
+    if (attachments.length === 0) return { role: m.role, content: m.content };
+
+    const images = attachments.filter(isImageAttachment);
+    const docs = attachments.filter((att) => !isImageAttachment(att));
+
+    let text = m.content;
+    if (docs.length > 0) {
+      text += `\n\n[Documents joints à prendre en compte : ${docs
+        .map((d) => `${d.name} (${d.url})`)
+        .join(", ")}]`;
+    }
+
+    if (images.length === 0) {
+      return { role: m.role, content: text };
+    }
+
+    const parts: ChatCompletionContentPart[] = [
+      { type: "text", text: text.trim() || "Analyse la ou les images jointes." },
+      ...images.map(
+        (img): ChatCompletionContentPart => ({ type: "image_url", image_url: { url: img.url } })
+      ),
+    ];
+    return { role: m.role, content: parts };
+  });
+}
 
 const openrouter = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
@@ -60,6 +119,12 @@ function isShabbatRequest(text: string): boolean {
   return ["chabbat", "shabbat", "paracha", "havdala", "bougies", "kiddouch", "kidouch"].some((k) =>
     normalized.includes(k)
   );
+}
+
+// L'assistant propose-t-il une affiche/visuel dans sa réponse ?
+function proposesPoster(text: string): boolean {
+  const normalized = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return ["affiche", "flyer", "visuel", "poster"].some((k) => normalized.includes(k));
 }
 
 function formatFrenchDate(value: string): string {
@@ -138,7 +203,7 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const { messages, conversationId, selectedTemplateId, templateAction, mode } = body as {
-      messages: Array<{ role: "user" | "assistant"; content: string }>;
+      messages: IncomingMessage[];
       conversationId?: string;
       selectedTemplateId?: string | null;
       templateAction?: "select" | null;
@@ -321,7 +386,7 @@ export async function POST(request: Request) {
         id: crypto.randomUUID(),
         conversationId,
         role: "user",
-        content: lastUserMessage.content,
+        content: lastUserMessage.content + describeAttachments(lastUserMessage.attachments),
       });
     }
 
@@ -393,7 +458,7 @@ export async function POST(request: Request) {
             openrouter,
             model: MODEL,
             systemPrompt,
-            messages,
+            messages: toModelMessages(messages),
             admin,
             communityId,
             userId: user.id,
@@ -409,6 +474,29 @@ export async function POST(request: Request) {
           if (isDailyRoutineMode && fullResponse.includes("[QUOTIDIEN_PRET]")) {
             fullResponse = fullResponse.replace("[QUOTIDIEN_PRET]", "").trim();
             send({ type: "daily_routine_ready" });
+          }
+
+          // ── Affiche suggérée quand l'assistant en propose une dans sa réponse ──
+          // Si l'IA évoque une affiche/visuel pertinent (et qu'on n'a pas déjà
+          // proposé de modèles ni de template sélectionné), on affiche directement
+          // dans le chat les affiches les plus adaptées au thème de l'échange.
+          if (
+            !isDailyRoutineMode &&
+            !shouldSuggestTemplates &&
+            !selectedTemplateId &&
+            isUserPrompt &&
+            (candidateTemplates?.length ?? 0) > 0 &&
+            proposesPoster(fullResponse)
+          ) {
+            const themeText = `${lastUserMessage.content}\n${fullResponse}`;
+            const proposedTemplates = buildTemplateSuggestions(candidateTemplates ?? [], themeText, {
+              limit: 3,
+              communityId,
+              forceAtLeastOne: true,
+            });
+            if (proposedTemplates.length > 0) {
+              send({ type: "template_suggestions", templates: proposedTemplates });
+            }
           }
 
           await persistAndClose();

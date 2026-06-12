@@ -20,6 +20,48 @@ function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
+type AutomationActionRow = { type?: string; contentType?: string; channels?: string[] };
+
+// Normalise une automatisation BDD en élément projetable dans le calendrier de l'agenda.
+function normalizeAutomation(row: {
+  id: string;
+  name: string;
+  trigger: string;
+  triggerConfig: Record<string, unknown> | null;
+  nextRunAt: string | null;
+  actions: unknown;
+}) {
+  const config = (row.triggerConfig ?? {}) as Record<string, unknown>;
+  const repeat = (() => {
+    if (row.trigger === "DAILY") return "daily";
+    if (row.trigger === "WEEKLY_SHABBAT") return "weekly";
+    if (row.trigger === "CUSTOM_SCHEDULE") return String(config.repeat ?? "none");
+    return "none";
+  })();
+  const days = Array.isArray(config.days) && config.days.length
+    ? config.days.map((d) => String(d))
+    : config.day
+      ? [String(config.day)]
+      : row.trigger === "WEEKLY_SHABBAT"
+        ? ["friday"]
+        : [];
+  const generateAction = Array.isArray(row.actions)
+    ? (row.actions as AutomationActionRow[]).find((a) => a?.type === "GENERATE_CONTENT")
+    : undefined;
+  return {
+    id: row.id,
+    name: row.name,
+    trigger: row.trigger,
+    nextRunAt: row.nextRunAt,
+    repeat,
+    days,
+    time: typeof config.time === "string" ? config.time : null,
+    dayOfMonth: typeof config.dayOfMonth === "number" ? config.dayOfMonth : null,
+    endDate: typeof config.endDate === "string" ? config.endDate : null,
+    channels: Array.isArray(generateAction?.channels) ? generateAction!.channels : [],
+  };
+}
+
 export default async function EventsPage({
   searchParams,
 }: {
@@ -145,6 +187,28 @@ export default async function EventsPage({
       }));
   }
 
+  // Automatisations actives → projetées comme occurrences dans le calendrier
+  const { data: automationRows } = await admin
+    .from("Automation")
+    .select("id, name, trigger, triggerConfig, nextRunAt, actions")
+    .eq("communityId", communityId)
+    .eq("isActive", true)
+    .order("nextRunAt", { ascending: true })
+    .limit(200);
+
+  const automationItems = (automationRows ?? [])
+    .filter((row) => row.nextRunAt)
+    .map((row) =>
+      normalizeAutomation({
+        id: row.id,
+        name: row.name,
+        trigger: row.trigger,
+        triggerConfig: (row.triggerConfig ?? null) as Record<string, unknown> | null,
+        nextRunAt: row.nextRunAt as string | null,
+        actions: row.actions,
+      })
+    );
+
   const statusCounts2 = Object.fromEntries(statusCounts);
   const normalizedEvents = (events ?? []).map((event) => ({
     id: event.id,
@@ -168,6 +232,7 @@ export default async function EventsPage({
       statusCounts={statusCounts2}
       shabbatItems={isBethHabad ? shabbatItems : []}
       holidayItems={isBethHabad ? holidayItems : []}
+      automations={automationItems}
       isBethHabad={isBethHabad}
       timezone={timezone}
     />

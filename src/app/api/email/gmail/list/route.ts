@@ -3,6 +3,38 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getGmailClient } from '@/lib/gmail';
 
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+};
+
+/**
+ * Décode les entités HTML (nommées, décimales et hexadécimales) présentes
+ * dans les snippets/sujets renvoyés par l'API Gmail, ex. « &#39; » → « ' ».
+ */
+function decodeHtmlEntities(input: string): string {
+  if (!input) return input;
+  return input.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity: string) => {
+    if (entity[0] === '#') {
+      const codePoint =
+        entity[1] === 'x' || entity[1] === 'X'
+          ? parseInt(entity.slice(2), 16)
+          : parseInt(entity.slice(1), 10);
+      if (Number.isNaN(codePoint)) return match;
+      try {
+        return String.fromCodePoint(codePoint);
+      } catch {
+        return match;
+      }
+    }
+    return NAMED_ENTITIES[entity] ?? match;
+  });
+}
+
 export async function GET() {
   // 1. Vérifier l'authentification
   const supabase = await createClient();
@@ -54,11 +86,11 @@ export async function GET() {
         });
 
         const headers = detail.data.payload?.headers;
-        const subject = headers?.find((h) => h.name === 'Subject')?.value || 'Sans sujet';
-        const from = headers?.find((h) => h.name === 'From')?.value || 'Inconnu';
+        const subject = decodeHtmlEntities(headers?.find((h) => h.name === 'Subject')?.value || 'Sans sujet');
+        const from = decodeHtmlEntities(headers?.find((h) => h.name === 'From')?.value || 'Inconnu');
         const date = headers?.find((h) => h.name === 'Date')?.value || '';
 
-        const body = detail.data.snippet || '';
+        const body = decodeHtmlEntities(detail.data.snippet || '');
 
         return {
           id: msg.id,

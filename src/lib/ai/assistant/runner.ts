@@ -1,5 +1,5 @@
 import type OpenAI from "openai";
-import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import type { ChatCompletionMessageParam, ChatCompletionContentPart } from "openai/resources/chat/completions";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { buildTools } from "./tools";
 import { executeAction, summarizeAction, isMutatingAction, actionLabelFor } from "./actions";
@@ -31,7 +31,9 @@ export interface RunAssistantParams {
   openrouter: OpenAI;
   model: string;
   systemPrompt: string;
-  messages: Array<{ role: "user" | "assistant"; content: string }>;
+  // Le contenu peut être une simple chaîne ou une liste de parts multimodales
+  // (texte + image_url) lorsque l'utilisateur joint des images à analyser.
+  messages: Array<{ role: "user" | "assistant"; content: string | ChatCompletionContentPart[] }>;
   admin: Admin;
   communityId: string;
   userId: string | null;
@@ -57,7 +59,7 @@ export async function runAssistant(params: RunAssistantParams): Promise<string> 
   const tools = buildTools({ gmailConnected });
   const currentMessages: ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },
-    ...messages.slice(-20),
+    ...messages.slice(-20).map((m) => ({ role: m.role, content: m.content }) as ChatCompletionMessageParam),
   ];
 
   const cards: AssistantActionCard[] = [];

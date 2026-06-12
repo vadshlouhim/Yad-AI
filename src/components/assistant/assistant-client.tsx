@@ -12,6 +12,7 @@ import {
   X, SlidersHorizontal, PlayCircle, PauseCircle,
   Power, ExternalLink, Zap, CalendarDays, BookOpen, Gift, HeartHandshake,
   Lightbulb, Clock3, Mail, ChevronDown, User, Settings, LogOut,
+  Mic, FileText, Loader2,
 } from "lucide-react";
 import { CHANNEL_LABELS, cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -26,11 +27,41 @@ import type { RoutineItem } from "./daily-routine-wizard";
 // TYPES
 // ============================================================
 
+// Typage minimal de la Web Speech API (non incluse dans les libs TS par défaut).
+interface SpeechRecognitionResultLike {
+  0: { transcript: string };
+  isFinal: boolean;
+}
+interface SpeechRecognitionEventLike {
+  resultIndex: number;
+  results: { length: number; [index: number]: SpeechRecognitionResultLike };
+}
+interface SpeechRecognitionInstance {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+}
+type SpeechRecognitionCtor = new () => SpeechRecognitionInstance;
+
+interface ChatAttachment {
+  url: string;
+  type: string;
+  name: string;
+  isImage: boolean;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  attachments?: ChatAttachment[];
   templateSuggestions?: TemplateSuggestion[];
   articleSuggestions?: ArticleSuggestion[];
   posterDraft?: PosterDraft | null;
@@ -393,6 +424,16 @@ export function AssistantClient({
   const [bubblePosition, setBubblePosition] = useState({ x: 24, y: 24 });
   const [animatedPlaceholder, setAnimatedPlaceholder] = useState(ASSISTANT_PLACEHOLDER_SUGGESTIONS[0]);
   const [hasStartedPromptEntry, setHasStartedPromptEntry] = useState(false);
+  // Pièces jointes (images / documents) en attente d'envoi avec le prochain message.
+  const [pendingAttachments, setPendingAttachments] = useState<ChatAttachment[]>([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  // Dictée vocale (Web Speech API).
+  const [isRecording, setIsRecording] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  const speechBaseRef = useRef("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const bubbleDragState = useRef({ active: false, moved: false, offsetX: 0, offsetY: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -759,10 +800,16 @@ export function AssistantClient({
     options?: { selectedTemplateId?: string | null; templateAction?: "select" | null; mode?: "daily_routine" | "simplified" }
   ) => {
     const messageContent = content ?? input.trim();
-    if (!messageContent || loading) return;
+    // On autorise l'envoi avec uniquement des pièces jointes (sans texte saisi),
+    // mais pas pour les messages programmatiques (content fourni explicitement).
+    const attachmentsToSend = content === undefined ? pendingAttachments : [];
+    if ((!messageContent && attachmentsToSend.length === 0) || loading) return;
+    if (isRecording) recognitionRef.current?.stop();
 
     setHasStartedPromptEntry(true);
     setInput("");
+    setPendingAttachments([]);
+    setAttachmentError(null);
 
     let convId = activeConversationId;
     if (!convId) {
@@ -773,8 +820,9 @@ export function AssistantClient({
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: "user",
-      content: messageContent,
+      content: messageContent || (attachmentsToSend.length > 0 ? "Analyse ces pièces jointes." : ""),
       timestamp: new Date(),
+      attachments: attachmentsToSend.length > 0 ? attachmentsToSend : undefined,
     };
 
     const currentMessages = [...messages, userMessage];
@@ -790,7 +838,11 @@ export function AssistantClient({
           selectedTemplateId: options?.selectedTemplateId ?? selectedTemplate?.id ?? null,
           templateAction: options?.templateAction ?? null,
           mode: options?.mode ?? (dailyRoutineMode ? "daily_routine" : assistantExperience === "simple" ? "simplified" : undefined),
-          messages: currentMessages.map((m) => ({ role: m.role, content: m.content })),
+          messages: currentMessages.map((m) => ({
+            role: m.role,
+            content: m.content,
+            attachments: m.attachments?.map((att) => ({ url: att.url, type: att.type, name: att.name })),
+          })),
         }),
       });
 
@@ -884,13 +936,113 @@ export function AssistantClient({
     } finally {
       setLoading(false);
     }
-  }, [input, loading, activeConversationId, messages, selectedTemplate, dailyRoutineMode, assistantExperience]);
+  }, [input, loading, activeConversationId, messages, selectedTemplate, dailyRoutineMode, assistantExperience, pendingAttachments, isRecording]);
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
+  }
+
+  // ── Dictée vocale ─────────────────────────────────────────
+  useEffect(() => {
+    const w = window as unknown as {
+      SpeechRecognition?: SpeechRecognitionCtor;
+      webkitSpeechRecognition?: SpeechRecognitionCtor;
+    };
+    setSpeechSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
+    return () => {
+      recognitionRef.current?.abort();
+    };
+  }, []);
+
+  function toggleDictation() {
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const w = window as unknown as {
+      SpeechRecognition?: SpeechRecognitionCtor;
+      webkitSpeechRecognition?: SpeechRecognitionCtor;
+    };
+    const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!Ctor) return;
+
+    const recognition = new Ctor();
+    recognition.lang = "fr-FR";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    speechBaseRef.current = input ? input.trimEnd() + " " : "";
+
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setInput(speechBaseRef.current + transcript);
+      setHasStartedPromptEntry(true);
+    };
+    recognition.onerror = () => {
+      setIsRecording(false);
+    };
+    recognition.onend = () => {
+      setIsRecording(false);
+      recognitionRef.current = null;
+      setTimeout(() => inputRef.current?.focus(), 0);
+    };
+
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+      setIsRecording(true);
+    } catch {
+      setIsRecording(false);
+    }
+  }
+
+  // ── Pièces jointes (images / documents) ───────────────────
+  function openFilePicker() {
+    setAttachmentError(null);
+    fileInputRef.current?.click();
+  }
+
+  async function handleFilesSelected(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (files.length === 0) return;
+
+    setAttachmentError(null);
+    setUploadingAttachment(true);
+    try {
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await fetch("/api/uploads/attachment", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          setAttachmentError(data.error ?? "Échec de l'envoi du fichier");
+          continue;
+        }
+        setPendingAttachments((prev) => [
+          ...prev,
+          { url: data.url, type: data.type, name: data.name, isImage: data.isImage },
+        ]);
+      }
+    } catch {
+      setAttachmentError("Impossible d'envoyer le fichier. Réessaie.");
+    } finally {
+      setUploadingAttachment(false);
+      setHasStartedPromptEntry(true);
+    }
+  }
+
+  function removePendingAttachment(url: string) {
+    setPendingAttachments((prev) => prev.filter((att) => att.url !== url));
   }
 
   async function copyMessage(id: string, content: string) {
@@ -2538,6 +2690,39 @@ export function AssistantClient({
                         <MessageLoading />
                       </div>
                     )}
+                    {message.attachments && message.attachments.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {message.attachments.map((att) =>
+                          att.isImage ? (
+                            <a
+                              key={att.url}
+                              href={att.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block h-20 w-20 overflow-hidden rounded-xl border border-white/30 bg-white/10"
+                            >
+                              <img src={att.url} alt={att.name} className="h-full w-full object-cover" />
+                            </a>
+                          ) : (
+                            <a
+                              key={att.url}
+                              href={att.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={cn(
+                                "flex max-w-[12rem] items-center gap-2 rounded-xl border px-2.5 py-2 text-xs font-medium",
+                                message.role === "user"
+                                  ? "border-white/30 bg-white/10 text-white"
+                                  : "border-slate-200 bg-slate-50 text-slate-700"
+                              )}
+                            >
+                              <FileText className="size-4 shrink-0" />
+                              <span className="truncate">{att.name}</span>
+                            </a>
+                          )
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {message.role === "assistant" && message.content && (
@@ -3258,7 +3443,61 @@ export function AssistantClient({
             </div>
           )}
           <div className="rounded-3xl border border-slate-200 bg-white p-2 shadow-sm transition focus-within:border-slate-300 focus-within:shadow-md">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+              onChange={handleFilesSelected}
+              className="hidden"
+            />
+            {(pendingAttachments.length > 0 || uploadingAttachment || attachmentError) && (
+              <div className="mb-1.5 flex flex-wrap items-center gap-2 px-1.5 pt-1">
+                {pendingAttachments.map((att) => (
+                  <div
+                    key={att.url}
+                    className="group/att relative flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 py-1 pl-1 pr-2"
+                  >
+                    {att.isImage ? (
+                      <img src={att.url} alt={att.name} className="h-9 w-9 rounded-lg object-cover" />
+                    ) : (
+                      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                        <FileText className="size-4" />
+                      </span>
+                    )}
+                    <span className="max-w-[8rem] truncate text-xs font-medium text-slate-600">{att.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removePendingAttachment(att.url)}
+                      className="ml-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-slate-600 transition hover:bg-slate-300"
+                      aria-label={`Retirer ${att.name}`}
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+                {uploadingAttachment && (
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                    <Loader2 className="size-3.5 animate-spin" /> Envoi…
+                  </span>
+                )}
+                {attachmentError && (
+                  <span className="text-xs font-medium text-red-600">{attachmentError}</span>
+                )}
+              </div>
+            )}
             <div className="flex items-end gap-2">
+              <Button
+                onClick={openFilePicker}
+                size="icon"
+                variant="ghost"
+                disabled={uploadingAttachment}
+                className="h-9 w-9 flex-shrink-0 rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Joindre une image ou un document"
+                title="Joindre une image ou un document"
+              >
+                <Plus className="size-5" />
+              </Button>
               <textarea
                 id="assistant-specific-request"
                 ref={inputRef}
@@ -3271,14 +3510,31 @@ export function AssistantClient({
                   setInput(nextValue);
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder={animatedPlaceholder}
+                placeholder={isRecording ? "Parlez, je vous écoute…" : animatedPlaceholder}
                 rows={1}
                 className="max-h-40 flex-1 resize-none bg-transparent px-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400"
               />
+              {speechSupported && (
+                <Button
+                  onClick={toggleDictation}
+                  size="icon"
+                  variant="ghost"
+                  className={cn(
+                    "h-9 w-9 flex-shrink-0 rounded-full transition",
+                    isRecording
+                      ? "bg-red-100 text-red-600 hover:bg-red-200"
+                      : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                  )}
+                  aria-label={isRecording ? "Arrêter la dictée" : "Dicter avec le micro"}
+                  title={isRecording ? "Arrêter la dictée" : "Dicter avec le micro"}
+                >
+                  <Mic className={cn("size-4", isRecording && "animate-pulse")} />
+                </Button>
+              )}
               <Button
                 onClick={() => sendMessage()}
                 size="icon"
-                disabled={loading}
+                disabled={loading || uploadingAttachment}
                 className="h-9 w-9 flex-shrink-0 rounded-full bg-slate-900 text-white transition hover:bg-slate-800 disabled:opacity-50"
                 aria-label="Envoyer la demande"
               >
