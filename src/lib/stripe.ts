@@ -2,33 +2,20 @@ import Stripe from "stripe";
 
 let _stripe: Stripe | null = null;
 
-<<<<<<< HEAD
-export function getStripe(): Stripe {
+function getStripe(): Stripe {
   if (!_stripe) {
     const key = process.env.STRIPE_SECRET_KEY;
     if (!key) throw new Error("STRIPE_SECRET_KEY manquant");
     _stripe = new Stripe(key, { apiVersion: "2026-03-25.dahlia" });
-=======
-function getStripe(): Stripe {
-  if (!_stripe) {
-    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: "2026-03-25.dahlia",
-    });
->>>>>>> 795f50a134aecd118c7d31890643dda882542cae
   }
   return _stripe;
 }
 
-<<<<<<< HEAD
-// Alias conservé pour la compatibilité avec les imports existants
-export const stripe = new Proxy({} as Stripe, {
-  get(_target, prop) {
-    return (getStripe() as unknown as Record<string | symbol, unknown>)[prop];
-=======
+// Proxy conserve la compatibilité avec tous les imports existants (stripe.xxx)
+// tout en initialisant Stripe uniquement à la première requête, jamais au build.
 export const stripe = new Proxy({} as Stripe, {
   get(_target, prop, receiver) {
     return Reflect.get(getStripe(), prop, receiver);
->>>>>>> 795f50a134aecd118c7d31890643dda882542cae
   },
 });
 
@@ -60,7 +47,7 @@ export const PLANS = {
     priceId: process.env.STRIPE_PRO_PRICE_ID,
     price: 79,
     limits: {
-      publicationsPerMonth: -1, // Illimité
+      publicationsPerMonth: -1,
       aiGenerationsPerMonth: -1,
       channels: -1,
       templates: -1,

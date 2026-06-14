@@ -27,17 +27,23 @@ export async function GET() {
   const communityId = await getCommunityId(user.id);
   if (!communityId) return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
 
+  const url = `${SERVICE_URL.replace(/\/$/, "")}/session/${communityId}/qr-instant`;
   try {
-    // Appel court (5 s max) : on demande juste ce qui est disponible maintenant
-    const res = await fetch(`${SERVICE_URL}/session/${communityId}/qr-instant`, {
+    const res = await fetch(url, {
       headers: { "x-service-secret": SERVICE_SECRET },
-      signal: AbortSignal.timeout(5_000),
+      signal: AbortSignal.timeout(8_000),
     });
+    if (!res.ok) {
+      console.error(`[WhatsApp QR] Railway ${res.status} sur ${url}`);
+      return NextResponse.json({ status: "error", error: `Railway: HTTP ${res.status}` }, { status: 200 });
+    }
     const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    return NextResponse.json(data);
   } catch (err) {
-    console.error("[WhatsApp QR] Erreur proxy :", err);
-    return NextResponse.json({ error: "Service WhatsApp injoignable." }, { status: 502 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[WhatsApp QR] Fetch échoué vers ${url} :`, msg);
+    // On retourne 200 avec un statut d'erreur pour que le client continue de poller
+    return NextResponse.json({ status: "error", error: msg });
   }
 }
 
@@ -54,15 +60,16 @@ export async function POST() {
   const communityId = await getCommunityId(user.id);
   if (!communityId) return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
 
+  const url = `${SERVICE_URL.replace(/\/$/, "")}/session/${communityId}/start`;
   try {
-    // Démarre la session en arrière-plan sans attendre le QR
-    await fetch(`${SERVICE_URL}/session/${communityId}/start`, {
+    await fetch(url, {
       method: "POST",
       headers: { "x-service-secret": SERVICE_SECRET },
-      signal: AbortSignal.timeout(5_000),
+      signal: AbortSignal.timeout(8_000),
     });
-  } catch {
-    // On ignore l'erreur réseau — la session démarre quand même
+  } catch (err) {
+    // On ignore : la session démarre côté Railway même si la réponse n'arrive pas
+    console.warn("[WhatsApp QR/start] Timeout ignoré :", err instanceof Error ? err.message : err);
   }
 
   return NextResponse.json({ ok: true });
