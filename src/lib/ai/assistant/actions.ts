@@ -15,7 +15,10 @@ const WEEKDAY_MAP: Record<string, number> = {
 // Calcule une date de départ pour l'agenda à partir de la config de déclenchement.
 // Retourne null si aucune date concrète n'est déterminable (on n'inscrit alors rien).
 function computeAutomationStart(trigger: string, cfg: Record<string, unknown>, timezone: string): Date | null {
-  const rawTime = typeof cfg.time === "string" && /^\d{1,2}:\d{2}$/.test(cfg.time) ? cfg.time : "09:00";
+  // Priorité à eventTime (heure réelle de l'événement) sur time (heure de déclenchement du rappel).
+  const rawEventTime = typeof cfg.eventTime === "string" && /^\d{1,2}:\d{2}$/.test(cfg.eventTime) ? cfg.eventTime : null;
+  const rawTriggerTime = typeof cfg.time === "string" && /^\d{1,2}:\d{2}$/.test(cfg.time) ? cfg.time : "09:00";
+  const rawTime = rawEventTime ?? rawTriggerTime;
   const time = rawTime.length === 4 ? `0${rawTime}` : rawTime;
   const at = (ymd: string) => fromZonedTime(`${ymd}T${time}:00`, timezone);
   const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -196,42 +199,55 @@ export async function executeAction(
         };
         await admin.from("Automation").insert(automationData);
 
-        // Inscription dans l'Agenda connecté IA si une date concrète est déterminable.
+        // Inscription dans l'Agenda connecté IA uniquement si ce n'est pas un simple rappel.
+        // Un rappel (eventTime présent et différent de time) pointe vers un événement existant
+        // ou doit être créé séparément via create_event avec l'heure réelle : on n'inscrit pas
+        // l'heure de déclenchement comme heure d'événement.
+        const isReminderAutomation = typeof triggerConfig.eventTime === "string" && triggerConfig.eventTime !== triggerConfig.time;
         let addedToAgenda = false;
-        try {
-          const { data: community } = await admin.from("Community").select("timezone").eq("id", communityId).single();
-          const timezone = (community as { timezone?: string } | null)?.timezone ?? "Europe/Paris";
-          const start = computeAutomationStart(trigger, triggerConfig, timezone);
-          if (start) {
-            const eventId = crypto.randomUUID();
-            const isRecurring = ["weekly", "monthly", "daily", "custom"].includes(String(triggerConfig.repeat));
-            await admin.from("Event").insert({
-              id: eventId,
-              communityId,
-              title: automationData.name,
-              description: automationData.description ?? "Automatisation programmée depuis l'assistant IA.",
-              startDate: start.toISOString(),
-              endDate: new Date(start.getTime() + 60 * 60 * 1000).toISOString(),
-              category: "OTHER",
-              status: "DRAFT",
-              isRecurring,
-              isPublic: false,
-              notes: "Créé automatiquement depuis l'assistant IA (automatisation).",
-              createdAt: nowIso,
-              updatedAt: nowIso,
-            });
-            await admin.from("Automation").update({ eventId }).eq("id", id);
-            addedToAgenda = true;
+        if (!isReminderAutomation) {
+          try {
+            const { data: community } = await admin.from("Community").select("timezone").eq("id", communityId).single();
+            const timezone = (community as { timezone?: string } | null)?.timezone ?? "Europe/Paris";
+            const start = computeAutomationStart(trigger, triggerConfig, timezone);
+            if (start) {
+              const eventId = crypto.randomUUID();
+              const isRecurring = ["weekly", "monthly", "daily", "custom"].includes(String(triggerConfig.repeat));
+              // Titre de l'événement : eventTitle (heure réelle) prioritaire sur le nom de l'automatisation
+              const eventTitle = typeof triggerConfig.eventTitle === "string" && triggerConfig.eventTitle.trim()
+                ? triggerConfig.eventTitle.trim()
+                : automationData.name;
+              await admin.from("Event").insert({
+                id: eventId,
+                communityId,
+                title: eventTitle,
+                description: automationData.description ?? "Automatisation programmée depuis l'assistant IA.",
+                startDate: start.toISOString(),
+                endDate: new Date(start.getTime() + 60 * 60 * 1000).toISOString(),
+                category: "OTHER",
+                status: "DRAFT",
+                isRecurring,
+                isPublic: false,
+                notes: "Créé automatiquement depuis l'assistant IA (automatisation).",
+                createdAt: nowIso,
+                updatedAt: nowIso,
+              });
+              await admin.from("Automation").update({ eventId }).eq("id", id);
+              addedToAgenda = true;
+            }
+          } catch (e) {
+            console.error("[create_automation] Inscription agenda échouée:", (e as Error).message);
           }
-        } catch (e) {
-          console.error("[create_automation] Inscription agenda échouée:", (e as Error).message);
         }
 
+        const reminderNote = isReminderAutomation
+          ? ` C'est un rappel : si l'événement n'est pas encore dans l'agenda, crée-le via create_event avec l'heure réelle (${String(triggerConfig.eventTime ?? "")}), pas l'heure du rappel.`
+          : "";
         return {
           success: true,
           message: addedToAgenda
             ? `Automatisation « ${automationData.name} » créée et ajoutée à votre agenda.`
-            : `Automatisation « ${automationData.name} » créée.`,
+            : `Automatisation « ${automationData.name} » créée.${reminderNote}`,
           data: { id },
         };
       }

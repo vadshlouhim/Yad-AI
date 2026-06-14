@@ -24,7 +24,7 @@ export function buildTools(opts: { gmailConnected: boolean }): ChatCompletionToo
       function: {
         name: "create_automation",
         description:
-          "Crée une automatisation (envoi d'emails/messages, génération de contenu, notifications, avec récurrence).\n\nRÈGLE CRITIQUE SUR LE TIMING : Si l'automatisation se déclenche avant un événement (ex : rappel 2h avant un cours à 21h), triggerConfig.time correspond à l'heure de DÉCLENCHEMENT (ex : 19:00), mais le contenu des messages (messageText, notificationBody, emailBody) doit toujours mentionner l'heure RÉELLE de l'événement (21h), jamais l'heure de déclenchement.",
+          "Crée une automatisation (envoi d'emails/messages, génération de contenu, notifications, avec récurrence).\n\nRÈGLES CRITIQUES POUR LES RAPPELS :\n1. triggerConfig.time = heure de DÉCLENCHEMENT du rappel (ex: 18:30).\n2. triggerConfig.eventTime = heure RÉELLE de l'événement (ex: 20:30) — OBLIGATOIRE si différente de time. L'agenda utilise eventTime, jamais time.\n3. triggerConfig.eventTitle = titre de l'événement réel dans l'agenda (ex: 'Cours de Torah'), PAS le nom du rappel.\n4. Le corps du message (messageText, emailBody, notificationBody) mentionne toujours l'heure de l'événement (eventTime), jamais l'heure du rappel (time).\n5. Si l'événement réel n'existe pas encore dans l'agenda, appelle create_event séparément avec l'heure eventTime après avoir créé l'automatisation.",
         parameters: {
           type: "object",
           properties: {
@@ -37,7 +37,9 @@ export function buildTools(opts: { gmailConnected: boolean }): ChatCompletionToo
             triggerConfig: {
               type: "object",
               properties: {
-                time: { type: "string", description: "HH:MM" },
+                time: { type: "string", description: "HH:MM — heure de DÉCLENCHEMENT de l'automatisation (ex: 18:30 pour un rappel envoyé 2h avant)" },
+                eventTime: { type: "string", description: "HH:MM — heure RÉELLE de l'événement que rappelle cette automatisation (ex: 20:30 pour le cours). Obligatoire si time ≠ heure de l'événement. Quand présent, l'agenda utilise cette heure, pas time." },
+                eventTitle: { type: "string", description: "Titre de l'événement RÉEL dans l'agenda (ex: 'Cours de Torah'). Si absent, le nom de l'automatisation est utilisé — souvent trompeur pour un rappel." },
                 date: { type: "string", description: "YYYY-MM-DD" },
                 repeat: { type: "string", enum: ["none", "weekly", "monthly", "custom"] },
                 days: { type: "array", items: { type: "string" } },
