@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveCommunityPhones, sendWhatsAppMessages, sanitizePhone } from "@/lib/whatsapp/send";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 async function getCommunityId(userId: string) {
   const admin = createAdminClient();
   const { data: profile } = await admin.from("profiles").select("communityId").eq("id", userId).single();

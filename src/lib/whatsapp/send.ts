@@ -108,7 +108,6 @@ async function sendViaPersonalService(params: {
     });
 
     if (res.status === 409) {
-      // Session non connectée → inviter à scanner le QR
       return {
         configured: true,
         sent: 0,
@@ -116,6 +115,20 @@ async function sendViaPersonalService(params: {
         total: params.phones.length,
         templateRequired: false,
         errors: ["WhatsApp non connecté. Scannez le QR code dans la page WhatsApp."],
+      };
+    }
+
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      const text = await res.text();
+      console.error("[WhatsApp send] Réponse non-JSON Railway :", res.status, text.slice(0, 200));
+      return {
+        configured: true,
+        sent: 0,
+        failed: params.phones.length,
+        total: params.phones.length,
+        templateRequired: false,
+        errors: [`Erreur service (HTTP ${res.status}) — réessayez dans quelques secondes.`],
       };
     }
 
