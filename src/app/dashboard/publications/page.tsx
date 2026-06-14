@@ -47,11 +47,13 @@ export default async function PublicationsPage({
   const statsByStatus = Object.fromEntries(statusCounts);
 
   return (
-    <PublicationsClient
-      publications={(publications ?? []) as Parameters<typeof PublicationsClient>[0]["publications"]}
-      statsByStatus={statsByStatus}
-      activeStatus={status}
-      activeChannel={params.channel}
-    />
+    <div className="container max-w-6xl mx-auto py-6 px-4 sm:px-6">
+      <PublicationsClient
+        publications={(publications ?? []) as Parameters<typeof PublicationsClient>[0]["publications"]}
+        statsByStatus={statsByStatus}
+        activeStatus={status}
+        activeChannel={params.channel}
+      />
+    </div>
   );
 }

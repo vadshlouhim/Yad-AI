@@ -153,13 +153,15 @@ export default async function AutomationsPage() {
     : { data: [] };
 
   return (
-    <AutomationsClient
-      automations={(automations ?? []) as Parameters<typeof AutomationsClient>[0]["automations"]}
-      presets={applicablePresets as Parameters<typeof AutomationsClient>[0]["presets"]}
-      recentRuns={(runs ?? []) as Parameters<typeof AutomationsClient>[0]["recentRuns"]}
-      requiresValidationDefault={requiresValidationDefault}
-      communityType={profileType || community?.communityType || "OTHER"}
-      profileLabel={profileLabel}
-    />
+    <div className="container max-w-6xl mx-auto py-6 px-4 sm:px-6">
+      <AutomationsClient
+        automations={(automations ?? []) as Parameters<typeof AutomationsClient>[0]["automations"]}
+        presets={applicablePresets as Parameters<typeof AutomationsClient>[0]["presets"]}
+        recentRuns={(runs ?? []) as Parameters<typeof AutomationsClient>[0]["recentRuns"]}
+        requiresValidationDefault={requiresValidationDefault}
+        communityType={profileType || community?.communityType || "OTHER"}
+        profileLabel={profileLabel}
+      />
+    </div>
   );
 }
