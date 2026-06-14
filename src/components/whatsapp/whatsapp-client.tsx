@@ -97,6 +97,36 @@ function WhatsAppConnect() {
     };
   }, [mode, status]);
 
+  // Polling du QR toutes les 2 s jusqu'à réception
+  const qrPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopQrPoll = useCallback(() => {
+    if (qrPollRef.current) {
+      clearInterval(qrPollRef.current);
+      qrPollRef.current = null;
+    }
+  }, []);
+
+  const startQrPoll = useCallback(() => {
+    stopQrPoll();
+    qrPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch("/api/whatsapp/qr");
+        if (!res.ok) return;
+        const data = await res.json() as { status: WaStatus; qr?: string };
+        setStatus(data.status);
+        if (data.qr) {
+          setQrDataUrl(data.qr);
+          setLoading(false);
+        }
+        if (data.status === "connected" || data.status === "auth_failure" || data.status === "error") {
+          stopQrPoll();
+          setLoading(false);
+        }
+      } catch {}
+    }, 2_000);
+  }, [stopQrPoll]);
+
   const activatePersonal = useCallback(async () => {
     setLoading(true);
     setQrDataUrl(null);
@@ -106,32 +136,25 @@ function WhatsAppConnect() {
       setMode("personal");
       setStatus("initializing");
 
-      // 2. Déclenche la génération du QR (long-poll 30 s)
-      const res = await fetch("/api/whatsapp/qr");
-      const data = await res.json() as { status: WaStatus; qr?: string };
-      setStatus(data.status);
-      if (data.qr) setQrDataUrl(data.qr);
+      // 2. Démarre la session sur Railway (retour immédiat)
+      await fetch("/api/whatsapp/qr", { method: "POST" });
+
+      // 3. Poll toutes les 2 s jusqu'à obtenir le QR
+      startQrPoll();
     } catch {
       setStatus("error");
-    } finally {
       setLoading(false);
     }
-  }, []);
+  }, [startQrPoll]);
 
   const refreshQr = useCallback(async () => {
     setLoading(true);
     setQrDataUrl(null);
-    try {
-      const res = await fetch("/api/whatsapp/qr");
-      const data = await res.json() as { status: WaStatus; qr?: string };
-      setStatus(data.status);
-      if (data.qr) setQrDataUrl(data.qr);
-    } catch {
-      setStatus("error");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    startQrPoll();
+  }, [startQrPoll]);
+
+  // Nettoyage au démontage
+  useEffect(() => () => stopQrPoll(), [stopQrPoll]);
 
   const disconnect = useCallback(async () => {
     setDisconnecting(true);

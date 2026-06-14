@@ -96,9 +96,33 @@ async function getOrCreateSession(communityId) {
   return entry;
 }
 
-// ── GET /session/:id/qr ─────────────────────────────────────────────────────
-// Démarre la session si besoin et retourne le QR ou le statut connecté.
-// Long-poll de 30 s si le QR n'est pas encore prêt.
+// ── POST /session/:id/start ──────────────────────────────────────────────────
+// Démarre la session en arrière-plan et retourne immédiatement.
+// Le client poll /qr-instant ou /status pour savoir quand le QR est prêt.
+app.post("/session/:id/start", auth, async (req, res) => {
+  getOrCreateSession(req.params.id); // démarre sans await
+  return res.json({ ok: true });
+});
+
+// ── GET /session/:id/qr-instant ─────────────────────────────────────────────
+// Retourne immédiatement ce qui est disponible : QR ou statut.
+// Pas de long-poll — compatible avec les fonctions serverless (timeout 10 s).
+app.get("/session/:id/qr-instant", auth, async (req, res) => {
+  const entry = sessions.get(req.params.id);
+
+  if (!entry) {
+    return res.json({ status: "disconnected" });
+  }
+  if (entry.status === "connected") {
+    return res.json({ status: "connected" });
+  }
+  if (entry.qrDataUrl) {
+    return res.json({ status: "qr_pending", qr: entry.qrDataUrl });
+  }
+  return res.json({ status: entry.status });
+});
+
+// ── GET /session/:id/qr (legacy — long-poll 30 s) ───────────────────────────
 app.get("/session/:id/qr", auth, async (req, res) => {
   const entry = await getOrCreateSession(req.params.id);
 
@@ -110,7 +134,6 @@ app.get("/session/:id/qr", auth, async (req, res) => {
     return res.json({ status: "qr_pending", qr: entry.qrDataUrl });
   }
 
-  // Attendre que le QR arrive (max 30 s)
   const qr = await new Promise((resolve) => {
     const timer = setTimeout(() => resolve(null), 30_000);
     entry.qrWaiters.push((dataUrl) => {

@@ -11,9 +11,13 @@ async function getCommunityId(userId: string): Promise<string | null> {
   return (data as { communityId?: string } | null)?.communityId ?? null;
 }
 
+// GET → retourne immédiatement le statut + QR si disponible (pas de long-poll)
 export async function GET() {
   if (!SERVICE_URL || !SERVICE_SECRET) {
-    return NextResponse.json({ error: "Service WhatsApp non configuré (WHATSAPP_SERVICE_URL manquant)." }, { status: 503 });
+    return NextResponse.json(
+      { error: "Service WhatsApp non configuré (WHATSAPP_SERVICE_URL manquant)." },
+      { status: 503 }
+    );
   }
 
   const supabase = await createClient();
@@ -24,10 +28,10 @@ export async function GET() {
   if (!communityId) return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
 
   try {
-    const res = await fetch(`${SERVICE_URL}/session/${communityId}/qr`, {
+    // Appel court (5 s max) : on demande juste ce qui est disponible maintenant
+    const res = await fetch(`${SERVICE_URL}/session/${communityId}/qr-instant`, {
       headers: { "x-service-secret": SERVICE_SECRET },
-      // 35 s : le service long-poll 30 s côté WA
-      signal: AbortSignal.timeout(35_000),
+      signal: AbortSignal.timeout(5_000),
     });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
@@ -37,7 +41,34 @@ export async function GET() {
   }
 }
 
-// DELETE → déconnecte la session en cours
+// POST → démarre la session sur Railway (retourne immédiatement)
+export async function POST() {
+  if (!SERVICE_URL || !SERVICE_SECRET) {
+    return NextResponse.json({ error: "Service non configuré." }, { status: 503 });
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+
+  const communityId = await getCommunityId(user.id);
+  if (!communityId) return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
+
+  try {
+    // Démarre la session en arrière-plan sans attendre le QR
+    await fetch(`${SERVICE_URL}/session/${communityId}/start`, {
+      method: "POST",
+      headers: { "x-service-secret": SERVICE_SECRET },
+      signal: AbortSignal.timeout(5_000),
+    });
+  } catch {
+    // On ignore l'erreur réseau — la session démarre quand même
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
+// DELETE → déconnecte la session
 export async function DELETE() {
   if (!SERVICE_URL || !SERVICE_SECRET) {
     return NextResponse.json({ error: "Service non configuré." }, { status: 503 });
@@ -51,7 +82,6 @@ export async function DELETE() {
   if (!communityId) return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
 
   const admin = createAdminClient();
-  // Repasser en mode cloud dans les réglages du canal
   await (admin as ReturnType<typeof createAdminClient> & { from: (t: string) => ReturnType<ReturnType<typeof createAdminClient>["from"]> })
     .from("Channel")
     .update({ settings: {} })
@@ -62,6 +92,7 @@ export async function DELETE() {
     await fetch(`${SERVICE_URL}/session/${communityId}`, {
       method: "DELETE",
       headers: { "x-service-secret": SERVICE_SECRET },
+      signal: AbortSignal.timeout(5_000),
     });
   } catch {}
 
