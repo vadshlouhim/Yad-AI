@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   CalendarClock,
@@ -10,17 +11,22 @@ import {
   Loader2,
   MessageCircle,
   Phone,
+  RefreshCw,
   Search,
   Send,
+  Smartphone,
   Sparkles,
   Users,
   UserRound,
+  WifiOff,
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type Target = "community" | "contacts" | "phone";
+type WaStatus = "disconnected" | "initializing" | "qr_pending" | "authenticated" | "connected" | "auth_failure" | "error" | "unreachable";
+type WaMode = "cloud" | "personal";
 
 interface Member {
   id: string;
@@ -49,6 +55,238 @@ const AUTOMATION_SCENARIOS = [
 const DEFAULT_MESSAGE =
   "Annonce le cours de Torah de mardi soir à 20h30 au Beth Habad, ton chaleureux et professionnel.";
 
+// ── Bloc connexion WhatsApp Web ──────────────────────────────────────────────
+
+function WhatsAppConnect() {
+  const [mode, setMode] = useState<WaMode>("cloud");
+  const [status, setStatus] = useState<WaStatus>("disconnected");
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Charge le statut initial
+  useEffect(() => {
+    fetch("/api/whatsapp/status")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { mode: WaMode; status: WaStatus } | null) => {
+        if (data) {
+          setMode(data.mode);
+          setStatus(data.status);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Polling du statut quand en mode personnel et pas encore connecté
+  useEffect(() => {
+    if (mode !== "personal" || status === "connected") {
+      if (pollRef.current) clearInterval(pollRef.current);
+      return;
+    }
+    pollRef.current = setInterval(() => {
+      fetch("/api/whatsapp/status")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data: { mode: WaMode; status: WaStatus } | null) => {
+          if (data?.status) setStatus(data.status);
+        })
+        .catch(() => {});
+    }, 3_000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [mode, status]);
+
+  const activatePersonal = useCallback(async () => {
+    setLoading(true);
+    setQrDataUrl(null);
+    try {
+      // 1. Bascule le canal en mode personnel
+      await fetch("/api/whatsapp/status", { method: "POST" });
+      setMode("personal");
+      setStatus("initializing");
+
+      // 2. Déclenche la génération du QR (long-poll 30 s)
+      const res = await fetch("/api/whatsapp/qr");
+      const data = await res.json() as { status: WaStatus; qr?: string };
+      setStatus(data.status);
+      if (data.qr) setQrDataUrl(data.qr);
+    } catch {
+      setStatus("error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const refreshQr = useCallback(async () => {
+    setLoading(true);
+    setQrDataUrl(null);
+    try {
+      const res = await fetch("/api/whatsapp/qr");
+      const data = await res.json() as { status: WaStatus; qr?: string };
+      setStatus(data.status);
+      if (data.qr) setQrDataUrl(data.qr);
+    } catch {
+      setStatus("error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const disconnect = useCallback(async () => {
+    setDisconnecting(true);
+    try {
+      await fetch("/api/whatsapp/qr", { method: "DELETE" });
+      setMode("cloud");
+      setStatus("disconnected");
+      setQrDataUrl(null);
+    } catch {} finally {
+      setDisconnecting(false);
+    }
+  }, []);
+
+  // ── Mode cloud (pas de session personnelle) ───────────────────────────────
+  if (mode === "cloud") {
+    return (
+      <section className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="max-w-xl">
+            <div className="mb-3 flex items-center gap-2">
+              <Smartphone className="size-5 text-emerald-700" />
+              <h2 className="text-base font-semibold text-slate-950">Connexion WhatsApp depuis votre téléphone</h2>
+            </div>
+            <p className="text-sm leading-6 text-slate-600">
+              Connectez votre numéro WhatsApp personnel en scannant un QR code depuis votre téléphone — sans compte Business ni paiement. Les messages sont envoyés depuis votre propre numéro.
+            </p>
+            <ul className="mt-3 space-y-1.5 text-xs text-slate-500">
+              <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-emerald-500" /> Votre numéro habituel, pas un numéro Business</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-emerald-500" /> Aucun frais Meta ni compte payant requis</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="size-3.5 text-emerald-500" /> Reconnexion automatique entre les sessions</li>
+            </ul>
+          </div>
+          <Button
+            onClick={activatePersonal}
+            disabled={loading}
+            className="h-11 w-full shrink-0 rounded-2xl bg-emerald-700 px-5 text-white shadow-[0_12px_28px_rgba(4,120,87,0.2)] transition-transform duration-200 hover:bg-emerald-800 active:scale-[0.98] sm:w-auto"
+          >
+            {loading ? <Loader2 className="size-4 animate-spin" /> : <Smartphone className="size-4" />}
+            {loading ? "Chargement du QR…" : "Connecter mon WhatsApp"}
+          </Button>
+        </div>
+      </section>
+    );
+  }
+
+  // ── Mode personnel connecté ───────────────────────────────────────────────
+  if (status === "connected") {
+    return (
+      <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex size-10 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-inner">
+              <CheckCircle2 className="size-5" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-emerald-900">WhatsApp connecté</p>
+              <p className="text-xs text-emerald-700">Messages envoyés depuis votre numéro personnel.</p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            onClick={disconnect}
+            disabled={disconnecting}
+            className="h-9 rounded-xl border-emerald-200 bg-white px-4 text-sm text-emerald-700 hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+          >
+            {disconnecting ? <Loader2 className="size-3.5 animate-spin" /> : <WifiOff className="size-3.5" />}
+            Déconnecter
+          </Button>
+        </div>
+      </section>
+    );
+  }
+
+  // ── QR en attente de scan ─────────────────────────────────────────────────
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="mb-4 flex items-center gap-2">
+        <Smartphone className="size-5 text-emerald-700" />
+        <h2 className="text-base font-semibold text-slate-950">Scannez le QR code avec WhatsApp</h2>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
+        {/* QR code */}
+        <div className="flex flex-col items-center gap-3">
+          {qrDataUrl ? (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
+              <Image src={qrDataUrl} alt="QR code WhatsApp" width={220} height={220} unoptimized />
+            </div>
+          ) : (
+            <div className="flex size-[220px] items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50">
+              {loading ? (
+                <Loader2 className="size-8 animate-spin text-emerald-500" />
+              ) : (
+                <p className="px-4 text-center text-xs text-slate-400">QR non disponible</p>
+              )}
+            </div>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refreshQr}
+            disabled={loading}
+            className="h-8 rounded-xl border-slate-200 px-3 text-xs text-slate-600 hover:border-emerald-200"
+          >
+            <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
+            Nouveau QR
+          </Button>
+        </div>
+
+        {/* Instructions */}
+        <div className="space-y-4">
+          <div className="space-y-3">
+            {[
+              { n: 1, text: "Ouvrez WhatsApp sur votre téléphone" },
+              { n: 2, text: 'Appuyez sur ⋮ puis sur "Appareils connectés"' },
+              { n: 3, text: 'Appuyez sur "Connecter un appareil"' },
+              { n: 4, text: "Scannez le QR code ci-contre avec votre téléphone" },
+            ].map(({ n, text }) => (
+              <div key={n} className="flex items-start gap-3">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">
+                  {n}
+                </span>
+                <p className="text-sm leading-6 text-slate-700">{text}</p>
+              </div>
+            ))}
+          </div>
+
+          {status === "authenticated" && (
+            <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              <Loader2 className="size-4 animate-spin" />
+              QR scanné — finalisation de la connexion…
+            </div>
+          )}
+
+          {(status === "auth_failure" || status === "error") && (
+            <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+              Connexion échouée. Générez un nouveau QR code.
+            </div>
+          )}
+
+          <Button
+            variant="outline"
+            onClick={disconnect}
+            className="h-9 rounded-xl border-slate-200 px-4 text-sm text-slate-500 hover:border-red-200 hover:text-red-600"
+          >
+            Annuler
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Page WhatsApp principale ─────────────────────────────────────────────────
+
 export function WhatsAppClient() {
   const [prompt, setPrompt] = useState("");
   const [message, setMessage] = useState("");
@@ -64,7 +302,6 @@ export function WhatsAppClient() {
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // Charge les contacts à la première sélection du mode "contacts".
   useEffect(() => {
     if (target !== "contacts" || members !== null) return;
     setMembersLoading(true);
@@ -177,16 +414,21 @@ export function WhatsAppClient() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
+      {/* En-tête */}
       <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-[#064e3b] via-[#047857] to-[#0f9f6e] p-5 shadow-[0_20px_44px_-28px_rgba(6,78,59,0.42)] sm:p-6">
         <div className="max-w-4xl">
           <div className="mb-3 h-1.5 w-10 rounded-full bg-emerald-200/90" />
           <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">WhatsApp</h1>
           <p className="mt-3 text-sm leading-6 text-emerald-50/90">
-            Écrivez n’importe quel message, l’IA le rédige, puis envoyez-le directement à toute la communauté, à des contacts choisis ou à un numéro.
+            Connectez votre numéro personnel ou votre compte Business pour envoyer des messages à toute votre communauté depuis EasyCom IA.
           </p>
         </div>
       </section>
 
+      {/* Bloc connexion WhatsApp Web */}
+      <WhatsAppConnect />
+
+      {/* Assistant IA + envoi */}
       <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="max-w-2xl">
@@ -195,7 +437,7 @@ export function WhatsAppClient() {
             </div>
             <h2 className="text-lg font-semibold tracking-tight text-slate-950 sm:text-xl">Assistant IA WhatsApp</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Décrivez votre annonce, l’IA rédige un message WhatsApp prêt à envoyer. Vous validez les destinataires avant l’envoi.
+              Décrivez votre annonce, l'IA rédige un message WhatsApp prêt à envoyer. Vous validez les destinataires avant l'envoi.
             </p>
           </div>
 
@@ -234,7 +476,7 @@ export function WhatsAppClient() {
                 className="mt-3 h-11 w-full rounded-2xl bg-emerald-700 px-5 text-white shadow-[0_12px_28px_rgba(4,120,87,0.2)] transition-transform duration-200 hover:bg-emerald-800 active:scale-[0.98] sm:w-auto"
               >
                 {generating ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-                {generating ? "Génération…" : "Générer avec l’IA"}
+                {generating ? "Génération…" : "Générer avec l'IA"}
               </Button>
             </div>
 
@@ -246,7 +488,7 @@ export function WhatsAppClient() {
                 id="whatsapp-message"
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
-                placeholder="Le message généré par l’IA apparaîtra ici. Vous pouvez le modifier librement avant l’envoi."
+                placeholder="Le message généré par l'IA apparaîtra ici. Vous pouvez le modifier librement avant l'envoi."
                 className="mt-3 min-h-40 w-full resize-none rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-800 outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
               />
             </div>
@@ -384,7 +626,7 @@ export function WhatsAppClient() {
                     </p>
                     {sendResult.templateRequired && (
                       <p className="mt-1 text-xs">
-                        WhatsApp exige un template approuvé hors fenêtre de 24 h. Configurez-le dans Réglages → Canaux, ou utilisez « Ouvrir WhatsApp ».
+                        WhatsApp exige un template approuvé hors fenêtre de 24 h. Connectez votre numéro personnel ci-dessus, ou configurez un template dans Réglages → Canaux.
                       </p>
                     )}
                     {sendResult.errors.length > 0 && !sendResult.templateRequired && (
@@ -398,6 +640,7 @@ export function WhatsAppClient() {
         </div>
       </section>
 
+      {/* Automatisations */}
       <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>

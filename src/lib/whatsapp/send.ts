@@ -1,9 +1,10 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const GRAPH_VERSION = "v21.0";
+const SERVICE_URL = process.env.WHATSAPP_SERVICE_URL;
+const SERVICE_SECRET = process.env.WHATSAPP_SERVICE_SECRET;
 
-// Codes d'erreur Meta indiquant qu'un message texte libre est refusé hors
-// fenêtre de service 24 h : un template approuvé est alors requis.
+// Codes Meta indiquant qu'un template approuvé est requis hors fenêtre 24 h.
 const TEMPLATE_REQUIRED_CODES = new Set([131047, 131026, 470, 131051]);
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -13,6 +14,7 @@ export interface WhatsAppCredentials {
   phoneNumberId: string | null;
   templateName: string | null;
   templateLanguage: string;
+  mode: "cloud" | "personal";
 }
 
 export interface WhatsAppSendResult {
@@ -46,11 +48,14 @@ export async function getWhatsAppCredentials(
     .maybeSingle();
 
   const settings = (channel?.settings as Record<string, unknown> | null) ?? {};
+  const mode = settings.mode === "personal" ? "personal" : "cloud";
+
   return {
     token: channel?.accessToken || process.env.WHATSAPP_ACCESS_TOKEN || null,
     phoneNumberId: channel?.pageId || process.env.WHATSAPP_PHONE_NUMBER_ID || null,
     templateName: typeof settings.templateName === "string" ? settings.templateName : null,
     templateLanguage: typeof settings.templateLanguage === "string" ? settings.templateLanguage : "fr",
+    mode,
   };
 }
 
@@ -69,80 +74,130 @@ export async function resolveCommunityPhones(admin: Admin, communityId: string):
   return Array.from(new Set(phones));
 }
 
-/**
- * Envoie un message WhatsApp via la Cloud API à une liste de numéros.
- * Identifiants résolus depuis le canal WHATSAPP de la communauté (ou l'env).
- */
-export async function sendWhatsAppMessages(params: {
+// ── Mode personnel (whatsapp-web.js) ────────────────────────────────────────
+
+async function sendViaPersonalService(params: {
   communityId: string;
   phones: string[];
   text: string;
-  admin?: Admin;
 }): Promise<WhatsAppSendResult> {
-  const admin = params.admin ?? createAdminClient();
-  const phones = Array.from(
-    new Set(params.phones.map((p) => sanitizePhone(p)).filter((p): p is string => Boolean(p)))
-  );
+  if (!SERVICE_URL || !SERVICE_SECRET) {
+    return {
+      configured: false,
+      sent: 0,
+      failed: params.phones.length,
+      total: params.phones.length,
+      templateRequired: false,
+      errors: ["WHATSAPP_SERVICE_URL non configuré côté serveur."],
+    };
+  }
 
-  const { token, phoneNumberId, templateName, templateLanguage } = await getWhatsAppCredentials(
-    admin,
-    params.communityId
-  );
+  try {
+    const res = await fetch(`${SERVICE_URL}/send`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-service-secret": SERVICE_SECRET,
+      },
+      body: JSON.stringify({
+        communityId: params.communityId,
+        phones: params.phones,
+        text: params.text,
+      }),
+      signal: AbortSignal.timeout(60_000),
+    });
 
-  if (!token || !phoneNumberId) {
+    if (res.status === 409) {
+      // Session non connectée → inviter à scanner le QR
+      return {
+        configured: true,
+        sent: 0,
+        failed: params.phones.length,
+        total: params.phones.length,
+        templateRequired: false,
+        errors: ["WhatsApp non connecté. Scannez le QR code dans la page WhatsApp."],
+      };
+    }
+
+    const data = (await res.json()) as { sent?: number; failed?: number; total?: number; errors?: string[] };
+    return {
+      configured: true,
+      sent: data.sent ?? 0,
+      failed: data.failed ?? params.phones.length,
+      total: data.total ?? params.phones.length,
+      templateRequired: false,
+      errors: data.errors ?? [],
+    };
+  } catch (err) {
+    return {
+      configured: true,
+      sent: 0,
+      failed: params.phones.length,
+      total: params.phones.length,
+      templateRequired: false,
+      errors: [err instanceof Error ? err.message : "Service WhatsApp injoignable."],
+    };
+  }
+}
+
+// ── Mode cloud (Meta Cloud API) ──────────────────────────────────────────────
+
+async function sendViaCloudApi(params: {
+  phones: string[];
+  text: string;
+  creds: WhatsAppCredentials;
+}): Promise<WhatsAppSendResult> {
+  const { phones, text, creds } = params;
+
+  if (!creds.token || !creds.phoneNumberId) {
     return {
       configured: false,
       sent: 0,
       failed: phones.length,
       total: phones.length,
       templateRequired: false,
-      errors: ["WhatsApp n'est pas configuré (Phone Number ID ou token manquant)."],
+      errors: ["WhatsApp non configuré (Phone Number ID ou token manquant)."],
     };
   }
 
-  if (phones.length === 0) {
-    return { configured: true, sent: 0, failed: 0, total: 0, templateRequired: false, errors: ["Aucun destinataire valide."] };
-  }
-
-  const apiUrl = `https://graph.facebook.com/${GRAPH_VERSION}/${phoneNumberId}/messages`;
+  const apiUrl = `https://graph.facebook.com/${GRAPH_VERSION}/${creds.phoneNumberId}/messages`;
   let sent = 0;
   let templateRequired = false;
   const errors: string[] = [];
 
   for (const to of phones) {
-    const body = templateName
+    const body = creds.templateName
       ? {
           messaging_product: "whatsapp",
           to,
           type: "template",
-          template: { name: templateName, language: { code: templateLanguage } },
+          template: { name: creds.templateName, language: { code: creds.templateLanguage } },
         }
       : {
           messaging_product: "whatsapp",
           to,
           type: "text",
-          text: { preview_url: true, body: params.text },
+          text: { preview_url: true, body: text },
         };
 
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        headers: { Authorization: `Bearer ${creds.token}`, "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const data = await response.json();
-      if (response.ok && data?.messages?.length) {
+      if (response.ok && (data as { messages?: unknown[] })?.messages?.length) {
         sent += 1;
       } else {
-        const code = data?.error?.code;
-        if (TEMPLATE_REQUIRED_CODES.has(code)) templateRequired = true;
-        errors.push(data?.error?.message ?? `HTTP ${response.status}`);
+        const code = (data as { error?: { code?: number; message?: string } })?.error?.code;
+        if (code && TEMPLATE_REQUIRED_CODES.has(code)) templateRequired = true;
+        errors.push((data as { error?: { message?: string } })?.error?.message ?? `HTTP ${response.status}`);
       }
     } catch (error) {
       errors.push(error instanceof Error ? error.message : "Erreur réseau");
     }
 
-    // Throttle léger pour rester sous les limites de débit Cloud API.
     await new Promise((resolve) => setTimeout(resolve, 120));
   }
 
@@ -154,4 +209,30 @@ export async function sendWhatsAppMessages(params: {
     templateRequired,
     errors: Array.from(new Set(errors)).slice(0, 5),
   };
+}
+
+// ── Point d'entrée principal ─────────────────────────────────────────────────
+
+export async function sendWhatsAppMessages(params: {
+  communityId: string;
+  phones: string[];
+  text: string;
+  admin?: Admin;
+}): Promise<WhatsAppSendResult> {
+  const admin = params.admin ?? createAdminClient();
+  const phones = Array.from(
+    new Set(params.phones.map((p) => sanitizePhone(p)).filter((p): p is string => Boolean(p)))
+  );
+
+  if (phones.length === 0) {
+    return { configured: true, sent: 0, failed: 0, total: 0, templateRequired: false, errors: ["Aucun destinataire valide."] };
+  }
+
+  const creds = await getWhatsAppCredentials(admin, params.communityId);
+
+  if (creds.mode === "personal") {
+    return sendViaPersonalService({ communityId: params.communityId, phones, text: params.text });
+  }
+
+  return sendViaCloudApi({ phones, text: params.text, creds });
 }

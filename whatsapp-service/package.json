@@ -1,0 +1,15 @@
+{
+  "name": "whatsapp-service",
+  "version": "1.0.0",
+  "description": "Microservice WhatsApp Web pour EasyCom IA",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "qrcode": "^1.5.3",
+    "whatsapp-web.js": "^1.26.0"
+  }
+}
