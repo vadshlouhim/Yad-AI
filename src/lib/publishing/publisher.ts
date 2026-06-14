@@ -4,7 +4,7 @@ import { publishToFacebook } from "./adapters/facebook";
 import { publishToInstagram } from "./adapters/instagram";
 import { publishToTelegram } from "./adapters/telegram";
 import { prepareEmailFallback } from "./adapters/email";
-import { prepareWhatsAppFallback } from "./adapters/whatsapp";
+import { publishToWhatsApp } from "./adapters/whatsapp";
 
 type Publication = Tables<"Publication">;
 type Channel = Tables<"Channel">;
@@ -57,7 +57,7 @@ export async function publishToChannel(
         result = await publishToTelegram(channel, payload);
         break;
       case "WHATSAPP":
-        result = await prepareWhatsAppFallback(channel, payload, publication.communityId);
+        result = await publishToWhatsApp(channel, payload, publication.communityId);
         break;
       case "EMAIL":
         result = await prepareEmailFallback(channel, payload, publication.communityId);

@@ -67,9 +67,11 @@ const CHANNEL_CONFIG: Record<string, {
     brandColor: "from-green-500 to-emerald-400",
     brandBorder: "border-green-200",
     brandText: "text-green-600",
-    description: "Diffusez via WhatsApp. EasyCom IA génère des textes prêts à envoyer.",
-    authType: "manual",
-    badge: "Copier-coller",
+    description: "Diffusez automatiquement via l'API WhatsApp Business (Cloud API) aux contacts opt-in. Sans configuration, EasyCom IA bascule sur le mode copier-coller.",
+    authType: "token",
+    badge: "Cloud API",
+    botField: "Identifiant du numéro (Phone Number ID)",
+    tokenField: "Token d'accès permanent",
   },
   TELEGRAM: {
     logo: "/logo/telegram-svgrepo-com.svg",
@@ -381,7 +383,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                   {cfg.authType === "oauth" && (
                     <div className="space-y-4">
                       <p className="text-sm text-slate-600 leading-relaxed">
-                        {cfg.description} La connexion se fait via le dialogue officiel Meta ??? aucun mot de passe n&apos;est stock??.
+                        {cfg.description} La connexion se fait via le dialogue officiel Meta — aucun mot de passe n&apos;est stocké.
                       </p>
 
                       {isConnected ? (
@@ -439,7 +441,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                   {cfg.authType === "gmail-oauth" && (
                     <div className="space-y-4">
                       <p className="text-sm text-slate-600 leading-relaxed">
-                        {cfg.description} La connexion passe par le dialogue officiel Google ??? aucun mot de passe n&apos;est stock??.
+                        {cfg.description} La connexion passe par le dialogue officiel Google — aucun mot de passe n&apos;est stocké.
                       </p>
 
                       {isConnected ? (
@@ -494,30 +496,106 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                       <p className="text-sm text-slate-600">{cfg.description}</p>
 
                       {type === "TELEGRAM" && (
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
-                              Token du bot
-                            </label>
-                            <input
-                              type="password"
-                              value={tokenInput[`${type}_access`] ?? (channel?.isConnected ? "••••••••" : "")}
-                              onChange={(e) => setTokenInput((p) => ({ ...p, [`${type}_access`]: e.target.value }))}
-                              placeholder="1234567890:ABCdefGHI..."
-                              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                            />
+                        <div className="space-y-4">
+                          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 flex gap-3">
+                            <Info className="size-5 text-sky-600 flex-shrink-0 mt-0.5" />
+                            <div className="space-y-2">
+                              <p className="text-sm font-semibold text-sky-900">Comment connecter Telegram ?</p>
+                              <div className="space-y-1 text-xs leading-relaxed text-sky-800">
+                                <p>
+                                  <strong>Token du bot :</strong> ouvrez Telegram, cherchez <strong>@BotFather</strong>,
+                                  envoyez <code className="rounded bg-sky-100 px-1">/newbot</code>, puis copiez le token fourni.
+                                </p>
+                                <p>
+                                  <strong>Chat ID :</strong> ajoutez le bot dans votre groupe ou canal, envoyez un message,
+                                  puis ouvrez <code className="rounded bg-sky-100 px-1">https://api.telegram.org/botTOKEN/getUpdates</code>
+                                  en remplaçant <strong>TOKEN</strong> par le token du bot.
+                                </p>
+                                <p>
+                                  Le Chat ID est la valeur <code className="rounded bg-sky-100 px-1">chat.id</code>.
+                                  Pour un groupe ou canal, il commence souvent par <strong>-100</strong>. Gardez le token privé.
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
-                              Chat ID
-                            </label>
-                            <input
-                              type="text"
-                              value={tokenInput[`${type}_pageid`] ?? (channel?.pageId ?? "")}
-                              onChange={(e) => setTokenInput((p) => ({ ...p, [`${type}_pageid`]: e.target.value }))}
-                              placeholder="-1001234567890"
-                              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                            />
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                                Token du bot
+                              </label>
+                              <input
+                                type="password"
+                                value={tokenInput[`${type}_access`] ?? (channel?.isConnected ? "••••••••" : "")}
+                                onChange={(e) => setTokenInput((p) => ({ ...p, [`${type}_access`]: e.target.value }))}
+                                placeholder="1234567890:ABCdefGHI..."
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                                Chat ID
+                              </label>
+                              <input
+                                type="text"
+                                value={tokenInput[`${type}_pageid`] ?? (channel?.pageId ?? "")}
+                                onChange={(e) => setTokenInput((p) => ({ ...p, [`${type}_pageid`]: e.target.value }))}
+                                placeholder="-1001234567890"
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {type === "WHATSAPP" && (
+                        <div className="space-y-4">
+                          <div className="rounded-2xl border border-green-200 bg-green-50 p-4 flex gap-3">
+                            <Info className="size-5 text-green-600 flex-shrink-0 mt-0.5" />
+                            <div className="space-y-2">
+                              <p className="text-sm font-semibold text-green-900">Comment connecter WhatsApp ?</p>
+                              <div className="space-y-1 text-xs leading-relaxed text-green-800">
+                                <p>
+                                  Dans <strong>Meta Business</strong> → <strong>WhatsApp</strong> → <strong>API Setup</strong>,
+                                  récupérez le <strong>Phone Number ID</strong> du numéro expéditeur et un <strong>token d&apos;accès permanent</strong> (System User).
+                                </p>
+                                <p>
+                                  Les messages partent vers les contacts ayant activé l&apos;<strong>opt-in WhatsApp</strong>.
+                                  Hors fenêtre de 24 h, Meta impose un <strong>template approuvé</strong> : sinon, EasyCom IA bascule automatiquement en copier-coller.
+                                </p>
+                                <p>
+                                  Laissez le token vide pour utiliser celui configuré côté serveur.
+                                  Le token reste privé et n&apos;est jamais réaffiché.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                                {cfg.botField}
+                              </label>
+                              <input
+                                type="text"
+                                value={tokenInput[`${type}_pageid`] ?? (channel?.pageId ?? "")}
+                                onChange={(e) => setTokenInput((p) => ({ ...p, [`${type}_pageid`]: e.target.value }))}
+                                placeholder="1234567890123456"
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                                {cfg.tokenField}
+                              </label>
+                              <input
+                                type="password"
+                                value={tokenInput[`${type}_access`] ?? (channel?.isConnected ? "••••••••" : "")}
+                                onChange={(e) => setTokenInput((p) => ({ ...p, [`${type}_access`]: e.target.value }))}
+                                placeholder="EAAxxxxxxxxxxxx (optionnel)"
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                              />
+                            </div>
                           </div>
                         </div>
                       )}
@@ -568,27 +646,6 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                     </div>
                   )}
 
-                  {/* WhatsApp — manuel */}
-                  {cfg.authType === "manual" && (
-                    <div className="space-y-3">
-                      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 flex gap-3">
-                        <AlertCircle className="size-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                        <div className="space-y-1">
-                          <p className="text-sm font-semibold text-amber-800">Mode copier-coller</p>
-                          <p className="text-xs text-amber-700 leading-relaxed">
-                            WhatsApp ne permet pas la publication automatique sans l&apos;API Business officielle.
-                            EasyCom IA génère le contenu optimisé avec un lien <code className="bg-amber-100 rounded px-1">wa.me</code> prêt à partager.
-                          </p>
-                        </div>
-                      </div>
-                      <div className="rounded-2xl border border-green-200 bg-green-50 p-4 flex gap-3">
-                        <CheckCircle2 className="size-5 text-green-500 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-green-700">
-                          Aucune configuration requise ??? WhatsApp est pr??t ?? l&apos;emploi d??s maintenant.
-                        </p>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -605,7 +662,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
           <p className="text-sm font-semibold text-slate-800">Besoin d&apos;aide pour configurer un canal ?</p>
           <p className="text-xs text-slate-500 leading-relaxed">
             Consultez notre documentation ou contactez le support. Pour Instagram et Facebook,
-            assurez-vous d&apos;avoir un <strong>compte professionnel</strong> et d&apos;??tre <strong>administrateur</strong> de la Page.
+            assurez-vous d&apos;avoir un <strong>compte professionnel</strong> et d&apos;être <strong>administrateur</strong> de la Page.
           </p>
           <Link
             href="mailto:contact@easycom-AI.com"
