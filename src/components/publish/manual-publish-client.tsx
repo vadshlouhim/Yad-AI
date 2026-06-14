@@ -410,21 +410,43 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
 
           {isVisualPlatform && (
             <Link href="/dashboard/automations">
-              <Button
-                variant="outline"
+              <div
                 className={cn(
-                  "w-full rounded-2xl bg-white shadow-sm transition-all duration-200",
+                  "group w-full rounded-2xl border p-4 cursor-pointer transition-all duration-200 hover:scale-[1.01] hover:shadow-md",
                   isInstagram
-                    ? "border-pink-200 text-pink-700 hover:bg-pink-50 hover:text-pink-800"
-                    : "border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+                    ? "bg-gradient-to-r from-pink-50 to-orange-50 border-pink-100 hover:border-pink-300"
+                    : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100 hover:border-blue-300"
                 )}
               >
-                <Sparkles className="size-4" />
-                {isInstagram ? "Creer une automatisation Instagram" : "Creer une automatisation Facebook"}
-              </Button>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm",
+                        isInstagram
+                          ? "bg-gradient-to-tr from-pink-500 via-rose-500 to-yellow-500"
+                          : "bg-gradient-to-br from-blue-500 to-indigo-600"
+                      )}
+                    >
+                      <Sparkles className="size-4 text-white" />
+                    </div>
+                    <div>
+                      <p className={cn("text-sm font-bold leading-tight", isInstagram ? "text-pink-700" : "text-blue-700")}>
+                        {isInstagram ? "Créer une automatisation Instagram" : "Créer une automatisation Facebook"}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5">Planifier et publier ce type de contenu automatiquement</p>
+                    </div>
+                  </div>
+                  <svg
+                    className={cn("size-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5", isInstagram ? "text-pink-300" : "text-blue-300")}
+                    fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"
+                  >
+                    <path d="M9 18l6-6-6-6"/>
+                  </svg>
+                </div>
+              </div>
             </Link>
           )}
-
 
           <Card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-blue-100/30 space-y-5">
             <h2 className="text-base font-bold text-slate-800 border-b border-slate-100 pb-3">
@@ -599,102 +621,113 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
                 </div>
               </div>
             ) : platformKey === "INSTAGRAM" ? (
-              /* Instagram Smartphone mockup — style iPhone doré */
-              <div className="w-full max-w-[300px] mx-auto relative" style={{ filter: "drop-shadow(0 24px 48px rgba(0,0,0,0.45))" }}>
-                {/* Bouton volume gauche */}
-                <div className="absolute -left-[10px] top-[90px] w-[4px] h-[32px] rounded-l-sm" style={{ background: "linear-gradient(180deg, #C9962A, #E8BB4A, #C9962A)" }} />
-                <div className="absolute -left-[10px] top-[132px] w-[4px] h-[32px] rounded-l-sm" style={{ background: "linear-gradient(180deg, #C9962A, #E8BB4A, #C9962A)" }} />
+              /* Instagram Smartphone mockup — iPhone doré 3 couches */
+              <div className="w-full max-w-[270px] mx-auto relative">
+                {/* Boutons volume gauche */}
+                <div className="absolute -left-[7px] top-[96px] w-[6px] h-[28px] rounded-l-[3px]" style={{ background: "linear-gradient(90deg, #8B6410, #E8BB4A, #C9962A)" }} />
+                <div className="absolute -left-[7px] top-[134px] w-[6px] h-[28px] rounded-l-[3px]" style={{ background: "linear-gradient(90deg, #8B6410, #E8BB4A, #C9962A)" }} />
+                {/* Bouton muet */}
+                <div className="absolute -left-[7px] top-[58px] w-[6px] h-[20px] rounded-l-[3px]" style={{ background: "linear-gradient(90deg, #8B6410, #E8BB4A, #C9962A)" }} />
                 {/* Bouton power droit */}
-                <div className="absolute -right-[10px] top-[110px] w-[4px] h-[52px] rounded-r-sm" style={{ background: "linear-gradient(180deg, #C9962A, #E8BB4A, #C9962A)" }} />
+                <div className="absolute -right-[7px] top-[112px] w-[6px] h-[48px] rounded-r-[3px]" style={{ background: "linear-gradient(90deg, #C9962A, #E8BB4A, #8B6410)" }} />
 
-                {/* Cadre téléphone doré */}
+                {/* ① Bague or */}
                 <div
-                  className="rounded-[40px] overflow-hidden flex flex-col bg-white"
+                  className="rounded-[44px] p-[4px]"
                   style={{
-                    border: "7px solid",
-                    borderColor: "#D4A533",
-                    boxShadow: "0 0 0 1px #8B6410, inset 0 0 0 1px rgba(255,220,80,0.25)",
+                    background: "linear-gradient(145deg, #F5D061, #C9962A, #F5D061, #A67C1A)",
+                    boxShadow: "0 0 0 1px #7A5A10, 0 28px 56px rgba(0,0,0,0.6), 0 8px 16px rgba(0,0,0,0.4)",
                   }}
                 >
-                  {/* Barre de statut iOS */}
-                  <div className="bg-white px-5 pt-2.5 pb-1 flex items-center justify-between flex-shrink-0">
-                    <span className="text-[12px] font-semibold tracking-tight text-black">9:41</span>
-                    <div className="flex items-center gap-1.5">
-                      {/* Signal */}
-                      <svg width="17" height="12" viewBox="0 0 17 12" fill="black">
-                        <rect x="0" y="8" width="3" height="4" rx="0.5"/>
-                        <rect x="4.5" y="5.5" width="3" height="6.5" rx="0.5"/>
-                        <rect x="9" y="3" width="3" height="9" rx="0.5"/>
-                        <rect x="13.5" y="0" width="3" height="12" rx="0.5" opacity="0.3"/>
-                      </svg>
-                      {/* Wifi */}
-                      <svg width="15" height="11" viewBox="0 0 20 15" fill="black">
-                        <path d="M10 2C6.7 2 3.7 3.3 1.5 5.4L0 3.9C2.6 1.4 6.1 0 10 0s7.4 1.4 10 3.9L18.5 5.4C16.3 3.3 13.3 2 10 2z"/>
-                        <path d="M10 6c-2.2 0-4.2.9-5.7 2.3L3 7C4.9 5.2 7.3 4 10 4s5.1 1.2 7 3l-1.3 1.3C14.2 6.9 12.2 6 10 6z"/>
-                        <path d="M10 10c-1 0-1.9.4-2.6 1L6 9.6C7.1 8.6 8.5 8 10 8s2.9.6 4 1.6L12.6 11C11.9 10.4 11 10 10 10z"/>
-                        <circle cx="10" cy="14" r="1.5"/>
-                      </svg>
-                      {/* Batterie */}
-                      <div className="flex items-center gap-0.5">
-                        <div className="relative w-[22px] h-[11px] rounded-[3px]" style={{ border: "1.5px solid black" }}>
-                          <div className="absolute inset-[2px] bg-black rounded-[1px]"/>
-                        </div>
-                        <div className="w-[2px] h-[5px] bg-black rounded-r-[1px]"/>
-                      </div>
-                    </div>
-                  </div>
+                  {/* ② Corps noir */}
+                  <div
+                    className="rounded-[40px] flex flex-col overflow-hidden"
+                    style={{ background: "#0D0D0D", padding: "8px 6px 6px" }}
+                  >
+                    {/* ③ Écran blanc */}
+                    <div className="rounded-[32px] overflow-hidden bg-white flex flex-col">
 
-                  {/* Dynamic Island */}
-                  <div className="flex justify-center mb-1.5 flex-shrink-0">
-                    <div className="w-[88px] h-[24px] bg-black rounded-full"/>
-                  </div>
-
-                  {/* Instagram Header */}
-                  <div className="px-3 py-2 border-b border-slate-100 flex items-center gap-2 justify-between flex-shrink-0">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-500 p-0.5">
-                        <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-[8px] font-bold text-slate-800">
-                          {communityName.substring(0, 2).toUpperCase()}
+                      {/* Barre de statut iOS */}
+                      <div className="bg-white px-4 pt-3 pb-1 flex items-center justify-between flex-shrink-0">
+                        <span className="text-[11px] font-semibold tracking-tight text-black">9:41</span>
+                        <div className="flex items-center gap-1.5">
+                          {/* Signal */}
+                          <svg width="16" height="11" viewBox="0 0 17 12" fill="black">
+                            <rect x="0" y="8" width="3" height="4" rx="0.5"/>
+                            <rect x="4.5" y="5.5" width="3" height="6.5" rx="0.5"/>
+                            <rect x="9" y="3" width="3" height="9" rx="0.5"/>
+                            <rect x="13.5" y="0" width="3" height="12" rx="0.5" opacity="0.3"/>
+                          </svg>
+                          {/* Wifi */}
+                          <svg width="14" height="10" viewBox="0 0 20 15" fill="black">
+                            <path d="M10 2C6.7 2 3.7 3.3 1.5 5.4L0 3.9C2.6 1.4 6.1 0 10 0s7.4 1.4 10 3.9L18.5 5.4C16.3 3.3 13.3 2 10 2z"/>
+                            <path d="M10 6c-2.2 0-4.2.9-5.7 2.3L3 7C4.9 5.2 7.3 4 10 4s5.1 1.2 7 3l-1.3 1.3C14.2 6.9 12.2 6 10 6z"/>
+                            <path d="M10 10c-1 0-1.9.4-2.6 1L6 9.6C7.1 8.6 8.5 8 10 8s2.9.6 4 1.6L12.6 11C11.9 10.4 11 10 10 10z"/>
+                            <circle cx="10" cy="14" r="1.5"/>
+                          </svg>
+                          {/* Batterie */}
+                          <div className="flex items-center gap-[2px]">
+                            <div className="relative w-[20px] h-[10px] rounded-[2.5px]" style={{ border: "1.5px solid black" }}>
+                              <div className="absolute inset-[2px] bg-black rounded-[1px]"/>
+                            </div>
+                            <div className="w-[2px] h-[4px] bg-black rounded-r-[1px]"/>
+                          </div>
                         </div>
                       </div>
-                      <span className="text-[11px] font-bold text-slate-800">{communityName.toLowerCase().replace(/\s+/g, "")}</span>
-                    </div>
-                    <span className="text-base font-bold text-slate-800 leading-none">···</span>
-                  </div>
 
-                  {/* Instagram Photo */}
-                  <div className="w-full aspect-square overflow-hidden border-b border-slate-100 bg-slate-100 flex-shrink-0">
-                    {imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={imageUrl} alt="Prévisualisation Instagram" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full flex-col items-center justify-center">
-                        <svg className="size-10 text-slate-300" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                          <circle cx="8.5" cy="8.5" r="1.5" />
-                          <polyline points="21 15 16 10 5 21" />
-                        </svg>
-                        <p className="text-[10px] text-slate-400 mt-2 font-medium">Affiche pertinente générée par l&apos;IA</p>
+                      {/* Dynamic Island */}
+                      <div className="flex justify-center -mt-0.5 mb-1 flex-shrink-0">
+                        <div className="w-[80px] h-[22px] bg-black rounded-full"/>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Instagram Actions */}
-                  <div className="px-3 pt-2.5 pb-1 flex gap-3 text-slate-800 flex-shrink-0">
-                    <Heart className="size-5" />
-                    <MessageCircle className="size-5" />
-                    <Send className="size-5" />
-                  </div>
+                      {/* Instagram Header */}
+                      <div className="px-3 py-2 border-b border-slate-100 flex items-center gap-2 justify-between flex-shrink-0">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-500 p-0.5">
+                            <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-[8px] font-bold text-slate-800">
+                              {communityName.substring(0, 2).toUpperCase()}
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold text-slate-800">{communityName.toLowerCase().replace(/\s+/g, "")}</span>
+                        </div>
+                        <span className="text-sm font-bold text-slate-800 leading-none tracking-widest">···</span>
+                      </div>
 
-                  {/* Instagram Caption */}
-                  <div className="px-3 pb-3 text-[10px] text-slate-800 max-h-14 overflow-y-auto leading-relaxed flex-shrink-0">
-                    <p className="font-bold inline-block mr-1">{communityName.toLowerCase().replace(/\s+/g, "")}</p>
-                    <span className="whitespace-pre-wrap">{formatPreviewText(text) || "Votre message s’affichera ici en temps réel…"}</span>
-                  </div>
+                      {/* Instagram Photo */}
+                      <div className="w-full aspect-square overflow-hidden border-b border-slate-100 bg-slate-100 flex-shrink-0">
+                        {imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={imageUrl} alt="Prévisualisation Instagram" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full flex-col items-center justify-center">
+                            <svg className="size-9 text-slate-300" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24">
+                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <polyline points="21 15 16 10 5 21" />
+                            </svg>
+                            <p className="text-[9px] text-slate-400 mt-2 font-medium text-center px-2">Affiche pertinente générée par l&apos;IA</p>
+                          </div>
+                        )}
+                      </div>
 
-                  {/* Indicateur home */}
-                  <div className="flex justify-center py-2 flex-shrink-0">
-                    <div className="w-20 h-[4px] bg-slate-300 rounded-full"/>
+                      {/* Instagram Actions */}
+                      <div className="px-3 pt-2 pb-1 flex gap-3 text-slate-800 flex-shrink-0">
+                        <Heart className="size-4" />
+                        <MessageCircle className="size-4" />
+                        <Send className="size-4" />
+                      </div>
+
+                      {/* Instagram Caption */}
+                      <div className="px-3 pb-2 text-[9px] text-slate-800 max-h-12 overflow-y-auto leading-relaxed flex-shrink-0">
+                        <span className="font-bold mr-1">{communityName.toLowerCase().replace(/\s+/g, "")}</span>
+                        <span className="whitespace-pre-wrap">{formatPreviewText(text) || "Votre message s’affichera ici en temps réel…"}</span>
+                      </div>
+
+                      {/* Indicateur home */}
+                      <div className="flex justify-center py-2 flex-shrink-0">
+                        <div className="w-16 h-[4px] bg-slate-200 rounded-full"/>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
