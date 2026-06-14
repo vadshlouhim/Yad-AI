@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -112,18 +111,25 @@ function WhatsAppConnect() {
     qrPollRef.current = setInterval(async () => {
       try {
         const res = await fetch("/api/whatsapp/qr");
-        if (!res.ok) return;
-        const data = await res.json() as { status: WaStatus; qr?: string };
+        if (!res.ok) return; // erreur réseau, on réessaie au prochain tick
+        const data = await res.json() as { status: WaStatus; qr?: string; error?: string };
+
+        // "error" = Railway temporairement injoignable → on continue de poller
+        if (data.status === "error") return;
+
         setStatus(data.status);
         if (data.qr) {
           setQrDataUrl(data.qr);
           setLoading(false);
         }
-        if (data.status === "connected" || data.status === "auth_failure" || data.status === "error") {
+        // On arrête seulement sur un état terminal réel
+        if (data.status === "connected" || data.status === "auth_failure") {
           stopQrPoll();
           setLoading(false);
         }
-      } catch {}
+      } catch {
+        // erreur fetch → on réessaie au prochain tick
+      }
     }, 2_000);
   }, [stopQrPoll]);
 
@@ -241,7 +247,8 @@ function WhatsAppConnect() {
         <div className="flex flex-col items-center gap-3">
           {qrDataUrl ? (
             <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
-              <Image src={qrDataUrl} alt="QR code WhatsApp" width={220} height={220} unoptimized />
+              {/* img standard — Next.js Image ne gère pas les data: URLs */}
+              <img src={qrDataUrl} alt="QR code WhatsApp" width={220} height={220} />
             </div>
           ) : (
             <div className="flex size-[220px] items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50">
