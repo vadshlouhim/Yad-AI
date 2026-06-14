@@ -2,7 +2,7 @@ import { fal } from "@fal-ai/client";
 import sharp from "sharp";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables } from "@/types/database.types";
-import { getTemplateQuestions, resolveTemplateAssetUrl } from "./shared";
+import { getTemplateQuestions, resolveTemplateAssetUrl, CATEGORY_LABELS } from "./shared";
 
 type TemplateRow = Tables<"Template">;
 
@@ -227,6 +227,75 @@ Important:
 - replace outdated dates, times, titles, locations and calls to action
 - keep the poster clean, readable and natural
 - output a single edited poster`;
+}
+
+/**
+ * Construit le prompt d'édition d'image — propre à CHAQUE affiche — combiné à la
+ * demande libre de l'utilisateur. Ce prompt n'est jamais exposé au front : il est
+ * dérivé des métadonnées de l'affiche (nom, catégorie, description) et encadre
+ * strictement nano-banana pour préserver la composition d'origine.
+ */
+export function buildHiddenEditPrompt(
+  template: Pick<TemplateRow, "name" | "category" | "description">,
+  userRequest: string,
+  community?: { name?: string | null; city?: string | null } | null
+): string {
+  const categoryLabel = CATEGORY_LABELS[template.category] ?? template.category;
+  const contextLine = template.description ? `Contexte de l'affiche : ${template.description}` : "";
+  const communityLine = community?.name
+    ? `Communauté : ${community.name}${community.city ? `, ${community.city}` : ""}.`
+    : "";
+
+  return `Tu édites une affiche existante d'une communauté juive (contexte Habad-Loubavitch, textes français et hébreux).
+Affiche : « ${template.name} » — catégorie : ${categoryLabel}.
+${contextLine}
+${communityLine}
+
+Applique UNIQUEMENT la modification demandée par l'utilisateur, et rien d'autre :
+« ${userRequest} »
+
+Règles strictes :
+- Conserve la mise en page, la composition, le fond, les couleurs, les personnages, les éléments décoratifs, les logos et la hiérarchie visuelle d'origine.
+- Ne modifie que ce qu'implique explicitement la demande (texte, dates, noms, horaires, lieux, couleurs ou éléments cités).
+- Garde tous les textes lisibles, bien orthographiés (français et hébreu) et dans le même style graphique.
+- N'ajoute ni filigrane, ni bordure, ni nouvel élément graphique sans rapport.
+- Produis une seule affiche finale, propre et de haute qualité.`;
+}
+
+/**
+ * Édite l'affiche via fal.ai / nano-banana à partir de la demande libre de
+ * l'utilisateur et du prompt caché propre à l'affiche, puis stocke le résultat.
+ */
+export async function editPosterFromRequest(params: {
+  admin: SupabaseClient<Database>;
+  template: TemplateRow;
+  communityId: string;
+  userRequest: string;
+  community?: { name?: string | null; city?: string | null } | null;
+}) {
+  const { admin, template, communityId, userRequest, community } = params;
+
+  const sourceUrl =
+    resolveTemplateAssetUrl(template.previewUrl) ?? resolveTemplateAssetUrl(template.thumbnailUrl);
+  if (!sourceUrl) {
+    throw new Error("Le template ne possède pas d'image source exploitable");
+  }
+
+  const promptUsed = buildHiddenEditPrompt(template, userRequest, community);
+  const editedImageUrl = await editTemplateTextWithNanoBanana(sourceUrl, promptUsed);
+  const outputBuffer = await fetchImageBuffer(editedImageUrl);
+
+  const storagePath = `generated/${communityId}/${template.id}-${Date.now()}.png`;
+  const upload = await admin.storage
+    .from("templates")
+    .upload(storagePath, outputBuffer, { contentType: "image/png", upsert: false });
+
+  if (upload.error) {
+    throw new Error(upload.error.message);
+  }
+
+  const { data: publicUrl } = admin.storage.from("templates").getPublicUrl(storagePath);
+  return { imageUrl: publicUrl.publicUrl, storagePath, promptUsed };
 }
 
 export async function renderTemplatePoster(params: {

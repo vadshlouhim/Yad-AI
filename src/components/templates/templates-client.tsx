@@ -338,6 +338,8 @@ export function TemplatesClient({
   const [loading, setLoading] = useState(false);
   const [rendering, setRendering] = useState(false);
   const [editingZone, setEditingZone] = useState<string | null>(null);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState("");
 
   const categories = buildCategorySections(templates).map((section) => section.category);
   const searchValue = normalizeSearch(search);
@@ -397,6 +399,8 @@ export function TemplatesClient({
     setSelectedTemplate(template);
     setAssistantPrompt("");
     setGeneratedTexts({});
+    setGeneratedImageUrl(null);
+    setImageError("");
     setStep("questions");
   }
 
@@ -411,29 +415,29 @@ export function TemplatesClient({
     setActiveCollection(null);
   }
 
-  // ── Générer les textes IA ──
-  async function generateTexts() {
+  // ── Générer la nouvelle affiche (image) via fal.ai / nano-banana ──
+  async function generateImage() {
     if (!selectedTemplate) return;
-    setLoading(true);
+    const request = assistantPrompt.trim();
+    if (!request) {
+      setImageError("Décrivez la modification souhaitée pour l'affiche.");
+      return;
+    }
 
+    setImageError("");
+    setLoading(true);
     try {
-      const res = await fetch("/api/templates/generate", {
+      const res = await fetch("/api/templates/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          templateId: selectedTemplate.id,
-          answers: {
-            prompt_libre: assistantPrompt.trim(),
-          },
-        }),
+        body: JSON.stringify({ templateId: selectedTemplate.id, userRequest: request }),
       });
-
-      if (!res.ok) throw new Error("Erreur API");
       const data = await res.json();
-      setGeneratedTexts(data.generatedTexts);
+      if (!res.ok) throw new Error(data.error ?? "Impossible de générer l'affiche.");
+      setGeneratedImageUrl(data.imageUrl);
       setStep("preview");
     } catch (error) {
-      console.error("Erreur génération:", error);
+      setImageError(error instanceof Error ? error.message : "Impossible de générer l'affiche.");
     } finally {
       setLoading(false);
     }
@@ -448,9 +452,15 @@ export function TemplatesClient({
     }
   }
 
-  // ── Télécharger (placeholder — sera remplacé par l'appel API image) ──
+  // ── Télécharger l'affiche générée ──
   async function downloadPoster() {
     if (!selectedTemplate) return;
+
+    // Si une affiche a déjà été générée par l'IA (image), on l'ouvre directement.
+    if (generatedImageUrl) {
+      window.open(generatedImageUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
 
     setRendering(true);
     try {
@@ -793,20 +803,26 @@ export function TemplatesClient({
           </CardContent>
         </Card>
 
+        {imageError && (
+          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+            {imageError}
+          </p>
+        )}
+
         {/* Action */}
         <div className="flex gap-3">
           <Button variant="outline" onClick={goBack} className="flex-1">
             <ArrowLeft className="size-4 mr-2" /> Retour
           </Button>
           <Button
-            onClick={generateTexts}
+            onClick={generateImage}
             disabled={loading || assistantPrompt.trim().length === 0}
             className="flex-1 bg-gradient-to-r from-blue-600 to-violet-600 text-white"
           >
             {loading ? (
-              <><Loader2 className="size-4 mr-2 animate-spin" /> Génération en cours...</>
+              <><Loader2 className="size-4 mr-2 animate-spin" /> Génération de l&apos;affiche...</>
             ) : (
-              <><Sparkles className="size-4 mr-2" /> Personnaliser avec l&apos;IA</>
+              <><Sparkles className="size-4 mr-2" /> Générer l&apos;affiche</>
             )}
           </Button>
         </div>
@@ -849,13 +865,22 @@ export function TemplatesClient({
           {/* Preview de l'affiche */}
           <Card className="overflow-hidden">
             <div className="relative aspect-[3/4] bg-slate-900">
-              <PosterThumbnail
-                template={selectedTemplate}
-                className="h-full w-full object-cover"
-              />
+              {generatedImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={generatedImageUrl}
+                  alt={`Affiche générée — ${selectedTemplate.name}`}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <PosterThumbnail
+                  template={selectedTemplate}
+                  className="h-full w-full object-cover"
+                />
+              )}
 
-              {/* Zones de texte superposées */}
-              {zones.map((zone) => (
+              {/* Zones de texte superposées (modèle texte uniquement) */}
+              {!generatedImageUrl && zones.map((zone) => (
                 <div
                   key={zone.id}
                   className="absolute cursor-pointer hover:outline hover:outline-2 hover:outline-blue-400 hover:outline-dashed rounded transition-all"
@@ -885,6 +910,35 @@ export function TemplatesClient({
 
           {/* Panneau d'édition des textes */}
           <div className="space-y-4">
+            {/* Demande de modification + régénération de l'image */}
+            <Card className="border-violet-100 bg-gradient-to-br from-white via-violet-50/60 to-fuchsia-50/50">
+              <CardContent className="space-y-3 py-4">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="size-4 text-violet-500" />
+                  <p className="text-sm font-semibold text-slate-700">Affiner l&apos;affiche</p>
+                </div>
+                <textarea
+                  value={assistantPrompt}
+                  onChange={(event) => setAssistantPrompt(event.target.value)}
+                  placeholder="Décrivez la modification : changez la date, le titre, les couleurs, ajoutez une information…"
+                  className="min-h-[110px] w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
+                />
+                {imageError && <p className="text-sm font-medium text-red-600">{imageError}</p>}
+                <Button
+                  onClick={generateImage}
+                  disabled={loading || assistantPrompt.trim().length === 0}
+                  className="w-full bg-gradient-to-r from-blue-600 to-violet-600 text-white"
+                >
+                  {loading ? (
+                    <><Loader2 className="size-4 mr-2 animate-spin" /> Génération de l&apos;affiche...</>
+                  ) : (
+                    <><Sparkles className="size-4 mr-2" /> {generatedImageUrl ? "Régénérer l'affiche" : "Générer l'affiche"}</>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {zones.length > 0 && (
             <Card>
               <CardContent className="py-4">
                 <div className="flex items-center gap-2 mb-4">
@@ -935,30 +989,17 @@ export function TemplatesClient({
                 </div>
               </CardContent>
             </Card>
+            )}
 
             {/* Actions */}
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep("questions")} className="flex-1">
-                <ArrowLeft className="size-4 mr-2" /> Modifier les réponses
-              </Button>
-              <Button
-                onClick={generateTexts}
-                variant="outline"
-                disabled={loading}
-                className="flex-1"
-              >
-                {loading ? (
-                  <Loader2 className="size-4 mr-2 animate-spin" />
-                ) : (
-                  <Sparkles className="size-4 mr-2" />
-                )}
-                Regénérer
-              </Button>
-            </div>
+            <Button variant="outline" onClick={() => setStep("questions")} className="w-full">
+              <ArrowLeft className="size-4 mr-2" /> Modifier ma demande
+            </Button>
 
             <Button
               onClick={downloadPoster}
               loading={rendering}
+              disabled={!generatedImageUrl}
               className="w-full bg-gradient-to-r from-blue-600 to-violet-600 text-white h-12 text-base"
             >
               <Download className="size-5 mr-2" /> Télécharger l&apos;affiche

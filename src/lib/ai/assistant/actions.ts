@@ -2,6 +2,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 import { sendCommunityEmail } from "@/lib/email/send-community-email";
 import { generateContent } from "@/lib/ai/engine";
 import { createPublicationsFromDraft, publishToAllChannels } from "@/lib/publishing/publisher";
+import { resolveCommunityPhones, sendWhatsAppMessages, sanitizePhone } from "@/lib/whatsapp/send";
 import { fromZonedTime } from "date-fns-tz";
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -52,6 +53,7 @@ export type ActionKind =
   | "delete_automation"
   | "send_email"
   | "email_community"
+  | "send_whatsapp"
   | "create_event"
   | "generate_content"
   | "publish_content";
@@ -65,6 +67,7 @@ export const MUTATING_ACTIONS: ActionKind[] = [
   "delete_automation",
   "send_email",
   "email_community",
+  "send_whatsapp",
   "create_event",
   "publish_content",
 ];
@@ -81,6 +84,7 @@ const ACTION_LABELS: Record<string, string> = {
   update_community_settings: "Modifier les réglages",
   send_email: "Envoyer un email",
   email_community: "Email à la communauté",
+  send_whatsapp: "Envoyer un WhatsApp",
   create_event: "Ajouter à l'agenda",
   generate_content: "Générer un contenu",
   publish_content: "Publier un contenu",
@@ -122,6 +126,13 @@ export function summarizeAction(kind: string, payload: Record<string, unknown>):
       return `Envoyer un email à ${String(payload.to ?? "?")} — objet : « ${String(payload.subject ?? "")} ».`;
     case "email_community":
       return `Envoyer un email à toute la communauté — objet : « ${String(payload.subject ?? "")} ».`;
+    case "send_whatsapp": {
+      const cible =
+        payload.target === "phone" && payload.phone
+          ? `au ${String(payload.phone)}`
+          : "à tous les contacts opt-in WhatsApp";
+      return `Envoyer un message WhatsApp ${cible}.`;
+    }
     case "create_event":
       return `Ajouter à l'agenda : « ${String(payload.title ?? "")} »${payload.date ? ` le ${String(payload.date)}${payload.time ? ` à ${String(payload.time)}` : ""}` : ""}.`;
     case "generate_content":
@@ -269,6 +280,46 @@ export async function executeAction(
           if (r.success) sent++;
         }
         return { success: sent > 0, message: `Email envoyé à ${sent} contact${sent > 1 ? "s" : ""}.` };
+      }
+
+      case "send_whatsapp": {
+        const text = String(payload.text ?? "").trim();
+        if (!text) return { success: false, message: "Message WhatsApp vide." };
+
+        let phones: string[];
+        let cibleLabel: string;
+        if (payload.target === "phone") {
+          const phone = sanitizePhone(String(payload.phone ?? ""));
+          if (!phone) return { success: false, message: "Numéro de téléphone invalide." };
+          phones = [phone];
+          cibleLabel = `au ${String(payload.phone)}`;
+        } else {
+          phones = await resolveCommunityPhones(admin, communityId);
+          if (phones.length === 0) return { success: false, message: "Aucun contact opt-in WhatsApp dans la communauté." };
+          cibleLabel = `à ${phones.length} contact${phones.length > 1 ? "s" : ""}`;
+        }
+
+        const result = await sendWhatsAppMessages({ communityId, phones, text, admin });
+        if (!result.configured) {
+          return {
+            success: false,
+            message: "WhatsApp n'est pas configuré (Phone Number ID manquant dans Réglages → Canaux).",
+          };
+        }
+        if (result.sent === 0 && result.templateRequired) {
+          return {
+            success: false,
+            message: "WhatsApp exige un template approuvé hors fenêtre de 24 h. Configurez-le dans Réglages → Canaux.",
+          };
+        }
+        return {
+          success: result.sent > 0,
+          message:
+            result.sent > 0
+              ? `Message WhatsApp envoyé ${cibleLabel}.`
+              : `Aucun envoi abouti${result.errors[0] ? ` : ${result.errors[0]}` : "."}`,
+          data: { sent: result.sent, failed: result.failed, total: result.total },
+        };
       }
 
       case "create_event": {

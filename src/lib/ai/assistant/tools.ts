@@ -24,7 +24,7 @@ export function buildTools(opts: { gmailConnected: boolean }): ChatCompletionToo
       function: {
         name: "create_automation",
         description:
-          "Crée une automatisation (envoi d'emails/messages, génération de contenu, notifications, avec récurrence).",
+          "Crée une automatisation (envoi d'emails/messages, génération de contenu, notifications, avec récurrence).\n\nRÈGLE CRITIQUE SUR LE TIMING : Si l'automatisation se déclenche avant un événement (ex : rappel 2h avant un cours à 21h), triggerConfig.time correspond à l'heure de DÉCLENCHEMENT (ex : 19:00), mais le contenu des messages (messageText, notificationBody, emailBody) doit toujours mentionner l'heure RÉELLE de l'événement (21h), jamais l'heure de déclenchement.",
         parameters: {
           type: "object",
           properties: {
@@ -123,6 +123,27 @@ export function buildTools(opts: { gmailConnected: boolean }): ChatCompletionToo
             body: { type: "string", description: "Contenu de l'email" },
           },
           required: ["subject", "body"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "send_whatsapp",
+        description:
+          "Envoie un message WhatsApp. Par défaut à TOUS les contacts opt-in WhatsApp de la communauté (target='community'), ou à un seul numéro si l'utilisateur le précise (target='phone' + phone). Toujours confirmer la cible (communauté entière vs numéro) si elle est ambiguë.",
+        parameters: {
+          type: "object",
+          properties: {
+            text: { type: "string", description: "Contenu du message WhatsApp prêt à envoyer" },
+            target: {
+              type: "string",
+              enum: ["community", "phone"],
+              description: "community = tous les contacts opt-in ; phone = un seul numéro",
+            },
+            phone: { type: "string", description: "Numéro au format international si target='phone'" },
+          },
+          required: ["text"],
         },
       },
     },

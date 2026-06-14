@@ -1,15 +1,9 @@
 import type { Tables } from "@/types/database.types";
 import type { PublishPayload, PublishResult } from "../publisher";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendWhatsAppMessages } from "@/lib/whatsapp/send";
 
 type Channel = Tables<"Channel">;
-
-const GRAPH_VERSION = "v21.0";
-
-// Codes d'erreur Meta indiquant qu'un message texte libre est refusé hors
-// fenêtre de service 24 h : il faut alors un template approuvé. On bascule
-// dans ce cas sur le repli copier-coller plutôt que d'échouer sèchement.
-const TEMPLATE_REQUIRED_CODES = new Set([131047, 131026, 470, 131051]);
 
 interface WhatsAppRecipient {
   name: string;
@@ -18,136 +12,72 @@ interface WhatsAppRecipient {
 }
 
 /**
- * Publication WhatsApp via la Cloud API (graph.facebook.com).
- *
- * Identifiants : `channel.accessToken` (sinon `WHATSAPP_ACCESS_TOKEN`) et
- * `channel.pageId` = Phone Number ID (sinon `WHATSAPP_PHONE_NUMBER_ID`).
- * Destinataires : les `CommunityMember` opt-in WhatsApp ayant un téléphone.
- *
- * Si les identifiants manquent, ou si Meta exige un template hors fenêtre 24 h,
- * on retombe sur le mode copier-coller (lien wa.me).
+ * Publication WhatsApp via la Cloud API (cf. `@/lib/whatsapp/send`).
+ * Envoie aux contacts opt-in WhatsApp ; bascule sur le repli copier-coller
+ * (lien wa.me) si non configuré, sans destinataire, ou si Meta exige un template.
  */
 export async function publishToWhatsApp(
   channel: Channel,
   payload: PublishPayload,
   communityId: string
 ): Promise<PublishResult> {
-  const token = channel.accessToken || process.env.WHATSAPP_ACCESS_TOKEN;
-  const phoneNumberId = channel.pageId || process.env.WHATSAPP_PHONE_NUMBER_ID;
-
-  // Pas d'identifiants Cloud API → repli copier-coller historique.
-  if (!token || !phoneNumberId) {
-    return prepareWhatsAppFallback(channel, payload, communityId);
-  }
-
   const content = formatWhatsAppContent(payload);
   const recipients = await loadOptInRecipients(communityId, content);
-  const reachable = recipients.filter((r) => r.phone && r.phone.replace(/[^\d]/g, "").length >= 8);
+  const phones = recipients
+    .map((r) => r.phone?.replace(/[^\d]/g, "") ?? "")
+    .filter((p) => p.length >= 8);
 
-  if (reachable.length === 0) {
-    return {
-      success: false,
-      fallbackUsed: true,
-      fallbackType: "COPY_PASTE",
-      fallbackData: {
-        content,
-        instructions: [
-          "Aucun contact n'a activé l'opt-in WhatsApp avec un numéro valide.",
-          "Ajoutez des contacts opt-in, ou copiez le message ci-dessous pour l'envoyer manuellement.",
-        ],
-        channelName: channel.name,
-        recipients,
-        deepLink: `https://wa.me/?text=${encodeURIComponent(content)}`,
-      },
-      error: "Aucun destinataire opt-in WhatsApp",
-    };
-  }
+  const result = await sendWhatsAppMessages({ communityId, phones, text: content });
 
-  const settings = (channel.settings as Record<string, unknown> | null) ?? {};
-  const templateName = typeof settings.templateName === "string" ? settings.templateName : null;
-  const templateLanguage =
-    typeof settings.templateLanguage === "string" ? settings.templateLanguage : "fr";
-
-  const apiUrl = `https://graph.facebook.com/${GRAPH_VERSION}/${phoneNumberId}/messages`;
-
-  let sent = 0;
-  let templateRequired = false;
-  const errors: string[] = [];
-
-  for (const recipient of reachable) {
-    const to = recipient.phone!.replace(/[^\d]/g, "");
-    const body = templateName
-      ? {
-          messaging_product: "whatsapp",
-          to,
-          type: "template",
-          template: { name: templateName, language: { code: templateLanguage } },
-        }
-      : {
-          messaging_product: "whatsapp",
-          to,
-          type: "text",
-          text: { preview_url: true, body: content },
-        };
-
-    try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-      const data = await response.json();
-
-      if (response.ok && data?.messages?.length) {
-        sent += 1;
-      } else {
-        const code = data?.error?.code;
-        if (TEMPLATE_REQUIRED_CODES.has(code)) templateRequired = true;
-        errors.push(data?.error?.message ?? `HTTP ${response.status}`);
-      }
-    } catch (error) {
-      errors.push(error instanceof Error ? error.message : "Erreur réseau");
-    }
-
-    // Throttle léger pour rester sous les limites de débit Cloud API.
-    await new Promise((resolve) => setTimeout(resolve, 120));
-  }
-
-  if (sent > 0) {
+  if (result.sent > 0) {
     return {
       success: true,
-      externalId: `whatsapp:${sent}/${reachable.length}`,
-      error: errors.length > 0 ? `${errors.length} envoi(s) en échec` : undefined,
+      externalId: `whatsapp:${result.sent}/${result.total}`,
+      error: result.failed > 0 ? `${result.failed} envoi(s) en échec` : undefined,
     };
   }
 
-  // Aucun envoi réussi : repli copier-coller, avec message adapté si Meta
-  // réclame un template approuvé.
   return {
     success: false,
     fallbackUsed: true,
     fallbackType: "COPY_PASTE",
     fallbackData: {
       content,
-      instructions: templateRequired
-        ? [
-            "WhatsApp refuse l'envoi automatique de texte libre hors fenêtre de 24 h.",
-            "Configurez un template approuvé dans Meta Business, ou copiez le message ci-dessous pour l'envoyer manuellement.",
-          ]
-        : [
-            "L'envoi automatique a échoué.",
-            errors[0] ?? "Erreur inconnue",
-            "Copiez le message ci-dessous pour l'envoyer manuellement.",
-          ],
+      instructions: buildFallbackInstructions(result, channel.name, recipients.length > 0),
       channelName: channel.name,
       recipients,
       deepLink: `https://wa.me/?text=${encodeURIComponent(content)}`,
     },
-    error: errors[0] ?? "Envoi WhatsApp échoué",
+    error: result.errors[0] ?? "Envoi WhatsApp indisponible",
   };
+}
+
+function buildFallbackInstructions(
+  result: { configured: boolean; templateRequired: boolean; errors: string[] },
+  channelName: string,
+  hasRecipients: boolean
+): string[] {
+  if (result.templateRequired) {
+    return [
+      "WhatsApp refuse l'envoi automatique de texte libre hors fenêtre de 24 h.",
+      "Configurez un template approuvé dans Meta Business, ou copiez le message ci-dessous pour l'envoyer manuellement.",
+    ];
+  }
+  if (!result.configured) {
+    return [
+      "1. Copiez le texte ci-dessous",
+      "2. Ouvrez WhatsApp sur votre téléphone",
+      hasRecipients
+        ? "3. Envoyez-le aux contacts de la communauté listés ci-dessous"
+        : `3. Accédez à votre canal ou groupe "${channelName}"`,
+      "4. Collez et envoyez le message",
+    ];
+  }
+  return [
+    "L'envoi automatique a échoué.",
+    result.errors[0] ?? "Erreur inconnue",
+    "Copiez le message ci-dessous pour l'envoyer manuellement.",
+  ];
 }
 
 export async function prepareWhatsAppFallback(
