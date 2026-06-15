@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  ArrowLeft, CheckCircle, AlertTriangle, Send, Copy, Sparkles, RefreshCw, Eye, Heart, MessageCircle, Wand2
+  ArrowLeft, CheckCircle, AlertTriangle, Send, Copy, Sparkles, RefreshCw, Eye, Wand2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -621,112 +621,116 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
                 </div>
               </div>
             ) : platformKey === "INSTAGRAM" ? (
-              /* Instagram Smartphone mockup — iPhone doré 3 couches */
-              <div className="w-full max-w-[270px] mx-auto relative">
-                {/* Boutons volume gauche */}
-                <div className="absolute -left-[7px] top-[96px] w-[6px] h-[28px] rounded-l-[3px]" style={{ background: "linear-gradient(90deg, #8B6410, #E8BB4A, #C9962A)" }} />
-                <div className="absolute -left-[7px] top-[134px] w-[6px] h-[28px] rounded-l-[3px]" style={{ background: "linear-gradient(90deg, #8B6410, #E8BB4A, #C9962A)" }} />
-                {/* Bouton muet */}
-                <div className="absolute -left-[7px] top-[58px] w-[6px] h-[20px] rounded-l-[3px]" style={{ background: "linear-gradient(90deg, #8B6410, #E8BB4A, #C9962A)" }} />
-                {/* Bouton power droit */}
-                <div className="absolute -right-[7px] top-[112px] w-[6px] h-[48px] rounded-r-[3px]" style={{ background: "linear-gradient(90deg, #C9962A, #E8BB4A, #8B6410)" }} />
+              /* Instagram Smartphone mockup — design orange */
+              <div className="w-full mx-auto flex justify-center">
+                <div className="relative rounded-[3.5rem] bg-[#f2935a] p-[4px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] w-[360px] h-[750px] border-[1.5px] border-[#b0853e]">
+                  {/* Bouton muet */}
+                  <div className="absolute -left-[5px] top-[110px] w-[5px] h-[30px] bg-[#f2935a] rounded-l-md border-y border-l border-[#b0853e] shadow-sm" />
+                  {/* Volume + */}
+                  <div className="absolute -left-[5px] top-[160px] w-[5px] h-[55px] bg-[#f2935a] rounded-l-md border-y border-l border-[#b0853e] shadow-sm" />
+                  {/* Volume - */}
+                  <div className="absolute -left-[5px] top-[230px] w-[5px] h-[55px] bg-[#f2935a] rounded-l-md border-y border-l border-[#b0853e] shadow-sm" />
+                  {/* Power */}
+                  <div className="absolute -right-[5px] top-[180px] w-[5px] h-[85px] bg-[#f2935a] rounded-r-md border-y border-r border-[#b0853e] shadow-sm" />
 
-                {/* ① Bague or */}
-                <div
-                  className="rounded-[44px] p-[4px]"
-                  style={{
-                    background: "linear-gradient(145deg, #F5D061, #C9962A, #F5D061, #A67C1A)",
-                    boxShadow: "0 0 0 1px #7A5A10, 0 28px 56px rgba(0,0,0,0.6), 0 8px 16px rgba(0,0,0,0.4)",
-                  }}
-                >
-                  {/* ② Corps noir */}
-                  <div
-                    className="rounded-[40px] flex flex-col overflow-hidden"
-                    style={{ background: "#0D0D0D", padding: "8px 6px 6px" }}
-                  >
-                    {/* ③ Écran blanc */}
-                    <div className="rounded-[32px] overflow-hidden bg-white flex flex-col">
-
-                      {/* Barre de statut iOS */}
-                      <div className="bg-white px-4 pt-3 pb-1 flex items-center justify-between flex-shrink-0">
-                        <span className="text-[11px] font-semibold tracking-tight text-black">9:41</span>
-                        <div className="flex items-center gap-1.5">
-                          {/* Signal */}
-                          <svg width="16" height="11" viewBox="0 0 17 12" fill="black">
-                            <rect x="0" y="8" width="3" height="4" rx="0.5"/>
-                            <rect x="4.5" y="5.5" width="3" height="6.5" rx="0.5"/>
-                            <rect x="9" y="3" width="3" height="9" rx="0.5"/>
-                            <rect x="13.5" y="0" width="3" height="12" rx="0.5" opacity="0.3"/>
-                          </svg>
-                          {/* Wifi */}
-                          <svg width="14" height="10" viewBox="0 0 20 15" fill="black">
-                            <path d="M10 2C6.7 2 3.7 3.3 1.5 5.4L0 3.9C2.6 1.4 6.1 0 10 0s7.4 1.4 10 3.9L18.5 5.4C16.3 3.3 13.3 2 10 2z"/>
-                            <path d="M10 6c-2.2 0-4.2.9-5.7 2.3L3 7C4.9 5.2 7.3 4 10 4s5.1 1.2 7 3l-1.3 1.3C14.2 6.9 12.2 6 10 6z"/>
-                            <path d="M10 10c-1 0-1.9.4-2.6 1L6 9.6C7.1 8.6 8.5 8 10 8s2.9.6 4 1.6L12.6 11C11.9 10.4 11 10 10 10z"/>
-                            <circle cx="10" cy="14" r="1.5"/>
-                          </svg>
-                          {/* Batterie */}
-                          <div className="flex items-center gap-[2px]">
-                            <div className="relative w-[20px] h-[10px] rounded-[2.5px]" style={{ border: "1.5px solid black" }}>
-                              <div className="absolute inset-[2px] bg-black rounded-[1px]"/>
-                            </div>
-                            <div className="w-[2px] h-[4px] bg-black rounded-r-[1px]"/>
-                          </div>
+                  {/* Écran */}
+                  <div className="bg-white w-full h-full rounded-[3.2rem] overflow-hidden relative flex flex-col">
+                    {/* Status Bar */}
+                    <div className="w-full h-12 flex items-center justify-between px-6 pt-2 flex-shrink-0">
+                      <div className="text-black font-semibold text-[15px] w-1/3 pl-1">9:41</div>
+                      <div className="w-[120px] h-[30px] bg-black rounded-full flex-shrink-0 relative mt-1">
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-[#121212] rounded-full border-[1.5px] border-[#222]" />
+                      </div>
+                      <div className="flex items-center justify-end space-x-1.5 w-1/3 pr-1">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                          <rect x="3" y="16" width="3" height="4" rx="1" />
+                          <rect x="8" y="12" width="3" height="8" rx="1" />
+                          <rect x="13" y="8" width="3" height="12" rx="1" />
+                          <rect x="18" y="4" width="3" height="16" rx="1" />
+                        </svg>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+                          <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                          <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                          <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                          <line x1="12" x2="12.01" y1="20" y2="20" />
+                        </svg>
+                        <div className="w-[22px] h-[11px] border border-gray-400 rounded-[3px] p-[1px] relative flex items-center">
+                          <div className="bg-green-500 w-full h-full rounded-[1px]" />
+                          <div className="absolute -right-[3px] top-1/2 -translate-y-1/2 w-[2px] h-[4px] bg-gray-400 rounded-r-[1px]" />
                         </div>
                       </div>
+                    </div>
 
-                      {/* Dynamic Island */}
-                      <div className="flex justify-center -mt-0.5 mb-1 flex-shrink-0">
-                        <div className="w-[80px] h-[22px] bg-black rounded-full"/>
-                      </div>
-
-                      {/* Instagram Header */}
-                      <div className="px-3 py-2 border-b border-slate-100 flex items-center gap-2 justify-between flex-shrink-0">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-500 p-0.5">
-                            <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-[8px] font-bold text-slate-800">
-                              {communityName.substring(0, 2).toUpperCase()}
-                            </div>
+                    {/* Instagram Post */}
+                    <div className="flex-1 mt-2 flex flex-col overflow-hidden">
+                      {/* Post Header */}
+                      <div className="flex items-center justify-between px-3 py-2 flex-shrink-0">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center bg-gray-50 text-[11px] font-bold text-gray-500">
+                            {communityName.substring(0, 2).toUpperCase()}
                           </div>
-                          <span className="text-[10px] font-bold text-slate-800">{communityName.toLowerCase().replace(/\s+/g, "")}</span>
+                          <span className="ml-3 font-semibold text-[13px] text-gray-900 tracking-tight">
+                            {communityName.toLowerCase().replace(/\s+/g, "")}
+                          </span>
                         </div>
-                        <span className="text-sm font-bold text-slate-800 leading-none tracking-widest">···</span>
+                        <button className="p-1 focus:outline-none">
+                          <svg fill="currentColor" height="24" viewBox="0 0 24 24" width="24">
+                            <circle cx="12" cy="12" r="1.5" />
+                            <circle cx="6" cy="12" r="1.5" />
+                            <circle cx="18" cy="12" r="1.5" />
+                          </svg>
+                        </button>
                       </div>
 
-                      {/* Instagram Photo */}
-                      <div className="w-full aspect-square overflow-hidden border-b border-slate-100 bg-slate-100 flex-shrink-0">
+                      {/* Post Image */}
+                      <div className="w-full aspect-square bg-[#f3f3f3] flex flex-col items-center justify-center flex-shrink-0">
                         {imageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={imageUrl} alt="Prévisualisation Instagram" className="h-full w-full object-cover" />
                         ) : (
-                          <div className="flex h-full flex-col items-center justify-center">
-                            <svg className="size-9 text-slate-300" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24">
-                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                              <circle cx="8.5" cy="8.5" r="1.5" />
-                              <polyline points="21 15 16 10 5 21" />
+                          <>
+                            <svg className="w-16 h-16 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
                             </svg>
-                            <p className="text-[9px] text-slate-400 mt-2 font-medium text-center px-2">Affiche pertinente générée par l&apos;IA</p>
-                          </div>
+                            <p className="text-[13px] font-medium text-gray-400 tracking-wide">Affiche pertinente générée par l&apos;IA</p>
+                          </>
                         )}
                       </div>
 
-                      {/* Instagram Actions */}
-                      <div className="px-3 pt-2 pb-1 flex gap-3 text-slate-800 flex-shrink-0">
-                        <Heart className="size-4" />
-                        <MessageCircle className="size-4" />
-                        <Send className="size-4" />
+                      {/* Action Buttons */}
+                      <div className="flex items-center justify-between px-3 py-3 flex-shrink-0">
+                        <div className="flex items-center space-x-4">
+                          <button className="focus:outline-none hover:opacity-50 transition-opacity">
+                            <svg fill="currentColor" height="24" viewBox="0 0 24 24" width="24">
+                              <path d="M16.792 3.904A4.989 4.989 0 0 1 21.5 9.122c0 3.072-2.652 4.959-5.197 7.222-2.512 2.243-3.865 3.469-4.303 3.752-.477-.309-2.143-1.823-4.303-3.752C5.141 14.072 2.5 12.167 2.5 9.122a4.989 4.989 0 0 1 4.708-5.218 4.21 4.21 0 0 1 3.675 1.941c.84 1.175.98 1.543 1.117 1.543s.277-.368 1.117-1.543a4.21 4.21 0 0 1 3.675-1.941z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                            </svg>
+                          </button>
+                          <button className="focus:outline-none hover:opacity-50 transition-opacity">
+                            <svg fill="currentColor" height="24" viewBox="0 0 24 24" width="24">
+                              <path d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="2" />
+                            </svg>
+                          </button>
+                          <button className="focus:outline-none hover:opacity-50 transition-opacity">
+                            <svg fill="currentColor" height="24" viewBox="0 0 24 24" width="24">
+                              <line fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="2" x1="22" x2="9.218" y1="3" y2="10.083" />
+                              <polygon fill="none" points="11.698 20.334 22 3.001 2 3.001 9.218 10.084 11.698 20.334" stroke="currentColor" strokeLinejoin="round" strokeWidth="2" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Instagram Caption */}
-                      <div className="px-3 pb-2 text-[9px] text-slate-800 max-h-12 overflow-y-auto leading-relaxed flex-shrink-0">
-                        <span className="font-bold mr-1">{communityName.toLowerCase().replace(/\s+/g, "")}</span>
-                        <span className="whitespace-pre-wrap">{formatPreviewText(text) || "Votre message s’affichera ici en temps réel…"}</span>
+                      {/* Caption */}
+                      <div className="px-3 pb-3 flex-shrink-0">
+                        <p className="text-[13px] text-gray-900 leading-[18px]">
+                          <span className="font-semibold mr-1">{communityName.toLowerCase().replace(/\s+/g, "")}</span>
+                          {formatPreviewText(text) || "Votre message s’affichera ici en temps réel…"}
+                        </p>
                       </div>
+                    </div>
 
-                      {/* Indicateur home */}
-                      <div className="flex justify-center py-2 flex-shrink-0">
-                        <div className="w-16 h-[4px] bg-slate-200 rounded-full"/>
-                      </div>
+                    {/* Home Indicator */}
+                    <div className="absolute bottom-2 w-full flex justify-center pb-1">
+                      <div className="w-[130px] h-[5px] bg-gray-300 rounded-full" />
                     </div>
                   </div>
                 </div>

@@ -15,6 +15,10 @@ import {
   buildTemplateSuggestions,
   looksLikeTemplateIntent,
   resolveTemplateAssetUrl,
+  detectStrictCategory,
+  isVagueCategoryRequest,
+  getCategoryAmbiguityQuestion,
+  CATEGORY_LABELS,
 } from "@/lib/templates/shared";
 import { analyzeTemplateVisuals } from "@/lib/templates/analysis";
 import { runAssistant } from "@/lib/ai/assistant/runner";
@@ -309,11 +313,17 @@ export async function POST(request: Request) {
       upcomingHolidays,
     });
 
-    const templateSuggestions = isUserPrompt && hasExplicitVisualIntent
+    // Détection de catégorie stricte : si l'utilisateur demande un type précis d'affiche,
+    // on filtre la banque à cette catégorie seulement. Jamais de mélange entre catégories.
+    const detectedCategory = isUserPrompt ? detectStrictCategory(lastUserMessage.content) : null;
+    const isVagueRequest = isUserPrompt && isVagueCategoryRequest(lastUserMessage.content, detectedCategory);
+
+    const templateSuggestions = isUserPrompt && hasExplicitVisualIntent && !isVagueRequest
       ? buildTemplateSuggestions(candidateTemplates ?? [], lastUserMessage.content, {
-          limit: 3,
+          limit: 5,
           communityId,
-          forceAtLeastOne: hasExplicitVisualIntent,
+          forceAtLeastOne: Boolean(detectedCategory),
+          strictCategory: detectedCategory,
         })
       : [];
     const articleSuggestions = isUserPrompt
@@ -323,7 +333,7 @@ export async function POST(request: Request) {
           forceAtLeastOne: hasExplicitArticleIntent,
         })
       : [];
-    const shouldSuggestTemplates = !selectedTemplateId && templateSuggestions.length > 0 && hasExplicitVisualIntent;
+    const shouldSuggestTemplates = !selectedTemplateId && templateSuggestions.length > 0 && hasExplicitVisualIntent && !isVagueRequest;
     const shouldSuggestArticles =
       articleSuggestions.length > 0 &&
       (hasExplicitArticleIntent || articleSuggestions.some((article) => article.confidence >= 8));
@@ -412,6 +422,17 @@ export async function POST(request: Request) {
         };
 
         try {
+          // ── Demande vague nécessitant une clarification de sous-catégorie ──
+          if (hasExplicitVisualIntent && isVagueRequest && detectedCategory && !selectedTemplateId) {
+            const categoryLabel = CATEGORY_LABELS[detectedCategory] ?? detectedCategory;
+            const question = getCategoryAmbiguityQuestion(detectedCategory);
+            const clarificationMsg = `Pour te proposer les meilleures affiches ${categoryLabel.toLowerCase()}, j'ai besoin d'une précision :\n\n${question}`;
+            fullResponse += clarificationMsg;
+            send({ content: clarificationMsg });
+            await persistAndClose();
+            return;
+          }
+
           // ── Suggestions d'affiches (intention visuelle explicite) ──
           if (shouldSuggestTemplates) {
             send({ type: "template_suggestions", templates: templateSuggestions });
@@ -420,9 +441,23 @@ export async function POST(request: Request) {
             send({ type: "article_suggestions", articles: articleSuggestions });
           }
 
+          // ── Aucun modèle trouvé dans la catégorie demandée ──
+          if (hasExplicitVisualIntent && detectedCategory && !isVagueRequest && templateSuggestions.length === 0 && !selectedTemplateId) {
+            const categoryLabel = CATEGORY_LABELS[detectedCategory] ?? detectedCategory;
+            const noTemplateMsg = `Aucun modèle n'est disponible actuellement dans la catégorie ${categoryLabel}.\n\nSouhaitez-vous que je crée une affiche originale à partir de vos informations, sans utiliser de modèle de la banque ?`;
+            fullResponse += noTemplateMsg;
+            send({ content: noTemplateMsg });
+            await persistAndClose();
+            return;
+          }
+
           if (hasExplicitVisualIntent && shouldSuggestTemplates && !selectedTemplateId) {
-            const selectionMessage =
-              "Je te propose de choisir directement parmi ces affiches pertinentes. Clique sur Choisir sur celle qui te correspond le mieux, et je préparerai ensuite les textes exacts à remplacer dessus.\n\nSi tu veux, tu peux aussi me préciser un angle plus précis comme la fête, le type d'événement, la date ou le public visé.";
+            const countLabel = templateSuggestions.length > 1
+              ? `${templateSuggestions.length} affiches pertinentes`
+              : "une affiche pertinente";
+            const selectionMessage = detectedCategory
+              ? `Voici ${countLabel} dans la catégorie ${CATEGORY_LABELS[detectedCategory] ?? detectedCategory}. Clique sur Choisir sur celle qui te convient, et je préparerai ensuite les textes à personnaliser.\n\nSi aucune ne te convient, dis-le moi et je t'en proposerai d'autres dans la même catégorie.`
+              : `Je te propose de choisir parmi ces affiches. Clique sur Choisir sur celle qui te correspond le mieux, et je préparerai ensuite les textes exacts à remplacer dessus.\n\nSi tu veux, tu peux aussi me préciser un angle plus précis comme la fête, le type d'événement, la date ou le public visé.`;
             fullResponse += selectionMessage;
             send({ content: selectionMessage });
             await persistAndClose();
@@ -480,6 +515,7 @@ export async function POST(request: Request) {
           // Si l'IA évoque une affiche/visuel pertinent (et qu'on n'a pas déjà
           // proposé de modèles ni de template sélectionné), on affiche directement
           // dans le chat les affiches les plus adaptées au thème de l'échange.
+          // La catégorie détectée dans la demande originale est respectée.
           if (
             !isDailyRoutineMode &&
             !shouldSuggestTemplates &&
@@ -489,10 +525,12 @@ export async function POST(request: Request) {
             proposesPoster(fullResponse)
           ) {
             const themeText = `${lastUserMessage.content}\n${fullResponse}`;
+            const proposedCategory = detectedCategory ?? detectStrictCategory(fullResponse);
             const proposedTemplates = buildTemplateSuggestions(candidateTemplates ?? [], themeText, {
-              limit: 3,
+              limit: 5,
               communityId,
-              forceAtLeastOne: true,
+              forceAtLeastOne: Boolean(proposedCategory),
+              strictCategory: proposedCategory,
             });
             if (proposedTemplates.length > 0) {
               send({ type: "template_suggestions", templates: proposedTemplates });

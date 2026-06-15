@@ -29,9 +29,120 @@ export const CATEGORY_LABELS: Record<string, string> = {
   COURSE: "Cours",
   ANNOUNCEMENT: "Annonces",
   RECAP: "Récap",
-  GREETING: "Voeux",
+  GREETING: "Vœux",
   GENERAL: "Général",
 };
+
+// Mots-clés déclenchant chaque catégorie de façon stricte.
+// Quand l'un de ces mots est détecté, seule la catégorie correspondante est proposée.
+const STRICT_CATEGORY_MAP: Array<{ category: string; keywords: string[] }> = [
+  {
+    category: "SHABBAT",
+    keywords: [
+      "chabbat", "shabbat", "bougies", "havdala", "paracha", "parasha",
+      "kiddouch", "kidouch", "horaires de chabbat", "horaires chabbat",
+      "minha", "arvit", "chaharit", "segouda", "mussaf",
+    ],
+  },
+  {
+    category: "HOLIDAY",
+    keywords: [
+      "hanouka", "hanoucca", "hanuka", "pessah", "pesah", "passover",
+      "pourim", "meguila", "souccot", "soucot", "sukkot", "roch hachana",
+      "rosh hashana", "yom kippour", "yom kippur", "lag baomer", "lag ba omer",
+      "chavouot", "shavouot", "matan torah", "tou bichvat",
+      "yom haatsmaut", "yom hazikaron", "yom yerushalaim",
+    ],
+  },
+  {
+    category: "COURSE",
+    keywords: [
+      "cours", "chiour", "shiour", "etude", "étude", "talmud", "gemara",
+      "halakha", "halacha", "daf yomi", "mishna", "responsa",
+    ],
+  },
+  {
+    category: "EVENT",
+    keywords: [
+      "soirée", "soiree", "gala", "diner", "dîner", "repas", "buffet",
+      "concert", "spectacle", "bar mitsva", "bat mitsva", "brit mila",
+      "mariage", "houppa", "conférence", "conference", "seminaire", "séminaire",
+    ],
+  },
+  {
+    category: "ANNOUNCEMENT",
+    keywords: [
+      "annonce", "information", "communiqué", "communique", "avis", "fermeture",
+      "ouverture", "ferme", "fermé", "ouvert", "horaires", "planning",
+    ],
+  },
+  {
+    category: "RECAP",
+    keywords: [
+      "récap", "recap", "bilan", "retour sur", "compte-rendu",
+    ],
+  },
+  {
+    category: "GREETING",
+    keywords: [
+      "voeux", "vœux", "hag sameah", "chag sameah", "mazal tov", "felicitations",
+      "félicitations", "bienvenue", "bon an", "bonne annee",
+    ],
+  },
+];
+
+// Mots qui rendent la requête VAGUE dans une catégorie — nécessite une clarification.
+const VAGUE_WITHIN_CATEGORY_KEYWORDS: Record<string, string[]> = {
+  SHABBAT: ["chabbat", "shabbat"],
+  HOLIDAY: ["fête", "fetes", "holiday"],
+  COURSE: ["cours"],
+  EVENT: ["événement", "evenement", "event", "soirée", "soiree"],
+};
+
+// Questions de clarification pour chaque catégorie ambiguë.
+const CATEGORY_CLARIFICATION_QUESTIONS: Record<string, string> = {
+  SHABBAT: "Quel type d'affiche Chabbat souhaitez-vous ?\n- Horaires de Chabbat (entrée/sortie)\n- Programme détaillé (offices, cours, Kiddouch...)\n- Invitation repas de Chabbat\n- Cours ou Chiour du Chabbat",
+  HOLIDAY: "De quelle fête s'agit-il ? (Hanouka, Pessah, Pourim, Souccot, Roch Hachana, Yom Kippour...)",
+  COURSE: "Quel type d'affiche de cours souhaitez-vous ?\n- Cours hebdomadaire\n- Daf Yomi\n- Chiour spécial\n- Cycle d'études",
+  EVENT: "Quel type d'événement souhaitez-vous annoncer ?\n- Soirée communautaire / Gala\n- Bar Mitsva / Bat Mitsva\n- Mariage / Brit Mila\n- Conférence / Séminaire",
+};
+
+/**
+ * Détecte la catégorie stricte demandée dans le texte utilisateur.
+ * Retourne la catégorie (enum DB) ou null si la demande est générique.
+ */
+export function detectStrictCategory(text: string): string | null {
+  const normalized = normalizeText(text);
+  for (const { category, keywords } of STRICT_CATEGORY_MAP) {
+    if (keywords.some((keyword) => normalized.includes(normalizeText(keyword)))) {
+      return category;
+    }
+  }
+  return null;
+}
+
+/**
+ * Retourne true si la demande est vague dans sa catégorie (ex : "affiche Chabbat" sans précision).
+ * Dans ce cas, l'IA doit poser une question de clarification avant de proposer des affiches.
+ */
+export function isVagueCategoryRequest(text: string, detectedCategory: string | null): boolean {
+  if (!detectedCategory) return false;
+  const normalized = normalizeText(text);
+  const vagueWords = VAGUE_WITHIN_CATEGORY_KEYWORDS[detectedCategory] ?? [];
+  const specificWords = STRICT_CATEGORY_MAP
+    .find((entry) => entry.category === detectedCategory)
+    ?.keywords.filter((keyword) => !vagueWords.includes(keyword)) ?? [];
+  const hasVagueWord = vagueWords.some((keyword) => normalized.includes(normalizeText(keyword)));
+  const hasSpecificWord = specificWords.some((keyword) => normalized.includes(normalizeText(keyword)));
+  return hasVagueWord && !hasSpecificWord;
+}
+
+/**
+ * Retourne la question de clarification à poser pour une catégorie ambiguë.
+ */
+export function getCategoryAmbiguityQuestion(category: string): string {
+  return CATEGORY_CLARIFICATION_QUESTIONS[category] ?? "Pouvez-vous préciser le type d'affiche souhaité ?";
+}
 
 export const CATEGORY_EMOJI: Record<string, string> = {
   SHABBAT: "🕯️",
@@ -472,12 +583,21 @@ export function buildTemplateSuggestions(
     limit?: number;
     communityId?: string | null;
     forceAtLeastOne?: boolean;
+    // Quand fourni, seuls les templates de cette catégorie sont proposés (règle stricte).
+    strictCategory?: string | null;
   }
 ): TemplateSuggestion[] {
-  const limit = options?.limit ?? 3;
+  const limit = options?.limit ?? 5;
+
+  // Filtre strict par catégorie : si une catégorie est détectée dans la demande,
+  // on n'affiche QUE les affiches de cette catégorie. Jamais d'autre catégorie.
+  const filteredTemplates = options?.strictCategory
+    ? templates.filter((t) => t.category === options.strictCategory)
+    : templates;
+
   const requestedTopics = collectTopicMatches(text);
   const requestedHolidayTopics = requestedTopics.filter((topic) => topic !== "chabbat");
-  const scoredTemplates = [...templates]
+  const scoredTemplates = [...filteredTemplates]
     .map((template) => {
       const sharedTopics = getSharedTopics(template, text);
       return {
@@ -501,6 +621,43 @@ export function buildTemplateSuggestions(
       return (right.template.usageCount ?? 0) - (left.template.usageCount ?? 0);
     });
 
+  // En mode catégorie stricte : tous les templates de la catégorie sont candidats,
+  // triés par pertinence. Pas de seuil de score — on veut TOUJOURS proposer des affiches
+  // de la bonne catégorie, même si le score individuel est faible.
+  if (options?.strictCategory) {
+    const candidatePool = scoredTemplates
+      .slice(0, Math.max(limit * 6, 20))
+      .sort((left, right) => {
+        if (right.score !== left.score) return right.score - left.score;
+        if (left.isOwned !== right.isOwned) return left.isOwned ? -1 : 1;
+        return (right.template.usageCount ?? 0) - (left.template.usageCount ?? 0);
+      });
+
+    const selectedTemplates = [];
+    const selectedNames = new Set<string>();
+    for (const match of candidatePool) {
+      const nameKey = normalizeText(match.template.name);
+      if (!selectedNames.has(nameKey)) {
+        selectedTemplates.push(match);
+        selectedNames.add(nameKey);
+      }
+      if (selectedTemplates.length >= limit) break;
+    }
+    return selectedTemplates.map(({ template }) => ({
+      id: template.id,
+      name: template.name,
+      description: template.description,
+      category: template.category,
+      thumbnailUrl: resolveTemplateAssetUrl(template.thumbnailUrl),
+      previewUrl: resolveTemplateAssetUrl(template.previewUrl),
+      tags: template.tags ?? [],
+      isPremium: template.isPremium,
+      usageCount: template.usageCount,
+      editableZoneCount: Array.isArray(template.design) ? template.design.length : 0,
+      reason: buildTemplateReason(template, text),
+    }));
+  }
+
   const exactTopicMatches =
     requestedHolidayTopics.length > 0
       ? scoredTemplates.filter(({ sharedTopics }) =>
@@ -513,10 +670,6 @@ export function buildTemplateSuggestions(
   const fallbackMatches = options?.forceAtLeastOne
     ? candidateTemplates.filter(({ score }) => score >= 1.5)
     : [];
-  // forceAtLeastOne doit VRAIMENT garantir un résultat dès qu'il existe des
-  // templates. Sur une demande générique (« génère une affiche »), tous les
-  // templates globaux ont un score 0 et ne passent aucun seuil : on retombe
-  // alors sur la liste complète déjà triée par pertinence décroissante.
   const eligibleMatches =
     strictMatches.length > 0
       ? strictMatches
@@ -526,7 +679,7 @@ export function buildTemplateSuggestions(
           ? candidateTemplates
           : [];
   const candidatePool = eligibleMatches
-    .slice(0, Math.max(limit * 6, 12))
+    .slice(0, Math.max(limit * 6, 20))
     .sort((left, right) => {
       const leftShared = left.sharedTopics.length;
       const rightShared = right.sharedTopics.length;

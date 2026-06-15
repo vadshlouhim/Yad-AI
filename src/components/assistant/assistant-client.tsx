@@ -3064,82 +3064,105 @@ export function AssistantClient({
                     );
                   })()}
 
-                  {message.templateSuggestions && message.templateSuggestions.length > 0 && (
-                    <div className="mt-3 space-y-3 rounded-3xl border border-blue-100 bg-blue-50/50 p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-black text-slate-900">Affiches les plus pertinentes</p>
-                          <p className="mt-1 text-xs text-slate-500">
-                            Sélectionnées selon le thème demandé, les tags, la catégorie et les consignes IA.
-                          </p>
-                        </div>
-                        <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-blue-700 shadow-sm">
-                          {message.templateSuggestions.length} choix
-                        </span>
-                      </div>
-                      <div className="grid gap-3 md:grid-cols-3">
-                        {message.templateSuggestions.map((template) => (
-                          <div
-                            key={template.id}
-                            className="overflow-hidden rounded-2xl border border-blue-100 bg-white p-2 shadow-sm ring-1 ring-white/70"
-                          >
-                            <div className="overflow-hidden rounded-xl border border-white/80 bg-white p-1 shadow-inner">
-                              <div className="aspect-[3/4] overflow-hidden rounded-lg bg-slate-100">
-                              {template.thumbnailUrl ? (
-                                <img
-                                  src={template.thumbnailUrl}
-                                  alt={template.name}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div className="flex h-full items-center justify-center text-xs text-slate-400">
-                                  Aperçu indisponible
-                                </div>
-                              )}
-                              </div>
-                            </div>
-                            <div className="space-y-2 px-1 pb-1 pt-3">
-                              <div>
-                                <p className="line-clamp-2 text-sm font-black leading-snug text-slate-900">
-                                  {template.name}
-                                </p>
-                                <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
-                                  {template.reason}
-                                </p>
-                              </div>
-                              <div className="flex flex-wrap gap-1.5">
-                                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">
-                                  {template.category}
-                                </span>
-                                {template.tags.slice(0, 2).map((tag) => (
-                                  <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                              <div className="grid gap-2">
-	                                <Button
-	                                  size="sm"
-	                                  className="w-full"
-	                                  onClick={() => chooseTemplate(template)}
-                                    loading={preparingPoster && selectedTemplate?.id === template.id}
-                                    disabled={preparingPoster}
-	                                >
-	                                  Choisir et préparer
-	                                </Button>
-                              </div>
-                            </div>
+                  {message.templateSuggestions && message.templateSuggestions.length > 0 && (() => {
+                    // Labels de catégorie en français
+                    const CATEGORY_LABELS_FR: Record<string, string> = {
+                      SHABBAT: "Chabbat", HOLIDAY: "Fêtes", EVENT: "Événements",
+                      COURSE: "Cours", ANNOUNCEMENT: "Annonces", RECAP: "Récap",
+                      GREETING: "Vœux", GENERAL: "Général",
+                    };
+                    // Catégorie unique dans les suggestions (pour le lien "Voir plus")
+                    const uniqueCategory = message.templateSuggestions!.every(
+                      (t) => t.category === message.templateSuggestions![0].category
+                    ) ? message.templateSuggestions![0].category : null;
+                    const categoryLabel = uniqueCategory ? CATEGORY_LABELS_FR[uniqueCategory] : null;
+                    const seeMoreHref = uniqueCategory
+                      ? `/dashboard/templates?category=${uniqueCategory}`
+                      : "/dashboard/templates";
+
+                    return (
+                      <div className="mt-3 space-y-3 rounded-3xl border border-blue-100 bg-blue-50/50 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-black text-slate-900">
+                              {categoryLabel ? `Affiches — ${categoryLabel}` : "Affiches pertinentes"}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {categoryLabel
+                                ? `Modèles de la catégorie ${categoryLabel} uniquement.`
+                                : "Sélectionnées selon le thème, les tags et les consignes IA."}
+                            </p>
                           </div>
-                        ))}
+                          <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-blue-700 shadow-sm">
+                            {message.templateSuggestions!.length} modèle{message.templateSuggestions!.length > 1 ? "s" : ""}
+                          </span>
+                        </div>
+                        <div className={`grid gap-3 ${message.templateSuggestions!.length <= 3 ? "sm:grid-cols-2 md:grid-cols-3" : "sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5"}`}>
+                          {message.templateSuggestions!.map((template) => (
+                            <div
+                              key={template.id}
+                              className="overflow-hidden rounded-2xl border border-blue-100 bg-white p-2 shadow-sm ring-1 ring-white/70"
+                            >
+                              <div className="overflow-hidden rounded-xl border border-white/80 bg-white p-1 shadow-inner">
+                                <div className="aspect-[3/4] overflow-hidden rounded-lg bg-slate-100">
+                                  {template.thumbnailUrl ? (
+                                    <img
+                                      src={template.thumbnailUrl}
+                                      alt={template.name}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="flex h-full items-center justify-center text-xs text-slate-400">
+                                      Aperçu indisponible
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="space-y-2 px-1 pb-1 pt-3">
+                                <div>
+                                  <p className="line-clamp-2 text-sm font-black leading-snug text-slate-900">
+                                    {template.name}
+                                  </p>
+                                  {template.description && (
+                                    <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-slate-400">
+                                      {template.description}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                                    {CATEGORY_LABELS_FR[template.category] ?? template.category}
+                                  </span>
+                                  {template.tags.slice(0, 2).map((tag) => (
+                                    <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  className="w-full"
+                                  onClick={() => chooseTemplate(template)}
+                                  loading={preparingPoster && selectedTemplate?.id === template.id}
+                                  disabled={preparingPoster}
+                                >
+                                  Choisir et préparer
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Link
+                            href={seeMoreHref}
+                            className="inline-flex text-xs font-medium text-blue-600 hover:underline"
+                          >
+                            Voir d&apos;autres affiches{categoryLabel ? ` ${categoryLabel}` : ""}
+                          </Link>
+                        </div>
                       </div>
-                      <Link
-                        href="/dashboard/templates"
-                        className="inline-flex text-xs font-medium text-blue-600 hover:underline"
-                      >
-                        Voir d&apos;autres affiches
-                      </Link>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {message.articleSuggestions && message.articleSuggestions.length > 0 && (
                     <div className="mt-3 space-y-3">
