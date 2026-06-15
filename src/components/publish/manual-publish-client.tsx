@@ -409,7 +409,7 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
           )}
 
           {isVisualPlatform && (
-            <Link href="/dashboard/automations">
+            <Link href="/dashboard/automations" className={cn("block", isInstagram ? "mb-4" : "mb-2")}>
               <div
                 className={cn(
                   "group w-full rounded-2xl border p-4 cursor-pointer transition-all duration-200 hover:scale-[1.01] hover:shadow-md",
@@ -623,7 +623,7 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
             ) : platformKey === "INSTAGRAM" ? (
               /* Instagram Smartphone mockup — design orange */
               <div className="w-full mx-auto flex justify-center">
-                <div className="relative rounded-[3.5rem] bg-[#f2935a] p-[4px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] w-[360px] h-[750px] border-[1.5px] border-[#b0853e]">
+                <div className="relative aspect-[12/25] w-full max-w-[340px] xl:max-w-[360px] rounded-[3.5rem] border-[1.5px] border-[#b0853e] bg-[#f2935a] p-[4px] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
                   {/* Bouton muet */}
                   <div className="absolute -left-[5px] top-[110px] w-[5px] h-[30px] bg-[#f2935a] rounded-l-md border-y border-l border-[#b0853e] shadow-sm" />
                   {/* Volume + */}
