@@ -141,7 +141,7 @@ interface Props {
   recentConversations: RecentConversation[];
 }
 
-type AdminSection = "overview" | "templates" | "presets" | "automations" | "communities" | "activity" | "data" | "development";
+type AdminSection = "overview" | "templates" | "presets" | "automations" | "communities" | "activity" | "data" | "development" | "users";
 type ThemeMode = "light" | "dark";
 type AdminAutomationFormState = {
   communityId: string;
@@ -313,6 +313,8 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [userDeleteConfirm, setUserDeleteConfirm] = useState<AdminUser | null>(null);
   const [uploadingField, setUploadingField] = useState<"thumbnail" | "preview" | null>(null);
   const [automationSaving, setAutomationSaving] = useState<string | null>(null);
   const [drafts, setDrafts] = useState(() => new Map(templates.map((template) => [template.id, template])));
@@ -814,6 +816,21 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     window.location.reload();
   }
 
+  async function deleteUser(user: AdminUser) {
+    setDeletingUserId(user.id);
+    setStatus(null);
+    const response = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
+    const payload = await response.json().catch(() => ({}));
+    setDeletingUserId(null);
+    setUserDeleteConfirm(null);
+    if (!response.ok) {
+      setStatus(payload.error ?? "Suppression impossible.");
+      return;
+    }
+    setStatus(`Compte de ${user.email} supprimé avec toutes ses données.`);
+    window.location.reload();
+  }
+
   async function deleteAdminAutomation(automation: AdminAutomation) {
     if (!window.confirm(`Supprimer l'automatisation "${automation.name}" ?`)) return;
     setAutomationSaving(automation.id);
@@ -833,6 +850,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     { id: "presets" as const, label: "Publications IA", icon: Sparkles, value: formatNumber(allPresets.length) },
     { id: "automations" as const, label: "Automatisations", icon: Zap, value: formatNumber(automations.length) },
     { id: "communities" as const, label: "Beth Habad", icon: Building2, value: formatNumber(metrics.communityCount) },
+    { id: "users" as const, label: "Utilisateurs", icon: Users, value: formatNumber(users.length) },
     { id: "activity" as const, label: "Activité IA", icon: Bot, value: formatNumber(metrics.conversationCount) },
     { id: "data" as const, label: "Données", icon: Database, value: formatNumber(metrics.databaseItemCount) },
     { id: "development" as const, label: "Développement", icon: PlayCircle, value: "UI" },
@@ -1442,6 +1460,88 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                   </button>
                   <button type="button" onClick={submitAdminAutomationForm} disabled={automationSaving === "admin-create"} className="rounded-2xl bg-violet-600 px-4 py-2 text-sm font-black text-white hover:bg-violet-700 disabled:opacity-60">
                     {automationSaving === "admin-create" ? "Création..." : "Créer l'automatisation"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === "users" && (
+            <section className="mt-6">
+              <div className={`rounded-[2rem] border p-5 shadow-sm ${panelClass}`}>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className={`text-xl font-black ${strongText}`}>Comptes utilisateurs</h3>
+                    <p className={`mt-1 text-sm ${mutedText}`}>{users.length} compte(s) inscrit(s). La suppression efface toutes les données associées en cascade.</p>
+                  </div>
+                </div>
+
+                {status && (
+                  <p className={`mt-4 rounded-2xl border px-3 py-2 text-sm ${isDark ? "border-white/10 bg-white/10 text-slate-200" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+                    {status}
+                  </p>
+                )}
+
+                <div className="mt-5 space-y-3">
+                  {users.map((user) => {
+                    const community = communities.find((community) => community.id === user.communityId);
+                    return (
+                      <div key={user.id} className={`flex flex-col gap-3 rounded-3xl border p-4 sm:flex-row sm:items-center sm:justify-between ${isDark ? "border-white/10 bg-slate-950/55" : "border-slate-200 bg-white"}`}>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className={`font-black ${strongText}`}>{user.name ?? user.email}</p>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${user.role === "SUPER_ADMIN" ? "bg-rose-500/15 text-rose-600" : user.role === "ADMIN" ? "bg-amber-500/15 text-amber-600" : "bg-slate-500/15 text-slate-500"}`}>
+                              {user.role}
+                            </span>
+                          </div>
+                          <p className={`mt-0.5 text-sm ${mutedText}`}>{user.email}</p>
+                          {community && (
+                            <p className={`mt-0.5 text-xs ${mutedText}`}>{community.name}{community.city ? ` · ${community.city}` : ""}</p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setUserDeleteConfirm(user)}
+                          disabled={deletingUserId === user.id}
+                          className={`inline-flex shrink-0 items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${isDark ? "border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20" : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"}`}
+                        >
+                          <Trash2 className={`size-4 ${deletingUserId === user.id ? "animate-pulse" : ""}`} />
+                          {deletingUserId === user.id ? "Suppression..." : "Supprimer"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {userDeleteConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+              <div className={`w-full max-w-md rounded-[2rem] border p-6 shadow-2xl ${panelClass}`}>
+                <h3 className={`text-lg font-black ${strongText}`}>Supprimer ce compte ?</h3>
+                <p className={`mt-3 text-sm leading-6 ${mutedText}`}>
+                  Vous êtes sur le point de supprimer définitivement le compte de{" "}
+                  <span className={`font-black ${strongText}`}>{userDeleteConfirm.email}</span>.
+                </p>
+                <p className={`mt-2 rounded-2xl border px-3 py-2 text-sm ${isDark ? "border-red-400/20 bg-red-500/10 text-red-200" : "border-red-200 bg-red-50 text-red-700"}`}>
+                  ⚠ Cette action est irréversible. Toutes les données associées (communauté, conversations, contenus, automatisations, médias, etc.) seront supprimées en cascade.
+                </p>
+                <div className="mt-5 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setUserDeleteConfirm(null)}
+                    className={`rounded-2xl border px-4 py-2 text-sm font-black ${isDark ? "border-white/10 text-slate-200 hover:bg-white/10" : "border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteUser(userDeleteConfirm)}
+                    disabled={deletingUserId === userDeleteConfirm.id}
+                    className="rounded-2xl bg-red-600 px-4 py-2 text-sm font-black text-white hover:bg-red-700 disabled:opacity-60"
+                  >
+                    {deletingUserId === userDeleteConfirm.id ? "Suppression en cours..." : "Oui, supprimer définitivement"}
                   </button>
                 </div>
               </div>
