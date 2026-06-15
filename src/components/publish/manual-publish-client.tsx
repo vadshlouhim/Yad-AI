@@ -302,6 +302,52 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
     return <span dangerouslySetInnerHTML={{ __html: html }} />;
   }
 
+  function renderSmartphoneFrame(children: React.ReactNode, screenClassName = "bg-white") {
+    return (
+      <div className="w-full mx-auto flex justify-center">
+        <div className="relative aspect-[12/25] w-full max-w-[320px] xl:max-w-[340px] rounded-[3.5rem] border-[1.5px] border-[#b0853e] bg-[#f2935a] p-[4px] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <div className="absolute -left-[5px] top-[110px] h-[30px] w-[5px] rounded-l-md border-y border-l border-[#b0853e] bg-[#f2935a] shadow-sm" />
+          <div className="absolute -left-[5px] top-[160px] h-[55px] w-[5px] rounded-l-md border-y border-l border-[#b0853e] bg-[#f2935a] shadow-sm" />
+          <div className="absolute -left-[5px] top-[230px] h-[55px] w-[5px] rounded-l-md border-y border-l border-[#b0853e] bg-[#f2935a] shadow-sm" />
+          <div className="absolute -right-[5px] top-[180px] h-[85px] w-[5px] rounded-r-md border-y border-r border-[#b0853e] bg-[#f2935a] shadow-sm" />
+
+          <div className={cn("relative flex h-full w-full flex-col overflow-hidden rounded-[3.2rem]", screenClassName)}>
+            <div className="flex h-12 w-full flex-shrink-0 items-center justify-between px-6 pt-2">
+              <div className="w-1/3 pl-1 text-[15px] font-semibold text-black">9:41</div>
+              <div className="relative mt-1 h-[30px] w-[120px] flex-shrink-0 rounded-full bg-black">
+                <div className="absolute right-3 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full border-[1.5px] border-[#222] bg-[#121212]" />
+              </div>
+              <div className="flex w-1/3 items-center justify-end space-x-1.5 pr-1">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="3" y="16" width="3" height="4" rx="1" />
+                  <rect x="8" y="12" width="3" height="8" rx="1" />
+                  <rect x="13" y="8" width="3" height="12" rx="1" />
+                  <rect x="18" y="4" width="3" height="16" rx="1" />
+                </svg>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                  <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                  <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                  <line x1="12" x2="12.01" y1="20" y2="20" />
+                </svg>
+                <div className="relative flex h-[11px] w-[22px] items-center rounded-[3px] border border-gray-400 p-[1px]">
+                  <div className="h-full w-full rounded-[1px] bg-green-500" />
+                  <div className="absolute -right-[3px] top-1/2 h-[4px] w-[2px] -translate-y-1/2 rounded-r-[1px] bg-gray-400" />
+                </div>
+              </div>
+            </div>
+
+            {children}
+
+            <div className="absolute bottom-2 flex w-full justify-center pb-1">
+              <div className="h-[5px] w-[130px] rounded-full bg-gray-300" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Top Header Card */}
@@ -622,45 +668,8 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
               </div>
             ) : platformKey === "INSTAGRAM" ? (
               /* Instagram Smartphone mockup — design orange */
-              <div className="w-full mx-auto flex justify-center">
-                <div className="relative aspect-[12/25] w-full max-w-[340px] xl:max-w-[360px] rounded-[3.5rem] border-[1.5px] border-[#b0853e] bg-[#f2935a] p-[4px] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                  {/* Bouton muet */}
-                  <div className="absolute -left-[5px] top-[110px] w-[5px] h-[30px] bg-[#f2935a] rounded-l-md border-y border-l border-[#b0853e] shadow-sm" />
-                  {/* Volume + */}
-                  <div className="absolute -left-[5px] top-[160px] w-[5px] h-[55px] bg-[#f2935a] rounded-l-md border-y border-l border-[#b0853e] shadow-sm" />
-                  {/* Volume - */}
-                  <div className="absolute -left-[5px] top-[230px] w-[5px] h-[55px] bg-[#f2935a] rounded-l-md border-y border-l border-[#b0853e] shadow-sm" />
-                  {/* Power */}
-                  <div className="absolute -right-[5px] top-[180px] w-[5px] h-[85px] bg-[#f2935a] rounded-r-md border-y border-r border-[#b0853e] shadow-sm" />
-
-                  {/* Écran */}
-                  <div className="bg-white w-full h-full rounded-[3.2rem] overflow-hidden relative flex flex-col">
-                    {/* Status Bar */}
-                    <div className="w-full h-12 flex items-center justify-between px-6 pt-2 flex-shrink-0">
-                      <div className="text-black font-semibold text-[15px] w-1/3 pl-1">9:41</div>
-                      <div className="w-[120px] h-[30px] bg-black rounded-full flex-shrink-0 relative mt-1">
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-[#121212] rounded-full border-[1.5px] border-[#222]" />
-                      </div>
-                      <div className="flex items-center justify-end space-x-1.5 w-1/3 pr-1">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                          <rect x="3" y="16" width="3" height="4" rx="1" />
-                          <rect x="8" y="12" width="3" height="8" rx="1" />
-                          <rect x="13" y="8" width="3" height="12" rx="1" />
-                          <rect x="18" y="4" width="3" height="16" rx="1" />
-                        </svg>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
-                          <path d="M5 12.55a11 11 0 0 1 14.08 0" />
-                          <path d="M1.42 9a16 16 0 0 1 21.16 0" />
-                          <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-                          <line x1="12" x2="12.01" y1="20" y2="20" />
-                        </svg>
-                        <div className="w-[22px] h-[11px] border border-gray-400 rounded-[3px] p-[1px] relative flex items-center">
-                          <div className="bg-green-500 w-full h-full rounded-[1px]" />
-                          <div className="absolute -right-[3px] top-1/2 -translate-y-1/2 w-[2px] h-[4px] bg-gray-400 rounded-r-[1px]" />
-                        </div>
-                      </div>
-                    </div>
-
+              renderSmartphoneFrame(
+                <>
                     {/* Instagram Post */}
                     <div className="flex-1 mt-2 flex flex-col overflow-hidden">
                       {/* Post Header */}
@@ -728,23 +737,19 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
                       </div>
                     </div>
 
-                    {/* Home Indicator */}
-                    <div className="absolute bottom-2 w-full flex justify-center pb-1">
-                      <div className="w-[130px] h-[5px] bg-gray-300 rounded-full" />
-                    </div>
-                  </div>
-                </div>
-              </div>
+                </>
+              )
             ) : platformKey === "FACEBOOK" ? (
               /* Facebook Smartphone mockup */
-              <div className="w-full max-w-[340px] mx-auto rounded-[40px] border-[10px] border-slate-900 bg-[#f0f2f5] aspect-[9/16] shadow-xl overflow-hidden flex flex-col relative">
+              renderSmartphoneFrame(
+                <>
                 {/* Facebook Header */}
                 <div className="bg-white p-3 border-b border-slate-200">
                   <span className="text-blue-600 font-bold text-base">facebook</span>
                 </div>
 
                 {/* Facebook Post Card */}
-                <div className="bg-white p-3 space-y-2 flex-1 overflow-y-auto">
+                <div className="bg-white p-3 pb-8 space-y-2 flex-1 overflow-y-auto">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">
                       {communityName.substring(0, 2).toUpperCase()}
@@ -775,12 +780,15 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
                     )}
                   </div>
                 </div>
-              </div>
+                </>,
+                "bg-[#f0f2f5]"
+              )
             ) : platformKey === "TELEGRAM" ? (
               /* Telegram Smartphone mockup */
-              <div className="w-full max-w-[340px] mx-auto rounded-[40px] border-[10px] border-slate-900 bg-[#517c9b] aspect-[9/16] shadow-xl overflow-hidden flex flex-col relative">
+              renderSmartphoneFrame(
+                <>
                 {/* Telegram Header */}
-                <div className="bg-[#4a6f8a] text-white p-3 pt-4 flex items-center gap-3">
+                <div className="bg-[#4a6f8a] text-white p-3 flex items-center gap-3">
                   <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
                     {communityName.substring(0, 2).toUpperCase()}
                   </div>
@@ -803,7 +811,9 @@ export function ManualPublishClient({ platform, channelId, isConnected, communit
                     <span className="block text-[8px] text-slate-400 text-right mt-1">12:00</span>
                   </div>
                 </div>
-              </div>
+                </>,
+                "bg-[#517c9b]"
+              )
             ) : (
               /* Email mock newsletter */
               <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-md text-xs text-slate-700 min-h-[360px] flex flex-col">
