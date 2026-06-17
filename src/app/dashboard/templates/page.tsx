@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TemplatesClient } from "@/components/templates/templates-client";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
+import { getBillingConfig, getBillingUsage } from "@/lib/billing";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Affiches — EasyCom IA" };
@@ -11,7 +12,7 @@ export default async function TemplatesPage() {
   const communityId = profile.communityId!;
   const admin = createAdminClient();
 
-  const [{ data: templates }, { data: community }] = await Promise.all([
+  const [{ data: templates }, { data: community }, billingConfig, billingUsage] = await Promise.all([
     admin
       .from("Template")
       .select("*")
@@ -25,6 +26,8 @@ export default async function TemplatesPage() {
       .select("id, name, city, tone, phone, email, website, address, religiousStream, plan")
       .eq("id", communityId)
       .single(),
+    getBillingConfig(admin),
+    getBillingUsage(admin, communityId),
   ]);
 
   const hydratedTemplates = (templates ?? []).map((template) => ({
@@ -38,6 +41,8 @@ export default async function TemplatesPage() {
       templates={hydratedTemplates as Parameters<typeof TemplatesClient>[0]["templates"]}
       community={community!}
       plan={community?.plan ?? "FREE_TRIAL"}
+      billingConfig={billingConfig}
+      billingUsage={billingUsage}
     />
   );
 }

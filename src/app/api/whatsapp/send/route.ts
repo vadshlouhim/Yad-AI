@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveCommunityPhones, sendWhatsAppMessages, sanitizePhone } from "@/lib/whatsapp/send";
+import { assertPaidFeature } from "@/lib/billing";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -28,6 +29,14 @@ export async function POST(request: Request) {
   if (!text) return NextResponse.json({ error: "Message vide." }, { status: 400 });
 
   const admin = createAdminClient();
+  const paid = await assertPaidFeature(
+    admin,
+    user.id,
+    "whatsapp",
+    "WhatsApp est réservé au mode payant. Passez à l'abonnement pour envoyer des messages."
+  );
+  if (!paid.ok) return paid.response;
+
   let phones: string[] = [];
 
   if (target === "phone") {

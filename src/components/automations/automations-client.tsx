@@ -13,6 +13,8 @@ import {
   AlertCircle, Calendar, RefreshCw, Settings, Trash2, X, Save,
 } from "lucide-react";
 import { formatRelative, cn } from "@/lib/utils";
+import { UpgradeModal } from "@/components/billing/upgrade-modal";
+import type { BillingConfig } from "@/lib/billing";
 
 interface AutomationRun {
   id: string;
@@ -69,6 +71,7 @@ interface Props {
   requiresValidationDefault?: boolean;
   communityType?: string;
   profileLabel?: string;
+  billingConfig: BillingConfig;
 }
 
 interface AutomationFormState {
@@ -568,7 +571,7 @@ function buildAssistantTriggerConfig(card: PredefinedAutomationCard, note: strin
   };
 }
 
-export function AutomationsClient({ automations, presets = [], recentRuns, embedded = false, requiresValidationDefault = true, communityType = "OTHER", profileLabel: profileLabelProp }: Props) {
+export function AutomationsClient({ automations, presets = [], recentRuns, embedded = false, requiresValidationDefault = true, communityType = "OTHER", profileLabel: profileLabelProp, billingConfig }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [toggling, setToggling] = useState<string | null>(null);
@@ -578,6 +581,7 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState<AutomationFormState>(() => defaultForm(requiresValidationDefault));
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [hiddenPresetIds, setHiddenPresetIds] = useState<string[]>([]);
   const [expandedSpecificPresets, setExpandedSpecificPresets] = useState(false);
   const [assistantCard, setAssistantCard] = useState<PredefinedAutomationCard | null>(null);
@@ -827,6 +831,10 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        if (data.code === "PAYWALL_REQUIRED") {
+          setUpgradeOpen(true);
+          return;
+        }
         setFeedback({ type: "error", text: data.error ?? "Impossible d'enregistrer l'automatisation. Veuillez reessayer." });
         return;
       }
@@ -909,6 +917,10 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
         router.refresh();
         return true;
       }
+      if (data.code === "PAYWALL_REQUIRED") {
+        setUpgradeOpen(true);
+        return false;
+      }
       setFeedback({ type: "error", text: data.error ?? "Erreur lors de la création de l'automatisation." });
       return false;
     } finally {
@@ -925,7 +937,14 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
         body: JSON.stringify({ preset, channels }),
       });
       if (res.ok) router.refresh();
-      else alert("Erreur lors de la création de l'automatisation.");
+      else {
+        const data = await res.json().catch(() => ({}));
+        if (data.code === "PAYWALL_REQUIRED") {
+          setUpgradeOpen(true);
+          return;
+        }
+        alert(data.error ?? "Erreur lors de la création de l'automatisation.");
+      }
     } finally {
       setSaving(false);
     }
@@ -1086,6 +1105,14 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
 
   return (
     <div className="space-y-6">
+      <UpgradeModal
+        open={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        config={billingConfig}
+        featureLabel="Automatisations"
+        title="Automatisations illimitées avec le mode payant"
+        description="Le mode gratuit permet de créer une seule automatisation IA. Passez au mode payant pour programmer toutes vos routines de communication."
+      />
       {!embedded && (
         <div className="space-y-4">
           <div className="overflow-hidden rounded-3xl border border-cyan-800/60 bg-gradient-to-br from-[#081f36] via-[#0d304f] to-[#08192d] p-6 shadow-lg shadow-slate-950/35">

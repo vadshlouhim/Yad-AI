@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicationsFromDraft, publishToAllChannels } from "@/lib/publishing/publisher";
+import { FREE_LIMITS, getBillingGate, getBillingUsage, paywallResponse } from "@/lib/billing";
+
+const LIMITED_SOCIAL_CHANNELS = new Set(["INSTAGRAM", "FACEBOOK", "TELEGRAM"]);
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -16,6 +19,19 @@ export async function POST(request: Request) {
   const { draftId, channelTypes, scheduledAt } = body;
   if (!draftId || !Array.isArray(channelTypes)) {
     return NextResponse.json({ error: "Parametres de publication invalides" }, { status: 400 });
+  }
+
+  const requestedSocialCount = channelTypes.filter((channelType) => LIMITED_SOCIAL_CHANNELS.has(String(channelType))).length;
+  const gate = await getBillingGate(admin, user.id);
+  if (!gate.isPaid && requestedSocialCount > 0) {
+    const usage = await getBillingUsage(admin, profile.communityId);
+    if (usage.socialPublications + requestedSocialCount > FREE_LIMITS.socialPublications) {
+      return paywallResponse(
+        "social_publications",
+        "Le mode gratuit inclut une seule publication Instagram, Facebook ou Telegram. Passez au mode payant pour publier sans limite.",
+        { socialPublications: usage.socialPublications }
+      );
+    }
   }
 
   const { data: draft } = await admin

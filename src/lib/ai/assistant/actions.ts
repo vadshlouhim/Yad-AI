@@ -3,9 +3,11 @@ import { sendCommunityEmail } from "@/lib/email/send-community-email";
 import { generateContent } from "@/lib/ai/engine";
 import { createPublicationsFromDraft, publishToAllChannels } from "@/lib/publishing/publisher";
 import { resolveCommunityPhones, sendWhatsAppMessages, sanitizePhone } from "@/lib/whatsapp/send";
+import { FREE_LIMITS, getBillingGate, getBillingUsage } from "@/lib/billing";
 import { fromZonedTime } from "date-fns-tz";
 
 type Admin = ReturnType<typeof createAdminClient>;
+const LIMITED_SOCIAL_CHANNELS = new Set(["INSTAGRAM", "FACEBOOK", "TELEGRAM"]);
 
 const WEEKDAY_MAP: Record<string, number> = {
   sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6,
@@ -176,6 +178,19 @@ export async function executeAction(
       }
 
       case "create_automation": {
+        if (ctx.userId) {
+          const gate = await getBillingGate(admin, ctx.userId);
+          if (!gate.isPaid) {
+            const usage = await getBillingUsage(admin, communityId);
+            if (usage.automations >= FREE_LIMITS.automations) {
+              return {
+                success: false,
+                message: "Le mode gratuit permet de créer une seule automatisation IA. Passez au mode payant pour en programmer d'autres.",
+              };
+            }
+          }
+        }
+
         const id = crypto.randomUUID();
         const nowIso = new Date().toISOString();
         const triggerConfig =
@@ -299,6 +314,16 @@ export async function executeAction(
       }
 
       case "send_whatsapp": {
+        if (ctx.userId) {
+          const gate = await getBillingGate(admin, ctx.userId);
+          if (!gate.isPaid) {
+            return {
+              success: false,
+              message: "WhatsApp est réservé au mode payant. Passez à l'abonnement pour utiliser cette fonctionnalité.",
+            };
+          }
+        }
+
         const text = String(payload.text ?? "").trim();
         if (!text) return { success: false, message: "Message WhatsApp vide." };
 
@@ -404,6 +429,19 @@ export async function executeAction(
         const channelTypes = Array.isArray(payload.channelTypes) ? (payload.channelTypes as string[]) : [];
         if (!draftId || channelTypes.length === 0) {
           return { success: false, message: "draftId ou channelTypes manquant pour la publication." };
+        }
+        if (ctx.userId) {
+          const requestedSocialCount = channelTypes.filter((channelType) => LIMITED_SOCIAL_CHANNELS.has(String(channelType))).length;
+          const gate = await getBillingGate(admin, ctx.userId);
+          if (!gate.isPaid && requestedSocialCount > 0) {
+            const usage = await getBillingUsage(admin, communityId);
+            if (usage.socialPublications + requestedSocialCount > FREE_LIMITS.socialPublications) {
+              return {
+                success: false,
+                message: "Le mode gratuit inclut une seule publication Instagram, Facebook ou Telegram. Passez au mode payant pour publier sans limite.",
+              };
+            }
+          }
         }
         const { data: channels } = await admin
           .from("Channel")

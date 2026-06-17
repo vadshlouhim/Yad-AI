@@ -155,7 +155,7 @@ export async function POST(request: Request) {
 
     // 5. Initialiser la mémoire IA
     if (Array.isArray(data.selectedAutomationScenarioIds) && data.selectedAutomationScenarioIds.length > 0) {
-      const selectedIds = data.selectedAutomationScenarioIds.map(String).filter(Boolean);
+      const selectedIds = data.selectedAutomationScenarioIds.map(String).filter(Boolean).slice(0, 1);
       const dbSelectedIds = selectedIds.filter((id: string) => !isDefaultAutomationPublicationId(id));
       const defaultSelectedPublications = GENERAL_DEFAULT_AUTOMATION_PUBLICATIONS.filter((publication) =>
         selectedIds.includes(publication.id)

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { editPosterFromRequest } from "@/lib/templates/render";
+import { FREE_LIMITS, getBillingGate, getBillingUsage, paywallResponse } from "@/lib/billing";
 
 export const maxDuration = 120;
 
@@ -16,6 +17,18 @@ export async function POST(request: Request) {
     const admin = createAdminClient();
     const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
     if (!profile?.communityId) return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
+
+    const gate = await getBillingGate(admin, user.id);
+    if (!gate.isPaid) {
+      const usage = await getBillingUsage(admin, profile.communityId);
+      if (usage.posterGenerations >= FREE_LIMITS.posterGenerations) {
+        return paywallResponse(
+          "poster_generations",
+          "Le mode gratuit permet de modifier une seule affiche. Passez au mode payant pour personnaliser toutes les affiches.",
+          { posterGenerations: usage.posterGenerations }
+        );
+      }
+    }
 
     const body = await request.json();
     const templateId = typeof body.templateId === "string" ? body.templateId : "";
@@ -44,6 +57,23 @@ export async function POST(request: Request) {
       communityId: profile.communityId,
       userRequest,
       community,
+    });
+
+    await admin.from("MediaFile").insert({
+      id: crypto.randomUUID(),
+      communityId: profile.communityId,
+      userId: user.id,
+      templateId: template.id,
+      name: `Affiche générée - ${template.name}`,
+      originalName: template.name,
+      url: result.imageUrl,
+      publicId: result.storagePath,
+      source: "TEMPLATE_GENERATION",
+      type: "IMAGE",
+      mimeType: "image/png",
+      size: 0,
+      tags: ["generated", "template"],
+      updatedAt: new Date().toISOString(),
     });
 
     return NextResponse.json({ imageUrl: result.imageUrl });

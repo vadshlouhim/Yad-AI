@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertPaidFeature } from "@/lib/billing";
 
 const SERVICE_URL = process.env.WHATSAPP_SERVICE_URL;
 const SERVICE_SECRET = process.env.WHATSAPP_SERVICE_SECRET;
@@ -49,6 +50,14 @@ export async function POST() {
   if (!user) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const admin = createAdminClient();
+  const paid = await assertPaidFeature(
+    admin,
+    user.id,
+    "whatsapp",
+    "WhatsApp est réservé au mode payant. Passez à l'abonnement pour connecter votre numéro."
+  );
+  if (!paid.ok) return paid.response;
+
   const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
   const communityId = (profile as { communityId?: string } | null)?.communityId;
   if (!communityId) return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });

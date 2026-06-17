@@ -22,6 +22,7 @@ import {
 } from "@/lib/templates/shared";
 import { analyzeTemplateVisuals } from "@/lib/templates/analysis";
 import { runAssistant } from "@/lib/ai/assistant/runner";
+import { FREE_LIMITS, getBillingGate, getBillingUsage, paywallResponse } from "@/lib/billing";
 import OpenAI from "openai";
 import type { ChatCompletionContentPart } from "openai/resources/chat/completions";
 
@@ -220,6 +221,18 @@ export async function POST(request: Request) {
     const isUserPrompt = lastUserMessage?.role === "user";
     const hasExplicitVisualIntent = isUserPrompt && looksLikeTemplateIntent(lastUserMessage.content);
     const hasExplicitArticleIntent = isUserPrompt && looksLikeArticleIntent(lastUserMessage.content);
+
+    const billingGate = await getBillingGate(admin, user.id);
+    if (isUserPrompt && !billingGate.isPaid) {
+      const usage = await getBillingUsage(admin, communityId);
+      if (usage.assistantMessages >= FREE_LIMITS.assistantMessages) {
+        return paywallResponse(
+          "assistant_messages",
+          "Le mode gratuit inclut 20 messages avec l'assistant IA. Passez au mode payant pour continuer la conversation.",
+          { assistantMessages: usage.assistantMessages }
+        );
+      }
+    }
 
     const [{ data: dbCommunity }, { data: memories }, { data: candidateTemplates }, { data: candidateArticles }, { data: gmailChannel }, { data: upcomingEvents }, { count: contactsCount }] = await Promise.all([
       admin

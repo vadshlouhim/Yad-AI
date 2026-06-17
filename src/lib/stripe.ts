@@ -21,47 +21,27 @@ export const stripe = new Proxy({} as Stripe, {
 
 export const PLANS = {
   FREE_TRIAL: {
-    name: "Essai gratuit",
+    name: "Gratuit",
     priceId: null,
     price: 0,
     limits: {
-      publicationsPerMonth: 30,
-      aiGenerationsPerMonth: 50,
-      channels: 2,
-      templates: 10,
-    },
-  },
-  STARTER: {
-    name: "Starter",
-    priceId: process.env.STRIPE_STARTER_PRICE_ID,
-    price: 29,
-    limits: {
-      publicationsPerMonth: 150,
-      aiGenerationsPerMonth: 300,
-      channels: 5,
-      templates: 50,
+      socialPublications: 1,
+      assistantMessages: 20,
+      automations: 1,
+      posterGenerations: 1,
+      whatsapp: false,
     },
   },
   PROFESSIONAL: {
-    name: "Professionnel",
-    priceId: process.env.STRIPE_PRO_PRICE_ID,
-    price: 79,
+    name: "Payant",
+    priceId: process.env.STRIPE_PAID_PRICE_ID ?? process.env.STRIPE_PRO_PRICE_ID,
+    price: 19.99,
     limits: {
-      publicationsPerMonth: -1,
-      aiGenerationsPerMonth: -1,
-      channels: -1,
-      templates: -1,
-    },
-  },
-  ENTERPRISE: {
-    name: "Enterprise",
-    priceId: process.env.STRIPE_ENTERPRISE_PRICE_ID,
-    price: 199,
-    limits: {
-      publicationsPerMonth: -1,
-      aiGenerationsPerMonth: -1,
-      channels: -1,
-      templates: -1,
+      socialPublications: -1,
+      assistantMessages: -1,
+      automations: -1,
+      posterGenerations: -1,
+      whatsapp: true,
     },
   },
 } as const;
@@ -83,7 +63,6 @@ export async function createCheckoutSession(params: {
     cancel_url: cancelUrl,
     metadata: { communityId },
     subscription_data: {
-      trial_period_days: 14,
       metadata: { communityId },
     },
     allow_promotion_codes: true,

@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database.types";
 import { AUTOMATION_PRESETS, buildAutomationActions } from "@/lib/automation/presets";
 import { presetAppliesToCommunity, type PresetWithClientTypes } from "@/lib/automation/preset-utils";
+import { FREE_LIMITS, getBillingGate, getBillingUsage, paywallResponse } from "@/lib/billing";
 
 const TRIGGERS = new Set<Database["public"]["Enums"]["AutomationTrigger"]>([
   "BEFORE_EVENT",
@@ -135,6 +136,18 @@ export async function POST(request: Request) {
 
     if (!profile?.communityId) {
       return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
+    }
+
+    const gate = await getBillingGate(admin, user.id);
+    if (!gate.isPaid) {
+      const usage = await getBillingUsage(admin, profile.communityId);
+      if (usage.automations >= FREE_LIMITS.automations) {
+        return paywallResponse(
+          "automations",
+          "Le mode gratuit permet de créer une seule automatisation IA. Passez au mode payant pour en programmer d'autres.",
+          { automations: usage.automations }
+        );
+      }
     }
 
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;

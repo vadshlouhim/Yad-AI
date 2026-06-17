@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertPaidFeature } from "@/lib/billing";
 
 const SERVICE_URL = process.env.WHATSAPP_SERVICE_URL;
 const SERVICE_SECRET = process.env.WHATSAPP_SERVICE_SECRET;
@@ -26,6 +27,15 @@ export async function GET() {
 
   const communityId = await getCommunityId(user.id);
   if (!communityId) return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
+
+  const admin = createAdminClient();
+  const paid = await assertPaidFeature(
+    admin,
+    user.id,
+    "whatsapp",
+    "WhatsApp est réservé au mode payant. Passez à l'abonnement pour connecter votre numéro."
+  );
+  if (!paid.ok) return paid.response;
 
   const url = `${SERVICE_URL.replace(/\/$/, "")}/session/${communityId}/qr-instant`;
   try {
@@ -59,6 +69,15 @@ export async function POST() {
 
   const communityId = await getCommunityId(user.id);
   if (!communityId) return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
+
+  const admin = createAdminClient();
+  const paid = await assertPaidFeature(
+    admin,
+    user.id,
+    "whatsapp",
+    "WhatsApp est réservé au mode payant. Passez à l'abonnement pour connecter votre numéro."
+  );
+  if (!paid.ok) return paid.response;
 
   const url = `${SERVICE_URL.replace(/\/$/, "")}/session/${communityId}/start`;
   try {

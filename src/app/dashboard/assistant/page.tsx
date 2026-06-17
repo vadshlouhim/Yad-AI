@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getJewishHolidays } from "@/lib/automation/hebcal";
 import { AssistantClient } from "@/components/assistant/assistant-client";
 import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels";
+import { getBillingConfig } from "@/lib/billing";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Assistant IA — EasyCom IA" };
@@ -17,7 +18,7 @@ export default async function AssistantPage({
   const admin = createAdminClient();
   const now = new Date();
 
-  const [{ data: community }, { data: channels }, { data: upcomingEvents }, currentYearHolidays, nextYearHolidays] = await Promise.all([
+  const [{ data: community }, { data: channels }, { data: upcomingEvents }, currentYearHolidays, nextYearHolidays, billingConfig] = await Promise.all([
     admin
       .from("Community")
       .select("name, tone, logoUrl, hashtags, language, communityType, religiousStream")
@@ -39,6 +40,7 @@ export default async function AssistantPage({
       .limit(5),
     getJewishHolidays({ year: now.getFullYear() }),
     getJewishHolidays({ year: now.getFullYear() + 1 }),
+    getBillingConfig(admin),
   ]);
 
   const nextHoliday = [...currentYearHolidays, ...nextYearHolidays]
@@ -189,6 +191,7 @@ export default async function AssistantPage({
       userName={profile.name ?? ""}
       userAvatar={profile.avatarUrl ?? null}
       communitySubtitle={getCommunityProfileDisplayLabel(community?.communityType)}
+      billingConfig={billingConfig}
     />
   );
 }

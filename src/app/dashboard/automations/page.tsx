@@ -8,6 +8,7 @@ import {
   getDefaultAutomationPublicationsForProfile,
 } from "@/lib/automation/suggested-publications";
 import { getCommunityProfileDisplayLabel, getCommunityProfileLabel } from "@/lib/community/profile-labels";
+import { getBillingConfig } from "@/lib/billing";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Publications Automatisées IA - EasyCom IA" };
@@ -91,7 +92,7 @@ export default async function AutomationsPage() {
     .eq("communityId", communityId)
     .order("createdAt", { ascending: false });
 
-  const [{ data: community }, { data: presets }] = await Promise.all([
+  const [{ data: community }, { data: presets }, billingConfig] = await Promise.all([
     admin.from("Community").select("id, name, description, communityType, religiousStream, vocabulary").eq("id", communityId).single(),
     admin
       .from("AutomationPreset")
@@ -99,6 +100,7 @@ export default async function AutomationsPage() {
       .eq("isActive", true)
       .order("sortOrder", { ascending: true })
       .order("title", { ascending: true }),
+    getBillingConfig(admin),
   ]);
 
   const vocabulary = community?.vocabulary && typeof community.vocabulary === "object" && !Array.isArray(community.vocabulary)
@@ -161,6 +163,7 @@ export default async function AutomationsPage() {
         requiresValidationDefault={requiresValidationDefault}
         communityType={profileType || community?.communityType || "OTHER"}
         profileLabel={profileLabel}
+        billingConfig={billingConfig}
       />
     </div>
   );

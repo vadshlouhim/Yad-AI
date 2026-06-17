@@ -21,7 +21,9 @@ import { startArticleCheckout } from "@/lib/articles/checkout-client";
 import { AUTOMATION_PRESETS, type AutomationPresetKey } from "@/lib/automation/presets";
 import { DASHBOARD_NAV_ITEMS } from "@/components/layout/dashboard-nav";
 import { DailyRoutineWizard } from "./daily-routine-wizard";
+import { UpgradeModal } from "@/components/billing/upgrade-modal";
 import type { RoutineItem } from "./daily-routine-wizard";
+import type { BillingConfig } from "@/lib/billing";
 
 // ============================================================
 // TYPES
@@ -170,6 +172,7 @@ interface Props {
   userName?: string;
   userAvatar?: string | null;
   communitySubtitle?: string;
+  billingConfig: BillingConfig;
 }
 
 interface ApprovalDraft {
@@ -378,6 +381,7 @@ export function AssistantClient({
   userName,
   userAvatar,
   communitySubtitle,
+  billingConfig,
 }: Props) {
   void _tone;
   const router = useRouter();
@@ -396,6 +400,7 @@ export function AssistantClient({
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [capabilitiesOpen, setCapabilitiesOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [menuId, setMenuId] = useState<string | null>(null);
@@ -646,7 +651,13 @@ export function AssistantClient({
         body: JSON.stringify({ draftId: approvalDraft.id, channelTypes }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Publication impossible");
+      if (!response.ok) {
+        if (data.code === "PAYWALL_REQUIRED") {
+          setUpgradeOpen(true);
+          throw new Error(data.error ?? "Passez au mode payant pour continuer.");
+        }
+        throw new Error(data.error ?? "Publication impossible");
+      }
 
       setApprovalDraft(null);
       setMessages((prev) => [
@@ -846,7 +857,23 @@ export function AssistantClient({
         }),
       });
 
-      if (!response.ok) throw new Error("Erreur API");
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        if (data.code === "PAYWALL_REQUIRED") {
+          setUpgradeOpen(true);
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              role: "assistant",
+              content: data.error ?? "Vous avez atteint la limite du mode gratuit. Passez au mode payant pour continuer.",
+              timestamp: new Date(),
+            },
+          ]);
+          return;
+        }
+        throw new Error(data.error ?? "Erreur API");
+      }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -1571,7 +1598,14 @@ export function AssistantClient({
         }),
       });
 
-      if (!response.ok) throw new Error("Création échouée");
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        if (data.code === "PAYWALL_REQUIRED") {
+          setUpgradeOpen(true);
+          throw new Error(data.error ?? "Passez au mode payant pour continuer.");
+        }
+        throw new Error(data.error ?? "Création échouée");
+      }
 
       setMessages((prev) =>
         prev.map((item) =>
@@ -1637,6 +1671,10 @@ export function AssistantClient({
           }),
         });
         const data = await response.json().catch(() => ({}));
+        if (data.code === "PAYWALL_REQUIRED") {
+          setUpgradeOpen(true);
+          throw new Error(data.message || "Passez au mode payant pour continuer.");
+        }
         if (!response.ok || !data.ok) throw new Error(data.message || "Échec");
 
         setMessages((prev) =>
@@ -1854,6 +1892,14 @@ export function AssistantClient({
           : "h-[calc(100dvh-4rem)]"
       )}
     >
+      <UpgradeModal
+        open={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        config={billingConfig}
+        featureLabel="Assistant IA"
+        title="Assistant IA illimité avec le mode payant"
+        description="Le mode gratuit inclut 20 messages avec l'assistant IA. Passez au mode payant pour continuer à créer, planifier et automatiser sans limite."
+      />
       {/* â”€â”€ Sidebar historique â”€â”€ */}
       {assistantExperience === "detailed" && historyOpen && (
         <div

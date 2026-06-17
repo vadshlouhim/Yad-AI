@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  ArrowLeft, CreditCard, Check, Zap, Shield, Sparkles,
-  ExternalLink, AlertCircle
+  ArrowLeft, CreditCard, Check, Shield, Sparkles,
+  ExternalLink, AlertCircle, Lock, X
 } from "lucide-react";
 import Link from "next/link";
 import { formatDateTime, cn } from "@/lib/utils";
+import type { BillingConfig } from "@/lib/billing";
 
 interface Community {
   plan: string;
@@ -29,79 +30,27 @@ interface Subscription {
 interface Props {
   community: Community;
   subscription: Subscription | null;
+  billingConfig: BillingConfig;
 }
 
-const PLANS = [
-  {
-    id: "FREE_TRIAL",
-    name: "Essai gratuit",
-    price: 0,
-    period: "",
-    description: "Pour découvrir EasyCom IA",
-    features: [
-      "30 publications / mois",
-      "50 générations IA / mois",
-      "2 canaux de diffusion",
-      "10 affiches",
-    ],
-    color: "border-slate-200",
-    badge: null,
-  },
-  {
-    id: "STARTER",
-    name: "Starter",
-    price: 29,
-    period: "/ mois",
-    description: "Pour les petites communautés",
-    features: [
-      "150 publications / mois",
-      "300 générations IA / mois",
-      "5 canaux de diffusion",
-      "50 affiches",
-      "Automatisations Chabbat",
-      "Support email",
-    ],
-    color: "border-blue-200",
-    badge: null,
-    priceId: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID,
-  },
-  {
-    id: "PROFESSIONAL",
-    name: "Professionnel",
-    price: 79,
-    period: "/ mois",
-    description: "Pour les communautés actives",
-    features: [
-      "Publications illimitées",
-      "Générations IA illimitées",
-      "Tous les canaux",
-      "Affiches illimitées",
-      "Toutes les automatisations",
-      "Calendrier juif avancé",
-      "Support prioritaire",
-    ],
-    color: "border-purple-200",
-    badge: "Populaire",
-    priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
-  },
-  {
-    id: "ENTERPRISE",
-    name: "Enterprise",
-    price: 199,
-    period: "/ mois",
-    description: "Pour les grandes organisations",
-    features: [
-      "Tout ce qu'il y a dans Pro",
-      "Multi-communautés",
-      "API dédiée",
-      "Onboarding personnalisé",
-      "SLA garanti",
-      "Support dédié",
-    ],
-    color: "border-amber-200",
-    badge: null,
-    priceId: process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID,
-  },
+const FREE_FEATURES = [
+  { label: "Tableau de bord et aperçu des pages", included: true },
+  { label: "1 affiche modifiable", included: true },
+  { label: "1 publication Instagram/Facebook/Telegram", included: true },
+  { label: "1 automatisation IA", included: true },
+  { label: "20 messages avec l'assistant IA", included: true },
+  { label: "WhatsApp", included: false },
+  { label: "Affiches illimitées", included: false },
+  { label: "Automatisations avancées", included: false },
+];
+
+const PAID_FEATURES = [
+  "WhatsApp débloqué",
+  "Affiches modifiables sans limite",
+  "Publications Instagram, Facebook et Telegram sans limite",
+  "Automatisations IA sans limite",
+  "Assistant IA sans limite de 20 messages",
+  "Support et services additionnels selon options",
 ];
 
 const STATUS_LABELS: Record<string, string> = {
@@ -118,17 +67,25 @@ const STATUS_VARIANT: Record<string, "published" | "info" | "failed" | "draft"> 
   CANCELED: "draft",
 };
 
-export function BillingClient({ community, subscription }: Props) {
+function formatPrice(cents: number) {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
+export function BillingClient({ community, subscription, billingConfig }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
 
-  async function goToCheckout(priceId: string, planId: string) {
+  async function goToCheckout() {
+    const planId = "PROFESSIONAL";
     setLoading(planId);
     try {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          priceId,
           successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
           cancelUrl: `${window.location.origin}/dashboard/settings/billing`,
         }),
@@ -159,7 +116,8 @@ export function BillingClient({ community, subscription }: Props) {
     }
   }
 
-  const currentPlan = PLANS.find((p) => p.id === community.plan) ?? PLANS[0];
+  const isPaid = community.plan !== "FREE_TRIAL";
+  const currentPlan = isPaid ? "Payant" : "Gratuit";
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -189,7 +147,7 @@ export function BillingClient({ community, subscription }: Props) {
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-slate-800">
-                      Plan {currentPlan.name}
+                      Plan {currentPlan}
                     </p>
                     <Badge variant={STATUS_VARIANT[subscription.status] ?? "draft"} className="text-xs">
                       {STATUS_LABELS[subscription.status] ?? subscription.status}
@@ -238,91 +196,96 @@ export function BillingClient({ community, subscription }: Props) {
 
       {/* Grille des plans */}
       <div>
-        <h2 className="text-lg font-semibold text-slate-900 mb-4">Choisir un plan</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {PLANS.map((plan) => {
-            const isCurrent = community.plan === plan.id;
-            const isUpgrade = PLANS.findIndex((p) => p.id === community.plan) <
-                              PLANS.findIndex((p) => p.id === plan.id);
+        <h2 className="text-lg font-semibold text-slate-900 mb-4">Choisir un mode</h2>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className={cn("relative border-2", !isPaid ? "border-slate-900 bg-slate-50" : "border-slate-200")}>
+            {!isPaid && (
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white">Plan actuel</span>
+              </div>
+            )}
+            <CardContent className="space-y-5 p-6">
+              <div>
+                <p className="text-lg font-black text-slate-950">Gratuit</p>
+                <p className="mt-1 text-sm text-slate-500">Pour découvrir EasyCom IA avec des limites claires.</p>
+                <p className="mt-4 text-3xl font-black text-slate-950">0 €</p>
+              </div>
+              <ul className="space-y-2.5">
+                {FREE_FEATURES.map((feature) => (
+                  <li key={feature.label} className="flex items-start gap-2 text-sm text-slate-700">
+                    {feature.included ? (
+                      <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+                    ) : (
+                      <X className="mt-0.5 size-4 shrink-0 text-slate-400" />
+                    )}
+                    <span className={cn(!feature.included && "text-slate-400")}>{feature.label}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button variant="outline" className="w-full rounded-2xl" disabled>
+                Continuer gratuitement
+              </Button>
+            </CardContent>
+          </Card>
 
-            return (
-              <Card
-                key={plan.id}
-                className={cn(
-                  "relative border-2 transition-all",
-                  isCurrent ? "border-blue-500 bg-blue-50/30" : plan.color,
-                  plan.id === "PROFESSIONAL" && !isCurrent && "ring-2 ring-purple-200"
-                )}
-              >
-                {plan.badge && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="bg-purple-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                      {plan.badge}
-                    </span>
-                  </div>
-                )}
-                {isCurrent && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                      Plan actuel
-                    </span>
-                  </div>
-                )}
-
-                <CardContent className="p-5 space-y-4">
-                  <div>
-                    <p className="font-bold text-slate-900">{plan.name}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{plan.description}</p>
-                    <div className="mt-3">
-                      <span className="text-3xl font-bold text-slate-900">{plan.price === 0 ? "Gratuit" : `${plan.price}€`}</span>
-                      {plan.period && <span className="text-sm text-slate-400 ml-1">{plan.period}</span>}
-                    </div>
-                  </div>
-
-                  <ul className="space-y-2">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2 text-xs text-slate-600">
-                        <Check className="size-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-
-                  {isCurrent ? (
-                    <Button variant="outline" size="sm" className="w-full" disabled>
-                      Plan actuel
-                    </Button>
-                  ) : plan.id === "FREE_TRIAL" ? (
-                    <Button variant="outline" size="sm" className="w-full" disabled>
-                      Plan de base
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      className="w-full"
-                      variant={plan.id === "PROFESSIONAL" ? "default" : "outline"}
-                      onClick={() => plan.priceId && goToCheckout(plan.priceId, plan.id)}
-                      loading={loading === plan.id}
-                      disabled={!plan.priceId}
-                    >
-                      {isUpgrade ? (
-                        <>
-                          <Zap className="size-3.5" />
-                          Passer à {plan.name}
-                        </>
-                      ) : (
-                        <>Choisir {plan.name}</>
-                      )}
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+          <Card className={cn("relative overflow-hidden border-2", isPaid ? "border-blue-600 bg-blue-50/40" : "border-blue-200 ring-2 ring-blue-100")}>
+            <div className="absolute right-4 top-4 rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">
+              Lancement
+            </div>
+            {isPaid && (
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <span className="rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">Plan actuel</span>
+              </div>
+            )}
+            <CardContent className="space-y-5 p-6">
+              <div>
+                <p className="text-lg font-black text-slate-950">Payant</p>
+                <p className="mt-1 text-sm text-blue-700">{billingConfig.launchMessage}</p>
+                <div className="mt-4 flex items-end gap-3">
+                  <span className="text-lg font-bold text-slate-400 line-through">
+                    {formatPrice(billingConfig.basePriceCents)} {billingConfig.taxLabel}
+                  </span>
+                  <span className="text-4xl font-black text-blue-700">
+                    {formatPrice(billingConfig.launchPriceCents)}
+                  </span>
+                  <span className="pb-1 text-sm font-semibold text-slate-500">{billingConfig.taxLabel} / mois</span>
+                </div>
+                <p className="mt-2 text-xs font-semibold text-slate-500">
+                  Tarif réduit jusqu&apos;au {new Date(`${billingConfig.launchEndsAt}T12:00:00`).toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}.
+                </p>
+              </div>
+              <ul className="space-y-2.5">
+                {PAID_FEATURES.map((feature) => (
+                  <li key={feature} className="flex items-start gap-2 text-sm text-slate-700">
+                    <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              {isPaid ? (
+                <Button variant="outline" className="w-full rounded-2xl" disabled>
+                  Plan actuel
+                </Button>
+              ) : (
+                <Button
+                  className="w-full rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700"
+                  onClick={goToCheckout}
+                  loading={loading === "PROFESSIONAL"}
+                >
+                  <Lock className="size-4" />
+                  Passer au payant
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      {/* Période d'essai info */}
+      {/* Découverte info */}
       {community.plan === "FREE_TRIAL" && !subscription && (
         <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
           <CardContent className="p-5 flex items-start gap-4">
@@ -330,9 +293,9 @@ export function BillingClient({ community, subscription }: Props) {
               <Sparkles className="size-5 text-amber-600" />
             </div>
             <div>
-              <p className="font-semibold text-amber-900">14 jours d&apos;essai gratuit inclus</p>
+              <p className="font-semibold text-amber-900">Mode gratuit actif</p>
               <p className="text-sm text-amber-700 mt-1">
-                Tous les plans payants incluent 14 jours d&apos;essai. Aucun prélèvement pendant la période d&apos;essai.
+                Vous pouvez tester la plateforme, puis passer au payant quand vous atteignez une limite.
               </p>
             </div>
           </CardContent>

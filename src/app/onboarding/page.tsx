@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
+import { getBillingConfig } from "@/lib/billing";
 
 export default async function OnboardingPage(
   { searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }
@@ -25,12 +26,15 @@ export default async function OnboardingPage(
   const hasOAuthReturn = typeof params.oauth === "string";
   const initialStep = hasOAuthReturn ? 2 : profile.communityId ? 1 : 0;
   const admin = createAdminClient();
-  const { data: automationPresets } = await admin
-    .from("AutomationPreset")
-    .select("id, title, description, category, icon, clientTypes")
-    .eq("isActive", true)
-    .order("sortOrder", { ascending: true })
-    .order("title", { ascending: true });
+  const [{ data: automationPresets }, billingConfig] = await Promise.all([
+    admin
+      .from("AutomationPreset")
+      .select("id, title, description, category, icon, clientTypes")
+      .eq("isActive", true)
+      .order("sortOrder", { ascending: true })
+      .order("title", { ascending: true }),
+    getBillingConfig(admin),
+  ]);
 
   return (
     <OnboardingWizard
@@ -39,6 +43,7 @@ export default async function OnboardingPage(
       communityId={profile.communityId ?? undefined}
       initialStep={initialStep}
       automationPresets={(automationPresets ?? []) as Parameters<typeof OnboardingWizard>[0]["automationPresets"]}
+      billingConfig={billingConfig}
     />
   );
 }

@@ -9,6 +9,7 @@ import { StepRecurring } from "./steps/step-recurring";
 import { WelcomeAnimation } from "./welcome-animation";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
+import type { BillingConfig } from "@/lib/billing";
 
 const STEPS = [
   { id: 0, label: "Identité", description: "Votre structure" },
@@ -56,6 +57,7 @@ export interface OnboardingData {
   selectedAutomationScenarioIds: string[];
   automationNotificationLeadHours: number;
   automationValidationMode: "manual" | "automatic";
+  billingChoice: "free" | "paid";
 }
 
 export interface OnboardingAutomationPreset {
@@ -90,6 +92,7 @@ const defaultData: OnboardingData = {
   selectedAutomationScenarioIds: [],
   automationNotificationLeadHours: 2,
   automationValidationMode: "manual",
+  billingChoice: "free",
 };
 
 export const demoOnboardingData: OnboardingData = {
@@ -120,6 +123,7 @@ interface Props {
   initialStep?: number;
   initialData?: Partial<OnboardingData>;
   automationPresets?: OnboardingAutomationPreset[];
+  billingConfig?: BillingConfig;
   simulationMode?: boolean;
 }
 
@@ -130,6 +134,7 @@ export function OnboardingWizard({
   initialStep = 0,
   initialData,
   automationPresets = [],
+  billingConfig,
   simulationMode = false,
 }: Props) {
   const router = useRouter();
@@ -168,6 +173,22 @@ export function OnboardingWizard({
       });
 
       if (!res.ok) throw new Error("Erreur lors de la sauvegarde");
+
+      if (data.billingChoice === "paid") {
+        const checkout = await fetch("/api/billing/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
+            cancelUrl: `${window.location.origin}/dashboard/assistant`,
+          }),
+        });
+        const checkoutData = await checkout.json().catch(() => ({}));
+        if (checkoutData.url) {
+          window.location.href = checkoutData.url;
+          return;
+        }
+      }
 
       setShowWelcome(true);
     } catch (err) {
@@ -271,6 +292,7 @@ export function OnboardingWizard({
               onFinish={finishOnboarding}
               saving={saving}
               automationPresets={automationPresets}
+              billingConfig={billingConfig}
             />
           )}
         </div>

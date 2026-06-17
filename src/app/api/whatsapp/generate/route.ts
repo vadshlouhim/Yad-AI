@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertPaidFeature } from "@/lib/billing";
 
 const openrouter = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
@@ -18,6 +19,14 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
   if (!profile?.communityId) return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
+
+  const paid = await assertPaidFeature(
+    admin,
+    user.id,
+    "whatsapp",
+    "WhatsApp IA est réservé au mode payant. Passez à l'abonnement pour générer et envoyer des messages WhatsApp."
+  );
+  if (!paid.ok) return paid.response;
 
   const body = await request.json();
   const prompt = String(body.prompt ?? "").trim();

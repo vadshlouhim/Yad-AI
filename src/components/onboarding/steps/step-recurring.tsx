@@ -9,8 +9,9 @@ import {
 } from "@/lib/automation/suggested-publications";
 import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels";
 import { enablePushNotifications } from "@/lib/push/client";
-import { Calendar, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Calendar, Check, ChevronLeft, ChevronRight, Loader2, Lock, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { BillingConfig } from "@/lib/billing";
 
 interface Props {
   data: OnboardingData;
@@ -19,6 +20,7 @@ interface Props {
   onFinish: () => void;
   saving?: boolean;
   automationPresets?: OnboardingAutomationPreset[];
+  billingConfig?: BillingConfig;
 }
 function normalizeProfile(value: string) {
   return value;
@@ -31,6 +33,7 @@ export function StepRecurring({
   onFinish,
   saving = false,
   automationPresets = [],
+  billingConfig,
 }: Props) {
   const publicationProfileType = normalizeProfile(data.communityType);
   const profileLabel = getCommunityProfileDisplayLabel(data.communityType);
@@ -186,6 +189,107 @@ export function StepRecurring({
               Aucune publication automatique IA n&apos;a encore été définie pour ce profil.
             </div>
           )}
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-black text-slate-900">Choisissez votre mode de départ</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                Vous pourrez modifier ce choix après l&apos;onboarding depuis la facturation.
+              </p>
+            </div>
+            {billingConfig && (
+              <p className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                Offre lancement jusqu&apos;au {new Date(`${billingConfig.launchEndsAt}T12:00:00`).toLocaleDateString("fr-FR", {
+                  month: "long",
+                  year: "numeric",
+                })}
+              </p>
+            )}
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => updateData({ billingChoice: "free" })}
+              className={cn(
+                "rounded-2xl border-2 p-4 text-left transition",
+                data.billingChoice === "free"
+                  ? "border-slate-900 bg-slate-50 ring-2 ring-slate-100"
+                  : "border-slate-200 bg-white hover:border-slate-300"
+              )}
+            >
+              <p className="font-black text-slate-950">Gratuit</p>
+              <p className="mt-1 text-2xl font-black text-slate-950">0 €</p>
+              <div className="mt-3 space-y-2 text-xs text-slate-600">
+                {[
+                  "Tableau de bord et aperçu",
+                  "1 affiche modifiable",
+                  "1 publication sociale",
+                  "1 automatisation IA",
+                  "20 messages assistant IA",
+                ].map((item) => (
+                  <p key={item} className="flex items-center gap-2">
+                    <Check className="size-3.5 text-emerald-500" />
+                    {item}
+                  </p>
+                ))}
+                {["WhatsApp bloqué", "Affiches illimitées bloquées"].map((item) => (
+                  <p key={item} className="flex items-center gap-2 text-slate-400">
+                    <X className="size-3.5" />
+                    {item}
+                  </p>
+                ))}
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => updateData({ billingChoice: "paid" })}
+              className={cn(
+                "rounded-2xl border-2 p-4 text-left transition",
+                data.billingChoice === "paid"
+                  ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100"
+                  : "border-blue-100 bg-white hover:border-blue-200"
+              )}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-black text-slate-950">Payant</p>
+                  {billingConfig ? (
+                    <div className="mt-1 flex flex-wrap items-end gap-2">
+                      <span className="text-sm font-bold text-slate-400 line-through">
+                        {(billingConfig.basePriceCents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} € HT
+                      </span>
+                      <span className="text-2xl font-black text-blue-700">
+                        {(billingConfig.launchPriceCents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} € HT
+                      </span>
+                      <span className="text-xs font-semibold text-slate-500">/ mois</span>
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-2xl font-black text-blue-700">9,99 € HT / mois</p>
+                  )}
+                </div>
+                <Lock className="size-5 text-blue-600" />
+              </div>
+              {billingConfig && <p className="mt-2 text-xs font-semibold text-blue-700">{billingConfig.launchMessage}</p>}
+              <div className="mt-3 space-y-2 text-xs text-slate-600">
+                {[
+                  "WhatsApp débloqué",
+                  "Affiches sans limite",
+                  "Publications sociales sans limite",
+                  "Automatisations IA sans limite",
+                  "Assistant IA sans limite",
+                ].map((item) => (
+                  <p key={item} className="flex items-center gap-2">
+                    <Check className="size-3.5 text-emerald-500" />
+                    {item}
+                  </p>
+                ))}
+              </div>
+            </button>
+          </div>
         </div>
 
         <div className="flex gap-3 pt-2">

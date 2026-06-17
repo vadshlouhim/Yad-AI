@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { UpgradeModal } from "@/components/billing/upgrade-modal";
+import type { BillingConfig } from "@/lib/billing";
 
 type Target = "community" | "contacts" | "phone";
 type WaStatus = "disconnected" | "initializing" | "qr_pending" | "authenticated" | "connected" | "auth_failure" | "error" | "unreachable";
@@ -317,7 +319,7 @@ function WhatsAppConnect() {
 
 // ── Page WhatsApp principale ─────────────────────────────────────────────────
 
-export function WhatsAppClient() {
+export function WhatsAppClient({ billingConfig, isPaid }: { billingConfig: BillingConfig; isPaid: boolean }) {
   const [prompt, setPrompt] = useState("");
   const [message, setMessage] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -331,6 +333,7 @@ export function WhatsAppClient() {
   const [membersLoading, setMembersLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [upgradeOpen, setUpgradeOpen] = useState(!isPaid);
 
   useEffect(() => {
     if (target !== "contacts" || members !== null) return;
@@ -361,6 +364,10 @@ export function WhatsAppClient() {
   }
 
   async function generateWithAI() {
+    if (!isPaid) {
+      setUpgradeOpen(true);
+      return;
+    }
     const cleanPrompt = prompt.trim();
     if (!cleanPrompt) {
       setError("Indiquez d'abord le message ou les informations à préparer.");
@@ -376,7 +383,13 @@ export function WhatsAppClient() {
         body: JSON.stringify({ prompt: cleanPrompt }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erreur de génération");
+      if (!res.ok) {
+        if (data.code === "PAYWALL_REQUIRED") {
+          setUpgradeOpen(true);
+          return;
+        }
+        throw new Error(data.error ?? "Erreur de génération");
+      }
       setMessage(data.message);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur de génération IA.");
@@ -392,6 +405,10 @@ export function WhatsAppClient() {
   }
 
   async function sendViaApi() {
+    if (!isPaid) {
+      setUpgradeOpen(true);
+      return;
+    }
     const text = (message.trim() || prompt.trim()).trim();
     if (!text) {
       setError("Préparez ou écrivez un message avant l'envoi.");
@@ -420,7 +437,13 @@ export function WhatsAppClient() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Échec de l'envoi");
+      if (!res.ok) {
+        if (data.code === "PAYWALL_REQUIRED") {
+          setUpgradeOpen(true);
+          return;
+        }
+        throw new Error(data.error ?? "Échec de l'envoi");
+      }
       setSendResult(data as SendResult);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Échec de l'envoi WhatsApp.");
@@ -430,6 +453,10 @@ export function WhatsAppClient() {
   }
 
   function openCopyPaste() {
+    if (!isPaid) {
+      setUpgradeOpen(true);
+      return;
+    }
     const text = (message.trim() || prompt.trim()).trim();
     if (!text) {
       setError("Préparez ou écrivez un message avant d'ouvrir WhatsApp.");
@@ -444,6 +471,14 @@ export function WhatsAppClient() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
+      <UpgradeModal
+        open={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        config={billingConfig}
+        featureLabel="WhatsApp"
+        title="WhatsApp est inclus dans le mode payant"
+        description="Le mode gratuit permet de découvrir EasyCom IA, mais WhatsApp nécessite l'abonnement payant."
+      />
       {/* En-tête */}
       <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-[#064e3b] via-[#047857] to-[#0f9f6e] p-5 shadow-[0_20px_44px_-28px_rgba(6,78,59,0.42)] sm:p-6">
         <div className="max-w-4xl">
@@ -456,7 +491,30 @@ export function WhatsAppClient() {
       </section>
 
       {/* Bloc connexion WhatsApp Web */}
-      <WhatsAppConnect />
+      {isPaid ? (
+        <WhatsAppConnect />
+      ) : (
+        <section className="rounded-3xl border border-emerald-100 bg-emerald-50/70 p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <Smartphone className="size-5 text-emerald-700" />
+                <h2 className="text-base font-semibold text-slate-950">Connexion WhatsApp réservée au mode payant</h2>
+              </div>
+              <p className="text-sm leading-6 text-slate-600">
+                Passez au payant pour connecter votre numéro, générer des messages WhatsApp et les envoyer depuis EasyCom IA.
+              </p>
+            </div>
+            <Button
+              onClick={() => setUpgradeOpen(true)}
+              className="h-11 rounded-2xl bg-emerald-700 px-5 text-white hover:bg-emerald-800"
+            >
+              <Sparkles className="size-4" />
+              Débloquer WhatsApp
+            </Button>
+          </div>
+        </section>
+      )}
 
       {/* Assistant IA + envoi */}
       <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -467,7 +525,7 @@ export function WhatsAppClient() {
             </div>
             <h2 className="text-lg font-semibold tracking-tight text-slate-950 sm:text-xl">Assistant IA WhatsApp</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Décrivez votre annonce, l'IA rédige un message WhatsApp prêt à envoyer. Vous validez les destinataires avant l'envoi.
+              Décrivez votre annonce, l&apos;IA rédige un message WhatsApp prêt à envoyer. Vous validez les destinataires avant l&apos;envoi.
             </p>
           </div>
 

@@ -6,9 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Sparkles, ArrowLeft, Download, Check,
-  Pencil, Crown, ImageIcon, Loader2, Search, X,
+  Pencil, Crown, ImageIcon, Loader2, Search, X, Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UpgradeModal } from "@/components/billing/upgrade-modal";
+import type { BillingConfig, BillingUsage } from "@/lib/billing";
 import {
   CATEGORY_EMOJI,
   CATEGORY_LABELS,
@@ -64,6 +66,8 @@ interface Props {
   templates: Template[];
   community: Community;
   plan: string;
+  billingConfig: BillingConfig;
+  billingUsage: BillingUsage;
   galleryTitle?: string;
   gallerySubtitle?: string;
   showGalleryFilters?: boolean;
@@ -251,18 +255,18 @@ function PosterThumbnail({
 
 function TemplateCard({
   template,
-  isPremiumUser,
+  locked,
   onSelect,
 }: {
   template: Template;
-  isPremiumUser: boolean;
+  locked: boolean;
   onSelect: (template: Template) => void;
 }) {
   return (
     <Card
       className={cn(
         "group cursor-pointer overflow-hidden rounded-[1.4rem] border border-amber-300 bg-white p-2 shadow-[0_14px_30px_-22px_rgba(146,64,14,0.22)] transition-all duration-200 hover:-translate-y-1 hover:border-amber-400 hover:shadow-[0_22px_40px_-24px_rgba(146,64,14,0.28)] active:scale-[0.99]",
-        template.isPremium && !isPremiumUser && "opacity-60"
+        locked && "opacity-75"
       )}
       onClick={() => onSelect(template)}
     >
@@ -284,10 +288,11 @@ function TemplateCard({
             )}
           </div>
 
-          {template.isPremium && (
+          {(template.isPremium || locked) && (
             <div className="absolute right-2 top-2">
-              <Badge className="gap-1 bg-amber-500 text-[10px] text-white">
-                <Crown className="size-3" /> Premium
+              <Badge className={cn("gap-1 text-[10px] text-white", locked ? "bg-slate-900" : "bg-amber-500")}>
+                {locked ? <Lock className="size-3" /> : <Crown className="size-3" />}
+                {locked ? "Payant" : "Premium"}
               </Badge>
             </div>
           )}
@@ -297,8 +302,8 @@ function TemplateCard({
               size="sm"
               className="opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
             >
-              <Sparkles className="mr-1.5 size-4" />
-              Personnaliser
+              {locked ? <Lock className="mr-1.5 size-4" /> : <Sparkles className="mr-1.5 size-4" />}
+              {locked ? "Débloquer" : "Personnaliser"}
             </Button>
           </div>
         </div>
@@ -321,6 +326,8 @@ export function TemplatesClient({
   templates,
   community,
   plan,
+  billingConfig,
+  billingUsage,
   galleryTitle = "BANQUE D'AFFICHES",
   gallerySubtitle = "Choisissez parmi plus de 250 affiches pretes a personnaliser, ajoutez vos informations, puis laissez l'IA adapter le modele et le publier en un clic.",
   showGalleryFilters = true,
@@ -340,6 +347,7 @@ export function TemplatesClient({
   const [editingZone, setEditingZone] = useState<string | null>(null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState("");
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   const categories = buildCategorySections(templates).map((section) => section.category);
   const searchValue = normalizeSearch(search);
@@ -392,10 +400,21 @@ export function TemplatesClient({
   ).size;
 
   const isPremiumUser = plan !== "FREE_TRIAL";
+  const firstUnlockedTemplateId = sortTemplates(templates)[0]?.id ?? null;
+  const freePosterAlreadyUsed = billingUsage.posterGenerations >= 1;
+
+  function isTemplateLocked(template: Template) {
+    if (isPremiumUser) return false;
+    if (freePosterAlreadyUsed) return true;
+    return template.id !== firstUnlockedTemplateId;
+  }
 
   // ── Sélectionner un template ──
   function selectTemplate(template: Template) {
-    if (template.isPremium && !isPremiumUser) return;
+    if (isTemplateLocked(template)) {
+      setUpgradeOpen(true);
+      return;
+    }
     setSelectedTemplate(template);
     setAssistantPrompt("");
     setGeneratedTexts({});
@@ -433,7 +452,13 @@ export function TemplatesClient({
         body: JSON.stringify({ templateId: selectedTemplate.id, userRequest: request }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Impossible de générer l'affiche.");
+      if (!res.ok) {
+        if (data.code === "PAYWALL_REQUIRED") {
+          setUpgradeOpen(true);
+          return;
+        }
+        throw new Error(data.error ?? "Impossible de générer l'affiche.");
+      }
       setGeneratedImageUrl(data.imageUrl);
       setStep("preview");
     } catch (error) {
@@ -475,6 +500,10 @@ export function TemplatesClient({
 
       const data = await res.json();
       if (!res.ok) {
+        if (data.code === "PAYWALL_REQUIRED") {
+          setUpgradeOpen(true);
+          return;
+        }
         throw new Error(data.error ?? "Impossible de générer l'affiche");
       }
 
@@ -494,6 +523,14 @@ export function TemplatesClient({
   if (step === "gallery") {
     return (
       <div className="space-y-8">
+        <UpgradeModal
+          open={upgradeOpen}
+          onClose={() => setUpgradeOpen(false)}
+          config={billingConfig}
+          featureLabel="Affiches"
+          title="Débloquez toutes les affiches"
+          description="Le mode gratuit permet de modifier une seule affiche. Passez au mode payant pour personnaliser toute la banque d'affiches sans limite."
+        />
         <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-[#8a4b11] via-[#a86216] to-[#c98319] p-6 shadow-[0_18px_40px_-28px_rgba(146,64,14,0.35)]">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
@@ -689,7 +726,7 @@ export function TemplatesClient({
                           <TemplateCard
                             key={template.id}
                             template={template}
-                            isPremiumUser={isPremiumUser}
+                            locked={isTemplateLocked(template)}
                             onSelect={selectTemplate}
                           />
                         ))}
@@ -712,6 +749,14 @@ export function TemplatesClient({
   if (step === "questions" && selectedTemplate) {
     return (
       <div className="max-w-2xl mx-auto space-y-6">
+        <UpgradeModal
+          open={upgradeOpen}
+          onClose={() => setUpgradeOpen(false)}
+          config={billingConfig}
+          featureLabel="Affiches"
+          title="Débloquez toutes les affiches"
+          description="Le mode gratuit permet de modifier une seule affiche. Passez au mode payant pour personnaliser toute la banque d'affiches sans limite."
+        />
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={goBack}>
@@ -839,6 +884,14 @@ export function TemplatesClient({
 
     return (
       <div className="space-y-6">
+        <UpgradeModal
+          open={upgradeOpen}
+          onClose={() => setUpgradeOpen(false)}
+          config={billingConfig}
+          featureLabel="Affiches"
+          title="Débloquez toutes les affiches"
+          description="Le mode gratuit permet de modifier une seule affiche. Passez au mode payant pour personnaliser toute la banque d'affiches sans limite."
+        />
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

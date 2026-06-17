@@ -5,6 +5,7 @@ import {
   Bot,
   Building2,
   CheckCircle2,
+  CreditCard,
   Database,
   ImageIcon,
   LayoutDashboard,
@@ -27,6 +28,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { OnboardingWizard, demoOnboardingData } from "@/components/onboarding/onboarding-wizard";
+import type { BillingConfig } from "@/lib/billing";
 
 interface AdminMetrics {
   userCount: number;
@@ -139,9 +141,10 @@ interface Props {
   automations: AdminAutomation[];
   automationPresets: AdminAutomationPreset[];
   recentConversations: RecentConversation[];
+  billingConfig: BillingConfig;
 }
 
-type AdminSection = "overview" | "templates" | "presets" | "automations" | "communities" | "activity" | "data" | "development" | "users";
+type AdminSection = "overview" | "templates" | "presets" | "automations" | "pricing" | "communities" | "activity" | "data" | "development" | "users";
 type ThemeMode = "light" | "dark";
 type AdminAutomationFormState = {
   communityId: string;
@@ -294,7 +297,7 @@ function MetricCard({
   );
 }
 
-export function AdminConsoleClient({ metrics, templates, communities, users, automations, automationPresets, recentConversations }: Props) {
+export function AdminConsoleClient({ metrics, templates, communities, users, automations, automationPresets, recentConversations, billingConfig }: Props) {
   const [selectedId, setSelectedId] = useState(templates[0]?.id ?? "");
   const [selectedPresetId, setSelectedPresetId] = useState(automationPresets[0]?.id ?? "");
   const [query, setQuery] = useState("");
@@ -306,6 +309,13 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
   const [automationCommunityFilter, setAutomationCommunityFilter] = useState("ALL");
   const [theme, setTheme] = useState<ThemeMode>("light");
   const [status, setStatus] = useState<string | null>(null);
+  const [billingDraft, setBillingDraft] = useState({
+    basePriceEuros: (billingConfig.basePriceCents / 100).toFixed(2),
+    launchPriceEuros: (billingConfig.launchPriceCents / 100).toFixed(2),
+    launchEndsAt: billingConfig.launchEndsAt,
+    launchMessage: billingConfig.launchMessage,
+  });
+  const [billingSaving, setBillingSaving] = useState(false);
   const [showDevelopmentPreview, setShowDevelopmentPreview] = useState(false);
   const [developmentPreviewRun, setDevelopmentPreviewRun] = useState(0);
   const [adminAutomationFormOpen, setAdminAutomationFormOpen] = useState(false);
@@ -844,11 +854,32 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     window.location.reload();
   }
 
+  async function saveBillingPricing() {
+    setBillingSaving(true);
+    setStatus(null);
+    try {
+      const response = await fetch("/api/admin/billing-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(billingDraft),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setStatus(payload.error ?? "Enregistrement de la tarification impossible.");
+        return;
+      }
+      setStatus("Tarification mise à jour.");
+    } finally {
+      setBillingSaving(false);
+    }
+  }
+
   const navItems = [
     { id: "overview" as const, label: "Vue globale", icon: LayoutDashboard, value: formatNumber(metrics.databaseItemCount) },
     { id: "templates" as const, label: "Affiches", icon: ImageIcon, value: formatNumber(allTemplates.length) },
     { id: "presets" as const, label: "Publications IA", icon: Sparkles, value: formatNumber(allPresets.length) },
     { id: "automations" as const, label: "Automatisations", icon: Zap, value: formatNumber(automations.length) },
+    { id: "pricing" as const, label: "Tarification", icon: CreditCard, value: "€" },
     { id: "communities" as const, label: "Beth Habad", icon: Building2, value: formatNumber(metrics.communityCount) },
     { id: "users" as const, label: "Utilisateurs", icon: Users, value: formatNumber(users.length) },
     { id: "activity" as const, label: "Activité IA", icon: Bot, value: formatNumber(metrics.conversationCount) },
@@ -1464,6 +1495,90 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                 </div>
               </div>
             </div>
+          )}
+
+          {activeSection === "pricing" && (
+            <section className={`mt-6 rounded-[2rem] border p-5 shadow-sm ${panelClass}`}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className={`flex items-center gap-2 text-2xl font-black ${strongText}`}>
+                    <CreditCard className="size-6 text-blue-500" />
+                    Tarification de lancement
+                  </h3>
+                  <p className={`mt-2 max-w-2xl text-sm leading-6 ${mutedText}`}>
+                    Ces valeurs alimentent les pages Facturation, Onboarding et les pop-ups de paiement.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={saveBillingPricing}
+                  disabled={billingSaving}
+                  className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
+                >
+                  <Save className="mr-1 inline size-4" />
+                  {billingSaving ? "Enregistrement..." : "Enregistrer"}
+                </button>
+              </div>
+
+              {status && (
+                <p className={`mt-4 rounded-2xl border px-3 py-2 text-sm ${isDark ? "border-white/10 bg-white/10 text-slate-200" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+                  {status}
+                </p>
+              )}
+
+              <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                <label className={`text-sm font-semibold ${strongText}`}>
+                  Tarif normal HT mensuel
+                  <input
+                    value={billingDraft.basePriceEuros}
+                    onChange={(event) => setBillingDraft((current) => ({ ...current, basePriceEuros: event.target.value }))}
+                    className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}
+                    inputMode="decimal"
+                    placeholder="19.99"
+                  />
+                </label>
+                <label className={`text-sm font-semibold ${strongText}`}>
+                  Tarif réduit HT mensuel
+                  <input
+                    value={billingDraft.launchPriceEuros}
+                    onChange={(event) => setBillingDraft((current) => ({ ...current, launchPriceEuros: event.target.value }))}
+                    className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}
+                    inputMode="decimal"
+                    placeholder="9.99"
+                  />
+                </label>
+                <label className={`text-sm font-semibold ${strongText}`}>
+                  Date de fin du tarif réduit
+                  <input
+                    type="date"
+                    value={billingDraft.launchEndsAt}
+                    onChange={(event) => setBillingDraft((current) => ({ ...current, launchEndsAt: event.target.value }))}
+                    className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}
+                  />
+                </label>
+                <div className={`rounded-3xl border p-4 ${isDark ? "border-blue-300/20 bg-blue-300/10" : "border-blue-100 bg-blue-50"}`}>
+                  <p className={`text-xs font-black uppercase tracking-[0.16em] ${isDark ? "text-blue-100" : "text-blue-700"}`}>Aperçu public</p>
+                  <p className={`mt-3 text-sm font-bold ${mutedText}`}>
+                    <span className="line-through">{billingDraft.basePriceEuros || "19.99"} € HT</span>
+                    <span className={`ml-3 text-2xl font-black ${isDark ? "text-white" : "text-blue-700"}`}>
+                      {billingDraft.launchPriceEuros || "9.99"} € HT
+                    </span>
+                    <span className="ml-1 text-xs">/ mois</span>
+                  </p>
+                </div>
+              </div>
+
+              <label className={`mt-5 block text-sm font-semibold ${strongText}`}>
+                Message de lancement
+                <textarea
+                  value={billingDraft.launchMessage}
+                  onChange={(event) => setBillingDraft((current) => ({ ...current, launchMessage: event.target.value }))}
+                  rows={4}
+                  className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}
+                  placeholder="Offre de lancement..."
+                />
+              </label>
+            </section>
           )}
 
           {activeSection === "users" && (

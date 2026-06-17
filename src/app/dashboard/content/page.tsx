@@ -8,6 +8,7 @@ import { Plus, FileText, Sparkles } from "lucide-react";
 import { AutomationsClient } from "@/components/automations/automations-client";
 import { ContentDeleteButton } from "@/components/content/content-delete-button";
 import { formatRelative, CONTENT_STATUS_LABELS, truncate } from "@/lib/utils";
+import { DEFAULT_BILLING_CONFIG } from "@/lib/billing";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Contenu & automatisations — EasyCom IA" };
@@ -322,6 +323,7 @@ export default async function ContentPage({
       <AutomationsClient
         automations={(automations ?? []) as Parameters<typeof AutomationsClient>[0]["automations"]}
         recentRuns={(runs ?? []) as Parameters<typeof AutomationsClient>[0]["recentRuns"]}
+        billingConfig={DEFAULT_BILLING_CONFIG}
         embedded
       />
         </aside>

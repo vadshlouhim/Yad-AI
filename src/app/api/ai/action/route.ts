@@ -80,6 +80,9 @@ export async function POST(request: Request) {
     ok: execution.success,
     status: execution.success ? "CONFIRMED" : "FAILED",
     message: execution.message,
+    code: !execution.success && /mode gratuit|réservé au mode payant|abonnement/i.test(execution.message)
+      ? "PAYWALL_REQUIRED"
+      : undefined,
     execution,
   });
 }

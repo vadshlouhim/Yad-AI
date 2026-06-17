@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicationsFromDraft, publishToChannel } from "@/lib/publishing/publisher";
+import { FREE_LIMITS, getBillingGate, getBillingUsage, paywallResponse } from "@/lib/billing";
 import type { Tables } from "@/types/database.types";
 import { z } from "zod";
 
 type Channel = Tables<"Channel">;
 type Publication = Tables<"Publication">;
+const LIMITED_SOCIAL_CHANNELS = new Set(["INSTAGRAM", "FACEBOOK", "TELEGRAM"]);
 
 const createSchema = z.object({
   draftId: z.string(),
@@ -32,6 +34,24 @@ export async function POST(request: Request) {
     }
 
     const { draftId, channelIds, scheduledAt, publishNow } = parsed.data;
+
+    const { data: requestedChannels } = await admin
+      .from("Channel")
+      .select("id, type")
+      .eq("communityId", profile.communityId)
+      .in("id", channelIds);
+    const requestedSocialCount = (requestedChannels ?? []).filter((channel) => LIMITED_SOCIAL_CHANNELS.has(String(channel.type))).length;
+    const gate = await getBillingGate(admin, user.id);
+    if (!gate.isPaid && requestedSocialCount > 0) {
+      const usage = await getBillingUsage(admin, profile.communityId);
+      if (usage.socialPublications + requestedSocialCount > FREE_LIMITS.socialPublications) {
+        return paywallResponse(
+          "social_publications",
+          "Le mode gratuit inclut une seule publication Instagram, Facebook ou Telegram. Passez au mode payant pour publier sans limite.",
+          { socialPublications: usage.socialPublications }
+        );
+      }
+    }
 
     const publications = await createPublicationsFromDraft({
       draftId,

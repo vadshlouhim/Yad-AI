@@ -2,6 +2,7 @@ import { AdminConsoleClient } from "@/components/admin/admin-console-client";
 import { canAccessAdmin } from "@/lib/admin-access";
 import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getBillingConfig } from "@/lib/billing";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -61,6 +62,7 @@ export default async function AdminPage() {
     { data: recentConversations },
     { count: aiGeneratedDraftCount },
     { count: draftsWithImagesCount },
+    billingConfig,
   ] = await Promise.all([
     countRows(admin, "profiles"),
     countRows(admin, "Community"),
@@ -107,6 +109,7 @@ export default async function AdminPage() {
       .limit(10),
     admin.from("ContentDraft").select("id", { count: "exact", head: true }).eq("aiGenerated", true),
     admin.from("ContentDraft").select("id", { count: "exact", head: true }).not("imageUrl", "is", null),
+    getBillingConfig(admin),
   ]);
 
   const hydratedTemplates = (templates ?? []).map((template) => ({
@@ -157,6 +160,7 @@ export default async function AdminPage() {
         ...conversation,
         community: firstRelation(conversation.community),
       }))}
+      billingConfig={billingConfig}
     />
   );
 }

@@ -191,10 +191,12 @@ async function notifySubscriptionChange(communityId: string, type: string, messa
 }
 
 function getPlanFromPriceId(priceId: string): "FREE_TRIAL" | "STARTER" | "PROFESSIONAL" | "ENTERPRISE" {
+  if (priceId === process.env.STRIPE_PAID_PRICE_ID) return "PROFESSIONAL";
+  if (priceId === process.env.STRIPE_LAUNCH_PRICE_ID) return "PROFESSIONAL";
   if (priceId === process.env.STRIPE_STARTER_PRICE_ID) return "STARTER";
   if (priceId === process.env.STRIPE_PRO_PRICE_ID) return "PROFESSIONAL";
   if (priceId === process.env.STRIPE_ENTERPRISE_PRICE_ID) return "ENTERPRISE";
-  return "STARTER";
+  return "PROFESSIONAL";
 }
 
 function mapStripeStatus(status: string): "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "UNPAID" | "INCOMPLETE" | "PAUSED" {

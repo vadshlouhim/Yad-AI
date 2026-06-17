@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { renderTemplatePoster } from "@/lib/templates/render";
+import { FREE_LIMITS, getBillingGate, getBillingUsage, paywallResponse } from "@/lib/billing";
 
 export async function POST(request: Request) {
   try {
@@ -47,6 +48,18 @@ export async function POST(request: Request) {
       );
     }
 
+    const gate = await getBillingGate(admin, user.id);
+    if (!gate.isPaid) {
+      const usage = await getBillingUsage(admin, profile.communityId);
+      if (usage.posterGenerations >= FREE_LIMITS.posterGenerations) {
+        return paywallResponse(
+          "poster_generations",
+          "Le mode gratuit permet de modifier une seule affiche. Passez au mode payant pour personnaliser toutes les affiches.",
+          { posterGenerations: usage.posterGenerations }
+        );
+      }
+    }
+
     const { data: template } = await admin
       .from("Template")
       .select("*")
@@ -72,6 +85,23 @@ export async function POST(request: Request) {
         updatedAt: new Date().toISOString(),
       })
       .eq("id", template.id);
+
+    await admin.from("MediaFile").insert({
+      id: crypto.randomUUID(),
+      communityId: profile.communityId,
+      userId: user.id,
+      templateId: template.id,
+      name: `Affiche générée - ${template.name}`,
+      originalName: template.name,
+      url: rendered.imageUrl,
+      publicId: rendered.storagePath,
+      source: "TEMPLATE_GENERATION",
+      type: "IMAGE",
+      mimeType: "image/png",
+      size: 0,
+      tags: ["generated", "template"],
+      updatedAt: new Date().toISOString(),
+    });
 
     return NextResponse.json({
       imageUrl: rendered.imageUrl,

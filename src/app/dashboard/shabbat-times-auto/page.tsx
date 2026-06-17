@@ -1,6 +1,7 @@
 import { TemplatesClient } from "@/components/templates/templates-client";
 import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getBillingConfig, getBillingUsage } from "@/lib/billing";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import type { Metadata } from "next";
 
@@ -11,7 +12,7 @@ export default async function ShabbatTimesAutoPage() {
   const communityId = profile.communityId!;
   const admin = createAdminClient();
 
-  const [{ data: templates }, { data: community }] = await Promise.all([
+  const [{ data: templates }, { data: community }, billingConfig, billingUsage] = await Promise.all([
     admin
       .from("Template")
       .select("*")
@@ -24,6 +25,8 @@ export default async function ShabbatTimesAutoPage() {
       .select("id, name, city, tone, phone, email, website, address, religiousStream, plan")
       .eq("id", communityId)
       .single(),
+    getBillingConfig(admin),
+    getBillingUsage(admin, communityId),
   ]);
 
   const hydratedTemplates = (templates ?? []).map((template) => ({
@@ -37,6 +40,8 @@ export default async function ShabbatTimesAutoPage() {
       templates={hydratedTemplates as Parameters<typeof TemplatesClient>[0]["templates"]}
       community={community!}
       plan={community?.plan ?? "FREE_TRIAL"}
+      billingConfig={billingConfig}
+      billingUsage={billingUsage}
       galleryTitle="Horaire de Chabbat"
       gallerySubtitle="Choisissez un design d'horaires de Chabbat, puis activez une notification hebdomadaire chaque vendredi matin avec les horaire de Chabbat avec votre nom et logo"
       showGalleryFilters={false}

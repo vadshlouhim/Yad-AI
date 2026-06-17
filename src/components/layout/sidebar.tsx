@@ -26,16 +26,16 @@ interface SidebarProps {
 
 const PLAN_COLORS: Record<string, string> = {
   FREE_TRIAL: "bg-amber-500",
-  STARTER: "bg-blue-500",
+  STARTER: "bg-violet-500",
   PROFESSIONAL: "bg-violet-500",
-  ENTERPRISE: "bg-emerald-500",
+  ENTERPRISE: "bg-violet-500",
 };
 
 const PLAN_LABELS: Record<string, string> = {
-  FREE_TRIAL: "Essai gratuit",
-  STARTER: "Starter",
-  PROFESSIONAL: "Pro",
-  ENTERPRISE: "Enterprise",
+  FREE_TRIAL: "Gratuit",
+  STARTER: "Payant",
+  PROFESSIONAL: "Payant",
+  ENTERPRISE: "Payant",
 };
 
 const DESKTOP_CATEGORY_CONTENT: Record<
@@ -591,5 +591,4 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
     </aside>
   );
 }
-
 

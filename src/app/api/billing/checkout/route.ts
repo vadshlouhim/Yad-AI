@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createCheckoutSession } from "@/lib/stripe";
+import { getActivePaidPriceId, getBillingConfig } from "@/lib/billing";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -19,7 +20,13 @@ export async function POST(request: Request) {
     .single();
 
   const body = await request.json();
-  const { priceId, successUrl, cancelUrl } = body;
+  const { successUrl, cancelUrl } = body;
+  const config = await getBillingConfig(admin);
+  const priceId = getActivePaidPriceId(config);
+
+  if (!priceId) {
+    return NextResponse.json({ error: "Prix Stripe payant non configuré" }, { status: 500 });
+  }
 
   const session = await createCheckoutSession({
     communityId: profile.communityId,

@@ -4,10 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adaptContentForChannel } from "@/lib/ai/engine";
 import { publishToChannel } from "@/lib/publishing/publisher";
+import { FREE_LIMITS, getBillingGate, getBillingUsage, paywallResponse } from "@/lib/billing";
 import type { Tables } from "@/types/database.types";
 
 type Channel = Tables<"Channel">;
 type Publication = Tables<"Publication">;
+const LIMITED_SOCIAL_CHANNELS = new Set(["INSTAGRAM", "FACEBOOK", "TELEGRAM"]);
 
 const publishSchema = z.object({
   imageUrl: z.string().url(),
@@ -54,6 +56,19 @@ export async function POST(request: Request) {
 
     if (!channels?.length) {
       return NextResponse.json({ error: "Aucun canal valide sélectionné" }, { status: 400 });
+    }
+
+    const requestedSocialCount = channels.filter((channel) => LIMITED_SOCIAL_CHANNELS.has(String(channel.type))).length;
+    const gate = await getBillingGate(admin, user.id);
+    if (!gate.isPaid && requestedSocialCount > 0) {
+      const usage = await getBillingUsage(admin, profile.communityId);
+      if (usage.socialPublications + requestedSocialCount > FREE_LIMITS.socialPublications) {
+        return paywallResponse(
+          "social_publications",
+          "Le mode gratuit inclut une seule publication Instagram, Facebook ou Telegram. Passez au mode payant pour publier sans limite.",
+          { socialPublications: usage.socialPublications }
+        );
+      }
     }
 
     const sourceContent = title ? `${title}\n\n${caption}` : caption;

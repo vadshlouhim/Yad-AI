@@ -5,6 +5,7 @@ import {
   GENERAL_DEFAULT_AUTOMATION_PUBLICATIONS,
   getDefaultAutomationPublicationsForProfile,
 } from "@/lib/automation/suggested-publications";
+import { DEFAULT_BILLING_CONFIG } from "@/lib/billing";
 
 type AutomationsProps = Parameters<typeof AutomationsClient>[0];
 
@@ -26,6 +27,7 @@ export default function DemoAutomationsPage() {
           ] as unknown as AutomationsProps["presets"]}
           recentRuns={DEMO_RECENT_RUNS}
           communityType="SYNAGOGUE"
+          billingConfig={DEFAULT_BILLING_CONFIG}
         />
       </Suspense>
     </div>
