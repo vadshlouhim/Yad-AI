@@ -36,6 +36,21 @@ export function sanitizePhone(value: string | null | undefined): string | null {
   return digits.length >= 8 ? digits : null;
 }
 
+// Erreur Puppeteer indiquant que la session WhatsApp Web personnelle est morte
+// (frame détaché, contexte détruit, page fermée) → il faut rescanner le QR.
+function isDeadSessionError(message: string | null | undefined): boolean {
+  if (!message) return false;
+  const m = message.toLowerCase();
+  return (
+    m.includes("detached frame") ||
+    m.includes("execution context was destroyed") ||
+    m.includes("session closed") ||
+    m.includes("target closed") ||
+    m.includes("protocol error") ||
+    m.includes("page has been closed")
+  );
+}
+
 export async function getWhatsAppCredentials(
   admin: Admin,
   communityId: string
@@ -133,13 +148,20 @@ async function sendViaPersonalService(params: {
     }
 
     const data = (await res.json()) as { sent?: number; failed?: number; total?: number; errors?: string[] };
+    // Traduit les erreurs techniques Puppeteer (session WhatsApp Web morte) en
+    // message clair invitant à rescanner le QR code.
+    const errors = (data.errors ?? []).map((e) =>
+      isDeadSessionError(e)
+        ? "La session WhatsApp a expiré. Reconnectez votre numéro en scannant le QR code."
+        : e
+    );
     return {
       configured: true,
       sent: data.sent ?? 0,
       failed: data.failed ?? params.phones.length,
       total: data.total ?? params.phones.length,
       templateRequired: false,
-      errors: data.errors ?? [],
+      errors: Array.from(new Set(errors)),
     };
   } catch (err) {
     return {

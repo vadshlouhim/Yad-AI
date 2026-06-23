@@ -75,6 +75,17 @@ async function getOrCreateSession(communityId) {
     entry.qrDataUrl = null;
   });
 
+  // Suit l'état réel de WhatsApp Web : si la session se dégrade (CONFLICT,
+  // UNPAIRED, DEPRECATED_VERSION…), on cesse de la considérer comme connectée.
+  client.on("change_state", (state) => {
+    console.log(`[${communityId}] Changement d'état : ${state}`);
+    if (state === "CONNECTED") {
+      entry.status = "connected";
+    } else if (entry.status === "connected") {
+      entry.status = "disconnected";
+    }
+  });
+
   client.on("auth_failure", (msg) => {
     console.error(`[${communityId}] Échec auth : ${msg}`);
     entry.status = "auth_failure";
@@ -168,6 +179,30 @@ app.delete("/session/:id", auth, async (req, res) => {
   return res.json({ ok: true });
 });
 
+// Détecte une erreur Puppeteer indiquant une session morte (frame détaché,
+// contexte d'exécution détruit, page fermée). Dans ces cas, la session doit
+// être réinitialisée : le flag en mémoire ne reflète plus la réalité.
+function isDeadSessionError(message) {
+  if (!message) return false;
+  const m = String(message).toLowerCase();
+  return (
+    m.includes("detached frame") ||
+    m.includes("execution context was destroyed") ||
+    m.includes("session closed") ||
+    m.includes("target closed") ||
+    m.includes("protocol error") ||
+    m.includes("page has been closed")
+  );
+}
+
+// Détruit proprement une session morte et la retire de la map.
+async function killSession(communityId, entry) {
+  try {
+    await entry?.client?.destroy();
+  } catch {}
+  sessions.delete(communityId);
+}
+
 // ── POST /send ──────────────────────────────────────────────────────────────
 app.post("/send", auth, async (req, res) => {
   const { communityId, phones, text } = req.body;
@@ -183,9 +218,33 @@ app.post("/send", auth, async (req, res) => {
     });
   }
 
+  // Vérifie l'état RÉEL de la session (et pas seulement le flag en mémoire).
+  // getState() interroge le client : si le frame Puppeteer est détaché,
+  // l'appel échoue → la session est morte, on la nettoie pour forcer un re-scan.
+  try {
+    const state = await entry.client.getState();
+    if (state !== "CONNECTED") {
+      await killSession(communityId, entry);
+      return res.status(409).json({
+        error: "WhatsApp déconnecté. Scannez à nouveau le QR code.",
+        status: "disconnected",
+      });
+    }
+  } catch (err) {
+    if (isDeadSessionError(err.message)) {
+      await killSession(communityId, entry);
+      return res.status(409).json({
+        error: "La session WhatsApp a expiré. Scannez à nouveau le QR code.",
+        status: "disconnected",
+      });
+    }
+    // Erreur transitoire inattendue : on tente quand même l'envoi ci-dessous.
+  }
+
   let sent = 0;
   let failed = 0;
   const errors = [];
+  let sessionDied = false;
 
   for (const phone of phones) {
     const digits = phone.replace(/[^\d]/g, "");
@@ -202,7 +261,24 @@ app.post("/send", auth, async (req, res) => {
     } catch (err) {
       failed++;
       errors.push(err.message);
+      // Si le frame meurt en cours de route, inutile de continuer la boucle :
+      // tous les envois suivants échoueraient de la même façon.
+      if (isDeadSessionError(err.message)) {
+        sessionDied = true;
+        break;
+      }
     }
+  }
+
+  if (sessionDied) {
+    await killSession(communityId, entry);
+    return res.status(409).json({
+      error: "La session WhatsApp a été interrompue. Scannez à nouveau le QR code.",
+      status: "disconnected",
+      sent,
+      failed: phones.length - sent,
+      total: phones.length,
+    });
   }
 
   return res.json({
