@@ -37,6 +37,17 @@ export async function POST(
 
   if (!run) return NextResponse.json({ error: "Erreur création run" }, { status: 500 });
 
+  // Effacer preparedValidationFor pour forcer l'exécution même si déjà préparé
+  const existingConfig = (automation.triggerConfig ?? {}) as Record<string, unknown>;
+  if (existingConfig.preparedValidationFor) {
+    const { preparedValidationFor: _, preparedDraftId: __, ...cleanConfig } = existingConfig as Record<string, unknown> & { preparedValidationFor?: unknown; preparedDraftId?: unknown };
+    await admin
+      .from("Automation")
+      .update({ triggerConfig: cleanConfig as never, updatedAt: new Date().toISOString() })
+      .eq("id", automation.id);
+    automation.triggerConfig = cleanConfig;
+  }
+
   try {
     await executeAutomationActions(
       automation as Parameters<typeof executeAutomationActions>[0]

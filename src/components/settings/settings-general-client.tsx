@@ -241,7 +241,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
           editorialRules: editorialRules || null,
           vocabulary: {
             ...(community.vocabulary ?? {}),
-            aiNotificationLeadHours: Math.max(0.25, Number(notificationLeadHours) || 2),
+            aiNotificationLeadHours: Math.max(0, Number(notificationLeadHours) || 0),
             automationValidationMode,
             manualValidationBeforeSend: automationValidationMode === "manual",
           },
@@ -889,8 +889,8 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                   <div className="flex max-w-xs items-center gap-2">
                     <input
                       type="number"
-                      min="0.25"
-                      step="0.25"
+                      min="0"
+                      step="0.5"
                       value={notificationLeadHours}
                       onChange={(e) => setNotificationLeadHours(e.target.value)}
                       className="w-28 rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
@@ -898,7 +898,9 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                     <span className="text-sm text-slate-500">heures avant l&apos;envoi</span>
                   </div>
                   <p className="text-xs text-slate-400">
-                    Choisissez combien d&apos;heures avant l&apos;envoi vous souhaitez être notifié.
+                    {notificationLeadHours === "0" || Number(notificationLeadHours) === 0
+                      ? "Aucune notification d'avance — les automatisations s'exécutent à l'heure exacte sans pré-notification."
+                      : "Choisissez combien d'heures avant l'envoi vous souhaitez être notifié."}
                   </p>
                 </div>
 

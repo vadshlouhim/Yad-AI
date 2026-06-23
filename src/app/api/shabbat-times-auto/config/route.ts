@@ -10,10 +10,17 @@ import type { Database, Json } from "@/types/database.types";
 
 type AutomationRow = Database["public"]["Tables"]["Automation"]["Row"];
 
-const WEEKLY_SHABBAT_ACTIONS: Json = [
-  { type: "GENERATE_CONTENT", contentType: "SHABBAT_TIMES", channels: ["INSTAGRAM", "FACEBOOK", "WHATSAPP"] },
-  { type: "CREATE_PUBLICATION", requiresValidation: true },
-];
+const ALL_CHANNELS = ["INSTAGRAM", "FACEBOOK", "WHATSAPP", "EMAIL"] as const;
+
+function buildActions(channels: string[], scheduleMode: string): Json {
+  const validChannels = channels.filter((c) => (ALL_CHANNELS as readonly string[]).includes(c));
+  const selected = validChannels.length > 0 ? validChannels : ["INSTAGRAM", "FACEBOOK", "WHATSAPP"];
+  const requiresValidation = scheduleMode !== "direct";
+  return [
+    { type: "GENERATE_CONTENT", contentType: "SHABBAT_TIMES", channels: selected, requiresValidation },
+    { type: "CREATE_PUBLICATION", requiresValidation },
+  ];
+}
 
 type ShabbatPosterConfig = {
   selectedTemplateId?: string | null;
@@ -25,6 +32,8 @@ type ShabbatPosterConfig = {
   notificationDay?: string;
   notificationDayOfWeek?: number;
   notificationTime?: string;
+  scheduleMode?: string;
+  channels?: string[];
   configured?: boolean;
   suspended?: boolean;
 };
@@ -90,6 +99,8 @@ function sanitizeConfig(value: unknown, existing: ShabbatPosterConfig): ShabbatP
     notificationDay: stringOrEmpty(value.notificationDay ?? existing.notificationDay) || "Vendredi",
     notificationDayOfWeek,
     notificationTime,
+    scheduleMode: typeof value.scheduleMode === "string" ? value.scheduleMode : (existing.scheduleMode ?? "notification"),
+    channels: Array.isArray(value.channels) ? (value.channels as string[]) : (existing.channels ?? ["INSTAGRAM", "FACEBOOK", "WHATSAPP"]),
   };
 }
 
@@ -144,7 +155,7 @@ async function upsertAutomation(
     description: "Prépare chaque semaine l'affiche des horaires de Chabbat avant validation humaine.",
     trigger: "WEEKLY_SHABBAT" as const,
     triggerConfig: mergeTriggerConfig(existing?.triggerConfig ?? null, update.poster),
-    actions: WEEKLY_SHABBAT_ACTIONS,
+    actions: buildActions(update.poster.channels ?? ["INSTAGRAM", "FACEBOOK", "WHATSAPP"], update.poster.scheduleMode ?? "notification"),
     isActive: update.isActive,
     status: update.status,
     nextRunAt: update.nextRunAt,

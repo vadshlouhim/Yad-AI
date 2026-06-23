@@ -141,7 +141,19 @@ export async function PATCH(
     updateData.trigger = body.trigger;
   }
   if (body.eventId !== undefined) updateData.eventId = typeof body.eventId === "string" && body.eventId ? body.eventId : null;
-  if (body.triggerConfig !== undefined && typeof body.triggerConfig === "object") updateData.triggerConfig = body.triggerConfig;
+  if (body.triggerConfig !== undefined && typeof body.triggerConfig === "object") {
+    const incoming = body.triggerConfig as Record<string, unknown>;
+    // Preserve shabbatPoster for WEEKLY_SHABBAT — the generic form must not overwrite it
+    if (automation.trigger === "WEEKLY_SHABBAT") {
+      const existingConfig = (automation.triggerConfig ?? {}) as Record<string, unknown>;
+      updateData.triggerConfig = {
+        ...incoming,
+        shabbatPoster: existingConfig.shabbatPoster ?? incoming.shabbatPoster,
+      };
+    } else {
+      updateData.triggerConfig = incoming;
+    }
+  }
   if (body.actions !== undefined && Array.isArray(body.actions)) updateData.actions = body.actions;
   if (body.nextRunAt !== undefined) updateData.nextRunAt = typeof body.nextRunAt === "string" && body.nextRunAt ? body.nextRunAt : null;
   if (body.nextRunAt !== undefined || body.name !== undefined || body.triggerConfig !== undefined) {

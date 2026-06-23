@@ -973,14 +973,23 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
           <div className="min-w-0">
             <p className="truncate text-sm font-black uppercase tracking-wide text-slate-900">{automation.name}</p>
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              <Button
-                size="sm"
-                className="h-8 rounded-full bg-blue-600 px-3 text-xs text-white hover:bg-blue-700"
-                onClick={() => openEditForm(automation)}
-              >
-                <Settings className="size-3.5" />
-                Configurer
-              </Button>
+              {automation.trigger === "WEEKLY_SHABBAT" ? (
+                <Link href="/dashboard/shabbat-times-auto">
+                  <Button size="sm" className="h-8 rounded-full bg-blue-600 px-3 text-xs text-white hover:bg-blue-700">
+                    <Settings className="size-3.5" />
+                    Configurer
+                  </Button>
+                </Link>
+              ) : (
+                <Button
+                  size="sm"
+                  className="h-8 rounded-full bg-blue-600 px-3 text-xs text-white hover:bg-blue-700"
+                  onClick={() => openEditForm(automation)}
+                >
+                  <Settings className="size-3.5" />
+                  Configurer
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -1495,7 +1504,11 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                       <div className="flex flex-wrap items-center gap-2 mt-3">
                         <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => toggleAutomation(automation.id, automation.isActive)} loading={toggling === automation.id}>{automation.isActive ? <><Pause className="size-3" /> Mettre en pause</> : <><Play className="size-3" /> Activer</>}</Button>
                         <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => triggerNow(automation.id)} loading={triggering === automation.id}><Play className="size-3" />Lancer maintenant</Button>
-                        <Button size="sm" className="h-7 bg-blue-600 text-xs text-white hover:bg-blue-700" onClick={() => openEditForm(automation)}><Settings className="size-3" />Configurer</Button>
+                        {automation.trigger === "WEEKLY_SHABBAT" ? (
+                          <Link href="/dashboard/shabbat-times-auto"><Button size="sm" className="h-7 bg-blue-600 text-xs text-white hover:bg-blue-700"><Settings className="size-3" />Configurer</Button></Link>
+                        ) : (
+                          <Button size="sm" className="h-7 bg-blue-600 text-xs text-white hover:bg-blue-700" onClick={() => openEditForm(automation)}><Settings className="size-3" />Configurer</Button>
+                        )}
                         <Button variant="ghost" size="sm" className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => deleteAutomation(automation.id)} loading={deleting === automation.id}><Trash2 className="size-3" />Supprimer</Button>
                       </div>
                     </div>

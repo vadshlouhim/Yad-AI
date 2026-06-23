@@ -94,6 +94,7 @@ async function sendAutomationEmail(params: {
   automation: AutomationWithCommunity;
   subject?: string;
   body?: string;
+  imageUrl?: string | null;
 }): Promise<void> {
   const supabase = createAdminClient();
   const { automation } = params;
@@ -128,6 +129,9 @@ async function sendAutomationEmail(params: {
     .replace(/\n\n/g, "</p><p>")
     .replace(/\n/g, "<br />");
   const communityName = escapeHtml(automation.community.name);
+  const imageBlock = params.imageUrl
+    ? `<div style="text-align:center;margin:28px 0;"><img src="${params.imageUrl}" alt="Affiche" style="max-width:100%;border-radius:14px;box-shadow:0 4px 28px rgba(0,0,0,0.14);" /></div>`
+    : "";
   const formattedContent = `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -139,6 +143,7 @@ async function sendAutomationEmail(params: {
   <div style="border-bottom: 3px solid #2563eb; padding-bottom: 16px; margin-bottom: 24px;">
     <h1 style="font-size: 20px; font-weight: 700; color: #0f172a; margin: 0;">${communityName}</h1>
   </div>
+  ${imageBlock}
   <div style="font-size: 15px; line-height: 1.7; color: #334155;"><p>${safeBody}</p></div>
   <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center;">
     Envoye via <strong>EasyCom IA</strong> - Communication communautaire assistee par IA
@@ -239,7 +244,7 @@ function getNotificationLeadHours(automation: AutomationWithCommunity) {
   const vocabulary = automation.community.vocabulary;
   if (vocabulary && typeof vocabulary === "object" && !Array.isArray(vocabulary)) {
     const value = (vocabulary as { aiNotificationLeadHours?: unknown }).aiNotificationLeadHours;
-    if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
+    if (typeof value === "number" && Number.isFinite(value) && value >= 0) return value;
   }
   return 2;
 }
@@ -255,12 +260,15 @@ function hasSocialNotificationChannel(action: AutomationAction | undefined) {
 }
 
 async function prepareAutomationNotification(automation: AutomationWithCommunity, now: Date): Promise<void> {
+  const leadHours = getNotificationLeadHours(automation);
+  if (leadHours === 0) return; // 0h = pas de pré-notification, exécution directe à l'heure exacte
+
   const supabase = createAdminClient();
   const config = (automation.triggerConfig ?? {}) as Record<string, unknown>;
   const nextRunAt = automation.nextRunAt ? new Date(automation.nextRunAt) : null;
   if (!nextRunAt || Number.isNaN(nextRunAt.getTime()) || now >= nextRunAt) return;
 
-  const leadMs = getNotificationLeadHours(automation) * 60 * 60 * 1000;
+  const leadMs = leadHours * 60 * 60 * 1000;
   if (nextRunAt.getTime() - now.getTime() > leadMs) return;
 
   const preparedFor = getPreparedForKey(nextRunAt);
@@ -316,12 +324,30 @@ async function prepareAutomationNotification(automation: AutomationWithCommunity
 
   const triggerConfig = (automation.triggerConfig ?? {}) as Record<string, unknown>;
   const configuredMessage = typeof triggerConfig.message === "string" ? triggerConfig.message.trim() : "";
+
+  // Pour WEEKLY_SHABBAT : récupérer les horaires + l'image du template sélectionné
+  let shabbatTimesForPrep = null;
+  let preNotifImageUrl: string | null = null;
+  if (automation.trigger === "WEEKLY_SHABBAT") {
+    shabbatTimesForPrep = await getShabbatTimes({
+      city: automation.community.city ?? undefined,
+      timezone: automation.community.timezone,
+    });
+    preNotifImageUrl = await getSelectedShabbatTemplateImageUrl({
+      supabase,
+      triggerConfig,
+      communityId: automation.community.id,
+    });
+  }
+
   const generated = configuredMessage
     ? { body: configuredMessage, bodyHebrew: null, hashtags: [], cta: null }
     : await generateContent({
         communityId: automation.community.id,
         contentType: (action.contentType ?? "GENERAL") as never,
         eventId: automation.eventId ?? undefined,
+        shabbatTimes: shabbatTimesForPrep ?? undefined,
+        hebrewDate: shabbatTimesForPrep?.hebrewDate,
       });
 
   const { data: draft } = await supabase
@@ -334,6 +360,7 @@ async function prepareAutomationNotification(automation: AutomationWithCommunity
       bodyHebrew: generated.bodyHebrew ?? null,
       hashtags: generated.hashtags,
       cta: generated.cta ?? null,
+      imageUrl: preNotifImageUrl,
       contentType: (action.contentType ?? "GENERAL") as never,
       status: "AI_PROPOSAL",
       aiGenerated: true,
@@ -345,10 +372,21 @@ async function prepareAutomationNotification(automation: AutomationWithCommunity
 
   if (!draft) return;
 
+  // Email d'approbation avec l'affiche si disponible
+  if (action.channels?.includes("EMAIL") && preNotifImageUrl) {
+    const leadHours = getNotificationLeadHours(automation);
+    await sendAutomationEmail({
+      automation,
+      subject: `Chabbat Chalom — Votre affiche est prête à valider — ${automation.community.name}`,
+      body: `Votre affiche de Chabbat est prête. Dans ${leadHours}h, elle sera publiée si vous la validez.`,
+      imageUrl: preNotifImageUrl,
+    }).catch((err) => console.error("[Automation] Erreur email pré-notification:", err));
+  }
+
   if (notifyUsers && notifyUsers.length > 0) {
     const channels = action.channels ?? [];
     const leadHours = getNotificationLeadHours(automation);
-    const notifTitle = "Validation requise";
+    const notifTitle = automation.trigger === "WEEKLY_SHABBAT" ? "Affiche Chabbat prête à valider" : "Validation requise";
     const notifBody = `Dans ${leadHours}h, votre publication sera envoyée. Validez ?`;
     const notifLink = `/dashboard/assistant?draftId=${draft.id}`;
     await supabase.from("Notification").insert(
@@ -408,8 +446,14 @@ async function shouldTrigger(automation: Automation, now: Date): Promise<boolean
 
   switch (automation.trigger as AutomationTrigger) {
     case "WEEKLY_SHABBAT": {
-      const triggerDay = (config.dayOfWeek as number) ?? 4;
-      return now.getDay() === triggerDay;
+      // Si nextRunAt est défini et atteint (déjà vérifié avant le switch), on déclenche
+      if (hasPreciseNextRun) return true;
+      // Fallback sans nextRunAt : vérifier le jour en heure Paris (jamais en UTC)
+      const triggerDay = (config.dayOfWeek as number) ?? 5;
+      const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+      const parisDayName = new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Paris", weekday: "long" }).format(now);
+      const parisDayOfWeek = DAYS.indexOf(parisDayName);
+      return parisDayOfWeek === triggerDay;
     }
 
     case "BEFORE_EVENT": {
@@ -585,18 +629,23 @@ export async function executeAutomationActions(
         if (action.channels?.includes("EMAIL")) {
           await sendAutomationEmail({
             automation,
-            subject: `Message de ${automation.community.name}`,
+            subject: automation.trigger === "WEEKLY_SHABBAT"
+              ? `Chabbat Chalom — Horaires de Chabbat — ${automation.community.name}`
+              : `Message de ${automation.community.name}`,
             body: generated.body,
+            imageUrl: selectedTemplateImageUrl,
           });
         }
 
         const autoPublishChannels = action.channels ?? [];
+        let autoPublishSucceeded = false;
         if (!action.requiresValidation && autoPublishChannels.length > 0) {
+          const socialChannels = autoPublishChannels.filter((c) => c !== "EMAIL");
           const { data: channels } = await supabase
             .from("Channel")
             .select("id")
             .eq("communityId", automation.community.id)
-            .in("type", autoPublishChannels as never[])
+            .in("type", socialChannels as never[])
             .eq("isActive", true);
 
           if (channels && channels.length > 0) {
@@ -607,14 +656,42 @@ export async function executeAutomationActions(
               channelIds,
             });
             await publishToAllChannels(draft.id, channelIds);
+            autoPublishSucceeded = true;
+          } else if (socialChannels.length > 0 && notifyUsers && notifyUsers.length > 0) {
+            // Aucun canal social actif trouvé — avertir l'admin
+            const missingText = socialChannels.join(", ");
+            await supabase.from("Notification").insert(
+              notifyUsers.map((user) => ({
+                id: crypto.randomUUID(),
+                userId: user.id,
+                communityId: automation.community.id,
+                type: "AI_CONTENT_READY",
+                title: "Canaux non configurés",
+                body: `L'affiche Chabbat est prête mais aucun canal actif (${missingText}) n'est trouvé. Configurez-les dans Paramètres > Canaux.`,
+                link: "/dashboard/settings/channels",
+                data: { draftId: draft.id },
+              }))
+            );
+            await Promise.allSettled(
+              notifyUsers.map((user) =>
+                notifyUser(supabase, user.id, {
+                  title: "Canaux non configurés",
+                  body: `Configurez vos réseaux sociaux dans Paramètres > Canaux pour que l'affiche parte automatiquement.`,
+                  link: "/dashboard/settings/channels",
+                })
+              )
+            );
           }
         }
 
-        if (notifyUsers && notifyUsers.length > 0) {
+        if (notifyUsers && notifyUsers.length > 0 && !autoPublishSucceeded) {
           const isScheduledEvent = automation.trigger === "CUSTOM_SCHEDULE" && Boolean(automation.eventId);
-          const notifTitle = isScheduledEvent ? `Événement : ${eventName}` : "Message prêt à envoyer";
+          const isShabbat = automation.trigger === "WEEKLY_SHABBAT";
+          const notifTitle = isScheduledEvent ? `Événement : ${eventName}` : isShabbat ? "Affiche Chabbat prête" : "Message prêt à envoyer";
           const notifBody = isScheduledEvent
             ? `C'est l'heure de l'événement "${eventName}".`
+            : isShabbat
+            ? "L'affiche de Chabbat est générée. Ouvrez l'Assistant pour la publier."
             : `Il est temps d'envoyer votre message sur ${channelsText} pour ${eventName}.`;
           const notifLink = isScheduledEvent
             ? `/dashboard/assistant?eventId=${automation.eventId}`
@@ -631,7 +708,6 @@ export async function executeAutomationActions(
               data: isScheduledEvent ? null : { draftId: draft.id, channelTypes: action.channels ?? [] },
             }))
           );
-          // Email + push (scénario « app fermée »)
           await Promise.allSettled(
             notifyUsers.map((user) => notifyUser(supabase, user.id, { title: notifTitle, body: notifBody, link: notifLink }))
           );

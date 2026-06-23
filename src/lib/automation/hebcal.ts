@@ -65,8 +65,9 @@ export async function getShabbatTimes(params: {
       c: "on",      // Candle lighting
       start: friday.toISOString().split("T")[0],
       end: new Date(friday.getTime() + 86400000).toISOString().split("T")[0],
-      b: "18",      // Minutes avant coucher soleil
-      M: "on",      // Havdalah 50 minutes
+      b: "18",      // Minutes avant coucher soleil pour l'allumage des bougies
+      M: "on",      // Activer l'affichage de la Havdalah
+      m: "42",      // Havdalah à 42 min après coucher du soleil (צאת הכוכבים)
       s: "on",      // Sedrot (paracha)
       i: "off",
       lg: "fr",
@@ -327,8 +328,10 @@ export async function getNextHoliday(): Promise<JewishHoliday | null> {
 
 function getNextFriday(from: Date): Date {
   const date = new Date(from);
-  const day = date.getDay();
-  const daysUntilFriday = (5 - day + 7) % 7 || 7;
+  // Use Paris time to avoid UTC-midnight drift causing wrong date
+  const parisDate = new Date(date.toLocaleString("en-US", { timeZone: "Europe/Paris" }));
+  const day = parisDate.getDay(); // 0=Sun…5=Fri…6=Sat
+  const daysUntilFriday = (5 - day + 7) % 7; // 0 when already Friday → stays on current Friday
   date.setDate(date.getDate() + daysUntilFriday);
   return date;
 }
