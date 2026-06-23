@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Bell, Bot, ChevronDown, Zap, X, User, Settings, LogOut } from "lucide-react";
+import { Bell, Bot, CalendarDays, ChevronDown, Zap, X, User, Settings, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import {
@@ -75,7 +75,7 @@ const DESKTOP_CATEGORY_CONTENT: Record<
     itemActive: "bg-cyan-50 text-slate-950 ring-1 ring-cyan-100",
   },
   "AGENDA ET QUOTIDIEN": {
-    title: "AGENDA CONNECTÉ IA",
+    title: "PUBLICATIONS AUTOMATIQUES",
     description: "Votre quotidien bien organisé",
     accentBar: "bg-violet-500",
     iconSurface: "bg-violet-50",
@@ -132,6 +132,11 @@ const DESKTOP_CATEGORY_CONTENT: Record<
 };
 
 const ASSISTANT_ITEM = DASHBOARD_NAV_ITEMS.find((section) => section.section === "ASSISTANT IA")?.items[0] ?? null;
+const AGENDA_TOP_ITEM = {
+  href: "/dashboard/events",
+  label: "Agenda connecté IA",
+  icon: CalendarDays,
+};
 const AUTOMATIONS_ITEM = {
   href: "/dashboard/automations",
   label: "Cr\u00E9er des automatisations",
@@ -195,6 +200,7 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
           title={collapsed ? "Elargir la barre laterale" : "Ouvrir Assistant IA"}
         >
           {community.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={community.logoUrl} alt={community.name} className="h-full w-full rounded-2xl object-cover" />
           ) : (
             <span className="text-sm font-bold text-white">{community.name.substring(0, 2).toUpperCase()}</span>
@@ -252,19 +258,43 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
             </Link>
           )}
 
+          <Link
+            href={resolveHref(AGENDA_TOP_ITEM.href)}
+            className={cn(
+              "flex items-center rounded-[1.3rem] bg-gradient-to-r from-violet-700 via-purple-700 to-indigo-700 px-4 py-3 text-white shadow-[0_16px_30px_rgba(109,40,217,0.28)] ring-1 ring-violet-200/60 transition-all duration-200",
+              isActive(AGENDA_TOP_ITEM.href) ? "brightness-[0.98]" : "hover:brightness-[1.03]",
+              collapsed && "justify-center rounded-[1.4rem] border border-violet-300/40 bg-gradient-to-b from-violet-700 to-indigo-700 px-0 py-3"
+            )}
+            title={collapsed ? AGENDA_TOP_ITEM.label : undefined}
+          >
+            {!collapsed && (
+              <div className="flex min-w-0 items-center gap-2">
+                <CalendarDays className="size-4 shrink-0 text-violet-50" />
+                <p className="truncate text-[15px] font-semibold tracking-tight text-white">
+                  Agenda connecté IA
+                </p>
+              </div>
+            )}
+            {collapsed && (
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10">
+                <CalendarDays className="size-4 text-violet-50" />
+              </span>
+            )}
+          </Link>
+
           <div className={cn("pt-1 pb-3", collapsed && "pt-1 pb-2")}>
             <Link
               href={resolveHref(DASHBOARD_TOP_ITEM.href)}
               className={cn(
-                "flex items-center rounded-[1.2rem] bg-slate-900 px-4 py-3 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition-all duration-200",
-                isActive(DASHBOARD_TOP_ITEM.href) ? "bg-slate-950" : "hover:bg-slate-800",
-                collapsed && "justify-center rounded-[1.4rem] border border-slate-800/50 bg-gradient-to-b from-slate-900 to-slate-800 px-0 py-3"
+                "flex items-center rounded-[1.3rem] bg-gradient-to-r from-rose-600 via-pink-600 to-fuchsia-600 px-4 py-3 text-white shadow-[0_16px_30px_rgba(225,29,72,0.22)] ring-1 ring-rose-200/60 transition-all duration-200",
+                isActive(DASHBOARD_TOP_ITEM.href) ? "brightness-[0.98]" : "hover:brightness-[1.03]",
+                collapsed && "justify-center rounded-[1.4rem] border border-rose-300/40 bg-gradient-to-b from-rose-600 to-fuchsia-600 px-0 py-3"
               )}
               title={collapsed ? DASHBOARD_TOP_ITEM.label : undefined}
             >
               {!collapsed && (
                 <div className="flex min-w-0 items-center gap-2">
-                  {DASHBOARD_TOP_ITEM.icon && <DASHBOARD_TOP_ITEM.icon className="size-4 shrink-0 text-cyan-200" />}
+                  {DASHBOARD_TOP_ITEM.icon && <DASHBOARD_TOP_ITEM.icon className="size-4 shrink-0 text-rose-50" />}
                   <p className="truncate text-[15px] font-semibold tracking-tight text-white">
                     {DASHBOARD_TOP_ITEM.label}
                   </p>
@@ -275,7 +305,7 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
               )}
               {collapsed && (
                 <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10">
-                  <Bell className="size-4 text-cyan-200" />
+                  <Bell className="size-4 text-rose-50" />
                 </span>
               )}
             </Link>
@@ -456,6 +486,7 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
         >
           <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-full bg-slate-200">
             {userAvatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={userAvatar} alt={userName} className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-slate-600">
@@ -591,4 +622,3 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
     </aside>
   );
 }
-

@@ -1,6 +1,7 @@
 ﻿import { createAdminClient } from "@/lib/supabase/admin";
 import { generateContent } from "@/lib/ai/engine";
-import { createPublicationsFromDraft, publishToChannel } from "@/lib/publishing/publisher";
+import { createPublicationsFromDraft, publishToAllChannels, publishToChannel } from "@/lib/publishing/publisher";
+import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import { getShabbatTimes, getNextHoliday } from "./hebcal";
 import { notifyUser } from "@/lib/notifications/notify";
 import { addDays, startOfDay, endOfDay, isWithinInterval } from "date-fns";
@@ -34,6 +35,38 @@ const DAY_TO_INDEX: Record<string, number> = {
   friday: 5,
   saturday: 6,
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function getShabbatPosterConfig(triggerConfig: Record<string, unknown>) {
+  const value = triggerConfig.shabbatPoster;
+  return isRecord(value) ? value : {};
+}
+
+async function getSelectedShabbatTemplateImageUrl(params: {
+  supabase: ReturnType<typeof createAdminClient>;
+  triggerConfig: Record<string, unknown>;
+  communityId: string;
+}) {
+  const posterConfig = getShabbatPosterConfig(params.triggerConfig);
+  const selectedTemplateId = typeof posterConfig.selectedTemplateId === "string"
+    ? posterConfig.selectedTemplateId
+    : "";
+
+  if (!selectedTemplateId) return null;
+
+  const { data: template } = await params.supabase
+    .from("Template")
+    .select("previewUrl, thumbnailUrl, isGlobal, communityId")
+    .eq("id", selectedTemplateId)
+    .or(`isGlobal.eq.true,communityId.eq.${params.communityId}`)
+    .maybeSingle();
+
+  if (!template) return null;
+  return resolveTemplateAssetUrl(template.previewUrl) ?? resolveTemplateAssetUrl(template.thumbnailUrl);
+}
 
 type AutomationWithCommunity = Automation & {
   community: {
@@ -509,6 +542,14 @@ export async function executeAutomationActions(
           hebrewDate = shabbatTimes?.hebrewDate;
         }
 
+        const selectedTemplateImageUrl = automation.trigger === "WEEKLY_SHABBAT"
+          ? await getSelectedShabbatTemplateImageUrl({
+              supabase,
+              triggerConfig,
+              communityId: automation.community.id,
+            })
+          : null;
+
         const generated = configuredMessage
           ? { body: configuredMessage, bodyHebrew: null, hashtags: [], cta: null }
           : await generateContent({
@@ -529,6 +570,7 @@ export async function executeAutomationActions(
             bodyHebrew: generated.bodyHebrew ?? null,
             hashtags: generated.hashtags,
             cta: generated.cta ?? null,
+            imageUrl: selectedTemplateImageUrl,
             contentType: (action.contentType ?? "GENERAL") as never,
             status: action.requiresValidation ? "AI_PROPOSAL" : "READY_TO_PUBLISH",
             aiGenerated: true,
@@ -548,7 +590,7 @@ export async function executeAutomationActions(
           });
         }
 
-        const autoPublishChannels = (action.channels ?? []).filter((channel) => channel !== "WHATSAPP");
+        const autoPublishChannels = action.channels ?? [];
         if (!action.requiresValidation && autoPublishChannels.length > 0) {
           const { data: channels } = await supabase
             .from("Channel")
@@ -558,11 +600,13 @@ export async function executeAutomationActions(
             .eq("isActive", true);
 
           if (channels && channels.length > 0) {
+            const channelIds = channels.map((c) => c.id);
             await createPublicationsFromDraft({
               draftId: draft.id,
               communityId: automation.community.id,
-              channelIds: channels.map((c) => c.id),
+              channelIds,
             });
+            await publishToAllChannels(draft.id, channelIds);
           }
         }
 

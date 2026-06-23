@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Clock3,
   Globe,
+  Gift,
   HelpCircle,
   History,
   Image,
@@ -187,7 +188,7 @@ export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActiv
 
 export const DASHBOARD_TOP_ITEM: DashboardNavItem = {
   href: "/dashboard/notifications",
-  label: "Notification",
+  label: "Notifications",
   icon: Bell,
 };
 
@@ -210,7 +211,8 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "ASSISTANT PERSONNEL",
     items: [
-      { href: "/dashboard/events", label: "Agenda connecté IA", icon: CalendarDays },    ],
+      { href: "/dashboard/events", label: "Agenda connecté IA", icon: CalendarDays },
+    ],
   },
   {
     section: "RESSOURCES",
@@ -230,7 +232,8 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     section: "BANQUE VISUELLE",
     items: [
       { href: "/dashboard/templates", label: "Affiches", icon: Image },
-      { href: "/dashboard/shabbat-times-auto", label: "Horaire de Chabbat auto", icon: Clock3 },
+      { href: "/dashboard/shabbat-times-auto", label: "Horaires de Chabbat", icon: Clock3 },
+      { href: "/dashboard/jewish-holidays-auto", label: "Fetes juives et Hassidiques", icon: Gift },
     ],
   },
   {
@@ -277,18 +280,20 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     ],
   },
   {
+    section: "AGENDA ET QUOTIDIEN",
+    icon: CalendarDays,
+    items: [
+      { href: "/dashboard/shabbat-times-auto", label: "Horaires de Chabbat", icon: Clock3 },
+      { href: "/dashboard/jewish-holidays-auto", label: "Fetes juives et Hassidiques", icon: Gift },
+    ],
+  },
+  {
     section: "EMAIL",
     icon: Mail,
     items: [
       { href: "/dashboard/email", label: "Email", icon: Mail },
       { href: "/dashboard/google-reviews", label: "Avis Google", icon: Star },
     ],
-  },
-  {
-    section: "AGENDA ET QUOTIDIEN",
-    icon: CalendarDays,
-    items: [
-      { href: "/dashboard/events", label: "Agenda connecté IA", icon: CalendarDays },    ],
   },
   {
     section: "CLIPS VIDEO",
@@ -302,7 +307,6 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
       { href: "/dashboard/resources", label: "Mes Ressources", icon: ResourcePlusIcon },
       { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
       { href: "/dashboard/templates", label: "Affiches", icon: Image },
-      { href: "/dashboard/shabbat-times-auto", label: "Horaire de Chabbat auto", icon: Clock3 },
       { href: "/dashboard/boutique", label: "Boutique", icon: ShoppingBag },
       { href: "/dashboard/website", label: "Creation site web", icon: Globe },
       { href: "/dashboard/referencement", label: "Referencement Google et IA", icon: Search },

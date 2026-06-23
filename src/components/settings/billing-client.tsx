@@ -120,7 +120,7 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
   const currentPlan = isPaid ? "Payant" : "Gratuit";
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="mx-auto w-full max-w-4xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link href="/dashboard/settings">
@@ -196,7 +196,7 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
 
       {/* Grille des plans */}
       <div>
-        <h2 className="text-lg font-semibold text-slate-900 mb-4">Choisir un mode</h2>
+        <h2 className="mb-4 text-center text-lg font-semibold text-slate-900">Choisir un mode</h2>
         <div className="grid gap-4 lg:grid-cols-2">
           <Card className={cn("relative border-2", !isPaid ? "border-slate-900 bg-slate-50" : "border-slate-200")}>
             {!isPaid && (
@@ -205,7 +205,7 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
               </div>
             )}
             <CardContent className="space-y-5 p-6">
-              <div>
+              <div className="text-center">
                 <p className="text-lg font-black text-slate-950">Gratuit</p>
                 <p className="mt-1 text-sm text-slate-500">Pour découvrir EasyCom IA avec des limites claires.</p>
                 <p className="mt-4 text-3xl font-black text-slate-950">0 €</p>
@@ -238,10 +238,10 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
               </div>
             )}
             <CardContent className="space-y-5 p-6">
-              <div>
+              <div className="text-center">
                 <p className="text-lg font-black text-slate-950">Payant</p>
                 <p className="mt-1 text-sm text-blue-700">{billingConfig.launchMessage}</p>
-                <div className="mt-4 flex items-end gap-3">
+                <div className="mt-4 flex flex-wrap items-end justify-center gap-3">
                   <span className="text-lg font-bold text-slate-400 line-through">
                     {formatPrice(billingConfig.basePriceCents)} {billingConfig.taxLabel}
                   </span>

@@ -56,6 +56,7 @@ export default async function AdminPage() {
     { data: templates },
     { data: communities },
     { data: users },
+    { data: subscriptions },
     { data: automations },
     { data: automationPresets },
     { data: presetUsages },
@@ -84,13 +85,17 @@ export default async function AdminPage() {
       .order("updatedAt", { ascending: false }),
     admin
       .from("Community")
-      .select("id, name, city, plan, onboardingDone, communityType, religiousStream, createdAt, updatedAt")
+      .select("id, name, city, plan, planExpiresAt, onboardingDone, communityType, religiousStream, vocabulary, createdAt, updatedAt")
       .order("updatedAt", { ascending: false })
       .limit(50),
     admin
       .from("profiles")
       .select("id, name, email, role, communityId")
       .order("email", { ascending: true }),
+    admin
+      .from("Subscription")
+      .select("id, communityId, plan, status, currentPeriodStart, currentPeriodEnd, createdAt")
+      .order("createdAt", { ascending: false }),
     admin
       .from("Automation")
       .select("id, communityId, name, description, trigger, triggerConfig, actions, isActive, status, lastRunAt, nextRunAt, createdAt, updatedAt, community:Community(id, name, city)")
@@ -147,7 +152,39 @@ export default async function AdminPage() {
       }}
       templates={hydratedTemplates}
       communities={communities ?? []}
-      users={users ?? []}
+      users={(users ?? []).map((user) => {
+        const community = (communities ?? []).find((item) => item.id === user.communityId) ?? null;
+        const subscription = (subscriptions ?? []).find((item) => item.communityId === user.communityId) ?? null;
+        const vocabulary = community?.vocabulary as { adminBillingMode?: unknown; adminBillingSince?: unknown } | null | undefined;
+        const adminBillingMode = vocabulary?.adminBillingMode === "TEST"
+          ? "TEST"
+          : community?.plan === "FREE_TRIAL"
+            ? "FREE"
+            : "PAID";
+
+        return {
+          ...user,
+          communityName: community?.name ?? null,
+          communityCity: community?.city ?? null,
+          communityPlan: community?.plan ?? null,
+          planExpiresAt: community?.planExpiresAt ?? null,
+          adminBillingMode,
+          adminBillingSince:
+            typeof vocabulary?.adminBillingSince === "string"
+              ? vocabulary.adminBillingSince
+              : subscription?.currentPeriodStart ?? community?.createdAt ?? null,
+          subscription: subscription
+            ? {
+                id: subscription.id,
+                plan: subscription.plan,
+                status: subscription.status,
+                currentPeriodStart: subscription.currentPeriodStart,
+                currentPeriodEnd: subscription.currentPeriodEnd,
+                createdAt: subscription.createdAt,
+              }
+            : null,
+        };
+      })}
       automations={(automations ?? []).map((automation) => ({
         ...automation,
         community: firstRelation(automation.community),

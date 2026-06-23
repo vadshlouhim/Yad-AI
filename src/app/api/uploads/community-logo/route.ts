@@ -6,6 +6,17 @@ import { createClient } from "@/lib/supabase/server";
 const BUCKET = "community-assets";
 const MAX_FILE_SIZE = 8 * 1024 * 1024;
 
+function slugifyLogoName(value: string | null | undefined) {
+  const normalized = (value ?? "structure")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+
+  return normalized || "structure";
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -38,6 +49,14 @@ export async function POST(request: Request) {
     .eq("id", user.id)
     .single();
 
+  const { data: community } = profile?.communityId
+    ? await admin
+        .from("Community")
+        .select("name, slug")
+        .eq("id", profile.communityId)
+        .single()
+    : { data: null };
+
   const input = Buffer.from(await file.arrayBuffer());
   const output = await sharp(input)
     .rotate()
@@ -46,9 +65,11 @@ export async function POST(request: Request) {
     .toBuffer();
 
   const ownerId = profile?.communityId ?? user.id;
-  const storagePath = `${ownerId}/logo-${crypto.randomUUID()}.webp`;
+  const structureName = community?.slug ?? community?.name ?? user.email ?? ownerId;
+  const storagePath = `${ownerId}/${slugifyLogoName(structureName)}-logo.webp`;
   let { error: uploadError } = await admin.storage.from(BUCKET).upload(storagePath, output, {
     contentType: "image/webp",
+    cacheControl: "3600",
     upsert: true,
   });
 
@@ -56,6 +77,7 @@ export async function POST(request: Request) {
     await admin.storage.createBucket(BUCKET, { public: true });
     const retry = await admin.storage.from(BUCKET).upload(storagePath, output, {
       contentType: "image/webp",
+      cacheControl: "3600",
       upsert: true,
     });
     uploadError = retry.error;
@@ -66,7 +88,7 @@ export async function POST(request: Request) {
   }
 
   const { data } = admin.storage.from(BUCKET).getPublicUrl(storagePath);
-  const logoUrl = data.publicUrl;
+  const logoUrl = `${data.publicUrl}?v=${Date.now()}`;
 
   if (profile?.communityId) {
     await admin

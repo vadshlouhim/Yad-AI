@@ -26,6 +26,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { OnboardingWizard, demoOnboardingData } from "@/components/onboarding/onboarding-wizard";
 import type { BillingConfig } from "@/lib/billing";
@@ -74,9 +75,11 @@ interface AdminCommunity {
   name: string;
   city: string | null;
   plan: string;
+  planExpiresAt: string | null;
   onboardingDone: boolean;
   communityType: string;
   religiousStream: string | null;
+  vocabulary?: unknown;
   createdAt: string;
   updatedAt: string;
 }
@@ -87,6 +90,20 @@ interface AdminUser {
   email: string;
   role: string;
   communityId: string | null;
+  communityName?: string | null;
+  communityCity?: string | null;
+  communityPlan?: string | null;
+  planExpiresAt?: string | null;
+  adminBillingMode?: "FREE" | "PAID" | "TEST";
+  adminBillingSince?: string | null;
+  subscription?: {
+    id: string;
+    plan: string;
+    status: string;
+    currentPeriodStart: string;
+    currentPeriodEnd: string;
+    createdAt: string;
+  } | null;
 }
 
 interface AdminAutomation {
@@ -204,6 +221,11 @@ const COMMUNITY_PROFILE_OPTIONS = [
   { value: "CENTER", label: "Centre" },
   { value: "OTHER", label: "Autre profil" },
 ];
+const USER_BILLING_MODES = [
+  { value: "FREE", label: "Version gratuite", helper: "Limites gratuites actives" },
+  { value: "PAID", label: "Version payante", helper: "Accès complet avec abonnement manuel" },
+  { value: "TEST", label: "Version test", helper: "Accès complet activé par le Super Admin" },
+] as const;
 const ADMIN_AUTOMATION_PRESETS = [
   { key: "WEEKLY_SHABBAT", logo: "🕯️", name: "Horaires de Chabbat", description: "Prépare les horaires chaque semaine.", trigger: "WEEKLY_SHABBAT" },
   { key: "DAILY_THOUGHT", logo: "✨", name: "Pensée du jour", description: "Prépare une pensée quotidienne.", trigger: "DAILY" },
@@ -324,6 +346,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [savingUserBillingId, setSavingUserBillingId] = useState<string | null>(null);
   const [userDeleteConfirm, setUserDeleteConfirm] = useState<AdminUser | null>(null);
   const [uploadingField, setUploadingField] = useState<"thumbnail" | "preview" | null>(null);
   const [automationSaving, setAutomationSaving] = useState<string | null>(null);
@@ -841,6 +864,24 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     window.location.reload();
   }
 
+  async function saveUserBilling(user: AdminUser, mode: "FREE" | "PAID" | "TEST", startedAt: string) {
+    setSavingUserBillingId(user.id);
+    setStatus(null);
+    const response = await fetch(`/api/admin/users/${user.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ billingMode: mode, subscriptionStartedAt: startedAt }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    setSavingUserBillingId(null);
+    if (!response.ok) {
+      setStatus(payload.error ?? "Modification de l'abonnement impossible.");
+      return;
+    }
+    setStatus(`Abonnement de ${user.email} mis à jour.`);
+    window.location.reload();
+  }
+
   async function deleteAdminAutomation(automation: AdminAutomation) {
     if (!window.confirm(`Supprimer l'automatisation "${automation.name}" ?`)) return;
     setAutomationSaving(automation.id);
@@ -1077,9 +1118,15 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                           <Trash2 className={`size-4 ${deletingId === template.id ? "animate-pulse" : ""}`} />
                         </span>
                         <div className="flex gap-3">
-                          <div className={`h-24 w-20 flex-shrink-0 overflow-hidden rounded-2xl ${isDark ? "bg-slate-800" : "bg-slate-100"}`}>
+                          <div className={`relative h-24 w-20 flex-shrink-0 overflow-hidden rounded-2xl ${isDark ? "bg-slate-800" : "bg-slate-100"}`}>
                             {template.thumbnailUrl || template.previewUrl ? (
-                              <img src={template.thumbnailUrl ?? template.previewUrl ?? ""} alt={template.name} className="h-full w-full object-cover transition group-hover:scale-105" />
+                              <Image
+                                src={template.thumbnailUrl ?? template.previewUrl ?? ""}
+                                alt={template.name}
+                                fill
+                                sizes="80px"
+                                className="object-cover transition group-hover:scale-105"
+                              />
                             ) : (
                               <div className="flex h-full w-full items-center justify-center"><ImageIcon className={`size-6 ${mutedText}`} /></div>
                             )}
@@ -1600,29 +1647,114 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                 <div className="mt-5 space-y-3">
                   {users.map((user) => {
                     const community = communities.find((community) => community.id === user.communityId);
+                    const billingMode = user.adminBillingMode ?? (user.communityPlan === "FREE_TRIAL" ? "FREE" : "PAID");
+                    const billingModeMeta = USER_BILLING_MODES.find((item) => item.value === billingMode) ?? USER_BILLING_MODES[0];
+                    const billingSince = user.adminBillingSince
+                      ? new Date(user.adminBillingSince).toISOString().slice(0, 10)
+                      : formatDateInput(new Date());
                     return (
-                      <div key={user.id} className={`flex flex-col gap-3 rounded-3xl border p-4 sm:flex-row sm:items-center sm:justify-between ${isDark ? "border-white/10 bg-slate-950/55" : "border-slate-200 bg-white"}`}>
+                      <div key={user.id} className={`grid gap-4 rounded-3xl border p-4 xl:grid-cols-[1fr_520px] ${isDark ? "border-white/10 bg-slate-950/55" : "border-slate-200 bg-white"}`}>
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <p className={`font-black ${strongText}`}>{user.name ?? user.email}</p>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${user.role === "SUPER_ADMIN" ? "bg-rose-500/15 text-rose-600" : user.role === "ADMIN" ? "bg-amber-500/15 text-amber-600" : "bg-slate-500/15 text-slate-500"}`}>
                               {user.role}
                             </span>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                              billingMode === "TEST"
+                                ? "bg-violet-500/15 text-violet-600"
+                                : billingMode === "PAID"
+                                  ? "bg-emerald-500/15 text-emerald-600"
+                                  : "bg-slate-500/15 text-slate-500"
+                            }`}>
+                              {billingModeMeta.label}
+                            </span>
                           </div>
                           <p className={`mt-0.5 text-sm ${mutedText}`}>{user.email}</p>
-                          {community && (
-                            <p className={`mt-0.5 text-xs ${mutedText}`}>{community.name}{community.city ? ` · ${community.city}` : ""}</p>
+                          {(community || user.communityName) && (
+                            <p className={`mt-0.5 text-xs ${mutedText}`}>
+                              {user.communityName ?? community?.name}{(user.communityCity ?? community?.city) ? ` · ${user.communityCity ?? community?.city}` : ""}
+                            </p>
                           )}
+                          <div className={`mt-3 grid gap-2 rounded-2xl border px-3 py-2 text-xs ${isDark ? "border-white/10 bg-white/5 text-slate-300" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
+                            <p>
+                              <span className="font-black">Plan technique :</span>{" "}
+                              {user.communityPlan ?? "Aucune communauté"}
+                            </p>
+                            <p>
+                              <span className="font-black">Abonnement depuis :</span>{" "}
+                              {user.adminBillingSince ? new Date(user.adminBillingSince).toLocaleDateString("fr-FR") : "Non renseigné"}
+                            </p>
+                            {user.subscription && (
+                              <p>
+                                <span className="font-black">Subscription :</span> {user.subscription.status} · {user.subscription.plan}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setUserDeleteConfirm(user)}
-                          disabled={deletingUserId === user.id}
-                          className={`inline-flex shrink-0 items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${isDark ? "border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20" : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"}`}
-                        >
-                          <Trash2 className={`size-4 ${deletingUserId === user.id ? "animate-pulse" : ""}`} />
-                          {deletingUserId === user.id ? "Suppression..." : "Supprimer"}
-                        </button>
+
+                        <div className="flex flex-col gap-3">
+                          <form
+                            className={`grid gap-3 rounded-2xl border p-3 ${isDark ? "border-white/10 bg-white/5" : "border-slate-200 bg-slate-50"}`}
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              const formData = new FormData(event.currentTarget);
+                              const mode = String(formData.get("billingMode")) as "FREE" | "PAID" | "TEST";
+                              const startedAt = String(formData.get("subscriptionStartedAt") ?? "");
+                              void saveUserBilling(user, mode, startedAt);
+                            }}
+                          >
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <label className={`text-xs font-black uppercase tracking-[0.14em] ${mutedText}`}>
+                                Version
+                                <select
+                                  name="billingMode"
+                                  defaultValue={billingMode}
+                                  disabled={!user.communityId || savingUserBillingId === user.id}
+                                  className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm font-semibold normal-case tracking-normal outline-none ${inputClass}`}
+                                >
+                                  {USER_BILLING_MODES.map((mode) => (
+                                    <option key={mode.value} value={mode.value}>{mode.label}</option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className={`text-xs font-black uppercase tracking-[0.14em] ${mutedText}`}>
+                                Abonnement depuis
+                                <input
+                                  name="subscriptionStartedAt"
+                                  type="date"
+                                  defaultValue={billingSince}
+                                  disabled={!user.communityId || savingUserBillingId === user.id}
+                                  className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm font-semibold normal-case tracking-normal outline-none ${inputClass}`}
+                                />
+                              </label>
+                            </div>
+                            <p className={`text-xs ${mutedText}`}>
+                              La version test donne accès à tout, sans paiement Stripe, et reste marquée comme test dans l&apos;admin.
+                            </p>
+                            <div className="flex flex-wrap justify-end gap-2">
+                              <button
+                                type="submit"
+                                disabled={!user.communityId || savingUserBillingId === user.id}
+                                className="inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-4 py-2 text-sm font-black text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <Save className={`size-4 ${savingUserBillingId === user.id ? "animate-pulse" : ""}`} />
+                                {savingUserBillingId === user.id ? "Sauvegarde..." : "Enregistrer"}
+                              </button>
+                            </div>
+                          </form>
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => setUserDeleteConfirm(user)}
+                              disabled={deletingUserId === user.id}
+                              className={`inline-flex shrink-0 items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${isDark ? "border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20" : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"}`}
+                            >
+                              <Trash2 className={`size-4 ${deletingUserId === user.id ? "animate-pulse" : ""}`} />
+                              {deletingUserId === user.id ? "Suppression..." : "Supprimer"}
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     );
                   })}
