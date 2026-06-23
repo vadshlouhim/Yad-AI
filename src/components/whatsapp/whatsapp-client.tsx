@@ -110,27 +110,36 @@ function WhatsAppConnect() {
 
   const startQrPoll = useCallback(() => {
     stopQrPoll();
+    let errorStreak = 0;
     qrPollRef.current = setInterval(async () => {
       try {
         const res = await fetch("/api/whatsapp/qr");
-        if (!res.ok) return; // erreur réseau, on réessaie au prochain tick
+        if (!res.ok) {
+          errorStreak++;
+          if (errorStreak >= 3) { setLoading(false); setStatus("unreachable"); }
+          return;
+        }
         const data = await res.json() as { status: WaStatus; qr?: string; error?: string };
 
-        // "error" = Railway temporairement injoignable → on continue de poller
-        if (data.status === "error") return;
+        if (data.status === "error") {
+          errorStreak++;
+          if (errorStreak >= 3) { setLoading(false); setStatus("unreachable"); }
+          return;
+        }
 
+        errorStreak = 0;
         setStatus(data.status);
         if (data.qr) {
           setQrDataUrl(data.qr);
           setLoading(false);
         }
-        // On arrête seulement sur un état terminal réel
         if (data.status === "connected" || data.status === "auth_failure") {
           stopQrPoll();
           setLoading(false);
         }
       } catch {
-        // erreur fetch → on réessaie au prochain tick
+        errorStreak++;
+        if (errorStreak >= 3) { setLoading(false); setStatus("unreachable"); }
       }
     }, 2_000);
   }, [stopQrPoll]);
@@ -140,11 +149,16 @@ function WhatsAppConnect() {
     setQrDataUrl(null);
     try {
       // 1. Bascule le canal en mode personnel
-      await fetch("/api/whatsapp/status", { method: "POST" });
+      const statusRes = await fetch("/api/whatsapp/status", { method: "POST" });
+      if (!statusRes.ok) {
+        setStatus("error");
+        setLoading(false);
+        return;
+      }
       setMode("personal");
       setStatus("initializing");
 
-      // 2. Démarre la session sur Railway (retour immédiat)
+      // 2. Démarre la session sur Railway (retour immédiat, erreur ignorée)
       await fetch("/api/whatsapp/qr", { method: "POST" });
 
       // 3. Poll toutes les 2 s jusqu'à obtenir le QR
@@ -257,7 +271,10 @@ function WhatsAppConnect() {
               {loading ? (
                 <Loader2 className="size-8 animate-spin text-emerald-500" />
               ) : (
-                <p className="px-4 text-center text-xs text-slate-400">QR non disponible</p>
+                <div className="px-4 text-center space-y-1">
+                  <WifiOff className="size-6 text-slate-300 mx-auto" />
+                  <p className="text-xs text-slate-400">Service non disponible</p>
+                </div>
               )}
             </div>
           )}
@@ -304,6 +321,13 @@ function WhatsAppConnect() {
             </div>
           )}
 
+          {status === "unreachable" && (
+            <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Service WhatsApp personnel inaccessible. Vérifiez que le service est démarré, puis cliquez sur&nbsp;
+              <strong>Nouveau QR</strong>.
+            </div>
+          )}
+
           <Button
             variant="outline"
             onClick={disconnect}
@@ -319,7 +343,17 @@ function WhatsAppConnect() {
 
 // ── Page WhatsApp principale ─────────────────────────────────────────────────
 
-export function WhatsAppClient({ billingConfig, isPaid }: { billingConfig: BillingConfig; isPaid: boolean }) {
+export function WhatsAppClient({
+  billingConfig,
+  isPaid,
+  isCloudConfigured = false,
+  isPersonalMode = false,
+}: {
+  billingConfig: BillingConfig;
+  isPaid: boolean;
+  isCloudConfigured?: boolean;
+  isPersonalMode?: boolean;
+}) {
   const [prompt, setPrompt] = useState("");
   const [message, setMessage] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -489,6 +523,24 @@ export function WhatsAppClient({ billingConfig, isPaid }: { billingConfig: Billi
           </p>
         </div>
       </section>
+
+      {/* Alerte configuration si aucun mode actif */}
+      {isPaid && !isCloudConfigured && !isPersonalMode && (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
+          <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-amber-400 text-white text-xs font-bold">!</span>
+          <div className="space-y-1 text-sm">
+            <p className="font-semibold text-amber-900">WhatsApp non configuré</p>
+            <p className="text-amber-800 leading-relaxed">
+              Pour envoyer automatiquement, connectez votre numéro ci-dessous <strong>(mode personnel)</strong>{" "}
+              ou renseignez le <strong>Phone Number ID</strong> dans{" "}
+              <a href="/dashboard/settings/channels" className="underline font-semibold hover:text-amber-900">
+                Réglages → Canaux
+              </a>{" "}
+              <strong>(Cloud API)</strong>. Le copier-coller est toujours disponible.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Bloc connexion WhatsApp Web */}
       {isPaid ? (
