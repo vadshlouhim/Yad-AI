@@ -477,6 +477,12 @@ function formatDayAndTime(day: string | undefined, time: string) {
   return `${label}${period} à ${formatAssistantTime(time)}`;
 }
 
+// Une automatisation porte-t-elle une campagne de rappels J-10/J-5 ?
+function isEventReminderCampaign(automation: Automation) {
+  const cfg = automation.triggerConfig;
+  return Boolean(cfg && typeof cfg === "object" && (cfg as Record<string, unknown>).eventReminderCampaign);
+}
+
 function getCardScheduleLabel(card: PredefinedAutomationCard) {
   const config = card.triggerConfig ?? {};
   const time = (card.time ?? getConfigString(config, "time")) || "10:00";
@@ -975,6 +981,13 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
             <div className="mt-4 flex flex-wrap items-center gap-2">
               {automation.trigger === "WEEKLY_SHABBAT" ? (
                 <Link href="/dashboard/shabbat-times-auto">
+                  <Button size="sm" className="h-8 rounded-full bg-blue-600 px-3 text-xs text-white hover:bg-blue-700">
+                    <Settings className="size-3.5" />
+                    Configurer
+                  </Button>
+                </Link>
+              ) : isEventReminderCampaign(automation) ? (
+                <Link href="/dashboard/event-reminders-auto">
                   <Button size="sm" className="h-8 rounded-full bg-blue-600 px-3 text-xs text-white hover:bg-blue-700">
                     <Settings className="size-3.5" />
                     Configurer
@@ -1506,6 +1519,8 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                         <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => triggerNow(automation.id)} loading={triggering === automation.id}><Play className="size-3" />Lancer maintenant</Button>
                         {automation.trigger === "WEEKLY_SHABBAT" ? (
                           <Link href="/dashboard/shabbat-times-auto"><Button size="sm" className="h-7 bg-blue-600 text-xs text-white hover:bg-blue-700"><Settings className="size-3" />Configurer</Button></Link>
+                        ) : isEventReminderCampaign(automation) ? (
+                          <Link href="/dashboard/event-reminders-auto"><Button size="sm" className="h-7 bg-blue-600 text-xs text-white hover:bg-blue-700"><Settings className="size-3" />Configurer</Button></Link>
                         ) : (
                           <Button size="sm" className="h-7 bg-blue-600 text-xs text-white hover:bg-blue-700" onClick={() => openEditForm(automation)}><Settings className="size-3" />Configurer</Button>
                         )}

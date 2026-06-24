@@ -143,12 +143,19 @@ export async function PATCH(
   if (body.eventId !== undefined) updateData.eventId = typeof body.eventId === "string" && body.eventId ? body.eventId : null;
   if (body.triggerConfig !== undefined && typeof body.triggerConfig === "object") {
     const incoming = body.triggerConfig as Record<string, unknown>;
+    const existingConfig = (automation.triggerConfig ?? {}) as Record<string, unknown>;
     // Preserve shabbatPoster for WEEKLY_SHABBAT — the generic form must not overwrite it
     if (automation.trigger === "WEEKLY_SHABBAT") {
-      const existingConfig = (automation.triggerConfig ?? {}) as Record<string, unknown>;
       updateData.triggerConfig = {
         ...incoming,
         shabbatPoster: existingConfig.shabbatPoster ?? incoming.shabbatPoster,
+      };
+    } else if (existingConfig.eventReminderCampaign) {
+      // Campagne J-10/J-5 : le formulaire générique ne doit jamais écraser
+      // la configuration dédiée gérée par /dashboard/event-reminders-auto.
+      updateData.triggerConfig = {
+        ...incoming,
+        eventReminderCampaign: existingConfig.eventReminderCampaign,
       };
     } else {
       updateData.triggerConfig = incoming;

@@ -3,6 +3,14 @@ import { generateContent } from "@/lib/ai/engine";
 import { createPublicationsFromDraft, publishToAllChannels, publishToChannel } from "@/lib/publishing/publisher";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import { getShabbatTimes, getNextHoliday } from "./hebcal";
+import {
+  getCampaignFromTriggerConfig,
+  getDueReminder,
+  getNextPendingReminder,
+  reminderLabel,
+  type EventReminder,
+  type EventReminderCampaign,
+} from "./event-reminders";
 import { notifyUser } from "@/lib/notifications/notify";
 import { addDays, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 import type { Tables, Enums } from "@/types/database.types";
@@ -260,6 +268,10 @@ function hasSocialNotificationChannel(action: AutomationAction | undefined) {
 }
 
 async function prepareAutomationNotification(automation: AutomationWithCommunity, now: Date): Promise<void> {
+  // Les campagnes J-10/J-5 gèrent elles-mêmes la validation au moment du
+  // déclenchement de chaque rappel (cf. executeEventReminderCampaign).
+  if (getCampaignFromTriggerConfig(automation.triggerConfig)) return;
+
   const leadHours = getNotificationLeadHours(automation);
   if (leadHours === 0) return; // 0h = pas de pré-notification, exécution directe à l'heure exacte
 
@@ -487,6 +499,9 @@ async function shouldTrigger(automation: Automation, now: Date): Promise<boolean
     }
 
     case "CUSTOM_SCHEDULE": {
+      // Campagne J-10/J-5 : on déclenche dès que nextRunAt (= prochain rappel) est atteint.
+      if (getCampaignFromTriggerConfig(config)) return hasPreciseNextRun ? now >= nextRunAt : false;
+
       const repeat = String(config.repeat ?? "none");
       if (repeat === "none" && hasPreciseNextRun) return now >= nextRunAt;
 
@@ -545,10 +560,151 @@ async function shouldTrigger(automation: Automation, now: Date): Promise<boolean
   }
 }
 
+/**
+ * Déclenche le prochain rappel dû d'une campagne J-10/J-5 : génère le contenu,
+ * publie ou demande validation selon scheduleMode, met à jour le statut du
+ * rappel et recalcule l'état de la campagne dans triggerConfig.
+ */
+async function executeEventReminderCampaign(
+  automation: AutomationWithCommunity,
+  campaign: EventReminderCampaign,
+  now: Date
+): Promise<void> {
+  const supabase = createAdminClient();
+  const timezone = automation.community.timezone || "Europe/Paris";
+
+  // En cron : le rappel dû. En manuel ("Publier maintenant") : le prochain en attente.
+  const due =
+    getDueReminder(campaign, now, timezone) ?? getNextPendingReminder(campaign, timezone)?.reminder ?? null;
+  if (!due) return;
+
+  const requiresValidation = campaign.scheduleMode !== "direct";
+  const labelText = due.label || reminderLabel(due.offsetDays, due.exactDate);
+  const imageUrl = due.visualUrl ?? campaign.mainVisualUrl ?? null;
+
+  const generated = await generateContent({
+    communityId: automation.community.id,
+    contentType: "EVENT_REMINDER" as never,
+    eventId: campaign.eventId ?? undefined,
+  });
+
+  const { data: draft } = await supabase
+    .from("ContentDraft")
+    .insert({
+      id: crypto.randomUUID(),
+      communityId: automation.community.id,
+      eventId: campaign.eventId ?? null,
+      body: generated.body,
+      bodyHebrew: generated.bodyHebrew ?? null,
+      hashtags: generated.hashtags,
+      cta: generated.cta ?? null,
+      imageUrl,
+      contentType: "EVENT_REMINDER" as never,
+      status: requiresValidation ? "AI_PROPOSAL" : "READY_TO_PUBLISH",
+      aiGenerated: true,
+      aiModel: "gemini-2.5-flash",
+      updatedAt: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  const { data: notifyUsers } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("communityId", automation.community.id)
+    .in("role", ["SUPER_ADMIN", "ADMIN"]);
+
+  let newStatus: EventReminder["status"] = requiresValidation ? "PENDING_VALIDATION" : "PUBLISHED";
+
+  if (draft) {
+    if (due.channels.includes("EMAIL")) {
+      await sendAutomationEmail({
+        automation,
+        subject: `${campaign.eventName} — ${labelText} — ${automation.community.name}`,
+        body: generated.body,
+        imageUrl,
+      }).catch((err) => console.error("[Campaign] Erreur email:", err));
+    }
+
+    const socialChannels = due.channels.filter((c) => c !== "EMAIL");
+
+    if (!requiresValidation && socialChannels.length > 0) {
+      const { data: channels } = await supabase
+        .from("Channel")
+        .select("id")
+        .eq("communityId", automation.community.id)
+        .in("type", socialChannels as never[])
+        .eq("isActive", true);
+
+      if (channels && channels.length > 0) {
+        const channelIds = channels.map((c) => c.id);
+        await createPublicationsFromDraft({ draftId: draft.id, communityId: automation.community.id, channelIds });
+        await publishToAllChannels(draft.id, channelIds);
+      } else if (notifyUsers && notifyUsers.length > 0) {
+        newStatus = "ERROR";
+        await supabase.from("Notification").insert(
+          notifyUsers.map((user) => ({
+            id: crypto.randomUUID(),
+            userId: user.id,
+            communityId: automation.community.id,
+            type: "AI_CONTENT_READY" as const,
+            title: "Canaux non configurés",
+            body: `Le rappel "${labelText}" est prêt mais aucun canal actif (${socialChannels.join(", ")}) n'est trouvé. Configurez-les dans Paramètres > Canaux.`,
+            link: "/dashboard/settings/channels",
+            data: { draftId: draft.id },
+          }))
+        );
+      }
+    }
+
+    if (requiresValidation && notifyUsers && notifyUsers.length > 0) {
+      const notifTitle = `${labelText} : ${campaign.eventName}`;
+      const notifBody = `Votre rappel "${labelText}" est prêt. Ouvrez l'Assistant pour le valider et le publier.`;
+      const notifLink = `/dashboard/assistant?draftId=${draft.id}`;
+      await supabase.from("Notification").insert(
+        notifyUsers.map((user) => ({
+          id: crypto.randomUUID(),
+          userId: user.id,
+          communityId: automation.community.id,
+          type: "AI_CONTENT_READY" as const,
+          title: notifTitle,
+          body: notifBody,
+          link: notifLink,
+          data: { draftId: draft.id, automationId: automation.id, channelTypes: due.channels },
+        }))
+      );
+      await Promise.allSettled(
+        notifyUsers.map((user) => notifyUser(supabase, user.id, { title: notifTitle, body: notifBody, link: notifLink }))
+      );
+    }
+  }
+
+  const updatedReminders = campaign.reminders.map((r) =>
+    r.id === due.id ? { ...r, status: newStatus, publishedDraftId: draft?.id ?? null } : r
+  );
+  const updatedCampaign: EventReminderCampaign = { ...campaign, reminders: updatedReminders };
+  const config = (automation.triggerConfig ?? {}) as Record<string, unknown>;
+  const newTriggerConfig = { ...config, eventReminderCampaign: updatedCampaign };
+  // Mutation en mémoire pour que computeNextRunAt voie l'état à jour.
+  automation.triggerConfig = newTriggerConfig as never;
+  await supabase
+    .from("Automation")
+    .update({ triggerConfig: newTriggerConfig as never, updatedAt: new Date().toISOString() })
+    .eq("id", automation.id);
+}
+
 export async function executeAutomationActions(
   automation: AutomationWithCommunity
 ): Promise<void> {
   const supabase = createAdminClient();
+
+  // Campagne J-10/J-5 : logique dédiée (un rappel par déclenchement).
+  const campaign = getCampaignFromTriggerConfig(automation.triggerConfig);
+  if (campaign) {
+    await executeEventReminderCampaign(automation, campaign, new Date());
+    return;
+  }
+
   const actions = automation.actions as unknown as AutomationAction[];
   const triggerConfig = (automation.triggerConfig ?? {}) as Record<string, unknown>;
   const configuredChannels = actions
@@ -831,6 +987,13 @@ export async function executeAutomationActions(
 
 function computeNextRunAt(automation: Automation, now: Date): Date | null {
   const config = (automation.triggerConfig ?? {}) as Record<string, unknown>;
+
+  // Campagne J-10/J-5 : prochain rappel non encore publié (ou rien si terminé).
+  const campaign = getCampaignFromTriggerConfig(config);
+  if (campaign) {
+    return getNextPendingReminder(campaign)?.runAt ?? null;
+  }
+
   const nextRun = (() => {
     switch (automation.trigger as AutomationTrigger) {
       case "WEEKLY_SHABBAT": return addDays(now, 7);
