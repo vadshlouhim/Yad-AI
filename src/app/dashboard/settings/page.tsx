@@ -48,7 +48,7 @@ export default async function SettingsPage({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
       <section className="overflow-hidden rounded-[1.75rem] border border-emerald-200 bg-emerald-700 shadow-[0_20px_48px_rgba(6,95,70,0.16)]">
         <div className="bg-[linear-gradient(135deg,#047857,#059669,#10b981)] px-6 py-7 text-white sm:px-8">
           <div className="max-w-3xl">

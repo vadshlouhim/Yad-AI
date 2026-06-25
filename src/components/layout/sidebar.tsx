@@ -375,17 +375,17 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
                     >
                       <div className="overflow-hidden">
                         <div className="mt-3 space-y-1.5 rounded-[1.2rem] bg-slate-50/80 p-2">
-                          {category.section === "RESEAUX SOCIAUX" && (
+                          {category.section === "AGENDA ET QUOTIDIEN" && (
                             <Link
                               href={resolveHref(AUTOMATIONS_ITEM.href)}
                               className={cn(
-                                "flex min-w-0 items-center gap-2 rounded-[1.15rem] bg-blue-600 px-3 py-2.5 text-white shadow-[0_14px_26px_rgba(37,99,235,0.24)] ring-1 ring-blue-200/70 transition-all duration-200 hover:bg-blue-700",
-                                isActive(AUTOMATIONS_ITEM.href) && "bg-blue-700"
+                                "flex min-w-0 items-center gap-2 rounded-[1.15rem] bg-gradient-to-r from-violet-700 via-violet-600 to-indigo-600 px-3 py-2.5 text-white shadow-[0_14px_26px_rgba(124,58,237,0.28)] ring-1 ring-violet-300/60 transition-all duration-200 hover:opacity-90",
+                                isActive(AUTOMATIONS_ITEM.href) && "opacity-90"
                               )}
                             >
                               <Zap className="size-4 shrink-0 text-cyan-50" />
                               <span className="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight">
-                                Créer des automatisations
+                                Toutes les automatisations
                               </span>
                             </Link>
                           )}
@@ -569,16 +569,16 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
                 </button>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {cat.section === "RESEAUX SOCIAUX" && (
+                {cat.section === "AGENDA ET QUOTIDIEN" && (
                   <Link
                     href={resolveHref(AUTOMATIONS_ITEM.href)}
                     onClick={() => setFlyoutSection(null)}
-                    className="flex items-center gap-3 rounded-2xl bg-blue-600 p-3 text-white transition hover:bg-blue-700 sm:col-span-2"
+                    className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-violet-700 via-violet-600 to-indigo-600 p-3 text-white transition hover:opacity-90 sm:col-span-2"
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15">
                       <Zap className="size-[18px]" />
                     </span>
-                    <span className="text-sm font-semibold">Créer des automatisations</span>
+                    <span className="text-sm font-semibold">Toutes les automatisations</span>
                   </Link>
                 )}
                 {cat.items

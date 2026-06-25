@@ -7,6 +7,7 @@ import {
   CalendarDays,
   CalendarPlus,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   Clock,
   Loader2,
@@ -14,6 +15,7 @@ import {
   Send,
   Sparkles,
   Trash2,
+  X,
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -161,6 +163,7 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
   const [freeDate, setFreeDate] = useState("");
 
   const hasActiveCampaign = campaigns.some((c) => c.status === "ACTIVE");
+  const [showWelcome, setShowWelcome] = useState(campaigns.length === 0);
 
   // ── Construit une campagne via l'API generate-plan ──────────────────────
   async function startCampaign(params: {
@@ -373,15 +376,6 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
           </p>
         </div>
         <div className="flex flex-col items-start gap-2 sm:items-end">
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
-              hasActiveCampaign ? "bg-emerald-400/20 text-emerald-50" : "bg-white/15 text-white/80"
-            )}
-          >
-            <span className={cn("size-2 rounded-full", hasActiveCampaign ? "bg-emerald-300" : "bg-white/50")} />
-            {hasActiveCampaign ? "Campagne active" : "Aucune campagne active"}
-          </span>
           <Link href="/dashboard/events">
             <Button size="sm" variant="outline" className="h-9 rounded-xl border-white/30 bg-white/10 px-4 text-xs text-white hover:bg-white/20">
               <CalendarDays className="size-4" />
@@ -390,11 +384,64 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
           </Link>
         </div>
       </div>
+
+      {/* Statut — en bas à droite du bandeau (même design que les autres pages) */}
+      <div className="mt-6 flex justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+        >
+          <span className={cn("size-2.5 rounded-full", hasActiveCampaign ? "bg-emerald-400" : "bg-slate-300")} />
+          {hasActiveCampaign ? "Active" : "Désactivée"}
+          <ChevronDown className="size-4" />
+        </Button>
+      </div>
     </div>
   );
 
   return (
-    <div className="container mx-auto max-w-5xl space-y-6 py-6 px-4 sm:px-6">
+    <div className="container mx-auto max-w-6xl space-y-6 py-6 px-4 sm:px-6">
+      {showWelcome && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-[2rem] bg-white p-8 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+                <Sparkles className="size-7" />
+              </div>
+              <button type="button" onClick={() => setShowWelcome(false)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100">
+                <X className="size-5" />
+              </button>
+            </div>
+            <h2 className="mt-5 text-2xl font-bold leading-tight text-slate-950">Automatisation J-10 / J-5</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Préparez automatiquement une série de rappels avant chaque événement.
+            </p>
+            <div className="mt-6 space-y-4">
+              {[
+                { step: 1, title: "Choisissez l'événement", desc: "Sélectionnez un événement à venir ou ajoutez-en un nouveau.", color: "bg-violet-100 text-violet-700" },
+                { step: 2, title: "L'IA prépare les rappels", desc: "J-10, J-5, J-3, Demain et Jour J sont proposés automatiquement.", color: "bg-indigo-100 text-indigo-700" },
+                { step: 3, title: "Validez la campagne", desc: "Vérifiez les aperçus puis ajoutez les rappels à votre Agenda IA.", color: "bg-emerald-100 text-emerald-700" },
+              ].map(({ step, title, desc, color }) => (
+                <div key={step} className="flex items-start gap-4">
+                  <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-black", color)}>{step}</span>
+                  <div>
+                    <p className="font-bold text-slate-900">{title}</p>
+                    <p className="mt-0.5 text-sm text-slate-500">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 flex flex-col gap-3">
+              <Button type="button" size="xl" className="w-full bg-violet-700 hover:bg-violet-800" onClick={() => setShowWelcome(false)}>
+                <Sparkles className="size-5" />
+                Commencer maintenant
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {header}
 
       {error && (

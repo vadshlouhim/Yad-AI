@@ -30,7 +30,7 @@ const shopLinks = [
 
 export default function BoutiquePage() {
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
       <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(135deg,#78350f,#b45309,#f59e0b)] p-[1px] shadow-[0_24px_60px_rgba(146,64,14,0.14)]">
         <div className="rounded-[calc(2rem-1px)] bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.18),transparent_30%),linear-gradient(135deg,rgba(120,53,15,0.96),rgba(180,83,9,0.94),rgba(245,158,11,0.9))] px-6 py-8 text-white sm:px-8">
           <div className="max-w-3xl">

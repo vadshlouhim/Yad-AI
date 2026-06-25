@@ -227,6 +227,7 @@ export function JewishHolidaysAutoClient({
   const isPaid = community.plan !== "FREE_TRIAL";
   const isActive = automation?.isActive === true && automation.status === "ACTIVE";
   const configured = Boolean(savedConfig.configured || automation?.status === "ACTIVE");
+  const [showWelcome, setShowWelcome] = useState(!configured);
   const activeTemplates = selectedHoliday
     ? allTemplates.filter((template) => templateMatchesHoliday(template, selectedHoliday))
     : templates;
@@ -381,8 +382,8 @@ export function JewishHolidaysAutoClient({
 
   if (view === "models") {
     return (
-      <div className="mx-auto max-w-[1500px] space-y-6 pb-16">
-        <div className="rounded-[1.4rem] bg-gradient-to-br from-violet-950 via-purple-900 to-indigo-950 p-5 text-white shadow-[0_22px_52px_rgba(76,29,149,0.26)]">
+      <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+        <div className="rounded-[1.4rem] bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-600 p-5 text-white shadow-[0_22px_52px_rgba(76,29,149,0.26)]">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-4">
               <Button type="button" variant="ghost" size="icon" className="border border-white/20 text-white hover:bg-white/10" onClick={() => setView("overview")}>
@@ -449,8 +450,8 @@ export function JewishHolidaysAutoClient({
 
   if (view === "customize") {
     return (
-      <div className="space-y-5">
-        <div className="rounded-[1.4rem] bg-gradient-to-br from-violet-950 via-purple-900 to-indigo-950 p-5 text-white shadow-[0_22px_52px_rgba(76,29,149,0.26)]">
+      <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+        <div className="rounded-[1.4rem] bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-600 p-5 text-white shadow-[0_22px_52px_rgba(76,29,149,0.26)]">
           <div className="mb-6 h-1.5 w-10 rounded-full bg-violet-200" />
           <h1 className="text-3xl font-bold tracking-tight">Personnalisez et activez</h1>
           <div className="mt-6 grid gap-4 text-sm sm:grid-cols-3">
@@ -640,8 +641,51 @@ export function JewishHolidaysAutoClient({
   }
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-[1.4rem] bg-gradient-to-br from-violet-950 via-purple-900 to-indigo-950 p-6 text-white shadow-[0_22px_52px_rgba(76,29,149,0.26)]">
+    <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+      {showWelcome && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-[2rem] bg-white p-8 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+                <Sparkles className="size-7" />
+              </div>
+              <button type="button" onClick={() => setShowWelcome(false)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100">
+                <X className="size-5" />
+              </button>
+            </div>
+            <h2 className="mt-5 text-2xl font-bold leading-tight text-slate-950">Fetes juives et Hassidiques</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Préparez automatiquement vos affiches et messages avant chaque fete juive.
+            </p>
+            <div className="mt-6 space-y-4">
+              {[
+                { step: 1, title: "Choisissez votre delai", desc: "Definissez combien de jours avant chaque fete vous etes notifie.", color: "bg-violet-100 text-violet-700" },
+                { step: 2, title: "Preparez votre affiche", desc: "Choisissez un modele lie a la fete ou creez une nouvelle affiche.", color: "bg-indigo-100 text-indigo-700" },
+                { step: 3, title: "Validez et publiez", desc: "Verifiez le contenu puis publiez sur vos reseaux connectes.", color: "bg-emerald-100 text-emerald-700" },
+              ].map(({ step, title, desc, color }) => (
+                <div key={step} className="flex items-start gap-4">
+                  <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-black", color)}>{step}</span>
+                  <div>
+                    <p className="font-bold text-slate-900">{title}</p>
+                    <p className="mt-0.5 text-sm text-slate-500">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 flex flex-col gap-3">
+              <Button type="button" size="xl" className="w-full bg-violet-700 hover:bg-violet-800" disabled={!nextHoliday} onClick={() => { setShowWelcome(false); setView("models"); }}>
+                <Sparkles className="size-5" />
+                Commencer maintenant
+              </Button>
+              <Button type="button" variant="outline" className="w-full" onClick={() => setShowWelcome(false)}>
+                Découvrir d&apos;abord
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-[1.4rem] bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-600 p-6 text-white shadow-[0_22px_52px_rgba(76,29,149,0.26)]">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="mb-6 h-1.5 w-12 rounded-full bg-violet-200" />
@@ -649,31 +693,35 @@ export function JewishHolidaysAutoClient({
             <p className="mt-2 text-violet-100">Calendrier utilise : {community.country ?? "Pays non renseigne"}</p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <div className="relative">
-              <Button type="button" variant="outline" className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white" onClick={() => setStatusOpen((open) => !open)}>
-                <span className={cn("size-2.5 rounded-full", isActive ? "bg-emerald-400" : "bg-slate-300")} />
-                {isActive ? "Active" : "Desactivee"}
-                <ChevronDown className="size-4" />
-              </Button>
-              {statusOpen && (
-                <div className="absolute right-0 z-20 mt-2 w-52 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-700 shadow-lg">
-                  <button type="button" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-slate-50" onClick={() => void resume()}>
-                    <span className="size-2.5 rounded-full bg-emerald-500" />
-                    Active
-                  </button>
-                  <button type="button" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-slate-50" onClick={() => void pause()}>
-                    <span className="size-2.5 rounded-full bg-slate-300" />
-                    Desactivee
-                  </button>
-                </div>
-              )}
-            </div>
             <Button asChild variant="outline" className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white">
               <Link href="/dashboard/events">
                 <CalendarDays className="size-4" />
                 Toutes mes automatisations programmees
               </Link>
             </Button>
+          </div>
+        </div>
+
+        {/* Activer / Désactiver — en bas à droite du bandeau */}
+        <div className="mt-6 flex justify-end">
+          <div className="relative">
+            <Button type="button" variant="outline" className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white" onClick={() => setStatusOpen((open) => !open)}>
+              <span className={cn("size-2.5 rounded-full", isActive ? "bg-emerald-400" : "bg-slate-300")} />
+              {isActive ? "Active" : "Desactivee"}
+              <ChevronDown className="size-4" />
+            </Button>
+            {statusOpen && (
+              <div className="absolute bottom-full right-0 z-20 mb-2 w-48 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-700 shadow-lg">
+                <button type="button" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-slate-50" onClick={() => void resume()}>
+                  <span className="size-2.5 rounded-full bg-emerald-500" />
+                  Active
+                </button>
+                <button type="button" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-slate-50" onClick={() => void pause()}>
+                  <span className="size-2.5 rounded-full bg-slate-300" />
+                  Desactivee
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

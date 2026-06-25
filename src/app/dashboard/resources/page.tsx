@@ -26,7 +26,7 @@ const resourceCards = [
 
 export default function ResourcesPage() {
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
       <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(135deg,#0f172a,#1e3a8a,#2563eb)] p-[1px] shadow-[0_24px_60px_rgba(15,23,42,0.12)]">
         <div className="rounded-[calc(2rem-1px)] bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.16),transparent_28%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(30,41,59,0.94),rgba(37,99,235,0.9))] px-6 py-7 text-white sm:px-8">
           <div className="max-w-3xl">

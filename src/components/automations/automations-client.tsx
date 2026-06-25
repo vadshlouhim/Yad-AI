@@ -289,8 +289,8 @@ const PREDEFINED_AUTOMATIONS: PredefinedAutomationCard[] = [
 ];
 
 const RUN_STATUS_ICON: Record<string, React.ReactNode> = {
-  RUNNING: <RefreshCw className="size-3.5 text-blue-600 animate-spin" />,
-  SUCCESS: <CheckCircle className="size-3.5 text-blue-600" />,
+  RUNNING: <RefreshCw className="size-3.5 text-violet-600 animate-spin" />,
+  SUCCESS: <CheckCircle className="size-3.5 text-violet-600" />,
   PARTIAL_SUCCESS: <AlertCircle className="size-3.5 text-amber-600" />,
   FAILED: <XCircle className="size-3.5 text-red-600" />,
   SKIPPED: <Clock className="size-3.5 text-slate-400" />,
@@ -481,6 +481,12 @@ function formatDayAndTime(day: string | undefined, time: string) {
 function isEventReminderCampaign(automation: Automation) {
   const cfg = automation.triggerConfig;
   return Boolean(cfg && typeof cfg === "object" && (cfg as Record<string, unknown>).eventReminderCampaign);
+}
+
+// Une automatisation porte-t-elle un récap automatique après événement ?
+function isEventRecap(automation: Automation) {
+  const cfg = automation.triggerConfig;
+  return Boolean(cfg && typeof cfg === "object" && (cfg as Record<string, unknown>).eventRecapSettings);
 }
 
 function getCardScheduleLabel(card: PredefinedAutomationCard) {
@@ -961,7 +967,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
       <Card
         key={automation.id}
         className={cn(
-          "relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm transition-shadow hover:shadow-md hover:shadow-blue-100/50",
+          "relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm transition-shadow hover:shadow-md hover:shadow-violet-100/50",
           !automation.isActive && "opacity-60"
         )}
       >
@@ -981,14 +987,21 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
             <div className="mt-4 flex flex-wrap items-center gap-2">
               {automation.trigger === "WEEKLY_SHABBAT" ? (
                 <Link href="/dashboard/shabbat-times-auto">
-                  <Button size="sm" className="h-8 rounded-full bg-blue-600 px-3 text-xs text-white hover:bg-blue-700">
+                  <Button size="sm" className="h-8 rounded-full bg-violet-600 px-3 text-xs text-white hover:bg-violet-700">
                     <Settings className="size-3.5" />
                     Configurer
                   </Button>
                 </Link>
               ) : isEventReminderCampaign(automation) ? (
                 <Link href="/dashboard/event-reminders-auto">
-                  <Button size="sm" className="h-8 rounded-full bg-blue-600 px-3 text-xs text-white hover:bg-blue-700">
+                  <Button size="sm" className="h-8 rounded-full bg-violet-600 px-3 text-xs text-white hover:bg-violet-700">
+                    <Settings className="size-3.5" />
+                    Configurer
+                  </Button>
+                </Link>
+              ) : isEventRecap(automation) ? (
+                <Link href="/dashboard/event-recap-auto">
+                  <Button size="sm" className="h-8 rounded-full bg-violet-600 px-3 text-xs text-white hover:bg-violet-700">
                     <Settings className="size-3.5" />
                     Configurer
                   </Button>
@@ -996,7 +1009,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
               ) : (
                 <Button
                   size="sm"
-                  className="h-8 rounded-full bg-blue-600 px-3 text-xs text-white hover:bg-blue-700"
+                  className="h-8 rounded-full bg-violet-600 px-3 text-xs text-white hover:bg-violet-700"
                   onClick={() => openEditForm(automation)}
                 >
                   <Settings className="size-3.5" />
@@ -1034,7 +1047,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
       <Card
         key={card.key}
         className={cn(
-          "relative min-h-40 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-md hover:shadow-cyan-100/50",
+          "relative min-h-40 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md hover:shadow-violet-100/50",
           alreadyActive && "bg-slate-50/80"
         )}
       >
@@ -1051,7 +1064,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
           <div className="flex items-start gap-3 pr-7">
             <span className={cn(
               "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-sm font-black",
-              ["border-cyan-100 bg-cyan-50 text-cyan-700", "border-slate-200 bg-slate-50 text-slate-700", "border-emerald-100 bg-emerald-50 text-emerald-700"][index % 3]
+              ["border-violet-100 bg-violet-50 text-violet-700", "border-slate-200 bg-slate-50 text-slate-700", "border-emerald-100 bg-emerald-50 text-emerald-700"][index % 3]
             )}>
               {card.emoji}
             </span>
@@ -1074,7 +1087,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
               size="sm"
               disabled={alreadyActive || saving}
               onClick={() => openAssistantForPublication(card)}
-              className="h-8 rounded-full bg-slate-950 px-3 text-xs text-white hover:bg-cyan-800 disabled:bg-slate-300"
+              className="h-8 rounded-full bg-slate-950 px-3 text-xs text-white hover:bg-violet-800 disabled:bg-slate-300"
             >
               <Zap className="size-3.5" />
               {alreadyActive ? "Active" : "Activer"}
@@ -1095,7 +1108,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
       <div className="space-y-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-xl font-black text-slate-800">{params.title}</h2>
-          <Badge variant="info" className="w-fit border border-blue-100 bg-blue-50 text-blue-700">
+          <Badge variant="info" className="w-fit border border-violet-100 bg-violet-50 text-violet-700">
             {activeCount} active{activeCount > 1 ? "s" : ""}
           </Badge>
         </div>
@@ -1137,10 +1150,10 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
       />
       {!embedded && (
         <div className="space-y-4">
-          <div className="overflow-hidden rounded-3xl border border-cyan-800/60 bg-gradient-to-br from-[#081f36] via-[#0d304f] to-[#08192d] p-6 shadow-lg shadow-slate-950/35">
-            <div className="mb-3 h-1.5 w-10 rounded-full bg-cyan-300" />
-            <h1 className="mt-2 text-3xl font-black tracking-tight text-white">Publications Automatisées IA</h1>
-            <div className="mt-5 rounded-2xl border border-cyan-200/30 bg-white/10 p-4 text-sm leading-6 text-cyan-50 shadow-inner shadow-cyan-950/20">
+          <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-600 p-6 shadow-lg shadow-violet-900/20">
+            <div className="mb-3 h-1.5 w-10 rounded-full bg-violet-200" />
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-white">Toutes les automatisations</h1>
+            <div className="mt-5 rounded-2xl border border-white/20 bg-white/10 p-4 text-sm leading-6 text-violet-50 shadow-inner shadow-violet-950/20">
               Programmez vos automatisations réseaux sociaux pour communiquer au bon moment et rester actif sur toutes vos plateformes. Elles seront ajoutées à votre Agenda IA.
             </div>
           </div>
@@ -1149,12 +1162,12 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
       )}
 
       {!embedded && (
-        <section className="space-y-6 rounded-2xl border border-blue-100 bg-white p-5 shadow-sm shadow-blue-100/30">
+        <section className="space-y-6 rounded-2xl border border-violet-100 bg-white p-5 shadow-sm shadow-violet-100/30">
           {profilePresetCards.length > 0 && renderSuggestedSection({
             title: (
               <>
                 Publications automatiques IA proposées pour les{" "}
-                <span className="text-[1.18em] font-black text-sky-500">{profileLabel}</span>
+                <span className="text-[1.18em] font-black text-violet-500">{profileLabel}</span>
               </>
             ),
             cards: visibleProfilePresetCards,
@@ -1170,7 +1183,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
           <div className="mt-5 flex flex-col items-center gap-2 border-t border-slate-100 pt-5 text-center">
             <Button
               onClick={openCreateForm}
-              className="rounded-full bg-blue-600 px-5 text-white shadow-sm shadow-blue-200 hover:bg-blue-700"
+              className="rounded-full bg-violet-600 px-5 text-white shadow-sm shadow-violet-200 hover:bg-violet-700"
             >
               <Plus className="size-4" />
               Créer une nouvelle automatisation de publication
@@ -1183,10 +1196,10 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
       )}
 
       {!embedded && (
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-blue-100/30">
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-violet-100/30">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="mb-3 h-1 w-8 rounded-full bg-blue-500" />
+              <div className="mb-3 h-1 w-8 rounded-full bg-violet-500" />
               <h2 className="text-lg font-black text-slate-900">Automatisations actives</h2>
               <p className="mt-1 text-sm text-slate-500">Gérez les publications automatisées déjà créées.</p>
             </div>
@@ -1213,11 +1226,11 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
       )}
 
       {!embedded && (
-        <section className="rounded-3xl border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-blue-50 p-5 text-center shadow-sm shadow-cyan-100/40">
-          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-cyan-400" />
+        <section className="rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-violet-50 p-5 text-center shadow-sm shadow-violet-100/40">
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-violet-400" />
           <p className="text-sm font-semibold text-slate-700">Retrouvez vos automatisations créées dans votre Agenda IA.</p>
           <Link href="/dashboard/events" className="mt-4 inline-flex">
-            <Button className="rounded-full bg-cyan-700 px-5 text-white hover:bg-cyan-800">
+            <Button className="rounded-full bg-violet-700 px-5 text-white hover:bg-violet-800">
               <Calendar className="size-4" />
               Voir mon Agenda IA
             </Button>
@@ -1227,15 +1240,15 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
 
       {formOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
-          <Card className="max-h-[90vh] w-full max-w-3xl overflow-hidden border-cyan-100 bg-white shadow-2xl shadow-slate-950/20">
-            <CardHeader className="bg-[linear-gradient(135deg,#0f172a,#164e63,#0e7490)] px-5 py-5 text-white">
+          <Card className="max-h-[90vh] w-full max-w-3xl overflow-hidden border-violet-100 bg-white shadow-2xl shadow-slate-950/20">
+            <CardHeader className="bg-[linear-gradient(135deg,#4c1d95,#6d28d9,#4f46e5)] px-5 py-5 text-white">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <CardTitle className="flex items-center gap-2 text-xl font-black">
-                    <Calendar className="size-5 text-cyan-200" />
+                    <Calendar className="size-5 text-violet-200" />
                     Nouvelle automatisation
                   </CardTitle>
-                  <p className="mt-1 text-sm leading-6 text-cyan-50">
+                  <p className="mt-1 text-sm leading-6 text-violet-50">
                     Créez une automatisation réseaux sociaux ! Elle apparaîtra aussi dans votre Agenda IA.
                   </p>
                 </div>
@@ -1248,34 +1261,34 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
               {feedback && (
                 <div className={cn(
                   "lg:col-span-2 rounded-xl border px-3 py-2 text-sm",
-                  feedback.type === "success" ? "border-blue-200 bg-blue-50 text-blue-700" : "border-red-200 bg-red-50 text-red-700"
+                  feedback.type === "success" ? "border-violet-200 bg-violet-50 text-violet-700" : "border-red-200 bg-red-50 text-red-700"
                 )}>
                   {feedback.text}
                 </div>
               )}
               <label className="space-y-1.5 text-sm font-medium text-slate-700">
                 Nom de l&apos;automatisation
-                <input value={form.name} onChange={(event) => updateForm({ name: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100" />
+                <input value={form.name} onChange={(event) => updateForm({ name: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100" />
               </label>
               <label className="space-y-1.5 text-sm font-medium text-slate-700">
                 Date
-                <input type="date" value={form.date} onChange={(event) => updateForm({ date: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100" />
+                <input type="date" value={form.date} onChange={(event) => updateForm({ date: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100" />
               </label>
               <label className="space-y-1.5 text-sm font-medium text-slate-700">
                 Heure de publication
-                <input type="time" value={form.time} onChange={(event) => updateForm({ time: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100" />
+                <input type="time" value={form.time} onChange={(event) => updateForm({ time: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100" />
               </label>
               <label className="space-y-1.5 text-sm font-medium text-slate-700">
                 Répétition
-                <select value={form.repeat} onChange={(event) => updateRepeat(event.target.value as AutomationFormState["repeat"])} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100">
+                <select value={form.repeat} onChange={(event) => updateRepeat(event.target.value as AutomationFormState["repeat"])} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100">
                   {REPEAT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
               </label>
               <label className="space-y-1.5 text-sm font-medium text-slate-700">
                 Notification avant publication (en heures)
-                <input type="number" min="0" max="30" value={form.daysBefore} onChange={(event) => updateForm({ daysBefore: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100" />
+                <input type="number" min="0" max="30" value={form.daysBefore} onChange={(event) => updateForm({ daysBefore: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100" />
                 <span className="block text-xs font-normal text-slate-500">Vous recevrez une notification {form.daysBefore || 2} heures avant la publication.</span>
-                <Link href="/dashboard/settings?section=editorial" className="block text-xs font-semibold text-cyan-700 hover:text-cyan-900">
+                <Link href="/dashboard/settings?section=editorial" className="block text-xs font-semibold text-violet-700 hover:text-violet-900">
                   Modifier ce délai dans mes paramètres
                 </Link>
               </label>
@@ -1288,7 +1301,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                         key={option.value}
                         type="button"
                         onClick={() => toggleCustomDay(option.value)}
-                        className={cn("rounded-full border px-3 py-1.5 text-xs font-semibold transition", form.customDays.includes(option.value) ? "border-cyan-200 bg-cyan-50 text-cyan-800" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50")}
+                        className={cn("rounded-full border px-3 py-1.5 text-xs font-semibold transition", form.customDays.includes(option.value) ? "border-violet-200 bg-violet-50 text-violet-800" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50")}
                       >
                         {option.label}
                       </button>
@@ -1303,7 +1316,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                   onChange={(event) => updateForm({ message: event.target.value })}
                   rows={3}
                   placeholder="Ajoutez une précision pour l'Assistant IA..."
-                  className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                  className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                 />
               </label>
               <div className="space-y-2 lg:col-span-2">
@@ -1323,7 +1336,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                       className={cn(
                         "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition hover:scale-[1.02]",
                         form.channels.includes(item.channel)
-                          ? "border-cyan-200 bg-cyan-50 text-cyan-800 ring-2 ring-cyan-100"
+                          ? "border-violet-200 bg-violet-50 text-violet-800 ring-2 ring-violet-100"
                           : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                       )}
                     >
@@ -1355,7 +1368,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                       className={cn(
                         "rounded-xl border p-3 text-left transition",
                         form.requiresValidation === option.value
-                          ? "border-cyan-300 bg-cyan-50 text-cyan-900 ring-2 ring-cyan-100"
+                          ? "border-violet-300 bg-violet-50 text-violet-900 ring-2 ring-violet-100"
                           : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                       )}
                     >
@@ -1367,7 +1380,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
               </div>
               <div className="flex flex-wrap items-center justify-end gap-2 lg:col-span-2">
                 <Button type="button" variant="outline" className="ml-auto border-slate-200" onClick={() => setFormOpen(false)}>Annuler</Button>
-                <Button type="button" onClick={saveAutomation} loading={saving} className="bg-cyan-700 hover:bg-cyan-800"><Save className="size-4" />Enregistrer l&apos;automatisation</Button>
+                <Button type="button" onClick={saveAutomation} loading={saving} className="bg-violet-700 hover:bg-violet-800"><Save className="size-4" />Enregistrer l&apos;automatisation</Button>
               </div>
             </CardContent>
           </Card>
@@ -1376,12 +1389,12 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
 
       {assistantCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
-          <Card className="w-full max-w-lg overflow-hidden border-cyan-100 bg-white shadow-2xl shadow-slate-950/20">
+          <Card className="w-full max-w-lg overflow-hidden border-violet-100 bg-white shadow-2xl shadow-slate-950/20">
             <CardHeader className="border-b border-slate-100 bg-slate-950 px-5 py-4 text-white">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <CardTitle className="flex items-center gap-2 text-xl font-black">
-                    <Zap className="size-5 text-cyan-200" />
+                    <Zap className="size-5 text-violet-200" />
                     Assistant IA
                   </CardTitle>
                   <p className="mt-1 text-sm text-slate-300">{assistantCard.label}</p>
@@ -1400,7 +1413,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                       "max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm",
                       message.role === "assistant"
                         ? "mr-auto border border-slate-200 bg-white text-slate-700"
-                        : "ml-auto bg-cyan-700 text-white"
+                        : "ml-auto bg-violet-700 text-white"
                     )}
                   >
                     {message.text}
@@ -1420,7 +1433,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                     Fermer
                   </Button>
                   <Link href="/dashboard/events">
-                    <Button className="rounded-full bg-cyan-700 text-white hover:bg-cyan-800">
+                    <Button className="rounded-full bg-violet-700 text-white hover:bg-violet-800">
                       <Calendar className="size-4" />
                       Voir dans mon Agenda connecté IA
                     </Button>
@@ -1439,13 +1452,13 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                         }
                       }}
                       placeholder="Répondez oui, ou précisez un détail..."
-                      className="min-w-0 flex-1 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                      className="min-w-0 flex-1 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                     />
                     <Button
                       type="button"
                       onClick={() => void submitAssistantInput()}
                       disabled={assistantStatus === "creating"}
-                      className="rounded-full bg-cyan-700 px-4 text-white hover:bg-cyan-800"
+                      className="rounded-full bg-violet-700 px-4 text-white hover:bg-violet-800"
                     >
                       Envoyer
                     </Button>
@@ -1458,7 +1471,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                       type="button"
                       onClick={() => void confirmAssistantAutomation()}
                       loading={assistantStatus === "creating"}
-                      className="rounded-full bg-slate-950 text-white hover:bg-cyan-800"
+                      className="rounded-full bg-slate-950 text-white hover:bg-violet-800"
                     >
                       Oui, ajoute-la
                     </Button>
@@ -1471,13 +1484,13 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
       )}
 
       {embedded && (
-        <div className="rounded-3xl border border-blue-100/80 bg-gradient-to-br from-white via-blue-50/80 to-slate-100 p-5 shadow-sm shadow-blue-100/40">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Automatisations</p>
+        <div className="rounded-3xl border border-violet-100/80 bg-gradient-to-br from-white via-violet-50/80 to-slate-100 p-5 shadow-sm shadow-violet-100/40">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-600">Automatisations</p>
           <h2 className="mt-2 text-2xl font-bold text-slate-900">Programmations automatiques</h2>
           <p className="mt-1 text-slate-500">{activeCount} automatisation{activeCount !== 1 ? "s" : ""} active{activeCount !== 1 ? "s" : ""}</p>
           <div className="mt-4 grid gap-2">
-            <Button size="sm" onClick={openCreateForm} className="justify-start bg-blue-600 hover:bg-blue-700"><Plus className="size-4" />Créer une nouvelle automatisation</Button>
-            <Button size="sm" variant="outline" className="justify-start border-blue-200 text-blue-700 hover:bg-blue-50" onClick={() => createPreset("WEEKLY_SHABBAT")} loading={saving}><Zap className="size-4" />Créer Chabbat automatiquement</Button>
+            <Button size="sm" onClick={openCreateForm} className="justify-start bg-violet-600 hover:bg-violet-700"><Plus className="size-4" />Créer une nouvelle automatisation</Button>
+            <Button size="sm" variant="outline" className="justify-start border-violet-200 text-violet-700 hover:bg-violet-50" onClick={() => createPreset("WEEKLY_SHABBAT")} loading={saving}><Zap className="size-4" />Créer Chabbat automatiquement</Button>
           </div>
         </div>
       )}
@@ -1490,26 +1503,26 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
               <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
                 <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center"><Zap className="size-7 text-slate-400" /></div>
                 <div><p className="font-semibold text-slate-700">Aucune automatisation</p><p className="text-sm text-slate-400 mt-1">Créez des automatisations pour publier du contenu automatiquement.</p></div>
-                <Button size="sm" onClick={openCreateForm} className="bg-blue-600 hover:bg-blue-700"><Plus className="size-4" />Créer une nouvelle automatisation</Button>
+                <Button size="sm" onClick={openCreateForm} className="bg-violet-600 hover:bg-violet-700"><Plus className="size-4" />Créer une nouvelle automatisation</Button>
               </CardContent>
             </Card>
           ) : visibleAutomations.map((automation) => {
             const lastRun = automation.runs[0];
             const generateAction = getGenerateAction(automation);
             return (
-              <Card key={automation.id} className={cn("border border-slate-200/90 bg-white/95 transition-shadow hover:shadow-sm hover:shadow-blue-100/50", !automation.isActive && "opacity-60")}>
+              <Card key={automation.id} className={cn("border border-slate-200/90 bg-white/95 transition-shadow hover:shadow-sm hover:shadow-violet-100/50", !automation.isActive && "opacity-60")}>
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
-                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl", automation.isActive ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500")}>{TRIGGER_LABELS[automation.trigger]?.split(" ")[0] ?? "âš¡"}</div>
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl", automation.isActive ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-500")}>{TRIGGER_LABELS[automation.trigger]?.split(" ")[0] ?? "âš¡"}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div><p className="font-semibold text-slate-800">{automation.name}</p>{automation.description && <p className="text-xs text-slate-500 mt-0.5">{automation.description}</p>}</div>
                         <Badge variant={automation.isActive ? "published" : "draft"} className="text-[11px]">{automation.isActive ? "Actif" : "Pausé"}</Badge>
                       </div>
                       <div className="flex flex-wrap items-center gap-3 mt-2">
-                        <span className="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">{TRIGGER_LABELS[automation.trigger]?.slice(2) ?? automation.trigger}</span>
-                        {generateAction?.contentType && <span className="text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">{generateAction.contentType}</span>}
-                        {automation.event && <span className="text-xs text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full flex items-center gap-1"><Calendar className="size-3" />{automation.event.title}</span>}
+                        <span className="text-xs text-violet-700 bg-violet-50 px-2 py-0.5 rounded-full">{TRIGGER_LABELS[automation.trigger]?.slice(2) ?? automation.trigger}</span>
+                        {generateAction?.contentType && <span className="text-xs text-violet-700 bg-violet-50 px-2 py-0.5 rounded-full">{generateAction.contentType}</span>}
+                        {automation.event && <span className="text-xs text-violet-700 bg-violet-50 px-2 py-0.5 rounded-full flex items-center gap-1"><Calendar className="size-3" />{automation.event.title}</span>}
                         {automation.nextRunAt && <span className="text-xs text-slate-500">Prochaine : {formatRelative(automation.nextRunAt)}</span>}
                         {automation.lastRunAt && <span className="text-xs text-slate-400">Dernière : {formatRelative(automation.lastRunAt)}</span>}
                       </div>
@@ -1518,11 +1531,13 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                         <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => toggleAutomation(automation.id, automation.isActive)} loading={toggling === automation.id}>{automation.isActive ? <><Pause className="size-3" /> Mettre en pause</> : <><Play className="size-3" /> Activer</>}</Button>
                         <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => triggerNow(automation.id)} loading={triggering === automation.id}><Play className="size-3" />Lancer maintenant</Button>
                         {automation.trigger === "WEEKLY_SHABBAT" ? (
-                          <Link href="/dashboard/shabbat-times-auto"><Button size="sm" className="h-7 bg-blue-600 text-xs text-white hover:bg-blue-700"><Settings className="size-3" />Configurer</Button></Link>
+                          <Link href="/dashboard/shabbat-times-auto"><Button size="sm" className="h-7 bg-violet-600 text-xs text-white hover:bg-violet-700"><Settings className="size-3" />Configurer</Button></Link>
                         ) : isEventReminderCampaign(automation) ? (
-                          <Link href="/dashboard/event-reminders-auto"><Button size="sm" className="h-7 bg-blue-600 text-xs text-white hover:bg-blue-700"><Settings className="size-3" />Configurer</Button></Link>
+                          <Link href="/dashboard/event-reminders-auto"><Button size="sm" className="h-7 bg-violet-600 text-xs text-white hover:bg-violet-700"><Settings className="size-3" />Configurer</Button></Link>
+                        ) : isEventRecap(automation) ? (
+                          <Link href="/dashboard/event-recap-auto"><Button size="sm" className="h-7 bg-violet-600 text-xs text-white hover:bg-violet-700"><Settings className="size-3" />Configurer</Button></Link>
                         ) : (
-                          <Button size="sm" className="h-7 bg-blue-600 text-xs text-white hover:bg-blue-700" onClick={() => openEditForm(automation)}><Settings className="size-3" />Configurer</Button>
+                          <Button size="sm" className="h-7 bg-violet-600 text-xs text-white hover:bg-violet-700" onClick={() => openEditForm(automation)}><Settings className="size-3" />Configurer</Button>
                         )}
                         <Button variant="ghost" size="sm" className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => deleteAutomation(automation.id)} loading={deleting === automation.id}><Trash2 className="size-3" />Supprimer</Button>
                       </div>

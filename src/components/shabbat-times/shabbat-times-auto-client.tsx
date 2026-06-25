@@ -737,7 +737,7 @@ export function ShabbatTimesAutoClient({
     return (
       <div className="container max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-24">
         {/* Header */}
-        <div className="rounded-[1.4rem] bg-gradient-to-br from-violet-950 via-purple-900 to-indigo-950 p-5 text-white shadow-[0_22px_52px_rgba(76,29,149,0.26)]">
+        <div className="rounded-[1.4rem] bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-600 p-5 text-white shadow-[0_22px_52px_rgba(76,29,149,0.26)]">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-4">
               <Button type="button" variant="ghost" size="icon" className="border border-white/20 text-white hover:bg-white/10" onClick={() => setView("overview")}>
@@ -949,7 +949,7 @@ export function ShabbatTimesAutoClient({
     return (
       <div className="container max-w-6xl mx-auto py-6 px-4 sm:px-6">
         {/* Header */}
-        <div className="rounded-[1.4rem] bg-gradient-to-br from-violet-950 via-purple-900 to-indigo-950 p-5 text-white shadow-[0_22px_52px_rgba(76,29,149,0.26)]">
+        <div className="rounded-[1.4rem] bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-600 p-5 text-white shadow-[0_22px_52px_rgba(76,29,149,0.26)]">
           <div className="mb-5 grid grid-cols-4 items-start gap-4 text-center text-xs text-violet-100">
             {["Modèle", "Renseignements", "Programmation", "Validation"].map((label, index) => (
               <div key={label} className="min-w-0">
@@ -1485,7 +1485,7 @@ export function ShabbatTimesAutoClient({
       )}
 
       {/* Header */}
-      <div className="rounded-[1.4rem] bg-gradient-to-br from-violet-950 via-purple-900 to-indigo-950 p-6 text-white shadow-[0_22px_52px_rgba(76,29,149,0.26)]">
+      <div className="rounded-[1.4rem] bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-600 p-6 text-white shadow-[0_22px_52px_rgba(76,29,149,0.26)]">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="mb-4 h-1.5 w-12 rounded-full bg-violet-200" />
@@ -1493,38 +1493,6 @@ export function ShabbatTimesAutoClient({
             <p className="mt-2 text-violet-200 text-sm">Automatisation hebdomadaire de votre affiche</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {/* Activer / Désactiver */}
-            <div className="relative">
-              <Button
-                type="button"
-                variant="outline"
-                className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
-                onClick={() => setStatusOpen((open) => !open)}
-              >
-                <span className={cn("size-2.5 rounded-full", isActive ? "bg-emerald-400" : "bg-slate-300")} />
-                {isActive ? "Active" : "Désactivée"}
-                <ChevronDown className="size-4" />
-              </Button>
-              {statusOpen && (
-                <div className="absolute right-0 z-20 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-700 shadow-lg">
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-slate-50"
-                    onClick={() => {
-                      if (!configured) setView("models");
-                      else void activateAutomation();
-                      setStatusOpen(false);
-                    }}
-                  >
-                    <span className="size-2.5 rounded-full bg-emerald-500" />Active
-                  </button>
-                  <button type="button" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-slate-50" onClick={pauseAutomation}>
-                    <span className="size-2.5 rounded-full bg-slate-300" />Désactivée
-                  </button>
-                </div>
-              )}
-            </div>
-
             {/* Modifier la configuration */}
             <Button
               type="button"
@@ -1557,6 +1525,40 @@ export function ShabbatTimesAutoClient({
                 Toutes mes automatisations
               </Link>
             </Button>
+          </div>
+        </div>
+
+        {/* Activer / Désactiver — en bas à droite du bandeau */}
+        <div className="mt-6 flex justify-end">
+          <div className="relative">
+            <Button
+              type="button"
+              variant="outline"
+              className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+              onClick={() => setStatusOpen((open) => !open)}
+            >
+              <span className={cn("size-2.5 rounded-full", isActive ? "bg-emerald-400" : "bg-slate-300")} />
+              {isActive ? "Active" : "Désactivée"}
+              <ChevronDown className="size-4" />
+            </Button>
+            {statusOpen && (
+              <div className="absolute bottom-full right-0 z-20 mb-2 w-48 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-700 shadow-lg">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-slate-50"
+                  onClick={() => {
+                    if (!configured) setView("models");
+                    else void activateAutomation();
+                    setStatusOpen(false);
+                  }}
+                >
+                  <span className="size-2.5 rounded-full bg-emerald-500" />Active
+                </button>
+                <button type="button" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-slate-50" onClick={pauseAutomation}>
+                  <span className="size-2.5 rounded-full bg-slate-300" />Désactivée
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

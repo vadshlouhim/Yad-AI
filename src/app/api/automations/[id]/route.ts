@@ -157,6 +157,14 @@ export async function PATCH(
         ...incoming,
         eventReminderCampaign: existingConfig.eventReminderCampaign,
       };
+    } else if (existingConfig.eventRecapSettings) {
+      // Récap après événement : préserver la config dédiée
+      // gérée par /dashboard/event-recap-auto.
+      updateData.triggerConfig = {
+        ...incoming,
+        eventRecapSettings: existingConfig.eventRecapSettings,
+        recapHistory: existingConfig.recapHistory,
+      };
     } else {
       updateData.triggerConfig = incoming;
     }

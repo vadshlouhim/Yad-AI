@@ -412,18 +412,18 @@ export function TopBar({ communityName, userAvatar, userName, unreadNotification
                         >
                           <div className="overflow-hidden">
                             <div className="mt-3 space-y-1.5 rounded-[1.2rem] bg-slate-50/80 p-2">
-                              {category.section === "RESEAUX SOCIAUX" && (
+                              {category.section === "AGENDA ET QUOTIDIEN" && (
                                 <Link
                                   href="/dashboard/automations"
                                   onClick={() => setMobileNavOpen(false)}
                                   className={cn(
-                                    "flex min-w-0 items-center gap-2 rounded-[1.15rem] bg-blue-600 px-3 py-2.5 text-white shadow-[0_14px_26px_rgba(37,99,235,0.24)] ring-1 ring-blue-200/70 transition-all duration-200 hover:bg-blue-700",
-                                    isActive("/dashboard/automations") && "bg-blue-700"
+                                    "flex min-w-0 items-center gap-2 rounded-[1.15rem] bg-gradient-to-r from-violet-700 via-violet-600 to-indigo-600 px-3 py-2.5 text-white shadow-[0_14px_26px_rgba(124,58,237,0.28)] ring-1 ring-violet-300/60 transition-all duration-200 hover:opacity-90",
+                                    isActive("/dashboard/automations") && "opacity-90"
                                   )}
                                 >
                                   <Zap className="size-4 shrink-0 text-cyan-50" />
                                   <span className="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight">
-                                    Créer des automatisations
+                                    Toutes les automatisations
                                   </span>
                                 </Link>
                               )}

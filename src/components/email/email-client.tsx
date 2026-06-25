@@ -414,7 +414,7 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
   };
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
       {/* Header */}
       <div className="overflow-hidden rounded-3xl border border-cyan-800/60 bg-gradient-to-br from-[#081f36] via-[#0d304f] to-[#08192d] p-6 shadow-lg shadow-slate-950/35">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

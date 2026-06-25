@@ -11,6 +11,16 @@ import {
   type EventReminder,
   type EventReminderCampaign,
 } from "./event-reminders";
+import {
+  getRecapSettingsFromTriggerConfig,
+  getRecapHistory,
+  isAllowedRecapDay,
+  nextAllowedRecapDate,
+  nextDailyRunAt,
+  dateISOInTz,
+  addDaysISO,
+  type RecapHistory,
+} from "./event-recap";
 import { notifyUser } from "@/lib/notifications/notify";
 import { addDays, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 import type { Tables, Enums } from "@/types/database.types";
@@ -268,9 +278,10 @@ function hasSocialNotificationChannel(action: AutomationAction | undefined) {
 }
 
 async function prepareAutomationNotification(automation: AutomationWithCommunity, now: Date): Promise<void> {
-  // Les campagnes J-10/J-5 gèrent elles-mêmes la validation au moment du
-  // déclenchement de chaque rappel (cf. executeEventReminderCampaign).
+  // Les campagnes J-10/J-5 et les récaps après événement gèrent eux-mêmes
+  // leurs notifications au déclenchement (cf. executeAutomationActions).
   if (getCampaignFromTriggerConfig(automation.triggerConfig)) return;
+  if (getRecapSettingsFromTriggerConfig(automation.triggerConfig)) return;
 
   const leadHours = getNotificationLeadHours(automation);
   if (leadHours === 0) return; // 0h = pas de pré-notification, exécution directe à l'heure exacte
@@ -455,6 +466,11 @@ async function shouldTrigger(automation: Automation, now: Date): Promise<boolean
     }
   }
   if (hasPreciseNextRun && now < nextRunAt) return false;
+
+  // Récap après événement : exécution quotidienne à l'heure de notification.
+  if (getRecapSettingsFromTriggerConfig(config)) {
+    return hasPreciseNextRun ? now >= nextRunAt : false;
+  }
 
   switch (automation.trigger as AutomationTrigger) {
     case "WEEKLY_SHABBAT": {
@@ -693,6 +709,94 @@ async function executeEventReminderCampaign(
     .eq("id", automation.id);
 }
 
+/**
+ * Récap après événement : chaque jour à l'heure de notification, repère les
+ * événements terminés dont le récap est dû aujourd'hui (lendemain reporté hors
+ * Chabbat/Yom Tov) et envoie une notification invitant à créer le récap.
+ * Ne génère aucun contenu : tout passe par validation humaine côté assistant.
+ */
+async function executeEventRecapNotifications(automation: AutomationWithCommunity, now: Date): Promise<void> {
+  const supabase = createAdminClient();
+  const settings = getRecapSettingsFromTriggerConfig(automation.triggerConfig);
+  if (!settings || settings.status !== "active") return;
+
+  const timezone = automation.community.timezone || settings.timezone || "Europe/Paris";
+  const todayISO = dateISOInTz(now, timezone);
+
+  // Aujourd'hui n'est pas un jour autorisé : on ne notifie pas (report naturel).
+  if (!isAllowedRecapDay(todayISO, timezone)) return;
+
+  const since = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: events } = await supabase
+    .from("Event")
+    .select("id, title, startDate, endDate, status")
+    .eq("communityId", automation.community.id)
+    .neq("status", "ARCHIVED")
+    .gte("startDate", since)
+    .lte("startDate", now.toISOString())
+    .order("startDate", { ascending: false })
+    .limit(50);
+
+  if (!events || events.length === 0) return;
+
+  const history: RecapHistory = { ...getRecapHistory(automation.triggerConfig) };
+
+  const { data: notifyUsers } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("communityId", automation.community.id)
+    .in("role", ["SUPER_ADMIN", "ADMIN"]);
+
+  let changed = false;
+
+  for (const event of events) {
+    const entry = history[event.id];
+    if (entry && (entry.status === "PUBLISHED" || entry.status === "IGNORED")) continue;
+    if (entry && entry.status === "NOTIFIED" && entry.notifiedOn === todayISO) continue;
+
+    const endISO = dateISOInTz(new Date(event.endDate ?? event.startDate), timezone);
+    // Le récap est dû le lendemain, reporté au prochain jour autorisé.
+    const recapDay = nextAllowedRecapDate(addDaysISO(endISO, 1), timezone);
+    const dueToday = recapDay === todayISO;
+    const postponedToday = entry?.status === "POSTPONED" && entry.postponedUntil === todayISO;
+    if (!dueToday && !postponedToday) continue;
+
+    if (notifyUsers && notifyUsers.length > 0) {
+      const title = `Récap : ${event.title}`;
+      const body = `Hier, c'était votre événement « ${event.title} ». N'oubliez pas de publier quelques photos sur vos réseaux. Voulez-vous créer une publication récap ?`;
+      const link = `/dashboard/event-recap-auto?eventId=${event.id}`;
+      await supabase.from("Notification").insert(
+        notifyUsers.map((user) => ({
+          id: crypto.randomUUID(),
+          userId: user.id,
+          communityId: automation.community.id,
+          type: "AI_CONTENT_READY" as const,
+          title,
+          body,
+          link,
+          data: { eventId: event.id, automationId: automation.id, recap: true },
+        }))
+      );
+      await Promise.allSettled(
+        notifyUsers.map((user) => notifyUser(supabase, user.id, { title, body, link }))
+      );
+    }
+
+    history[event.id] = { status: "NOTIFIED", notifiedOn: todayISO };
+    changed = true;
+  }
+
+  if (changed) {
+    const config = (automation.triggerConfig ?? {}) as Record<string, unknown>;
+    const newTriggerConfig = { ...config, recapHistory: history };
+    automation.triggerConfig = newTriggerConfig as never;
+    await supabase
+      .from("Automation")
+      .update({ triggerConfig: newTriggerConfig as never, updatedAt: new Date().toISOString() })
+      .eq("id", automation.id);
+  }
+}
+
 export async function executeAutomationActions(
   automation: AutomationWithCommunity
 ): Promise<void> {
@@ -702,6 +806,12 @@ export async function executeAutomationActions(
   const campaign = getCampaignFromTriggerConfig(automation.triggerConfig);
   if (campaign) {
     await executeEventReminderCampaign(automation, campaign, new Date());
+    return;
+  }
+
+  // Récap après événement : notifications uniquement (validation humaine).
+  if (getRecapSettingsFromTriggerConfig(automation.triggerConfig)) {
+    await executeEventRecapNotifications(automation, new Date());
     return;
   }
 
@@ -992,6 +1102,12 @@ function computeNextRunAt(automation: Automation, now: Date): Date | null {
   const campaign = getCampaignFromTriggerConfig(config);
   if (campaign) {
     return getNextPendingReminder(campaign)?.runAt ?? null;
+  }
+
+  // Récap après événement : exécution quotidienne à l'heure de notification.
+  const recapSettings = getRecapSettingsFromTriggerConfig(config);
+  if (recapSettings) {
+    return recapSettings.status === "active" ? nextDailyRunAt(recapSettings, now) : null;
   }
 
   const nextRun = (() => {

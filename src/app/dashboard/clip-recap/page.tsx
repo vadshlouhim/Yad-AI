@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Clip video - EasyCom IA" };
 
 export default function ClipRecapPage() {
   return (
-    <div className="space-y-8">
+    <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 sm:px-6">
       <div className="rounded-3xl border border-rose-200 bg-gradient-to-br from-[#5b1423] via-[#7a1d31] to-[#a02d42] p-6 shadow-[0_20px_44px_-28px_rgba(127,29,29,0.35)]">
         <div className="max-w-3xl">
           <div className="mb-3 h-1.5 w-10 rounded-full bg-rose-200/90" />
