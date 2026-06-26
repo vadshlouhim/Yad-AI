@@ -165,6 +165,23 @@ export async function PATCH(
         eventRecapSettings: existingConfig.eventRecapSettings,
         recapHistory: existingConfig.recapHistory,
       };
+    } else if (existingConfig.weeklyImagesSettings) {
+      // Cette semaine en images : préserver la config dédiée
+      // gérée par /dashboard/weekly-images-auto.
+      updateData.triggerConfig = {
+        ...incoming,
+        weeklyImagesSettings: existingConfig.weeklyImagesSettings,
+        weeklyImagesHistory: existingConfig.weeklyImagesHistory,
+      };
+    } else if (existingConfig.monthlyProgramRecapSettings) {
+      // Programme & récap du mois : préserver la config dédiée
+      // gérée par /dashboard/monthly-program-recap-auto.
+      updateData.triggerConfig = {
+        ...incoming,
+        monthlyProgramRecapSettings: existingConfig.monthlyProgramRecapSettings,
+        programHistory: existingConfig.programHistory,
+        recapHistory: existingConfig.recapHistory,
+      };
     } else {
       updateData.triggerConfig = incoming;
     }

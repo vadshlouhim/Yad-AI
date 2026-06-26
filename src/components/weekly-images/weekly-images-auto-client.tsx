@@ -1,0 +1,734 @@
+"use client";
+
+import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  CalendarClock,
+  CheckCircle2,
+  ChevronDown,
+  Clock,
+  History,
+  ImagePlus,
+  Loader2,
+  Send,
+  Sparkles,
+  X,
+} from "lucide-react";
+import { toPng } from "html-to-image";
+import { cn } from "@/lib/utils";
+import {
+  MAX_WEEKLY_PHOTOS,
+  WEEKLY_DAY_LABELS,
+  WEEKLY_IMAGE_STYLES,
+  WEEKLY_IMAGES_CHANNELS,
+  isWeeklyImageStyleId,
+  type WeeklyImageStyleId,
+  type WeeklyImagesSettings,
+  type WeeklyImagesChannel,
+  type WeeklyImagesHistory,
+} from "@/lib/automation/weekly-images";
+import { WeeklyPoster, POSTER_SIZE } from "./weekly-templates";
+
+const CHANNEL_LOGOS: Record<WeeklyImagesChannel, React.ReactNode> = {
+  INSTAGRAM: (
+    <svg className="size-4 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+    </svg>
+  ),
+  FACEBOOK: (
+    <svg className="size-4 fill-current" viewBox="0 0 24 24">
+      <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z" />
+    </svg>
+  ),
+  WHATSAPP: (
+    <svg className="size-4 fill-current" viewBox="0 0 24 24">
+      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.517 2.266 2.27 3.51 5.284 3.507 8.49-.006 6.66-5.344 11.997-11.957 11.997-2.005-.001-3.973-.5-5.739-1.453L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.859-4.42 9.863-9.864.002-2.634-1.02-5.11-2.881-6.974C16.592 1.897 14.1 1.87 11.999 1.87c-5.439 0-9.861 4.421-9.865 9.867-.001 1.733.46 3.424 1.336 4.921l-.988 3.597 3.7-.978zM17.15 14.5c-.282-.141-1.67-.824-1.928-.918-.258-.095-.447-.141-.636.141-.189.282-.731.918-.897 1.107-.166.189-.333.213-.615.072-1.048-.523-1.83-.984-2.525-2.18-.184-.316.184-.294.526-.976.059-.118.03-.222-.015-.316-.045-.094-.447-1.077-.612-1.472-.16-.388-.323-.336-.447-.342-.116-.006-.25-.007-.386-.007-.136 0-.356.05-.543.254-.187.204-.714.698-.714 1.701 0 1.004.73 1.976.832 2.113.102.136 1.436 2.193 3.48 3.076.486.209.866.335 1.161.429.489.156.935.134 1.286.082.392-.058 1.205-.493 1.376-.97.171-.476.171-.885.12-.97-.051-.085-.19-.136-.472-.277z" />
+    </svg>
+  ),
+};
+const CHANNEL_LABELS: Record<WeeklyImagesChannel, string> = {
+  INSTAGRAM: "Instagram",
+  FACEBOOK: "Facebook",
+  WHATSAPP: "WhatsApp",
+};
+
+// Photos grises de démonstration pour l'aperçu des fonds.
+const PLACEHOLDER_PHOTO =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100' height='100' fill='%23dfe6f0'/></svg>";
+const PREVIEW_PHOTOS = [PLACEHOLDER_PHOTO, PLACEHOLDER_PHOTO, PLACEHOLDER_PHOTO, PLACEHOLDER_PHOTO];
+
+interface Community {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+  city: string | null;
+  timezone: string;
+  tone: string;
+  plan: string;
+}
+interface WeeklyImagesAutomation {
+  id: string;
+  name: string;
+  isActive: boolean;
+  status: string;
+  nextRunAt: string | null;
+  triggerConfig: Record<string, unknown> | null;
+  updatedAt: string;
+}
+interface Props {
+  community: Community;
+  automation: WeeklyImagesAutomation | null;
+  settings: WeeklyImagesSettings;
+  history: WeeklyImagesHistory;
+}
+
+type View = "overview" | "models" | "customize" | "success";
+const TZ = "Europe/Paris";
+
+function formatDateTime(iso: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: TZ,
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
+
+export function WeeklyImagesAutoClient({ community, automation, settings, history }: Props) {
+  const [view, setView] = useState<View>("overview");
+  const [localSettings, setLocalSettings] = useState<WeeklyImagesSettings>(settings);
+  const [automationId, setAutomationId] = useState<string | null>(automation?.id ?? null);
+  const [isActive, setIsActive] = useState<boolean>(automation?.status === "ACTIVE");
+  const [nextRunAt, setNextRunAt] = useState<string | null>(automation?.nextRunAt ?? null);
+  const [localHistory] = useState<WeeklyImagesHistory>(history);
+
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(automation === null);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [error, setError] = useState("");
+
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [caption, setCaption] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const posterRef = useRef<HTMLDivElement>(null);
+
+  const selectedStyleId: WeeklyImageStyleId = isWeeklyImageStyleId(localSettings.selectedBackgroundTemplateId)
+    ? localSettings.selectedBackgroundTemplateId
+    : "grid";
+  const hasSelectedStyle = isWeeklyImageStyleId(localSettings.selectedBackgroundTemplateId);
+  const selectedStyle = useMemo(
+    () => WEEKLY_IMAGE_STYLES.find((s) => s.id === selectedStyleId) ?? WEEKLY_IMAGE_STYLES[0],
+    [selectedStyleId]
+  );
+
+  async function postConfig(payload: Record<string, unknown>) {
+    const res = await fetch("/api/weekly-images-auto/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error((data as { error?: string }).error ?? "Erreur");
+    return data as WeeklyImagesAutomation & { success?: boolean; caption?: string };
+  }
+
+  async function setActiveState(next: boolean) {
+    setStatusOpen(false);
+    setShowWelcome(false);
+    if (next === isActive) return;
+    setError("");
+    setSaving(true);
+    try {
+      const data = await postConfig(next ? { mode: "activate", settings: localSettings } : { mode: "pause" });
+      setAutomationId(data.id ?? automationId);
+      setIsActive(next);
+      setNextRunAt(data.nextRunAt ?? null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveDetail(partial: Partial<WeeklyImagesSettings>) {
+    const updated = { ...localSettings, ...partial };
+    setLocalSettings(updated);
+    setError("");
+    try {
+      const data = await postConfig({ mode: "update-notification-detail", settings: updated });
+      setAutomationId(data.id ?? automationId);
+      setNextRunAt(data.nextRunAt ?? nextRunAt);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur");
+    }
+  }
+
+  function toggleChannel(channel: WeeklyImagesChannel) {
+    setLocalSettings((s) => {
+      const has = s.channels.includes(channel);
+      const next = has ? s.channels.filter((c) => c !== channel) : [...s.channels, channel];
+      if (next.length === 0) return s; // au moins un réseau requis
+      const updated = { ...s, channels: next };
+      void postConfig({ mode: "update-notification-detail", settings: updated }).catch(() => {});
+      return updated;
+    });
+  }
+
+  async function chooseStyle(styleId: WeeklyImageStyleId) {
+    setError("");
+    setSaving(true);
+    try {
+      const data = await postConfig({ mode: "save-selection", templateId: styleId });
+      setAutomationId(data.id ?? automationId);
+      setLocalSettings((s) => ({ ...s, selectedBackgroundTemplateId: styleId }));
+      setView("overview");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Capture l'affiche composée (1080×1080) en PNG et la téléverse → renvoie l'URL.
+  async function capturePosterUrl(): Promise<string | null> {
+    const node = posterRef.current;
+    if (!node) return null;
+    const dataUrl = await toPng(node, { width: POSTER_SIZE, height: POSTER_SIZE, pixelRatio: 1, cacheBust: true });
+    const blob = await (await fetch(dataUrl)).blob();
+    const file = new File([blob], `cette-semaine-${Date.now()}.png`, { type: "image/png" });
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/uploads/attachment", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok || !data.url) throw new Error("Échec du téléversement de l'affiche.");
+    return data.url as string;
+  }
+
+  async function handleUpload(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const remaining = MAX_WEEKLY_PHOTOS - photos.length;
+    if (remaining <= 0) {
+      setError(`Maximum ${MAX_WEEKLY_PHOTOS} photos.`);
+      return;
+    }
+    setUploading(true);
+    setError("");
+    try {
+      const urls: string[] = [];
+      for (const file of Array.from(files).slice(0, remaining)) {
+        const form = new FormData();
+        form.append("file", file);
+        const res = await fetch("/api/uploads/attachment", { method: "POST", body: form });
+        const data = await res.json();
+        if (res.ok && data.isImage && data.url) urls.push(data.url as string);
+      }
+      setPhotos((prev) => [...prev, ...urls].slice(0, MAX_WEEKLY_PHOTOS));
+      if (files.length > remaining) setError(`Maximum ${MAX_WEEKLY_PHOTOS} photos : seules les premières ont été ajoutées.`);
+    } catch {
+      setError("Erreur lors du téléversement des photos.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  function openAssistant() {
+    setPhotos([]);
+    setCaption("");
+    setError("");
+    setView("customize");
+    void generateCaption();
+  }
+
+  async function generateCaption() {
+    setGenerating(true);
+    try {
+      const data = await postConfig({ mode: "prepare-weekly-images" });
+      if (data.caption) setCaption(data.caption);
+    } catch {
+      /* texte par défaut éditable à la main */
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function publish() {
+    if (photos.length === 0) {
+      setError("Ajoutez au moins une photo.");
+      return;
+    }
+    if (!caption.trim()) {
+      setError("Préparez le texte de la publication.");
+      return;
+    }
+    setPublishing(true);
+    setError("");
+    try {
+      // 1 seule photo → on la publie telle quelle (sans fond, sans déformation).
+      // Sinon → on compose l'affiche dans le fond choisi et on la publie.
+      let visualUrls: string[];
+      if (photos.length === 1) {
+        visualUrls = [photos[0]];
+      } else {
+        const posterUrl = await capturePosterUrl();
+        if (!posterUrl) {
+          setError("Impossible de générer l'affiche. Réessayez.");
+          return;
+        }
+        visualUrls = [posterUrl];
+      }
+
+      const res = await fetch("/api/weekly-images-auto/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "publish-weekly-images",
+          caption: caption.trim(),
+          channels: localSettings.channels,
+          visualUrls,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError((data as { error?: string }).error ?? "Échec de la publication.");
+        return;
+      }
+      setView("success");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur réseau lors de la publication.");
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  const header = (
+    <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-600 p-6 text-white shadow-lg shadow-violet-900/20">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="mb-3 h-1.5 w-10 rounded-full bg-violet-200" />
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Cette semaine en images</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-violet-50/90">
+            Publiez chaque semaine des photos sur tous vos réseaux en un clic.
+          </p>
+          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs text-violet-50">
+            <CalendarClock className="size-3.5" />
+            {WEEKLY_DAY_LABELS[localSettings.notificationDay]} à {localSettings.notificationTime}
+          </p>
+        </div>
+        <Link href="/dashboard/publications">
+          <Button size="sm" variant="outline" className="h-9 rounded-xl border-white/30 bg-white/10 px-4 text-xs text-white hover:bg-white/20">
+            <History className="size-4" />
+            Voir l&apos;historique
+          </Button>
+        </Link>
+      </div>
+
+      {/* Activer / Désactiver — en bas à droite du bandeau */}
+      <div className="mt-6 flex justify-end">
+        <div className="relative">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={saving}
+            className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+            onClick={() => setStatusOpen((open) => !open)}
+          >
+            {saving ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <span className={cn("size-2.5 rounded-full", isActive ? "bg-emerald-400" : "bg-slate-300")} />
+            )}
+            {isActive ? "Active" : "Désactivée"}
+            <ChevronDown className="size-4" />
+          </Button>
+          {statusOpen && (
+            <div className="absolute bottom-full right-0 z-20 mb-2 w-48 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-700 shadow-lg">
+              <button type="button" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-slate-50" onClick={() => void setActiveState(true)}>
+                <span className="size-2.5 rounded-full bg-emerald-500" />Active
+              </button>
+              <button type="button" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-slate-50" onClick={() => void setActiveState(false)}>
+                <span className="size-2.5 rounded-full bg-slate-300" />Désactivée
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── MODELS : choix du fond ──────────────────────────────────────────────
+  if (view === "models") {
+    return (
+      <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+        <div className="flex items-center justify-between">
+          <button onClick={() => setView("overview")} className="text-sm font-medium text-slate-500 hover:text-slate-700">← Retour</button>
+          <span className="text-sm font-semibold text-slate-900">Choisissez votre fond</span>
+        </div>
+        {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {WEEKLY_IMAGE_STYLES.map((style) => {
+            const active = localSettings.selectedBackgroundTemplateId === style.id;
+            return (
+              <button
+                key={style.id}
+                type="button"
+                disabled={saving}
+                onClick={() => void chooseStyle(style.id)}
+                className={cn(
+                  "group overflow-hidden rounded-2xl border bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-60",
+                  active ? "border-violet-500 ring-2 ring-violet-200" : "border-slate-200"
+                )}
+              >
+                <div className="flex aspect-square w-full items-center justify-center overflow-hidden bg-slate-100 p-2">
+                  <div style={{ width: 288, height: 288, overflow: "hidden", borderRadius: 14, boxShadow: "0 6px 20px rgba(15,23,42,0.12)" }}>
+                    <div style={{ width: POSTER_SIZE, height: POSTER_SIZE, transform: `scale(${288 / POSTER_SIZE})`, transformOrigin: "top left" }}>
+                      <WeeklyPoster styleId={style.id} photos={PREVIEW_PHOTOS} logoUrl={community.logoUrl} subtitle={style.subtitle} />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2 p-3">
+                  <span className="truncate text-sm font-semibold text-slate-800">{style.name}</span>
+                  {active && <CheckCircle2 className="size-4 text-violet-600" />}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // ── CUSTOMIZE : assistant photos + aperçu ───────────────────────────────
+  if (view === "customize") {
+    return (
+      <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+        <div className="flex items-center justify-between">
+          <button onClick={() => setView("overview")} className="text-sm font-medium text-slate-500 hover:text-slate-700">← Retour</button>
+          <span className="text-sm font-semibold text-slate-900">Préparez votre publication</span>
+        </div>
+        {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
+
+        <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4 text-sm leading-6 text-violet-800">
+          Les photos sont conservées telles quelles. Aucune retouche n&apos;est appliquée — uniquement un placement dans le fond choisi.
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-5">
+            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-slate-900">Vos photos</h2>
+                <span className="text-xs text-slate-400">{photos.length} / {MAX_WEEKLY_PHOTOS}</span>
+              </div>
+              <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUpload(e.target.files)} />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading || photos.length >= MAX_WEEKLY_PHOTOS}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 py-6 text-sm font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700 disabled:opacity-60"
+              >
+                {uploading ? <Loader2 className="size-5 animate-spin" /> : <ImagePlus className="size-5" />}
+                {uploading ? "Téléversement…" : `Ajouter des photos (max ${MAX_WEEKLY_PHOTOS})`}
+              </button>
+              {photos.length > 0 && (
+                <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {photos.map((url, i) => (
+                    <div key={url} className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt={`Photo ${i + 1}`} className="h-full w-full object-cover" />
+                      <button
+                        onClick={() => setPhotos((p) => p.filter((u) => u !== url))}
+                        className="absolute right-1 top-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition group-hover:opacity-100"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-slate-900">Texte de la publication</h2>
+                <Button size="sm" variant="outline" onClick={generateCaption} disabled={generating} className="h-8 rounded-xl border-violet-200 px-3 text-xs text-violet-700">
+                  {generating ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+                  Texte par défaut
+                </Button>
+              </div>
+              <textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder="Le même message sera utilisé sur Instagram, Facebook et WhatsApp."
+                className="mt-3 min-h-28 w-full resize-y rounded-2xl border border-slate-200 p-3 text-sm leading-6 text-slate-800 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200"
+              />
+              <div className="mt-3">
+                <span className="text-xs text-slate-400">Publier sur&nbsp;:</span>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {WEEKLY_IMAGES_CHANNELS.map((c) => {
+                    const active = localSettings.channels.includes(c);
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => toggleChannel(c)}
+                        aria-pressed={active}
+                        className={cn(
+                          "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition",
+                          active
+                            ? "border-violet-300 bg-violet-50 text-violet-700"
+                            : "border-slate-200 bg-white text-slate-400 hover:border-slate-300"
+                        )}
+                      >
+                        {CHANNEL_LOGOS[c]}
+                        {CHANNEL_LABELS[c]}
+                        {active && <CheckCircle2 className="size-3.5" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+
+            <Button
+              onClick={publish}
+              disabled={publishing || photos.length === 0 || !caption.trim()}
+              className="h-12 w-full rounded-2xl bg-violet-700 px-5 text-sm text-white hover:bg-violet-800"
+            >
+              {publishing ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              Valider et publier sur tous mes réseaux
+            </Button>
+          </div>
+
+          {/* Aperçu iPhone */}
+          <div>
+            <div className="mx-auto w-full max-w-[300px] rounded-[3rem] border-[12px] border-slate-900 bg-slate-900 shadow-2xl">
+              <div className="overflow-hidden rounded-[2.2rem] bg-white">
+                <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2">
+                  <div className="size-7 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500" />
+                  <span className="text-xs font-semibold text-slate-800">{community.name}</span>
+                </div>
+                {photos.length === 0 ? (
+                  <div className="flex aspect-square w-full items-center justify-center bg-slate-50 text-xs text-slate-400">Ajoutez des photos</div>
+                ) : photos.length === 1 ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={photos[0]} alt="Aperçu" className="aspect-square w-full object-cover" />
+                ) : (
+                  <div className="aspect-square w-full overflow-hidden bg-white">
+                    <div style={{ width: POSTER_SIZE, height: POSTER_SIZE, transform: "scale(0.2546)", transformOrigin: "top left" }}>
+                      <WeeklyPoster styleId={selectedStyleId} photos={photos} logoUrl={community.logoUrl} subtitle={selectedStyle.subtitle} />
+                    </div>
+                  </div>
+                )}
+                <div className="px-3 py-2">
+                  <p className="whitespace-pre-wrap text-xs leading-5 text-slate-700">{caption || "Votre texte apparaîtra ici."}</p>
+                </div>
+              </div>
+            </div>
+            <p className="mt-3 text-center text-[11px] text-slate-400">
+              {photos.length <= 1 ? "Photo publiée telle quelle (sans fond)" : `Affiche « ${selectedStyle.name} » · ${photos.length} photos`}
+            </p>
+          </div>
+        </div>
+
+        {/* Nœud de capture plein format (1080×1080), hors écran */}
+        {photos.length > 1 && (
+          <div aria-hidden style={{ position: "fixed", left: -99999, top: 0, pointerEvents: "none", opacity: 0 }}>
+            <div ref={posterRef}>
+              <WeeklyPoster styleId={selectedStyleId} photos={photos} logoUrl={community.logoUrl} subtitle={selectedStyle.subtitle} />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── SUCCESS ─────────────────────────────────────────────────────────────
+  if (view === "success") {
+    return (
+      <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+        <section className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="flex size-11 items-center justify-center rounded-2xl bg-emerald-500 text-white"><CheckCircle2 className="size-6" /></div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Publication envoyée&nbsp;!</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Vos {photos.length} photo{photos.length > 1 ? "s" : ""} ont été publiées sur {localSettings.channels.map((c) => CHANNEL_LABELS[c]).join(", ")}.
+              </p>
+            </div>
+          </div>
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <Link href="/dashboard/publications" className="flex-1 sm:flex-none">
+              <Button variant="outline" className="h-11 w-full rounded-2xl border-slate-200 px-5 text-sm sm:w-auto"><History className="size-4" />Voir l&apos;historique</Button>
+            </Link>
+            <Button onClick={() => setView("overview")} variant="ghost" className="h-11 rounded-2xl px-5 text-sm text-slate-500">Retour</Button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  // ── OVERVIEW ────────────────────────────────────────────────────────────
+  return (
+    <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+      {showWelcome && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-[2rem] bg-white p-8 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><Sparkles className="size-7" /></div>
+              <button type="button" onClick={() => setShowWelcome(false)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100"><X className="size-5" /></button>
+            </div>
+            <h2 className="mt-5 text-2xl font-bold leading-tight text-slate-950">Cette semaine en images</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">Publiez chaque semaine des photos sur tous vos réseaux en un clic.</p>
+            <div className="mt-6 space-y-4">
+              {[
+                { step: 1, title: "Recevez la notification", desc: "Chaque semaine, EasyCom IA vous demande si vous avez des photos.", color: "bg-violet-100 text-violet-700" },
+                { step: 2, title: "Ajoutez vos photos", desc: `Téléversez jusqu'à ${MAX_WEEKLY_PHOTOS} photos. L'IA les place sur votre fond.`, color: "bg-indigo-100 text-indigo-700" },
+                { step: 3, title: "Validez et publiez", desc: "Publiez sur Instagram, Facebook et WhatsApp en un clic.", color: "bg-emerald-100 text-emerald-700" },
+              ].map(({ step, title, desc, color }) => (
+                <div key={step} className="flex items-start gap-4">
+                  <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-black", color)}>{step}</span>
+                  <div>
+                    <p className="font-bold text-slate-900">{title}</p>
+                    <p className="mt-0.5 text-sm text-slate-500">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 flex flex-col gap-3">
+              <Button type="button" size="xl" className="w-full bg-violet-700 hover:bg-violet-800" onClick={() => { setShowWelcome(false); setView("models"); }}>
+                <Sparkles className="size-5" />
+                Choisir mon fond
+              </Button>
+              <Button type="button" variant="outline" className="w-full" onClick={() => setShowWelcome(false)}>Découvrir d&apos;abord</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {header}
+
+      {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
+
+      {/* Comment ça fonctionne */}
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-base font-bold text-slate-900">Comment ça fonctionne&nbsp;?</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          {[
+            { n: 1, t: "Recevez la notification", d: "Chaque semaine, EasyCom IA vous demande si vous avez des photos." },
+            { n: 2, t: "Ajoutez vos photos", d: `Téléversez jusqu'à ${MAX_WEEKLY_PHOTOS} photos. L'IA les place sur votre fond.` },
+            { n: 3, t: "Validez et publiez", d: "Publiez sur Instagram, Facebook et WhatsApp en un clic." },
+          ].map((step) => (
+            <div key={step.n} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+              <span className="flex size-7 items-center justify-center rounded-full bg-violet-600 text-xs font-bold text-white">{step.n}</span>
+              <p className="mt-3 text-sm font-semibold text-slate-900">{step.t}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">{step.d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Fond sélectionné + prochaine notification */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-base font-bold text-slate-900">Fond sélectionné</h2>
+          {hasSelectedStyle ? (
+            <div className="mt-4 flex items-center gap-4">
+              <div className="size-20 flex-shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                <div style={{ width: POSTER_SIZE, height: POSTER_SIZE, transform: "scale(0.074)", transformOrigin: "top left" }}>
+                  <WeeklyPoster styleId={selectedStyleId} photos={PREVIEW_PHOTOS} logoUrl={community.logoUrl} subtitle={selectedStyle.subtitle} />
+                </div>
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-800">{selectedStyle.name}</p>
+                <Button size="sm" variant="outline" onClick={() => setView("models")} className="mt-2 h-8 rounded-xl border-slate-200 px-3 text-xs">Modifier mon fond</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4">
+              <p className="text-sm text-slate-500">Choisissez un fond pour vos publications hebdomadaires.</p>
+              <Button size="sm" onClick={() => setView("models")} className="mt-3 h-9 rounded-xl bg-violet-600 px-4 text-sm text-white hover:bg-violet-700">Choisir un fond</Button>
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-2">
+            <Clock className="size-4 text-violet-600" />
+            <h2 className="text-base font-bold text-slate-900">Prochaine notification</h2>
+          </div>
+          <p className="mt-3 text-sm font-semibold text-slate-800">
+            {WEEKLY_DAY_LABELS[localSettings.notificationDay]} à {localSettings.notificationTime}
+          </p>
+          <p className="text-xs text-slate-500">
+            {isActive && nextRunAt ? `Prochaine : ${formatDateTime(nextRunAt)}` : "Activez l'automatisation pour recevoir la notification."}
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-1.5 text-xs text-slate-500">
+              Jour
+              <select
+                value={localSettings.notificationDay}
+                onChange={(e) => saveDetail({ notificationDay: Number(e.target.value) })}
+                className="rounded-lg border border-slate-200 px-2 py-1 text-xs focus:border-violet-400 focus:outline-none"
+              >
+                {Object.entries(WEEKLY_DAY_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-slate-500">
+              Heure
+              <input
+                type="time"
+                value={localSettings.notificationTime}
+                onChange={(e) => saveDetail({ notificationTime: e.target.value })}
+                className="rounded-lg border border-slate-200 px-2 py-1 text-xs focus:border-violet-400 focus:outline-none"
+              />
+            </label>
+          </div>
+        </section>
+      </div>
+
+      {/* CTA préparer maintenant */}
+      <section className="rounded-3xl border border-violet-100 bg-gradient-to-br from-white to-violet-50/50 p-6 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-bold text-slate-900">Des photos à publier cette semaine&nbsp;?</p>
+            <p className="mt-1 text-sm text-slate-500">Préparez votre publication « Cette semaine en images » dès maintenant.</p>
+          </div>
+          <Button onClick={openAssistant} className="h-11 rounded-2xl bg-violet-600 px-5 text-sm text-white hover:bg-violet-700">
+            <ImagePlus className="size-4" />
+            Préparer ma publication
+          </Button>
+        </div>
+      </section>
+
+      {/* Historique */}
+      {localHistory.length > 0 && (
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-base font-bold text-slate-900">Historique</h2>
+          <div className="mt-4 space-y-2">
+            {localHistory.map((run) => (
+              <div key={run.id} className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900">{formatDateTime(run.publishedAt)}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">{run.photoCount} photo{run.photoCount > 1 ? "s" : ""} · {run.channels.map((c) => CHANNEL_LABELS[c]).join(", ")}</p>
+                </div>
+                <span className="flex items-center gap-1 text-slate-400">
+                  {run.channels.map((c) => (
+                    <span key={c} title={CHANNEL_LABELS[c]}>{CHANNEL_LOGOS[c]}</span>
+                  ))}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}

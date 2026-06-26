@@ -21,6 +21,18 @@ import {
   addDaysISO,
   type RecapHistory,
 } from "./event-recap";
+import {
+  getWeeklyImagesSettings,
+  nextWeeklyImagesRunAt,
+} from "./weekly-images";
+import {
+  getMonthlySettings,
+  getProgramHistory as getMonthlyProgramHistory,
+  getRecapHistory as getMonthlyRecapHistory,
+  getNextMonthlyRun,
+  getDueMonthly,
+  type MonthlyHistory,
+} from "./monthly-program-recap";
 import { notifyUser } from "@/lib/notifications/notify";
 import { addDays, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 import type { Tables, Enums } from "@/types/database.types";
@@ -282,6 +294,8 @@ async function prepareAutomationNotification(automation: AutomationWithCommunity
   // leurs notifications au déclenchement (cf. executeAutomationActions).
   if (getCampaignFromTriggerConfig(automation.triggerConfig)) return;
   if (getRecapSettingsFromTriggerConfig(automation.triggerConfig)) return;
+  if (getWeeklyImagesSettings(automation.triggerConfig)) return;
+  if (getMonthlySettings(automation.triggerConfig)) return;
 
   const leadHours = getNotificationLeadHours(automation);
   if (leadHours === 0) return; // 0h = pas de pré-notification, exécution directe à l'heure exacte
@@ -469,6 +483,16 @@ async function shouldTrigger(automation: Automation, now: Date): Promise<boolean
 
   // Récap après événement : exécution quotidienne à l'heure de notification.
   if (getRecapSettingsFromTriggerConfig(config)) {
+    return hasPreciseNextRun ? now >= nextRunAt : false;
+  }
+
+  // Cette semaine en images : notification hebdomadaire (jour + heure choisis).
+  if (getWeeklyImagesSettings(config)) {
+    return hasPreciseNextRun ? now >= nextRunAt : false;
+  }
+
+  // Programme & récap du mois : occurrences mensuelles (programme + récap).
+  if (getMonthlySettings(config)) {
     return hasPreciseNextRun ? now >= nextRunAt : false;
   }
 
@@ -797,6 +821,104 @@ async function executeEventRecapNotifications(automation: AutomationWithCommunit
   }
 }
 
+/**
+ * Cette semaine en images : chaque semaine au jour/heure choisis, demande à
+ * l'utilisateur s'il a pris des photos. Aucune génération automatique : tout
+ * passe par l'assistant et la validation humaine.
+ */
+async function executeWeeklyImagesNotification(automation: AutomationWithCommunity): Promise<void> {
+  const supabase = createAdminClient();
+  const settings = getWeeklyImagesSettings(automation.triggerConfig);
+  if (!settings || settings.status !== "active") return;
+
+  const { data: notifyUsers } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("communityId", automation.community.id)
+    .in("role", ["SUPER_ADMIN", "ADMIN"]);
+
+  if (!notifyUsers || notifyUsers.length === 0) return;
+
+  const title = "Avez-vous pris des photos cette semaine ?";
+  const body =
+    "Je peux préparer une publication « Cette semaine en images » avec vos photos, prête à publier sur Instagram, Facebook et WhatsApp.";
+  const link = "/dashboard/weekly-images-auto";
+
+  await supabase.from("Notification").insert(
+    notifyUsers.map((user) => ({
+      id: crypto.randomUUID(),
+      userId: user.id,
+      communityId: automation.community.id,
+      type: "AI_CONTENT_READY" as const,
+      title,
+      body,
+      link,
+      data: { automationId: automation.id, weeklyImages: true },
+    }))
+  );
+  await Promise.allSettled(
+    notifyUsers.map((user) => notifyUser(supabase, user.id, { title, body, link }))
+  );
+}
+
+/**
+ * Programme & récap du mois : notifie au bon jour (1er / dernier jour, reporté
+ * hors Chabbat/Yom Tov) selon l'occurrence due. Aucune génération auto.
+ */
+async function executeMonthlyProgramRecapNotification(automation: AutomationWithCommunity, now: Date): Promise<void> {
+  const supabase = createAdminClient();
+  const settings = getMonthlySettings(automation.triggerConfig);
+  if (!settings || settings.status !== "active") return;
+
+  const timezone = automation.community.timezone || settings.timezone || "Europe/Paris";
+  const programHistory: MonthlyHistory = { ...getMonthlyProgramHistory(automation.triggerConfig) };
+  const recapHistory: MonthlyHistory = { ...getMonthlyRecapHistory(automation.triggerConfig) };
+
+  const due = getDueMonthly(settings, now, programHistory, recapHistory, timezone);
+  if (!due) return;
+
+  const { data: notifyUsers } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("communityId", automation.community.id)
+    .in("role", ["SUPER_ADMIN", "ADMIN"]);
+
+  const todayISO = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+
+  if (notifyUsers && notifyUsers.length > 0) {
+    const isProgram = due.type === "program";
+    const title = isProgram ? "Programme du mois" : "Récap du mois";
+    const body = isProgram
+      ? "Le nouveau mois commence. Voulez-vous préparer le programme des événements à venir ?"
+      : "Le mois se termine. Voulez-vous préparer un récap en images des événements du mois ?";
+    const link = `/dashboard/monthly-program-recap-auto?type=${due.type}`;
+    await supabase.from("Notification").insert(
+      notifyUsers.map((user) => ({
+        id: crypto.randomUUID(),
+        userId: user.id,
+        communityId: automation.community.id,
+        type: "AI_CONTENT_READY" as const,
+        title,
+        body,
+        link,
+        data: { automationId: automation.id, monthly: true, runType: due.type, monthKey: due.key },
+      }))
+    );
+    await Promise.allSettled(notifyUsers.map((user) => notifyUser(supabase, user.id, { title, body, link })));
+  }
+
+  if (due.type === "program") programHistory[due.key] = { status: "NOTIFIED", notifiedOn: todayISO };
+  else recapHistory[due.key] = { status: "NOTIFIED", notifiedOn: todayISO };
+
+  const config = (automation.triggerConfig ?? {}) as Record<string, unknown>;
+  const newTriggerConfig = { ...config, programHistory, recapHistory };
+  automation.triggerConfig = newTriggerConfig as never;
+  await supabase
+    .from("Automation")
+    .update({ triggerConfig: newTriggerConfig as never, updatedAt: new Date().toISOString() })
+    .eq("id", automation.id);
+}
+
 export async function executeAutomationActions(
   automation: AutomationWithCommunity
 ): Promise<void> {
@@ -809,9 +931,21 @@ export async function executeAutomationActions(
     return;
   }
 
+  // Programme & récap du mois : notification mensuelle (validation humaine).
+  if (getMonthlySettings(automation.triggerConfig)) {
+    await executeMonthlyProgramRecapNotification(automation, new Date());
+    return;
+  }
+
   // Récap après événement : notifications uniquement (validation humaine).
   if (getRecapSettingsFromTriggerConfig(automation.triggerConfig)) {
     await executeEventRecapNotifications(automation, new Date());
+    return;
+  }
+
+  // Cette semaine en images : notification hebdomadaire (validation humaine).
+  if (getWeeklyImagesSettings(automation.triggerConfig)) {
+    await executeWeeklyImagesNotification(automation);
     return;
   }
 
@@ -1108,6 +1242,20 @@ function computeNextRunAt(automation: Automation, now: Date): Date | null {
   const recapSettings = getRecapSettingsFromTriggerConfig(config);
   if (recapSettings) {
     return recapSettings.status === "active" ? nextDailyRunAt(recapSettings, now) : null;
+  }
+
+  // Cette semaine en images : prochaine occurrence hebdomadaire.
+  const weeklyImagesSettings = getWeeklyImagesSettings(config);
+  if (weeklyImagesSettings) {
+    return weeklyImagesSettings.status === "active" ? nextWeeklyImagesRunAt(weeklyImagesSettings, now) : null;
+  }
+
+  // Programme & récap du mois : prochaine occurrence (programme ou récap).
+  const monthlySettings = getMonthlySettings(config);
+  if (monthlySettings) {
+    if (monthlySettings.status !== "active") return null;
+    const tz = monthlySettings.timezone || "Europe/Paris";
+    return getNextMonthlyRun(monthlySettings, now, tz)?.runAt ?? null;
   }
 
   const nextRun = (() => {

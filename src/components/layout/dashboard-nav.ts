@@ -6,6 +6,7 @@ import {
   Calendar,
   CalendarClock,
   CalendarDays,
+  CalendarRange,
   Camera,
   Clock3,
   Globe,
@@ -313,6 +314,8 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
       { href: "/dashboard/jewish-holidays-auto", label: "Fetes juives et Hassidiques", icon: Gift },
       { href: "/dashboard/event-reminders-auto", label: "Automatisation J-10 / J-5", icon: CalendarClock },
       { href: "/dashboard/event-recap-auto", label: "Récap automatique après événement", icon: Camera },
+      { href: "/dashboard/weekly-images-auto", label: "Cette semaine en images", icon: Image },
+      { href: "/dashboard/monthly-program-recap-auto", label: "Programme & récap du mois", icon: CalendarRange },
     ],
   },
   {

@@ -2,6 +2,30 @@ import express from "express";
 import wwebjs from "whatsapp-web.js";
 const { Client, LocalAuth } = wwebjs;
 import qrcode from "qrcode";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+// En local, charge le .env du projet (le service lit process.env directement).
+// En prod (Railway), les variables sont déjà définies → ce bloc est ignoré.
+if (!process.env.WHATSAPP_SERVICE_SECRET) {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  for (const envPath of [path.join(here, ".env"), path.join(here, "..", ".env")]) {
+    try {
+      for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
+        const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+        if (!match || process.env[match[1]]) continue;
+        let value = match[2].trim();
+        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+          value = value.slice(1, -1);
+        }
+        process.env[match[1]] = value;
+      }
+    } catch {
+      /* fichier .env absent : on ignore */
+    }
+  }
+}
 
 const app = express();
 app.use(express.json());

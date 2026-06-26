@@ -489,6 +489,18 @@ function isEventRecap(automation: Automation) {
   return Boolean(cfg && typeof cfg === "object" && (cfg as Record<string, unknown>).eventRecapSettings);
 }
 
+// Une automatisation porte-t-elle « Cette semaine en images » ?
+function isWeeklyImages(automation: Automation) {
+  const cfg = automation.triggerConfig;
+  return Boolean(cfg && typeof cfg === "object" && (cfg as Record<string, unknown>).weeklyImagesSettings);
+}
+
+// Une automatisation porte-t-elle « Programme & récap du mois » ?
+function isMonthlyProgramRecap(automation: Automation) {
+  const cfg = automation.triggerConfig;
+  return Boolean(cfg && typeof cfg === "object" && (cfg as Record<string, unknown>).monthlyProgramRecapSettings);
+}
+
 function getCardScheduleLabel(card: PredefinedAutomationCard) {
   const config = card.triggerConfig ?? {};
   const time = (card.time ?? getConfigString(config, "time")) || "10:00";
@@ -1001,6 +1013,20 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                 </Link>
               ) : isEventRecap(automation) ? (
                 <Link href="/dashboard/event-recap-auto">
+                  <Button size="sm" className="h-8 rounded-full bg-violet-600 px-3 text-xs text-white hover:bg-violet-700">
+                    <Settings className="size-3.5" />
+                    Configurer
+                  </Button>
+                </Link>
+              ) : isWeeklyImages(automation) ? (
+                <Link href="/dashboard/weekly-images-auto">
+                  <Button size="sm" className="h-8 rounded-full bg-violet-600 px-3 text-xs text-white hover:bg-violet-700">
+                    <Settings className="size-3.5" />
+                    Configurer
+                  </Button>
+                </Link>
+              ) : isMonthlyProgramRecap(automation) ? (
+                <Link href="/dashboard/monthly-program-recap-auto">
                   <Button size="sm" className="h-8 rounded-full bg-violet-600 px-3 text-xs text-white hover:bg-violet-700">
                     <Settings className="size-3.5" />
                     Configurer
@@ -1536,6 +1562,10 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                           <Link href="/dashboard/event-reminders-auto"><Button size="sm" className="h-7 bg-violet-600 text-xs text-white hover:bg-violet-700"><Settings className="size-3" />Configurer</Button></Link>
                         ) : isEventRecap(automation) ? (
                           <Link href="/dashboard/event-recap-auto"><Button size="sm" className="h-7 bg-violet-600 text-xs text-white hover:bg-violet-700"><Settings className="size-3" />Configurer</Button></Link>
+                        ) : isWeeklyImages(automation) ? (
+                          <Link href="/dashboard/weekly-images-auto"><Button size="sm" className="h-7 bg-violet-600 text-xs text-white hover:bg-violet-700"><Settings className="size-3" />Configurer</Button></Link>
+                        ) : isMonthlyProgramRecap(automation) ? (
+                          <Link href="/dashboard/monthly-program-recap-auto"><Button size="sm" className="h-7 bg-violet-600 text-xs text-white hover:bg-violet-700"><Settings className="size-3" />Configurer</Button></Link>
                         ) : (
                           <Button size="sm" className="h-7 bg-violet-600 text-xs text-white hover:bg-violet-700" onClick={() => openEditForm(automation)}><Settings className="size-3" />Configurer</Button>
                         )}
