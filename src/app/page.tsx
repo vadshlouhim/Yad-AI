@@ -1,5 +1,6 @@
 ﻿import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { HeroAnimation } from "@/components/home/hero-animation";
 import {
   BrainCircuit,
@@ -97,6 +98,13 @@ const TESTIMONIALS = [
   { name: "Olivier G.", role: "Artisan", content: "Je peux créer une routine de communication simple, visible et cohérente.", avatar: "OG", color: "bg-orange-100 text-orange-700" },
   { name: "Emma V.", role: "Créatrice de contenu", content: "Les ressources et vidéos IA m'aident à publier rapidement sur les bons canaux.", avatar: "EV", color: "bg-fuchsia-100 text-fuchsia-700" },
 ];
+
+export const metadata: Metadata = {
+  title: "EasyCom IA - Le copilote IA de communication de votre communauté",
+  description:
+    "Centralisez et automatisez la communication de votre synagogue, Beth Habad ou association : affiches, horaires de Chabbat, rappels d'événements et récaps, publiés sur Instagram, Facebook, WhatsApp et email.",
+  alternates: { canonical: "/" },
+};
 
 export default function HomePage() {
   return (

@@ -1,4 +1,5 @@
-﻿import Link from "next/link";
+﻿import type { Metadata } from "next";
+import Link from "next/link";
 import Image from "next/image";
 import {
   ArrowRight,
@@ -69,6 +70,13 @@ const METHOD_POINTS = [
     description: "Moins de tâches manuelles, moins d’oublis, plus de réactivité : vous communiquez mieux, plus vite et plus simplement.",
   },
 ];
+
+export const metadata: Metadata = {
+  title: "Notre méthode",
+  description:
+    "Découvrez comment EasyCom IA accompagne les communautés juives, synagogues et Beth Habad pour préparer, planifier et diffuser leur communication avec l'intelligence artificielle.",
+  alternates: { canonical: "/method" },
+};
 
 export default function MethodPage() {
   return (
