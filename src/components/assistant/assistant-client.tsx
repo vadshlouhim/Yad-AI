@@ -228,7 +228,7 @@ const ASSISTANT_PLACEHOLDER_SUGGESTIONS = [
   "Rédige un message WhatsApp clair et professionnel",
 ];
 
-const STATIC_ASSISTANT_PLACEHOLDER = "Décrivez votre demande à l'Assistant IA...";
+const STATIC_ASSISTANT_PLACEHOLDER = "Posez une question, demandez un contenu, lancez une action...";
 
 const EASYCOM_FULL_MESSAGE =
   "L'Assistant IA vous aide à gérer toute votre communication depuis un seul espace intelligent.\n\n" +
@@ -384,6 +384,7 @@ export function AssistantClient({
   billingConfig,
 }: Props) {
   void _tone;
+  const firstName = userName?.split(" ")[0] ?? "";
   const router = useRouter();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -410,6 +411,7 @@ export function AssistantClient({
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateSuggestion | null>(null);
   const [preparingPoster, setPreparingPoster] = useState(false);
   const [renderingPoster, setRenderingPoster] = useState(false);
+  const [refreshingShabbatId, setRefreshingShabbatId] = useState<string | null>(null);
   const [publishingPosterId, setPublishingPosterId] = useState<string | null>(null);
   const [selectedPublishChannels, setSelectedPublishChannels] = useState<string[]>([]);
   const [publishCaption, setPublishCaption] = useState("");
@@ -429,6 +431,8 @@ export function AssistantClient({
   const [bubblePosition, setBubblePosition] = useState({ x: 24, y: 24 });
   const [animatedPlaceholder, setAnimatedPlaceholder] = useState(ASSISTANT_PLACEHOLDER_SUGGESTIONS[0]);
   const [hasStartedPromptEntry, setHasStartedPromptEntry] = useState(false);
+  const [showTooltipHelp, setShowTooltipHelp] = useState(true);
+  const [showTooltipInput, setShowTooltipInput] = useState(true);
   // Pièces jointes (images / documents) en attente d'envoi avec le prochain message.
   const [pendingAttachments, setPendingAttachments] = useState<ChatAttachment[]>([]);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
@@ -457,6 +461,10 @@ export function AssistantClient({
     ensurePushRegistered();
     // Lien profond depuis email/push : ?action=<id> → afficher la carte à valider.
     void handleDeepLinkAction();
+    // Auto-dismiss tooltips après 5 secondes.
+    const t1 = window.setTimeout(() => setShowTooltipHelp(false), 5000);
+    const t2 = window.setTimeout(() => setShowTooltipInput(false), 5000);
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
   }, []);
 
   async function handleDeepLinkAction() {
@@ -1494,9 +1502,51 @@ export function AssistantClient({
     }
   }
 
+  function isShabbatTimesTemplate(template: { name: string; category: string }) {
+    const haystack = `${template.name} ${template.category}`.toLowerCase()
+      .normalize("NFD").replace(/[̀-ͯ]/g, "");
+    return (
+      haystack.includes("chabbat") ||
+      haystack.includes("shabbat") ||
+      haystack.includes("horaires") ||
+      haystack.includes("entree") ||
+      haystack.includes("sortie")
+    ) && (
+      haystack.includes("horaire") ||
+      haystack.includes("heure") ||
+      haystack.includes("entree") ||
+      haystack.includes("sortie")
+    );
+  }
+
   async function publishPoster(message: Message) {
     if (!message.generatedImageUrl || !message.publishDraft || selectedPublishChannels.length === 0) {
       return;
+    }
+
+    let imageUrlToPublish = message.generatedImageUrl;
+
+    // Pour les affiches Chabbat : re-générer avec les vrais horaires actuels
+    if (message.posterDraft && isShabbatTimesTemplate(message.posterDraft.template)) {
+      setRefreshingShabbatId(message.id);
+      try {
+        const refreshRes = await fetch("/api/templates/render-shabbat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            templateId: message.posterDraft.template.id,
+            generatedTexts: message.posterDraft.generatedTexts,
+          }),
+        });
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json() as { imageUrl?: string };
+          if (refreshData.imageUrl) imageUrlToPublish = refreshData.imageUrl;
+        }
+      } catch {
+        // Si le refresh échoue, on publie avec l'image existante
+      } finally {
+        setRefreshingShabbatId(null);
+      }
     }
 
     setPublishingPosterId(message.id);
@@ -1505,7 +1555,7 @@ export function AssistantClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          imageUrl: message.generatedImageUrl,
+          imageUrl: imageUrlToPublish,
           caption: publishCaption || message.publishDraft.caption,
           title: message.publishDraft.title,
           channelIds: selectedPublishChannels,
@@ -2433,27 +2483,14 @@ export function AssistantClient({
 
             {assistantExperience === "simple" && (
               <div className="mb-6 w-full max-w-4xl px-5 py-2 text-center sm:px-8">
-                <div className="mx-auto inline-flex max-w-3xl flex-col items-center gap-3 px-2 py-1 sm:flex-row sm:gap-4">
-                  <div className="inline-flex h-14 w-14 shrink-0 items-center justify-center text-4xl">
-                    <span className="animate-welcome-wave" aria-hidden="true">👋</span>
-                  </div>
-                  <div className="inline-flex min-w-0 items-center gap-2">
-                    {communityLogoUrl && (
-                      <span
-                        className="relative flex h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-cover bg-center shadow-sm"
-                        style={{ backgroundImage: `url(${communityLogoUrl})` }}
-                        aria-label="Logo Assistant IA"
-                      />
-                    )}
-                    <h2 className="text-center text-2xl font-black leading-tight tracking-tight text-slate-900 sm:text-left sm:text-3xl">
-                      Assistant IA
-                    </h2>
-                  </div>
-                </div>
-                <p className="mx-auto mt-2 max-w-3xl text-sm leading-7 text-slate-700 sm:text-[15px]">
-                  <strong className="font-black text-slate-900">Votre temps est précieux, concentrez-vous sur l’essentiel.</strong>
-                  <br />
-                  <span>L&apos;Assistant IA centralise et automatise toute votre communication depuis un seul espace.</span>
+                <div className="mb-2 text-3xl leading-none">👋</div>
+                <h2 className="text-2xl font-black leading-tight tracking-tight text-slate-900 sm:text-3xl">
+                  Bienvenue{firstName ? `, ${firstName}` : ""}
+                </h2>
+                <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500 sm:text-[15px]">
+                  {communitySubtitle
+                    ? `Votre Assistant IA conçu spécialement pour les ${communitySubtitle}.`
+                    : "Votre Assistant IA centralise et automatise toute votre communication."}
                 </p>
               </div>
             )}
@@ -2640,29 +2677,6 @@ export function AssistantClient({
               </div>
             )}
 
-            {assistantExperience === "simple" && (
-              <div className="mx-auto mb-5 grid w-full max-w-5xl grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-                <div className="col-span-full mb-1 text-center">
-                  <p className="text-sm font-bold tracking-tight text-slate-800">Actions rapides</p>
-                </div>
-                {simpleMainButtons.map((item) => (
-                  <Link
-                    key={`${item.href}-${item.label}`}
-                    href={item.href}
-                    className={cn(
-                      "group rounded-[1.3rem] border border-slate-200 bg-white px-4 py-4 text-left shadow-[0_10px_26px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_16px_34px_rgba(15,23,42,0.1)]",
-                      item.mobileOnly ? "md:hidden" : ""
-                    )}
-                  >
-                    <div className={cn("mb-3 h-1 w-10 rounded-full", item.accent)} />
-                    <span className={cn("mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl", item.iconBg, item.iconTone)}>
-                      <item.icon className="size-4.5" />
-                    </span>
-                    <p className="text-sm font-semibold leading-5 text-slate-800">{item.label}</p>
-                  </Link>
-                ))}
-              </div>
-            )}
 
             {assistantExperience === "detailed" && (
               <div className="grid w-full max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">
@@ -3169,11 +3183,6 @@ export function AssistantClient({
                                   <p className="line-clamp-2 text-sm font-black leading-snug text-slate-900">
                                     {template.name}
                                   </p>
-                                  {template.description && (
-                                    <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-slate-400">
-                                      {template.description}
-                                    </p>
-                                  )}
                                 </div>
                                 <div className="flex flex-wrap gap-1.5">
                                   <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">
@@ -3299,22 +3308,30 @@ export function AssistantClient({
                               À confirmer : {message.posterDraft.missingFields.join(", ")}
                             </p>
                           )}
-	                          <div className="mt-3 flex gap-2">
-	                            <Button
-	                              size="sm"
-	                              onClick={() => renderPoster(message)}
-	                              loading={renderingPoster}
-	                            >
-	                              Confirmer et générer
-	                            </Button>
-	                            <Button
-	                              size="sm"
-	                              variant="outline"
-	                              onClick={() => openPosterEditor(message)}
-	                            >
-	                              Changer
-	                            </Button>
-	                          </div>
+                          {isShabbatTimesTemplate(message.posterDraft.template) && (
+                            <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-700">
+                              <span>🕯️</span>
+                              Aperçu basé sur les horaires actuels. Les horaires réels seront rechargés au moment de la publication.
+                            </p>
+                          )}
+                          <div className="mt-3 flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => renderPoster(message)}
+                              loading={renderingPoster}
+                            >
+                              {isShabbatTimesTemplate(message.posterDraft.template)
+                                ? "Générer l'aperçu"
+                                : "Confirmer et générer"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openPosterEditor(message)}
+                            >
+                              Changer
+                            </Button>
+                          </div>
                           {editingPosterId === message.id && message.posterDraft && (
                             <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
                               <div className="flex items-start justify-between gap-3">
@@ -3435,14 +3452,22 @@ export function AssistantClient({
                             onChange={(event) => setPublishCaption(event.target.value)}
                             className="mt-3 min-h-24 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                           />
+                          {message.posterDraft && isShabbatTimesTemplate(message.posterDraft.template) && (
+                            <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-700">
+                              <span>🕯️</span>
+                              {refreshingShabbatId === message.id
+                                ? "Mise à jour des horaires Chabbat et régénération de l'affiche…"
+                                : "Les horaires seront actualisés et l'affiche regénérée au moment de la publication."}
+                            </p>
+                          )}
                           <div className="mt-3 flex flex-wrap gap-2">
                             <Button
                               size="sm"
                               onClick={() => publishPoster(message)}
-                              loading={publishingPosterId === message.id}
+                              loading={publishingPosterId === message.id || refreshingShabbatId === message.id}
                               disabled={selectedPublishChannels.length === 0}
                             >
-                              Publier maintenant
+                              {refreshingShabbatId === message.id ? "Mise à jour…" : "Publier maintenant"}
                             </Button>
                             <Link href="/dashboard/publications">
                               <Button size="sm" variant="outline">
@@ -3482,7 +3507,38 @@ export function AssistantClient({
           "border-t border-slate-200/80 bg-slate-50/85 px-4 py-4 backdrop-blur-xl sm:px-6",
           assistantExperience === "simple" && "border-t-0 bg-transparent px-6 pb-4 pt-0 backdrop-blur-0 sm:px-8"
         )}>
+          {assistantExperience === "simple" && showQuickPrompts && (
+            <div className="mx-auto mb-3 flex w-full max-w-none items-center justify-between gap-3">
+              <p className="text-[13px] leading-5 text-slate-400">
+                L&apos;IA prépare, vous validez — puis elle agit.
+              </p>
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setCapabilitiesOpen(true)}
+                  className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-black text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+                  aria-label="Que peut faire l'Assistant IA ?"
+                >
+                  !
+                </button>
+                {showTooltipHelp && (
+                  <div className="absolute bottom-full right-0 mb-2 w-44 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-lg">
+                    <p className="text-[11px] leading-4 text-slate-600">Tout ce que votre Assistant IA peut faire</p>
+                    <span className="absolute -bottom-1.5 right-3 h-3 w-3 rotate-45 border-b border-r border-slate-200 bg-white" />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           <div className={cn("mx-auto w-full max-w-3xl", assistantExperience === "simple" && "max-w-none")}>
+            {assistantExperience === "simple" && showQuickPrompts && showTooltipInput && (
+              <div className="mb-2 flex animate-fade-in items-center gap-2 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-2.5">
+                <Sparkles className="size-3.5 shrink-0 text-blue-500" />
+                <p className="text-[12px] leading-5 text-blue-700">
+                  Décrivez votre besoin en langage naturel — l&apos;IA s&apos;occupe du reste.
+                </p>
+              </div>
+            )}
           {selectedTemplate && (
             <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>

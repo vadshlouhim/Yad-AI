@@ -11,10 +11,12 @@ import {
   Clock3,
   Globe,
   Gift,
+  HandHeart,
   HelpCircle,
   History,
   Image,
   LayoutDashboard,
+  Library,
   Mail,
   Plane,
   Plus,
@@ -191,6 +193,10 @@ export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActiv
     label: "text-cyan-300",
     itemActive: "bg-cyan-700 text-white shadow-sm",
   },
+  "CAMPAGNE DE DONS": {
+    label: "text-rose-300",
+    itemActive: "bg-rose-600 text-white shadow-sm",
+  },
   RESSOURCES: {
     label: "text-violet-300",
     itemActive: "bg-violet-600 text-white shadow-sm",
@@ -245,6 +251,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     section: "RESSOURCES",
     items: [
       { href: "/dashboard/resources", label: "Mes Ressources", icon: ResourcePlusIcon },
+      { href: "/dashboard/community-library", label: "Bibliothèque communautaire", icon: Library },
       { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
       { href: "/dashboard/hebrew-calendar", label: "Calendrier hebraique", icon: Calendar },
     ],
@@ -261,6 +268,12 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
       { href: "/dashboard/templates", label: "Affiches", icon: Image },
       { href: "/dashboard/shabbat-times-auto", label: "Horaires de Chabbat", icon: Clock3 },
       { href: "/dashboard/jewish-holidays-auto", label: "Fetes juives et Hassidiques", icon: Gift },
+    ],
+  },
+  {
+    section: "CAMPAGNE DE DONS",
+    items: [
+      { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart },
     ],
   },
   {
@@ -332,10 +345,19 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     items: [{ href: "/dashboard/clip-recap", label: "Clip récap AI", icon: Video }],
   },
   {
+    section: "CAMPAGNE DE DONS",
+    icon: HandHeart,
+    items: [
+      { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart },
+      { href: "/dashboard/donation-campaign/visuals", label: "Visuels & Publications", icon: Share2 },
+    ],
+  },
+  {
     section: "RESSOURCES & SERVICES",
     icon: BookOpen,
     items: [
       { href: "/dashboard/resources", label: "Mes Ressources", icon: ResourcePlusIcon },
+      { href: "/dashboard/community-library", label: "Bibliothèque communautaire", icon: Library },
       { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
       { href: "/dashboard/templates", label: "Affiches", icon: Image },
       { href: "/dashboard/boutique", label: "Boutique", icon: ShoppingBag },

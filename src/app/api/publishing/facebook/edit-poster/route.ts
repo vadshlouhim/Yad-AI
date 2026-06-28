@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { renderTemplatePoster } from "@/lib/templates/render";
+import { POSTER_GENERATION_RULES } from "@/lib/templates/poster-rules";
 
 const openrouter = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
@@ -114,6 +115,7 @@ Règles :
 - Ne renvoie aucun commentaire, aucune explication.
 - N'utilise jamais d'astérisques.
 - Si l'affiche ne contient pas de zones techniques explicites, utilise simplement les ids déjà fournis.
+${POSTER_GENERATION_RULES}
 
 Réponds UNIQUEMENT avec un JSON valide de la forme :
 { "zoneId": "nouveau texte" }`;

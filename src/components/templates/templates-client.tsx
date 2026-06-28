@@ -783,9 +783,6 @@ export function TemplatesClient({
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-slate-900">{selectedTemplate.name}</h3>
-              {selectedTemplate.description && (
-                <p className="text-sm text-slate-500 mt-1">{selectedTemplate.description}</p>
-              )}
               <div className="flex gap-1.5 mt-2 flex-wrap">
                 {selectedTemplate.tags.map((tag) => (
                   <Badge key={tag} variant="outline" className="text-[10px]">

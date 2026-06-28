@@ -18,10 +18,28 @@ interface SidebarProps {
     name: string;
     logoUrl: string | null;
     plan: string;
+    communityType?: string | null;
   };
   userAvatar: string | null | undefined;
   userName: string;
   basePath?: string;
+}
+
+const COMMUNITY_TYPE_LABELS: Record<string, string> = {
+  SYNAGOGUE: "synagogues",
+  ASSOCIATION: "associations",
+  SCHOOL: "écoles",
+  CENTER: "centres communautaires",
+  RESTAURANT: "restaurants",
+  CATERER: "traiteurs",
+  SPORT_COACH: "coachs sportifs",
+  COMMERCE: "commerces",
+  BUSINESS: "entreprises",
+  CONTENT_CREATOR: "créateurs de contenu",
+};
+
+function getStructureLabel(communityType?: string | null): string {
+  return communityType ? (COMMUNITY_TYPE_LABELS[communityType] ?? "vous") : "vous";
 }
 
 const PLAN_COLORS: Record<string, string> = {
@@ -54,7 +72,7 @@ const DESKTOP_CATEGORY_CONTENT: Record<
 > = {
   "RESEAUX SOCIAUX": {
     title: "RÉSEAUX SOCIAUX",
-    description: "Connecter & automatiser vos réseaux",
+    description: "Publiez sur Instagram, Facebook et WhatsApp avec l'IA.",
     accentBar: "bg-blue-500",
     iconSurface: "bg-blue-50",
     titleClass: "text-blue-700",
@@ -65,7 +83,7 @@ const DESKTOP_CATEGORY_CONTENT: Record<
   },
   EMAIL: {
     title: "EMAIL & AVIS",
-    description: "Gérer vos emails, WhatsApp et avis",
+    description: "Vos emails et vos avis Google, gérés avec l'IA.",
     accentBar: "bg-cyan-500",
     iconSurface: "bg-cyan-50",
     titleClass: "text-cyan-700",
@@ -76,7 +94,7 @@ const DESKTOP_CATEGORY_CONTENT: Record<
   },
   "AGENDA ET QUOTIDIEN": {
     title: "PUBLICATIONS AUTOMATIQUES",
-    description: "Votre quotidien bien organisé",
+    description: "Des automatisations spécialement conçues pour les {structure}.",
     accentBar: "bg-violet-500",
     iconSurface: "bg-violet-50",
     titleClass: "text-violet-700",
@@ -87,7 +105,7 @@ const DESKTOP_CATEGORY_CONTENT: Record<
   },
   RESSOURCES: {
     title: "RESSOURCES & SERVICES",
-    description: "Notes, Banque visuelle...",
+    description: "Des outils pratiques spécialement conçus pour les {structure}.",
     accentBar: "bg-amber-500",
     iconSurface: "bg-amber-50",
     titleClass: "text-amber-700",
@@ -98,7 +116,7 @@ const DESKTOP_CATEGORY_CONTENT: Record<
   },
   "RESSOURCES & SERVICES": {
     title: "RESSOURCES & SERVICES",
-    description: "Notes, Banque visuelle...",
+    description: "Des outils pratiques spécialement conçus pour les {structure}.",
     accentBar: "bg-amber-500",
     iconSurface: "bg-amber-50",
     titleClass: "text-amber-700",
@@ -106,6 +124,17 @@ const DESKTOP_CATEGORY_CONTENT: Record<
     itemIcon: "text-amber-600",
     itemHover: "hover:bg-slate-50 hover:text-slate-900",
     itemActive: "bg-amber-50 text-slate-950 ring-1 ring-amber-100",
+  },
+  "CAMPAGNE DE DONS": {
+    title: "CAMPAGNES DE DONS",
+    description: "Pilotez vos campagnes de collecte de A à Z.",
+    accentBar: "bg-orange-500",
+    iconSurface: "bg-orange-50",
+    titleClass: "text-orange-600",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-orange-500",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-orange-50 text-slate-950 ring-1 ring-orange-200",
   },
   "CLIPS VIDEO": {
     title: "CLIPS VIDEO",
@@ -150,6 +179,7 @@ function normalizeSectionKey(value: string) {
 export function Sidebar({ community, userAvatar, userName, basePath = "/dashboard" }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const structureLabel = getStructureLabel(community.communityType);
   const [collapsed, setCollapsed] = useState(false);
   const [flyoutSection, setFlyoutSection] = useState<string | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
@@ -354,7 +384,7 @@ export function Sidebar({ community, userAvatar, userName, basePath = "/dashboar
                         <div className="min-w-0 flex-1">
                           <div className={cn("mb-3 h-1 w-10 rounded-full", style.accentBar)} />
                           <p className={cn("text-[15px] font-black tracking-tight", style.titleClass)}>{style.title}</p>
-                          <p className={cn("mt-1.5 text-xs leading-5", style.descriptionClass)}>{style.description}</p>
+                          <p className={cn("mt-1.5 text-xs leading-5", style.descriptionClass)}>{style.description.replace("{structure}", structureLabel)}</p>
                         </div>
                         <ChevronDown
                           className={cn(

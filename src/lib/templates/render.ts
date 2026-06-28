@@ -1,8 +1,9 @@
-import { fal } from "@fal-ai/client";
+import { fal, ValidationError } from "@fal-ai/client";
 import sharp from "sharp";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables } from "@/types/database.types";
 import { getTemplateQuestions, resolveTemplateAssetUrl, CATEGORY_LABELS } from "./shared";
+import { POSTER_IMAGE_EDIT_RULES } from "./poster-rules";
 
 type TemplateRow = Tables<"Template">;
 
@@ -134,7 +135,8 @@ async function removeTemplateTextWithFal(imageUrl: string): Promise<string> {
 
 async function editTemplateTextWithNanoBanana(
   imageUrl: string,
-  prompt: string
+  prompt: string,
+  retryPrompt?: string
 ): Promise<string> {
   const falKey = process.env.FAL_KEY;
   if (!falKey) {
@@ -143,16 +145,49 @@ async function editTemplateTextWithNanoBanana(
 
   fal.config({ credentials: falKey });
 
-  const result = await fal.subscribe("fal-ai/nano-banana/edit", {
-    input: {
-      prompt,
-      image_urls: [imageUrl],
-      num_images: 1,
-      output_format: "png",
-      aspect_ratio: "auto",
-    },
-    logs: true,
+  const sourceResponse = await fetch(imageUrl);
+  if (!sourceResponse.ok) {
+    throw new Error(`Impossible de télécharger l'affiche source (${sourceResponse.status})`);
+  }
+
+  const contentType = sourceResponse.headers.get("content-type")?.split(";")[0] ?? "";
+  if (!contentType.startsWith("image/")) {
+    throw new Error("L'affiche source n'est pas une image valide");
+  }
+
+  // Give Fal its own hosted copy instead of relying on third-party storage access.
+  const sourceBlob = new Blob([await sourceResponse.arrayBuffer()], { type: contentType });
+  const falImageUrl = await fal.storage.upload(sourceBlob, {
+    lifecycle: { expiresIn: "1d" },
   });
+
+  async function runEdit(editPrompt: string) {
+    return fal.subscribe("fal-ai/nano-banana/edit", {
+      input: {
+        prompt: editPrompt,
+        image_urls: [falImageUrl],
+        num_images: 1,
+        output_format: "png",
+        aspect_ratio: "auto",
+        limit_generations: true,
+      },
+      logs: true,
+    });
+  }
+
+  let result;
+  try {
+    result = await runEdit(prompt);
+  } catch (error) {
+    const missingImageOutput =
+      error instanceof ValidationError &&
+      error.fieldErrors.some((fieldError) =>
+        fieldError.msg.toLowerCase().includes("did not generate the expected output")
+      );
+
+    if (!missingImageOutput || !retryPrompt) throw error;
+    result = await runEdit(retryPrompt);
+  }
 
   const editedImageUrl = result.data?.images?.[0]?.url;
   if (!editedImageUrl) {
@@ -185,6 +220,7 @@ Remplace uniquement les contenus textuels existants, sans changer :
 
 Conserve la hiérarchie visuelle et l'emplacement des blocs de texte.
 N'invente aucun nouvel élément graphique.
+${POSTER_IMAGE_EDIT_RULES}
 
 Textes à remplacer :
 ${zoneDescription}`;
@@ -226,7 +262,8 @@ Important:
 - preserve the original language style when appropriate
 - replace outdated dates, times, titles, locations and calls to action
 - keep the poster clean, readable and natural
-- output a single edited poster`;
+- output a single edited poster
+${POSTER_IMAGE_EDIT_RULES}`;
 }
 
 /**
@@ -246,7 +283,8 @@ export function buildHiddenEditPrompt(
     ? `Communauté : ${community.name}${community.city ? `, ${community.city}` : ""}.`
     : "";
 
-  return `Tu édites une affiche existante d'une communauté juive (contexte Habad-Loubavitch, textes français et hébreux).
+  return `Produis une image finale à partir de l'affiche de référence jointe.
+Contexte : affiche d'une communauté juive Habad-Loubavitch, avec textes français et hébreux.
 Affiche : « ${template.name} » — catégorie : ${categoryLabel}.
 ${contextLine}
 ${communityLine}
@@ -254,12 +292,16 @@ ${communityLine}
 Applique UNIQUEMENT la modification demandée par l'utilisateur, et rien d'autre :
 « ${userRequest} »
 
-Règles strictes :
-- Conserve la mise en page, la composition, le fond, les couleurs, les personnages, les éléments décoratifs, les logos et la hiérarchie visuelle d'origine.
-- Ne modifie que ce qu'implique explicitement la demande (texte, dates, noms, horaires, lieux, couleurs ou éléments cités).
-- Garde tous les textes lisibles, bien orthographiés (français et hébreu) et dans le même style graphique.
-- N'ajoute ni filigrane, ni bordure, ni nouvel élément graphique sans rapport.
-- Produis une seule affiche finale, propre et de haute qualité.`;
+${POSTER_IMAGE_EDIT_RULES}`;
+}
+
+function buildConciseRetryPrompt(userRequest: string): string {
+  const conciseRequest = userRequest.replace(/\s+/g, " ").trim().slice(0, 1800);
+  return `Return exactly one edited poster image based on the attached image.
+Apply this request: ${conciseRequest}
+Keep the original layout, colors, photos, faces, logo and visual style unless the request explicitly changes them.
+Do not invent event details. Keep all visible text readable. Add a small ב''ה at the top right if absent.
+Output only the final image.`;
 }
 
 /**
@@ -282,7 +324,11 @@ export async function editPosterFromRequest(params: {
   }
 
   const promptUsed = buildHiddenEditPrompt(template, userRequest, community);
-  const editedImageUrl = await editTemplateTextWithNanoBanana(sourceUrl, promptUsed);
+  const editedImageUrl = await editTemplateTextWithNanoBanana(
+    sourceUrl,
+    promptUsed,
+    buildConciseRetryPrompt(userRequest)
+  );
   const outputBuffer = await fetchImageBuffer(editedImageUrl);
 
   const storagePath = `generated/${communityId}/${template.id}-${Date.now()}.png`;

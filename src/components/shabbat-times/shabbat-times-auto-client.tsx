@@ -427,6 +427,9 @@ export function ShabbatTimesAutoClient({
   const [triggering, setTriggering] = useState(false);
   const [triggerSuccess, setTriggerSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [generatingPreview, setGeneratingPreview] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState("");
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoUploadError, setLogoUploadError] = useState("");
   const [logoDragActive, setLogoDragActive] = useState(false);
@@ -519,6 +522,54 @@ export function ShabbatTimesAutoClient({
 
     setAiInput("");
     setTimeout(() => aiInputRef.current?.focus(), 100);
+  }
+
+  async function handleGeneratePreview() {
+    if (!selectedTemplateId || generatingPreview) return;
+    setGeneratingPreview(true);
+    setPreviewError("");
+    setPreviewImageUrl(null);
+    try {
+      // Étape 1 : confirm → génère les textes pour chaque zone du template
+      const syntheticMessage = `Prépare l'affiche avec ces informations :
+Structure : ${fields.structureName || community.name}
+Ville : ${fields.city || community.city || "Paris"}
+Paracha : ${fields.parasha || ""}
+Heure d'entrée de Chabbat : ${fields.entry || shabbat?.entry || ""}
+Heure de sortie de Chabbat : ${fields.exit || shabbat?.exit || ""}
+${fields.kiddouch ? `Kiddouch offert par : ${fields.kiddouch}` : ""}
+${fields.logoUrl ? `Logo disponible` : ""}`;
+
+      const confirmRes = await fetch("/api/templates/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId: selectedTemplateId,
+          messages: [{ role: "user", content: syntheticMessage }],
+        }),
+      });
+      if (!confirmRes.ok) throw new Error("Impossible de préparer les textes de l'affiche.");
+      const confirmData = await confirmRes.json() as { generatedTexts?: Record<string, string> };
+      const generatedTexts = confirmData.generatedTexts ?? {};
+
+      // Étape 2 : render → génère l'image
+      const renderRes = await fetch("/api/templates/render", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId: selectedTemplateId, generatedTexts }),
+      });
+      if (!renderRes.ok) {
+        const err = await renderRes.json().catch(() => ({})) as { error?: string };
+        throw new Error(err.error ?? "Impossible de générer l'affiche.");
+      }
+      const renderData = await renderRes.json() as { imageUrl?: string };
+      if (renderData.imageUrl) setPreviewImageUrl(renderData.imageUrl);
+      else throw new Error("Aucune image retournée.");
+    } catch (e) {
+      setPreviewError(e instanceof Error ? e.message : "Erreur lors de la génération.");
+    } finally {
+      setGeneratingPreview(false);
+    }
   }
 
   async function saveToApi(payload: Record<string, unknown>) {
@@ -1380,39 +1431,93 @@ export function ShabbatTimesAutoClient({
           </section>
 
           {/* Preview aside */}
-          <aside className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-5 xl:self-start">
-            <h2 className="text-xl font-bold text-slate-950">Aperçu de votre affiche</h2>
-            <div className="mt-4">
-              <SmartphoneFrame>
-                <div className="flex-1 overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <div className="flex size-8 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-500">
-                        {getInitials(fields.structureName || community.name)}
-                      </div>
-                      <p className="truncate text-[12px] font-bold text-slate-900">{(fields.structureName || community.name).toLowerCase().replace(/\s+/g, "")}</p>
-                    </div>
-                    <span className="text-lg leading-none text-slate-500">...</span>
-                  </div>
-                  <div className="aspect-square w-full overflow-hidden bg-slate-100">
-                    {selectedTemplate ? (
-                      <TemplateImage template={selectedTemplate} />
-                    ) : (
-                      <PosterFallback fields={fields} palette={selectedPalette} mode={templateMode} />
-                    )}
-                  </div>
-                  <div className="space-y-2 px-3 py-3 text-[11px] leading-4 text-slate-800">
-                    <p>
-                      <span className="font-bold">{(fields.structureName || community.name).toLowerCase().replace(/\s+/g, "")}</span>{" "}
-                      {postText.split("\n")[0] || "Chabbat Chalom"}
-                    </p>
-                    <p className="text-slate-400">Voir les commentaires</p>
-                  </div>
-                </div>
-              </SmartphoneFrame>
+          <aside className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-5 xl:self-start space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-950">Aperçu de votre affiche</h2>
+              {selectedTemplateId && (
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-violet-700 hover:bg-violet-800"
+                  loading={generatingPreview}
+                  onClick={() => void handleGeneratePreview()}
+                >
+                  {!generatingPreview && <Wand2 className="size-3.5" />}
+                  {generatingPreview ? "Génération…" : "Générer l'aperçu"}
+                </Button>
+              )}
             </div>
+
+            {previewError && (
+              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">{previewError}</p>
+            )}
+
+            {previewImageUrl ? (
+              <div className="space-y-3">
+                <div className="overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={previewImageUrl} alt="Aperçu de l'affiche générée" className="w-full object-cover" />
+                </div>
+                <p className="flex items-center gap-1.5 text-xs text-emerald-700">
+                  <CheckCircle2 className="size-3.5" />
+                  Aperçu généré avec les informations renseignées
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  loading={generatingPreview}
+                  onClick={() => void handleGeneratePreview()}
+                >
+                  <Wand2 className="size-3.5" />
+                  Regénérer l&apos;aperçu
+                </Button>
+              </div>
+            ) : (
+              <div>
+                <SmartphoneFrame>
+                  <div className="flex-1 overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="flex size-8 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-500">
+                          {getInitials(fields.structureName || community.name)}
+                        </div>
+                        <p className="truncate text-[12px] font-bold text-slate-900">{(fields.structureName || community.name).toLowerCase().replace(/\s+/g, "")}</p>
+                      </div>
+                      <span className="text-lg leading-none text-slate-500">...</span>
+                    </div>
+                    <div className="aspect-square w-full overflow-hidden bg-slate-100">
+                      {generatingPreview ? (
+                        <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-violet-50">
+                          <Loader2 className="size-8 animate-spin text-violet-500" />
+                          <p className="text-[11px] font-semibold text-violet-700">Génération en cours…</p>
+                        </div>
+                      ) : selectedTemplate ? (
+                        <TemplateImage template={selectedTemplate} />
+                      ) : (
+                        <PosterFallback fields={fields} palette={selectedPalette} mode={templateMode} />
+                      )}
+                    </div>
+                    <div className="space-y-2 px-3 py-3 text-[11px] leading-4 text-slate-800">
+                      <p>
+                        <span className="font-bold">{(fields.structureName || community.name).toLowerCase().replace(/\s+/g, "")}</span>{" "}
+                        {postText.split("\n")[0] || "Chabbat Chalom"}
+                      </p>
+                      <p className="text-slate-400">Voir les commentaires</p>
+                    </div>
+                  </div>
+                </SmartphoneFrame>
+                {selectedTemplateId && !generatingPreview && (
+                  <p className="mt-3 text-center text-xs text-slate-400">
+                    Cliquez sur &quot;Générer l&apos;aperçu&quot; pour voir le rendu final avec vos informations.
+                  </p>
+                )}
+              </div>
+            )}
+
             {selectedTemplate && (
-              <div className="mt-4 rounded-lg border border-violet-100 bg-violet-50 p-3 text-sm text-violet-900">
+              <div className="rounded-lg border border-violet-100 bg-violet-50 p-3 text-sm text-violet-900">
                 <Info className="mr-2 inline size-4" />
                 Modèle : {selectedTemplate.name}
               </div>

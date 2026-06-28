@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { POSTER_ANALYSIS_RULES } from "./poster-rules";
 
 const openrouter = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
@@ -82,6 +83,7 @@ Objectif :
 - proposer surtout les textes à remplacer
 - ajouter les éléments visuels remplaçables seulement s'ils sont clairement identifiables (photo intervenant, visuel héros, encart photo, bandeau fort, etc.)
 - les questions doivent être courtes, concrètes et directement exploitables par un assistant
+${POSTER_ANALYSIS_RULES}
 
 Règles :
 - 4 à 7 éléments maximum

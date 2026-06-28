@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ApiError, ValidationError } from "@fal-ai/client";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { editPosterFromRequest } from "@/lib/templates/render";
@@ -78,6 +79,37 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ imageUrl: result.imageUrl });
   } catch (error) {
+    if (error instanceof ValidationError) {
+      const details = error.fieldErrors.map((fieldError) => fieldError.msg).join("; ");
+      console.error(
+        "[Templates Generate Image] Fal validation error",
+        JSON.stringify({ requestId: error.requestId, details })
+      );
+      const missingImageOutput = details
+        .toLowerCase()
+        .includes("did not generate the expected output");
+      return NextResponse.json(
+        {
+          error: missingImageOutput
+            ? "Le modèle n'a pas pu produire l'affiche à partir de cette demande. Essayez une instruction plus courte et centrée sur les changements visuels."
+            : details || "Fal a refusé les paramètres de génération.",
+        },
+        { status: 502 }
+      );
+    }
+
+    if (error instanceof ApiError) {
+      console.error("[Templates Generate Image] Fal API error", {
+        requestId: error.requestId,
+        status: error.status,
+        message: error.message,
+      });
+      return NextResponse.json(
+        { error: "Le service de génération d'images est temporairement indisponible." },
+        { status: 502 }
+      );
+    }
+
     console.error("[Templates Generate Image]", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur de génération de l'affiche." },

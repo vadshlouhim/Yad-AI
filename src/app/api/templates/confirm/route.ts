@@ -7,6 +7,7 @@ import { analyzeTemplateVisuals } from "@/lib/templates/analysis";
 import { buildTemporalSystemContext } from "@/lib/ai/time-context";
 import { getStoredShabbatTimes } from "@/lib/ai/engine";
 import { getJewishHolidays, type JewishHoliday } from "@/lib/automation/hebcal";
+import { POSTER_GENERATION_RULES } from "@/lib/templates/poster-rules";
 
 const openrouter = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
@@ -207,6 +208,7 @@ Règles :
 - Réutilise les infos de la communauté quand elles sont pertinentes.
 - N'utilise jamais le caractère astérisque.
 - N'ajoute pas de commentaires.
+${POSTER_GENERATION_RULES}
 
 Réponds UNIQUEMENT en JSON valide de la forme :
 {

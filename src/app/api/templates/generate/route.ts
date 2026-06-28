@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { POSTER_GENERATION_RULES } from "@/lib/templates/poster-rules";
 
 const openrouter = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
@@ -80,6 +81,7 @@ Pour chaque zone editable, genere le texte personnalise adapte. Le texte doit et
 - En accord avec le ton de la communaute
 - Capable d'extraire et de comprendre les informations donnees librement par l'utilisateur
 - Coherent avec le type d'evenement, la date, l'heure, le lieu, le public et les consignes eventuelles
+${POSTER_GENERATION_RULES}
 
 Reponds UNIQUEMENT en JSON valide, avec un objet dont les cles sont les IDs des zones et les valeurs le texte personnalise. Exemple :
 { "title": "Soiree Chabbat Speciale", "date": "Vendredi 20 Avril 2026", "lieu": "Beth Habad Paris" }`;

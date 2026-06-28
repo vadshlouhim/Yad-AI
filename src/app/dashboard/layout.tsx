@@ -29,7 +29,7 @@ export default async function DashboardLayout({
 
   const { data: community } = await admin
     .from("Community")
-    .select("id, name, logoUrl, plan, onboardingDone, timezone, channels:Channel(type, isConnected)")
+    .select("id, name, logoUrl, plan, onboardingDone, timezone, communityType, channels:Channel(type, isConnected)")
     .eq("id", profile.communityId)
     .single();
 
