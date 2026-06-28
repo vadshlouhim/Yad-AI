@@ -1452,69 +1452,64 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
               <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">{previewError}</p>
             )}
 
-            {previewImageUrl ? (
-              <div className="space-y-3">
-                <div className="overflow-hidden rounded-xl border border-slate-200 shadow-sm">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={previewImageUrl} alt="Aperçu de l'affiche générée" className="w-full object-cover" />
-                </div>
-                <p className="flex items-center gap-1.5 text-xs text-emerald-700">
-                  <CheckCircle2 className="size-3.5" />
-                  Aperçu généré avec les informations renseignées
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  loading={generatingPreview}
-                  onClick={() => void handleGeneratePreview()}
-                >
-                  <Wand2 className="size-3.5" />
-                  Regénérer l&apos;aperçu
-                </Button>
-              </div>
-            ) : (
-              <div>
-                <SmartphoneFrame>
-                  <div className="flex-1 overflow-hidden">
-                    <div className="flex items-center justify-between px-3 py-2">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <div className="flex size-8 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-500">
-                          {getInitials(fields.structureName || community.name)}
-                        </div>
-                        <p className="truncate text-[12px] font-bold text-slate-900">{(fields.structureName || community.name).toLowerCase().replace(/\s+/g, "")}</p>
+            <div>
+              <SmartphoneFrame>
+                <div className="flex-1 overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <div className="flex size-8 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-500">
+                        {getInitials(fields.structureName || community.name)}
                       </div>
-                      <span className="text-lg leading-none text-slate-500">...</span>
+                      <p className="truncate text-[12px] font-bold text-slate-900">{(fields.structureName || community.name).toLowerCase().replace(/\s+/g, "")}</p>
                     </div>
-                    <div className="aspect-square w-full overflow-hidden bg-slate-100">
-                      {generatingPreview ? (
-                        <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-violet-50">
-                          <Loader2 className="size-8 animate-spin text-violet-500" />
-                          <p className="text-[11px] font-semibold text-violet-700">Génération en cours…</p>
-                        </div>
-                      ) : selectedTemplate ? (
-                        <TemplateImage template={selectedTemplate} />
-                      ) : (
-                        <PosterFallback fields={fields} palette={selectedPalette} mode={templateMode} />
-                      )}
-                    </div>
-                    <div className="space-y-2 px-3 py-3 text-[11px] leading-4 text-slate-800">
-                      <p>
-                        <span className="font-bold">{(fields.structureName || community.name).toLowerCase().replace(/\s+/g, "")}</span>{" "}
-                        {postText.split("\n")[0] || "Chabbat Chalom"}
-                      </p>
-                      <p className="text-slate-400">Voir les commentaires</p>
-                    </div>
+                    <span className="text-lg leading-none text-slate-500">...</span>
                   </div>
-                </SmartphoneFrame>
-                {selectedTemplateId && !generatingPreview && (
-                  <p className="mt-3 text-center text-xs text-slate-400">
-                    Cliquez sur &quot;Générer l&apos;aperçu&quot; pour voir le rendu final avec vos informations.
+                  <div className="aspect-square w-full overflow-hidden bg-slate-100">
+                    {generatingPreview ? (
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-violet-50">
+                        <Loader2 className="size-8 animate-spin text-violet-500" />
+                        <p className="text-[11px] font-semibold text-violet-700">Génération en cours…</p>
+                      </div>
+                    ) : previewImageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={previewImageUrl} alt="Aperçu généré" className="h-full w-full object-cover" />
+                    ) : selectedTemplate ? (
+                      <TemplateImage template={selectedTemplate} />
+                    ) : (
+                      <PosterFallback fields={fields} palette={selectedPalette} mode={templateMode} />
+                    )}
+                  </div>
+                  <div className="space-y-2 px-3 py-3 text-[11px] leading-4 text-slate-800">
+                    <p>
+                      <span className="font-bold">{(fields.structureName || community.name).toLowerCase().replace(/\s+/g, "")}</span>{" "}
+                      {postText.split("\n")[0] || "Chabbat Chalom"}
+                    </p>
+                    <p className="text-slate-400">Voir les commentaires</p>
+                  </div>
+                </div>
+              </SmartphoneFrame>
+              {previewImageUrl && !generatingPreview && (
+                <div className="mt-3 flex items-center justify-between">
+                  <p className="flex items-center gap-1.5 text-xs text-emerald-700">
+                    <CheckCircle2 className="size-3.5" />
+                    Rendu réel généré
                   </p>
-                )}
-              </div>
-            )}
+                  <button
+                    type="button"
+                    onClick={() => void handleGeneratePreview()}
+                    className="flex items-center gap-1 text-xs font-semibold text-violet-600 hover:text-violet-800"
+                  >
+                    <Wand2 className="size-3" />
+                    Regénérer
+                  </button>
+                </div>
+              )}
+              {selectedTemplateId && !previewImageUrl && !generatingPreview && (
+                <p className="mt-3 text-center text-xs text-slate-400">
+                  Cliquez sur &quot;Générer l&apos;aperçu&quot; pour voir le rendu réel.
+                </p>
+              )}
+            </div>
 
             {selectedTemplate && (
               <div className="rounded-lg border border-violet-100 bg-violet-50 p-3 text-sm text-violet-900">

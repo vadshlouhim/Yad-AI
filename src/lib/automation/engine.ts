@@ -2,6 +2,7 @@
 import { generateContent } from "@/lib/ai/engine";
 import { createPublicationsFromDraft, publishToAllChannels, publishToChannel } from "@/lib/publishing/publisher";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
+import { renderTemplatePoster } from "@/lib/templates/render";
 import { getShabbatTimes, getNextHoliday } from "./hebcal";
 import {
   getCampaignFromTriggerConfig,
@@ -75,27 +76,117 @@ function getShabbatPosterConfig(triggerConfig: Record<string, unknown>) {
   return isRecord(value) ? value : {};
 }
 
-async function getSelectedShabbatTemplateImageUrl(params: {
+type DesignZone = { id: string; label: string; type: string; defaultText: string };
+
+function normalizeZoneKey(key: string) {
+  return key.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[_\s-]/g, "");
+}
+function isEntryZone(k: string) {
+  const n = normalizeZoneKey(k);
+  return ["entree", "entry", "hentree", "heureentree", "debut", "candles", "allumage"].some((t) => n.includes(t));
+}
+function isExitZone(k: string) {
+  const n = normalizeZoneKey(k);
+  return ["sortie", "exit", "hsortie", "heuresortie", "havdala", "havdalah", "motzei"].some((t) => n.includes(t));
+}
+function isDateZone(k: string) {
+  const n = normalizeZoneKey(k);
+  return n === "date" || n === "datechabbat" || (n.startsWith("date") && !n.includes("heb") && !n.includes("ebre"));
+}
+function isParashaZone(k: string) {
+  const n = normalizeZoneKey(k);
+  return n.includes("parasha") || n.includes("paracha") || n.includes("parshat");
+}
+function isStructureZone(k: string) {
+  const n = normalizeZoneKey(k);
+  return n.includes("structure") || n.includes("nom") || n.includes("synagogue") || n.includes("communaute") || n === "titre" || n === "title";
+}
+function isCityZone(k: string) {
+  const n = normalizeZoneKey(k);
+  return n === "ville" || n === "city" || n.includes("ville") || n.includes("city");
+}
+function isKiddouchZone(k: string) {
+  const n = normalizeZoneKey(k);
+  return n.includes("kiddouch") || n.includes("kidouch") || n.includes("sponsor");
+}
+
+function buildShabbatGeneratedTexts(
+  zones: DesignZone[],
+  fields: Record<string, string>,
+  shabbatTimes: { entry: string; exit: string; date?: string; parasha?: string } | null
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  const formatDate = (d: string) => {
+    try {
+      return new Date(`${d}T12:00:00`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+    } catch { return d; }
+  };
+
+  for (const zone of zones) {
+    const k = zone.id;
+    if (isEntryZone(k) && shabbatTimes?.entry) {
+      result[k] = shabbatTimes.entry;
+    } else if (isExitZone(k) && shabbatTimes?.exit) {
+      result[k] = shabbatTimes.exit;
+    } else if (isDateZone(k) && shabbatTimes?.date) {
+      result[k] = formatDate(shabbatTimes.date);
+    } else if (isParashaZone(k)) {
+      result[k] = shabbatTimes?.parasha ?? fields.parasha ?? zone.defaultText;
+    } else if (isStructureZone(k)) {
+      result[k] = fields.structureName ?? zone.defaultText;
+    } else if (isCityZone(k)) {
+      result[k] = fields.city ?? zone.defaultText;
+    } else if (isKiddouchZone(k)) {
+      result[k] = fields.kiddouch ?? zone.defaultText;
+    } else {
+      result[k] = zone.defaultText;
+    }
+  }
+  return result;
+}
+
+async function renderShabbatPosterImage(params: {
   supabase: ReturnType<typeof createAdminClient>;
   triggerConfig: Record<string, unknown>;
   communityId: string;
-}) {
-  const posterConfig = getShabbatPosterConfig(params.triggerConfig);
-  const selectedTemplateId = typeof posterConfig.selectedTemplateId === "string"
-    ? posterConfig.selectedTemplateId
-    : "";
+  shabbatTimes: { entry: string; exit: string; date?: string; parasha?: string; hebrewDate?: string } | null;
+}): Promise<string | null> {
+  if (!process.env.FAL_KEY) return null;
 
+  const posterConfig = getShabbatPosterConfig(params.triggerConfig);
+  const selectedTemplateId = typeof posterConfig.selectedTemplateId === "string" ? posterConfig.selectedTemplateId : "";
   if (!selectedTemplateId) return null;
 
   const { data: template } = await params.supabase
     .from("Template")
-    .select("previewUrl, thumbnailUrl, isGlobal, communityId")
+    .select("*")
     .eq("id", selectedTemplateId)
     .or(`isGlobal.eq.true,communityId.eq.${params.communityId}`)
     .maybeSingle();
 
   if (!template) return null;
-  return resolveTemplateAssetUrl(template.previewUrl) ?? resolveTemplateAssetUrl(template.thumbnailUrl);
+
+  const staticUrl = resolveTemplateAssetUrl(template.previewUrl) ?? resolveTemplateAssetUrl(template.thumbnailUrl);
+  const zones = (template.design as unknown as DesignZone[]) ?? [];
+
+  // Si le template n'a pas de zones éditables, on retourne l'image statique
+  if (zones.length === 0) return staticUrl;
+
+  const savedFields = (isRecord(posterConfig.fields) ? posterConfig.fields : {}) as Record<string, string>;
+
+  try {
+    const generatedTexts = buildShabbatGeneratedTexts(zones, savedFields, params.shabbatTimes);
+    const rendered = await renderTemplatePoster({
+      admin: params.supabase,
+      template,
+      communityId: params.communityId,
+      generatedTexts,
+    });
+    return rendered.imageUrl;
+  } catch (err) {
+    console.error("[Automation] Erreur rendu affiche Chabbat, fallback sur image statique:", err);
+    return staticUrl;
+  }
 }
 
 type AutomationWithCommunity = Automation & {
@@ -370,10 +461,11 @@ async function prepareAutomationNotification(automation: AutomationWithCommunity
       city: automation.community.city ?? undefined,
       timezone: automation.community.timezone,
     });
-    preNotifImageUrl = await getSelectedShabbatTemplateImageUrl({
+    preNotifImageUrl = await renderShabbatPosterImage({
       supabase,
       triggerConfig,
       communityId: automation.community.id,
+      shabbatTimes: shabbatTimesForPrep,
     });
   }
 
@@ -987,10 +1079,11 @@ export async function executeAutomationActions(
         }
 
         const selectedTemplateImageUrl = automation.trigger === "WEEKLY_SHABBAT"
-          ? await getSelectedShabbatTemplateImageUrl({
+          ? await renderShabbatPosterImage({
               supabase,
               triggerConfig,
               communityId: automation.community.id,
+              shabbatTimes,
             })
           : null;
 
