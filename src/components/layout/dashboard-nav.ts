@@ -29,6 +29,7 @@ import {
   Zap,
 } from "lucide-react";
 import React from "react";
+import { getCommunityProfileLabel } from "@/lib/community/profile-labels";
 
 // Official colored brand icons for the sidebar
 export const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => {
@@ -168,6 +169,18 @@ export interface DashboardDesktopCategory {
   items: DashboardNavItem[];
 }
 
+export interface OfficialDashboardMenuItem extends DashboardNavItem {
+  disabled?: boolean;
+}
+
+export interface OfficialDashboardMenuSection {
+  key: string;
+  section: string;
+  subtitle: string;
+  icon: LucideIcon;
+  items: OfficialDashboardMenuItem[];
+}
+
 export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActive: string }> = {
   "GESTION DES RESEAUX SOCIAUX": {
     label: "text-emerald-300",
@@ -219,6 +232,204 @@ export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActiv
   },
 };
 
+export const OFFICIAL_MENU_SECTION_STYLES: Record<
+  string,
+  {
+    accentBar: string;
+    iconSurface: string;
+    titleClass: string;
+    descriptionClass: string;
+    itemIcon: string;
+    itemHover: string;
+    itemActive: string;
+  }
+> = {
+  social: {
+    accentBar: "bg-blue-500",
+    iconSurface: "bg-blue-50",
+    titleClass: "text-blue-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-blue-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-blue-50 text-slate-950 ring-1 ring-blue-100",
+  },
+  automations: {
+    accentBar: "bg-violet-500",
+    iconSurface: "bg-violet-50",
+    titleClass: "text-violet-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-violet-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-violet-50 text-slate-950 ring-1 ring-violet-100",
+  },
+  email: {
+    accentBar: "bg-cyan-500",
+    iconSurface: "bg-cyan-50",
+    titleClass: "text-cyan-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-cyan-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-cyan-50 text-slate-950 ring-1 ring-cyan-100",
+  },
+  donation: {
+    accentBar: "bg-orange-500",
+    iconSurface: "bg-orange-50",
+    titleClass: "text-orange-600",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-orange-500",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-orange-50 text-slate-950 ring-1 ring-orange-200",
+  },
+  resources: {
+    accentBar: "bg-amber-500",
+    iconSurface: "bg-amber-50",
+    titleClass: "text-amber-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-amber-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-amber-50 text-slate-950 ring-1 ring-amber-100",
+  },
+  clips: {
+    accentBar: "bg-rose-500",
+    iconSurface: "bg-rose-50",
+    titleClass: "text-rose-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-rose-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-rose-50 text-slate-950 ring-1 ring-rose-100",
+  },
+  contacts: {
+    accentBar: "bg-emerald-500",
+    iconSurface: "bg-emerald-50",
+    titleClass: "text-emerald-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-emerald-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-emerald-50 text-slate-950 ring-1 ring-emerald-100",
+  },
+  settings: {
+    accentBar: "bg-slate-500",
+    iconSurface: "bg-slate-100",
+    titleClass: "text-slate-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-slate-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-slate-100 text-slate-950 ring-1 ring-slate-200",
+  },
+};
+
+function getStructureTypeLabel(communityType?: string | null) {
+  const label = getCommunityProfileLabel(communityType, "plural").trim();
+  if (!label || label.toLowerCase() === "profils") return "";
+  return `${label.charAt(0).toLowerCase()}${label.slice(1)}`;
+}
+
+export function getOfficialDashboardMenuSections(communityType?: string | null): OfficialDashboardMenuSection[] {
+  const structureType = getStructureTypeLabel(communityType);
+  const automationsSubtitle = structureType
+    ? `Automatisations specialement concues pour les ${structureType}.`
+    : "Automatisations specialement concues pour vous.";
+  const resourcesSubtitle = structureType
+    ? `Des outils pratiques pour les ${structureType}.`
+    : "Des outils pratiques pour vous.";
+
+  return [
+    {
+      key: "social",
+      section: "RESEAUX SOCIAUX",
+      subtitle: "Publier instantanement et planifier l'envoi sur Instagram, Facebook et WhatsApp avec l'IA.",
+      icon: Share2,
+      items: [
+        { href: "/dashboard/instagram", label: "Instagram", icon: InstagramIcon },
+        { href: "/dashboard/facebook", label: "Facebook", icon: FacebookIcon },
+        { href: "/dashboard/whatsapp", label: "WhatsApp", icon: WhatsAppIcon },
+        { href: "/dashboard/publish/telegram", label: "Telegram", icon: TelegramIcon },
+        { href: "/dashboard/publications", label: "Historique des publications", icon: History },
+      ],
+    },
+    {
+      key: "automations",
+      section: "PUBLICATIONS AUTOMATIQUES",
+      subtitle: automationsSubtitle,
+      icon: CalendarRange,
+      items: [
+        { href: "/dashboard/shabbat-times-auto", label: "Horaires de Chabbat", icon: Clock3 },
+        { href: "/dashboard/jewish-holidays-auto", label: "Fetes juives et Hassidiques", icon: Gift },
+        { href: "/dashboard/event-reminders-auto", label: "Automatisation J-10 / J-5", icon: CalendarClock },
+        { href: "/dashboard/event-recap-auto", label: "Recap automatique apres evenement", icon: Camera },
+        { href: "/dashboard/weekly-images-auto", label: "Cette semaine en images", icon: Image },
+        { href: "/dashboard/monthly-program-recap-auto", label: "Programme & recap du mois", icon: CalendarRange },
+        { href: "/dashboard/automations", label: "Toutes les automatisations", icon: Zap },
+      ],
+    },
+    {
+      key: "email",
+      section: "EMAIL & AVIS GOOGLE",
+      subtitle: "Vos emails et avis Google notifies et geres avec l'IA.",
+      icon: Mail,
+      items: [
+        { href: "/dashboard/email", label: "Email", icon: Mail },
+        { href: "/dashboard/google-reviews", label: "Avis Google", icon: Star },
+      ],
+    },
+    {
+      key: "donation",
+      section: "CAMPAGNE DE DONS",
+      subtitle: "Pilotez vos campagnes de collecte de A a Z.",
+      icon: HandHeart,
+      items: [
+        { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart },
+        { href: "/dashboard/donation-campaign/visuals", label: "Visuels & publications", icon: Share2 },
+      ],
+    },
+    {
+      key: "resources",
+      section: "RESSOURCES & SERVICES",
+      subtitle: resourcesSubtitle,
+      icon: BookOpen,
+      items: [
+        { href: "/dashboard/resources", label: "Mes ressources", icon: ResourcePlusIcon },
+        { href: "/dashboard/community-library", label: "Bibliotheque communautaire", icon: Library },
+        { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
+        { href: "/dashboard/hebrew-calendar", label: "Calendrier hebraique", icon: Calendar },
+        { href: "/dashboard/templates", label: "Affiches", icon: Image },
+        { href: "/dashboard/boutique", label: "Boutique", icon: ShoppingBag },
+        { href: "/dashboard/website", label: "Creation site web", icon: Globe },
+        { href: "/dashboard/referencement", label: "Referencement Google et IA", icon: Search },
+        { href: "/dashboard/assistance-indemnisation-aerienne", label: "Assistance indemnisations", icon: Plane },
+      ],
+    },
+    {
+      key: "clips",
+      section: "CLIPS VIDEO",
+      subtitle: "Clips video crees instantanement avec l'IA.",
+      icon: Video,
+      items: [
+        { href: "/dashboard/clip-recap", label: "Clip video", icon: Video, badge: "Bientot disponible", disabled: true },
+      ],
+    },
+    {
+      key: "contacts",
+      section: "CONTACTS",
+      subtitle: "Tous vos contacts centralises et organises par l'IA.",
+      icon: Plus,
+      items: [
+        { href: "/dashboard/settings?section=contacts", label: "Mes contacts", icon: Plus },
+      ],
+    },
+    {
+      key: "settings",
+      section: "PARAMETRES",
+      subtitle: "Parametres & support client.",
+      icon: Settings,
+      items: [
+        { href: "/dashboard/settings", label: "Parametres", icon: Settings },
+        { href: "/help", label: "Aide & FAQ", icon: HelpCircle },
+      ],
+    },
+  ];
+}
+
 export const DASHBOARD_TOP_ITEM: DashboardNavItem = {
   href: "/dashboard/notifications",
   label: "Notifications",
@@ -259,7 +470,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "CLIPS VIDEO",
     items: [
-      { href: "/dashboard/clip-recap", label: "Clip récap AI", icon: Video },
+      { href: "/dashboard/clip-recap", label: "Clip Video", icon: Video },
     ],
   },
   {
@@ -340,11 +551,6 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     ],
   },
   {
-    section: "CLIPS VIDEO",
-    icon: Video,
-    items: [{ href: "/dashboard/clip-recap", label: "Clip récap AI", icon: Video }],
-  },
-  {
     section: "CAMPAGNE DE DONS",
     icon: HandHeart,
     items: [
@@ -369,6 +575,11 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
         icon: Plane,
       },
     ],
+  },
+  {
+    section: "CLIPS VIDEO",
+    icon: Video,
+    items: [{ href: "/dashboard/clip-recap", label: "Clip Video", icon: Video }],
   },
   {
     section: "PARAMETRES",
