@@ -412,6 +412,40 @@ model Article {
   @@index([isGlobal])
 }
 
+model BlogArticle {
+  id             String            @id @default(cuid())
+  slug           String            @unique
+  title          String
+  excerpt        String            @db.Text
+  content        String            @db.Text
+  category       String            @default("Communication IA")
+  tags           String[]
+  coverImageUrl  String?
+  coverImageAlt  String
+  metaTitle      String
+  metaDescription String           @db.Text
+  canonicalUrl   String?
+  authorName     String            @default("Équipe EasyCom IA")
+  readingMinutes Int               @default(3)
+  status         BlogArticleStatus @default(DRAFT)
+  isFeatured     Boolean           @default(false)
+  isIndexable    Boolean           @default(true)
+  publishedAt    DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([slug])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([publishedAt])
+}
+
+enum BlogArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 enum TemplateCategory {
   SHABBAT
   HOLIDAY

@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   CreditCard,
   Database,
+  FileText,
   ImageIcon,
   LayoutDashboard,
   MessageSquare,
@@ -27,6 +28,7 @@ import {
   Zap,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { OnboardingWizard, demoOnboardingData } from "@/components/onboarding/onboarding-wizard";
 import type { BillingConfig } from "@/lib/billing";
@@ -952,6 +954,18 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
             </div>
 
             <nav className="mt-8 space-y-2">
+              <Link
+                href="/admin/blog"
+                className={`flex w-full items-center justify-between rounded-2xl px-3 py-3 text-left text-sm font-bold transition ${
+                  isDark ? "text-slate-300 hover:bg-white/10" : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <FileText className="size-4" />
+                  Blog SEO
+                </span>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] ${isDark ? "bg-white/10" : "bg-slate-100"}`}>CMS</span>
+              </Link>
               {navItems.map((item) => {
                 const active = activeSection === item.id;
                 return (
@@ -1017,6 +1031,12 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                 <p className={`mt-2 max-w-3xl text-sm leading-6 ${mutedText}`}>Vue claire par défaut, dark mode en option. Les filtres permettent de retrouver rapidement les affiches à modifier ou à suggérer.</p>
               </div>
               <div className="flex flex-wrap gap-2 lg:hidden">
+                <Link
+                  href="/admin/blog"
+                  className={`rounded-full px-3 py-2 text-xs font-bold ${isDark ? "bg-white/10 text-slate-200" : "bg-white text-slate-600"}`}
+                >
+                  Blog SEO
+                </Link>
                 {navItems.map((item) => (
                   <button
                     key={item.id}

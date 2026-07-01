@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { HeroAnimation } from "@/components/home/hero-animation";
 import {
   BrainCircuit,
+  BookOpen,
   CalendarDays,
   CheckCircle2,
   Clapperboard,
@@ -11,6 +12,7 @@ import {
   LogIn,
   Megaphone,
   MessageCircle,
+  Search,
   Send,
   Share2,
   Sparkles,
@@ -99,6 +101,27 @@ const TESTIMONIALS = [
   { name: "Emma V.", role: "Créatrice de contenu", content: "Les ressources et vidéos IA m'aident à publier rapidement sur les bons canaux.", avatar: "EV", color: "bg-fuchsia-100 text-fuchsia-700" },
 ];
 
+const BLOG_TEASERS = [
+  {
+    href: "/blog/communication-ia-communautes",
+    title: "Comment l'IA transforme la communication des communautés",
+    description: "Centraliser messages, réseaux sociaux et rappels sans perdre l'identité humaine.",
+    tone: "border-blue-200 bg-blue-50 text-blue-700",
+  },
+  {
+    href: "/blog/planification-instagram-facebook-whatsapp",
+    title: "Planifier Instagram, Facebook et WhatsApp sans multiplier les outils",
+    description: "Une stratégie multicanale simple pour rester visible sans charge mentale.",
+    tone: "border-pink-200 bg-pink-50 text-pink-700",
+  },
+  {
+    href: "/blog/seo-local-ia-communication",
+    title: "SEO local et IA : rendre votre structure plus visible",
+    description: "Contenus utiles, avis Google, sitemap et données structurées au service de la visibilité.",
+    tone: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  },
+];
+
 export const metadata: Metadata = {
   title: "EasyCom IA - Le copilote IA de communication de votre communauté",
   description:
@@ -140,6 +163,13 @@ export default function HomePage() {
             >
               <CheckCircle2 className="size-4" />
               Notre Méthode
+            </Link>
+            <Link
+              href="/blog"
+              className="inline-flex h-9 items-center gap-2 rounded-full px-1 transition hover:text-blue-700"
+            >
+              <BookOpen className="size-4" />
+              Blog
             </Link>
             <Link
               href="/contact"
@@ -289,6 +319,36 @@ export default function HomePage() {
       </section>
 
       <section className="bg-white px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-600">Blog</p>
+              <h2 className="mt-3 max-w-3xl text-[clamp(1.75rem,6vw,2.5rem)] font-black leading-tight tracking-tight text-slate-950">
+                Guides pratiques pour mieux communiquer avec l&apos;IA
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
+                Référencement, WhatsApp, emails, réseaux sociaux et automatisations : des articles pensés pour aider les structures locales à gagner en visibilité.
+              </p>
+            </div>
+            <Link href="/blog" className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-blue-600 px-5 text-sm font-bold text-white shadow-sm hover:bg-blue-700">
+              <Search className="size-4" />
+              Voir tous les articles
+            </Link>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {BLOG_TEASERS.map((article) => (
+              <Link key={article.href} href={article.href} className={`rounded-[1.5rem] border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${article.tone}`}>
+                <p className="text-xs font-black uppercase tracking-[0.14em] opacity-80">Article SEO</p>
+                <h3 className="mt-3 text-lg font-black leading-tight text-slate-950">{article.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{article.description}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
           <div className="text-center mb-12">
             <p className="text-sm font-black uppercase tracking-[0.16em] text-indigo-600">FAQ</p>
@@ -343,11 +403,23 @@ export default function HomePage() {
         </div>
 
         <div className="mx-auto mt-8 flex max-w-7xl flex-wrap gap-4 text-xs text-slate-400">
+          <Link href="/contact" className="hover:text-white hover:underline">
+            Contact
+          </Link>
+          <Link href="/blog" className="hover:text-white hover:underline">
+            Blog
+          </Link>
           <Link href="/privacy" className="hover:text-white hover:underline">
             Politique de confidentialité
           </Link>
           <Link href="/legal/terms" className="hover:text-white hover:underline">
             Conditions d&apos;utilisation
+          </Link>
+          <Link href="/cookies" className="hover:text-white hover:underline">
+            Cookies
+          </Link>
+          <Link href="/site-map" className="hover:text-white hover:underline">
+            Plan du site
           </Link>
           <Link href="/data-deletion" className="hover:text-white hover:underline">
             Suppression des données
