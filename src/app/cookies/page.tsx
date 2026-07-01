@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PublicFooter } from "@/components/layout/public-footer";
 
 export const metadata: Metadata = {
   title: "Politique cookies",
@@ -49,6 +50,7 @@ export default function CookiesPage() {
           Pour toute question, contactez EasyCom IA depuis la page <Link href="/contact" className="font-bold text-blue-700 hover:underline">contact</Link>.
         </p>
       </section>
+      <PublicFooter />
     </main>
   );
 }

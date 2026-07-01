@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Search, Sparkles } from "lucide-react";
+import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicNavbar } from "@/components/layout/public-navbar";
 import type { BlogArticle } from "@/lib/blog/articles";
 
@@ -176,6 +177,8 @@ export function BlogIndexClient({ articles }: { articles: BlogArticle[] }) {
           )}
         </div>
       </section>
+
+      <PublicFooter />
     </main>
   );
 }

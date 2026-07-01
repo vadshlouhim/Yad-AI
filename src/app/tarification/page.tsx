@@ -11,6 +11,7 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
+import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicNavbar } from "@/components/layout/public-navbar";
 import {
   DEFAULT_BILLING_CONFIG,
@@ -234,6 +235,8 @@ export default function PricingPage() {
           </div>
         </div>
       </section>
+
+      <PublicFooter />
     </main>
   );
 }

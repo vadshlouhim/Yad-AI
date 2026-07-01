@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
+import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicNavbar } from "@/components/layout/public-navbar";
 import { getBlogArticleBySlug, getPublishedBlogArticles } from "@/lib/blog/server";
 
@@ -146,6 +147,8 @@ export default async function BlogArticlePage({ params }: Props) {
           </div>
         </section>
       )}
+
+      <PublicFooter />
     </main>
   );
 }

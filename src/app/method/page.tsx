@@ -1,6 +1,7 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
+import { PublicFooter } from "@/components/layout/public-footer";
 import {
   ArrowRight,
   Home,
@@ -195,12 +196,14 @@ export default function MethodPage() {
         </div>
       </section>
 
-      <footer className="px-4 py-20 text-center">
+      <section className="px-4 py-20 text-center">
         <h2 className="mb-8 text-3xl font-black">Prêt à simplifier votre communication ?</h2>
         <Link href="/auth/login" className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-10 py-5 font-black text-white shadow-xl shadow-blue-600/20 transition hover:bg-blue-700">
           Créer mon compte gratuitement <ArrowRight className="size-5" />
         </Link>
-      </footer>
+      </section>
+
+      <PublicFooter />
     </main>
   );
 }

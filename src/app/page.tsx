@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { HeroAnimation } from "@/components/home/hero-animation";
+import { PublicFooter } from "@/components/layout/public-footer";
 import {
   BrainCircuit,
   BookOpen,
@@ -409,34 +410,9 @@ export default function HomePage() {
             Essayer maintenant
           </Link>
         </div>
-
-        <div className="mx-auto mt-8 flex max-w-7xl flex-wrap gap-4 text-xs text-slate-400">
-          <Link href="/contact" className="hover:text-white hover:underline">
-            Contact
-          </Link>
-          <Link href="/blog" className="hover:text-white hover:underline">
-            Blog
-          </Link>
-          <Link href="/tarification" className="hover:text-white hover:underline">
-            Tarification
-          </Link>
-          <Link href="/privacy" className="hover:text-white hover:underline">
-            Politique de confidentialité
-          </Link>
-          <Link href="/legal/terms" className="hover:text-white hover:underline">
-            Conditions d&apos;utilisation
-          </Link>
-          <Link href="/cookies" className="hover:text-white hover:underline">
-            Cookies
-          </Link>
-          <Link href="/site-map" className="hover:text-white hover:underline">
-            Plan du site
-          </Link>
-          <Link href="/data-deletion" className="hover:text-white hover:underline">
-            Suppression des données
-          </Link>
-        </div>
       </section>
+
+      <PublicFooter />
     </main>
   );
 }

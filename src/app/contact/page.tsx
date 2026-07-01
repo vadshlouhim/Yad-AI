@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { PublicFooter } from "@/components/layout/public-footer";
 import {
   Home,
   Send,
@@ -222,7 +223,8 @@ export default function ContactPage() {
           </div>
         </div>
       </section>
+
+      <PublicFooter />
     </main>
   );
 }
-

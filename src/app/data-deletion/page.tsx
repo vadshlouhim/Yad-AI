@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { PublicFooter } from "@/components/layout/public-footer";
 
 export const metadata: Metadata = {
   title: "Suppression des données",
@@ -64,6 +65,7 @@ export default function DataDeletionPage() {
           </section>
         </div>
       </div>
+      <PublicFooter />
     </main>
   );
 }

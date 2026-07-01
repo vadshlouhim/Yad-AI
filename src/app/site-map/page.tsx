@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PublicFooter } from "@/components/layout/public-footer";
 import { getPublishedBlogArticles } from "@/lib/blog/server";
 
 export const dynamic = "force-dynamic";
@@ -77,6 +78,7 @@ export default async function SiteMapPage() {
           </div>
         </div>
       </section>
+      <PublicFooter />
     </main>
   );
 }
