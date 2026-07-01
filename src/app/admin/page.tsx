@@ -19,6 +19,7 @@ type CountableTable =
   | "Template"
   | "AutomationPreset"
   | "Article"
+  | "ContactLead"
   | "Automation"
   | "Event"
   | "Publication";
@@ -50,12 +51,14 @@ export default async function AdminPage() {
     mediaCount,
     templateCount,
     articleCount,
+    leadCount,
     automationCount,
     eventCount,
     publicationCount,
     { data: templates },
     { data: communities },
     { data: users },
+    { data: contactLeads },
     { data: subscriptions },
     { data: automations },
     { data: automationPresets },
@@ -73,6 +76,7 @@ export default async function AdminPage() {
     countRows(admin, "MediaFile"),
     countRows(admin, "Template"),
     countRows(admin, "Article"),
+    countRows(admin, "ContactLead"),
     countRows(admin, "Automation"),
     countRows(admin, "Event"),
     countRows(admin, "Publication"),
@@ -92,6 +96,11 @@ export default async function AdminPage() {
       .from("profiles")
       .select("id, name, email, role, communityId")
       .order("email", { ascending: true }),
+    admin
+      .from("ContactLead")
+      .select("id, name, email, phone, organization, subject, message, source, pageUrl, ipAddress, userAgent, status, emailSentAt, emailError, createdAt, updatedAt")
+      .order("createdAt", { ascending: false })
+      .limit(200),
     admin
       .from("Subscription")
       .select("id, communityId, plan, status, currentPeriodStart, currentPeriodEnd, createdAt")
@@ -142,13 +151,14 @@ export default async function AdminPage() {
         globalTemplateCount,
         activeTemplateCount,
         articleCount,
+        leadCount,
         automationCount,
         eventCount,
         publicationCount,
         imageGenerationCount: totalTemplateUsage + (draftsWithImagesCount ?? 0),
         templateUsageCount: totalTemplateUsage,
         databaseItemCount:
-          draftCount + mediaCount + templateCount + articleCount + automationCount + eventCount + publicationCount,
+          draftCount + mediaCount + templateCount + articleCount + leadCount + automationCount + eventCount + publicationCount,
       }}
       templates={hydratedTemplates}
       communities={communities ?? []}
@@ -185,6 +195,7 @@ export default async function AdminPage() {
             : null,
         };
       })}
+      contactLeads={contactLeads ?? []}
       automations={(automations ?? []).map((automation) => ({
         ...automation,
         community: firstRelation(automation.community),

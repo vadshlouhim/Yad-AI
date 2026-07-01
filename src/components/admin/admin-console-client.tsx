@@ -45,6 +45,7 @@ interface AdminMetrics {
   globalTemplateCount: number;
   activeTemplateCount: number;
   articleCount: number;
+  leadCount: number;
   automationCount: number;
   eventCount: number;
   publicationCount: number;
@@ -108,6 +109,25 @@ interface AdminUser {
   } | null;
 }
 
+interface ContactLead {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  organization: string | null;
+  subject: string;
+  message: string;
+  source: string;
+  pageUrl: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  status: string;
+  emailSentAt: string | null;
+  emailError: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface AdminAutomation {
   id: string;
   communityId: string;
@@ -157,13 +177,14 @@ interface Props {
   templates: AdminTemplate[];
   communities: AdminCommunity[];
   users: AdminUser[];
+  contactLeads: ContactLead[];
   automations: AdminAutomation[];
   automationPresets: AdminAutomationPreset[];
   recentConversations: RecentConversation[];
   billingConfig: BillingConfig;
 }
 
-type AdminSection = "overview" | "templates" | "presets" | "automations" | "pricing" | "communities" | "activity" | "data" | "development" | "users";
+type AdminSection = "overview" | "templates" | "presets" | "automations" | "pricing" | "communities" | "activity" | "data" | "development" | "users" | "leads";
 type ThemeMode = "light" | "dark";
 type AdminAutomationFormState = {
   communityId: string;
@@ -321,7 +342,7 @@ function MetricCard({
   );
 }
 
-export function AdminConsoleClient({ metrics, templates, communities, users, automations, automationPresets, recentConversations, billingConfig }: Props) {
+export function AdminConsoleClient({ metrics, templates, communities, users, contactLeads, automations, automationPresets, recentConversations, billingConfig }: Props) {
   const [selectedId, setSelectedId] = useState(templates[0]?.id ?? "");
   const [selectedPresetId, setSelectedPresetId] = useState(automationPresets[0]?.id ?? "");
   const [query, setQuery] = useState("");
@@ -925,6 +946,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     { id: "pricing" as const, label: "Tarification", icon: CreditCard, value: "€" },
     { id: "communities" as const, label: "Beth Habad", icon: Building2, value: formatNumber(metrics.communityCount) },
     { id: "users" as const, label: "Utilisateurs", icon: Users, value: formatNumber(users.length) },
+    { id: "leads" as const, label: "Leads", icon: MessageSquare, value: formatNumber(contactLeads.length) },
     { id: "activity" as const, label: "Activité IA", icon: Bot, value: formatNumber(metrics.conversationCount) },
     { id: "data" as const, label: "Données", icon: Database, value: formatNumber(metrics.databaseItemCount) },
     { id: "development" as const, label: "Développement", icon: PlayCircle, value: "UI" },
@@ -1645,6 +1667,65 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                   placeholder="Offre de lancement..."
                 />
               </label>
+            </section>
+          )}
+
+          {activeSection === "leads" && (
+            <section className="mt-6">
+              <div className={`rounded-[2rem] border p-5 shadow-sm ${panelClass}`}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className={`text-xl font-black ${strongText}`}>Leads</h3>
+                    <p className={`mt-1 text-sm ${mutedText}`}>
+                      {contactLeads.length} demande(s) reçue(s) depuis le formulaire de contact public.
+                    </p>
+                  </div>
+                  <div className={`rounded-2xl border px-4 py-3 text-sm font-black ${isDark ? "border-white/10 bg-white/5 text-slate-200" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+                    Emails envoyés : {contactLeads.filter((lead) => lead.emailSentAt).length}/{contactLeads.length}
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-4">
+                  {contactLeads.length === 0 ? (
+                    <p className={`rounded-2xl border border-dashed p-6 text-sm ${isDark ? "border-white/10 text-slate-400" : "border-slate-200 text-slate-500"}`}>
+                      Aucun lead pour le moment.
+                    </p>
+                  ) : (
+                    contactLeads.map((lead) => (
+                      <article key={lead.id} className={`rounded-3xl border p-4 ${isDark ? "border-white/10 bg-slate-950/55" : "border-slate-200 bg-white"}`}>
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h4 className={`text-lg font-black ${strongText}`}>{lead.name}</h4>
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${lead.status === "NEW" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}>
+                                {lead.status}
+                              </span>
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${lead.emailSentAt ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                                {lead.emailSentAt ? "Email Resend envoyé" : "Email à vérifier"}
+                              </span>
+                            </div>
+                            <p className={`mt-1 text-sm font-semibold ${mutedText}`}>{lead.subject}</p>
+                            <div className={`mt-3 grid gap-2 text-sm ${mutedText}`}>
+                              <p><span className={`font-black ${strongText}`}>Email :</span> <a href={`mailto:${lead.email}`} className="text-blue-600 hover:underline">{lead.email}</a></p>
+                              {lead.phone && <p><span className={`font-black ${strongText}`}>Téléphone :</span> <a href={`tel:${lead.phone}`} className="text-blue-600 hover:underline">{lead.phone}</a></p>}
+                              {lead.organization && <p><span className={`font-black ${strongText}`}>Organisation :</span> {lead.organization}</p>}
+                              {lead.pageUrl && <p><span className={`font-black ${strongText}`}>Page :</span> {lead.pageUrl}</p>}
+                              <p><span className={`font-black ${strongText}`}>Reçu le :</span> {new Date(lead.createdAt).toLocaleString("fr-FR")}</p>
+                            </div>
+                          </div>
+                          <div className={`rounded-2xl border p-3 text-xs ${isDark ? "border-white/10 bg-white/5 text-slate-300" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
+                            <p><span className="font-black">IP :</span> {lead.ipAddress ?? "Non renseignée"}</p>
+                            {lead.emailError && <p className="mt-2 text-red-600"><span className="font-black">Erreur email :</span> {lead.emailError}</p>}
+                          </div>
+                        </div>
+                        <div className={`mt-4 rounded-2xl border p-4 text-sm leading-7 ${isDark ? "border-white/10 bg-white/5 text-slate-200" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+                          {lead.message}
+                        </div>
+                      </article>
+                    ))
+                  )}
+                </div>
+              </div>
             </section>
           )}
 

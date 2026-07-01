@@ -14,15 +14,42 @@ import {
 } from "lucide-react";
 
 export default function ContactPage() {
-  const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    organization: "",
+    subject: "",
+    message: "",
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus("loading");
-    setTimeout(() => {
+    setError("");
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          pageUrl: typeof window !== "undefined" ? window.location.href : "/contact",
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok && response.status !== 202) {
+        throw new Error(payload.error ?? "Impossible d'envoyer votre message.");
+      }
       setStatus("success");
+      setForm({ name: "", email: "", phone: "", organization: "", subject: "", message: "" });
       setTimeout(() => setStatus("idle"), 3000);
-    }, 1500);
+    } catch (submitError) {
+      setStatus("error");
+      setError(submitError instanceof Error ? submitError.message : "Impossible d'envoyer votre message.");
+    }
   };
 
   return (
@@ -94,6 +121,8 @@ export default function ContactPage() {
                       <input 
                         required 
                         type="text" 
+                        value={form.name}
+                        onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
                         placeholder="Jean Dupont"
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:border-transparent transition outline-none" 
                       />
@@ -103,8 +132,32 @@ export default function ContactPage() {
                       <input 
                         required 
                         type="email" 
+                        value={form.email}
+                        onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
                         placeholder="jean@exemple.com"
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:border-transparent transition outline-none" 
+                      />
+                    </div>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-black text-slate-700">Téléphone</label>
+                      <input
+                        type="tel"
+                        value={form.phone}
+                        onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+                        placeholder="+33 6 12 34 56 78"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:border-transparent transition outline-none"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-black text-slate-700">Organisation</label>
+                      <input
+                        type="text"
+                        value={form.organization}
+                        onChange={(event) => setForm((current) => ({ ...current, organization: event.target.value }))}
+                        placeholder="Association, synagogue, commerce..."
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:border-transparent transition outline-none"
                       />
                     </div>
                   </div>
@@ -113,6 +166,8 @@ export default function ContactPage() {
                     <input 
                       required 
                       type="text" 
+                      value={form.subject}
+                      onChange={(event) => setForm((current) => ({ ...current, subject: event.target.value }))}
                       placeholder="Comment puis-je vous aider ?"
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:border-transparent transition outline-none" 
                     />
@@ -122,10 +177,17 @@ export default function ContactPage() {
                     <textarea 
                       required 
                       rows={5} 
+                      value={form.message}
+                      onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
                       placeholder="Votre message ici..."
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:border-transparent transition outline-none resize-none" 
                     />
                   </div>
+                  {status === "error" && (
+                    <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                      {error}
+                    </p>
+                  )}
                   <button 
                     disabled={status === "loading"}
                     className="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-70"
@@ -163,5 +225,4 @@ export default function ContactPage() {
     </main>
   );
 }
-
 

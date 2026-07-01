@@ -6,8 +6,11 @@ import Link from "next/link";
 import { Search, Sparkles } from "lucide-react";
 import type { BlogArticle } from "@/lib/blog/articles";
 
+const ARTICLES_PER_PAGE = 6;
+
 export function BlogIndexClient({ articles }: { articles: BlogArticle[] }) {
   const [query, setQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const normalizedQuery = query.trim().toLowerCase();
   const filteredArticles = useMemo(() => {
     if (!normalizedQuery) return articles;
@@ -16,13 +19,24 @@ export function BlogIndexClient({ articles }: { articles: BlogArticle[] }) {
         .join(" ")
         .toLowerCase()
         .includes(normalizedQuery)
-    );
+      );
   }, [articles, normalizedQuery]);
 
-  const featuredArticle = filteredArticles[0] ?? articles[0] ?? null;
+  const totalPages = Math.max(1, Math.ceil(filteredArticles.length / ARTICLES_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedArticles = filteredArticles.slice(
+    (safeCurrentPage - 1) * ARTICLES_PER_PAGE,
+    safeCurrentPage * ARTICLES_PER_PAGE
+  );
+  const featuredArticle = safeCurrentPage === 1 ? paginatedArticles[0] ?? articles[0] ?? null : null;
   const secondaryArticles = featuredArticle
-    ? filteredArticles.filter((article) => article.id !== featuredArticle.id)
-    : filteredArticles;
+    ? paginatedArticles.filter((article) => article.id !== featuredArticle.id)
+    : paginatedArticles;
+
+  function goToPage(page: number) {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   return (
     <main className="min-h-screen bg-white text-slate-950">
@@ -51,7 +65,10 @@ export function BlogIndexClient({ articles }: { articles: BlogArticle[] }) {
               <Search className="pointer-events-none absolute left-5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
               <input
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setCurrentPage(1);
+                }}
                 placeholder="Rechercher un article : WhatsApp, SEO, avis Google..."
                 className="h-14 w-full rounded-full border border-slate-200 bg-white pl-13 pr-5 text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
               />
@@ -118,6 +135,42 @@ export function BlogIndexClient({ articles }: { articles: BlogArticle[] }) {
               <p className="text-lg font-black text-slate-950">Aucun article trouvé</p>
               <p className="mt-2 text-sm text-slate-500">Essayez une recherche plus large, par exemple &quot;WhatsApp&quot; ou &quot;SEO&quot;.</p>
             </div>
+          )}
+
+          {filteredArticles.length > ARTICLES_PER_PAGE && (
+            <nav className="mt-10 flex flex-wrap items-center justify-center gap-2" aria-label="Pagination du blog">
+              <button
+                type="button"
+                onClick={() => goToPage(Math.max(1, safeCurrentPage - 1))}
+                disabled={safeCurrentPage === 1}
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Précédent
+              </button>
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                <button
+                  key={page}
+                  type="button"
+                  onClick={() => goToPage(page)}
+                  aria-current={safeCurrentPage === page ? "page" : undefined}
+                  className={`h-10 min-w-10 rounded-full px-3 text-sm font-black transition ${
+                    safeCurrentPage === page
+                      ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
+                      : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => goToPage(Math.min(totalPages, safeCurrentPage + 1))}
+                disabled={safeCurrentPage === totalPages}
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Suivant
+              </button>
+            </nav>
           )}
         </div>
       </section>

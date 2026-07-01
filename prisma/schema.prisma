@@ -446,6 +446,37 @@ enum BlogArticleStatus {
   ARCHIVED
 }
 
+model ContactLead {
+  id           String            @id @default(cuid())
+  name         String
+  email        String
+  phone        String?
+  organization String?
+  subject      String
+  message      String            @db.Text
+  source       String            @default("contact_form")
+  pageUrl      String?
+  ipAddress    String?
+  userAgent    String?
+  status       ContactLeadStatus @default(NEW)
+  metadata     Json?
+  emailSentAt  DateTime?
+  emailError   String?           @db.Text
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum ContactLeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CLOSED
+}
+
 enum TemplateCategory {
   SHABBAT
   HOLIDAY
