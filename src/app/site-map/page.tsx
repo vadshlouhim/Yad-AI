@@ -13,6 +13,7 @@ export const metadata: Metadata = {
 const MAIN_LINKS = [
   { href: "/", label: "Accueil" },
   { href: "/blog", label: "Blog" },
+  { href: "/tarification", label: "Tarification" },
   { href: "/method", label: "Notre méthode" },
   { href: "/contact", label: "Contact" },
   { href: "/help", label: "Aide & FAQ" },

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, CheckCircle2, LogIn, MessageCircle } from "lucide-react";
+import { BookOpen, CheckCircle2, CreditCard, LogIn, MessageCircle } from "lucide-react";
 
 export function PublicNavbar() {
   return (
@@ -33,6 +33,10 @@ export function PublicNavbar() {
           <Link href="/blog" className="inline-flex h-9 items-center gap-2 rounded-full px-1 transition hover:text-blue-700">
             <BookOpen className="size-4" />
             Blog
+          </Link>
+          <Link href="/tarification" className="inline-flex h-9 items-center gap-2 rounded-full px-1 transition hover:text-amber-700">
+            <CreditCard className="size-4" />
+            Tarification
           </Link>
           <Link href="/contact" className="inline-flex h-9 items-center gap-2 rounded-full px-1 transition hover:text-indigo-700">
             <MessageCircle className="size-4" />

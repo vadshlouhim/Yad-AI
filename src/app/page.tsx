@@ -1,4 +1,4 @@
-﻿import Image from "next/image";
+import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { HeroAnimation } from "@/components/home/hero-animation";
@@ -8,6 +8,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Clapperboard,
+  CreditCard,
   Inbox,
   LogIn,
   Megaphone,
@@ -170,6 +171,13 @@ export default function HomePage() {
             >
               <BookOpen className="size-4" />
               Blog
+            </Link>
+            <Link
+              href="/tarification"
+              className="inline-flex h-9 items-center gap-2 rounded-full px-1 transition hover:text-amber-700"
+            >
+              <CreditCard className="size-4" />
+              Tarification
             </Link>
             <Link
               href="/contact"
@@ -408,6 +416,9 @@ export default function HomePage() {
           </Link>
           <Link href="/blog" className="hover:text-white hover:underline">
             Blog
+          </Link>
+          <Link href="/tarification" className="hover:text-white hover:underline">
+            Tarification
           </Link>
           <Link href="/privacy" className="hover:text-white hover:underline">
             Politique de confidentialité

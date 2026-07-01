@@ -12,6 +12,7 @@ export async function GET() {
     "## Pages importantes",
     `- Accueil: ${SITE_URL}/`,
     `- Blog: ${SITE_URL}/blog`,
+    `- Tarification: ${SITE_URL}/tarification`,
     `- Méthode: ${SITE_URL}/method`,
     `- Contact: ${SITE_URL}/contact`,
     `- Confidentialité: ${SITE_URL}/privacy`,
