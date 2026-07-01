@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
+import { PublicNavbar } from "@/components/layout/public-navbar";
 import { getBlogArticleBySlug, getPublishedBlogArticles } from "@/lib/blog/server";
 
 export const dynamic = "force-dynamic";
@@ -76,6 +77,7 @@ export default async function BlogArticlePage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-white text-slate-950">
+      <PublicNavbar />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <section className="border-b border-slate-200 bg-gradient-to-b from-blue-50/80 to-white px-4 py-12 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl">

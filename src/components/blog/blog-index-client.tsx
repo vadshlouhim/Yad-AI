@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Search, Sparkles } from "lucide-react";
+import { PublicNavbar } from "@/components/layout/public-navbar";
 import type { BlogArticle } from "@/lib/blog/articles";
 
 const ARTICLES_PER_PAGE = 6;
@@ -40,6 +41,7 @@ export function BlogIndexClient({ articles }: { articles: BlogArticle[] }) {
 
   return (
     <main className="min-h-screen bg-white text-slate-950">
+      <PublicNavbar />
       <section className="relative overflow-hidden border-b border-slate-200 bg-white">
         <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-blue-50 via-cyan-50/70 to-white" />
         <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
