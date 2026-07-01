@@ -67,7 +67,14 @@ export async function POST() {
   const { data: existing } = await db.from("Channel").select("id").eq("communityId", communityId).eq("type", "WHATSAPP").maybeSingle();
 
   if (existing) {
-    await db.from("Channel").update({ settings: { mode: "personal" }, isActive: true }).eq("id", (existing as { id: string }).id);
+    await db.from("Channel").update({
+      accessToken: null,
+      pageId: null,
+      isConnected: false,
+      isActive: true,
+      settings: { mode: "personal" },
+      updatedAt: new Date().toISOString(),
+    }).eq("id", (existing as { id: string }).id);
   } else {
     await db.from("Channel").insert({
       id: crypto.randomUUID(),

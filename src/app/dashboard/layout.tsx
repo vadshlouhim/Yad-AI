@@ -59,10 +59,12 @@ export default async function DashboardLayout({
         community={community}
         userAvatar={profile.avatarUrl}
         userName={profile.name ?? profile.email}
+        unreadNotifications={unreadCount ?? 0}
       />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar
           communityName={community.name}
+          communityType={community.communityType}
           userAvatar={profile.avatarUrl}
           userName={profile.name ?? ""}
           unreadNotifications={unreadCount ?? 0}

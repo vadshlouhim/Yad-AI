@@ -110,7 +110,14 @@ export async function DELETE() {
   const admin = createAdminClient();
   await (admin as ReturnType<typeof createAdminClient> & { from: (t: string) => ReturnType<ReturnType<typeof createAdminClient>["from"]> })
     .from("Channel")
-    .update({ settings: {} })
+    .update({
+      accessToken: null,
+      pageId: null,
+      isConnected: false,
+      isActive: false,
+      settings: {},
+      updatedAt: new Date().toISOString(),
+    })
     .eq("communityId", communityId)
     .eq("type", "WHATSAPP");
 

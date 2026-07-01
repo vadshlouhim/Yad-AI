@@ -5,12 +5,19 @@ import qrcode from "qrcode";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 // En local, charge le .env du projet (le service lit process.env directement).
 // En prod (Railway), les variables sont déjà définies → ce bloc est ignoré.
 if (!process.env.WHATSAPP_SERVICE_SECRET) {
   const here = path.dirname(fileURLToPath(import.meta.url));
-  for (const envPath of [path.join(here, ".env"), path.join(here, "..", ".env")]) {
+  for (const envPath of [
+    path.join(here, ".env"),
+    path.join(here, ".env.local"),
+    path.join(here, "..", ".env"),
+    path.join(here, "..", ".env.local"),
+  ]) {
     try {
       for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
         const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
@@ -32,14 +39,98 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
 const SECRET = process.env.WHATSAPP_SERVICE_SECRET;
+const CHROME_PATH =
+  process.env.PUPPETEER_EXECUTABLE_PATH ||
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+const execFileAsync = promisify(execFile);
+const SERVICE_DIR = path.dirname(fileURLToPath(import.meta.url));
+const SESSIONS_PATH = path.join(SERVICE_DIR, "sessions");
 
 if (!SECRET) {
   console.error("WHATSAPP_SERVICE_SECRET manquant — arrêt.");
   process.exit(1);
 }
 
+process.on("unhandledRejection", (reason) => {
+  console.error("[WhatsApp service] Rejet non géré :", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("[WhatsApp service] Exception non gérée :", error);
+});
+
 // Map communityId → SessionEntry
 const sessions = new Map();
+const initRetries = new Map();
+
+function onlyDigits(value) {
+  return String(value ?? "").replace(/[^\d]/g, "");
+}
+
+async function requestPairingCodeWhenReady(entry, phoneNumber) {
+  const startedAt = Date.now();
+  let lastError = null;
+
+  while (Date.now() - startedAt < 25_000) {
+    if (entry.status === "connected") {
+      return { status: "connected" };
+    }
+
+    try {
+      const code = await entry.client.requestPairingCode(phoneNumber, true, 180_000);
+      return { status: "code_pending", code };
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, 750));
+    }
+  }
+
+  throw lastError ?? new Error("Code d'appairage indisponible.");
+}
+
+function isBrowserAlreadyRunningError(message) {
+  return String(message ?? "").toLowerCase().includes("browser is already running");
+}
+
+async function cleanupStaleSessionBrowsers(reason, communityId = null) {
+  if (process.platform !== "win32") return;
+
+  const sessionNeedle = communityId ? `session-${communityId}` : "whatsapp-service\\\\sessions";
+  const script = `
+    $needle = '${sessionNeedle.replace(/'/g, "''")}';
+    Get-CimInstance Win32_Process |
+      Where-Object {
+        $_.Name -eq 'chrome.exe' -and
+        $_.CommandLine -and
+        $_.CommandLine -like "*$needle*"
+      } |
+      ForEach-Object {
+        try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop } catch {}
+      }
+  `;
+
+  try {
+    await execFileAsync("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], {
+      timeout: 10_000,
+      windowsHide: true,
+    });
+    console.log(`[WhatsApp service] Nettoyage Chrome session (${reason}) effectue.`);
+  } catch (error) {
+    console.warn(
+      `[WhatsApp service] Nettoyage Chrome session impossible (${reason}) :`,
+      error instanceof Error ? error.message : error
+    );
+  }
+}
+
+function cleanupChromiumLockFiles(communityId) {
+  const sessionDir = path.join(SESSIONS_PATH, `session-${communityId}`);
+  for (const file of ["SingletonLock", "SingletonSocket", "SingletonCookie"]) {
+    try {
+      fs.rmSync(path.join(sessionDir, file), { force: true });
+    } catch {}
+  }
+}
 
 function auth(req, res, next) {
   if (req.headers["x-service-secret"] !== SECRET) {
@@ -66,12 +157,15 @@ async function getOrCreateSession(communityId) {
     }),
     puppeteer: {
       headless: true,
+      executablePath: CHROME_PATH,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--disable-gpu",
-        "--single-process",
+        "--disable-extensions",
+        "--disable-background-networking",
+        "--disable-sync",
       ],
     },
   });
@@ -122,9 +216,26 @@ async function getOrCreateSession(communityId) {
     sessions.delete(communityId);
   });
 
-  client.initialize().catch((err) => {
+  client.initialize().catch(async (err) => {
     console.error(`[${communityId}] Erreur init : ${err.message}`);
+
+    const retryCount = initRetries.get(communityId) ?? 0;
+    if (isBrowserAlreadyRunningError(err.message) && retryCount < 1) {
+      initRetries.set(communityId, retryCount + 1);
+      entry.status = "initializing";
+      await cleanupStaleSessionBrowsers("browser already running", communityId);
+      cleanupChromiumLockFiles(communityId);
+      sessions.delete(communityId);
+      setTimeout(() => {
+        getOrCreateSession(communityId).catch((retryError) => {
+          console.error(`[${communityId}] Erreur retry init : ${retryError.message}`);
+        });
+      }, 1000);
+      return;
+    }
+
     entry.status = "error";
+    initRetries.delete(communityId);
     sessions.delete(communityId);
   });
 
@@ -155,6 +266,23 @@ app.get("/session/:id/qr-instant", auth, async (req, res) => {
     return res.json({ status: "qr_pending", qr: entry.qrDataUrl });
   }
   return res.json({ status: entry.status });
+});
+
+// Genere un code d'appairage WhatsApp sur demande explicite.
+app.post("/session/:id/pairing-code", auth, async (req, res) => {
+  const phoneNumber = onlyDigits(req.body?.phoneNumber);
+  if (!phoneNumber || phoneNumber.length < 8) {
+    return res.status(400).json({ error: "Numero WhatsApp invalide. Utilisez le format international, sans + ni espaces." });
+  }
+
+  try {
+    const entry = await getOrCreateSession(req.params.id);
+    const result = await requestPairingCodeWhenReady(entry, phoneNumber);
+    return res.json(result);
+  } catch (error) {
+    console.error(`[${req.params.id}] Code d'appairage impossible :`, error instanceof Error ? error.message : error);
+    return res.status(500).json({ status: "error", error: "Code d'appairage indisponible, reessayez." });
+  }
 });
 
 // ── GET /session/:id/qr (legacy — long-poll 30 s) ───────────────────────────
@@ -316,6 +444,8 @@ app.post("/send", auth, async (req, res) => {
 // ── Healthcheck ─────────────────────────────────────────────────────────────
 app.get("/health", (_req, res) => res.json({ ok: true, sessions: sessions.size }));
 
+cleanupStaleSessionBrowsers("startup").finally(() => {
 app.listen(PORT, () => {
   console.log(`WhatsApp service démarré sur le port ${PORT}`);
+});
 });
