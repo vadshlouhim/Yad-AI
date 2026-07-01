@@ -8,6 +8,7 @@ import {
   Mail, 
   MessageSquare, 
   MapPin,
+  ArrowRight,
   CheckCircle2,
   Loader2
 } from "lucide-react";
@@ -68,7 +69,7 @@ export default function ContactPage() {
 
               <div className="space-y-8">
                 {[
-                  { icon: Mail, label: "Email", value: "contact@easycom-AI.com", color: "text-blue-600", bg: "bg-blue-50" },
+                  { icon: Mail, label: "Email", value: "Remplissez le formulaire", showArrow: true, color: "text-blue-600", bg: "bg-blue-50" },
                   { icon: MessageSquare, label: "Support", value: "Disponible 7j/7 via l'application", color: "text-emerald-600", bg: "bg-emerald-50" },
                   { icon: MapPin, label: "Bureaux", value: "Paris, France", color: "text-amber-600", bg: "bg-amber-50" }
                 ].map((item) => (
@@ -78,7 +79,10 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">{item.label}</p>
-                      <p className="text-slate-950 font-bold">{item.value}</p>
+                      <p className="inline-flex items-center gap-2 text-slate-950 font-bold">
+                        {item.value}
+                        {item.showArrow ? <ArrowRight className="size-4 text-blue-600" /> : null}
+                      </p>
                     </div>
                   </div>
                 ))}
