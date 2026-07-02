@@ -1,6 +1,10 @@
 {
   "name": "EasyCom AI",
   "short_name": "EasyCom AI",
+  "description": "EasyCom IA centralise votre communication, vos publications et vos automatisations sur mobile et ordinateur.",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",
@@ -17,5 +21,7 @@
   ],
   "theme_color": "#ffffff",
   "background_color": "#ffffff",
-  "display": "standalone"
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity", "social"]
 }

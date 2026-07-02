@@ -120,6 +120,14 @@ canvas {
   from { transform: translateX(0); }
   to { transform: translateX(calc(-50% - 0.75rem)); }
 }
+@keyframes installFloat {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-12px) rotate(1deg); }
+}
+@keyframes installPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 12px 30px rgba(37,99,235,0.28); }
+  50% { transform: scale(1.08); box-shadow: 0 18px 42px rgba(37,99,235,0.45); }
+}
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
 .animate-mobile-feature-card-in { animation: mobileFeatureCardIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .animate-chat-home { animation: chatHome 7.5s ease-in-out infinite; }
@@ -131,6 +139,8 @@ canvas {
   transform-origin: 70% 70%;
 }
 .animate-testimonial-marquee { animation: testimonialMarquee 42s linear infinite; }
+.animate-install-float { animation: installFloat 5.4s ease-in-out infinite; }
+.animate-install-pulse { animation: installPulse 1.9s ease-in-out infinite; }
 .typing-line {
   display: block;
   max-width: max-content;

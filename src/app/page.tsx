@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { HeroAnimation } from "@/components/home/hero-animation";
+import { InstallAppGuide } from "@/components/home/install-app-guide";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicNavbar } from "@/components/layout/public-navbar";
 import {
@@ -228,6 +229,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <InstallAppGuide />
 
       <section className="bg-slate-50 px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">

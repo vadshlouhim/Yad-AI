@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 const SITE_NAME = "EasyCom IA";
@@ -17,6 +17,14 @@ export const metadata: Metadata = {
   keywords: ["communaute juive", "communication", "IA", "Chabbat", "reseaux sociaux", "synagogue", "Beth Habad"],
   applicationName: SITE_NAME,
   manifest: "/site.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: SITE_NAME,
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -38,6 +46,10 @@ export const metadata: Metadata = {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({
