@@ -97,14 +97,16 @@ export default async function DashboardOverviewPage() {
   };
 
   return (
-    <DashboardClient
-      userName={profile.name ?? ""}
-      community={community!}
-      upcomingEvents={upcomingEvents ?? []}
-      pendingPublications={pendingPublications ?? []}
-      recentDrafts={recentDrafts ?? []}
-      stats={stats}
-      notifications={notifications ?? []}
-    />
+    <div className="container mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-0">
+      <DashboardClient
+        userName={profile.name ?? ""}
+        community={community!}
+        upcomingEvents={upcomingEvents ?? []}
+        pendingPublications={pendingPublications ?? []}
+        recentDrafts={recentDrafts ?? []}
+        stats={stats}
+        notifications={notifications ?? []}
+      />
+    </div>
   );
 }
