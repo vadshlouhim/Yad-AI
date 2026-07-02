@@ -175,7 +175,7 @@ export function ContentDetailClient({ draft, community, quickValidate = false }:
     if (!confirm("Supprimer ce brouillon ? Cette action est irréversible.")) return;
     setDeleting(true);
     await fetch(`/api/content/drafts/${draft.id}`, { method: "DELETE" });
-    router.push("/dashboard/content");
+    router.push("/dashboard/assistant");
   }
 
   function copy() {
@@ -197,7 +197,7 @@ export function ContentDetailClient({ draft, community, quickValidate = false }:
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/dashboard/content">
+        <Link href="/dashboard/assistant">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="size-4" />
             Retour

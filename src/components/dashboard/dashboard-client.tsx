@@ -77,7 +77,7 @@ const STAT_CARDS = (stats: Props["stats"]) => [
     value: stats.drafts,
     helper: "A transformer",
     icon: FileText,
-    link: "/dashboard/content",
+    link: "/dashboard/assistant",
     accent: "from-amber-400 to-orange-500",
     soft: "bg-amber-50 text-amber-700",
   },
@@ -103,7 +103,7 @@ const QUICK_ACTIONS = [
   {
     label: "Creer une publication",
     description: "Post, annonce ou rappel",
-    href: "/dashboard/content/new",
+    href: "/dashboard/assistant",
     icon: Plus,
     color: "from-blue-500 to-cyan-500",
   },
@@ -131,8 +131,8 @@ const QUICK_ACTIONS = [
 ];
 
 const MINI_ACTIONS = [
-  { label: "Nouveau post", href: "/dashboard/content/new", icon: Wand2 },
-  { label: "Horaires Chabbat", href: "/dashboard/content/new?type=SHABBAT_TIMES", icon: Sparkles },
+  { label: "Nouveau post", href: "/dashboard/assistant", icon: Wand2 },
+  { label: "Horaires Chabbat", href: "/dashboard/shabbat-times-auto", icon: Sparkles },
   { label: "Calendrier", href: "/dashboard/events/calendar", icon: Calendar },
   { label: "Affiches", href: "/dashboard/templates", icon: ImageIcon },
 ];
@@ -340,7 +340,7 @@ export function DashboardClient({
               <EmptyState
                 icon={Send}
                 text="Aucune publication en attente"
-                action={{ label: "Creer un contenu", href: "/dashboard/content/new" }}
+                action={{ label: "Creer un contenu", href: "/dashboard/assistant" }}
               />
             ) : (
               <div className="space-y-2">
