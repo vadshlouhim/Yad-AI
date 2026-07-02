@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
@@ -486,7 +486,7 @@ export function EventsClient({
       (hasSupplementaryCalendarData && (showShabbat || showHolidays)));
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div className="overflow-hidden rounded-3xl border border-violet-300/70 bg-gradient-to-br from-violet-950 via-violet-900 to-indigo-900 p-6 text-white shadow-[0_24px_56px_rgba(76,29,149,0.28)]">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -753,7 +753,7 @@ function CalendarView({
   timezone: string;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       <Card className="rounded-2xl border-violet-100 bg-gradient-to-br from-white via-violet-50 to-fuchsia-50 shadow-sm">
         <CardContent className="p-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -1018,50 +1018,52 @@ function WeekCalendar({ events, anchorDate, shabbatByDate, holidayByDate, automa
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
 
   return (
-    <div className="grid min-w-[760px] grid-cols-7 divide-x divide-slate-200 overflow-x-auto">
-      {days.map((day) => {
-        const key = dayKey(day);
-        const dayEvents = eventsForDate(events, day);
-        const shabbat = shabbatByDate?.get(key);
-        const holidays = holidayByDate?.get(key);
-        const dayAutomations = automationByDate.get(key);
-        const isToday = key === todayKey();
-        return (
-          <div key={key} className={cn("min-h-[34rem] bg-white", isToday && "bg-violet-50/60")}>
-            <div className={cn(
-              "sticky top-0 z-10 border-b border-slate-200 bg-white/95 p-3 backdrop-blur",
-              isToday && "bg-violet-50/95"
-            )}>
-              <p className="text-xs font-semibold uppercase text-slate-500">{DAY_SHORT_FORMATTER.format(day)}</p>
-              <p className={cn("mt-1 text-2xl font-bold", isToday ? "text-violet-700" : "text-slate-950")}>
-                {day.getDate()}
-              </p>
-              {isBethHabad && <p className="mt-1 truncate text-xs font-medium text-violet-700 hebrew">{formatHebrewDate(day)}</p>}
+    <div className="overflow-x-auto">
+      <div className="grid min-w-[760px] grid-cols-7 divide-x divide-slate-200">
+        {days.map((day) => {
+          const key = dayKey(day);
+          const dayEvents = eventsForDate(events, day);
+          const shabbat = shabbatByDate?.get(key);
+          const holidays = holidayByDate?.get(key);
+          const dayAutomations = automationByDate.get(key);
+          const isToday = key === todayKey();
+          return (
+            <div key={key} className={cn("min-h-[34rem] bg-white", isToday && "bg-violet-50/60")}>
+              <div className={cn(
+                "sticky top-0 z-10 border-b border-slate-200 bg-white/95 p-3 backdrop-blur",
+                isToday && "bg-violet-50/95"
+              )}>
+                <p className="text-xs font-semibold uppercase text-slate-500">{DAY_SHORT_FORMATTER.format(day)}</p>
+                <p className={cn("mt-1 text-2xl font-bold", isToday ? "text-violet-700" : "text-slate-950")}>
+                  {day.getDate()}
+                </p>
+                {isBethHabad && <p className="mt-1 truncate text-xs font-medium text-violet-700 hebrew">{formatHebrewDate(day)}</p>}
+              </div>
+              <div className="space-y-2 p-2">
+                {shabbat && (
+                  <div className="rounded-md bg-amber-50 border border-amber-200 px-2 py-1">
+                    <p className="text-[11px] font-semibold text-amber-700">Chabbat</p>
+                    {shabbat.parasha && <p className="text-[10px] text-amber-600">{shabbat.parasha}</p>}
+                    <p className="text-[10px] text-amber-600">Entrée {shabbat.entry ?? "-"} · Sortie {shabbat.exit ?? "-"}</p>
+                  </div>
+                )}
+                {holidays?.map((h) => (
+                  <div key={h.name} className="rounded-md bg-blue-50 border border-blue-200 px-2 py-1">
+                    <p className="text-[11px] font-semibold text-blue-700">{h.name}</p>
+                    {h.nameHebrew && <p className="text-[10px] text-blue-500 hebrew">{h.nameHebrew}</p>}
+                  </div>
+                ))}
+                {dayAutomations?.map((automation, index) => (
+                  <AutomationPill key={`${automation.id}-${index}`} automation={automation} />
+                ))}
+                {dayEvents.map((event) => (
+                  <CalendarEventPill key={event.id} event={event} timezone={timezone} />
+                ))}
+              </div>
             </div>
-            <div className="space-y-2 p-2">
-              {shabbat && (
-                <div className="rounded-md bg-amber-50 border border-amber-200 px-2 py-1">
-                  <p className="text-[11px] font-semibold text-amber-700">Chabbat</p>
-                  {shabbat.parasha && <p className="text-[10px] text-amber-600">{shabbat.parasha}</p>}
-                  <p className="text-[10px] text-amber-600">Entrée {shabbat.entry ?? "-"} · Sortie {shabbat.exit ?? "-"}</p>
-                </div>
-              )}
-              {holidays?.map((h) => (
-                <div key={h.name} className="rounded-md bg-blue-50 border border-blue-200 px-2 py-1">
-                  <p className="text-[11px] font-semibold text-blue-700">{h.name}</p>
-                  {h.nameHebrew && <p className="text-[10px] text-blue-500 hebrew">{h.nameHebrew}</p>}
-                </div>
-              ))}
-              {dayAutomations?.map((automation, index) => (
-                <AutomationPill key={`${automation.id}-${index}`} automation={automation} />
-              ))}
-              {dayEvents.map((event) => (
-                <CalendarEventPill key={event.id} event={event} timezone={timezone} />
-              ))}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

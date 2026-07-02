@@ -250,7 +250,7 @@ export default async function HebrewCalendarPage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="container mx-auto max-w-6xl space-y-8 px-4 py-6 sm:px-6 lg:px-0">
       <div className="overflow-hidden rounded-3xl border border-violet-300/70 bg-gradient-to-br from-violet-950 via-violet-900 to-indigo-900 p-6 text-white shadow-[0_24px_56px_rgba(76,29,149,0.28)]">
         <div className="mb-4 h-1.5 w-10 rounded-full bg-violet-300" />
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-100/80">

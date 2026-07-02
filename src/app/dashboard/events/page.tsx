@@ -1,4 +1,4 @@
-﻿import { requireAuth } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { EventsClient } from "@/components/events/events-client";
 import { getShabbatTimes, getJewishHolidays } from "@/lib/automation/hebcal";
@@ -227,15 +227,16 @@ export default async function EventsPage({
   }));
 
   return (
-    <EventsClient
-      events={normalizedEvents}
-      statusCounts={statusCounts2}
-      shabbatItems={isBethHabad ? shabbatItems : []}
-      holidayItems={isBethHabad ? holidayItems : []}
-      automations={automationItems}
-      isBethHabad={isBethHabad}
-      timezone={timezone}
-    />
+    <div className="container mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-0">
+      <EventsClient
+        events={normalizedEvents}
+        statusCounts={statusCounts2}
+        shabbatItems={isBethHabad ? shabbatItems : []}
+        holidayItems={isBethHabad ? holidayItems : []}
+        automations={automationItems}
+        isBethHabad={isBethHabad}
+        timezone={timezone}
+      />
+    </div>
   );
 }
-
