@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { PublicFooter } from "@/components/layout/public-footer";
 
 export const metadata: Metadata = {
   title: "Politique de confidentialité",
@@ -100,6 +101,7 @@ export default function PrivacyPage() {
           </section>
         </div>
       </div>
+      <PublicFooter />
     </main>
   );
 }

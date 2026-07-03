@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -23,15 +23,19 @@ import {
 interface DesignZone {
   id: string;
   label: string;
-  type: "title" | "subtitle" | "date" | "time" | "location" | "body" | "contact" | "cta";
+  type?: string;
+  variableKey?: string;
+  variableType?: string;
   defaultText: string;
   x: number;
   y: number;
   width: number;
   height: number;
+  align?: "left" | "center" | "right";
   fontSize: number;
   color: string;
   fontFamily: string;
+  overflow?: "shrink" | "wrap" | "truncate" | "hide";
 }
 
 interface Template {
@@ -53,18 +57,29 @@ interface Community {
   id: string;
   name: string;
   city: string | null;
+  logoUrl: string | null;
   tone: string;
   phone: string | null;
   email: string | null;
   website: string | null;
   address: string | null;
   religiousStream: string | null;
+  timezone?: string | null;
   plan: string;
+}
+
+interface TemplateShabbatTimes {
+  date?: string;
+  hebrewDate?: string;
+  parasha?: string;
+  entry: string;
+  exit: string;
 }
 
 interface Props {
   templates: Template[];
   community: Community;
+  shabbatTimes: TemplateShabbatTimes | null;
   plan: string;
   billingConfig: BillingConfig;
   billingUsage: BillingUsage;
@@ -106,7 +121,7 @@ const SUBCATEGORY_LABELS: Record<string, string> = {
   cours_de_torah: "Cours de Torah",
   assemblee_de_torah: "Assemblée de Torah",
   dejeuner_et_etude: "Déjeuner et étude",
-  gan_israel: "Gan Israël",
+  gan_israel: "Gan IsraÃ«l",
   jeunesse_cteen: "Jeunesse CTeen",
   bar_mitsva: "Bar Mitsva",
   kiddouch_levana: "Kiddouch Levana",
@@ -253,6 +268,66 @@ function PosterThumbnail({
   );
 }
 
+function getZoneVariableKey(zone: DesignZone): string {
+  return zone.variableKey ?? zone.type ?? zone.id;
+}
+
+function formatShabbatAutoValue(shabbatTimes: TemplateShabbatTimes | null): string {
+  if (!shabbatTimes?.entry) return "Entrée : 20h41\nSortie : 21h53";
+  return [
+    shabbatTimes.parasha ? `Paracha : ${shabbatTimes.parasha}` : null,
+    `Entrée : ${shabbatTimes.entry}`,
+    shabbatTimes.exit ? `Sortie : ${shabbatTimes.exit}` : null,
+  ].filter(Boolean).join("\n");
+}
+
+function buildDefaultZoneValue(zone: DesignZone, community: Community, shabbatTimes: TemplateShabbatTimes | null): string {
+  const key = getZoneVariableKey(zone);
+
+  if (key === "BET_DIN_NAME" || key === "ORGANIZATION_NAME") return community.name;
+  if (key === "LOCATION") return community.city ?? community.address ?? zone.defaultText;
+  if (key === "CONTACT") return community.phone ?? community.email ?? community.website ?? zone.defaultText;
+  if (key === "USER_LOGO") return community.logoUrl ?? zone.defaultText;
+  if (key === "TITLE") return community.name;
+  if (key === "SUBTITLE") return community.city ? `Ã€ ${community.city}` : zone.defaultText;
+  if (key === "MESSAGE") return "Shabbat Shalom Ã  tous.";
+  if (key === "SHABBAT_TIMES") return formatShabbatAutoValue(shabbatTimes);
+
+  return zone.defaultText || `{{${key}}}`;
+}
+
+function looksLikeMediaUrl(value: string): boolean {
+  return /^https?:\/\/\S+/i.test(value) || /^data:image\//i.test(value);
+}
+
+function isImageLikeZone(zone: DesignZone): boolean {
+  const key = getZoneVariableKey(zone).toUpperCase();
+  const type = (zone.type ?? "").toUpperCase();
+  const variableType = (zone.variableType ?? "").toUpperCase();
+
+  return key.includes("LOGO")
+    || key.includes("IMAGE")
+    || key.includes("PHOTO")
+    || type.includes("IMAGE")
+    || type.includes("PHOTO")
+    || variableType.includes("IMAGE")
+    || variableType.includes("PHOTO");
+}
+
+function getZoneDisplayValue(zone: DesignZone, value: string): string {
+  if (isImageLikeZone(zone) && looksLikeMediaUrl(value)) {
+    return "Photo ajoutée";
+  }
+
+  return value;
+}
+
+function buildInitialGeneratedTexts(template: Template, community: Community, shabbatTimes: TemplateShabbatTimes | null): Record<string, string> {
+  return Object.fromEntries(
+    (template.design ?? []).map((zone) => [zone.id, buildDefaultZoneValue(zone, community, shabbatTimes)])
+  );
+}
+
 function TemplateCard({
   template,
   locked,
@@ -279,7 +354,7 @@ function TemplateCard({
 
           <div className="hidden absolute left-2 top-2 max-w-[70%] flex-wrap gap-1.5">
             <Badge variant="secondary" className="bg-white/90 text-[10px] backdrop-blur">
-              {CATEGORY_EMOJI[template.category] ?? "🖼️"} {CATEGORY_LABELS[template.category] ?? template.category}
+              {CATEGORY_EMOJI[template.category] ?? "ðŸ–¼ï¸"} {CATEGORY_LABELS[template.category] ?? template.category}
             </Badge>
             {template.subCategory && (
               <Badge variant="secondary" className="bg-slate-900/70 text-[10px] text-white">
@@ -321,18 +396,23 @@ function TemplateCard({
 // ============================================================
 
 type Step = "gallery" | "questions" | "preview";
+type AiChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
 
 export function TemplatesClient({
   templates,
   community,
+  shabbatTimes,
   plan,
   billingConfig,
   billingUsage,
   galleryTitle = "BANQUE D'AFFICHES",
-  gallerySubtitle = "Choisissez parmi plus de 250 affiches pretes a personnaliser, ajoutez vos informations, puis laissez l'IA adapter le modele et le publier en un clic.",
+  gallerySubtitle = "Choisissez parmi plus de 250 affiches prêtes à personnaliser, ajoutez vos informations, puis laissez l'IA adapter le modèle et le publier en un clic.",
   showGalleryFilters = true,
-  emptyTitle = "Aucune affiche trouvee",
-  emptyDescription = "Ajuste la recherche ou change de categorie pour elargir les resultats.",
+  emptyTitle = "Aucune affiche trouvée",
+  emptyDescription = "Ajuste la recherche ou change de catégorie pour élargir les résultats.",
 }: Props) {
   const [step, setStep] = useState<Step>("gallery");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
@@ -340,8 +420,10 @@ export function TemplatesClient({
   const [activeSubCategory, setActiveSubCategory] = useState<string | null>(null);
   const [activeCollection, setActiveCollection] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [assistantPrompt, setAssistantPrompt] = useState("");
   const [generatedTexts, setGeneratedTexts] = useState<Record<string, string>>({});
+  const [aiChatPrompt, setAiChatPrompt] = useState("");
+  const [aiChatMessages, setAiChatMessages] = useState<AiChatMessage[]>([]);
+  const [aiChatLoading, setAiChatLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rendering, setRendering] = useState(false);
   const [editingZone, setEditingZone] = useState<string | null>(null);
@@ -409,15 +491,16 @@ export function TemplatesClient({
     return template.id !== firstUnlockedTemplateId;
   }
 
-  // ── Sélectionner un template ──
+  // â”€â”€ SÃ©lectionner un template â”€â”€
   function selectTemplate(template: Template) {
     if (isTemplateLocked(template)) {
       setUpgradeOpen(true);
       return;
     }
     setSelectedTemplate(template);
-    setAssistantPrompt("");
-    setGeneratedTexts({});
+    setGeneratedTexts(buildInitialGeneratedTexts(template, community, shabbatTimes));
+    setAiChatPrompt("");
+    setAiChatMessages([]);
     setGeneratedImageUrl(null);
     setImageError("");
     setStep("questions");
@@ -434,22 +517,74 @@ export function TemplatesClient({
     setActiveCollection(null);
   }
 
-  // ── Générer la nouvelle affiche (image) via fal.ai / nano-banana ──
-  async function generateImage() {
+  async function applyAiChatToVariables() {
     if (!selectedTemplate) return;
-    const request = assistantPrompt.trim();
-    if (!request) {
-      setImageError("Décrivez la modification souhaitée pour l'affiche.");
+    const prompt = aiChatPrompt.trim();
+    if (!prompt) {
+      setImageError("Expliquez Ã  l'assistant ce que vous voulez modifier sur l'affiche.");
+      return;
+    }
+
+    setImageError("");
+    setAiChatLoading(true);
+    setAiChatMessages((previous) => [...previous, { role: "user", content: prompt }]);
+
+    try {
+      const response = await fetch("/api/templates/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId: selectedTemplate.id,
+          answers: {
+            instruction: prompt,
+            valeurs_actuelles: generatedTexts,
+            contexte: "Remplis et rédige les variables de l'affiche. Garde les informations automatiques cohérentes si elles sont déjà évidentes.",
+          },
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Impossible de remplir les variables avec l'IA.");
+      }
+
+      const nextTexts = payload.generatedTexts && typeof payload.generatedTexts === "object"
+        ? payload.generatedTexts as Record<string, string>
+        : {};
+
+      const mergedTexts = { ...generatedTexts, ...nextTexts };
+      setGeneratedTexts(mergedTexts);
+      setAiChatPrompt("");
+      setAiChatMessages((previous) => [
+        ...previous,
+        {
+          role: "assistant",
+          content: "J'ai rempli les variables. Je crée maintenant l'affiche finale.",
+        },
+      ]);
+      await generateImage(mergedTexts);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Impossible de remplir les variables avec l'IA.";
+      setImageError(message);
+      setAiChatMessages((previous) => [...previous, { role: "assistant", content: message }]);
+    } finally {
+      setAiChatLoading(false);
+    }
+  }
+
+  async function generateImage(textsOverride?: Record<string, string>) {
+    if (!selectedTemplate) return;
+    if ((selectedTemplate.design ?? []).length === 0) {
+      setImageError("Ce modèle n'a pas encore de zones dynamiques configurées dans l'administration.");
       return;
     }
 
     setImageError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/templates/generate-image", {
+      const res = await fetch("/api/templates/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId: selectedTemplate.id, userRequest: request }),
+        body: JSON.stringify({ templateId: selectedTemplate.id, generatedTexts: textsOverride ?? generatedTexts }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -457,18 +592,18 @@ export function TemplatesClient({
           setUpgradeOpen(true);
           return;
         }
-        throw new Error(data.error ?? "Impossible de générer l'affiche.");
+        throw new Error(data.error ?? "Impossible de gÃ©nÃ©rer l'affiche.");
       }
       setGeneratedImageUrl(data.imageUrl);
       setStep("preview");
     } catch (error) {
-      setImageError(error instanceof Error ? error.message : "Impossible de générer l'affiche.");
+      setImageError(error instanceof Error ? error.message : "Impossible de gÃ©nÃ©rer l'affiche.");
     } finally {
       setLoading(false);
     }
   }
 
-  // ── Retour ──
+  // â”€â”€ Retour â”€â”€
   function goBack() {
     if (step === "preview") setStep("questions");
     else if (step === "questions") {
@@ -477,7 +612,7 @@ export function TemplatesClient({
     }
   }
 
-  // ── Télécharger l'affiche générée ──
+  // â”€â”€ TÃ©lÃ©charger l'affiche gÃ©nÃ©rÃ©e â”€â”€
   async function downloadPoster() {
     if (!selectedTemplate) return;
 
@@ -504,20 +639,20 @@ export function TemplatesClient({
           setUpgradeOpen(true);
           return;
         }
-        throw new Error(data.error ?? "Impossible de générer l'affiche");
+        throw new Error(data.error ?? "Impossible de gÃ©nÃ©rer l'affiche");
       }
 
       window.open(data.imageUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
       console.error(error);
-      alert("Impossible de générer l'affiche pour le moment.");
+      alert("Impossible de gÃ©nÃ©rer l'affiche pour le moment.");
     } finally {
       setRendering(false);
     }
   }
 
   // ============================================================
-  // RENDER — GALERIE
+  // RENDER â€” GALERIE
   // ============================================================
 
   if (step === "gallery") {
@@ -575,7 +710,7 @@ export function TemplatesClient({
                   type="text"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Rechercher une fête, un cours, une affiche, un thème…"
+                  placeholder="Rechercher une fête, un cours, une affiche, un thème..."
                   className="w-full rounded-2xl border border-amber-200 bg-amber-50/40 py-3 pl-10 pr-11 text-sm text-slate-700 outline-none transition focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-100"
                 />
                 {search && (
@@ -717,7 +852,7 @@ export function TemplatesClient({
                         <div>
                           <h3 className="text-base font-semibold text-slate-900">{group.label}</h3>
                           <p className="text-xs text-slate-500">
-                            {group.templates.length} affiche{group.templates.length > 1 ? "s" : ""} dans ce sous-thème
+                            {group.templates.length} affiche{group.templates.length > 1 ? "s" : ""} dans ce sous-thÃ¨me
                           </p>
                         </div>
                       </div>
@@ -743,7 +878,7 @@ export function TemplatesClient({
   }
 
   // ============================================================
-  // RENDER — QUESTIONS DE PERSONNALISATION
+  // RENDER - QUESTIONS DE PERSONNALISATION
   // ============================================================
 
   if (step === "questions" && selectedTemplate) {
@@ -821,27 +956,83 @@ export function TemplatesClient({
                 Assistant IA
               </div>
               <p className="text-sm font-semibold text-slate-800">
-                Donnez-moi un maximum d&apos;informations, et l&apos;IA personnalisera l&apos;affiche selon ce que
-                vous indiquez.
+                Renseignez les variables détectées sur ce modèle. Le système compose ensuite automatiquement l&apos;image finale.
               </p>
               <p className="text-sm text-slate-500">
-                Écrivez naturellement votre demande : indiquez le type d&apos;événement, la date, l&apos;heure, le
-                lieu, le public concerné, le texte à ajouter, le style souhaité et toute information utile.
-                L&apos;IA comprendra votre message et personnalisera l&apos;affiche directement.
+                Les champs ci-dessous correspondent aux zones placées dans l&apos;administration : titre, horaires, message,
+                logo ou informations de votre organisation. Aucune génération IA n&apos;est nécessaire.
               </p>
             </div>
 
-            <div className="rounded-3xl border border-violet-200 bg-white p-4 shadow-inner">
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Décrivez librement votre affiche
-              </label>
-              <textarea
-                value={assistantPrompt}
-                onChange={(event) => setAssistantPrompt(event.target.value)}
-                placeholder="Exemple : Je veux créer une affiche pour un cours de Torah mardi soir à 20h30 au Beth Habad, animé par le Rav Cohen, sur le thème de la paracha. Je veux un style chaleureux, moderne et professionnel."
-                className="min-h-[220px] w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
-              />
+            <div className="rounded-3xl border border-violet-200 bg-white p-4 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded-2xl bg-violet-100 p-2 text-violet-700">
+                  <Sparkles className="size-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-slate-900">Chat de personnalisation IA</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Expliquez ce que vous voulez : l&apos;assistant remplit les variables, rédige le message et adapte les textes du modèle.
+                  </p>
+                </div>
+              </div>
+
+              {aiChatMessages.length > 0 && (
+                <div className="mt-4 max-h-44 space-y-2 overflow-y-auto rounded-2xl bg-slate-50 p-3">
+                  {aiChatMessages.map((message, index) => (
+                    <div
+                      key={`${message.role}-${index}`}
+                      className={cn(
+                        "max-w-[90%] rounded-2xl px-3 py-2 text-xs leading-5",
+                        message.role === "user"
+                          ? "ml-auto bg-violet-600 text-white"
+                          : "bg-white text-slate-600 shadow-sm"
+                      )}
+                    >
+                      {message.content}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/60 p-3">
+                <textarea
+                  value={aiChatPrompt}
+                  onChange={(event) => setAiChatPrompt(event.target.value)}
+                  onKeyDown={(event) => {
+                    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+                      event.preventDefault();
+                      void applyAiChatToVariables();
+                    }
+                  }}
+                  placeholder="Exemple : Fais une affiche Chabbat chaleureuse, garde les horaires, ajoute un message court et professionnel, titre Beth Din de Paris."
+                  className="min-h-[92px] w-full resize-y rounded-2xl border border-violet-100 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                />
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-slate-500">Astuce : Ctrl/Cmd + Entrée pour créer.</p>
+                  <Button
+                    type="button"
+                    onClick={applyAiChatToVariables}
+                    disabled={aiChatLoading || loading || aiChatPrompt.trim().length === 0 || (selectedTemplate.design ?? []).length === 0}
+                    className="rounded-2xl bg-violet-600 text-white hover:bg-violet-700"
+                  >
+                    {aiChatLoading || loading ? (
+                      <><Loader2 className="mr-2 size-4 animate-spin" /> Création de l&apos;affiche...</>
+                    ) : (
+                      <><Sparkles className="mr-2 size-4" /> Créer l&apos;affiche</>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
+
+            {(selectedTemplate.design ?? []).length === 0 && (
+              <div className="rounded-3xl border border-violet-200 bg-white p-4 shadow-inner">
+                <p className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
+                  Ce modèle n&apos;a pas encore de zones dynamiques. Ajoutez-les depuis l&apos;administration avant de générer l&apos;image finale.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -857,14 +1048,14 @@ export function TemplatesClient({
             <ArrowLeft className="size-4 mr-2" /> Retour
           </Button>
           <Button
-            onClick={generateImage}
-            disabled={loading || assistantPrompt.trim().length === 0}
+            onClick={() => void generateImage()}
+            disabled={loading || (selectedTemplate.design ?? []).length === 0}
             className="flex-1 bg-gradient-to-r from-blue-600 to-violet-600 text-white"
           >
             {loading ? (
-              <><Loader2 className="size-4 mr-2 animate-spin" /> Génération de l&apos;affiche...</>
+              <><Loader2 className="size-4 mr-2 animate-spin" /> Création de l&apos;image...</>
             ) : (
-              <><Sparkles className="size-4 mr-2" /> Générer l&apos;affiche</>
+              <><Sparkles className="size-4 mr-2" /> Créer l&apos;image finale</>
             )}
           </Button>
         </div>
@@ -873,7 +1064,7 @@ export function TemplatesClient({
   }
 
   // ============================================================
-  // RENDER — PREVIEW & ÉDITION
+  // RENDER â€” PREVIEW & Ã‰DITION
   // ============================================================
 
   if (step === "preview" && selectedTemplate) {
@@ -919,7 +1110,7 @@ export function TemplatesClient({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={generatedImageUrl}
-                  alt={`Affiche générée — ${selectedTemplate.name}`}
+                  alt={`Affiche générée - ${selectedTemplate.name}`}
                   className="h-full w-full object-contain"
                 />
               ) : (
@@ -929,7 +1120,7 @@ export function TemplatesClient({
                 />
               )}
 
-              {/* Zones de texte superposées (modèle texte uniquement) */}
+            {/* Zones de texte superposées (modèle texte uniquement) */}
               {!generatedImageUrl && zones.map((zone) => (
                 <div
                   key={zone.id}
@@ -960,29 +1151,27 @@ export function TemplatesClient({
 
           {/* Panneau d'édition des textes */}
           <div className="space-y-4">
-            {/* Demande de modification + régénération de l'image */}
+            {/* Recomposition déterministe de l'image */}
             <Card className="border-violet-100 bg-gradient-to-br from-white via-violet-50/60 to-fuchsia-50/50">
               <CardContent className="space-y-3 py-4">
                 <div className="flex items-center gap-2">
                   <Sparkles className="size-4 text-violet-500" />
-                  <p className="text-sm font-semibold text-slate-700">Affiner l&apos;affiche</p>
+                  <p className="text-sm font-semibold text-slate-700">Recomposer l&apos;image finale</p>
                 </div>
-                <textarea
-                  value={assistantPrompt}
-                  onChange={(event) => setAssistantPrompt(event.target.value)}
-                  placeholder="Décrivez la modification : changez la date, le titre, les couleurs, ajoutez une information…"
-                  className="min-h-[110px] w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
-                />
+                <p className="text-sm leading-6 text-slate-500">
+                  Modifiez les textes ci-dessous puis recréez l&apos;image. Le rendu applique simplement les zones
+                  configurées par l&apos;administrateur sur le fond graphique.
+                </p>
                 {imageError && <p className="text-sm font-medium text-red-600">{imageError}</p>}
                 <Button
-                  onClick={generateImage}
-                  disabled={loading || assistantPrompt.trim().length === 0}
+                  onClick={() => void generateImage()}
+                  disabled={loading}
                   className="w-full bg-gradient-to-r from-blue-600 to-violet-600 text-white"
                 >
                   {loading ? (
-                    <><Loader2 className="size-4 mr-2 animate-spin" /> Génération de l&apos;affiche...</>
+                    <><Loader2 className="size-4 mr-2 animate-spin" /> Création de l&apos;image...</>
                   ) : (
-                    <><Sparkles className="size-4 mr-2" /> {generatedImageUrl ? "Régénérer l'affiche" : "Générer l'affiche"}</>
+                    <><Sparkles className="size-4 mr-2" /> {generatedImageUrl ? "Recréer l'image" : "Créer l'image"}</>
                   )}
                 </Button>
               </CardContent>
@@ -993,7 +1182,7 @@ export function TemplatesClient({
               <CardContent className="py-4">
                 <div className="flex items-center gap-2 mb-4">
                   <Pencil className="size-4 text-blue-500" />
-                  <p className="text-sm font-semibold text-slate-700">Textes générés par l&apos;IA</p>
+                  <p className="text-sm font-semibold text-slate-700">Variables du modèle</p>
                 </div>
 
                 <div className="space-y-3">
@@ -1003,33 +1192,46 @@ export function TemplatesClient({
                         {zone.label}
                       </label>
                       {editingZone === zone.id ? (
-                        <div className="flex gap-2">
-                          <input
-                            value={generatedTexts[zone.id] ?? zone.defaultText}
-                            onChange={(e) =>
-                              setGeneratedTexts((prev) => ({
-                                ...prev,
-                                [zone.id]: e.target.value,
-                              }))
-                            }
-                            autoFocus
-                            className="flex-1 rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                          />
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => setEditingZone(null)}
-                          >
-                            <Check className="size-4 text-emerald-600" />
-                          </Button>
-                        </div>
+                        isImageLikeZone(zone) ? (
+                          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                            <p className="flex-1 text-sm text-slate-700">Photo ajoutée automatiquement</p>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setEditingZone(null)}
+                            >
+                              <Check className="size-4 text-emerald-600" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <input
+                              value={generatedTexts[zone.id] ?? zone.defaultText}
+                              onChange={(e) =>
+                                setGeneratedTexts((prev) => ({
+                                  ...prev,
+                                  [zone.id]: e.target.value,
+                                }))
+                              }
+                              autoFocus
+                              className="flex-1 rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            />
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setEditingZone(null)}
+                            >
+                              <Check className="size-4 text-emerald-600" />
+                            </Button>
+                          </div>
+                        )
                       ) : (
                         <div
                           className="group flex items-center gap-2 cursor-pointer rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 hover:border-blue-300 transition-colors"
                           onClick={() => setEditingZone(zone.id)}
                         >
                           <p className="flex-1 text-sm text-slate-800">
-                            {generatedTexts[zone.id] ?? zone.defaultText}
+                            {getZoneDisplayValue(zone, generatedTexts[zone.id] ?? zone.defaultText)}
                           </p>
                           <Pencil className="size-3.5 text-slate-300 group-hover:text-blue-500 transition-colors" />
                         </div>

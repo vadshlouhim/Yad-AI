@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/topbar";
+import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { GmbNotificationBadge } from "@/components/layout/gmb-notification-badge";
 import { ensureTodayEventReminderNotifications } from "@/lib/notifications/event-reminders";
 import { headers } from "next/headers";
@@ -59,18 +60,21 @@ export default async function DashboardLayout({
         community={community}
         userAvatar={profile.avatarUrl}
         userName={profile.name ?? profile.email}
+        unreadNotifications={unreadCount ?? 0}
       />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <TopBar
           communityName={community.name}
+          communityType={community.communityType}
           userAvatar={profile.avatarUrl}
           userName={profile.name ?? ""}
           unreadNotifications={unreadCount ?? 0}
         />
         <GmbNotificationBadge />
-        <main className="flex-1 overflow-y-auto w-full animate-fade-in">
+        <main className="flex-1 overflow-y-auto w-full animate-fade-in pb-24 md:pb-0">
           {children}
         </main>
+        <MobileBottomNav />
       </div>
     </div>
   );

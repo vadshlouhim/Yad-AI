@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { runAutomationEngine } from "@/lib/automation/engine";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { runDailyEmailAiClassification } from "@/lib/email/daily-ai";
 import type { Tables } from "@/types/database.types";
 
 type Channel = Tables<"Channel">;
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
     const startTime = Date.now();
     await runAutomationEngine();
     await processScheduledPublications();
+    await runDailyEmailAiClassification();
 
     const duration = Date.now() - startTime;
     console.log(`[Cron] Automatisations traitées en ${duration}ms`);

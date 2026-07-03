@@ -13,9 +13,11 @@ export default async function ContentDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ quickValidate?: string }>;
 }) {
+  const { id } = await params;
+  if (id === "new") notFound();
+
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
-  const { id } = await params;
   const parsedSearchParams = await searchParams;
   const quickValidate = parsedSearchParams.quickValidate === "1";
   const admin = createAdminClient();

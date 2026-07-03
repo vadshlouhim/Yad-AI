@@ -11,7 +11,6 @@ import {
   CheckCircle,
   Copy,
   ExternalLink,
-  Eye,
   RefreshCw,
   Trash2,
   XCircle,
@@ -103,6 +102,15 @@ const CHANNEL_BRAND_CLASSES: Record<string, { bg: string; text: string; border: 
   WEB: { bg: "bg-indigo-50", text: "text-indigo-600", border: "border-indigo-200" },
 };
 
+const CHANNEL_ACCENT_CLASSES: Record<string, { line: string; preview: string; dot: string }> = {
+  WHATSAPP: { line: "bg-emerald-500", preview: "border-emerald-300", dot: "bg-emerald-500" },
+  INSTAGRAM: { line: "bg-gradient-to-b from-pink-500 to-orange-400", preview: "border-pink-300", dot: "bg-pink-500" },
+  FACEBOOK: { line: "bg-blue-600", preview: "border-blue-300", dot: "bg-blue-600" },
+  TELEGRAM: { line: "bg-sky-500", preview: "border-sky-300", dot: "bg-sky-500" },
+  EMAIL: { line: "bg-indigo-600", preview: "border-indigo-300", dot: "bg-indigo-600" },
+  WEB: { line: "bg-violet-600", preview: "border-violet-300", dot: "bg-violet-600" },
+};
+
 const CHANNEL_FILTERS = [
   { label: "Tous les réseaux", value: "ALL", logo: SOCIAL_LOGOS.ALL, colorClass: "bg-[#0d2f6b] text-white border-transparent" },
   { label: "WhatsApp", value: "WHATSAPP", logo: SOCIAL_LOGOS.WHATSAPP, colorClass: "bg-emerald-600 text-white border-transparent hover:bg-emerald-700" },
@@ -111,6 +119,33 @@ const CHANNEL_FILTERS = [
   { label: "Telegram", value: "TELEGRAM", logo: SOCIAL_LOGOS.TELEGRAM, colorClass: "bg-sky-600 text-white border-transparent hover:bg-sky-700" },
   { label: "Email", value: "EMAIL", logo: SOCIAL_LOGOS.EMAIL, colorClass: "bg-rose-600 text-white border-transparent hover:bg-rose-700" },
 ];
+
+const CHANNEL_FILTER_STYLES: Record<string, { active: string; inactive: string }> = {
+  ALL: {
+    active: "bg-[#0d2f6b] text-white border-transparent shadow-md shadow-blue-950/15",
+    inactive: "border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-400",
+  },
+  WHATSAPP: {
+    active: "bg-emerald-600 text-white border-transparent shadow-md shadow-emerald-200",
+    inactive: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300",
+  },
+  INSTAGRAM: {
+    active: "bg-gradient-to-br from-pink-600 via-rose-600 to-orange-500 text-white border-transparent shadow-md shadow-pink-200",
+    inactive: "border-pink-200 bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50 text-pink-700 hover:border-pink-300 hover:from-pink-100 hover:via-rose-100 hover:to-orange-100",
+  },
+  FACEBOOK: {
+    active: "bg-blue-700 text-white border-transparent shadow-md shadow-blue-200",
+    inactive: "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-300",
+  },
+  TELEGRAM: {
+    active: "bg-sky-600 text-white border-transparent shadow-md shadow-sky-200",
+    inactive: "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:border-sky-300",
+  },
+  EMAIL: {
+    active: "bg-indigo-700 text-white border-transparent shadow-md shadow-indigo-200",
+    inactive: "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300",
+  },
+};
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
   PUBLISHED: <CheckCircle className="size-4 text-emerald-600" />,
@@ -189,28 +224,35 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
       text: "text-slate-600",
       border: "border-slate-200",
     };
+    const accent = CHANNEL_ACCENT_CLASSES[pub.channelType] ?? {
+      line: "bg-slate-400",
+      preview: "border-slate-200 bg-slate-50/60",
+      dot: "bg-slate-400",
+    };
 
     return (
       <Card
         key={pub.id}
         className={cn(
-          "overflow-hidden rounded-2xl border border-slate-200/90 bg-white/95 transition-shadow hover:shadow-md hover:shadow-blue-100/30",
-          pub.status === "FAILED" && "border-red-200 bg-red-50/30"
+          "group overflow-hidden rounded-[28px] border border-slate-200/90 bg-white/95 shadow-sm shadow-slate-200/40 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-200/60",
+          pub.status === "FAILED" && "border-red-200 bg-red-50/20 hover:border-red-300"
         )}
       >
-        <CardContent className="p-4">
-          <div className="flex items-start gap-4">
-            <div className={cn("flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border shadow-sm", brand.bg, brand.text, brand.border)}>
-              {SOCIAL_LOGOS[pub.channelType] ?? <Zap className="size-4" />}
-            </div>
+        <CardContent className="p-0">
+          <div className="flex">
+            <div className={cn("w-1.5 flex-shrink-0", accent.line)} />
+            <div className="flex min-w-0 flex-1 items-start gap-4 p-4 sm:p-5">
+              <div className={cn("flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border shadow-sm", brand.bg, brand.text, brand.border)}>
+                {SOCIAL_LOGOS[pub.channelType] ?? <Zap className="size-4" />}
+              </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">
+                  <p className="line-clamp-2 text-base font-bold leading-snug text-slate-900">
                     {pub.event?.title ?? pub.draft?.title ?? truncate(pub.content, 50)}
                   </p>
-                  <p className="mt-0.5 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-slate-500">
                     {CHANNEL_LABELS[pub.channelType]} ·{" "}
                     {pub.publishedAt ? `Publié ${formatRelative(pub.publishedAt)}` : formatRelative(pub.createdAt)}
                   </p>
@@ -223,17 +265,8 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
                 </div>
               </div>
 
-              <div className="mt-3 rounded-2xl border border-blue-100 bg-blue-50/60 p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-700">
-                    Prévisualisation {CHANNEL_LABELS[pub.channelType]}
-                  </p>
-                  <span className="inline-flex items-center gap-1 text-[11px] text-slate-400">
-                    <Eye className="size-3" />
-                    Rendu
-                  </span>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+              <div className={cn("mt-4 rounded-[22px] border-2 bg-white px-4 py-3 shadow-sm shadow-slate-200/60", accent.preview)}>
+                <div className="contents">
                   <p className="line-clamp-6 whitespace-pre-line text-sm leading-relaxed text-slate-700">
                     {truncate(buildChannelPreview(pub), 320)}
                   </p>
@@ -246,7 +279,7 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
                 </div>
               )}
 
-              <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
                 {pub.externalUrl && (
                   <a href={pub.externalUrl} target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" size="sm" className={cn("h-7 text-xs", interactiveButtonClass)}>
@@ -296,6 +329,7 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
               </div>
             </div>
           </div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -312,17 +346,13 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
               Dès qu’une publication a été envoyée sur un réseau, elle apparaît ici.
             </p>
           </div>
-          <Link href="/dashboard/automations">
-            <Button size="sm" className={cn("bg-white text-slate-900 hover:bg-blue-50 active:bg-blue-100 focus-visible:ring-white/70", interactiveButtonClass)}>
-              Mes publications programmées
-            </Button>
-          </Link>
         </div>
       </div>
 
       <div className="flex flex-wrap justify-center gap-2 pb-1">
         {CHANNEL_FILTERS.map((tab) => {
           const isActive = currentChannel === tab.value;
+          const styles = CHANNEL_FILTER_STYLES[tab.value] ?? CHANNEL_FILTER_STYLES.ALL;
           const href =
             tab.value === "ALL"
               ? `/dashboard/publications?status=${currentStatus}`
@@ -332,8 +362,8 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
             <Link key={tab.value} href={href}>
               <button
                 className={cn(
-                  "flex cursor-pointer items-center gap-2 rounded-2xl border px-4 py-3 text-xs font-bold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]",
-                  isActive ? tab.colorClass : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  "flex cursor-pointer items-center gap-2 rounded-2xl border px-4 py-3 text-xs font-bold transition-all hover:scale-[1.02] active:scale-[0.98]",
+                  isActive ? styles.active : styles.inactive
                 )}
               >
                 {tab.logo}

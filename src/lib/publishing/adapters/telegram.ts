@@ -40,7 +40,21 @@ export async function publishToTelegram(
         }),
       });
       const data = await response.json();
-      if (!data.ok) return { success: false, error: data.description ?? "Erreur Telegram" };
+      if (!data.ok) {
+        const fallbackResponse = await fetch(`${apiBase}/sendDocument`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: chatId,
+            document: payload.mediaUrls[0],
+            caption: formattedContent.substring(0, 1024),
+            parse_mode: "HTML",
+          }),
+        });
+        const fallbackData = await fallbackResponse.json();
+        if (!fallbackData.ok) return { success: false, error: fallbackData.description ?? data.description ?? "Erreur Telegram" };
+        return { success: true, externalId: fallbackData.result.message_id.toString() };
+      }
       return { success: true, externalId: data.result.message_id.toString() };
     }
 
@@ -73,7 +87,12 @@ export async function publishToTelegram(
 }
 
 function formatTelegramContent(payload: PublishPayload): string {
-  return payload.content
+  let content = payload.content;
+  if (payload.hashtags && payload.hashtags.length > 0) {
+    content += "\n\n" + payload.hashtags.slice(0, 10).join(" ");
+  }
+
+  return content
     .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
     .replace(/\*(.*?)\*/g, "<i>$1</i>");
 }

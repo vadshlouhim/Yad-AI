@@ -29,6 +29,33 @@ function normalizeTags(value: unknown) {
     .slice(0, 30);
 }
 
+function normalizeDesign(value: unknown) {
+  if (!Array.isArray(value)) return [];
+
+  return value.slice(0, 80).map((zone, index) => {
+    const item = zone && typeof zone === "object" ? zone as Record<string, unknown> : {};
+    const id = String(item.id ?? `zone_${crypto.randomUUID()}`);
+
+    return {
+      id,
+      label: String(item.label ?? `Zone ${index + 1}`).trim() || `Zone ${index + 1}`,
+      variableKey: String(item.variableKey ?? item.type ?? "MESSAGE").trim() || "MESSAGE",
+      variableType: String(item.variableType ?? "TEXT").trim() || "TEXT",
+      defaultText: String(item.defaultText ?? "").trim(),
+      x: Number(item.x ?? 10),
+      y: Number(item.y ?? 10),
+      width: Number(item.width ?? 50),
+      height: Number(item.height ?? 12),
+      align: String(item.align ?? "center"),
+      fontSize: Number(item.fontSize ?? 42),
+      color: String(item.color ?? "#111827"),
+      fontFamily: String(item.fontFamily ?? "Arial, Helvetica, sans-serif"),
+      overflow: String(item.overflow ?? "shrink"),
+      locked: Boolean(item.locked),
+    };
+  });
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -64,7 +91,7 @@ export async function POST(request: Request) {
       channelType: body.channelType || null,
       thumbnailUrl: body.thumbnailUrl ? String(body.thumbnailUrl).trim() : null,
       previewUrl: body.previewUrl ? String(body.previewUrl).trim() : null,
-      design: [],
+      design: normalizeDesign(body.design),
       isGlobal: body.isGlobal === undefined ? true : Boolean(body.isGlobal),
       isPremium: Boolean(body.isPremium),
       isActive: body.isActive === undefined ? true : Boolean(body.isActive),

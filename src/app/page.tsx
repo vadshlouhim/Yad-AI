@@ -2,15 +2,17 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { HeroAnimation } from "@/components/home/hero-animation";
+import { InstallAppGuide } from "@/components/home/install-app-guide";
+import { PublicFooter } from "@/components/layout/public-footer";
+import { PublicNavbar } from "@/components/layout/public-navbar";
 import {
   BrainCircuit,
   CalendarDays,
-  CheckCircle2,
   Clapperboard,
   Inbox,
   LogIn,
   Megaphone,
-  MessageCircle,
+  Search,
   Send,
   Share2,
   Sparkles,
@@ -99,6 +101,27 @@ const TESTIMONIALS = [
   { name: "Emma V.", role: "Créatrice de contenu", content: "Les ressources et vidéos IA m'aident à publier rapidement sur les bons canaux.", avatar: "EV", color: "bg-fuchsia-100 text-fuchsia-700" },
 ];
 
+const BLOG_TEASERS = [
+  {
+    href: "/blog/communication-ia-communautes",
+    title: "Comment l'IA transforme la communication des communautés",
+    description: "Centraliser messages, réseaux sociaux et rappels sans perdre l'identité humaine.",
+    tone: "border-blue-200 bg-blue-50 text-blue-700",
+  },
+  {
+    href: "/blog/planification-instagram-facebook-whatsapp",
+    title: "Planifier Instagram, Facebook et WhatsApp sans multiplier les outils",
+    description: "Une stratégie multicanale simple pour rester visible sans charge mentale.",
+    tone: "border-pink-200 bg-pink-50 text-pink-700",
+  },
+  {
+    href: "/blog/seo-local-ia-communication",
+    title: "SEO local et IA : rendre votre structure plus visible",
+    description: "Contenus utiles, avis Google, sitemap et données structurées au service de la visibilité.",
+    tone: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  },
+];
+
 export const metadata: Metadata = {
   title: "EasyCom IA - Le copilote IA de communication de votre communauté",
   description:
@@ -109,58 +132,7 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-white text-slate-950">
-      <header className="border-b border-slate-200/80 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <Image
-              src="/easycom-ai-logo.png"
-              alt="Logo EasyCom IA"
-              width={40}
-              height={40}
-              sizes="40px"
-              className="h-10 w-10 rounded-xl border border-slate-200 bg-white object-cover p-1 shadow-sm"
-              priority
-            />
-            <div className="leading-tight">
-              <p className="text-sm font-black tracking-tight text-slate-950">EasyCom IA</p>
-              <p className="text-xs font-medium text-slate-500">Votre assistant communication IA</p>
-            </div>
-          </Link>
-
-          <nav className="hidden items-center gap-6 text-sm font-semibold text-slate-600 md:flex">
-            <Link
-              href="/"
-              className="inline-flex h-9 items-center gap-2 rounded-full px-1 transition hover:text-blue-700"
-            >
-              Accueil
-            </Link>
-            <Link
-              href="/method"
-              className="inline-flex h-9 items-center gap-2 rounded-full px-1 transition hover:text-emerald-700"
-            >
-              <CheckCircle2 className="size-4" />
-              Notre Méthode
-            </Link>
-            <Link
-              href="/contact"
-              className="inline-flex h-9 items-center gap-2 rounded-full px-1 transition hover:text-indigo-700"
-            >
-              <MessageCircle className="size-4" />
-              Contact
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <Link
-              href="/auth/login"
-              className="inline-flex h-10 items-center justify-center rounded-full bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-            >
-              <LogIn className="mr-2 size-4" />
-              Essayer maintenant
-            </Link>
-          </div>
-        </div>
-      </header>
+      <PublicNavbar />
 
       <section className="relative overflow-hidden border-b border-slate-200 bg-white">
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-blue-50/80 to-white" />
@@ -258,6 +230,8 @@ export default function HomePage() {
         </div>
       </section>
 
+      <InstallAppGuide />
+
       <section className="bg-slate-50 px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="text-center">
@@ -284,6 +258,36 @@ export default function HomePage() {
                 </article>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-600">Blog</p>
+              <h2 className="mt-3 max-w-3xl text-[clamp(1.75rem,6vw,2.5rem)] font-black leading-tight tracking-tight text-slate-950">
+                Guides pratiques pour mieux communiquer avec l&apos;IA
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
+                Référencement, WhatsApp, emails, réseaux sociaux et automatisations : des articles pensés pour aider les structures locales à gagner en visibilité.
+              </p>
+            </div>
+            <Link href="/blog" className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-blue-600 px-5 text-sm font-bold text-white shadow-sm hover:bg-blue-700">
+              <Search className="size-4" />
+              Voir tous les articles
+            </Link>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {BLOG_TEASERS.map((article) => (
+              <Link key={article.href} href={article.href} className={`rounded-[1.5rem] border p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${article.tone}`}>
+                <p className="text-xs font-black uppercase tracking-[0.14em] opacity-80">Article SEO</p>
+                <h3 className="mt-3 text-lg font-black leading-tight text-slate-950">{article.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{article.description}</p>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
@@ -341,19 +345,9 @@ export default function HomePage() {
             Essayer maintenant
           </Link>
         </div>
-
-        <div className="mx-auto mt-8 flex max-w-7xl flex-wrap gap-4 text-xs text-slate-400">
-          <Link href="/privacy" className="hover:text-white hover:underline">
-            Politique de confidentialité
-          </Link>
-          <Link href="/legal/terms" className="hover:text-white hover:underline">
-            Conditions d&apos;utilisation
-          </Link>
-          <Link href="/data-deletion" className="hover:text-white hover:underline">
-            Suppression des données
-          </Link>
-        </div>
       </section>
+
+      <PublicFooter />
     </main>
   );
 }

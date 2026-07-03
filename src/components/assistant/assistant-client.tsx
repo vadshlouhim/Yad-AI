@@ -229,6 +229,7 @@ const ASSISTANT_PLACEHOLDER_SUGGESTIONS = [
 ];
 
 const STATIC_ASSISTANT_PLACEHOLDER = "Posez une question, demandez un contenu, lancez une action...";
+const MOBILE_ASSISTANT_PLACEHOLDER = "Décrivez votre besoin...";
 
 const EASYCOM_FULL_MESSAGE =
   "L'Assistant IA vous aide à gérer toute votre communication depuis un seul espace intelligent.\n\n" +
@@ -398,6 +399,7 @@ export function AssistantClient({
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [capabilitiesOpen, setCapabilitiesOpen] = useState(false);
@@ -465,6 +467,16 @@ export function AssistantClient({
     const t1 = window.setTimeout(() => setShowTooltipHelp(false), 5000);
     const t2 = window.setTimeout(() => setShowTooltipInput(false), 5000);
     return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
+  }, []);
+
+  useEffect(() => {
+    function syncViewport() {
+      setIsMobileViewport(window.innerWidth < 768);
+    }
+
+    syncViewport();
+    window.addEventListener("resize", syncViewport);
+    return () => window.removeEventListener("resize", syncViewport);
   }, []);
 
   async function handleDeepLinkAction() {
@@ -2273,12 +2285,17 @@ export function AssistantClient({
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-900 shadow-sm">
               <Bot className="size-5 text-white" />
             </div>
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 flex-col gap-0.5">
               <h1 className="truncate text-base font-bold text-slate-900">
                 {assistantExperience === "detailed" && activeConversationId
                   ? conversations.find((c) => c.id === activeConversationId)?.title ?? "Conversation"
                   : "Assistant IA"}
               </h1>
+              {assistantExperience === "simple" && firstName && (
+                <p className="truncate text-xs font-medium text-slate-500 md:hidden">
+                  Bonjour {firstName}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -2437,7 +2454,7 @@ export function AssistantClient({
         {showQuickPrompts && !approvalDraft && (
 	          <div className={cn(
               "flex-1 flex flex-col items-center justify-center px-4 py-8 sm:px-6",
-              assistantExperience === "simple" && "w-full justify-start overflow-y-auto px-6 pb-4 pt-4 sm:px-8"
+              assistantExperience === "simple" && "w-full justify-center overflow-y-auto px-6 pb-1 pt-1 sm:px-8 md:pt-0"
             )}>
             <div className={cn(
               "hidden",
@@ -2484,13 +2501,14 @@ export function AssistantClient({
             {assistantExperience === "simple" && (
               <div className="mb-6 w-full max-w-4xl px-5 py-2 text-center sm:px-8">
                 <div className="mb-2 text-3xl leading-none">👋</div>
-                <h2 className="text-2xl font-black leading-tight tracking-tight text-slate-900 sm:text-3xl">
-                  Bienvenue{firstName ? `, ${firstName}` : ""}
+                <h2 className="text-[2rem] font-black leading-tight tracking-tight text-slate-900 sm:text-3xl md:text-2xl">
+                  <span className="md:hidden">En quoi puis-je vous aider aujourd&apos;hui ?</span>
+                  <span className="hidden md:inline">Bienvenue{firstName ? `, ${firstName}` : ""}</span>
                 </h2>
-                <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500 sm:text-[15px]">
+                <p className="mx-auto mt-2 hidden max-w-2xl text-sm leading-6 text-slate-500 sm:text-[15px] md:block">
                   {communitySubtitle
-                    ? `Votre Assistant IA conçu spécialement pour les ${communitySubtitle}.`
-                    : "Votre Assistant IA centralise et automatise toute votre communication."}
+                    ? `L'Assistant IA communications 100% conçu pour les ${communitySubtitle}`
+                    : "L'Assistant IA communications 100% conçu pour votre structure"}
                 </p>
               </div>
             )}
@@ -3505,14 +3523,11 @@ export function AssistantClient({
         {/* Input */}
         <div className={cn(
           "border-t border-slate-200/80 bg-slate-50/85 px-4 py-4 backdrop-blur-xl sm:px-6",
-          assistantExperience === "simple" && "border-t-0 bg-transparent px-6 pb-4 pt-0 backdrop-blur-0 sm:px-8"
+          assistantExperience === "simple" && "border-t-0 bg-transparent px-6 pb-7 pt-0 backdrop-blur-0 -mt-8 sm:px-8 md:-mt-16 md:pb-14"
         )}>
           {assistantExperience === "simple" && showQuickPrompts && (
             <div className="mx-auto mb-3 flex w-full max-w-none items-center justify-between gap-3">
-              <p className="text-[13px] leading-5 text-slate-400">
-                L&apos;IA prépare, vous validez — puis elle agit.
-              </p>
-              <div className="relative shrink-0">
+              <div className="relative hidden shrink-0 md:block">
                 <button
                   type="button"
                   onClick={() => setCapabilitiesOpen(true)}
@@ -3635,7 +3650,7 @@ export function AssistantClient({
                   setInput(nextValue);
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder={isRecording ? "Parlez, je vous écoute…" : animatedPlaceholder}
+                placeholder={isRecording ? "Parlez, je vous écoute…" : isMobileViewport ? MOBILE_ASSISTANT_PLACEHOLDER : animatedPlaceholder}
                 rows={1}
                 className="max-h-40 flex-1 resize-none bg-transparent px-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400"
               />

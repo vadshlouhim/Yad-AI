@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { TemplatesClient } from "@/components/templates/templates-client";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import { getBillingConfig, getBillingUsage } from "@/lib/billing";
+import { getStoredShabbatTimes } from "@/lib/ai/engine";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Affiches — EasyCom IA" };
@@ -23,7 +24,7 @@ export default async function TemplatesPage() {
       .order("usageCount", { ascending: false }),
     admin
       .from("Community")
-      .select("id, name, city, tone, phone, email, website, address, religiousStream, plan")
+      .select("id, name, city, logoUrl, tone, phone, email, website, address, religiousStream, timezone, plan")
       .eq("id", communityId)
       .single(),
     getBillingConfig(admin),
@@ -35,12 +36,17 @@ export default async function TemplatesPage() {
     thumbnailUrl: resolveTemplateAssetUrl(template.thumbnailUrl),
     previewUrl: resolveTemplateAssetUrl(template.previewUrl),
   }));
+  const shabbatTimes = await getStoredShabbatTimes({
+    city: community?.city ?? "Paris",
+    timezone: community?.timezone ?? "Europe/Paris",
+  });
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <TemplatesClient
         templates={hydratedTemplates as Parameters<typeof TemplatesClient>[0]["templates"]}
         community={community!}
+        shabbatTimes={shabbatTimes}
         plan={community?.plan ?? "FREE_TRIAL"}
         billingConfig={billingConfig}
         billingUsage={billingUsage}

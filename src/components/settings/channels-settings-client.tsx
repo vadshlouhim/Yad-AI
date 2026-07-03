@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import {
   CheckCircle2, AlertCircle, ExternalLink,
   Zap, ChevronDown, ChevronUp, Unlink,
@@ -21,6 +20,7 @@ interface Channel {
   isActive: boolean;
   pageId: string | null;
   lastSyncAt: Date | null;
+  settings?: Record<string, unknown> | null;
 }
 
 interface Props {
@@ -67,11 +67,9 @@ const CHANNEL_CONFIG: Record<string, {
     brandColor: "from-green-500 to-emerald-400",
     brandBorder: "border-green-200",
     brandText: "text-green-600",
-    description: "Diffusez automatiquement via l'API WhatsApp Business (Cloud API) aux contacts opt-in. Sans configuration, EasyCom IA bascule sur le mode copier-coller.",
-    authType: "token",
-    badge: "Cloud API",
-    botField: "Identifiant du numéro (Phone Number ID)",
-    tokenField: "Token d'accès permanent",
+    description: "Connectez votre numero WhatsApp personnel par QR code ou par code telephone, puis envoyez depuis EasyCom IA.",
+    authType: "manual",
+    badge: "QR / Code",
   },
   TELEGRAM: {
     logo: "/logo/telegram-svgrepo-com.svg",
@@ -135,7 +133,11 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
   const oauthStatus = searchParams.get("oauth");
   const oauthMessage = oauthStatus ? OAUTH_MESSAGES[oauthStatus] : null;
 
-  const connectedCount = channels.filter((c) => c.isConnected).length;
+  function isChannelConnected(channel: Channel | undefined) {
+    return !!channel && (channel.isConnected || (channel.type === "WHATSAPP" && channel.settings?.mode === "personal"));
+  }
+
+  const connectedCount = CHANNEL_ORDER.filter((type) => isChannelConnected(channelMap[type])).length;
 
   function connectOAuth(type: string) {
     window.location.href = `/api/auth/oauth/${type.toLowerCase()}?communityId=${communityId}`;
@@ -183,11 +185,21 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
     if (!confirm(`Déconnecter ${CHANNEL_LABELS[channel.type]} ?`)) return;
     setDeletingId(channel.id);
     try {
-      await fetch(`/api/channels/${channel.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isConnected: false, accessToken: null, refreshToken: null }),
-      });
+      if (channel.type === "WHATSAPP") {
+        await fetch("/api/whatsapp/qr", { method: "DELETE" });
+      } else {
+        await fetch(`/api/channels/${channel.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            isConnected: false,
+            isActive: false,
+            accessToken: null,
+            refreshToken: null,
+            pageId: null,
+          }),
+        });
+      }
       router.refresh();
     } finally {
       setDeletingId(null);
@@ -237,7 +249,10 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
         {[
           { label: "Canaux disponibles", value: CHANNEL_ORDER.length, color: "text-slate-700", bg: "bg-slate-50 border-slate-200" },
           { label: "Connectés", value: connectedCount, color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
-          { label: "Actifs", value: channels.filter((c) => c.isActive && c.isConnected).length, color: "text-blue-700", bg: "bg-blue-50 border-blue-200" },
+          { label: "Actifs", value: CHANNEL_ORDER.filter((type) => {
+            const channel = channelMap[type];
+            return !!channel && channel.isActive && isChannelConnected(channel);
+          }).length, color: "text-blue-700", bg: "bg-blue-50 border-blue-200" },
         ].map((s) => (
           <div key={s.label} className={cn("rounded-2xl border p-4 text-center", s.bg)}>
             <p className={cn("text-3xl font-bold", s.color)}>{s.value}</p>
@@ -262,7 +277,8 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
           const channel = channelMap[type];
           const cfg = CHANNEL_CONFIG[type];
           const isExpanded = expandedChannel === type;
-          const isConnected = channel?.isConnected ?? false;
+          const isWhatsAppPersonal = type === "WHATSAPP" && channel?.settings?.mode === "personal";
+          const isConnected = (channel?.isConnected ?? false) || isWhatsAppPersonal;
           const isActive = channel?.isActive ?? false;
 
           return (
@@ -487,6 +503,42 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                           <ExternalLink className="size-4 ml-1 opacity-80" />
                         </button>
                       )}
+                    </div>
+                  )}
+
+                  {/* WhatsApp personnel QR / code */}
+                  {cfg.authType === "manual" && type === "WHATSAPP" && (
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-green-200 bg-green-50 p-4 flex gap-3">
+                        <Info className="size-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <div className="space-y-2">
+                          <p className="text-sm font-semibold text-green-900">Connexion WhatsApp personnelle</p>
+                          <p className="text-xs leading-relaxed text-green-800">
+                            La connexion se fait maintenant depuis la page WhatsApp avec un QR code ou un code telephone.
+                            Vous pouvez renouveler le QR ou le code uniquement sur demande.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                          href="/dashboard/whatsapp"
+                          className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-green-700"
+                        >
+                          <Wifi className="size-4" />
+                          {isConnected ? "Gerer la connexion" : "Connecter par QR ou code"}
+                        </Link>
+                        {channel && isConnected && (
+                          <button
+                            onClick={() => disconnectChannel(channel)}
+                            disabled={deletingId === channel.id}
+                            className="flex items-center gap-1.5 text-sm font-medium text-red-600 border border-red-200 bg-white hover:bg-red-50 rounded-xl px-4 py-2.5 transition-all disabled:opacity-50"
+                          >
+                            {deletingId === channel.id ? <Loader2 className="size-4 animate-spin" /> : <Unlink className="size-4" />}
+                            Deconnecter
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
 

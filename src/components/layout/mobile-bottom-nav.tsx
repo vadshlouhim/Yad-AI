@@ -17,10 +17,10 @@ export function MobileBottomNav() {
       className={cn(
         "fixed inset-x-0 bottom-0 z-30 hidden max-md:flex",
         "min-h-[5.25rem] items-center justify-between gap-0.5",
-        "border-t border-white/15",
-        "bg-gradient-to-r from-[#1E88E5] via-[#009688] to-[#00897B]",
-        "shadow-[0_-10px_28px_rgba(15,23,42,0.18)]",
-        "pt-2 pl-1 pr-1",
+        "border-t border-white/20",
+        "bg-gradient-to-r from-[#0B3A83] via-[#1156C5] to-[#1D74D8]",
+        "shadow-[0_-14px_34px_rgba(15,23,42,0.24)] backdrop-blur-xl",
+        "pt-2 pl-1.5 pr-1.5",
         "pb-[max(0.375rem,env(safe-area-inset-bottom))]"
       )}
       aria-label="Navigation principale"
@@ -37,21 +37,23 @@ export function MobileBottomNav() {
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1",
+              "flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[1.35rem] px-1 py-1.5",
               "touch-manipulation outline-none transition-[opacity,transform] active:scale-[0.98] active:opacity-95",
-              "focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d7cba]"
+              "focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#124da8]"
             )}
           >
             <span
               className={cn(
-                "flex h-11 shrink-0 items-center justify-center rounded-full px-4 transition-colors",
-                active ? "bg-black/28 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]" : "bg-transparent"
+                "flex h-11 shrink-0 items-center justify-center rounded-full px-4 transition-all",
+                active
+                  ? "bg-white/16 shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_8px_18px_rgba(7,23,74,0.22)] ring-1 ring-white/18"
+                  : "bg-transparent"
               )}
             >
               <Icon
                 className={cn(
                   "size-[22px] shrink-0",
-                  active ? "text-white" : "text-white/78"
+                  active ? "text-white" : "text-white/72"
                 )}
                 strokeWidth={active ? 2.35 : 2}
                 aria-hidden

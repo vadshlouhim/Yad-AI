@@ -29,12 +29,7 @@ function isPublicRoute(pathname: string): boolean {
 }
 
 function isApiRoute(pathname: string): boolean {
-  return (
-    pathname.startsWith("/api/webhooks") ||
-    pathname.startsWith("/api/cron") ||
-    pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/api/gmb")
-  );
+  return pathname.startsWith("/api/");
 }
 
 export async function proxy(request: NextRequest) {

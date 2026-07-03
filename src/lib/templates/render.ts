@@ -10,15 +10,19 @@ type TemplateRow = Tables<"Template">;
 interface DesignZone {
   id: string;
   label: string;
-  type: string;
+  type?: string;
+  variableKey?: string;
+  variableType?: string;
   defaultText: string;
   x: number;
   y: number;
   width: number;
   height: number;
+  align?: "left" | "center" | "right";
   fontSize: number;
   color: string;
   fontFamily: string;
+  overflow?: "shrink" | "wrap" | "truncate" | "hide";
 }
 
 function escapeXml(value: string): string {
@@ -53,6 +57,11 @@ function wrapText(text: string, maxCharsPerLine: number): string[] {
   return lines.slice(0, 4);
 }
 
+function truncateText(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, Math.max(0, maxChars - 3)).trim()}...`;
+}
+
 function buildTextOverlaySvg(
   zones: DesignZone[],
   generatedTexts: Record<string, string>,
@@ -62,12 +71,21 @@ function buildTextOverlaySvg(
   const zoneMarkup = zones
     .map((zone) => {
       const rawText = generatedTexts[zone.id] ?? zone.defaultText ?? "";
-      const text = escapeXml(rawText.trim());
       const zoneWidth = (zone.width / 100) * width;
+      const zoneHeight = (zone.height / 100) * height;
       const fontSize = Math.max(Math.round(zone.fontSize), 18);
       const maxCharsPerLine = Math.max(Math.floor(zoneWidth / (fontSize * 0.52)), 10);
-      const lines = wrapText(text, maxCharsPerLine);
-      const startX = (zone.x / 100) * width + zoneWidth / 2;
+      const maxLines = Math.max(1, Math.floor(zoneHeight / (fontSize * 1.18)));
+      const overflow = zone.overflow ?? "shrink";
+      const text = rawText.trim();
+      if (overflow === "hide" && text.length > maxCharsPerLine * maxLines) return "";
+      const sourceText = overflow === "truncate" ? truncateText(text, maxCharsPerLine * maxLines) : text;
+      const lines = wrapText(sourceText, maxCharsPerLine).slice(0, maxLines);
+      const align = zone.align ?? "center";
+      const textAnchor = align === "left" ? "start" : align === "right" ? "end" : "middle";
+      const startX =
+        (zone.x / 100) * width +
+        (align === "left" ? 0 : align === "right" ? zoneWidth : zoneWidth / 2);
       const startY = (zone.y / 100) * height + fontSize;
       const lineHeight = fontSize * 1.18;
       const fontFamily = escapeXml(zone.fontFamily || "Arial, Helvetica, sans-serif");
@@ -77,7 +95,7 @@ function buildTextOverlaySvg(
         <text
           x="${startX}"
           y="${startY}"
-          text-anchor="middle"
+          text-anchor="${textAnchor}"
           font-family="${fontFamily}"
           font-size="${fontSize}"
           fill="${fill}"
@@ -103,6 +121,11 @@ function buildTextOverlaySvg(
   return Buffer.from(svg);
 }
 
+function isImageZone(zone: DesignZone): boolean {
+  const key = zone.variableKey ?? zone.type ?? "";
+  return zone.variableType === "IMAGE" || key === "USER_LOGO";
+}
+
 async function fetchImageBuffer(imageUrl: string): Promise<Buffer> {
   const response = await fetch(imageUrl);
   if (!response.ok) {
@@ -112,6 +135,41 @@ async function fetchImageBuffer(imageUrl: string): Promise<Buffer> {
   return Buffer.from(await response.arrayBuffer());
 }
 
+async function buildImageComposites(
+  zones: DesignZone[],
+  generatedTexts: Record<string, string>,
+  width: number,
+  height: number
+) {
+  const composites = [];
+
+  for (const zone of zones.filter(isImageZone)) {
+    const imageUrl = (generatedTexts[zone.id] ?? zone.defaultText ?? "").trim();
+    if (!/^https?:\/\//i.test(imageUrl)) continue;
+
+    try {
+      const imageBuffer = await fetchImageBuffer(imageUrl);
+      const zoneWidth = Math.max(1, Math.round((zone.width / 100) * width));
+      const zoneHeight = Math.max(1, Math.round((zone.height / 100) * height));
+      const input = await sharp(imageBuffer)
+        .resize({ width: zoneWidth, height: zoneHeight, fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .png()
+        .toBuffer();
+
+      composites.push({
+        input,
+        left: Math.round((zone.x / 100) * width),
+        top: Math.round((zone.y / 100) * height),
+      });
+    } catch (error) {
+      console.warn("[Templates Render] Logo dynamique ignore", error);
+    }
+  }
+
+  return composites;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function removeTemplateTextWithFal(imageUrl: string): Promise<string> {
   const falKey = process.env.FAL_KEY;
   if (!falKey) {
@@ -365,9 +423,8 @@ export async function renderTemplatePoster(params: {
   let promptUsed: string;
 
   if (zones.length > 0) {
-    const cleanedImageUrl = await removeTemplateTextWithFal(sourceUrl);
-    const cleanedBuffer = await fetchImageBuffer(cleanedImageUrl);
-    const sourceImage = sharp(cleanedBuffer);
+    const sourceBuffer = await fetchImageBuffer(sourceUrl);
+    const sourceImage = sharp(sourceBuffer);
     const metadata = await sourceImage.metadata();
 
     if (!metadata.width || !metadata.height) {
@@ -375,21 +432,20 @@ export async function renderTemplatePoster(params: {
     }
 
     const overlaySvg = buildTextOverlaySvg(
-      zones,
+      zones.filter((zone) => !isImageZone(zone)),
       generatedTexts,
       metadata.width,
       metadata.height
     );
+    const imageComposites = await buildImageComposites(zones, generatedTexts, metadata.width, metadata.height);
 
     outputBuffer = await sourceImage
-      .composite([{ input: overlaySvg, top: 0, left: 0 }])
+      .composite([...imageComposites, { input: overlaySvg, top: 0, left: 0 }])
       .png()
       .toBuffer();
-    promptUsed = buildPosterEditPrompt(template, zones, generatedTexts);
+    promptUsed = "Rendu prédéfini par zones dynamiques, sans génération IA.";
   } else {
-    promptUsed = buildPosterEditPromptWithoutZones(template, generatedTexts);
-    const editedImageUrl = await editTemplateTextWithNanoBanana(sourceUrl, promptUsed);
-    outputBuffer = await fetchImageBuffer(editedImageUrl);
+    throw new Error("Ce template ne contient aucune zone dynamique configurable.");
   }
 
   const storagePath = `generated/${communityId}/${template.id}-${Date.now()}.png`;

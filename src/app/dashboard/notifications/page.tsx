@@ -31,5 +31,9 @@ export default async function NotificationsPage() {
     .order("createdAt", { ascending: false })
     .limit(50);
 
-  return <NotificationsClient notifications={notifications ?? []} />;
+  return (
+    <div className="container max-w-6xl mx-auto py-6 px-4 sm:px-6">
+      <NotificationsClient notifications={notifications ?? []} />
+    </div>
+  );
 }

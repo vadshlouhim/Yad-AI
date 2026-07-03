@@ -17,13 +17,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
 
-    if (!process.env.FAL_KEY) {
-      return NextResponse.json(
-        { error: "FAL_KEY manquant dans l'environnement serveur" },
-        { status: 500 }
-      );
-    }
-
     const body = await request.json();
     const { templateId, generatedTexts } = body as {
       templateId?: string;

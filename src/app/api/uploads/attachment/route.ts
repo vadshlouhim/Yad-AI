@@ -6,18 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 
 const BUCKET = "community-assets";
-const MAX_FILE_SIZE = 15 * 1024 * 1024;
-
-// Types acceptés pour analyse / insertion dans la communication.
-const ACCEPTED_DOC_TYPES = new Set([
-  "application/pdf",
-  "text/plain",
-  "text/csv",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-]);
+const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -37,15 +26,9 @@ export async function POST(request: Request) {
   }
 
   const isImage = file.type.startsWith("image/");
-  if (!isImage && !ACCEPTED_DOC_TYPES.has(file.type)) {
-    return NextResponse.json(
-      { error: "Format non pris en charge (images, PDF, Word, Excel, texte)" },
-      { status: 400 }
-    );
-  }
 
   if (file.size > MAX_FILE_SIZE) {
-    return NextResponse.json({ error: "Fichier trop lourd, maximum 15 Mo" }, { status: 400 });
+    return NextResponse.json({ error: "Fichier trop lourd, maximum 20 Mo" }, { status: 400 });
   }
 
   const admin = createAdminClient();
@@ -59,10 +42,9 @@ export async function POST(request: Request) {
   const input = Buffer.from(await file.arrayBuffer());
 
   let body: Buffer = input;
-  let contentType = file.type;
+  let contentType = file.type || "application/octet-stream";
   let extension = file.name.includes(".") ? file.name.split(".").pop() : "bin";
 
-  // Les images sont normalisées en webp (taille raisonnable pour l'analyse IA).
   if (isImage) {
     body = await sharp(input)
       .rotate()

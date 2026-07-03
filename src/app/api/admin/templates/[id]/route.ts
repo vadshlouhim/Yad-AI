@@ -38,6 +38,41 @@ function normalizeTags(value: unknown) {
     .slice(0, 30);
 }
 
+function normalizePercent(value: unknown, fallback: number) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.min(100, Math.max(0, numeric));
+}
+
+function normalizeDesign(value: unknown) {
+  if (!Array.isArray(value)) return undefined;
+
+  return value.slice(0, 80).map((zone, index) => {
+    const item = zone && typeof zone === "object" ? zone as Record<string, unknown> : {};
+    const id = String(item.id ?? `zone_${crypto.randomUUID()}`);
+    const width = Math.max(1, normalizePercent(item.width, 40));
+    const height = Math.max(1, normalizePercent(item.height, 10));
+
+    return {
+      id,
+      label: String(item.label ?? `Zone ${index + 1}`).trim() || `Zone ${index + 1}`,
+      variableKey: String(item.variableKey ?? item.type ?? "MESSAGE").trim() || "MESSAGE",
+      variableType: String(item.variableType ?? "TEXT").trim() || "TEXT",
+      defaultText: String(item.defaultText ?? "").trim(),
+      x: Math.min(100 - width, normalizePercent(item.x, 10)),
+      y: Math.min(100 - height, normalizePercent(item.y, 10)),
+      width,
+      height,
+      align: ["left", "center", "right"].includes(String(item.align)) ? String(item.align) : "center",
+      fontSize: Math.min(180, Math.max(8, Number(item.fontSize ?? 42))),
+      color: String(item.color ?? "#111827"),
+      fontFamily: String(item.fontFamily ?? "Arial, Helvetica, sans-serif"),
+      overflow: ["shrink", "wrap", "truncate", "hide"].includes(String(item.overflow)) ? String(item.overflow) : "shrink",
+      locked: Boolean(item.locked),
+    };
+  });
+}
+
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const supabase = await createClient();
   const {
@@ -100,6 +135,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const tags = normalizeTags(body.tags);
   if (tags) updateData.tags = tags;
+
+  const design = normalizeDesign(body.design);
+  if (design) updateData.design = design;
 
   for (const field of ["isGlobal", "isActive", "isPremium"] as const) {
     if (body[field] !== undefined) updateData[field] = Boolean(body[field]);

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { PublicFooter } from "@/components/layout/public-footer";
 
 export const metadata: Metadata = {
   title: "Conditions d’utilisation - EasyCom IA",
@@ -26,6 +27,7 @@ export default function TermsPage() {
           .
         </p>
       </div>
+      <PublicFooter />
     </main>
   );
 }

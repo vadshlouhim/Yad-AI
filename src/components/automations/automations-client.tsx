@@ -1,13 +1,11 @@
 ﻿"use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCommunityProfileDisplayLabel, getCommunityProfileLabel } from "@/lib/community/profile-labels";
-import { GENERAL_DEFAULT_PUBLICATION_CATEGORY, isDefaultAutomationPublicationId } from "@/lib/automation/suggested-publications";
 import {
   Zap, Plus, Play, Pause, Clock, CheckCircle, XCircle,
   AlertCircle, Calendar, RefreshCw, Settings, Trash2, X, Save,
@@ -185,15 +183,6 @@ interface PredefinedAutomationCard {
   assistantMessage?: string;
   aiInstruction?: string;
 }
-
-type AssistantStatus = "idle" | "creating" | "created" | "error";
-
-interface AssistantMessage {
-  role: "assistant" | "user";
-  text: string;
-}
-
-type SuggestedCard = PredefinedAutomationCard & { matchingAutomation?: Automation };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const PREDEFINED_AUTOMATIONS: PredefinedAutomationCard[] = [
@@ -413,70 +402,6 @@ function buildTriggerConfig(form: AutomationFormState) {
   return {};
 }
 
-const INVALID_PROFILE_LABELS = new Set([
-  "",
-  "OTHER",
-  "STRUCTURE",
-  "PROFIL",
-  "PROFILS",
-  "PROFIL UTILISATEUR",
-  "PROFILS UTILISATEUR",
-  "AUTRE PROFIL",
-  "AUTRES PROFILS",
-  "VOTRE PROFIL",
-]);
-
-function normalizeProfileLabel(value: string | null | undefined) {
-  return (value ?? "")
-    .trim()
-    .toUpperCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-const DAY_INDEX: Record<string, number> = {
-  sunday: 0,
-  monday: 1,
-  tuesday: 2,
-  wednesday: 3,
-  thursday: 4,
-  friday: 5,
-  saturday: 6,
-};
-
-const DAY_LABELS: Record<string, string> = {
-  sunday: "dimanche",
-  monday: "lundi",
-  tuesday: "mardi",
-  wednesday: "mercredi",
-  thursday: "jeudi",
-  friday: "vendredi",
-  saturday: "samedi",
-};
-
-function getConfigString(config: Record<string, unknown> | null | undefined, key: string) {
-  const value = config?.[key];
-  return typeof value === "string" ? value : "";
-}
-
-function getConfigNumber(config: Record<string, unknown> | null | undefined, key: string) {
-  const value = config?.[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-function formatAssistantTime(time: string) {
-  const [hours = "10", minutes = "00"] = time.split(":");
-  return minutes === "00" ? `${Number(hours)}h` : `${Number(hours)}h${minutes}`;
-}
-
-function formatDayAndTime(day: string | undefined, time: string) {
-  if (!day) return formatAssistantTime(time);
-  const label = DAY_LABELS[day] ?? day;
-  const hour = Number(time.split(":")[0] ?? 10);
-  const period = hour < 12 ? " matin" : hour < 18 ? " après-midi" : " soir";
-  return `${label}${period} à ${formatAssistantTime(time)}`;
-}
-
 // Une automatisation porte-t-elle une campagne de rappels J-10/J-5 ?
 function isEventReminderCampaign(automation: Automation) {
   const cfg = automation.triggerConfig;
@@ -501,101 +426,7 @@ function isMonthlyProgramRecap(automation: Automation) {
   return Boolean(cfg && typeof cfg === "object" && (cfg as Record<string, unknown>).monthlyProgramRecapSettings);
 }
 
-function getCardScheduleLabel(card: PredefinedAutomationCard) {
-  const config = card.triggerConfig ?? {};
-  const time = (card.time ?? getConfigString(config, "time")) || "10:00";
-  const day = (card.day ?? getConfigString(config, "day")) || undefined;
-  const repeat = getConfigString(config, "repeat");
-  const daysBefore = getConfigNumber(config, "daysBefore");
-  const dayOfMonth = getConfigNumber(config, "dayOfMonth");
-
-  if (card.trigger === "BEFORE_EVENT" && daysBefore) return `${daysBefore} jours avant à ${formatAssistantTime(time)}`;
-  if (card.trigger === "AFTER_EVENT") return `juste après l'événement`;
-  if (card.trigger === "EVENT_DAY") return `le matin de l'événement`;
-  if (card.trigger === "DAILY" || repeat === "daily") return `chaque matin à ${formatAssistantTime(time)}`;
-  if (repeat === "monthly" || dayOfMonth) return `le ${dayOfMonth ?? 15} du mois à ${formatAssistantTime(time)}`;
-  if (repeat === "weekly" || day) return formatDayAndTime(day ?? "friday", time);
-  return formatAssistantTime(time);
-}
-
-function getAssistantChannelsLabel(card: PredefinedAutomationCard) {
-  const channels = card.channels ?? [];
-  if (channels.length === 0) return "les canaux pourront être choisis plus tard";
-  const labels = channels.map((channel) => {
-    if (channel === "WHATSAPP") return "WhatsApp manuel";
-    if (channel === "EMAIL") return "Email";
-    return channel.charAt(0) + channel.slice(1).toLowerCase();
-  });
-  if (labels.length === 1) return labels[0];
-  return `${labels.slice(0, -1).join(", ")} et ${labels[labels.length - 1]}`;
-}
-
-function getAssistantMessage(card: PredefinedAutomationCard) {
-  if (card.assistantMessage) return card.assistantMessage;
-  return `Je vais préparer ${card.label.toLowerCase()} au bon moment. Je propose ${getCardScheduleLabel(card)}, avec ${getAssistantChannelsLabel(card)}. Ça vous convient ?`;
-}
-
-function isPositiveAssistantReply(value: string) {
-  const normalized = normalizeProfileLabel(value);
-  return /\b(OUI|OK|D ACCORD|DACCORD|VALID|VALIDE|PARFAIT|GO|YES)\b/.test(normalized);
-}
-
-function buildNextRunAtFromCard(card: PredefinedAutomationCard) {
-  const config = card.triggerConfig ?? {};
-  const time = (card.time ?? getConfigString(config, "time")) || "10:00";
-  const [rawHours = "10", rawMinutes = "00"] = time.split(":");
-  const hours = Number(rawHours);
-  const minutes = Number(rawMinutes);
-  const now = new Date();
-  const next = new Date(now);
-  next.setHours(Number.isFinite(hours) ? hours : 10, Number.isFinite(minutes) ? minutes : 0, 0, 0);
-
-  const repeat = getConfigString(config, "repeat");
-  const day = (card.day ?? getConfigString(config, "day")) || "";
-  const dayOfMonth = getConfigNumber(config, "dayOfMonth");
-
-  if (repeat === "monthly" || dayOfMonth) {
-    next.setDate(dayOfMonth ?? 15);
-    if (next <= now) next.setMonth(next.getMonth() + 1);
-    return next.toISOString();
-  }
-
-  if (repeat === "weekly" || day) {
-    const targetDay = DAY_INDEX[day] ?? DAY_INDEX.friday;
-    const diff = (targetDay - next.getDay() + 7) % 7;
-    next.setDate(next.getDate() + (diff === 0 && next <= now ? 7 : diff));
-    return next.toISOString();
-  }
-
-  if (next <= now) next.setDate(next.getDate() + 1);
-  return next.toISOString();
-}
-
-function buildAssistantTriggerConfig(card: PredefinedAutomationCard, note: string) {
-  const config = card.triggerConfig ?? {};
-  const time = (card.time ?? getConfigString(config, "time")) || "10:00";
-  const day = (card.day ?? getConfigString(config, "day")) || undefined;
-  const repeat = getConfigString(config, "repeat") || (card.trigger === "DAILY" ? "daily" : "none");
-
-  return {
-    ...config,
-    eventTitle: card.label,
-    time,
-    day,
-    repeat,
-    days: day ? [day] : Array.isArray(config.days) ? config.days : [],
-    message: note.trim() || null,
-    notificationHoursBefore: 2,
-    validationBeforeSend: true,
-    assistantActivated: true,
-    assistantInternalInstruction: card.aiInstruction ?? `L'utilisateur souhaite activer l'automatisation ${card.label}.`,
-    assistantVisibleReply: getAssistantMessage(card),
-    whatsappDeliveryMode: "manual_copy",
-    whatsappAutoSend: false,
-  };
-}
-
-export function AutomationsClient({ automations, presets = [], recentRuns, embedded = false, requiresValidationDefault = true, communityType = "OTHER", profileLabel: profileLabelProp, billingConfig }: Props) {
+export function AutomationsClient({ automations, recentRuns, embedded = false, requiresValidationDefault = true, profileLabel, billingConfig }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [toggling, setToggling] = useState<string | null>(null);
@@ -606,56 +437,8 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
   const [form, setForm] = useState<AutomationFormState>(() => defaultForm(requiresValidationDefault));
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const [hiddenPresetIds, setHiddenPresetIds] = useState<string[]>([]);
-  const [expandedSpecificPresets, setExpandedSpecificPresets] = useState(false);
-  const [assistantCard, setAssistantCard] = useState<PredefinedAutomationCard | null>(null);
-  const [assistantMessages, setAssistantMessages] = useState<AssistantMessage[]>([]);
-  const [assistantInput, setAssistantInput] = useState("");
-  const [assistantNote, setAssistantNote] = useState("");
-  const [assistantStatus, setAssistantStatus] = useState<AssistantStatus>("idle");
   const activeCount = automations.filter((a) => a.isActive).length;
-  const profileLabelFromProps = profileLabelProp?.trim() ?? "";
-  const profileLabel = (
-    profileLabelFromProps && !INVALID_PROFILE_LABELS.has(normalizeProfileLabel(profileLabelFromProps))
-      ? profileLabelFromProps
-      : getCommunityProfileLabel(communityType, "plural") || getCommunityProfileDisplayLabel(communityType)
-  ).trim();
-  const dynamicPresetCards: PredefinedAutomationCard[] = presets.map((preset) => {
-    const generateAction = getGenerateAction({ actions: preset.actions } as Automation);
-    const config = preset.triggerConfig ?? {};
-    return {
-      key: preset.id,
-      presetId: isDefaultAutomationPublicationId(preset.id) ? undefined : preset.id,
-      label: preset.title,
-      description: preset.description ?? "Automatisation prédéfinie par l'admin global.",
-      emoji: preset.icon ?? "âš¡",
-      category: preset.category,
-      status: "configurable",
-      trigger: preset.trigger,
-      triggerConfig: preset.triggerConfig ?? {},
-      contentType: generateAction?.contentType,
-      channels: generateAction?.channels,
-      time: typeof config.time === "string" ? config.time : undefined,
-      day: typeof config.day === "string" ? config.day : undefined,
-      assistantMessage: typeof config.assistantMessage === "string" ? config.assistantMessage : undefined,
-      aiInstruction: typeof config.aiInstruction === "string" ? config.aiInstruction : undefined,
-    };
-  });
-  const predefinedCards = dynamicPresetCards.map((card) => {
-    const matchingAutomation = automations.find((automation) => {
-      const generateAction = getGenerateAction(automation);
-      if (card.presetId && automation.presetId === card.presetId) return true;
-      if (card.trigger && automation.trigger !== card.trigger) return false;
-      if (card.contentType && generateAction?.contentType !== card.contentType) return false;
-      return true;
-    });
-
-    return { ...card, matchingAutomation };
-  });
-  const visiblePresetCards = predefinedCards.filter((card) => !hiddenPresetIds.includes(card.key));
-  const profilePresetCards = visiblePresetCards.filter((card) => card.category !== GENERAL_DEFAULT_PUBLICATION_CATEGORY && card.category !== "GENERAL");
-  const generalPresetCards = visiblePresetCards.filter((card) => card.category === GENERAL_DEFAULT_PUBLICATION_CATEGORY || card.category === "GENERAL");
-  const visibleProfilePresetCards = expandedSpecificPresets ? profilePresetCards : profilePresetCards.slice(0, 10);
+  const automationTitleTarget = profileLabel?.trim() || "votre structure";
   const visibleAutomations = automations;
 
   useEffect(() => {
@@ -707,75 +490,6 @@ export function AutomationsClient({ automations, presets = [], recentRuns, embed
     setForm(defaultForm(requiresValidationDefault));
     setFormOpen(true);
     setFeedback(null);
-  }
-
-  function openAssistantForPublication(card: PredefinedAutomationCard) {
-    setAssistantCard(card);
-    setAssistantMessages([{ role: "assistant", text: getAssistantMessage(card) }]);
-    setAssistantInput("");
-    setAssistantNote("");
-    setAssistantStatus("idle");
-    setFeedback(null);
-  }
-
-  function closeAssistant() {
-    setAssistantCard(null);
-    setAssistantMessages([]);
-    setAssistantInput("");
-    setAssistantNote("");
-    setAssistantStatus("idle");
-  }
-
-  async function confirmAssistantAutomation(userText = "Oui") {
-    if (!assistantCard || assistantStatus === "creating" || assistantStatus === "created") return;
-    setAssistantStatus("creating");
-    setAssistantMessages((current) => [...current, { role: "user", text: userText }]);
-    const created = await createAutomationFromCard(assistantCard, undefined, assistantNote);
-    if (!created) {
-      setAssistantStatus("error");
-      setAssistantMessages((current) => [
-        ...current,
-        { role: "assistant", text: "Je n'ai pas pu l'ajouter pour l'instant. Réessayez dans un instant." },
-      ]);
-      return;
-    }
-    setAssistantStatus("created");
-    setAssistantMessages((current) => [
-      ...current,
-      { role: "assistant", text: "C'est noté, je l'ai ajouté à votre Agenda connecté IA." },
-    ]);
-  }
-
-  async function submitAssistantInput() {
-    const text = assistantInput.trim();
-    if (!text || !assistantCard) return;
-    setAssistantInput("");
-
-    if (isPositiveAssistantReply(text)) {
-      await confirmAssistantAutomation(text);
-      return;
-    }
-
-    setAssistantNote(text);
-    setAssistantMessages((current) => [
-      ...current,
-      { role: "user", text },
-      {
-        role: "assistant",
-        text: "Très bien, je garde cette précision. Je l'ajoute avec validation avant envoi et notification 2h avant ?",
-      },
-    ]);
-  }
-
-  async function hidePresetSuggestion(suggestionId: string) {
-    setHiddenPresetIds((current) => [...current, suggestionId]);
-    const response = await fetch(`/api/automations/presets/${suggestionId}/hide`, { method: "POST" });
-    if (!response.ok) {
-      setHiddenPresetIds((current) => current.filter((id) => id !== suggestionId));
-      alert("Impossible de masquer cette suggestion.");
-      return;
-    }
-    router.refresh();
   }
 
   function openEditForm(automation: Automation) {
@@ -917,41 +631,6 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
     }
   }
 
-  async function createAutomationFromCard(card: PredefinedAutomationCard, channels?: string[], note = "") {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/automations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: card.label,
-          description: card.description,
-          presetId: card.presetId && !isDefaultAutomationPublicationId(card.presetId) ? card.presetId : undefined,
-          trigger: card.trigger ?? "CUSTOM_SCHEDULE",
-          triggerConfig: buildAssistantTriggerConfig(card, note),
-          contentType: card.contentType ?? "GENERAL",
-          channels: channels ?? card.channels ?? [],
-          requiresValidation: card.requiresValidation ?? requiresValidationDefault,
-          isActive: true,
-          nextRunAt: buildNextRunAtFromCard(card),
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        router.refresh();
-        return true;
-      }
-      if (data.code === "PAYWALL_REQUIRED") {
-        setUpgradeOpen(true);
-        return false;
-      }
-      setFeedback({ type: "error", text: data.error ?? "Erreur lors de la création de l'automatisation." });
-      return false;
-    } finally {
-      setSaving(false);
-    }
-  }
-
   async function createPreset(preset: string, channels?: string[]) {
     setSaving(true);
     try {
@@ -978,10 +657,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
     return (
       <Card
         key={automation.id}
-        className={cn(
-          "relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm transition-shadow hover:shadow-md hover:shadow-violet-100/50",
-          !automation.isActive && "opacity-60"
-        )}
+        className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm transition-shadow hover:shadow-md hover:shadow-violet-100/50"
       >
         <CardContent className="p-4 pr-12">
           <button
@@ -1067,103 +743,6 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
     );
   }
 
-  function renderSuggestedCard(card: SuggestedCard, index: number) {
-    const alreadyActive = Boolean(card.matchingAutomation);
-    return (
-      <Card
-        key={card.key}
-        className={cn(
-          "relative min-h-40 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md hover:shadow-violet-100/50",
-          alreadyActive && "bg-slate-50/80"
-        )}
-      >
-        <CardContent className="flex h-full flex-col p-4">
-          <button
-            type="button"
-            aria-label="Masquer cette suggestion"
-            onClick={() => void hidePresetSuggestion(card.key)}
-            className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-          >
-            <X className="size-3.5" />
-          </button>
-
-          <div className="flex items-start gap-3 pr-7">
-            <span className={cn(
-              "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-sm font-black",
-              ["border-violet-100 bg-violet-50 text-violet-700", "border-slate-200 bg-slate-50 text-slate-700", "border-emerald-100 bg-emerald-50 text-emerald-700"][index % 3]
-            )}>
-              {card.emoji}
-            </span>
-            <div className="min-w-0">
-              <h3 className="line-clamp-2 text-sm font-black leading-5 text-slate-900">{card.label}</h3>
-              <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-500">{card.description}</p>
-            </div>
-          </div>
-
-          <div className="mt-auto flex items-center justify-between gap-3 pt-4">
-            {alreadyActive ? (
-              <Badge variant="published" className="border border-emerald-100 bg-emerald-50 text-emerald-700">
-                Déjà activée
-              </Badge>
-            ) : (
-              <span className="text-[11px] font-semibold text-slate-400">Assistant IA</span>
-            )}
-            <Button
-              type="button"
-              size="sm"
-              disabled={alreadyActive || saving}
-              onClick={() => openAssistantForPublication(card)}
-              className="h-8 rounded-full bg-slate-950 px-3 text-xs text-white hover:bg-violet-800 disabled:bg-slate-300"
-            >
-              <Zap className="size-3.5" />
-              {alreadyActive ? "Active" : "Activer"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  function renderSuggestedSection(params: {
-    title: ReactNode;
-    cards: SuggestedCard[];
-    emptyText?: string;
-    showMore?: boolean;
-  }) {
-    return (
-      <div className="space-y-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-xl font-black text-slate-800">{params.title}</h2>
-          <Badge variant="info" className="w-fit border border-violet-100 bg-violet-50 text-violet-700">
-            {activeCount} active{activeCount > 1 ? "s" : ""}
-          </Badge>
-        </div>
-
-        {params.cards.length > 0 ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {params.cards.map((card, index) => renderSuggestedCard(card, index))}
-          </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-600">
-            <p>{params.emptyText ?? "Aucune publication IA proposée n'est disponible pour le moment."}</p>
-          </div>
-        )}
-
-        {params.showMore && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setExpandedSpecificPresets(true)}
-            className="rounded-full border-slate-200 px-4"
-          >
-            Voir plus
-          </Button>
-        )}
-      </div>
-    );
-  }
-
-
   return (
     <div className="space-y-6">
       <UpgradeModal
@@ -1175,50 +754,24 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
         description="Le mode gratuit permet de créer une seule automatisation IA. Passez au mode payant pour programmer toutes vos routines de communication."
       />
       {!embedded && (
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-600 p-6 shadow-lg shadow-violet-900/20">
-            <div className="mb-3 h-1.5 w-10 rounded-full bg-violet-200" />
-            <h1 className="mt-2 text-3xl font-black tracking-tight text-white">Toutes les automatisations</h1>
-            <div className="mt-5 rounded-2xl border border-white/20 bg-white/10 p-4 text-sm leading-6 text-violet-50 shadow-inner shadow-violet-950/20">
-              Programmez vos automatisations réseaux sociaux pour communiquer au bon moment et rester actif sur toutes vos plateformes. Elles seront ajoutées à votre Agenda IA.
+        <div className="overflow-hidden rounded-3xl border border-violet-200/70 bg-gradient-to-br from-white via-violet-50 to-indigo-50 p-6 shadow-lg shadow-violet-100/50">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div className="max-w-4xl">
+              <div className="mb-4 h-1.5 w-12 rounded-full bg-violet-500" />
+              <h1 className="text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+                Toutes les automatisations spécialement conçues pour les{" "}
+                <span className="text-violet-600">{automationTitleTarget}</span>
+              </h1>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                Gérez vos automatisations et suivez celles déjà actives.
+              </p>
+            </div>
+            <div className="flex w-fit items-center gap-2 rounded-2xl border border-violet-100 bg-white/80 px-4 py-3 text-sm font-semibold text-violet-700 shadow-sm shadow-violet-100/60">
+              <Zap className="size-4" />
+              {activeCount} active{activeCount > 1 ? "s" : ""}
             </div>
           </div>
-
         </div>
-      )}
-
-      {!embedded && (
-        <section className="space-y-6 rounded-2xl border border-violet-100 bg-white p-5 shadow-sm shadow-violet-100/30">
-          {profilePresetCards.length > 0 && renderSuggestedSection({
-            title: (
-              <>
-                Publications automatiques IA proposées pour les{" "}
-                <span className="text-[1.18em] font-black text-violet-500">{profileLabel}</span>
-              </>
-            ),
-            cards: visibleProfilePresetCards,
-            showMore: profilePresetCards.length > visibleProfilePresetCards.length,
-          })}
-
-          {renderSuggestedSection({
-            title: "Automatisations de publications proposées",
-            cards: profilePresetCards.length > 0 ? generalPresetCards : visiblePresetCards,
-            emptyText: "Aucune publication IA proposée n'est encore disponible. Vous pouvez créer votre propre automatisation.",
-          })}
-
-          <div className="mt-5 flex flex-col items-center gap-2 border-t border-slate-100 pt-5 text-center">
-            <Button
-              onClick={openCreateForm}
-              className="rounded-full bg-violet-600 px-5 text-white shadow-sm shadow-violet-200 hover:bg-violet-700"
-            >
-              <Plus className="size-4" />
-              Créer une nouvelle automatisation de publication
-            </Button>
-            <p className="text-sm text-slate-500">
-              Choisissez parmi ces automatisations prédéfinies ou créez vos propres automatisations personnalisées.
-            </p>
-          </div>
-        </section>
       )}
 
       {!embedded && (
@@ -1226,8 +779,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="mb-3 h-1 w-8 rounded-full bg-violet-500" />
-              <h2 className="text-lg font-black text-slate-900">Automatisations actives</h2>
-              <p className="mt-1 text-sm text-slate-500">Gérez les publications automatisées déjà créées.</p>
+              <h2 className="text-lg font-black text-slate-900">Listes des automatisations</h2>
             </div>
           </div>
 
@@ -1413,102 +965,6 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
         </div>
       )}
 
-      {assistantCard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
-          <Card className="w-full max-w-lg overflow-hidden border-violet-100 bg-white shadow-2xl shadow-slate-950/20">
-            <CardHeader className="border-b border-slate-100 bg-slate-950 px-5 py-4 text-white">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-xl font-black">
-                    <Zap className="size-5 text-violet-200" />
-                    Assistant IA
-                  </CardTitle>
-                  <p className="mt-1 text-sm text-slate-300">{assistantCard.label}</p>
-                </div>
-                <Button variant="ghost" size="sm" onClick={closeAssistant} className="text-white hover:bg-white/15 hover:text-white">
-                  <X className="size-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 bg-slate-50 p-5">
-              <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
-                {assistantMessages.map((message, index) => (
-                  <div
-                    key={`${message.role}-${index}`}
-                    className={cn(
-                      "max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm",
-                      message.role === "assistant"
-                        ? "mr-auto border border-slate-200 bg-white text-slate-700"
-                        : "ml-auto bg-violet-700 text-white"
-                    )}
-                  >
-                    {message.text}
-                  </div>
-                ))}
-                {assistantStatus === "creating" && (
-                  <div className="mr-auto inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">
-                    <RefreshCw className="size-4 animate-spin" />
-                    J&apos;ajoute l&apos;automatisation...
-                  </div>
-                )}
-              </div>
-
-              {assistantStatus === "created" ? (
-                <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
-                  <Button type="button" variant="outline" onClick={closeAssistant} className="rounded-full border-slate-200">
-                    Fermer
-                  </Button>
-                  <Link href="/dashboard/events">
-                    <Button className="rounded-full bg-violet-700 text-white hover:bg-violet-800">
-                      <Calendar className="size-4" />
-                      Voir dans mon Agenda connecté IA
-                    </Button>
-                  </Link>
-                </div>
-              ) : (
-                <div className="space-y-3 border-t border-slate-200 pt-4">
-                  <div className="flex gap-2">
-                    <input
-                      value={assistantInput}
-                      onChange={(event) => setAssistantInput(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          void submitAssistantInput();
-                        }
-                      }}
-                      placeholder="Répondez oui, ou précisez un détail..."
-                      className="min-w-0 flex-1 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-                    />
-                    <Button
-                      type="button"
-                      onClick={() => void submitAssistantInput()}
-                      disabled={assistantStatus === "creating"}
-                      className="rounded-full bg-violet-700 px-4 text-white hover:bg-violet-800"
-                    >
-                      Envoyer
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={closeAssistant} className="rounded-full border-slate-200">
-                      Annuler
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => void confirmAssistantAutomation()}
-                      loading={assistantStatus === "creating"}
-                      className="rounded-full bg-slate-950 text-white hover:bg-violet-800"
-                    >
-                      Oui, ajoute-la
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       {embedded && (
         <div className="rounded-3xl border border-violet-100/80 bg-gradient-to-br from-white via-violet-50/80 to-slate-100 p-5 shadow-sm shadow-violet-100/40">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-600">Automatisations</p>
@@ -1536,7 +992,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
             const lastRun = automation.runs[0];
             const generateAction = getGenerateAction(automation);
             return (
-              <Card key={automation.id} className={cn("border border-slate-200/90 bg-white/95 transition-shadow hover:shadow-sm hover:shadow-violet-100/50", !automation.isActive && "opacity-60")}>
+              <Card key={automation.id} className="border border-slate-200/90 bg-white/95 transition-shadow hover:shadow-sm hover:shadow-violet-100/50">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
                     <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xl", automation.isActive ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-500")}>{TRIGGER_LABELS[automation.trigger]?.split(" ")[0] ?? "âš¡"}</div>

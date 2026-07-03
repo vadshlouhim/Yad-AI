@@ -180,7 +180,7 @@ export function OnboardingWizard({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
-            cancelUrl: `${window.location.origin}/dashboard/assistant`,
+            cancelUrl: `${window.location.origin}/dashboard`,
           }),
         });
         const checkoutData = await checkout.json().catch(() => ({}));
@@ -208,7 +208,7 @@ export function OnboardingWizard({
             setCurrentStep(STEPS.length - 1);
             return;
           }
-          router.push("/dashboard/assistant?welcome=true");
+          router.push("/dashboard?welcome=true");
         }}
       />
     );

@@ -7,10 +7,15 @@ import {
   CheckCircle2,
   CreditCard,
   Database,
+  Eye,
+  FileText,
   ImageIcon,
   LayoutDashboard,
+  Lock,
+  Maximize2,
   MessageSquare,
   Moon,
+  Move,
   Pencil,
   PlayCircle,
   Plus,
@@ -20,6 +25,7 @@ import {
   Sparkles,
   Sun,
   Trash2,
+  Unlock,
   UploadCloud,
   Users,
   Wand2,
@@ -27,6 +33,8 @@ import {
   Zap,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import type { PointerEvent } from "react";
 import { useMemo, useState } from "react";
 import { OnboardingWizard, demoOnboardingData } from "@/components/onboarding/onboarding-wizard";
 import type { BillingConfig } from "@/lib/billing";
@@ -43,6 +51,7 @@ interface AdminMetrics {
   globalTemplateCount: number;
   activeTemplateCount: number;
   articleCount: number;
+  leadCount: number;
   automationCount: number;
   eventCount: number;
   publicationCount: number;
@@ -61,6 +70,7 @@ interface AdminTemplate {
   channelType: string | null;
   thumbnailUrl: string | null;
   previewUrl: string | null;
+  design: DynamicTemplateZone[];
   isGlobal: boolean;
   isPremium: boolean;
   isActive: boolean;
@@ -69,6 +79,24 @@ interface AdminTemplate {
   createdAt: string;
   updatedAt: string;
 }
+
+type DynamicTemplateZone = {
+  id: string;
+  label: string;
+  variableKey: string;
+  variableType: string;
+  defaultText: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  align: "left" | "center" | "right";
+  fontSize: number;
+  color: string;
+  fontFamily: string;
+  overflow: "shrink" | "wrap" | "truncate" | "hide";
+  locked: boolean;
+};
 
 interface AdminCommunity {
   id: string;
@@ -104,6 +132,25 @@ interface AdminUser {
     currentPeriodEnd: string;
     createdAt: string;
   } | null;
+}
+
+interface ContactLead {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  organization: string | null;
+  subject: string;
+  message: string;
+  source: string;
+  pageUrl: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  status: string;
+  emailSentAt: string | null;
+  emailError: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface AdminAutomation {
@@ -155,13 +202,14 @@ interface Props {
   templates: AdminTemplate[];
   communities: AdminCommunity[];
   users: AdminUser[];
+  contactLeads: ContactLead[];
   automations: AdminAutomation[];
   automationPresets: AdminAutomationPreset[];
   recentConversations: RecentConversation[];
   billingConfig: BillingConfig;
 }
 
-type AdminSection = "overview" | "templates" | "presets" | "automations" | "pricing" | "communities" | "activity" | "data" | "development" | "users";
+type AdminSection = "overview" | "templates" | "presets" | "automations" | "pricing" | "communities" | "activity" | "data" | "development" | "users" | "leads";
 type ThemeMode = "light" | "dark";
 type AdminAutomationFormState = {
   communityId: string;
@@ -181,6 +229,27 @@ const numberFormatter = new Intl.NumberFormat("fr-FR");
 const TEMPLATE_CATEGORIES = ["ALL", "SHABBAT", "HOLIDAY", "EVENT", "COURSE", "ANNOUNCEMENT", "RECAP", "GREETING", "GENERAL"];
 const EDITABLE_TEMPLATE_CATEGORIES = TEMPLATE_CATEGORIES.filter((category) => category !== "ALL");
 const CHANNEL_TYPES = ["", "INSTAGRAM", "FACEBOOK", "WHATSAPP", "TELEGRAM", "EMAIL", "WEB"];
+const TEMPLATE_VARIABLES = [
+  { key: "SHABBAT_TIMES", label: "Horaires de Chabbat", type: "TIME" },
+  { key: "HOLIDAY_TIMES", label: "Horaires de fête", type: "TIME" },
+  { key: "DATE", label: "Date", type: "TIME" },
+  { key: "TIME", label: "Heure", type: "TIME" },
+  { key: "USER_LOGO", label: "Logo utilisateur", type: "IMAGE" },
+  { key: "BET_DIN_NAME", label: "Nom de l'organisation", type: "ORGANIZATION" },
+  { key: "TITLE", label: "Titre", type: "TEXT" },
+  { key: "SUBTITLE", label: "Sous-titre", type: "TEXT" },
+  { key: "MESSAGE", label: "Message personnalisé", type: "TEXT" },
+  { key: "LOCATION", label: "Lieu", type: "TEXT" },
+  { key: "CONTACT", label: "Contact", type: "TEXT" },
+  { key: "CUSTOM_TEXT", label: "Texte libre", type: "TEXT" },
+] as const;
+const TEMPLATE_ALIGNMENTS = ["left", "center", "right"] as const;
+const TEMPLATE_OVERFLOWS = [
+  { value: "shrink", label: "Réduire la taille" },
+  { value: "wrap", label: "Retour à la ligne" },
+  { value: "truncate", label: "Couper avec ..." },
+  { value: "hide", label: "Masquer si trop long" },
+] as const;
 const AUTOMATION_CHANNEL_TYPES = ["EMAIL", "WHATSAPP", "INSTAGRAM", "FACEBOOK", "TELEGRAM", "WEB"];
 const AUTOMATION_TRIGGER_TYPES = [
   { value: "MANUAL", label: "Manuel" },
@@ -287,6 +356,64 @@ function createDefaultAdminAutomationForm(communityId: string): AdminAutomationF
   };
 }
 
+function createTemplateZone(index: number): DynamicTemplateZone {
+  const variable = TEMPLATE_VARIABLES[Math.min(index, TEMPLATE_VARIABLES.length - 1)] ?? TEMPLATE_VARIABLES[0];
+
+  return {
+    id: `zone_${crypto.randomUUID()}`,
+    label: variable.label,
+    variableKey: variable.key,
+    variableType: variable.type,
+    defaultText: variable.key === "SHABBAT_TIMES" ? "Entrée : 20h41\nSortie : 21h53" : `{{${variable.key}}}`,
+    x: 12,
+    y: 12 + (index % 5) * 14,
+    width: variable.type === "IMAGE" ? 22 : 68,
+    height: variable.type === "IMAGE" ? 16 : 12,
+    align: "center",
+    fontSize: variable.type === "IMAGE" ? 28 : 42,
+    color: "#111827",
+    fontFamily: "Arial, Helvetica, sans-serif",
+    overflow: "shrink",
+    locked: false,
+  };
+}
+
+function normalizeTemplateDesign(value: unknown): DynamicTemplateZone[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.map((zone, index) => {
+    const item = zone && typeof zone === "object" ? zone as Partial<DynamicTemplateZone> & { type?: string } : {};
+    const variable = TEMPLATE_VARIABLES.find((entry) => entry.key === (item.variableKey ?? item.type)) ?? TEMPLATE_VARIABLES[8];
+
+    return {
+      ...createTemplateZone(index),
+      ...item,
+      id: String(item.id ?? `zone_${index}`),
+      label: String(item.label ?? variable.label),
+      variableKey: String(item.variableKey ?? item.type ?? variable.key),
+      variableType: String(item.variableType ?? variable.type),
+      align: TEMPLATE_ALIGNMENTS.includes(item.align as (typeof TEMPLATE_ALIGNMENTS)[number]) ? item.align as DynamicTemplateZone["align"] : "center",
+      overflow: TEMPLATE_OVERFLOWS.some((overflow) => overflow.value === item.overflow) ? item.overflow as DynamicTemplateZone["overflow"] : "shrink",
+      locked: Boolean(item.locked),
+    };
+  });
+}
+
+function getFakeVariableValue(zone: DynamicTemplateZone): string {
+  if (zone.variableKey === "SHABBAT_TIMES") return "Entrée : 20h41\nSortie : 21h53";
+  if (zone.variableKey === "HOLIDAY_TIMES") return "Office : 09h30\nAllumage : 20h12";
+  if (zone.variableKey === "DATE") return "Vendredi 3 juillet 2026";
+  if (zone.variableKey === "TIME") return "20h30";
+  if (zone.variableKey === "BET_DIN_NAME") return "Beth Din de Paris";
+  if (zone.variableKey === "TITLE") return "Beth Din de Paris";
+  if (zone.variableKey === "SUBTITLE") return "Programme communautaire";
+  if (zone.variableKey === "MESSAGE") return "Shabbat Shalom à tous.";
+  if (zone.variableKey === "LOCATION") return "Paris";
+  if (zone.variableKey === "CONTACT") return "01 23 45 67 89";
+  if (zone.variableKey === "USER_LOGO") return "Logo";
+  return "Texte exemple";
+}
+
 function MetricCard({
   label,
   value,
@@ -319,7 +446,7 @@ function MetricCard({
   );
 }
 
-export function AdminConsoleClient({ metrics, templates, communities, users, automations, automationPresets, recentConversations, billingConfig }: Props) {
+export function AdminConsoleClient({ metrics, templates, communities, users, contactLeads, automations, automationPresets, recentConversations, billingConfig }: Props) {
   const [selectedId, setSelectedId] = useState(templates[0]?.id ?? "");
   const [selectedPresetId, setSelectedPresetId] = useState(automationPresets[0]?.id ?? "");
   const [query, setQuery] = useState("");
@@ -350,11 +477,19 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
   const [userDeleteConfirm, setUserDeleteConfirm] = useState<AdminUser | null>(null);
   const [uploadingField, setUploadingField] = useState<"thumbnail" | "preview" | null>(null);
   const [automationSaving, setAutomationSaving] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState(() => new Map(templates.map((template) => [template.id, template])));
+  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
+  const [selectedZoneIds, setSelectedZoneIds] = useState<string[]>([]);
+  const [draggingZoneId, setDraggingZoneId] = useState<string | null>(null);
+  const [resizingZoneId, setResizingZoneId] = useState<string | null>(null);
+  const [canvasGuides, setCanvasGuides] = useState({ vertical: false, horizontal: false });
+  const [showFakePreview, setShowFakePreview] = useState(true);
+  const [drafts, setDrafts] = useState(() => new Map(templates.map((template) => [template.id, { ...template, design: normalizeTemplateDesign(template.design) }])));
   const [presetDrafts, setPresetDrafts] = useState(() => new Map(automationPresets.map((preset) => [preset.id, preset])));
 
   const isDark = theme === "dark";
   const selectedTemplate = drafts.get(selectedId) ?? Array.from(drafts.values())[0] ?? null;
+  const selectedZone = selectedTemplate?.design.find((zone) => zone.id === selectedZoneId) ?? selectedTemplate?.design[0] ?? null;
+  const selectedZoneCount = selectedZoneIds.length;
   const selectedPreset = presetDrafts.get(selectedPresetId) ?? Array.from(presetDrafts.values())[0] ?? null;
   const allTemplates = useMemo(() => Array.from(drafts.values()), [drafts]);
   const allPresets = useMemo(() => Array.from(presetDrafts.values()).sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title)), [presetDrafts]);
@@ -432,6 +567,149 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     });
   }
 
+  function updateSelectedTemplateDesign(design: DynamicTemplateZone[]) {
+    updateSelectedTemplate({ design });
+  }
+
+  function selectTemplateZone(zoneId: string, additive = false) {
+    setSelectedZoneId(zoneId);
+    setSelectedZoneIds((previous) => {
+      if (!additive) return [zoneId];
+      return previous.includes(zoneId)
+        ? previous.filter((id) => id !== zoneId)
+        : [...previous, zoneId];
+    });
+  }
+
+  function addTemplateZone() {
+    if (!selectedTemplate) return;
+    const nextZone = createTemplateZone(selectedTemplate.design.length);
+    updateSelectedTemplateDesign([...selectedTemplate.design, nextZone]);
+    selectTemplateZone(nextZone.id);
+  }
+
+  function updateTemplateZone(zoneId: string, patch: Partial<DynamicTemplateZone>) {
+    if (!selectedTemplate) return;
+    updateSelectedTemplateDesign(
+      selectedTemplate.design.map((zone) => {
+        if (zone.id !== zoneId) return zone;
+        const next = { ...zone, ...patch };
+        const width = Math.max(1, Math.min(100, Number(next.width) || zone.width));
+        const height = Math.max(1, Math.min(100, Number(next.height) || zone.height));
+        return {
+          ...next,
+          width,
+          height,
+          x: Math.min(100 - width, Math.max(0, Number(next.x) || 0)),
+          y: Math.min(100 - height, Math.max(0, Number(next.y) || 0)),
+          fontSize: Math.max(8, Math.min(180, Number(next.fontSize) || zone.fontSize)),
+        };
+      })
+    );
+  }
+
+  function deleteTemplateZone(zoneId: string) {
+    if (!selectedTemplate) return;
+    const nextDesign = selectedTemplate.design.filter((zone) => zone.id !== zoneId);
+    updateSelectedTemplateDesign(nextDesign);
+    const nextSelectedId = nextDesign[0]?.id ?? null;
+    setSelectedZoneId(nextSelectedId);
+    setSelectedZoneIds(nextSelectedId ? [nextSelectedId] : []);
+  }
+
+  function updateZoneVariable(zoneId: string, variableKey: string) {
+    const variable = TEMPLATE_VARIABLES.find((entry) => entry.key === variableKey);
+    updateTemplateZone(zoneId, {
+      variableKey,
+      variableType: variable?.type ?? "TEXT",
+      label: variable?.label ?? variableKey,
+      defaultText:
+        variableKey === "SHABBAT_TIMES"
+          ? "Entrée : 20h41\nSortie : 21h53"
+          : variableKey === "USER_LOGO"
+            ? "Logo du compte"
+            : `{{${variableKey}}}`,
+    });
+  }
+
+  function autoPlaceTemplateZones() {
+    if (!selectedTemplate) return;
+    const total = selectedTemplate.design.length;
+    if (total === 0) return;
+
+    const nextDesign = selectedTemplate.design.map((zone, index) => {
+      if (zone.locked) return zone;
+      const isLogo = zone.variableType === "IMAGE" || zone.variableKey === "USER_LOGO";
+      const presets = total <= 3
+        ? [
+            { x: 16, y: 12, width: 68, height: 12 },
+            { x: 14, y: 42, width: 72, height: 18 },
+            { x: 18, y: 74, width: 64, height: 12 },
+          ]
+        : [
+            { x: 10, y: 8, width: 24, height: 14 },
+            { x: 18, y: 18, width: 64, height: 10 },
+            { x: 14, y: 34, width: 72, height: 16 },
+            { x: 12, y: 58, width: 76, height: 14 },
+            { x: 18, y: 78, width: 64, height: 10 },
+          ];
+      const preset = presets[index % presets.length];
+
+      return {
+        ...zone,
+        ...preset,
+        width: isLogo ? 22 : preset.width,
+        height: isLogo ? 16 : preset.height,
+        x: isLogo ? 39 : preset.x,
+      };
+    });
+
+    updateSelectedTemplateDesign(nextDesign);
+    setStatus("Placement automatique appliqué aux zones non verrouillées.");
+  }
+
+  function applyCanvasCenterGuides(zone: DynamicTemplateZone, next: Partial<Pick<DynamicTemplateZone, "x" | "y" | "width" | "height">>) {
+    const width = next.width ?? zone.width;
+    const height = next.height ?? zone.height;
+    let x = next.x ?? zone.x;
+    let y = next.y ?? zone.y;
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    const vertical = Math.abs(centerX - 50) <= 1.5;
+    const horizontal = Math.abs(centerY - 50) <= 1.5;
+
+    if (vertical) x = 50 - width / 2;
+    if (horizontal) y = 50 - height / 2;
+    setCanvasGuides({ vertical, horizontal });
+
+    return { x, y, width, height };
+  }
+
+  function moveZoneByPointerDelta(event: PointerEvent<HTMLDivElement>, zone: DynamicTemplateZone) {
+    if (!selectedTemplate || zone.locked) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const guided = applyCanvasCenterGuides(zone, {
+      x: zone.x + (event.movementX / rect.width) * 100,
+      y: zone.y + (event.movementY / rect.height) * 100,
+    });
+    updateTemplateZone(zone.id, { x: guided.x, y: guided.y });
+  }
+
+  function resizeZoneByPointerDelta(event: PointerEvent<HTMLDivElement>, zone: DynamicTemplateZone) {
+    if (!selectedTemplate || zone.locked) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const guided = applyCanvasCenterGuides(zone, {
+      width: Math.max(4, zone.width + (event.movementX / rect.width) * 100),
+      height: Math.max(4, zone.height + (event.movementY / rect.height) * 100),
+    });
+    updateTemplateZone(zone.id, {
+      x: guided.x,
+      y: guided.y,
+      width: guided.width,
+      height: guided.height,
+    });
+  }
+
   function updateSelectedPreset(patch: Partial<AdminAutomationPreset>) {
     if (!selectedPreset) return;
     const nextPreset = { ...selectedPreset, ...patch };
@@ -474,6 +752,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
         channelType: selectedTemplate.channelType,
         thumbnailUrl: selectedTemplate.thumbnailUrl,
         previewUrl: selectedTemplate.previewUrl,
+        design: selectedTemplate.design,
         tags: selectedTemplate.tags,
         isGlobal: selectedTemplate.isGlobal,
         isActive: selectedTemplate.isActive,
@@ -497,6 +776,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
         tags: payload.tags ?? [],
         thumbnailUrl: payload.thumbnailUrl ?? null,
         previewUrl: payload.previewUrl ?? null,
+        design: normalizeTemplateDesign(payload.design),
       });
       return next;
     });
@@ -531,6 +811,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
       ...payload,
       thumbnailUrl: payload.thumbnailUrl ?? null,
       previewUrl: payload.previewUrl ?? null,
+      design: normalizeTemplateDesign(payload.design),
       tags: payload.tags ?? [],
     };
     setDrafts((previous) => {
@@ -923,6 +1204,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
     { id: "pricing" as const, label: "Tarification", icon: CreditCard, value: "€" },
     { id: "communities" as const, label: "Beth Habad", icon: Building2, value: formatNumber(metrics.communityCount) },
     { id: "users" as const, label: "Utilisateurs", icon: Users, value: formatNumber(users.length) },
+    { id: "leads" as const, label: "Leads", icon: MessageSquare, value: formatNumber(contactLeads.length) },
     { id: "activity" as const, label: "Activité IA", icon: Bot, value: formatNumber(metrics.conversationCount) },
     { id: "data" as const, label: "Données", icon: Database, value: formatNumber(metrics.databaseItemCount) },
     { id: "development" as const, label: "Développement", icon: PlayCircle, value: "UI" },
@@ -952,6 +1234,18 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
             </div>
 
             <nav className="mt-8 space-y-2">
+              <Link
+                href="/admin/blog"
+                className={`flex w-full items-center justify-between rounded-2xl px-3 py-3 text-left text-sm font-bold transition ${
+                  isDark ? "text-slate-300 hover:bg-white/10" : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <FileText className="size-4" />
+                  Blog SEO
+                </span>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] ${isDark ? "bg-white/10" : "bg-slate-100"}`}>CMS</span>
+              </Link>
               {navItems.map((item) => {
                 const active = activeSection === item.id;
                 return (
@@ -1017,6 +1311,12 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                 <p className={`mt-2 max-w-3xl text-sm leading-6 ${mutedText}`}>Vue claire par défaut, dark mode en option. Les filtres permettent de retrouver rapidement les affiches à modifier ou à suggérer.</p>
               </div>
               <div className="flex flex-wrap gap-2 lg:hidden">
+                <Link
+                  href="/admin/blog"
+                  className={`rounded-full px-3 py-2 text-xs font-bold ${isDark ? "bg-white/10 text-slate-200" : "bg-white text-slate-600"}`}
+                >
+                  Blog SEO
+                </Link>
                 {navItems.map((item) => (
                   <button
                     key={item.id}
@@ -1043,7 +1343,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
 
           {(activeSection === "overview" || activeSection === "templates") && (
             <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-              <div className={`rounded-[2rem] border p-5 shadow-sm ${panelClass}`}>
+              <div className={`rounded-[2rem] border p-5 shadow-sm xl:order-2 ${panelClass}`}>
                 <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
                   <div>
                     <h3 className={`text-xl font-black ${strongText}`}>Affiches suggerables</h3>
@@ -1060,7 +1360,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                   </button>
                 </div>
 
-                <div className="mt-5 grid gap-3 xl:grid-cols-[minmax(220px,1fr)_160px_150px_140px]">
+                <div className="mt-5 grid gap-3">
                   <label className={`flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm ${inputClass}`}>
                     <Search className="size-4 opacity-60" />
                     <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher par thème, tag, nom..." className="w-full bg-transparent outline-none" />
@@ -1076,7 +1376,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                   </select>
                 </div>
 
-                <div className="mt-5 grid gap-3 md:grid-cols-2">
+                <div className="mt-5 grid gap-3">
                   {filteredTemplates.map((template) => {
                     const isSelected = selectedTemplate?.id === template.id;
                     return (
@@ -1141,6 +1441,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                             <div className="mt-3 flex flex-wrap gap-1.5">
                               {template.isGlobal && <span className="rounded-full bg-cyan-500/15 px-2 py-0.5 text-[10px] font-semibold text-cyan-600">Global</span>}
                               <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${template.isActive ? "bg-emerald-500/15 text-emerald-600" : "bg-slate-500/15 text-slate-500"}`}>{template.isActive ? "Active" : "Masquee"}</span>
+                              <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600">{template.design.length} zone(s)</span>
                               {template.isPremium && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-600">Premium</span>}
                             </div>
                           </div>
@@ -1151,7 +1452,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                 </div>
               </div>
 
-              <aside className={`rounded-[2rem] border p-5 shadow-sm xl:sticky xl:top-6 xl:self-start ${panelClass}`}>
+              <aside className={`rounded-[2rem] border p-5 shadow-sm xl:order-1 xl:sticky xl:top-6 xl:self-start ${panelClass}`}>
                 {selectedTemplate ? (
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
@@ -1214,6 +1515,327 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                           }} />
                         </label>
                       </div>
+                    </div>
+
+                    <div className={`rounded-3xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-slate-200 bg-slate-50"}`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h4 className={`text-sm font-black ${strongText}`}>Zones dynamiques</h4>
+                          <p className={`mt-1 text-xs leading-5 ${mutedText}`}>
+                            Placez les variables sur l&apos;image. Les coordonnées sont en pourcentage pour rester compatibles Instagram, Facebook, WhatsApp ou A4.
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowFakePreview((value) => !value)}
+                            className={`inline-flex items-center gap-1 rounded-xl border px-3 py-2 text-xs font-black ${showFakePreview ? "border-blue-200 bg-blue-50 text-blue-700" : isDark ? "border-white/10 text-slate-300" : "border-slate-200 text-slate-600"}`}
+                          >
+                            <Eye className="size-3.5" />
+                            Aperçu fake
+                          </button>
+                          <button
+                            type="button"
+                            onClick={autoPlaceTemplateZones}
+                            className={`inline-flex items-center gap-1 rounded-xl border px-3 py-2 text-xs font-black ${isDark ? "border-white/10 text-slate-200 hover:bg-white/10" : "border-slate-200 text-slate-700 hover:bg-white"}`}
+                          >
+                            <Wand2 className="size-3.5" />
+                            Placement auto
+                          </button>
+                          <button
+                            type="button"
+                            onClick={addTemplateZone}
+                            className="inline-flex items-center gap-1 rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white hover:bg-blue-700"
+                          >
+                            <Plus className="size-3.5" />
+                            Zone
+                          </button>
+                        </div>
+                      </div>
+
+                      <div
+                        className={`relative mt-4 aspect-[3/4] overflow-hidden rounded-2xl border ${isDark ? "border-white/10 bg-slate-900" : "border-slate-200 bg-white"}`}
+                        onPointerMove={(event) => {
+                          if (!selectedTemplate) return;
+                          if (resizingZoneId) {
+                            const zone = selectedTemplate.design.find((item) => item.id === resizingZoneId);
+                            if (zone) resizeZoneByPointerDelta(event, zone);
+                            return;
+                          }
+                          if (draggingZoneId) {
+                            const zone = selectedTemplate.design.find((item) => item.id === draggingZoneId);
+                            if (zone) moveZoneByPointerDelta(event, zone);
+                          }
+                        }}
+                        onPointerUp={() => {
+                          setDraggingZoneId(null);
+                          setResizingZoneId(null);
+                          setCanvasGuides({ vertical: false, horizontal: false });
+                        }}
+                        onPointerLeave={() => {
+                          setDraggingZoneId(null);
+                          setResizingZoneId(null);
+                          setCanvasGuides({ vertical: false, horizontal: false });
+                        }}
+                      >
+                        {selectedTemplate.previewUrl || selectedTemplate.thumbnailUrl ? (
+                          <Image
+                            src={selectedTemplate.previewUrl ?? selectedTemplate.thumbnailUrl ?? ""}
+                            alt={selectedTemplate.name}
+                            fill
+                            sizes="420px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <ImageIcon className={`size-10 ${mutedText}`} />
+                          </div>
+                        )}
+
+                        {canvasGuides.vertical && (
+                          <div className="pointer-events-none absolute inset-y-0 left-1/2 z-20 w-px -translate-x-1/2 bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,0.95)]">
+                            <span className="absolute left-2 top-2 rounded-full bg-cyan-500 px-2 py-0.5 text-[10px] font-black text-white shadow-sm">Milieu vertical</span>
+                          </div>
+                        )}
+                        {canvasGuides.horizontal && (
+                          <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 h-px -translate-y-1/2 bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,0.95)]">
+                            <span className="absolute left-2 top-2 rounded-full bg-cyan-500 px-2 py-0.5 text-[10px] font-black text-white shadow-sm">Milieu horizontal</span>
+                          </div>
+                        )}
+
+                        {selectedTemplate.design.map((zone) => {
+                          const isZoneSelected = selectedZoneIds.includes(zone.id) || selectedZone?.id === zone.id;
+                          const zoneText = showFakePreview ? getFakeVariableValue(zone) : `{{${zone.variableKey}}}`;
+                          const previewFontSize = Math.max(6, Math.round(zone.fontSize * 0.33));
+                          return (
+                            <div
+                              key={zone.id}
+                              role="button"
+                              tabIndex={0}
+                              onClick={(event) => selectTemplateZone(zone.id, event.ctrlKey || event.metaKey)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") selectTemplateZone(zone.id, event.ctrlKey || event.metaKey);
+                              }}
+                              className={`absolute rounded-xl border-2 shadow-sm transition ${
+                                isZoneSelected
+                                  ? selectedZoneIds.length > 1
+                                    ? "border-cyan-400 bg-cyan-400/10 ring-4 ring-cyan-300/25"
+                                    : "border-blue-500 bg-blue-500/10 ring-4 ring-blue-500/20"
+                                  : zone.locked
+                                    ? "border-amber-300/90 bg-amber-950/10 hover:border-amber-200"
+                                    : "border-white/80 bg-white/10 hover:border-blue-300"
+                              }`}
+                              style={{
+                                left: `${zone.x}%`,
+                                top: `${zone.y}%`,
+                                width: `${zone.width}%`,
+                                height: `${zone.height}%`,
+                              }}
+                              title={`Variable {{${zone.variableKey}}}`}
+                            >
+                              <button
+                                type="button"
+                                aria-label={zone.locked ? "Déverrouiller la zone" : "Verrouiller la zone"}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  updateTemplateZone(zone.id, { locked: !zone.locked });
+                                }}
+                                className={`absolute -right-2 -top-2 inline-flex size-6 items-center justify-center rounded-full border text-[10px] shadow-sm ${zone.locked ? "border-amber-200 bg-amber-400 text-amber-950" : "border-white/70 bg-slate-950/70 text-white"}`}
+                              >
+                                {zone.locked ? <Lock className="size-3" /> : <Unlock className="size-3" />}
+                              </button>
+                              {!zone.locked && (
+                                <button
+                                  type="button"
+                                  aria-label={`Déplacer ${zone.label}`}
+                                  onPointerDown={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    selectTemplateZone(zone.id, event.ctrlKey || event.metaKey);
+                                    setDraggingZoneId(zone.id);
+                                  }}
+                                  className="absolute -left-2 -top-2 inline-flex size-6 cursor-move items-center justify-center rounded-full border border-white/70 bg-blue-600 text-white shadow-sm"
+                                >
+                                  <Move className="size-3" />
+                                </button>
+                              )}
+                              <span
+                                className="flex h-full w-full whitespace-pre-line break-words px-2 py-1 leading-tight"
+                                style={{
+                                  alignItems: "center",
+                                  justifyContent: zone.align === "left" ? "flex-start" : zone.align === "right" ? "flex-end" : "center",
+                                  textAlign: zone.align,
+                                  color: showFakePreview ? zone.color : "#ffffff",
+                                  fontFamily: zone.fontFamily,
+                                  fontSize: `${previewFontSize}px`,
+                                  fontWeight: 700,
+                                  overflow: "hidden",
+                                }}
+                              >
+                                {zoneText}
+                              </span>
+                              {!zone.locked && (
+                                <button
+                                  type="button"
+                                  aria-label={`Redimensionner ${zone.label}`}
+                                  onPointerDown={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    selectTemplateZone(zone.id, event.ctrlKey || event.metaKey);
+                                    setResizingZoneId(zone.id);
+                                  }}
+                                  className="absolute -bottom-2 -right-2 inline-flex size-6 cursor-nwse-resize items-center justify-center rounded-full border border-white/70 bg-emerald-500 text-white shadow-sm"
+                                >
+                                  <Maximize2 className="size-3" />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {selectedZone ? (
+                        <div className="mt-4 space-y-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className={`text-xs font-black uppercase tracking-[0.14em] ${mutedText}`}>Zone sélectionnée</p>
+                              {selectedZoneCount > 1 && (
+                                <p className="mt-1 text-xs font-semibold text-cyan-600">
+                                  {selectedZoneCount} variables sélectionnées avec Ctrl/Cmd
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => updateTemplateZone(selectedZone.id, { locked: !selectedZone.locked })}
+                                className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-black ${selectedZone.locked ? "border-amber-200 bg-amber-50 text-amber-700" : isDark ? "border-white/10 text-slate-200 hover:bg-white/10" : "border-slate-200 text-slate-700 hover:bg-white"}`}
+                              >
+                                {selectedZone.locked ? <Lock className="size-3" /> : <Unlock className="size-3" />}
+                                {selectedZone.locked ? "Bloquée" : "Libre"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteTemplateZone(selectedZone.id)}
+                                className={`rounded-xl border px-3 py-1.5 text-xs font-black ${isDark ? "border-red-400/30 text-red-100 hover:bg-red-500/20" : "border-red-200 text-red-700 hover:bg-red-50"}`}
+                              >
+                                Supprimer
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <label className={`block text-xs font-black uppercase tracking-[0.12em] ${mutedText}`}>
+                              Variable
+                              <select
+                                value={selectedZone.variableKey}
+                                onChange={(event) => updateZoneVariable(selectedZone.id, event.target.value)}
+                                className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm font-semibold normal-case tracking-normal outline-none ${inputClass}`}
+                              >
+                                {TEMPLATE_VARIABLES.map((variable) => (
+                                  <option key={variable.key} value={variable.key}>{variable.label}</option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className={`block text-xs font-black uppercase tracking-[0.12em] ${mutedText}`}>
+                              Libellé admin
+                              <input value={selectedZone.label} onChange={(event) => updateTemplateZone(selectedZone.id, { label: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm font-semibold normal-case tracking-normal outline-none ${inputClass}`} />
+                            </label>
+                          </div>
+
+                          {selectedZone.variableKey !== "USER_LOGO" && selectedZone.variableType !== "IMAGE" && (
+                            <label className={`block text-xs font-black uppercase tracking-[0.12em] ${mutedText}`}>
+                              Texte de secours
+                              <textarea
+                                value={selectedZone.defaultText}
+                                onChange={(event) => updateTemplateZone(selectedZone.id, { defaultText: event.target.value })}
+                                rows={3}
+                                className={`mt-2 w-full resize-none rounded-2xl border px-3 py-2 text-sm font-semibold normal-case tracking-normal outline-none ${inputClass}`}
+                              />
+                            </label>
+                          )}
+
+                          <div className="grid grid-cols-2 gap-3">
+                            {(["x", "y", "width", "height"] as const).map((field) => (
+                              <label key={field} className={`block text-xs font-black uppercase tracking-[0.12em] ${mutedText}`}>
+                                {field.toUpperCase()} %
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={100}
+                                  value={Math.round(selectedZone[field] * 10) / 10}
+                                  onChange={(event) => updateTemplateZone(selectedZone.id, { [field]: Number(event.target.value) })}
+                                  className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm font-semibold normal-case tracking-normal outline-none ${inputClass}`}
+                                />
+                              </label>
+                            ))}
+                          </div>
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div className={`block text-xs font-black uppercase tracking-[0.12em] ${mutedText}`}>
+                              <div className="flex items-center justify-between gap-3">
+                                <span>Taille des lettres</span>
+                                <span className={`rounded-full px-2 py-0.5 text-[11px] font-black normal-case tracking-normal ${isDark ? "bg-white/10 text-white" : "bg-slate-100 text-slate-700"}`}>
+                                  {Math.round(selectedZone.fontSize)} px
+                                </span>
+                              </div>
+                              <div className={`mt-2 flex items-center gap-2 rounded-2xl border px-3 py-2 ${isDark ? "border-white/10 bg-white/5" : "border-slate-200 bg-white"}`}>
+                                <button
+                                  type="button"
+                                  onClick={() => updateTemplateZone(selectedZone.id, { fontSize: selectedZone.fontSize - 2 })}
+                                  className={`inline-flex size-8 items-center justify-center rounded-xl text-sm font-black ${isDark ? "bg-white/10 text-white hover:bg-white/15" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="range"
+                                  min={8}
+                                  max={180}
+                                  step={1}
+                                  value={selectedZone.fontSize}
+                                  onChange={(event) => updateTemplateZone(selectedZone.id, { fontSize: Number(event.target.value) })}
+                                  className="h-2 min-w-0 flex-1 cursor-pointer accent-emerald-500"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => updateTemplateZone(selectedZone.id, { fontSize: selectedZone.fontSize + 2 })}
+                                  className={`inline-flex size-8 items-center justify-center rounded-xl text-sm font-black ${isDark ? "bg-white/10 text-white hover:bg-white/15" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                            <label className={`block text-xs font-black uppercase tracking-[0.12em] ${mutedText}`}>
+                              Couleur
+                              <input type="color" value={selectedZone.color} onChange={(event) => updateTemplateZone(selectedZone.id, { color: event.target.value })} className={`mt-2 h-[42px] w-full rounded-2xl border px-2 py-1 outline-none ${inputClass}`} />
+                            </label>
+                          </div>
+
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <label className={`block text-xs font-black uppercase tracking-[0.12em] ${mutedText}`}>
+                              Alignement
+                              <select value={selectedZone.align} onChange={(event) => updateTemplateZone(selectedZone.id, { align: event.target.value as DynamicTemplateZone["align"] })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm font-semibold normal-case tracking-normal outline-none ${inputClass}`}>
+                                {TEMPLATE_ALIGNMENTS.map((align) => <option key={align} value={align}>{align}</option>)}
+                              </select>
+                            </label>
+                            <label className={`block text-xs font-black uppercase tracking-[0.12em] ${mutedText}`}>
+                              Texte trop long
+                              <select value={selectedZone.overflow} onChange={(event) => updateTemplateZone(selectedZone.id, { overflow: event.target.value as DynamicTemplateZone["overflow"] })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm font-semibold normal-case tracking-normal outline-none ${inputClass}`}>
+                                {TEMPLATE_OVERFLOWS.map((overflow) => <option key={overflow.value} value={overflow.value}>{overflow.label}</option>)}
+                              </select>
+                            </label>
+                          </div>
+
+                          <label className={`block text-xs font-black uppercase tracking-[0.12em] ${mutedText}`}>
+                            Police
+                            <input value={selectedZone.fontFamily} onChange={(event) => updateTemplateZone(selectedZone.id, { fontFamily: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm font-semibold normal-case tracking-normal outline-none ${inputClass}`} />
+                          </label>
+                        </div>
+                      ) : (
+                        <p className={`mt-4 rounded-2xl border border-dashed px-3 py-4 text-center text-sm ${isDark ? "border-white/10 text-slate-400" : "border-slate-200 text-slate-500"}`}>
+                          Ajoutez une première zone dynamique pour rendre ce modèle personnalisable.
+                        </p>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-3 gap-2">
@@ -1625,6 +2247,65 @@ export function AdminConsoleClient({ metrics, templates, communities, users, aut
                   placeholder="Offre de lancement..."
                 />
               </label>
+            </section>
+          )}
+
+          {activeSection === "leads" && (
+            <section className="mt-6">
+              <div className={`rounded-[2rem] border p-5 shadow-sm ${panelClass}`}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className={`text-xl font-black ${strongText}`}>Leads</h3>
+                    <p className={`mt-1 text-sm ${mutedText}`}>
+                      {contactLeads.length} demande(s) reçue(s) depuis le formulaire de contact public.
+                    </p>
+                  </div>
+                  <div className={`rounded-2xl border px-4 py-3 text-sm font-black ${isDark ? "border-white/10 bg-white/5 text-slate-200" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+                    Emails envoyés : {contactLeads.filter((lead) => lead.emailSentAt).length}/{contactLeads.length}
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-4">
+                  {contactLeads.length === 0 ? (
+                    <p className={`rounded-2xl border border-dashed p-6 text-sm ${isDark ? "border-white/10 text-slate-400" : "border-slate-200 text-slate-500"}`}>
+                      Aucun lead pour le moment.
+                    </p>
+                  ) : (
+                    contactLeads.map((lead) => (
+                      <article key={lead.id} className={`rounded-3xl border p-4 ${isDark ? "border-white/10 bg-slate-950/55" : "border-slate-200 bg-white"}`}>
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h4 className={`text-lg font-black ${strongText}`}>{lead.name}</h4>
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${lead.status === "NEW" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}>
+                                {lead.status}
+                              </span>
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${lead.emailSentAt ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                                {lead.emailSentAt ? "Email Resend envoyé" : "Email à vérifier"}
+                              </span>
+                            </div>
+                            <p className={`mt-1 text-sm font-semibold ${mutedText}`}>{lead.subject}</p>
+                            <div className={`mt-3 grid gap-2 text-sm ${mutedText}`}>
+                              <p><span className={`font-black ${strongText}`}>Email :</span> <a href={`mailto:${lead.email}`} className="text-blue-600 hover:underline">{lead.email}</a></p>
+                              {lead.phone && <p><span className={`font-black ${strongText}`}>Téléphone :</span> <a href={`tel:${lead.phone}`} className="text-blue-600 hover:underline">{lead.phone}</a></p>}
+                              {lead.organization && <p><span className={`font-black ${strongText}`}>Organisation :</span> {lead.organization}</p>}
+                              {lead.pageUrl && <p><span className={`font-black ${strongText}`}>Page :</span> {lead.pageUrl}</p>}
+                              <p><span className={`font-black ${strongText}`}>Reçu le :</span> {new Date(lead.createdAt).toLocaleString("fr-FR")}</p>
+                            </div>
+                          </div>
+                          <div className={`rounded-2xl border p-3 text-xs ${isDark ? "border-white/10 bg-white/5 text-slate-300" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
+                            <p><span className="font-black">IP :</span> {lead.ipAddress ?? "Non renseignée"}</p>
+                            {lead.emailError && <p className="mt-2 text-red-600"><span className="font-black">Erreur email :</span> {lead.emailError}</p>}
+                          </div>
+                        </div>
+                        <div className={`mt-4 rounded-2xl border p-4 text-sm leading-7 ${isDark ? "border-white/10 bg-white/5 text-slate-200" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+                          {lead.message}
+                        </div>
+                      </article>
+                    ))
+                  )}
+                </div>
+              </div>
             </section>
           )}
 

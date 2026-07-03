@@ -44,9 +44,11 @@ export default async function ChannelsSettingsPage() {
   }
 
   return (
-    <ChannelsSettingsClient
-      channels={syntheticChannels as Parameters<typeof ChannelsSettingsClient>[0]["channels"]}
-      communityId={communityId}
-    />
+    <div className="container mx-auto max-w-6xl px-4 py-6 sm:px-6">
+      <ChannelsSettingsClient
+        channels={syntheticChannels as Parameters<typeof ChannelsSettingsClient>[0]["channels"]}
+        communityId={communityId}
+      />
+    </div>
   );
 }

@@ -239,8 +239,15 @@ function resolvePublicationMediaUrls(
       ? adaptation.metadata.imageUrl
       : null;
 
-  return [adaptation?.imageUrl, metadataImageUrl, draft.imageUrl, draft.event?.coverImageUrl]
+  const metadataMediaUrls =
+    adaptation?.metadata && typeof adaptation.metadata === "object" && Array.isArray(adaptation.metadata.mediaUrls)
+      ? adaptation.metadata.mediaUrls.filter((value): value is string => typeof value === "string" && value.length > 0)
+      : [];
+
+  const mediaUrls = [adaptation?.imageUrl, metadataImageUrl, ...metadataMediaUrls, draft.imageUrl, draft.event?.coverImageUrl]
     .filter((value): value is string => typeof value === "string" && value.length > 0);
+
+  return Array.from(new Set(mediaUrls));
 }
 
 function resolvePublicationHashtags(

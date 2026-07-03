@@ -1,251 +1,323 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
-  Mail,
-  Send,
-  Bot,
-  Sparkles,
-  Clock3,
   BellRing,
-  TriangleAlert,
+  Bot,
+  Check,
+  Clock3,
+  Filter,
+  Mail,
+  MessageSquareText,
   RefreshCw,
-  CheckCircle2,
   Search,
-  User,
-  Plus,
-  ArrowRight,
-  ShieldCheck,
-  Zap,
+  Send,
+  Settings2,
+  Sparkles,
+  Trash2,
+  TriangleAlert,
+  WandSparkles,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ensurePushRegistered, enablePushNotifications, getPushPermission } from "@/lib/push/client";
+import type {
+  EmailAiClassification,
+  EmailAiState,
+  EmailCategory,
+  EmailNotificationRule,
+} from "@/lib/email/ai-settings";
+import { describeRule } from "@/lib/email/notification-rules";
 
-type Priority = "EXTREME" | "URGENT" | "IMPORTANT" | "LOW";
-
-const PRIORITY_ORDER: Record<Priority, number> = {
-  EXTREME: 0,
-  URGENT: 1,
-  IMPORTANT: 2,
-  LOW: 3,
-};
-
-interface EmailMessage {
-  id: string;
-  sender: string;
-  senderEmail: string;
-  subject: string;
-  body: string;
-  date: string;
-  timestamp: Date;
-  read: boolean;
-  priority: Priority;
-  history: Array<{
-    role: "user" | "assistant";
-    body: string;
-    date: string;
-  }>;
-}
-
-const DEFAULT_EMAILS: EmailMessage[] = [
+const CATEGORY_META: Record<
+  EmailCategory,
   {
-    id: "mail-1",
-    sender: "Sarah Cohen",
-    senderEmail: "chlomitaieb@gmail.com",
-    subject: "Demande urgente : Horaires de Chabbat et inscription repas",
-    body: "Bonjour l'équipe d'EasyCom IA, nous venons d'arriver dans la région et nous aimerions assister aux offices de ce week-end. Pouvez-vous nous donner les horaires précis de l'entrée et sortie de Chabbat pour notre ville de Paris ? De plus, reste-t-il de la place pour le dîner communautaire de vendredi soir ? C'est très important car nous sommes avec des enfants en bas âge. Merci !",
-    date: "Il y a 10 min",
-    timestamp: new Date(Date.now() - 10 * 60000),
-    read: false,
-    priority: "EXTREME",
-    history: [
-      {
-        role: "user",
-        body: "Bonjour l'équipe d'EasyCom IA, nous venons d'arriver dans la région et nous aimerions assister aux offices de ce week-end. Pouvez-vous nous donner les horaires précis de l'entrée et sortie de Chabbat pour notre ville de Paris ? De plus, reste-t-il de la place pour le dîner communautaire de vendredi soir ? C'est très important car nous sommes avec des enfants en bas âge. Merci !",
-        date: "Il y a 10 min",
-      }
-    ],
-  },
-  {
-    id: "mail-2",
-    sender: "David Abitbol",
-    senderEmail: "david.a@example.com",
-    subject: "Problème d'accès aux cours de Torah en ligne",
-    body: "Shalom, je me suis inscrit la semaine dernière pour les cours de Torah IA et je n'ai toujours pas reçu mes accès par e-mail. Pouvez-vous débloquer mon compte ? Les cours commencent ce soir et j'aimerais vraiment pouvoir me connecter à temps. Mon identifiant de connexion est david.a@example.com. Merci pour votre aide rapide.",
-    date: "Il y a 1 heure",
-    timestamp: new Date(Date.now() - 60 * 60000),
-    read: false,
-    priority: "URGENT",
-    history: [
-      {
-        role: "user",
-        body: "Shalom, je me suis inscrit la semaine dernière pour les cours de Torah IA et je n'ai toujours pas reçu mes accès par e-mail. Pouvez-vous débloquer mon compte ? Les cours commencent ce soir et j'aimerais vraiment pouvoir me connecter à temps. Mon identifiant de connexion est david.a@example.com. Merci pour votre aide rapide.",
-        date: "Il y a 1 heure",
-      }
-    ],
-  },
-  {
-    id: "mail-3",
-    sender: "Miriam Levy",
-    senderEmail: "miriam.levy@example.com",
-    subject: "Affiche de la kermesse de fin d'année",
-    body: "Bonjour, je tenais à vous féliciter pour la superbe affiche que l'IA a générée pour notre kermesse de fin d'année. C'est magnifique ! Serait-il possible de m'envoyer le fichier en haute définition pour que nous puissions l'imprimer en format A2 pour l'affichage de rue ? Merci pour tout votre travail pour notre communauté.",
-    date: "Il y a 1 jour",
-    timestamp: new Date(Date.now() - 24 * 60 * 60000),
-    read: true,
-    priority: "IMPORTANT",
-    history: [
-      {
-        role: "user",
-        body: "Bonjour, je tenais à vous féliciter pour la superbe affiche que l'IA a générée pour notre kermesse de fin d'année. C'est magnifique ! Serait-il possible de m'envoyer le fichier en haute définition pour que nous puissions l'imprimer en format A2 pour l'affichage de rue ? Merci pour tout votre travail pour notre communauté.",
-        date: "Il y a 1 jour",
-      }
-    ],
-  },
-  {
-    id: "mail-4",
-    sender: "Jérôme Benhamou",
-    senderEmail: "j.benhamou@example.com",
-    subject: "Question sur le fonctionnement de la boutique solidaire",
-    body: "Bonjour, j'aimerais savoir si la boutique accepte les dons de vêtements neufs pour les fêtes à venir et si vous délivrez des reçus Cerfa de déduction fiscale pour ces dons en nature. Je n'ai pas trouvé l'info précise sur votre site. Bien cordialement.",
-    date: "Il y a 3 jours",
-    timestamp: new Date(Date.now() - 3 * 24 * 60 * 60000),
-    read: true,
-    priority: "LOW",
-    history: [
-      {
-        role: "user",
-        body: "Bonjour, j'aimerais savoir si la boutique accepte les dons de vêtements neufs pour les fêtes à venir et si vous délivrez des reçus Cerfa de déduction fiscale pour ces dons en nature. Je n'ai pas trouvé l'info précise sur votre site. Bien cordialement.",
-        date: "Il y a 3 jours",
-      }
-    ],
-  },
-];
-
-const PRIORITY_META = {
-  EXTREME: {
-    title: "Extrême urgence",
-    icon: <TriangleAlert className="size-4" />,
-    accentClassName: "text-rose-700 bg-rose-50 border-rose-200",
-    surfaceClassName: "from-rose-50/60 via-white to-rose-100/10 border-rose-200",
-    badgeColor: "bg-rose-100 text-rose-800 border-rose-200",
-  },
-  URGENT: {
+    title: string;
+    icon: React.ReactNode;
+    badgeClass: string;
+    cardClass: string;
+  }
+> = {
+  urgent: {
     title: "Urgent",
-    icon: <BellRing className="size-4" />,
-    accentClassName: "text-amber-700 bg-amber-50 border-amber-200",
-    surfaceClassName: "from-amber-50/60 via-white to-orange-50/10 border-amber-200",
-    badgeColor: "bg-amber-100 text-amber-800 border-amber-200",
+    icon: <TriangleAlert className="size-4" />,
+    badgeClass: "border-rose-200 bg-rose-100 text-rose-800",
+    cardClass: "border-rose-200 bg-gradient-to-br from-rose-50/70 via-white to-red-50/40",
   },
-  IMPORTANT: {
+  important: {
     title: "Important",
-    icon: <Sparkles className="size-4" />,
-    accentClassName: "text-cyan-700 bg-cyan-50 border-cyan-200",
-    surfaceClassName: "from-cyan-50/60 via-white to-sky-50/10 border-cyan-200",
-    badgeColor: "bg-cyan-100 text-cyan-800 border-cyan-200",
+    icon: <BellRing className="size-4" />,
+    badgeClass: "border-amber-200 bg-amber-100 text-amber-800",
+    cardClass: "border-amber-200 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/30",
   },
-  LOW: {
+  non_important: {
     title: "Non important",
     icon: <Clock3 className="size-4" />,
-    accentClassName: "text-slate-600 bg-slate-50 border-slate-200",
-    surfaceClassName: "from-slate-50/60 via-white to-slate-100/10 border-slate-200",
-    badgeColor: "bg-slate-100 text-slate-700 border-slate-200",
+    badgeClass: "border-slate-200 bg-slate-100 text-slate-700",
+    cardClass: "border-slate-200 bg-gradient-to-br from-slate-50/80 via-white to-slate-50/30",
   },
 };
+
+const OAUTH_MESSAGES: Record<string, { tone: "success" | "error"; text: string }> = {
+  gmail_success: { tone: "success", text: "Gmail connecte avec succes." },
+  gmail_cancelled: { tone: "error", text: "Connexion Gmail annulee." },
+  gmail_error: { tone: "error", text: "Erreur lors de la connexion Gmail." },
+};
+
+const ALERT_OPTIONS = [
+  { id: "urgent", title: "Emails urgents", description: "Recevoir une alerte uniquement pour les messages detectes comme urgents." },
+  { id: "important", title: "Emails importants", description: "Suivre aussi les messages importants mais moins critiques." },
+  { id: "sender", title: "Expediteur precis", description: "Notifier les emails venant d'une adresse exacte." },
+  { id: "domain", title: "Domaine precis", description: "Surveiller un domaine comme association.fr." },
+  { id: "subject", title: "Mot-cle dans le sujet", description: "Declencher une alerte si l'objet contient un mot important." },
+  { id: "body", title: "Mot-cle dans le message", description: "Declencher une alerte sur le contenu du message." },
+  { id: "attachment", title: "Piece jointe presente", description: "Etre alerte lorsqu'un document est recu." },
+  { id: "unanswered", title: "Sans reponse depuis X jours", description: "Suivre les emails qui attendent une reponse depuis plusieurs jours." },
+] as const;
 
 interface EmailClientProps {
   communityId: string;
   initialConnected: boolean;
   initialEmail: string;
+  initialState: EmailAiState;
+  timezone: string;
 }
 
-const GMAIL_OAUTH_MESSAGES: Record<string, { tone: "success" | "error"; text: string }> = {
-  gmail_success: { tone: "success", text: "Gmail connecté avec succès." },
-  gmail_cancelled: { tone: "error", text: "Connexion Gmail annulée." },
-  gmail_missing_code: { tone: "error", text: "Google n'a pas renvoyé de code d'autorisation." },
-  gmail_missing_env: { tone: "error", text: "Configuration Gmail manquante côté serveur." },
-  gmail_invalid_client: {
-    tone: "error",
-    text: "Client Gmail invalide : vérifiez que GMAIL_CLIENT_ID et GMAIL_CLIENT_SECRET correspondent au même client OAuth Google.",
-  },
-  gmail_invalid_grant: { tone: "error", text: "Code ou refresh token Gmail invalide. Révoquez l'accès Google puis reconnectez Gmail." },
-  gmail_redirect_uri_mismatch: { tone: "error", text: "URL de redirection Gmail non autorisée dans Google Cloud." },
-  gmail_no_token: { tone: "error", text: "Aucun token Gmail reçu. Réessayez en forçant le consentement." },
-  gmail_no_community: { tone: "error", text: "Communauté introuvable. Vérifiez votre profil." },
-  gmail_error: { tone: "error", text: "Erreur lors de la connexion Gmail. Réessayez." },
+type RuleModalState = {
+  open: boolean;
+  prompt: string;
+  editingRuleId: string | null;
 };
 
-export function EmailClient({ communityId, initialConnected, initialEmail }: EmailClientProps) {
+type AlertOptionId = (typeof ALERT_OPTIONS)[number]["id"];
+
+type RuleBuilderState = {
+  selected: AlertOptionId[];
+  senderEmail: string;
+  senderDomain: string;
+  subjectKeyword: string;
+  bodyKeyword: string;
+  unansweredDays: string;
+  customPrompt: string;
+};
+
+const EMPTY_RULE_BUILDER: RuleBuilderState = {
+  selected: [],
+  senderEmail: "",
+  senderDomain: "",
+  subjectKeyword: "",
+  bodyKeyword: "",
+  unansweredDays: "",
+  customPrompt: "",
+};
+
+function buildRuleBuilderFromRule(rule?: EmailNotificationRule): RuleBuilderState {
+  if (!rule) return EMPTY_RULE_BUILDER;
+  const selected: AlertOptionId[] = [];
+  if (rule.conditions.categories?.includes("urgent")) selected.push("urgent");
+  if (rule.conditions.categories?.includes("important")) selected.push("important");
+  if (rule.conditions.senderEmail) selected.push("sender");
+  if (rule.conditions.senderDomain) selected.push("domain");
+  if (rule.conditions.subjectKeywords?.length) selected.push("subject");
+  if (rule.conditions.bodyKeywords?.length) selected.push("body");
+  if (rule.conditions.hasAttachment) selected.push("attachment");
+  if (rule.conditions.unansweredSinceDays) selected.push("unanswered");
+
+  return {
+    selected,
+    senderEmail: rule.conditions.senderEmail ?? "",
+    senderDomain: rule.conditions.senderDomain ?? "",
+    subjectKeyword: rule.conditions.subjectKeywords?.[0] ?? "",
+    bodyKeyword: rule.conditions.bodyKeywords?.[0] ?? "",
+    unansweredDays: rule.conditions.unansweredSinceDays ? String(rule.conditions.unansweredSinceDays) : "",
+    customPrompt: rule.conditions.customPrompt ?? "",
+  };
+}
+
+function buildRulePrompt(builder: RuleBuilderState) {
+  const parts: string[] = [];
+  if (builder.selected.includes("urgent")) parts.push("Notifier seulement les emails urgents");
+  if (builder.selected.includes("important")) parts.push("Notifier aussi les emails importants");
+  if (builder.selected.includes("sender") && builder.senderEmail.trim()) {
+    parts.push(`Notifier les emails de ${builder.senderEmail.trim()}`);
+  }
+  if (builder.selected.includes("domain") && builder.senderDomain.trim()) {
+    parts.push(`Notifier les emails du domaine ${builder.senderDomain.trim()}`);
+  }
+  if (builder.selected.includes("subject") && builder.subjectKeyword.trim()) {
+    parts.push(`Notifier si le sujet contient "${builder.subjectKeyword.trim()}"`);
+  }
+  if (builder.selected.includes("body") && builder.bodyKeyword.trim()) {
+    parts.push(`Notifier si le message contient "${builder.bodyKeyword.trim()}"`);
+  }
+  if (builder.selected.includes("attachment")) {
+    parts.push("Notifier si une piece jointe est presente");
+  }
+  if (builder.selected.includes("unanswered") && builder.unansweredDays.trim()) {
+    parts.push(`Notifier les emails restes sans reponse depuis ${builder.unansweredDays.trim()} jours`);
+  }
+  if (builder.customPrompt.trim()) {
+    parts.push(builder.customPrompt.trim());
+  }
+  if (parts.length > 0) {
+    parts.push("Ne jamais notifier les newsletters");
+  }
+
+  return parts.join(". ").trim();
+}
+
+async function readJsonSafely<T>(response: Response): Promise<T | null> {
+  const text = await response.text().catch(() => "");
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
+export function EmailClient({
+  communityId,
+  initialConnected,
+  initialEmail,
+  initialState,
+  timezone,
+}: EmailClientProps) {
   const searchParams = useSearchParams();
-  const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
   const [googleConnected, setGoogleConnected] = useState(initialConnected);
-  const [googleEmail, setGoogleEmail] = useState(initialEmail);
-  const [emails, setEmails] = useState<EmailMessage[]>([]);
-  const [selectedMailId, setSelectedMailId] = useState<string | null>(null);
-  const [isClassifying, setIsClassifying] = useState(false);
-  const [hasClassified, setHasClassified] = useState(false);
-  const [activePriorityTab, setActivePriorityTab] = useState<Priority | "ALL">("ALL");
-  const [replyText, setReplyText] = useState("");
-  const [isAiDrafting, setIsAiDrafting] = useState(false);
-  const [aiDraft, setAiDraft] = useState("");
+  const [googleEmail] = useState(initialEmail);
+  const [classifications, setClassifications] = useState<EmailAiClassification[]>(initialState.classifications);
+  const [rules, setRules] = useState<EmailNotificationRule[]>(initialState.rules);
+  const [lastClassifiedAt, setLastClassifiedAt] = useState<string | null>(initialState.lastClassifiedAt);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState<EmailCategory | "all">("all");
+  const [selectedId, setSelectedId] = useState<string | null>(initialState.classifications[0]?.id ?? null);
+  const [isClassifying, setIsClassifying] = useState(false);
+  const [isLoadingEmails, setIsLoadingEmails] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isDrafting, setIsDrafting] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [draftSuggestion, setDraftSuggestion] = useState("");
+  const [ruleModal, setRuleModal] = useState<RuleModalState>({ open: false, prompt: "", editingRuleId: null });
+  const [ruleBuilder, setRuleBuilder] = useState<RuleBuilderState>(EMPTY_RULE_BUILDER);
+  const [rulesLoading, setRulesLoading] = useState(false);
+  const [classificationError, setClassificationError] = useState<string | null>(null);
   const [oauthNotice, setOauthNotice] = useState<{ tone: "success" | "error"; text: string } | null>(() => {
     const status = searchParams.get("oauth");
-    return status ? GMAIL_OAUTH_MESSAGES[status] ?? null : null;
+    return status ? OAUTH_MESSAGES[status] ?? null : null;
   });
+  const [pushPermission, setPushPermission] = useState(() => getPushPermission());
 
-  const fetchEmails = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/email/gmail/list");
-      if (response.ok) {
-        const data = await response.json();
-        setEmails(data.messages || []);
-        if (data.messages?.length > 0 && !selectedMailId) {
-          setSelectedMailId(data.messages[0].id);
-        }
-      }
-    } catch (err) {
-      console.error("Failed to fetch emails", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const selectedMail = useMemo(
+    () => classifications.find((mail) => mail.id === selectedId) ?? null,
+    [classifications, selectedId]
+  );
+
+  const filteredEmails = useMemo(() => {
+    return classifications.filter((mail) => {
+      const matchCategory = activeCategory === "all" || mail.category === activeCategory;
+      const needle = searchQuery.trim().toLowerCase();
+      const matchSearch =
+        !needle ||
+        mail.sender.toLowerCase().includes(needle) ||
+        mail.senderEmail.toLowerCase().includes(needle) ||
+        mail.subject.toLowerCase().includes(needle) ||
+        mail.body.toLowerCase().includes(needle);
+      return matchCategory && matchSearch;
+    });
+  }, [activeCategory, classifications, searchQuery]);
 
   useEffect(() => {
-    if (googleConnected) {
-      fetchEmails();
-    }
+    if (!googleConnected) return;
+    void ensurePushRegistered();
+    setPushPermission(getPushPermission());
   }, [googleConnected]);
 
-  // Écouter le postMessage du popup OAuth Gmail
-  useEffect(() => {
-    function handleMessage(event: MessageEvent) {
-      if (event.origin !== window.location.origin && event.origin !== appOrigin) return;
-      if (event.data?.type === "gmail_oauth_success") {
-        setGoogleConnected(true);
-        setIsConnecting(false);
-        setOauthNotice(GMAIL_OAUTH_MESSAGES.gmail_success);
-        // Recharger la page pour récupérer les données à jour depuis le serveur
-        window.location.reload();
-      } else if (event.data?.type === "gmail_oauth_error") {
-        setIsConnecting(false);
-        const status = typeof event.data.oauth === "string" ? event.data.oauth : "gmail_error";
-        setOauthNotice(GMAIL_OAUTH_MESSAGES[status] ?? GMAIL_OAUTH_MESSAGES.gmail_error);
-      }
-    }
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [appOrigin]);
+  const loadRulesEvent = useEffectEvent(async () => {
+    await loadRules();
+  });
 
-  const handleConnectGoogle = () => {
+  const runClassificationEvent = useEffectEvent(async (trigger: "page_open" | "manual") => {
+    await runClassification(trigger);
+  });
+
+  useEffect(() => {
+    if (!googleConnected) return;
+    void loadRulesEvent();
+    void runClassificationEvent("page_open");
+  }, [googleConnected]);
+
+  useEffect(() => {
+    if (!selectedId && classifications.length > 0) {
+      setSelectedId(classifications[0].id);
+    }
+  }, [classifications, selectedId]);
+
+  async function loadRules() {
+    setRulesLoading(true);
+    try {
+      const response = await fetch("/api/email/notification-rules");
+      const data = await readJsonSafely<{ rules?: EmailNotificationRule[] }>(response);
+      if (response.ok) {
+        setRules(Array.isArray(data?.rules) ? data.rules : []);
+      }
+    } finally {
+      setRulesLoading(false);
+    }
+  }
+
+  async function runClassification(trigger: "page_open" | "manual") {
+    if (isClassifying) return;
+    setIsClassifying(true);
+    setClassificationError(null);
+    try {
+      const response = await fetch("/api/email/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trigger, timezone }),
+      });
+      const data = await readJsonSafely<{
+        error?: string;
+        classifications?: EmailAiClassification[];
+        lastClassifiedAt?: string | null;
+        syncError?: string | null;
+      }>(response);
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Classification impossible.");
+      }
+      if (data?.syncError) {
+        setClassificationError(data.syncError);
+      }
+      const items = Array.isArray(data?.classifications) ? data.classifications : [];
+      setClassifications(items);
+      setLastClassifiedAt(typeof data?.lastClassifiedAt === "string" ? data.lastClassifiedAt : null);
+      if (items.length > 0 && !selectedId) {
+        setSelectedId(items[0].id);
+      }
+    } catch (error) {
+      setClassificationError(error instanceof Error ? error.message : "Classification impossible.");
+    } finally {
+      setIsClassifying(false);
+    }
+  }
+
+  async function refreshEmails() {
+    if (!googleConnected) return;
+    setIsLoadingEmails(true);
+    try {
+      await runClassification("manual");
+    } finally {
+      setIsLoadingEmails(false);
+    }
+  }
+
+  function handleConnectGoogle() {
     if (googleConnected) {
-      // Déconnexion — on recharge pour mettre à jour l'état serveur
       window.location.href = "/api/email/gmail/disconnect";
       return;
     }
@@ -261,74 +333,35 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
       "width=520,height=660,left=200,top=100,toolbar=0,menubar=0,location=0"
     );
 
-    // Fallback : si le popup est bloqué
     if (!popup) {
       setIsConnecting(false);
-      window.location.href = authUrl.toString().replace("email_popup", "settings");
+      window.location.href = authUrl.toString();
     }
-  };
+  }
 
-  const selectedMail = useMemo(() => {
-    return emails.find((m) => m.id === selectedMailId) || null;
-  }, [emails, selectedMailId]);
-
-  const filteredEmails = useMemo(() => {
-    const filtered = emails.filter((mail) => {
-      // Filtre recherche
-      const matchesSearch =
-        mail.sender.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        mail.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        mail.body.toLowerCase().includes(searchQuery.toLowerCase());
-
-      // Filtre priorité
-      const matchesPriority =
-        activePriorityTab === "ALL" || mail.priority === activePriorityTab;
-
-      return matchesSearch && matchesPriority;
-    });
-
-    // Une fois classés par l'IA, on trie du plus urgent au moins urgent.
-    if (hasClassified) {
-      return [...filtered].sort(
-        (a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
-      );
-    }
-    return filtered;
-  }, [emails, searchQuery, activePriorityTab, hasClassified]);
-
-  const handleClassify = async () => {
-    if (emails.length === 0 || isClassifying) return;
-    setIsClassifying(true);
-    try {
-      const response = await fetch("/api/email/classify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          emails: emails.map((m) => ({ id: m.id, sender: m.sender, subject: m.subject, body: m.body })),
-        }),
-      });
-      if (!response.ok) {
-        alert("La classification IA a échoué. Réessayez dans un instant.");
-        return;
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === "gmail_oauth_success") {
+        setGoogleConnected(true);
+        setIsConnecting(false);
+        setOauthNotice(OAUTH_MESSAGES.gmail_success);
+        window.location.reload();
       }
-      const data = await response.json();
-      const byId = new Map<string, Priority>();
-      for (const c of data.classifications ?? []) {
-        if (c?.id && c?.priority) byId.set(String(c.id), c.priority as Priority);
+      if (event.data?.type === "gmail_oauth_error") {
+        setIsConnecting(false);
+        setOauthNotice(OAUTH_MESSAGES.gmail_error);
       }
-      setEmails((prev) => prev.map((m) => (byId.has(m.id) ? { ...m, priority: byId.get(m.id)! } : m)));
-      setHasClassified(true);
-    } catch {
-      alert("Impossible de contacter le service de classification IA.");
-    } finally {
-      setIsClassifying(false);
     }
-  };
 
-  const handleDraftWithAi = async () => {
-    if (!selectedMail || isAiDrafting) return;
-    setIsAiDrafting(true);
-    setAiDraft("");
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
+  async function handleDraftWithAi() {
+    if (!selectedMail || isDrafting) return;
+    setIsDrafting(true);
+    setDraftSuggestion("");
     try {
       const response = await fetch("/api/email/draft", {
         method: "POST",
@@ -337,34 +370,23 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
           sender: selectedMail.sender,
           subject: selectedMail.subject,
           body: selectedMail.body,
-          history: selectedMail.history.map((h) => ({ role: h.role, body: h.body })),
+          history: selectedMail.history,
         }),
       });
+      const data = (await readJsonSafely<{ error?: string; draft?: string }>(response)) ?? {};
       if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        alert(`Rédaction IA échouée : ${err.error ?? "réessayez."}`);
-        return;
+        throw new Error(data.error ?? "Rédaction IA impossible.");
       }
-      const data = await response.json();
-      setAiDraft(data.draft ?? "");
-    } catch {
-      alert("Impossible de contacter le service de rédaction IA.");
+      setDraftSuggestion(data.draft ?? "");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Rédaction IA impossible.");
     } finally {
-      setIsAiDrafting(false);
+      setIsDrafting(false);
     }
-  };
+  }
 
-  const handleInsertDraft = () => {
-    setReplyText(aiDraft);
-    setAiDraft("");
-  };
-
-  const [isSending, setIsSending] = useState(false);
-
-  const handleSendReply = async () => {
-    if (!replyText.trim() || !selectedMail || isSending) return;
-
-    setIsSending(false); // Reset state just in case
+  async function handleSendReply() {
+    if (!selectedMail || !replyText.trim() || isSending) return;
     setIsSending(true);
     try {
       const response = await fetch("/api/email/gmail/send", {
@@ -376,90 +398,110 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
           bodyText: replyText,
         }),
       });
-
+      const data = (await readJsonSafely<{ error?: string }>(response)) ?? {};
       if (!response.ok) {
-        const errData = await response.json();
-        alert(`Erreur Gmail : ${errData.error || "Une erreur est survenue lors de l'envoi."}`);
-        setIsSending(false);
-        return;
+        throw new Error(data.error ?? "Envoi impossible.");
       }
-
-      const updatedEmails = emails.map((mail) => {
-        if (mail.id === selectedMail.id) {
-          return {
-            ...mail,
-            read: true,
-            priority: "LOW" as Priority,
-            history: [
-              ...mail.history,
-              {
-                role: "assistant" as const,
-                body: replyText,
-                date: "À l'instant",
-              },
-            ],
-          };
-        }
-        return mail;
-      });
-
-      setEmails(updatedEmails);
-      window.localStorage.setItem("easycom_emails", JSON.stringify(updatedEmails));
       setReplyText("");
-    } catch (err) {
-      alert(`Erreur de connexion : ${err instanceof Error ? err.message : "Impossible de contacter le serveur Gmail."}`);
+      setDraftSuggestion("");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Envoi impossible.");
     } finally {
       setIsSending(false);
     }
-  };
+  }
+
+  async function saveRulePrompt() {
+    const builtPrompt = buildRulePrompt(ruleBuilder);
+    if (!builtPrompt.trim()) return;
+    try {
+      const response = await fetch(
+        ruleModal.editingRuleId
+          ? `/api/email/notification-rules/${ruleModal.editingRuleId}`
+          : "/api/email/notification-rules",
+        {
+          method: ruleModal.editingRuleId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: builtPrompt }),
+        }
+      );
+      const data = (await readJsonSafely<{ error?: string }>(response)) ?? {};
+      if (!response.ok) throw new Error(data.error ?? "Enregistrement impossible.");
+      setRuleModal({ open: false, prompt: "", editingRuleId: null });
+      setRuleBuilder(EMPTY_RULE_BUILDER);
+      await loadRules();
+      if (pushPermission !== "granted") {
+        await enablePushNotifications();
+        setPushPermission(getPushPermission());
+      }
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Enregistrement impossible.");
+    }
+  }
+
+  async function toggleRule(rule: EmailNotificationRule) {
+    const nextStatus = rule.status === "ACTIVE" ? "DISABLED" : "ACTIVE";
+    const response = await fetch(`/api/email/notification-rules/${rule.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: nextStatus }),
+    });
+    if (response.ok) {
+      await loadRules();
+    }
+  }
+
+  async function deleteRule(ruleId: string) {
+    const response = await fetch(`/api/email/notification-rules/${ruleId}`, { method: "DELETE" });
+    if (response.ok) {
+      await loadRules();
+    }
+  }
+
+  function openRuleModal(rule?: EmailNotificationRule) {
+    const initialPrompt = rule?.conditions.customPrompt ?? "";
+    setRuleModal({
+      open: true,
+      prompt: initialPrompt,
+      editingRuleId: rule?.id ?? null,
+    });
+    setRuleBuilder(buildRuleBuilderFromRule(rule));
+  }
+
+  function toggleAlertOption(optionId: AlertOptionId) {
+    setRuleBuilder((current) => ({
+      ...current,
+      selected: current.selected.includes(optionId)
+        ? current.selected.filter((item) => item !== optionId)
+        : [...current.selected, optionId],
+    }));
+  }
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
-      {/* Header */}
       <div className="overflow-hidden rounded-3xl border border-cyan-800/60 bg-gradient-to-br from-[#081f36] via-[#0d304f] to-[#08192d] p-6 shadow-lg shadow-slate-950/35">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="max-w-3xl">
             <div className="mb-3 h-1.5 w-10 rounded-full bg-cyan-300" />
             <h1 className="mt-2 text-2xl font-bold text-white">Email</h1>
             <p className="mt-1 text-sm text-cyan-100/80">
-              Gérez votre messagerie Google et automatisez les réponses à vos e-mails grâce à l&apos;intelligence artificielle de EasyCom IA.
+              Classement intelligent, reponses assistees et alertes utiles, sans bruit.
             </p>
           </div>
-          <div>
-            <div className="flex flex-col items-end gap-2">
-              {googleConnected && googleEmail && (
-                <p className="text-xs text-cyan-200/70">{googleEmail}</p>
-              )}
-              {googleConnected && (
-                <Button
-                  variant="outline"
-                  onClick={fetchEmails}
-                  disabled={isLoading}
-                  className="rounded-full border-cyan-200/40 bg-white/10 px-5 py-5 text-sm font-semibold text-white transition hover:bg-white/20"
-                >
-                  <RefreshCw className={cn("size-4", isLoading && "animate-spin")} />
-                  {isLoading ? "Actualisation…" : "Actualiser les emails"}
-                </Button>
-              )}
-              <Button
-                variant={googleConnected ? "destructive" : "outline"}
-                onClick={handleConnectGoogle}
-                disabled={isConnecting}
-                className={cn(
-                  "rounded-full px-5 py-5 text-sm font-semibold transition-all hover:scale-[1.02]",
-                  googleConnected
-                    ? "bg-rose-600 hover:bg-rose-700 text-white border-none"
-                    : "bg-white text-cyan-950 border-cyan-200 hover:bg-cyan-50"
-                )}
-              >
-                {isConnecting ? (
-                  <span className="flex items-center gap-2">
-                    <RefreshCw className="size-4 animate-spin" />
-                    Connexion en cours…
-                  </span>
-                ) : googleConnected ? "Déconnecter Google" : "Connecter ma messagerie"}
-              </Button>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {isClassifying && (
+              <Badge className="border-cyan-200/30 bg-cyan-400/15 text-cyan-50">
+                Classement en cours
+              </Badge>
+            )}
+            {lastClassifiedAt && (
+              <Badge className="border-white/20 bg-white/10 text-white">
+                Dernier classement : {new Date(lastClassifiedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+              </Badge>
+            )}
+            {googleConnected && googleEmail && (
+              <Badge className="border-cyan-200/30 bg-white/10 text-cyan-50">{googleEmail}</Badge>
+            )}
           </div>
         </div>
       </div>
@@ -478,345 +520,654 @@ export function EmailClient({ communityId, initialConnected, initialEmail }: Ema
         </div>
       )}
 
-      {/* Encarts de priorité IA */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {(Object.keys(PRIORITY_META) as Priority[]).map((key) => {
-          const meta = PRIORITY_META[key];
-          const count = emails.filter((mail) => mail.priority === key && !mail.read).length;
+      {classificationError && googleConnected && (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+          <p>{classificationError}</p>
+        </div>
+      )}
 
-          return (
-            <button
-              key={key}
-              onClick={() => setActivePriorityTab(activePriorityTab === key ? "ALL" : key)}
-              className={cn(
-                "rounded-[24px] border bg-gradient-to-br p-5 text-left shadow-[0_14px_34px_-28px_rgba(8,31,54,0.45)] transition-all duration-200 hover:-translate-y-0.5",
-                meta.surfaceClassName,
-                activePriorityTab === key ? "ring-2 ring-cyan-500/50 shadow-md scale-[1.01]" : ""
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold",
-                    meta.accentClassName
-                  )}
-                >
-                  {meta.icon}
-                  {meta.title}
-                </span>
-                {hasClassified && count > 0 && (
-                  <Badge className={cn("border", meta.badgeColor)}>
-                    {count} non géré{count > 1 ? "s" : ""}
-                  </Badge>
-                )}
-              </div>
-
-              <div className="mt-4 min-h-[90px] flex flex-col justify-center">
-                {!hasClassified ? (
-                  <>
-                    <p className="text-sm font-semibold text-slate-700">Aucune donnée classée pour le moment</p>
-                    <p className="mt-1 text-xs text-slate-500 leading-normal">
-                      Cette zone affichera les messages identifiés comme {meta.title.toLowerCase()} dès que la classification IA sera alimentée.
-                    </p>
-                  </>
-                ) : (
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">
-                      {emails.filter((m) => m.priority === key).length} e-mail{emails.filter((m) => m.priority === key).length > 1 ? "s" : ""} identifié{emails.filter((m) => m.priority === key).length > 1 ? "s" : ""}
-                    </p>
-                    <div className="mt-2 space-y-1">
-                      {emails
-                        .filter((m) => m.priority === key)
-                        .slice(0, 2)
-                        .map((m) => (
-                          <div key={m.id} className="text-xs text-slate-500 truncate">
-                            • <strong>{m.sender}</strong> : {m.subject}
-                          </div>
-                        ))}
-                      {emails.filter((m) => m.priority === key).length > 2 && (
-                        <div className="text-[10px] text-cyan-600 font-medium">
-                          + {emails.filter((m) => m.priority === key).length - 2} autres...
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Main interface */}
       {!googleConnected ? (
-        <Card className="rounded-[28px] border border-slate-200/80 bg-white p-12 text-center shadow-[0_18px_45px_-30px_rgba(8,31,54,0.28)]">
-          <CardContent className="space-y-4 max-w-md mx-auto pt-6">
+        <Card className="rounded-[28px] border border-slate-200/80 bg-white p-10 text-center shadow-[0_18px_45px_-30px_rgba(8,31,54,0.28)]">
+          <CardContent className="mx-auto max-w-md space-y-4 pt-4">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-cyan-50 text-cyan-600 shadow-inner">
               <Mail className="size-8" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900">Messagerie non connectée</h2>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              Connectez votre boîte email Google (ex: <strong>chlomitaieb@gmail.com</strong>) pour récupérer vos conversations et utiliser la rédaction assistée par IA.
+            <h2 className="text-xl font-bold text-slate-900">Google Email non connecte</h2>
+            <p className="text-sm text-slate-500">
+              Connectez votre boite email Google (ex: <strong>xxxx@gmail.com</strong>) pour recuperer vos conversations et utiliser la redaction assistee par IA.
             </p>
             <Button
               onClick={handleConnectGoogle}
               disabled={isConnecting}
-              className="w-full rounded-full bg-cyan-700 text-white hover:bg-cyan-800 px-6 py-5 text-sm font-semibold transition-all"
+              className="w-full rounded-full bg-cyan-700 px-6 py-5 text-sm font-semibold text-white hover:bg-cyan-800"
             >
-              {isConnecting ? (
-                <span className="flex items-center gap-2 justify-center">
-                  <RefreshCw className="size-4 animate-spin" />
-                  Connexion en cours…
-                </span>
-              ) : (
-                "Se connecter avec Google"
-              )}
+              {isConnecting ? "Connexion en cours..." : "Connecter Google Email"}
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[600px]">
-          {/* List Section (Left) */}
-          <Card className="lg:col-span-5 rounded-[28px] border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
-            <CardHeader className="border-b border-slate-100 bg-slate-50/50 p-4 space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle className="text-base text-slate-900 font-bold">Boîte de réception</CardTitle>
-                <Button
-                  size="sm"
-                  onClick={handleClassify}
-                  disabled={isClassifying}
-                  className="rounded-full bg-cyan-700 text-white hover:bg-cyan-800 text-xs font-semibold px-3 py-1 flex items-center gap-1.5 transition-all shadow-sm"
-                >
-                  {isClassifying ? (
-                    <>
-                      <RefreshCw className="size-3.5 animate-spin" />
-                      Scan IA...
-                    </>
-                  ) : (
-                    <>
-                      <Bot className="size-3.5" />
-                      Classer par IA
-                    </>
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={refreshEmails}
+                disabled={isLoadingEmails || isClassifying}
+                className="rounded-full border-slate-200"
+              >
+                <RefreshCw className={cn("size-4", (isLoadingEmails || isClassifying) && "animate-spin")} />
+                {isLoadingEmails ? "Actualisation..." : "Classer les emails par IA"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => openRuleModal()}
+                className="rounded-full border-cyan-200 bg-cyan-50 text-cyan-800 hover:bg-cyan-100"
+              >
+                <Settings2 className="size-4" />
+                Configurer mes alertes email
+              </Button>
+            </div>
+            <Badge className="border-slate-200 bg-white text-slate-600">
+              Push navigateur : {pushPermission === "granted" ? "active" : pushPermission === "denied" ? "bloque" : "a autoriser"}
+            </Badge>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {(Object.keys(CATEGORY_META) as EmailCategory[]).map((category) => {
+              const meta = CATEGORY_META[category];
+              const count = classifications.filter((item) => item.category === category).length;
+              const preview = classifications.filter((item) => item.category === category).slice(0, 2);
+              return (
+                <button
+                  key={category}
+                  onClick={() => setActiveCategory(activeCategory === category ? "all" : category)}
+                  className={cn(
+                    "rounded-3xl border p-5 text-left shadow-sm transition hover:-translate-y-0.5",
+                    meta.cardClass,
+                    activeCategory === category && "ring-2 ring-cyan-500/40"
                   )}
-                </Button>
-              </div>
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <Badge className={cn("border", meta.badgeClass)}>
+                      {meta.icon}
+                      {meta.title}
+                    </Badge>
+                    <span className="text-sm font-bold text-slate-900">{count}</span>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    {preview.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 px-3 py-4 text-sm text-slate-400">
+                        Aucun email
+                      </div>
+                    ) : (
+                      preview.map((mail) => (
+                        <div key={mail.id} className="rounded-2xl border border-white/80 bg-white/80 px-3 py-3">
+                          <p className="truncate text-sm font-semibold text-slate-900">{mail.subject}</p>
+                          <p className="mt-1 truncate text-xs text-slate-500">{mail.sender}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
 
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Rechercher un email..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-4 py-2 text-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
-                />
-              </div>
-
-              {activePriorityTab !== "ALL" && (
-                <div className="flex items-center justify-between bg-cyan-50 text-cyan-800 text-xs px-3 py-2 rounded-xl border border-cyan-100">
-                  <span>Filtré par : <strong>{PRIORITY_META[activePriorityTab].title}</strong></span>
-                  <button
-                    onClick={() => setActivePriorityTab("ALL")}
-                    className="text-[10px] font-bold text-cyan-600 hover:text-cyan-900 underline"
-                  >
-                    Effacer le filtre
-                  </button>
+          <div className="grid gap-6 lg:grid-cols-[0.95fr_1.25fr]">
+            <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <CardHeader className="space-y-4 border-b border-slate-100">
+                <CardTitle className="text-base font-bold text-slate-900">Boite de reception</CardTitle>
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
+                  <input
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Rechercher un email..."
+                    className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                  />
                 </div>
+              </CardHeader>
+              <CardContent className="max-h-[760px] overflow-y-auto p-0">
+                {filteredEmails.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400">
+                    <Mail className="mx-auto mb-3 size-8 text-slate-300" />
+                    <p className="text-sm font-semibold text-slate-700">Aucun email</p>
+                  </div>
+                ) : (
+                  filteredEmails.map((mail) => (
+                    <button
+                      key={mail.id}
+                      onClick={() => setSelectedId(mail.id)}
+                      className={cn(
+                        "w-full border-b border-slate-100 px-4 py-4 text-left transition hover:bg-slate-50",
+                        selectedId === mail.id && "bg-cyan-50/50"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-900">{mail.sender}</p>
+                          <p className="truncate text-sm text-slate-700">{mail.subject}</p>
+                          <p className="mt-1 line-clamp-2 text-xs text-slate-500">{mail.body}</p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <Badge className={cn("border", CATEGORY_META[mail.category].badgeClass)}>
+                            {CATEGORY_META[mail.category].title}
+                          </Badge>
+                          <span className="text-[11px] text-slate-400">{mail.date}</span>
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+              {selectedMail ? (
+                <>
+                  <CardHeader className="border-b border-slate-100">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <CardTitle className="text-lg font-bold text-slate-950">{selectedMail.subject}</CardTitle>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {selectedMail.sender} · {selectedMail.senderEmail}
+                        </p>
+                      </div>
+                      <Badge className={cn("border", CATEGORY_META[selectedMail.category].badgeClass)}>
+                        {CATEGORY_META[selectedMail.category].title}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-5 p-6">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                      <p className="whitespace-pre-line text-sm leading-6 text-slate-700">{selectedMail.body}</p>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Raison du classement</p>
+                        <p className="mt-2 text-sm text-slate-700">{selectedMail.classificationReason}</p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Action recommandee</p>
+                        <p className="mt-2 text-sm text-slate-700">{selectedMail.actionRecommended ?? "Aucune action immediate."}</p>
+                      </div>
+                    </div>
+
+                    {(selectedMail.category === "urgent" || selectedMail.category === "important") && (
+                      <div className="space-y-3 rounded-3xl border border-cyan-100 bg-cyan-50/50 p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">Redaction assistee par IA</p>
+                            <p className="text-xs text-slate-500">Resume court, ton professionnel et reponse modifiable.</p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            onClick={handleDraftWithAi}
+                            disabled={isDrafting}
+                            className="rounded-full border-cyan-200 bg-white text-cyan-800 hover:bg-cyan-100"
+                          >
+                            {isDrafting ? <RefreshCw className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+                            {isDrafting ? "Generation..." : "Rediger avec l'IA"}
+                          </Button>
+                        </div>
+
+                        {draftSuggestion && (
+                          <div className="rounded-2xl border border-cyan-200 bg-white p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-700">Suggestion IA</p>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setReplyText(draftSuggestion)}
+                                className="text-cyan-700"
+                              >
+                                Inserer
+                              </Button>
+                            </div>
+                            <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">{draftSuggestion}</p>
+                          </div>
+                        )}
+
+                        <textarea
+                          rows={6}
+                          value={replyText}
+                          onChange={(event) => setReplyText(event.target.value)}
+                          placeholder={`Reponse modifiable pour ${selectedMail.sender}...`}
+                          className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                        />
+                        <div className="flex justify-end">
+                          <Button
+                            onClick={handleSendReply}
+                            disabled={!replyText.trim() || isSending}
+                            className="rounded-2xl bg-cyan-700 text-white hover:bg-cyan-800"
+                          >
+                            {isSending ? <RefreshCw className="size-4 animate-spin" /> : <Send className="size-4" />}
+                            {isSending ? "Envoi..." : "Envoyer apres validation"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </>
+              ) : (
+                <CardContent className="flex min-h-[520px] flex-col items-center justify-center gap-3 text-center text-slate-400">
+                  <Mail className="size-10 text-slate-300" />
+                  <p className="text-sm font-semibold text-slate-700">Selectionnez un email</p>
+                </CardContent>
               )}
+            </Card>
+          </div>
+
+          <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-slate-100">
+              <div>
+                <CardTitle className="text-lg font-bold text-slate-950">Mes regles de notification</CardTitle>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => openRuleModal()}
+                className="rounded-full border-slate-200"
+              >
+                <WandSparkles className="size-4" />
+                Configurer mes alertes email
+              </Button>
             </CardHeader>
-            <CardContent className="p-0 flex-1 overflow-y-auto divide-y divide-slate-100">
-              {filteredEmails.length === 0 ? (
-                <div className="p-8 text-center text-slate-400">
-                  <Mail className="size-8 mx-auto mb-2 text-slate-300" />
-                  <p className="text-sm font-semibold">Aucun e-mail trouvé</p>
-                  <p className="text-xs text-slate-400">Essayez de modifier vos critères de recherche.</p>
+            <CardContent className="space-y-3 p-5">
+              {rulesLoading ? (
+                <p className="text-sm text-slate-500">Chargement...</p>
+              ) : rules.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-5 text-sm text-slate-400">
+                  Aucune regle pour le moment.
                 </div>
               ) : (
-                filteredEmails.map((mail) => (
-                  <button
-                    key={mail.id}
-                    onClick={() => setSelectedMailId(mail.id)}
-                    className={cn(
-                      "w-full text-left p-4 transition-all hover:bg-slate-50 flex items-start gap-3",
-                      selectedMailId === mail.id ? "bg-cyan-50/50 border-l-4 border-cyan-700 pl-3" : "",
-                      !mail.read ? "bg-slate-50/20 font-semibold" : ""
-                    )}
-                  >
-                    <div className="relative h-9 w-9 flex-shrink-0 rounded-full bg-slate-100 flex items-center justify-center">
-                      <User className="size-5 text-slate-500" />
-                      {!mail.read && (
-                        <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-cyan-600 ring-2 ring-white" />
-                      )}
+                rules.map((rule) => (
+                  <div key={rule.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900">{rule.name}</p>
+                      <p className="mt-1 text-xs text-slate-500">{describeRule(rule)}</p>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={cn("truncate text-sm text-slate-900", !mail.read ? "font-bold" : "font-semibold")}>
-                          {mail.sender}
-                        </span>
-                        <span className="flex-shrink-0 text-[11px] text-slate-400">{mail.date}</span>
-                      </div>
-                      <p className={cn("truncate text-sm", !mail.read ? "font-semibold text-slate-900" : "text-slate-700")}>
-                        {mail.subject}
-                      </p>
-                      <p className="mt-0.5 line-clamp-1 text-xs text-slate-400">{mail.body}</p>
-
-                      {hasClassified && (
-                        <div className="mt-2">
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold border",
-                              PRIORITY_META[mail.priority].badgeColor
-                            )}
-                          >
-                            {PRIORITY_META[mail.priority].icon}
-                            {PRIORITY_META[mail.priority].title}
-                          </span>
-                        </div>
-                      )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge className={rule.status === "ACTIVE" ? "border-emerald-200 bg-emerald-100 text-emerald-800" : "border-slate-200 bg-slate-100 text-slate-700"}>
+                        {rule.status === "ACTIVE" ? "Active" : "Desactivee"}
+                      </Badge>
+                      <Button variant="outline" size="sm" onClick={() => openRuleModal(rule)} className="rounded-full">
+                        <MessageSquareText className="size-3.5" />
+                        Modifier
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => toggleRule(rule)} className="rounded-full">
+                        {rule.status === "ACTIVE" ? "Desactiver" : "Activer"}
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => deleteRule(rule.id)} className="rounded-full border-red-200 text-red-600 hover:bg-red-50">
+                        <Trash2 className="size-3.5" />
+                        Supprimer
+                      </Button>
                     </div>
-                  </button>
+                  </div>
                 ))
               )}
             </CardContent>
           </Card>
+        </>
+      )}
 
-          {/* Chat/Reader Section (Right) */}
-          <Card className="lg:col-span-7 rounded-[28px] border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
-            {selectedMail ? (
-              <div className="flex flex-col h-full">
-                {/* Mail Header */}
-                <div className="border-b border-slate-100 p-4 bg-slate-50/30 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-base font-bold text-slate-900">{selectedMail.subject}</h2>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      De : <strong>{selectedMail.sender}</strong> ({selectedMail.senderEmail})
-                    </p>
-                  </div>
-                  <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border border-emerald-100">
-                    Google Connecté
-                  </Badge>
+      {ruleModal.open && false && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+          <Card className="w-full max-w-2xl overflow-hidden border-cyan-100 bg-white shadow-2xl shadow-slate-950/20">
+            <CardHeader className="border-b border-slate-100 bg-slate-950 text-white">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-xl font-black">
+                    <Bot className="size-5 text-cyan-200" />
+                    Configurer mes alertes email
+                  </CardTitle>
+                  <p className="mt-1 text-sm text-slate-300">Dites a l&apos;IA quand vous voulez etre notifie.</p>
                 </div>
-
-                {/* Messages Box (Messenger Bubble Style) */}
-                <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-slate-50/10 min-h-[350px]">
-                  {selectedMail.history.map((msg, index) => {
-                    const isAssistant = msg.role === "assistant";
-                    return (
-                      <div
-                        key={index}
-                        className={cn(
-                          "flex flex-col max-w-[85%] space-y-1",
-                          isAssistant ? "ml-auto items-end" : "mr-auto items-start"
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            "rounded-2xl p-4 text-sm leading-relaxed shadow-sm",
-                            isAssistant
-                              ? "bg-cyan-700 text-white rounded-tr-none"
-                              : "bg-slate-100 text-slate-800 rounded-tl-none border border-slate-200/50"
-                          )}
-                        >
-                          <p className="whitespace-pre-line">{msg.body}</p>
-                        </div>
-                        <span className="text-[10px] text-slate-400 px-1">{msg.date}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* AI Draft Suggestion Box */}
-                {aiDraft && (
-                  <div className="mx-6 my-2 p-4 rounded-2xl bg-cyan-50 border border-cyan-200/80 shadow-sm space-y-3 animate-in fade-in slide-in-from-bottom-2">
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-800">
-                        <Bot className="size-4 text-cyan-700 animate-bounce" />
-                        Réponse IA Proposée
-                      </span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setAiDraft("")}
-                        className="text-xs text-slate-400 hover:text-slate-600 h-6 px-1.5"
-                      >
-                        Annuler
-                      </Button>
-                    </div>
-                    <div className="text-xs text-slate-700 max-h-[150px] overflow-y-auto whitespace-pre-line leading-relaxed border-l-2 border-cyan-300 pl-3">
-                      {aiDraft}
-                    </div>
-                    <div className="flex justify-end">
-                      <Button
-                        size="sm"
-                        onClick={handleInsertDraft}
-                        className="rounded-full bg-cyan-700 text-white hover:bg-cyan-800 text-xs font-semibold px-3 py-1 flex items-center gap-1"
-                      >
-                        Insérer dans le message
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Footer Input Area */}
-                <div className="border-t border-slate-100 p-4 bg-white space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleDraftWithAi}
-                      disabled={isAiDrafting}
-                      className="rounded-full text-xs font-semibold text-cyan-700 border-cyan-200 bg-cyan-50/30 hover:bg-cyan-50 flex items-center gap-1.5 py-1"
-                    >
-                      {isAiDrafting ? (
-                        <>
-                          <RefreshCw className="size-3 animate-spin" />
-                          Rédaction en cours...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="size-3 text-cyan-600" />
-                          Rédiger avec EasyCom IA
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  <div className="flex gap-2">
-                    <textarea
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      placeholder={`Répondre à ${selectedMail.sender}...`}
-                      rows={3}
-                      className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 resize-none"
-                    />
-                    <Button
-                      onClick={handleSendReply}
-                      disabled={!replyText.trim() || isSending}
-                      className="rounded-xl bg-cyan-700 text-white hover:bg-cyan-800 flex flex-col justify-center px-4 self-end h-[76px] transition-all"
-                    >
-                      {isSending ? (
-                        <>
-                          <RefreshCw className="size-4 mb-1 animate-spin" />
-                          <span className="text-[10px] font-semibold">Envoi...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Send className="size-4 mb-1" />
-                          <span className="text-[10px] font-semibold">Envoyer</span>
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
+                <Button variant="ghost" size="sm" onClick={() => {
+                  setRuleModal({ open: false, prompt: "", editingRuleId: null });
+                  setRuleBuilder(EMPTY_RULE_BUILDER);
+                }} className="text-white hover:bg-white/15 hover:text-white">
+                  <X className="size-4" />
+                </Button>
               </div>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-12 text-slate-400 bg-slate-50/10">
-                <Mail className="size-12 mb-3 text-slate-300" />
-                <p className="text-sm font-semibold text-slate-700">Aucun message sélectionné</p>
-                <p className="text-xs text-slate-500 max-w-xs mt-1 leading-normal">
-                  Sélectionnez un email dans la liste de gauche pour lire la conversation et y répondre.
+            </CardHeader>
+            <CardContent className="space-y-5 bg-[linear-gradient(180deg,#f8fbfd_0%,#eef7fb_100%)] p-5">
+              <div className="rounded-3xl border border-cyan-100 bg-white/90 p-5 shadow-sm">
+                <p className="text-sm font-semibold text-slate-900">Choisissez quand vous voulez etre notifie</p>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  Vous pouvez cocher plusieurs cas puis completer seulement les champs utiles.
                 </p>
               </div>
-            )}
+
+              <div className="grid gap-3 md:grid-cols-2">
+                {ALERT_OPTIONS.map((option) => {
+                  const checked = ruleBuilder.selected.includes(option.id);
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => toggleAlertOption(option.id)}
+                      className={cn(
+                        "rounded-3xl border p-4 text-left transition",
+                        checked
+                          ? "border-cyan-500 bg-cyan-50 shadow-[0_12px_30px_-20px_rgba(14,116,144,0.55)]"
+                          : "border-slate-200 bg-white hover:border-cyan-200 hover:bg-cyan-50/40"
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span
+                          className={cn(
+                            "mt-0.5 flex h-5 w-5 items-center justify-center rounded-md border text-xs font-bold",
+                            checked
+                              ? "border-cyan-600 bg-cyan-600 text-white"
+                              : "border-slate-300 bg-white text-transparent"
+                          )}
+                        >
+                          ✓
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">{option.title}</p>
+                          <p className="mt-1 text-xs leading-5 text-slate-500">{option.description}</p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-5 md:grid-cols-2">
+                {ruleBuilder.selected.includes("sender") && (
+                  <label className="space-y-2">
+                    <span className="text-sm font-semibold text-slate-800">Adresse email a surveiller</span>
+                    <input
+                      value={ruleBuilder.senderEmail}
+                      onChange={(event) => setRuleBuilder((current) => ({ ...current, senderEmail: event.target.value }))}
+                      placeholder="contact@association.fr"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-100"
+                    />
+                  </label>
+                )}
+
+                {ruleBuilder.selected.includes("domain") && (
+                  <label className="space-y-2">
+                    <span className="text-sm font-semibold text-slate-800">Domaine a surveiller</span>
+                    <input
+                      value={ruleBuilder.senderDomain}
+                      onChange={(event) => setRuleBuilder((current) => ({ ...current, senderDomain: event.target.value }))}
+                      placeholder="association.fr"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-100"
+                    />
+                  </label>
+                )}
+
+                {ruleBuilder.selected.includes("subject") && (
+                  <label className="space-y-2">
+                    <span className="text-sm font-semibold text-slate-800">Mot-cle dans le sujet</span>
+                    <input
+                      value={ruleBuilder.subjectKeyword}
+                      onChange={(event) => setRuleBuilder((current) => ({ ...current, subjectKeyword: event.target.value }))}
+                      placeholder="don, urgence, reunion..."
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-100"
+                    />
+                  </label>
+                )}
+
+                {ruleBuilder.selected.includes("body") && (
+                  <label className="space-y-2">
+                    <span className="text-sm font-semibold text-slate-800">Mot-cle dans le message</span>
+                    <input
+                      value={ruleBuilder.bodyKeyword}
+                      onChange={(event) => setRuleBuilder((current) => ({ ...current, bodyKeyword: event.target.value }))}
+                      placeholder="inscription, paiement, confirmation..."
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-100"
+                    />
+                  </label>
+                )}
+
+                {ruleBuilder.selected.includes("unanswered") && (
+                  <label className="space-y-2">
+                    <span className="text-sm font-semibold text-slate-800">Nombre de jours sans reponse</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={ruleBuilder.unansweredDays}
+                      onChange={(event) => setRuleBuilder((current) => ({ ...current, unansweredDays: event.target.value }))}
+                      placeholder="3"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-100"
+                    />
+                  </label>
+                )}
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-white p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">Demande libre</p>
+                    <p className="mt-1 text-xs text-slate-500">Ajoutez une precision complementaire si besoin.</p>
+                  </div>
+                  <Badge className="border-cyan-200 bg-cyan-50 text-cyan-800">Optionnel</Badge>
+                </div>
+                <textarea
+                  rows={4}
+                  value={ruleBuilder.customPrompt}
+                  onChange={(event) => setRuleBuilder((current) => ({ ...current, customPrompt: event.target.value }))}
+                  placeholder="Ex. Seulement pendant les jours d'evenement ou pour les contacts sensibles."
+                  className="mt-4 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 outline-none focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-100"
+                />
+              </div>
+
+              <div className="rounded-3xl border border-cyan-100 bg-cyan-50/60 p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-700">Apercu de la regle</p>
+                <p className="mt-2 text-sm leading-6 text-slate-700">
+                  {buildRulePrompt(ruleBuilder) || "Selectionnez au moins une case ou ajoutez une demande libre."}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button variant="outline" onClick={() => {
+                  setRuleModal({ open: false, prompt: "", editingRuleId: null });
+                  setRuleBuilder(EMPTY_RULE_BUILDER);
+                }} className="rounded-full">
+                  Annuler
+                </Button>
+                <Button
+                  onClick={saveRulePrompt}
+                  disabled={!buildRulePrompt(ruleBuilder)}
+                  className="rounded-full bg-cyan-700 text-white hover:bg-cyan-800 disabled:bg-slate-300"
+                >
+                  Enregistrer la regle
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {ruleModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+          <Card className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/20">
+            <CardHeader className="border-b border-slate-200 bg-white px-6 py-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700">
+                    <BellRing className="size-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-bold text-slate-950">Configurer mes alertes email</CardTitle>
+                    <p className="mt-1 text-sm text-slate-500">Choisissez les emails qui meritent une notification.</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setRuleModal({ open: false, prompt: "", editingRuleId: null });
+                    setRuleBuilder(EMPTY_RULE_BUILDER);
+                  }}
+                  className="rounded-full text-slate-500 hover:bg-slate-100"
+                >
+                  <X className="size-4" />
+                </Button>
+              </div>
+            </CardHeader>
+
+            <CardContent className="max-h-[calc(92vh-84px)] overflow-y-auto bg-slate-50 p-6">
+              <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <Filter className="size-4 text-cyan-700" />
+                    Conditions
+                  </div>
+                  <div className="grid gap-2">
+                    {ALERT_OPTIONS.map((option) => {
+                      const checked = ruleBuilder.selected.includes(option.id);
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => toggleAlertOption(option.id)}
+                          className={cn(
+                            "flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition",
+                            checked
+                              ? "border-cyan-400 bg-white shadow-sm"
+                              : "border-slate-200 bg-white/70 hover:border-cyan-200 hover:bg-white"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border",
+                              checked ? "border-cyan-600 bg-cyan-600 text-white" : "border-slate-300 bg-white"
+                            )}
+                          >
+                            {checked && <Check className="size-3.5" />}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-sm font-semibold text-slate-900">{option.title}</span>
+                            <span className="mt-0.5 block text-xs leading-5 text-slate-500">{option.description}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-sm font-semibold text-slate-900">Precisions</p>
+                    <div className="mt-4 space-y-3">
+                      {ruleBuilder.selected.includes("sender") && (
+                        <label className="block space-y-1.5">
+                          <span className="text-xs font-semibold text-slate-600">Adresse email</span>
+                          <input
+                            value={ruleBuilder.senderEmail}
+                            onChange={(event) => setRuleBuilder((current) => ({ ...current, senderEmail: event.target.value }))}
+                            placeholder="contact@association.fr"
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                          />
+                        </label>
+                      )}
+
+                      {ruleBuilder.selected.includes("domain") && (
+                        <label className="block space-y-1.5">
+                          <span className="text-xs font-semibold text-slate-600">Domaine</span>
+                          <input
+                            value={ruleBuilder.senderDomain}
+                            onChange={(event) => setRuleBuilder((current) => ({ ...current, senderDomain: event.target.value }))}
+                            placeholder="association.fr"
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                          />
+                        </label>
+                      )}
+
+                      {ruleBuilder.selected.includes("subject") && (
+                        <label className="block space-y-1.5">
+                          <span className="text-xs font-semibold text-slate-600">Mot-cle dans le sujet</span>
+                          <input
+                            value={ruleBuilder.subjectKeyword}
+                            onChange={(event) => setRuleBuilder((current) => ({ ...current, subjectKeyword: event.target.value }))}
+                            placeholder="don, urgence, reunion"
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                          />
+                        </label>
+                      )}
+
+                      {ruleBuilder.selected.includes("body") && (
+                        <label className="block space-y-1.5">
+                          <span className="text-xs font-semibold text-slate-600">Mot-cle dans le message</span>
+                          <input
+                            value={ruleBuilder.bodyKeyword}
+                            onChange={(event) => setRuleBuilder((current) => ({ ...current, bodyKeyword: event.target.value }))}
+                            placeholder="inscription, paiement, confirmation"
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                          />
+                        </label>
+                      )}
+
+                      {ruleBuilder.selected.includes("unanswered") && (
+                        <label className="block space-y-1.5">
+                          <span className="text-xs font-semibold text-slate-600">Jours sans reponse</span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={ruleBuilder.unansweredDays}
+                            onChange={(event) => setRuleBuilder((current) => ({ ...current, unansweredDays: event.target.value }))}
+                            placeholder="3"
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                          />
+                        </label>
+                      )}
+
+                      {!["sender", "domain", "subject", "body", "unanswered"].some((id) =>
+                        ruleBuilder.selected.includes(id as AlertOptionId)
+                      ) && (
+                        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-sm text-slate-400">
+                          Aucune precision necessaire pour les options choisies.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <label className="block rounded-xl border border-slate-200 bg-white p-4">
+                    <span className="text-sm font-semibold text-slate-900">Reponse libre</span>
+                    <textarea
+                      rows={4}
+                      value={ruleBuilder.customPrompt}
+                      onChange={(event) => setRuleBuilder((current) => ({ ...current, customPrompt: event.target.value }))}
+                      placeholder="Ajouter une precision si besoin."
+                      className="mt-3 w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm leading-6 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                    />
+                  </label>
+
+                  <div className="rounded-xl border border-cyan-100 bg-white p-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-700">Apercu</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-700">
+                      {buildRulePrompt(ruleBuilder) || "Selectionnez au moins une condition."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-5">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setRuleModal({ open: false, prompt: "", editingRuleId: null });
+                    setRuleBuilder(EMPTY_RULE_BUILDER);
+                  }}
+                  className="rounded-full"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  onClick={saveRulePrompt}
+                  disabled={!buildRulePrompt(ruleBuilder)}
+                  className="rounded-full bg-cyan-700 text-white hover:bg-cyan-800 disabled:bg-slate-300"
+                >
+                  Enregistrer la regle
+                </Button>
+              </div>
+            </CardContent>
           </Card>
         </div>
       )}
