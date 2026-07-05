@@ -4,7 +4,7 @@ import { EventsClient } from "@/components/events/events-client";
 import { getShabbatTimes, getJewishHolidays } from "@/lib/automation/hebcal";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Agenda connecté IA - EasyCom IA" };
+export const metadata: Metadata = { title: "Mon Agenda IA - EasyCom IA" };
 
 const EVENT_STATUSES = ["DRAFT", "READY", "SCHEDULED", "PUBLISHED", "COMPLETED", "ARCHIVED"];
 

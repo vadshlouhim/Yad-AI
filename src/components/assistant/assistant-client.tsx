@@ -230,6 +230,8 @@ const ASSISTANT_PLACEHOLDER_SUGGESTIONS = [
 
 const STATIC_ASSISTANT_PLACEHOLDER = "Posez une question, demandez un contenu, lancez une action...";
 const MOBILE_ASSISTANT_PLACEHOLDER = "Décrivez votre besoin...";
+const SHLOMI_ASSISTANT_IMAGE_URL =
+  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/agent-orcetra-shlomi.webp";
 
 const EASYCOM_FULL_MESSAGE =
   "L'Assistant IA vous aide à gérer toute votre communication depuis un seul espace intelligent.\n\n" +
@@ -243,6 +245,33 @@ const EASYCOM_FULL_MESSAGE =
   "* Notez vos ressources personnelles, organisez-les dans votre espace, puis publiez-les ou partagez-les en un clic.\n\n" +
   "L'Assistant IA prépare, organise et automatise vos actions tout en vous laissant le contrôle : l'IA propose, vous validez, puis elle agit.\n\n" +
   "Cliquez dans le menu ou demandez à l'Assistant IA ce que vous souhaitez.";
+
+function AssistantAvatar({
+  className,
+  imageClassName,
+  iconClassName,
+}: {
+  className?: string;
+  imageClassName?: string;
+  iconClassName?: string;
+}) {
+  const [imageSrc, setImageSrc] = useState<string | null>(SHLOMI_ASSISTANT_IMAGE_URL);
+
+  return (
+    <div className={className}>
+      {imageSrc ? (
+        <img
+          src={imageSrc}
+          alt="Assistant Shlomi"
+          className={imageClassName}
+          onError={() => setImageSrc(null)}
+        />
+      ) : (
+        <Bot className={iconClassName} />
+      )}
+    </div>
+  );
+}
 
 function getQuickPromptStyle(index: number) {
   return QUICK_PROMPT_STYLES[index % QUICK_PROMPT_STYLES.length];
@@ -433,8 +462,6 @@ export function AssistantClient({
   const [bubblePosition, setBubblePosition] = useState({ x: 24, y: 24 });
   const [animatedPlaceholder, setAnimatedPlaceholder] = useState(ASSISTANT_PLACEHOLDER_SUGGESTIONS[0]);
   const [hasStartedPromptEntry, setHasStartedPromptEntry] = useState(false);
-  const [showTooltipHelp, setShowTooltipHelp] = useState(true);
-  const [showTooltipInput, setShowTooltipInput] = useState(true);
   // Pièces jointes (images / documents) en attente d'envoi avec le prochain message.
   const [pendingAttachments, setPendingAttachments] = useState<ChatAttachment[]>([]);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
@@ -463,10 +490,7 @@ export function AssistantClient({
     ensurePushRegistered();
     // Lien profond depuis email/push : ?action=<id> → afficher la carte à valider.
     void handleDeepLinkAction();
-    // Auto-dismiss tooltips après 5 secondes.
-    const t1 = window.setTimeout(() => setShowTooltipHelp(false), 5000);
-    const t2 = window.setTimeout(() => setShowTooltipInput(false), 5000);
-    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
+    return undefined;
   }, []);
 
   useEffect(() => {
@@ -2282,14 +2306,16 @@ export function AssistantClient({
                 <span>Menu</span>
               </button>
             )}
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-900 shadow-sm">
-              <Bot className="size-5 text-white" />
-            </div>
+            <AssistantAvatar
+              className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-900 shadow-sm"
+              imageClassName="h-full w-full object-cover object-top"
+              iconClassName="size-5 text-white"
+            />
             <div className="flex min-w-0 flex-col gap-0.5">
               <h1 className="truncate text-base font-bold text-slate-900">
                 {assistantExperience === "detailed" && activeConversationId
                   ? conversations.find((c) => c.id === activeConversationId)?.title ?? "Conversation"
-                  : "Assistant IA"}
+                  : "Assistant Shlomi"}
               </h1>
               {assistantExperience === "simple" && firstName && (
                 <p className="truncate text-xs font-medium text-slate-500 md:hidden">
@@ -2500,15 +2526,47 @@ export function AssistantClient({
 
             {assistantExperience === "simple" && (
               <div className="mb-6 w-full max-w-4xl px-5 py-2 text-center sm:px-8">
-                <div className="mb-2 text-3xl leading-none">👋</div>
+                <div className="relative mx-auto mb-16 flex w-fit items-center justify-center md:mb-4">
+                  <AssistantAvatar
+                    className="flex h-36 w-36 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.14)] sm:h-44 sm:w-44"
+                    imageClassName="h-full w-full object-cover object-top"
+                    iconClassName="size-7 text-slate-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCapabilitiesOpen(true)}
+                    className="absolute left-[104%] top-7 hidden w-60 rounded-[2rem] border border-slate-200 bg-white px-4 py-3.5 text-left text-xs font-black leading-5 text-slate-800 shadow-[0_18px_38px_rgba(15,23,42,0.14)] transition hover:border-blue-200 hover:text-blue-700 md:block"
+                    aria-label="Voir tout ce que je peux faire pour toi"
+                  >
+                    <span className="relative z-10 flex items-center gap-2">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-black text-white">
+                        !
+                      </span>
+                      <span>Voir tout ce que je peux faire pour toi</span>
+                    </span>
+                    <span className="absolute left-0 top-7 h-4 w-4 -translate-x-1/2 rotate-45 border-b border-l border-slate-200 bg-white" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCapabilitiesOpen(true)}
+                    className="absolute -bottom-7 left-1/2 w-60 -translate-x-1/2 rounded-[2rem] border border-slate-200 bg-white px-4 py-3 text-center text-xs font-black leading-5 text-slate-800 shadow-[0_16px_34px_rgba(15,23,42,0.14)] transition hover:border-blue-200 hover:text-blue-700 md:hidden"
+                    aria-label="Voir tout ce que je peux faire pour toi"
+                  >
+                    <span className="relative z-10 inline-flex items-center justify-center gap-2">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-black text-white">
+                        !
+                      </span>
+                      <span>Voir tout ce que je peux faire pour toi</span>
+                    </span>
+                    <span className="absolute -top-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 border-l border-t border-slate-200 bg-white" />
+                  </button>
+                </div>
                 <h2 className="text-[2rem] font-black leading-tight tracking-tight text-slate-900 sm:text-3xl md:text-2xl">
                   <span className="md:hidden">En quoi puis-je vous aider aujourd&apos;hui ?</span>
                   <span className="hidden md:inline">Bienvenue{firstName ? `, ${firstName}` : ""}</span>
                 </h2>
                 <p className="mx-auto mt-2 hidden max-w-2xl text-sm leading-6 text-slate-500 sm:text-[15px] md:block">
-                  {communitySubtitle
-                    ? `L'Assistant IA communications 100% conçu pour les ${communitySubtitle}`
-                    : "L'Assistant IA communications 100% conçu pour votre structure"}
+                  Je suis Shlomi, ton assistant IA. Dis-moi ce dont tu as besoin !
                 </p>
               </div>
             )}
@@ -2742,7 +2800,11 @@ export function AssistantClient({
                       <span className="text-xs font-bold text-slate-700">{getCommunityInitials(communityName)}</span>
                     )
                   ) : (
-                    <Bot className="size-4 text-slate-700" />
+                    <AssistantAvatar
+                      className="flex h-full w-full items-center justify-center bg-white"
+                      imageClassName="h-full w-full object-cover"
+                      iconClassName="size-4 text-slate-700"
+                    />
                   )}
                 </div>
 
@@ -3502,9 +3564,11 @@ export function AssistantClient({
             ))}
             {loading && !hasStreamingAssistantMessage && (
               <div className="flex gap-3">
-                <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white">
-                  <Bot className="size-4 text-slate-700" />
-                </div>
+                <AssistantAvatar
+                  className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white"
+                  imageClassName="h-full w-full object-cover"
+                  iconClassName="size-4 text-slate-700"
+                />
                 <div className="max-w-[88%] sm:max-w-[75%]">
                   <div className="rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm ring-1 ring-slate-100">
                     <div className="flex items-center">
@@ -3525,35 +3589,7 @@ export function AssistantClient({
           "border-t border-slate-200/80 bg-slate-50/85 px-4 py-4 backdrop-blur-xl sm:px-6",
           assistantExperience === "simple" && "border-t-0 bg-transparent px-6 pb-7 pt-0 backdrop-blur-0 -mt-8 sm:px-8 md:-mt-16 md:pb-14"
         )}>
-          {assistantExperience === "simple" && showQuickPrompts && (
-            <div className="mx-auto mb-3 flex w-full max-w-none items-center justify-between gap-3">
-              <div className="relative hidden shrink-0 md:block">
-                <button
-                  type="button"
-                  onClick={() => setCapabilitiesOpen(true)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-black text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
-                  aria-label="Que peut faire l'Assistant IA ?"
-                >
-                  !
-                </button>
-                {showTooltipHelp && (
-                  <div className="absolute bottom-full right-0 mb-2 w-44 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-lg">
-                    <p className="text-[11px] leading-4 text-slate-600">Tout ce que votre Assistant IA peut faire</p>
-                    <span className="absolute -bottom-1.5 right-3 h-3 w-3 rotate-45 border-b border-r border-slate-200 bg-white" />
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
           <div className={cn("mx-auto w-full max-w-3xl", assistantExperience === "simple" && "max-w-none")}>
-            {assistantExperience === "simple" && showQuickPrompts && showTooltipInput && (
-              <div className="mb-2 flex animate-fade-in items-center gap-2 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-2.5">
-                <Sparkles className="size-3.5 shrink-0 text-blue-500" />
-                <p className="text-[12px] leading-5 text-blue-700">
-                  Décrivez votre besoin en langage naturel — l&apos;IA s&apos;occupe du reste.
-                </p>
-              </div>
-            )}
           {selectedTemplate && (
             <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>

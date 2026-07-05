@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { DavidAutomationCard, DavidBannerAgent } from "@/components/automations/automation-design-kit";
 import {
   CalendarDays,
   CalendarPlus,
@@ -32,7 +33,7 @@ import {
   type ScheduleMode,
 } from "@/lib/automation/event-reminders";
 
-// ── Logos SVG officiels (pas d'emojis) ──────────────────────────────────────
+// â”€â”€ Logos SVG officiels (pas d'emojis) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const CHANNEL_LOGOS: Record<ReminderChannel, React.ReactNode> = {
   INSTAGRAM: (
     <svg className="size-4 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24">
@@ -68,10 +69,10 @@ const CHANNEL_LABELS: Record<ReminderChannel, string> = {
 
 const STATUS_LABELS: Record<EventReminder["status"], { label: string; cls: string }> = {
   DRAFT: { label: "Brouillon", cls: "bg-slate-100 text-slate-600 border-slate-200" },
-  SCHEDULED: { label: "Programmé", cls: "bg-blue-50 text-blue-700 border-blue-200" },
+  SCHEDULED: { label: "ProgrammÃ©", cls: "bg-blue-50 text-blue-700 border-blue-200" },
   PENDING_VALIDATION: { label: "En attente de validation", cls: "bg-amber-50 text-amber-700 border-amber-200" },
-  PUBLISHED: { label: "Publié", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  CANCELLED: { label: "Annulé", cls: "bg-slate-100 text-slate-400 border-slate-200" },
+  PUBLISHED: { label: "PubliÃ©", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  CANCELLED: { label: "AnnulÃ©", cls: "bg-slate-100 text-slate-400 border-slate-200" },
   ERROR: { label: "Erreur", cls: "bg-red-50 text-red-700 border-red-200" },
 };
 
@@ -116,7 +117,7 @@ type View = "overview" | "customize" | "success";
 const TZ = "Europe/Paris";
 
 function formatDate(date: string) {
-  if (!date) return "—";
+  if (!date) return "â€”";
   return new Intl.DateTimeFormat("fr-FR", {
     timeZone: TZ,
     weekday: "short",
@@ -153,11 +154,11 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  // Formulaire « Ajouter un événement »
+  // Formulaire Â« Ajouter un Ã©vÃ©nement Â»
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [newEvent, setNewEvent] = useState({ name: "", date: "", time: "", location: "" });
 
-  // Formulaire « ajouter un rappel libre »
+  // Formulaire Â« ajouter un rappel libre Â»
   const [freeMode, setFreeMode] = useState<"days" | "date">("days");
   const [freeDays, setFreeDays] = useState("");
   const [freeDate, setFreeDate] = useState("");
@@ -165,7 +166,7 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
   const hasActiveCampaign = campaigns.some((c) => c.status === "ACTIVE");
   const [showWelcome, setShowWelcome] = useState(campaigns.length === 0);
 
-  // ── Construit une campagne via l'API generate-plan ──────────────────────
+  // â”€â”€ Construit une campagne via l'API generate-plan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function startCampaign(params: {
     eventId: string | null;
     eventName: string;
@@ -178,7 +179,7 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
     setNotice("");
     setSaving(true);
     try {
-      // Vérifie qu'aucune campagne n'existe déjà pour cet événement.
+      // VÃ©rifie qu'aucune campagne n'existe dÃ©jÃ  pour cet Ã©vÃ©nement.
       if (params.eventId) {
         const dup = await fetch("/api/event-reminders-auto/config", {
           method: "POST",
@@ -190,7 +191,7 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
           if (existing) {
             setCampaign(existing);
             setSavedAutomationId((dup.automation as CampaignAutomation).id);
-            setNotice("Une campagne existe déjà pour cet événement — vous pouvez la modifier ci-dessous.");
+            setNotice("Une campagne existe dÃ©jÃ  pour cet Ã©vÃ©nement â€” vous pouvez la modifier ci-dessous.");
             setView("customize");
             return;
           }
@@ -205,11 +206,11 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Impossible de générer le plan de rappels.");
+        setError(data.error ?? "Impossible de gÃ©nÃ©rer le plan de rappels.");
         return;
       }
       if (data.removedPastReminders) {
-        setNotice("Les rappels déjà passés ont été retirés automatiquement.");
+        setNotice("Les rappels dÃ©jÃ  passÃ©s ont Ã©tÃ© retirÃ©s automatiquement.");
       }
       setCampaign({
         eventId: params.eventId,
@@ -229,7 +230,7 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
       setSavedAutomationId(null);
       setView("customize");
     } catch {
-      setError("Erreur réseau. Réessayez.");
+      setError("Erreur rÃ©seau. RÃ©essayez.");
     } finally {
       setSaving(false);
     }
@@ -296,7 +297,7 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
         exactDate: freeDate,
         date: freeDate,
         time: DEFAULT_REMINDER_TIME,
-        label: "Rappel personnalisé",
+        label: "Rappel personnalisÃ©",
         channels: [...campaign.channels],
         status: "DRAFT",
         visualUrl: null,
@@ -310,7 +311,7 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
     setFreeDate("");
   }
 
-  // Rappels triés et nettoyés (retire les passés) pour l'affichage.
+  // Rappels triÃ©s et nettoyÃ©s (retire les passÃ©s) pour l'affichage.
   const displayReminders = useMemo(() => {
     if (!campaign) return [];
     return sortReminders(recomputeReminderDates(campaign.reminders, campaign.eventDate, new Date(), TZ));
@@ -337,7 +338,7 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
       if (updated) setCampaign(updated);
       if (mode === "validate-campaign") setView("success");
     } catch {
-      setError("Erreur réseau. Réessayez.");
+      setError("Erreur rÃ©seau. RÃ©essayez.");
     } finally {
       setSaving(false);
     }
@@ -352,45 +353,54 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
       const res = await fetch(`/api/automations/${savedAutomationId}/trigger`, { method: "POST" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError((data as { error?: string }).error ?? "Erreur lors du déclenchement.");
+        setError((data as { error?: string }).error ?? "Erreur lors du dÃ©clenchement.");
       } else {
         setTriggerSuccess(true);
         setTimeout(() => setTriggerSuccess(false), 4000);
       }
     } catch {
-      setError("Erreur réseau lors du déclenchement.");
+      setError("Erreur rÃ©seau lors du dÃ©clenchement.");
     } finally {
       setTriggering(false);
     }
   }
 
-  // ── Bandeau d'en-tête (toujours visible) ───────────────────────────────
+  // â”€â”€ Bandeau d'en-tÃªte (toujours visible) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const header = (
-    <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-600 p-6 text-white shadow-lg shadow-violet-900/20">
+    <div className="relative overflow-hidden rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">
+      <div className="pointer-events-none absolute inset-y-0 right-6 flex items-center" aria-hidden="true">
+        <div className="rounded-full bg-white/[0.04] p-5">
+          <CalendarPlus className="size-28 text-white/[0.08]" strokeWidth={1.6} />
+        </div>
+      </div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="mb-3 h-1.5 w-10 rounded-full bg-white/60" />
+        <div className="relative">
+          <div className="mb-3 h-1.5 w-10 rounded-full bg-white/80" />
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Automatisation J-10 / J-5</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-violet-50/90">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/82">
             Planifiez automatiquement vos rappels avant chaque événement.
           </p>
         </div>
-        <div className="flex flex-col items-start gap-2 sm:items-end">
+        <div className="flex flex-col items-start gap-3 sm:items-end">
           <Link href="/dashboard/events">
-            <Button size="sm" variant="outline" className="h-9 rounded-xl border-white/30 bg-white/10 px-4 text-xs text-white hover:bg-white/20">
+            <Button size="sm" variant="outline" className="h-9 rounded-xl border-white/25 bg-white/12 px-4 text-xs font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:text-white">
               <CalendarDays className="size-4" />
               Voir dans l&apos;Agenda IA
             </Button>
           </Link>
+          <DavidBannerAgent
+            className="sm:max-w-xl"
+            text="Je suis David votre assistant IA, je vous aide à préparer les rappels avant vos événements au bon moment"
+          />
         </div>
       </div>
 
-      {/* Statut — en bas à droite du bandeau (même design que les autres pages) */}
+      {/* Statut â€” en bas Ã  droite du bandeau (mÃªme design que les autres pages) */}
       <div className="mt-6 flex justify-end">
         <Button
           type="button"
           variant="outline"
-          className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+          className="border-white/20 bg-white/12 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/18 hover:text-white"
         >
           <span className={cn("size-2.5 rounded-full", hasActiveCampaign ? "bg-emerald-400" : "bg-slate-300")} />
           {hasActiveCampaign ? "Active" : "Désactivée"}
@@ -432,10 +442,17 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
                 </div>
               ))}
             </div>
+            <DavidAutomationCard
+              className="mt-6"
+              onCtaClick={() => {
+                setShowWelcome(false);
+                setShowNewEvent(true);
+              }}
+            />
             <div className="mt-8 flex flex-col gap-3">
-              <Button type="button" size="xl" className="w-full bg-violet-700 hover:bg-violet-800" onClick={() => setShowWelcome(false)}>
+              <Button type="button" size="xl" className="w-full bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" onClick={() => setShowWelcome(false)}>
                 <Sparkles className="size-5" />
-                Commencer maintenant
+                Commencer la configuration →
               </Button>
             </div>
           </div>
@@ -443,6 +460,7 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
       )}
 
       {header}
+      <DavidAutomationCard onCtaClick={() => setShowNewEvent(true)} />
 
       {error && (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>
@@ -473,7 +491,7 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
           }
           onCreateEvent={() => {
             if (!newEvent.name.trim() || !newEvent.date) {
-              setError("Renseignez au moins le nom et la date de l'événement.");
+              setError("Renseignez au moins le nom et la date de l'Ã©vÃ©nement.");
               return;
             }
             startCampaign({
@@ -540,7 +558,7 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
   );
 }
 
-// ── Vue d'ensemble ──────────────────────────────────────────────────────────
+// â”€â”€ Vue d'ensemble â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function OverviewView(props: {
   community: Community;
   upcomingEvents: UpcomingEvent[];
@@ -559,14 +577,14 @@ function OverviewView(props: {
 
   return (
     <>
-      {/* Comment ça fonctionne */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-bold text-slate-900">Comment ça fonctionne&nbsp;?</h2>
+      {/* Comment Ã§a fonctionne */}
+      <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
+        <h2 className="text-base font-bold text-slate-900">Comment Ã§a fonctionne&nbsp;?</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           {[
-            { n: 1, t: "Choisissez l'événement", d: "Sélectionnez un événement à venir ou ajoutez un nouvel événement." },
-            { n: 2, t: "L'IA prépare les rappels", d: "EasyCom IA propose automatiquement J-10, J-5, J-3, Demain et Jour J." },
-            { n: 3, t: "Validez la campagne", d: "Vérifiez les aperçus, choisissez le mode de publication et ajoutez à l'Agenda IA." },
+            { n: 1, t: "Choisissez l'Ã©vÃ©nement", d: "SÃ©lectionnez un Ã©vÃ©nement Ã  venir ou ajoutez un nouvel Ã©vÃ©nement." },
+            { n: 2, t: "L'IA prÃ©pare les rappels", d: "EasyCom IA propose automatiquement J-10, J-5, J-3, Demain et Jour J." },
+            { n: 3, t: "Validez la campagne", d: "VÃ©rifiez les aperÃ§us, choisissez le mode de publication et ajoutez Ã  l'Agenda IA." },
           ].map((step) => (
             <div key={step.n} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
               <span className="flex size-7 items-center justify-center rounded-full bg-violet-600 text-xs font-bold text-white">
@@ -579,30 +597,30 @@ function OverviewView(props: {
         </div>
       </section>
 
-      {/* Deux entrées */}
+      {/* Deux entrÃ©es */}
       <section className="grid gap-4 sm:grid-cols-2">
-        {/* Mes événements à venir */}
+        {/* Mes Ã©vÃ©nements Ã  venir */}
         <div className="rounded-3xl border border-violet-100 bg-gradient-to-br from-white to-violet-50/50 p-6 shadow-sm">
           <div className="flex size-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
             <CalendarDays className="size-5" />
           </div>
-          <h3 className="mt-4 text-base font-bold text-slate-900">Mes événements à venir</h3>
+          <h3 className="mt-4 text-base font-bold text-slate-900">Mes Ã©vÃ©nements Ã  venir</h3>
           <p className="mt-1 text-sm leading-6 text-slate-500">
-            Choisissez un événement déjà présent dans votre Agenda IA.
+            Choisissez un Ã©vÃ©nement dÃ©jÃ  prÃ©sent dans votre Agenda IA.
           </p>
           {!showEventList ? (
             <Button
               onClick={() => setShowEventList(true)}
               className="mt-4 h-10 rounded-xl bg-violet-600 px-4 text-sm text-white hover:bg-violet-700"
             >
-              Choisir un événement
+              Choisir un Ã©vÃ©nement
               <ChevronRight className="size-4" />
             </Button>
           ) : upcomingEvents.length === 0 ? (
             <p className="mt-4 rounded-xl bg-white p-3 text-xs text-slate-500">
-              Aucun événement à venir dans l&apos;Agenda IA.{" "}
+              Aucun Ã©vÃ©nement Ã  venir dans l&apos;Agenda IA.{" "}
               <Link href="/dashboard/events" className="font-semibold text-violet-700 hover:underline">
-                Ajouter un événement
+                Ajouter un Ã©vÃ©nement
               </Link>
             </p>
           ) : (
@@ -626,13 +644,13 @@ function OverviewView(props: {
           )}
         </div>
 
-        {/* Ajouter un événement */}
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        {/* Ajouter un Ã©vÃ©nement */}
+        <div className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
           <div className="flex size-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
             <CalendarPlus className="size-5" />
           </div>
-          <h3 className="mt-4 text-base font-bold text-slate-900">Ajouter un événement</h3>
-          <p className="mt-1 text-sm leading-6 text-slate-500">Créez un événement depuis zéro pour lancer la campagne.</p>
+          <h3 className="mt-4 text-base font-bold text-slate-900">Ajouter un Ã©vÃ©nement</h3>
+          <p className="mt-1 text-sm leading-6 text-slate-500">CrÃ©ez un Ã©vÃ©nement depuis zÃ©ro pour lancer la campagne.</p>
           {!showNewEvent ? (
             <Button
               onClick={() => setShowNewEvent(true)}
@@ -640,14 +658,14 @@ function OverviewView(props: {
               className="mt-4 h-10 rounded-xl border-slate-200 px-4 text-sm"
             >
               <Plus className="size-4" />
-              Nouvel événement
+              Nouvel Ã©vÃ©nement
             </Button>
           ) : (
             <div className="mt-4 space-y-3">
               <input
                 value={newEvent.name}
                 onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })}
-                placeholder="Nom de l'événement"
+                placeholder="Nom de l'Ã©vÃ©nement"
                 className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200"
               />
               <div className="grid grid-cols-2 gap-2">
@@ -677,7 +695,7 @@ function OverviewView(props: {
                 className="h-10 w-full rounded-xl bg-violet-600 px-4 text-sm text-white hover:bg-violet-700"
               >
                 {saving ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-                Préparer les rappels
+                PrÃ©parer les rappels
               </Button>
             </div>
           )}
@@ -686,7 +704,7 @@ function OverviewView(props: {
 
       {/* Campagnes actives */}
       {campaigns.length > 0 && (
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
           <h2 className="text-base font-bold text-slate-900">Campagnes</h2>
           <div className="mt-4 space-y-2">
             {campaigns.map((automation) => {
@@ -697,7 +715,7 @@ function OverviewView(props: {
                 ? new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(
                     new Date(automation.nextRunAt)
                   )
-                : "—";
+                : "â€”";
               return (
                 <div
                   key={automation.id}
@@ -706,7 +724,7 @@ function OverviewView(props: {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-slate-900">{c.eventName}</p>
                     <p className="mt-0.5 text-xs text-slate-500">
-                      {formatDate(c.eventDate)} · {remindersCount} rappel{remindersCount > 1 ? "s" : ""} · prochain&nbsp;: {next}
+                      {formatDate(c.eventDate)} Â· {remindersCount} rappel{remindersCount > 1 ? "s" : ""} Â· prochain&nbsp;: {next}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -738,7 +756,7 @@ function OverviewView(props: {
   );
 }
 
-// ── Vue de personnalisation (timeline) ──────────────────────────────────────
+// â”€â”€ Vue de personnalisation (timeline) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function CustomizeView(props: {
   campaign: EventReminderCampaign;
   reminders: EventReminder[];
@@ -764,20 +782,20 @@ function CustomizeView(props: {
     <>
       <div className="flex items-center justify-between">
         <button onClick={props.onBack} className="text-sm font-medium text-slate-500 hover:text-slate-700">
-          ← Retour
+          â† Retour
         </button>
         <span className="text-sm font-semibold text-slate-900">{campaign.eventName}</span>
       </div>
 
       {/* Mode de publication (toute la campagne) */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
         <h2 className="text-base font-bold text-slate-900">Mode de publication</h2>
-        <p className="mt-1 text-sm text-slate-500">Choisi pour toute la campagne. Vous voyez les aperçus avant toute publication.</p>
+        <p className="mt-1 text-sm text-slate-500">Choisi pour toute la campagne. Vous voyez les aperÃ§us avant toute publication.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {(
             [
-              { mode: "notification" as ScheduleMode, title: "Avec validation", desc: "Chaque rappel est préparé puis publié seulement après votre validation." },
-              { mode: "direct" as ScheduleMode, title: "Publication automatique", desc: "Après validation de la campagne, les rappels partent automatiquement à l'heure prévue." },
+              { mode: "notification" as ScheduleMode, title: "Avec validation", desc: "Chaque rappel est prÃ©parÃ© puis publiÃ© seulement aprÃ¨s votre validation." },
+              { mode: "direct" as ScheduleMode, title: "Publication automatique", desc: "AprÃ¨s validation de la campagne, les rappels partent automatiquement Ã  l'heure prÃ©vue." },
             ]
           ).map((opt) => (
             <button
@@ -799,7 +817,7 @@ function CustomizeView(props: {
       </section>
 
       {/* Timeline des rappels */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold text-slate-900">Vos rappels</h2>
           <span className="text-xs text-slate-400">{reminders.length} rappel{reminders.length > 1 ? "s" : ""}</span>
@@ -807,7 +825,7 @@ function CustomizeView(props: {
 
         {reminders.length === 0 ? (
           <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
-            Aucun rappel programmable (l&apos;événement est peut-être trop proche). Ajoutez un rappel ci-dessous.
+            Aucun rappel programmable (l&apos;Ã©vÃ©nement est peut-Ãªtre trop proche). Ajoutez un rappel ci-dessous.
           </p>
         ) : (
           <div className="mt-4 space-y-3">
@@ -916,7 +934,7 @@ function CustomizeView(props: {
               Ajouter
             </Button>
           </div>
-          <p className="mt-2 text-[11px] text-slate-400">Les rappels en heures ne sont pas autorisés. Heure par défaut&nbsp;: 10h00.</p>
+          <p className="mt-2 text-[11px] text-slate-400">Les rappels en heures ne sont pas autorisÃ©s. Heure par dÃ©faut&nbsp;: 10h00.</p>
         </div>
       </section>
 
@@ -932,14 +950,14 @@ function CustomizeView(props: {
           className="h-11 rounded-2xl bg-violet-600 px-6 text-sm text-white hover:bg-violet-700"
         >
           {saving ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-          Tout valider et ajouter à l&apos;Agenda IA
+          Tout valider et ajouter Ã  l&apos;Agenda IA
         </Button>
       </div>
     </>
   );
 }
 
-// ── Vue de succès ────────────────────────────────────────────────────────────
+// â”€â”€ Vue de succÃ¨s â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function SuccessView(props: {
   campaign: EventReminderCampaign;
   reminders: EventReminder[];
@@ -957,10 +975,10 @@ function SuccessView(props: {
           <CheckCircle2 className="size-6" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Campagne validée&nbsp;!</h2>
+          <h2 className="text-lg font-bold text-slate-900">Campagne validÃ©e&nbsp;!</h2>
           <p className="mt-1 text-sm text-slate-600">
-            {reminders.length} rappel{reminders.length > 1 ? "s" : ""} pour « {campaign.eventName} » {reminders.length > 1 ? "ont" : "a"} été ajouté
-            {reminders.length > 1 ? "s" : ""} séparément à votre Agenda IA.
+            {reminders.length} rappel{reminders.length > 1 ? "s" : ""} pour Â« {campaign.eventName} Â» {reminders.length > 1 ? "ont" : "a"} Ã©tÃ© ajoutÃ©
+            {reminders.length > 1 ? "s" : ""} sÃ©parÃ©ment Ã  votre Agenda IA.
           </p>
         </div>
       </div>
@@ -986,7 +1004,7 @@ function SuccessView(props: {
 
       {props.triggerSuccess && (
         <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700">
-          Le prochain rappel a été déclenché.
+          Le prochain rappel a Ã©tÃ© dÃ©clenchÃ©.
         </div>
       )}
 
@@ -1015,3 +1033,6 @@ function SuccessView(props: {
     </section>
   );
 }
+
+
+

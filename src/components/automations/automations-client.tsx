@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { formatRelative, cn } from "@/lib/utils";
 import { UpgradeModal } from "@/components/billing/upgrade-modal";
+import { DavidAutomationCard, DavidBannerAgent } from "@/components/automations/automation-design-kit";
 import type { BillingConfig } from "@/lib/billing";
 
 interface AutomationRun {
@@ -93,7 +94,7 @@ interface AutomationFormState {
 
 const TRIGGER_LABELS: Record<string, string> = {
   WEEKLY_SHABBAT: "ðŸ•¯ï¸ Chabbat hebdomadaire",
-  JEWISH_HOLIDAY: "✨ Fête juive",
+  JEWISH_HOLIDAY: "? Fête juive",
   BEFORE_EVENT: "â° Avant un événement",
   EVENT_DAY: "ðŸ“… Jour de l'événement",
   AFTER_EVENT: "ðŸ“‹ Après un événement",
@@ -754,28 +755,41 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
         description="Le mode gratuit permet de créer une seule automatisation IA. Passez au mode payant pour programmer toutes vos routines de communication."
       />
       {!embedded && (
-        <div className="overflow-hidden rounded-3xl border border-violet-200/70 bg-gradient-to-br from-white via-violet-50 to-indigo-50 p-6 shadow-lg shadow-violet-100/50">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div className="max-w-4xl">
-              <div className="mb-4 h-1.5 w-12 rounded-full bg-violet-500" />
-              <h1 className="text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+        <div className="relative overflow-hidden rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">
+          <div className="pointer-events-none absolute inset-y-0 right-6 flex items-center" aria-hidden="true">
+            <div className="rounded-full bg-white/[0.04] p-5">
+              <Zap className="size-28 text-white/[0.08]" strokeWidth={1.6} />
+            </div>
+          </div>
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative max-w-4xl">
+              <div className="mb-4 h-1.5 w-12 rounded-full bg-white/80" />
+              <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
                 Toutes les automatisations spécialement conçues pour les{" "}
-                <span className="text-violet-600">{automationTitleTarget}</span>
+                <span className="text-white">{automationTitleTarget}</span>
               </h1>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
+              <p className="mt-3 text-sm leading-6 text-white/82">
                 Gérez vos automatisations et suivez celles déjà actives.
               </p>
             </div>
-            <div className="flex w-fit items-center gap-2 rounded-2xl border border-violet-100 bg-white/80 px-4 py-3 text-sm font-semibold text-violet-700 shadow-sm shadow-violet-100/60">
-              <Zap className="size-4" />
-              {activeCount} active{activeCount > 1 ? "s" : ""}
+            <div className="flex flex-col items-end gap-3">
+              <DavidBannerAgent
+                className="sm:max-w-xl"
+                text="Je suis David votre assistant IA, je vous aide à suivre et configurer toutes vos automatisations"
+              />
+              <div className="flex w-fit items-center gap-2 rounded-2xl border border-white/15 bg-white/12 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-[#22084b]/20">
+                <Zap className="size-4" />
+                {activeCount} active{activeCount > 1 ? "s" : ""}
+              </div>
             </div>
           </div>
         </div>
       )}
 
+      {!embedded && <DavidAutomationCard onCtaClick={openCreateForm} />}
+
       {!embedded && (
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-violet-100/30">
+        <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5 shadow-violet-100/30">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="mb-3 h-1 w-8 rounded-full bg-violet-500" />
@@ -893,7 +907,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                   value={form.message}
                   onChange={(event) => updateForm({ message: event.target.value })}
                   rows={3}
-                  placeholder="Ajoutez une précision pour l'Assistant IA..."
+                  placeholder="Ajoutez une précision..."
                   className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                 />
               </label>
@@ -958,7 +972,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
               </div>
               <div className="flex flex-wrap items-center justify-end gap-2 lg:col-span-2">
                 <Button type="button" variant="outline" className="ml-auto border-slate-200" onClick={() => setFormOpen(false)}>Annuler</Button>
-                <Button type="button" onClick={saveAutomation} loading={saving} className="bg-violet-700 hover:bg-violet-800"><Save className="size-4" />Enregistrer l&apos;automatisation</Button>
+                <Button type="button" onClick={saveAutomation} loading={saving} className="bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]"><Save className="size-4" />Enregistrer l&apos;automatisation</Button>
               </div>
             </CardContent>
           </Card>
@@ -971,7 +985,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
           <h2 className="mt-2 text-2xl font-bold text-slate-900">Programmations automatiques</h2>
           <p className="mt-1 text-slate-500">{activeCount} automatisation{activeCount !== 1 ? "s" : ""} active{activeCount !== 1 ? "s" : ""}</p>
           <div className="mt-4 grid gap-2">
-            <Button size="sm" onClick={openCreateForm} className="justify-start bg-violet-600 hover:bg-violet-700"><Plus className="size-4" />Créer une nouvelle automatisation</Button>
+            <Button size="sm" onClick={openCreateForm} className="justify-start bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]"><Plus className="size-4" />Créer une nouvelle automatisation</Button>
             <Button size="sm" variant="outline" className="justify-start border-violet-200 text-violet-700 hover:bg-violet-50" onClick={() => createPreset("WEEKLY_SHABBAT")} loading={saving}><Zap className="size-4" />Créer Chabbat automatiquement</Button>
           </div>
         </div>
@@ -985,7 +999,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
               <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
                 <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center"><Zap className="size-7 text-slate-400" /></div>
                 <div><p className="font-semibold text-slate-700">Aucune automatisation</p><p className="text-sm text-slate-400 mt-1">Créez des automatisations pour publier du contenu automatiquement.</p></div>
-                <Button size="sm" onClick={openCreateForm} className="bg-violet-600 hover:bg-violet-700"><Plus className="size-4" />Créer une nouvelle automatisation</Button>
+                <Button size="sm" onClick={openCreateForm} className="bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]"><Plus className="size-4" />Créer une nouvelle automatisation</Button>
               </CardContent>
             </Card>
           ) : visibleAutomations.map((automation) => {
@@ -1054,3 +1068,5 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
     </div>
   );
 }
+
+

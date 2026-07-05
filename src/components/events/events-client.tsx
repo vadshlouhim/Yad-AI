@@ -14,8 +14,8 @@ import {
   cn,
 } from "@/lib/utils";
 import {
-  Plus, Search, Calendar, CalendarDays, MapPin,
-  FileText, Send, MoreHorizontal, Edit, Trash2, Sparkles, Clock, LayoutList,
+  Search, CalendarDays, MapPin,
+  FileText, Send, MoreHorizontal, Trash2, Clock, LayoutList,
   ChevronLeft, ChevronRight, Zap,
 } from "lucide-react";
 
@@ -122,32 +122,6 @@ function dayKey(value: Date | string) {
 
 function todayKey() {
   return dayKey(new Date());
-}
-
-function assistantEventHref(event: Event, timezone = "Europe/Paris") {
-  const params = new URLSearchParams({
-    eventId: event.id,
-    source: "agenda",
-    title: event.title,
-    date: formatFrenchDate(event.startDate),
-    time: formatTime(event.startDate, timezone),
-    type: EVENT_CATEGORY_LABELS[event.category] ?? event.category,
-  });
-  if (event.location) params.set("location", event.location);
-  params.set("context", `Agenda connecté IA - ${event.title} le ${formatFrenchDate(event.startDate)} à ${formatTime(event.startDate, timezone)}`);
-  params.set(
-    "prefill",
-    [
-      `J'ouvre cet élément depuis l'Agenda connecté IA.`,
-      `Nom : ${event.title}`,
-      `Date : ${formatFrenchDate(event.startDate)}`,
-      `Heure réelle : ${formatTime(event.startDate, timezone)}`,
-      `Type : ${EVENT_CATEGORY_LABELS[event.category] ?? event.category}`,
-      event.location ? `Lieu : ${event.location}` : null,
-      "Propose-moi l'action la plus utile : préparer une publication, programmer un rappel, modifier l'automatisation ou publier sur le bon canal.",
-    ].filter(Boolean).join("\n")
-  );
-  return `/dashboard/assistant?${params.toString()}`;
 }
 
 function startOfDay(date: Date) {
@@ -385,7 +359,7 @@ export function EventsClient({
 
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const activeStatus = searchParams.get("status") ?? "";
-  const viewMode: ViewMode = searchParams.get("view") === "list" ? "list" : "calendar";
+  const viewMode: ViewMode = searchParams.get("view") === "calendar" ? "calendar" : "list";
   const activePeriod = PERIODS.some((period) => period.value === searchParams.get("period"))
     ? (searchParams.get("period") as CalendarPeriod)
     : "week";
@@ -487,55 +461,51 @@ export function EventsClient({
 
   return (
     <div className="min-w-0 space-y-6">
-      <div className="overflow-hidden rounded-3xl border border-violet-300/70 bg-gradient-to-br from-violet-950 via-violet-900 to-indigo-900 p-6 text-white shadow-[0_24px_56px_rgba(76,29,149,0.28)]">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <div className="relative overflow-hidden rounded-3xl border border-[#421388]/60 bg-gradient-to-br from-[#421388] via-[#34106f] to-[#1b0738] p-4 text-white shadow-lg shadow-[#421388]/25 sm:p-5">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.13)_0%,transparent_34%,transparent_66%,rgba(196,181,253,0.16)_100%)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/80 to-transparent" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="mb-3 h-1.5 w-10 rounded-full bg-violet-300" />
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">Agenda connecté IA</h1>
-            <p className="mt-2 text-sm text-violet-100/90">
+            <div className="mb-2 h-1.5 w-10 rounded-full bg-violet-200" />
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-[1.7rem]">Mon Agenda IA</h1>
+            <p className="mt-1 text-sm text-violet-100/85">
               {totalAll} élément{totalAll !== 1 ? "s" : ""} planifié{totalAll !== 1 ? "s" : ""}
               {hasAutomations && (
                 <> · {automations.length} automatisation{automations.length !== 1 ? "s" : ""} active{automations.length !== 1 ? "s" : ""}</>
               )}
             </p>
           </div>
-          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
-            {isBethHabad && (
-              <Link href="/dashboard/hebrew-calendar" className="w-full sm:w-auto">
-                <Button
-                  variant="outline"
-                  className="w-full border-violet-200/40 bg-white/10 text-white hover:bg-white/20 hover:text-white sm:w-auto"
-                >
-                  <Calendar className="size-4" />
-                  Calendrier hébraïque
-                </Button>
-              </Link>
-            )}
-            <Link href="/dashboard/automations?newAutomation=1" className="w-full sm:w-auto">
-              <Button className="w-full bg-white text-violet-800 hover:bg-violet-100 active:bg-violet-200 focus-visible:ring-white sm:w-auto shadow-[0_12px_28px_rgba(15,23,42,0.25)]">
-                <Plus className="size-4" />
-                Créer une nouvelle automatisation
-              </Button>
-            </Link>
+          <div className="flex justify-end sm:min-w-28" aria-hidden="true">
+            <div className="relative flex h-20 w-20 items-center justify-center rounded-[1.6rem] border border-white/15 bg-white/10 shadow-2xl shadow-[#1b0738]/40 backdrop-blur animate-install-float sm:h-24 sm:w-24">
+              <div className="absolute inset-2 rounded-[1.15rem] border border-violet-200/25 bg-[#421388]/45" />
+              <div className="absolute -right-1.5 -top-1.5 flex h-8 w-8 items-center justify-center rounded-xl border border-violet-100/50 bg-violet-100 text-[10px] font-black text-[#421388] shadow-lg shadow-[#1b0738]/25 animate-install-pulse">
+                IA
+              </div>
+              <div className="relative text-5xl drop-shadow-[0_12px_20px_rgba(27,7,56,0.45)] sm:text-6xl">
+                🗓️
+              </div>
+              <span className="absolute bottom-4 left-4 size-2 rounded-full bg-violet-200 shadow-[0_0_18px_rgba(221,214,254,0.95)] animate-pulse" />
+              <span className="absolute right-7 top-8 size-1.5 rounded-full bg-white/90 shadow-[0_0_14px_rgba(255,255,255,0.8)] animate-ping" />
+            </div>
           </div>
         </div>
 
-        {(isBethHabad || hasAutomations) && <div className="mt-5 flex flex-wrap gap-3 border-t border-violet-200/40 pt-4">
+        {(isBethHabad || hasAutomations) && <div className="relative mt-4 flex flex-wrap gap-3 border-t border-violet-200/25 pt-3">
           <p className="w-full text-xs font-semibold uppercase tracking-wide text-violet-100/80">Afficher dans l&apos;agenda :</p>
           {hasAutomations && (
             <button
               type="button"
               onClick={toggleAutomations}
               className={cn(
-                "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all",
+                "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5",
                 showAutomations
-                  ? "border-cyan-400 bg-cyan-50 text-cyan-700"
-                  : "border-white/30 bg-white/10 text-white hover:border-cyan-300 hover:text-cyan-100"
+                  ? "border-violet-200 bg-violet-50 text-[#421388] shadow-sm shadow-[#421388]/20"
+                  : "border-white/25 bg-white/10 text-white hover:border-violet-200 hover:bg-white/15 hover:text-violet-100"
               )}
             >
               <span className={cn(
                 "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-                showAutomations ? "border-cyan-500 bg-cyan-500" : "border-white/50"
+                showAutomations ? "border-[#421388] bg-[#421388]" : "border-white/50"
               )}>
                 {showAutomations && <span className="text-white text-[10px] leading-none">✓</span>}
               </span>
@@ -547,10 +517,10 @@ export function EventsClient({
             type="button"
             onClick={toggleShabbat}
             className={cn(
-              "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all",
+              "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5",
               showShabbat
                 ? "border-amber-400 bg-amber-50 text-amber-700"
-                : "border-slate-200 bg-white text-slate-500 hover:border-amber-300 hover:text-amber-600"
+                : "border-white/25 bg-white/10 text-white hover:border-amber-300 hover:bg-white/15 hover:text-amber-100"
             )}
           >
             <span className={cn(
@@ -566,15 +536,15 @@ export function EventsClient({
             type="button"
             onClick={toggleHolidays}
             className={cn(
-              "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all",
+              "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5",
               showHolidays
-                ? "border-blue-400 bg-blue-50 text-blue-700"
-                : "border-slate-200 bg-white text-slate-500 hover:border-blue-300 hover:text-blue-600"
+                ? "border-violet-300 bg-violet-50 text-[#421388]"
+                : "border-white/25 bg-white/10 text-white hover:border-violet-200 hover:bg-white/15 hover:text-violet-100"
             )}
           >
             <span className={cn(
               "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-              showHolidays ? "border-blue-500 bg-blue-500" : "border-slate-300"
+              showHolidays ? "border-[#421388] bg-[#421388]" : "border-slate-300"
             )}>
               {showHolidays && <span className="text-white text-[10px] leading-none">✓</span>}
             </span>
@@ -583,7 +553,7 @@ export function EventsClient({
         </div>}
       </div>
 
-      <Card className="rounded-2xl border-slate-200 shadow-sm max-md:border-cyan-200/70 max-md:bg-gradient-to-br max-md:from-white max-md:via-sky-50/60 max-md:to-cyan-50/60 max-md:shadow-[0_14px_32px_rgba(30,136,229,0.12)]">
+      <Card className="rounded-2xl border-[#421388]/15 bg-white shadow-sm shadow-[#421388]/5 transition-shadow duration-300 hover:shadow-md hover:shadow-[#421388]/10 max-md:border-[#421388]/20 max-md:bg-gradient-to-br max-md:from-white max-md:via-violet-50/50 max-md:to-fuchsia-50/40">
         <CardContent className="space-y-4 p-4">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex gap-2 overflow-x-auto pb-1">
@@ -595,10 +565,10 @@ export function EventsClient({
                     key={filter.value}
                     onClick={() => updateFilter("status", filter.value)}
                     className={cn(
-                      "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-all",
+                      "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5",
                       isActive
-                        ? "bg-violet-600 text-white"
-                        : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                        ? "bg-[#421388] text-white shadow-sm"
+                        : "border border-slate-200 bg-white text-slate-600 hover:border-[#421388]/20 hover:bg-violet-50/50 hover:text-[#421388]"
                     )}
                   >
                     {filter.label}
@@ -614,7 +584,7 @@ export function EventsClient({
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row xl:items-center">
-              <div className="flex rounded-xl border border-slate-200 bg-slate-50 p-1 max-md:border-cyan-100 max-md:bg-white/80">
+              <div className="flex rounded-xl border border-[#421388]/15 bg-violet-50/60 p-1 max-md:border-[#421388]/15 max-md:bg-white/80">
                 {[
                   { value: "calendar", label: "Calendrier", icon: CalendarDays },
                   { value: "list", label: "Liste", icon: LayoutList },
@@ -627,8 +597,8 @@ export function EventsClient({
                       type="button"
                       onClick={() => updateFilter("view", view.value)}
                       className={cn(
-                        "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all sm:flex-none",
-                        isActive ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                        "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 sm:flex-none",
+                        isActive ? "bg-white text-[#421388] shadow-sm" : "text-slate-500 hover:text-[#421388]"
                       )}
                     >
                       <Icon className="size-4" />
@@ -646,7 +616,7 @@ export function EventsClient({
                   onChange={(event) => setSearch(event.target.value)}
                   onKeyDown={(event) => event.key === "Enter" && updateFilter("q", search)}
                   placeholder="Rechercher dans l&apos;agenda..."
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-4 text-sm focus:border-violet-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500/20 max-md:border-violet-100 max-md:bg-white"
+                  className="w-full rounded-xl border border-[#421388]/15 bg-violet-50/50 py-2.5 pl-9 pr-4 text-sm transition-colors focus:border-[#421388] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#421388]/20 max-md:border-[#421388]/15 max-md:bg-white"
                 />
               </div>
             </div>
@@ -661,15 +631,9 @@ export function EventsClient({
           </div>
           <div>
             <p className="font-semibold text-slate-700">Aucune date dans l&apos;agenda</p>
-            <p className="mt-1 text-sm text-slate-400">Créez votre première automatisation pour commencer.</p>
-          </div>
-          <Link href="/dashboard/automations?newAutomation=1">
-            <Button variant="outline" className="border-violet-200 text-violet-700 hover:bg-violet-50">
-              <Plus className="size-4" />
-              Créer une nouvelle automatisation
-            </Button>
-          </Link>
+          <p className="mt-1 text-sm text-slate-400">Aucune date n&apos;est prévue pour le moment.</p>
         </div>
+      </div>
       ) : (
         shouldRenderCalendar ? (
           <CalendarView
@@ -754,19 +718,19 @@ function CalendarView({
 }) {
   return (
     <div className="min-w-0 space-y-4">
-      <Card className="rounded-2xl border-violet-100 bg-gradient-to-br from-white via-violet-50 to-fuchsia-50 shadow-sm">
+      <Card className="rounded-2xl border-[#421388]/15 bg-gradient-to-br from-white via-violet-50 to-fuchsia-50 shadow-sm shadow-[#421388]/5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:shadow-[#421388]/10">
         <CardContent className="p-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600">Aujourd&apos;hui</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#421388]">Aujourd&apos;hui</p>
               <div className="mt-2 flex flex-wrap items-center gap-3">
-                <div className="flex h-14 w-14 flex-col items-center justify-center rounded-2xl bg-violet-600 text-white shadow-sm">
+                <div className="flex h-14 w-14 flex-col items-center justify-center rounded-2xl bg-[#421388] text-white shadow-sm shadow-[#421388]/20">
                   <span className="text-[11px] font-semibold uppercase">{formatMonth(new Date())}</span>
                   <span className="text-xl font-bold leading-none">{formatDayNumber(new Date())}</span>
                 </div>
                 <div>
                   <p className="text-sm font-semibold capitalize text-slate-950">{formatFrenchDate(new Date())}</p>
-                  {isBethHabad && <p className="mt-1 text-sm font-medium text-violet-700 hebrew">{formatHebrewDate(new Date())}</p>}
+                  {isBethHabad && <p className="mt-1 text-sm font-medium text-[#421388] hebrew">{formatHebrewDate(new Date())}</p>}
                 </div>
               </div>
             </div>
@@ -830,7 +794,7 @@ function CalendarView({
                   onClick={() => onPeriodChange(item.value)}
                   className={cn(
                     "flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-all sm:flex-none",
-                    period === item.value ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                    period === item.value ? "bg-white text-[#421388] shadow-sm" : "text-slate-500 hover:text-[#421388]"
                   )}
                 >
                   {item.label}
@@ -887,15 +851,15 @@ function ListView({
     <div className="space-y-5">
       {groupedEvents.map((group) => (
         <section key={group.key} className="grid gap-3 lg:grid-cols-[13rem_1fr]">
-          <div className="rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 p-4 lg:sticky lg:top-4 lg:self-start">
+          <div className="rounded-3xl border border-[#421388]/15 border-l-4 border-l-[#421388] bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 p-4 shadow-sm shadow-[#421388]/5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:shadow-[#421388]/10 lg:sticky lg:top-4 lg:self-start">
             <div className="flex items-center gap-3">
-              <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-violet-600 text-white shadow-sm">
+              <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-[#421388] text-white shadow-sm shadow-[#421388]/20">
                 <span className="text-xs font-semibold uppercase">{formatMonth(group.date)}</span>
                 <span className="text-2xl font-bold leading-none">{formatDayNumber(group.date)}</span>
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold capitalize text-slate-950">{formatFrenchDate(group.date)}</p>
-                {isBethHabad && <p className="mt-1 text-sm font-medium text-violet-700 hebrew">{formatHebrewDate(group.date)}</p>}
+                {isBethHabad && <p className="mt-1 text-sm font-medium text-[#421388] hebrew">{formatHebrewDate(group.date)}</p>}
               </div>
             </div>
             <p className="mt-3 text-xs text-slate-500">
@@ -950,10 +914,10 @@ function DayCalendar({
     <div className="p-4">
       <div className={cn(
         "mb-4 rounded-2xl border p-4",
-        isToday ? "border-violet-200 bg-violet-50" : "border-slate-200 bg-slate-50"
+        isToday ? "border-[#421388]/20 bg-violet-50" : "border-slate-200 bg-slate-50"
       )}>
         <p className="text-sm font-semibold capitalize text-slate-950">{formatFrenchDate(anchorDate)}</p>
-        {isBethHabad && <p className="mt-1 text-sm font-medium text-violet-700 hebrew">{formatHebrewDate(anchorDate)}</p>}
+        {isBethHabad && <p className="mt-1 text-sm font-medium text-[#421388] hebrew">{formatHebrewDate(anchorDate)}</p>}
         {(shabbatItem || (holidayItems?.length ?? 0) > 0 || (dayAutomations?.length ?? 0) > 0) && (
           <div className="mt-3 space-y-2">
             {dayAutomations?.map((automation, index) => (
@@ -1034,10 +998,10 @@ function WeekCalendar({ events, anchorDate, shabbatByDate, holidayByDate, automa
                 isToday && "bg-violet-50/95"
               )}>
                 <p className="text-xs font-semibold uppercase text-slate-500">{DAY_SHORT_FORMATTER.format(day)}</p>
-                <p className={cn("mt-1 text-2xl font-bold", isToday ? "text-violet-700" : "text-slate-950")}>
+                <p className={cn("mt-1 text-2xl font-bold", isToday ? "text-[#421388]" : "text-slate-950")}>
                   {day.getDate()}
                 </p>
-                {isBethHabad && <p className="mt-1 truncate text-xs font-medium text-violet-700 hebrew">{formatHebrewDate(day)}</p>}
+                {isBethHabad && <p className="mt-1 truncate text-xs font-medium text-[#421388] hebrew">{formatHebrewDate(day)}</p>}
               </div>
               <div className="space-y-2 p-2">
                 {shabbat && (
@@ -1102,11 +1066,11 @@ function MonthCalendar({ events, anchorDate, shabbatByDate, holidayByDate, autom
                 <div className="flex items-start justify-between gap-2">
                   <span className={cn(
                     "flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold",
-                    isToday ? "bg-violet-600 text-white" : "text-slate-700"
+                    isToday ? "bg-[#421388] text-white" : "text-slate-700"
                   )}>
                     {day.getDate()}
                   </span>
-                  {isBethHabad && <span className="truncate text-[11px] font-medium text-violet-700 hebrew">{formatHebrewDate(day)}</span>}
+                  {isBethHabad && <span className="truncate text-[11px] font-medium text-[#421388] hebrew">{formatHebrewDate(day)}</span>}
                 </div>
                 <div className="mt-1 space-y-1">
                   {shabbat && (
@@ -1160,7 +1124,7 @@ function YearCalendar({ events, anchorDate, automationByDate, timezone }: { even
         return (
           <div key={month.toISOString()} className={cn(
             "rounded-2xl border p-4",
-            isCurrentMonth ? "border-violet-200 bg-violet-50" : "border-slate-200 bg-white"
+            isCurrentMonth ? "border-[#421388]/20 bg-violet-50" : "border-slate-200 bg-white"
           )}>
             <div className="flex items-center justify-between gap-2">
               <h3 className="font-bold capitalize text-slate-950">{MONTH_NAME_FORMATTER.format(month)}</h3>
@@ -1217,10 +1181,9 @@ function AutomationPill({ automation, compact = false }: { automation: Automatio
 
 function CalendarEventPill({ event, compact = false, timezone }: { event: Event; compact?: boolean; timezone: string }) {
   return (
-    <Link
-      href={assistantEventHref(event, timezone)}
+    <div
       className={cn(
-        "block rounded-lg border border-violet-100 bg-violet-600 px-2 py-1.5 text-white shadow-sm transition-colors hover:bg-violet-700",
+        "block rounded-lg border border-[#421388]/20 bg-[#421388] px-2 py-1.5 text-white shadow-sm shadow-[#421388]/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]",
         compact && "px-1.5 py-1"
       )}
     >
@@ -1230,19 +1193,16 @@ function CalendarEventPill({ event, compact = false, timezone }: { event: Event;
       {!compact && event.location && (
         <span className="mt-0.5 block truncate text-[11px] text-violet-100">{event.location}</span>
       )}
-    </Link>
+    </div>
   );
 }
 
 function MiniCalendarEvent({ event, timezone }: { event: Event; timezone: string }) {
   return (
-    <Link
-      href={assistantEventHref(event, timezone)}
-      className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
-    >
-      <span className="w-11 shrink-0 font-semibold text-violet-700">{formatTime(event.startDate, timezone)}</span>
+    <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 transition-colors hover:bg-violet-50">
+      <span className="w-11 shrink-0 font-semibold text-[#421388]">{formatTime(event.startDate, timezone)}</span>
       <span className="truncate">{event.title}</span>
-    </Link>
+    </div>
   );
 }
 
@@ -1266,15 +1226,17 @@ function AgendaEventCard({
   const publicationCount = event._count?.publications ?? 0;
 
   return (
-    <Card className="rounded-2xl border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md max-md:border-violet-200/70 max-md:bg-gradient-to-br max-md:from-white max-md:via-violet-50/55 max-md:to-fuchsia-50/45 max-md:shadow-[0_14px_30px_rgba(124,58,237,0.14)]">
-      <CardContent className="p-4">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start">
+    <Card className="overflow-hidden rounded-2xl border-[#421388]/15 bg-white shadow-sm shadow-[#421388]/5 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#421388]/25 hover:shadow-md hover:shadow-[#421388]/10 max-md:border-[#421388]/20 max-md:bg-gradient-to-br max-md:from-white max-md:via-violet-50/55 max-md:to-fuchsia-50/45">
+      <CardContent className="p-0">
+        <div className="flex">
+          <div className="w-1.5 flex-shrink-0 bg-[#421388]" />
+          <div className="flex min-w-0 flex-1 flex-col gap-4 p-4 md:flex-row md:items-start">
           <div className={cn(
             "flex w-full shrink-0 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 md:w-36 md:flex-col md:items-start max-md:border-cyan-100 max-md:bg-white/80",
             compact && "md:w-48 md:flex-row md:items-center"
           )}>
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
-              <Clock className="size-4 text-violet-600 max-md:text-violet-600" />
+              <Clock className="size-4 text-[#421388] max-md:text-[#421388]" />
               {formatTime(event.startDate, timezone)}
             </div>
             {event.endDate && (
@@ -1285,12 +1247,9 @@ function AgendaEventCard({
           <div className="min-w-0 flex-1 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <Link
-                  href={assistantEventHref(event, timezone)}
-                  className="text-base font-semibold text-slate-950 transition-colors hover:text-violet-700"
-                >
+                <div className="text-base font-semibold text-slate-950">
                   {event.title}
-                </Link>
+                </div>
                 {event.isRecurring && (
                   <span className="ml-2 text-xs font-normal text-slate-400">récurrent</span>
                 )}
@@ -1311,12 +1270,6 @@ function AgendaEventCard({
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
                       <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-xl border border-slate-200 bg-white py-1 shadow-lg max-md:border-cyan-100 max-md:bg-white/95">
-                        <Link href={`/dashboard/events/${event.id}/edit`} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
-                          <Edit className="size-4" /> Modifier
-                        </Link>
-                        <Link href={assistantEventHref(event, timezone)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
-                          <Sparkles className="size-4" /> Ouvrir dans l&apos;Assistant IA
-                        </Link>
                         <button
                           className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
                           disabled={deleting}
@@ -1339,7 +1292,7 @@ function AgendaEventCard({
                 <CalendarDays className="size-3" />
                 <span className="capitalize">{formatFrenchDate(event.startDate)}</span>
               </span>
-              {isBethHabad && <span className="font-medium text-violet-700 hebrew">{formatHebrewDate(event.startDate)}</span>}
+              {isBethHabad && <span className="font-medium text-[#421388] hebrew">{formatHebrewDate(event.startDate)}</span>}
               {event.location && (
                 <span className="flex items-center gap-1">
                   <MapPin className="size-3" />
@@ -1357,18 +1310,19 @@ function AgendaEventCard({
               </span>
 
               {draftCount > 0 && (
-                <Link href={assistantEventHref(event, timezone)} className="flex items-center gap-1 text-xs text-slate-500 hover:text-violet-600 max-md:text-violet-700">
+                <span className="flex items-center gap-1 text-xs text-slate-500 max-md:text-[#421388]">
                   <FileText className="size-3" />
                   {draftCount} contenu{draftCount > 1 ? "s" : ""}
-                </Link>
+                </span>
               )}
               {publicationCount > 0 && (
-                <Link href={assistantEventHref(event, timezone)} className="flex items-center gap-1 text-xs text-slate-500 hover:text-violet-600 max-md:text-violet-700">
+                <span className="flex items-center gap-1 text-xs text-slate-500 max-md:text-[#421388]">
                   <Send className="size-3" />
                   {publicationCount} publication{publicationCount > 1 ? "s" : ""}
-                </Link>
+                </span>
               )}
             </div>
+          </div>
           </div>
         </div>
       </CardContent>

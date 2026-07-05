@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { DavidAutomationCard, DavidBannerAgent } from "@/components/automations/automation-design-kit";
 import { CalendarDays, CheckCircle2, ChevronDown, Clock, History, ImagePlus, Loader2, Plus, Send, Sparkles, Trash2, X } from "lucide-react";
 import { toPng } from "html-to-image";
 import { cn } from "@/lib/utils";
@@ -94,7 +95,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
   const [selectedEventIds, setSelectedEventIds] = useState<Set<string>>(new Set());
   const [manualEvents, setManualEvents] = useState<ProgramEvent[]>([]);
   const [manualDraft, setManualDraft] = useState<ProgramEvent>({ name: "", date: "", time: "", location: "" });
-  // Récap
+  // RÃ©cap
   const [photos, setPhotos] = useState<string[]>([]);
   const [caption, setCaption] = useState("");
 
@@ -137,6 +138,11 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
     } finally {
       setSaving(false);
     }
+  }
+
+  async function beginConfiguration() {
+    await setActiveState(true);
+    setView("models");
   }
 
   async function saveDetail(partial: Partial<MonthlySettings>) {
@@ -195,7 +201,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
       const data = await postConfig({ mode: type === "program" ? "prepare-program" : "prepare-recap" });
       if (data.caption) setCaption(data.caption);
     } catch {
-      /* texte éditable */
+      /* texte Ã©ditable */
     }
   }
 
@@ -219,7 +225,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
       }
       setPhotos((prev) => [...prev, ...urls].slice(0, MAX_RECAP_PHOTOS));
     } catch {
-      setError("Erreur lors du téléversement.");
+      setError("Erreur lors du tÃ©lÃ©versement.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -233,7 +239,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
 
   async function capturePosterUrl(): Promise<string> {
     const node = posterRef.current;
-    if (!node) throw new Error("Aperçu indisponible.");
+    if (!node) throw new Error("AperÃ§u indisponible.");
     const dataUrl = await toPng(node, { width: POSTER_SIZE, height: POSTER_SIZE, pixelRatio: 1, cacheBust: true });
     const blob = await (await fetch(dataUrl)).blob();
     const file = new File([blob], `${runType}-${Date.now()}.png`, { type: "image/png" });
@@ -241,17 +247,17 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
     form.append("file", file);
     const res = await fetch("/api/uploads/attachment", { method: "POST", body: form });
     const data = await res.json();
-    if (!res.ok || !data.url) throw new Error("Échec du téléversement de l'affiche.");
+    if (!res.ok || !data.url) throw new Error("Ã‰chec du tÃ©lÃ©versement de l'affiche.");
     return data.url as string;
   }
 
   async function publish() {
     if (!caption.trim()) {
-      setError("Préparez le texte de la publication.");
+      setError("PrÃ©parez le texte de la publication.");
       return;
     }
     if (runType === "program" && programEvents.length === 0) {
-      setError("Sélectionnez ou ajoutez au moins un événement.");
+      setError("SÃ©lectionnez ou ajoutez au moins un Ã©vÃ©nement.");
       return;
     }
     if (runType === "recap" && photos.length === 0) {
@@ -274,37 +280,48 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
         visualUrls,
       });
       if (!data.success) {
-        setError("Échec de la publication.");
+        setError("Ã‰chec de la publication.");
         return;
       }
       setView("success");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur réseau lors de la publication.");
+      setError(e instanceof Error ? e.message : "Erreur rÃ©seau lors de la publication.");
     } finally {
       setPublishing(false);
     }
   }
 
   const header = (
-    <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-600 p-6 text-white shadow-lg shadow-violet-900/20">
+    <div className="relative overflow-hidden rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">
+      <div className="pointer-events-none absolute inset-y-0 right-6 flex items-center" aria-hidden="true">
+        <div className="rounded-full bg-white/[0.04] p-5">
+          <CalendarDays className="size-28 text-white/[0.08]" strokeWidth={1.6} />
+        </div>
+      </div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="mb-3 h-1.5 w-10 rounded-full bg-violet-200" />
+        <div className="relative">
+          <div className="mb-3 h-1.5 w-10 rounded-full bg-white/80" />
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Programme &amp; récap du mois</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-violet-50/90">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/82">
             Préparez le programme du mois et partagez le récap sur Instagram, Facebook, WhatsApp et Email en un clic.
           </p>
         </div>
-        <Link href="/dashboard/events">
-          <Button size="sm" variant="outline" className="h-9 rounded-xl border-white/30 bg-white/10 px-4 text-xs text-white hover:bg-white/20">
-            <CalendarDays className="size-4" />
-            Voir dans l&apos;Agenda IA
-          </Button>
-        </Link>
+        <div className="flex flex-col items-start gap-3 sm:items-end">
+          <Link href="/dashboard/events">
+            <Button size="sm" variant="outline" className="h-9 rounded-xl border-white/25 bg-white/12 px-4 text-xs font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:text-white">
+              <CalendarDays className="size-4" />
+              Voir dans l&apos;Agenda IA
+            </Button>
+          </Link>
+          <DavidBannerAgent
+            className="sm:max-w-xl"
+            text="Je suis David votre assistant IA, je vous aide à préparer le programme du mois et le récap au bon moment"
+          />
+        </div>
       </div>
       <div className="mt-6 flex justify-end">
         <div className="relative">
-          <Button type="button" variant="outline" disabled={saving} className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white" onClick={() => setStatusOpen((o) => !o)}>
+          <Button type="button" variant="outline" disabled={saving} className="border-white/20 bg-white/12 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/18 hover:text-white" onClick={() => setStatusOpen((o) => !o)}>
             {saving ? <Loader2 className="size-4 animate-spin" /> : <span className={cn("size-2.5 rounded-full", isActive ? "bg-emerald-400" : "bg-slate-300")} />}
             {isActive ? "Active" : "Désactivée"}
             <ChevronDown className="size-4" />
@@ -337,7 +354,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
     </div>
   );
 
-  // Nœud de capture hors écran (programme ou récap selon le flux).
+  // NÅ“ud de capture hors Ã©cran (programme ou rÃ©cap selon le flux).
   const captureNode = (
     <div aria-hidden style={{ position: "fixed", left: -99999, top: 0, pointerEvents: "none", opacity: 0 }}>
       <div ref={posterRef}>
@@ -350,19 +367,27 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
     </div>
   );
 
-  // ── MODELS ────────────────────────────────────────────────────────────────
+  // â”€â”€ MODELS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (view === "models") {
     return (
       <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
-        <div className="flex items-center justify-between">
-          <button onClick={() => setView("overview")} className="text-sm font-medium text-slate-500 hover:text-slate-700">← Retour</button>
-          <span className="text-sm font-semibold text-slate-900">Choisissez vos fonds</span>
+        <div className="relative overflow-hidden rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <button onClick={() => setView("overview")} className="mb-4 text-sm font-medium text-white/75 hover:text-white">← Retour</button>
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Choisissez vos fonds</h1>
+            </div>
+            <DavidBannerAgent
+              className="sm:max-w-xl"
+              text="Je suis David votre assistant IA, je vous aide à choisir les bons fonds pour le programme et le récap du mois"
+            />
+          </div>
         </div>
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-base font-bold text-slate-900">Fond — Récap du mois</h2>
-          <p className="mt-1 text-sm text-slate-500">Mise en page utilisée pour le récap en images.</p>
+        <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
+          <h2 className="text-base font-bold text-slate-900">Fond â€” RÃ©cap du mois</h2>
+          <p className="mt-1 text-sm text-slate-500">Mise en page utilisÃ©e pour le rÃ©cap en images.</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {WEEKLY_IMAGE_STYLES.map((style) => {
               const active = localSettings.selectedRecapBackgroundId === style.id;
@@ -386,13 +411,13 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-base font-bold text-slate-900">Fond — Programme du mois</h2>
-          <p className="mt-1 text-sm text-slate-500">Mise en page utilisée pour la liste des événements à venir.</p>
+        <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
+          <h2 className="text-base font-bold text-slate-900">Fond â€” Programme du mois</h2>
+          <p className="mt-1 text-sm text-slate-500">Mise en page utilisÃ©e pour la liste des Ã©vÃ©nements Ã  venir.</p>
           <div className="mt-4 flex aspect-square w-full max-w-xs items-center justify-center overflow-hidden rounded-2xl bg-slate-100 p-2">
             <div style={{ width: 288, height: 288, overflow: "hidden", borderRadius: 14, boxShadow: "0 6px 20px rgba(15,23,42,0.12)" }}>
               <div style={{ width: POSTER_SIZE, height: POSTER_SIZE, transform: `scale(${288 / POSTER_SIZE})`, transformOrigin: "top left" }}>
-                <ProgramPoster events={[{ name: "Cours de Torah", date: "2026-06-03", time: "20:30" }, { name: "Soirée communautaire", date: "2026-06-12", time: "19:00" }]} logoUrl={community.logoUrl} monthLabel="ce mois-ci" />
+                <ProgramPoster events={[{ name: "Cours de Torah", date: "2026-06-03", time: "20:30" }, { name: "SoirÃ©e communautaire", date: "2026-06-12", time: "19:00" }]} logoUrl={community.logoUrl} monthLabel="ce mois-ci" />
               </div>
             </div>
           </div>
@@ -401,31 +426,31 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
     );
   }
 
-  // ── CUSTOMIZE ───────────────────────────────────────────────────────────────
+  // â”€â”€ CUSTOMIZE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (view === "customize") {
     const isProgram = runType === "program";
     return (
       <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
         <div className="flex items-center justify-between">
-          <button onClick={() => setView("overview")} className="text-sm font-medium text-slate-500 hover:text-slate-700">← Retour</button>
-          <span className="text-sm font-semibold text-slate-900">{isProgram ? "Programme du mois" : "Récap du mois"}</span>
+          <button onClick={() => setView("overview")} className="text-sm font-medium text-slate-500 hover:text-slate-700">â† Retour</button>
+          <span className="text-sm font-semibold text-slate-900">{isProgram ? "Programme du mois" : "RÃ©cap du mois"}</span>
         </div>
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
 
         <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4 text-sm leading-6 text-violet-800">
           {isProgram
-            ? "Les événements proviennent de votre Agenda IA. Aucun événement n'est inventé."
-            : "Les photos sont conservées telles quelles. Aucune retouche n'est appliquée."}
+            ? "Les Ã©vÃ©nements proviennent de votre Agenda IA. Aucun Ã©vÃ©nement n'est inventÃ©."
+            : "Les photos sont conservÃ©es telles quelles. Aucune retouche n'est appliquÃ©e."}
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-5">
             {isProgram ? (
               <>
-                <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <h2 className="text-sm font-bold text-slate-900">Événements à venir (Agenda IA)</h2>
+                <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
+                  <h2 className="text-sm font-bold text-slate-900">Ã‰vÃ©nements Ã  venir (Agenda IA)</h2>
                   {upcomingEvents.length === 0 ? (
-                    <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-500">Aucun événement à venir. Ajoutez-en ci-dessous.</p>
+                    <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-500">Aucun Ã©vÃ©nement Ã  venir. Ajoutez-en ci-dessous.</p>
                   ) : (
                     <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
                       {upcomingEvents.map((e) => {
@@ -435,7 +460,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
                             className={cn("flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition", checked ? "border-violet-300 bg-violet-50" : "border-slate-200 bg-white hover:border-slate-300")}>
                             <span className="min-w-0">
                               <span className="block truncate font-medium text-slate-800">{e.title}</span>
-                              <span className="block text-xs text-slate-400">{new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, day: "numeric", month: "long" }).format(new Date(e.startDate))} · {eventTime(e)}</span>
+                              <span className="block text-xs text-slate-400">{new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, day: "numeric", month: "long" }).format(new Date(e.startDate))} Â· {eventTime(e)}</span>
                             </span>
                             <span className={cn("flex size-5 flex-shrink-0 items-center justify-center rounded-md border", checked ? "border-violet-500 bg-violet-500 text-white" : "border-slate-300 bg-white")}>{checked && <CheckCircle2 className="size-3.5" />}</span>
                           </button>
@@ -445,10 +470,10 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
                   )}
                 </section>
 
-                <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <h2 className="text-sm font-bold text-slate-900">Ajouter un événement</h2>
+                <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
+                  <h2 className="text-sm font-bold text-slate-900">Ajouter un Ã©vÃ©nement</h2>
                   <div className="mt-3 space-y-2">
-                    <input value={manualDraft.name ?? ""} onChange={(e) => setManualDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Nom de l'événement" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-violet-400 focus:outline-none" />
+                    <input value={manualDraft.name ?? ""} onChange={(e) => setManualDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Nom de l'Ã©vÃ©nement" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-violet-400 focus:outline-none" />
                     <div className="grid grid-cols-3 gap-2">
                       <input type="date" value={manualDraft.date ?? ""} onChange={(e) => setManualDraft((d) => ({ ...d, date: e.target.value }))} className="rounded-xl border border-slate-200 px-2 py-2 text-sm focus:border-violet-400 focus:outline-none" />
                       <input type="time" value={manualDraft.time ?? ""} onChange={(e) => setManualDraft((d) => ({ ...d, time: e.target.value }))} className="rounded-xl border border-slate-200 px-2 py-2 text-sm focus:border-violet-400 focus:outline-none" />
@@ -462,17 +487,17 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
                     <div className="mt-3 space-y-1.5">
                       {manualEvents.map((m, i) => (
                         <div key={i} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs">
-                          <span className="truncate text-slate-700">{m.name} {m.date ? `· ${m.date}` : ""}</span>
+                          <span className="truncate text-slate-700">{m.name} {m.date ? `Â· ${m.date}` : ""}</span>
                           <button onClick={() => setManualEvents((arr) => arr.filter((_, j) => j !== i))} className="text-slate-400 hover:text-red-600"><Trash2 className="size-3.5" /></button>
                         </div>
                       ))}
                     </div>
                   )}
-                  <p className="mt-2 text-[11px] text-slate-400">{programEvents.length} / {MAX_PROGRAM_EVENTS} événements</p>
+                  <p className="mt-2 text-[11px] text-slate-400">{programEvents.length} / {MAX_PROGRAM_EVENTS} Ã©vÃ©nements</p>
                 </section>
               </>
             ) : (
-              <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-bold text-slate-900">Vos photos</h2>
                   <span className="text-xs text-slate-400">{photos.length} / {MAX_RECAP_PHOTOS}</span>
@@ -480,7 +505,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
                 <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUpload(e.target.files)} />
                 <button onClick={() => fileInputRef.current?.click()} disabled={uploading || photos.length >= MAX_RECAP_PHOTOS}
                   className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 py-6 text-sm font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700 disabled:opacity-60">
-                  {uploading ? <Loader2 className="size-5 animate-spin" /> : <ImagePlus className="size-5" />}{uploading ? "Téléversement…" : `Ajouter des photos (max ${MAX_RECAP_PHOTOS})`}
+                  {uploading ? <Loader2 className="size-5 animate-spin" /> : <ImagePlus className="size-5" />}{uploading ? "TÃ©lÃ©versementâ€¦" : `Ajouter des photos (max ${MAX_RECAP_PHOTOS})`}
                 </button>
                 {photos.length > 0 && (
                   <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -496,19 +521,19 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
               </section>
             )}
 
-            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
               <h2 className="text-sm font-bold text-slate-900">Texte de la publication</h2>
-              <textarea value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Texte de la publication…" className="mt-3 min-h-28 w-full resize-y rounded-2xl border border-slate-200 p-3 text-sm leading-6 text-slate-800 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200" />
+              <textarea value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Texte de la publicationâ€¦" className="mt-3 min-h-28 w-full resize-y rounded-2xl border border-slate-200 p-3 text-sm leading-6 text-slate-800 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200" />
               {channelSelector}
             </section>
 
             <Button onClick={publish} disabled={publishing} className="h-12 w-full rounded-2xl bg-violet-700 px-5 text-sm text-white hover:bg-violet-800">
               {publishing ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-              Valider et publier sur tous mes réseaux
+              Valider et publier sur tous mes rÃ©seaux
             </Button>
           </div>
 
-          {/* Aperçu iPhone */}
+          {/* AperÃ§u iPhone */}
           <div>
             <div className="mx-auto w-full max-w-[300px] rounded-[3rem] border-[12px] border-slate-900 bg-slate-900 shadow-2xl">
               <div className="overflow-hidden rounded-[2.2rem] bg-white">
@@ -526,7 +551,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
                   <div className="flex aspect-square w-full items-center justify-center bg-slate-50 text-xs text-slate-400">Ajoutez des photos</div>
                 ) : photos.length === 1 ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={photos[0]} alt="Aperçu" className="aspect-square w-full object-cover" />
+                  <img src={photos[0]} alt="AperÃ§u" className="aspect-square w-full object-cover" />
                 ) : (
                   <div className="aspect-square w-full overflow-hidden bg-white">
                     <div style={{ width: POSTER_SIZE, height: POSTER_SIZE, transform: "scale(0.2546)", transformOrigin: "top left" }}>
@@ -534,10 +559,10 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
                     </div>
                   </div>
                 )}
-                <div className="px-3 py-2"><p className="whitespace-pre-wrap text-xs leading-5 text-slate-700">{caption || "Votre texte apparaîtra ici."}</p></div>
+                <div className="px-3 py-2"><p className="whitespace-pre-wrap text-xs leading-5 text-slate-700">{caption || "Votre texte apparaÃ®tra ici."}</p></div>
               </div>
             </div>
-            <p className="mt-3 text-center text-[11px] text-slate-400">Aperçu de la publication</p>
+            <p className="mt-3 text-center text-[11px] text-slate-400">AperÃ§u de la publication</p>
           </div>
         </div>
         {captureNode}
@@ -545,7 +570,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
     );
   }
 
-  // ── SUCCESS ─────────────────────────────────────────────────────────────────
+  // â”€â”€ SUCCESS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (view === "success") {
     return (
       <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
@@ -553,8 +578,8 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
           <div className="flex items-start gap-3">
             <div className="flex size-11 items-center justify-center rounded-2xl bg-emerald-500 text-white"><CheckCircle2 className="size-6" /></div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Publication envoyée&nbsp;!</h2>
-              <p className="mt-1 text-sm text-slate-600">{runType === "program" ? "Le programme du mois" : "Le récap du mois"} a été publié sur {localSettings.channels.map((c) => CHANNEL_LABELS[c]).join(", ")}.</p>
+              <h2 className="text-lg font-bold text-slate-900">Publication envoyÃ©e&nbsp;!</h2>
+              <p className="mt-1 text-sm text-slate-600">{runType === "program" ? "Le programme du mois" : "Le rÃ©cap du mois"} a Ã©tÃ© publiÃ© sur {localSettings.channels.map((c) => CHANNEL_LABELS[c]).join(", ")}.</p>
             </div>
           </div>
           <div className="mt-5 flex flex-col gap-2 sm:flex-row">
@@ -566,7 +591,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
     );
   }
 
-  // ── OVERVIEW ────────────────────────────────────────────────────────────────
+  // â”€â”€ OVERVIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const publishedMonths = Array.from(new Set([...Object.keys(programHistory), ...Object.keys(recapHistory)])).sort().reverse();
 
   return (
@@ -592,19 +617,24 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
                 </div>
               ))}
             </div>
+            <DavidAutomationCard
+              className="mt-6"
+              onCtaClick={() => void beginConfiguration()}
+            />
             <div className="mt-8 flex flex-col gap-3">
-              <Button type="button" size="xl" className="w-full bg-violet-700 hover:bg-violet-800" onClick={() => { setShowWelcome(false); setView("models"); }}><Sparkles className="size-5" />Choisir mes fonds</Button>
-              <Button type="button" variant="outline" className="w-full" onClick={() => setShowWelcome(false)}>Découvrir d&apos;abord</Button>
+              <Button type="button" size="xl" className="w-full bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" onClick={() => void beginConfiguration()}><Sparkles className="size-5" />Commencer la configuration →</Button>
+              <Button type="button" variant="outline" className="w-full" onClick={() => setShowWelcome(false)}>DÃ©couvrir d&apos;abord</Button>
             </div>
           </div>
         </div>
       )}
 
       {header}
+      <DavidAutomationCard onCtaClick={() => void beginConfiguration()} />
       {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-bold text-slate-900">Comment ça fonctionne&nbsp;?</h2>
+      <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
+        <h2 className="text-base font-bold text-slate-900">Comment Ã§a fonctionne&nbsp;?</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           {[
             { n: 1, t: "Préparez le programme", d: "L'IA reprend les événements à venir du mois depuis l'Agenda IA." },
@@ -621,7 +651,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
       </section>
 
       {/* Prochaines notifications */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
         <div className="flex items-center gap-2"><Clock className="size-4 text-violet-600" /><h2 className="text-base font-bold text-slate-900">Prochaines notifications</h2></div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
@@ -631,18 +661,18 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
               <select value={localSettings.programNotificationDay} onChange={(e) => saveDetail({ programNotificationDay: Number(e.target.value) })} className="rounded-lg border border-slate-200 px-2 py-1">
                 {DAY_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
-              à
+              Ã 
               <input type="time" value={localSettings.programNotificationTime} onChange={(e) => saveDetail({ programNotificationTime: e.target.value })} className="rounded-lg border border-slate-200 px-2 py-1" />
             </div>
           </div>
           <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
-            <p className="text-sm font-semibold text-slate-900">Récap du mois</p>
+            <p className="text-sm font-semibold text-slate-900">RÃ©cap du mois</p>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
               <select value={localSettings.recapNotificationDay} onChange={(e) => saveDetail({ recapNotificationDay: Number(e.target.value) })} className="rounded-lg border border-slate-200 px-2 py-1">
                 <option value={0}>Dernier jour</option>
                 {DAY_OPTIONS.map((d) => <option key={d} value={d}>Le {d}</option>)}
               </select>
-              à
+              Ã 
               <input type="time" value={localSettings.recapNotificationTime} onChange={(e) => saveDetail({ recapNotificationTime: e.target.value })} className="rounded-lg border border-slate-200 px-2 py-1" />
             </div>
           </div>
@@ -650,40 +680,40 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
         {isActive && nextRunAt && <p className="mt-3 text-xs text-slate-400">Prochaine notification&nbsp;: {formatDateTime(nextRunAt)}</p>}
       </section>
 
-      {/* Préparer maintenant */}
+      {/* PrÃ©parer maintenant */}
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-3xl border border-violet-100 bg-gradient-to-br from-white to-violet-50/50 p-6 shadow-sm">
           <p className="text-sm font-bold text-slate-900">Programme du mois</p>
-          <p className="mt-1 text-sm text-slate-500">Présentez les événements à venir.</p>
-          <Button onClick={() => openFlow("program")} className="mt-4 h-10 rounded-xl bg-violet-600 px-4 text-sm text-white hover:bg-violet-700"><CalendarDays className="size-4" />Préparer le programme</Button>
+          <p className="mt-1 text-sm text-slate-500">PrÃ©sentez les Ã©vÃ©nements Ã  venir.</p>
+          <Button onClick={() => openFlow("program")} className="mt-4 h-10 rounded-xl bg-violet-600 px-4 text-sm text-white hover:bg-violet-700"><CalendarDays className="size-4" />PrÃ©parer le programme</Button>
         </div>
         <div className="rounded-3xl border border-violet-100 bg-gradient-to-br from-white to-violet-50/50 p-6 shadow-sm">
-          <p className="text-sm font-bold text-slate-900">Récap du mois</p>
-          <p className="mt-1 text-sm text-slate-500">Partagez les photos du mois écoulé.</p>
-          <Button onClick={() => openFlow("recap")} className="mt-4 h-10 rounded-xl bg-violet-600 px-4 text-sm text-white hover:bg-violet-700"><ImagePlus className="size-4" />Préparer le récap</Button>
+          <p className="text-sm font-bold text-slate-900">RÃ©cap du mois</p>
+          <p className="mt-1 text-sm text-slate-500">Partagez les photos du mois Ã©coulÃ©.</p>
+          <Button onClick={() => openFlow("recap")} className="mt-4 h-10 rounded-xl bg-violet-600 px-4 text-sm text-white hover:bg-violet-700"><ImagePlus className="size-4" />PrÃ©parer le rÃ©cap</Button>
         </div>
       </section>
 
       {/* Fonds + bouton modifier */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900">Fonds sélectionnés</h2>
+          <h2 className="text-base font-bold text-slate-900">Fonds sÃ©lectionnÃ©s</h2>
           <Button size="sm" variant="outline" onClick={() => setView("models")} className="h-8 rounded-xl border-slate-200 px-3 text-xs">Modifier les fonds</Button>
         </div>
-        <p className="mt-2 text-sm text-slate-500">Récap&nbsp;: {WEEKLY_IMAGE_STYLES.find((s) => s.id === recapStyleId)?.name} · Programme&nbsp;: Liste d&apos;événements</p>
+        <p className="mt-2 text-sm text-slate-500">RÃ©cap&nbsp;: {WEEKLY_IMAGE_STYLES.find((s) => s.id === recapStyleId)?.name} Â· Programme&nbsp;: Liste d&apos;Ã©vÃ©nements</p>
       </section>
 
       {/* Historique */}
       {publishedMonths.length > 0 && (
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
           <h2 className="text-base font-bold text-slate-900">Historique</h2>
           <div className="mt-4 space-y-2">
             {publishedMonths.map((key) => (
               <div key={key} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
                 <p className="text-sm font-semibold capitalize text-slate-900">{monthKeyLabel(key)}</p>
                 <div className="flex items-center gap-2">
-                  {programHistory[key]?.status === "PUBLISHED" && <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">Programme publié</span>}
-                  {recapHistory[key]?.status === "PUBLISHED" && <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">Récap publié</span>}
+                  {programHistory[key]?.status === "PUBLISHED" && <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">Programme publiÃ©</span>}
+                  {recapHistory[key]?.status === "PUBLISHED" && <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">RÃ©cap publiÃ©</span>}
                 </div>
               </div>
             ))}
@@ -693,3 +723,6 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
     </div>
   );
 }
+
+
+

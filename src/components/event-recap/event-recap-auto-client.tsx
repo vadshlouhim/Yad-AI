@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { DavidAutomationCard, DavidBannerAgent } from "@/components/automations/automation-design-kit";
 import {
   AlertTriangle,
   CalendarDays,
@@ -13,7 +14,6 @@ import {
   Loader2,
   Send,
   Sparkles,
-  Trash2,
   Video,
   X,
 } from "lucide-react";
@@ -24,7 +24,7 @@ import type {
   RecapHistory,
 } from "@/lib/automation/event-recap";
 
-// ── Logos SVG officiels (pas d'emojis) ──────────────────────────────────────
+// â”€â”€ Logos SVG officiels (pas d'emojis) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const CHANNEL_LOGOS: Record<RecapChannel, React.ReactNode> = {
   INSTAGRAM: (
     <svg className="size-4 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24">
@@ -111,15 +111,15 @@ function formatDateTime(iso: string) {
 function statusBadge(status: string | undefined): { label: string; cls: string } {
   switch (status) {
     case "PUBLISHED":
-      return { label: "Récap publié", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+      return { label: "RÃ©cap publiÃ©", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" };
     case "IGNORED":
-      return { label: "Ignoré pour cet événement", cls: "bg-slate-100 text-slate-400 border-slate-200" };
+      return { label: "IgnorÃ© pour cet Ã©vÃ©nement", cls: "bg-slate-100 text-slate-400 border-slate-200" };
     case "POSTPONED":
-      return { label: "Reporté", cls: "bg-amber-50 text-amber-700 border-amber-200" };
+      return { label: "ReportÃ©", cls: "bg-amber-50 text-amber-700 border-amber-200" };
     case "NOTIFIED":
-      return { label: "Prêt pour le récap", cls: "bg-violet-50 text-violet-700 border-violet-200" };
+      return { label: "PrÃªt pour le rÃ©cap", cls: "bg-violet-50 text-violet-700 border-violet-200" };
     default:
-      return { label: "Prêt pour le récap", cls: "bg-violet-50 text-violet-700 border-violet-200" };
+      return { label: "PrÃªt pour le rÃ©cap", cls: "bg-violet-50 text-violet-700 border-violet-200" };
   }
 }
 
@@ -244,7 +244,7 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
       }
       setPhotos((prev) => [...prev, ...urls]);
     } catch {
-      setError("Erreur lors du téléversement des photos.");
+      setError("Erreur lors du tÃ©lÃ©versement des photos.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -263,12 +263,12 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
       });
       const data = await res.json();
       if (!res.ok) {
-        setError((data as { error?: string }).error ?? "Erreur de génération.");
+        setError((data as { error?: string }).error ?? "Erreur de gÃ©nÃ©ration.");
         return;
       }
       setCaption((data as { caption?: string }).caption ?? "");
     } catch {
-      setError("Erreur réseau lors de la génération.");
+      setError("Erreur rÃ©seau lors de la gÃ©nÃ©ration.");
     } finally {
       setGenerating(false);
     }
@@ -281,7 +281,7 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
       return;
     }
     if (!caption.trim()) {
-      setError("Préparez le texte de la publication.");
+      setError("PrÃ©parez le texte de la publication.");
       return;
     }
     if (!authorizationAck) {
@@ -304,13 +304,13 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
       });
       const data = await res.json();
       if (!res.ok) {
-        setError((data as { error?: string }).error ?? "Échec de la publication.");
+        setError((data as { error?: string }).error ?? "Ã‰chec de la publication.");
         return;
       }
       setLocalHistory((h) => ({ ...h, [selectedEvent.id]: { status: "PUBLISHED" } }));
       setView("success");
     } catch {
-      setError("Erreur réseau lors de la publication.");
+      setError("Erreur rÃ©seau lors de la publication.");
     } finally {
       setPublishing(false);
     }
@@ -326,33 +326,42 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
   );
 
   const header = (
-    <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-600 p-6 text-white shadow-lg shadow-violet-900/20">
+    <div className="relative overflow-hidden rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">
+      <div className="pointer-events-none absolute inset-y-0 right-6 flex items-center" aria-hidden="true">
+        <div className="rounded-full bg-white/[0.04] p-5">
+          <ImagePlus className="size-28 text-white/[0.08]" strokeWidth={1.6} />
+        </div>
+      </div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="mb-3 h-1.5 w-10 rounded-full bg-white/60" />
+        <div className="relative">
+          <div className="mb-3 h-1.5 w-10 rounded-full bg-white/80" />
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Récap automatique après événement</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-violet-50/90">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/82">
             Publiez facilement les photos et moments forts après vos événements.
           </p>
         </div>
-        <div className="flex flex-col items-start gap-2 sm:items-end">
+        <div className="flex flex-col items-start gap-3 sm:items-end">
           <Link href="/dashboard/events">
-            <Button size="sm" variant="outline" className="h-9 rounded-xl border-white/30 bg-white/10 px-4 text-xs text-white hover:bg-white/20">
+            <Button size="sm" variant="outline" className="h-9 rounded-xl border-white/25 bg-white/12 px-4 text-xs font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:text-white">
               <CalendarDays className="size-4" />
               Voir dans l&apos;Agenda IA
             </Button>
           </Link>
+          <DavidBannerAgent
+            className="sm:max-w-xl"
+            text="Je suis David votre assistant IA, je vous aide à publier le bon récap après chaque événement"
+          />
         </div>
       </div>
 
-      {/* Activer / Désactiver — en bas à droite du bandeau */}
+      {/* Activer / DÃ©sactiver â€” en bas Ã  droite du bandeau */}
       <div className="mt-6 flex justify-end">
         <div className="relative">
           <Button
             type="button"
             variant="outline"
             disabled={saving}
-            className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+            className="border-white/20 bg-white/12 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/18 hover:text-white"
             onClick={() => setStatusOpen((open) => !open)}
           >
             {saving ? (
@@ -397,9 +406,9 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
             </p>
             <div className="mt-6 space-y-4">
               {[
-                { step: 1, title: "Recevez le rappel", desc: "Le lendemain à 10h, hors Chabbat et Yom Tov.", color: "bg-violet-100 text-violet-700" },
-                { step: 2, title: "Ajoutez vos photos", desc: "Vous choisissez vous-même les photos à publier, sans retouche.", color: "bg-indigo-100 text-indigo-700" },
-                { step: 3, title: "Validez et publiez", desc: "Publication sur Instagram, Facebook et WhatsApp après validation.", color: "bg-emerald-100 text-emerald-700" },
+                { step: 1, title: "Recevez le rappel", desc: "Le lendemain Ã  10h, hors Chabbat et Yom Tov.", color: "bg-violet-100 text-violet-700" },
+                { step: 2, title: "Ajoutez vos photos", desc: "Vous choisissez vous-mÃªme les photos Ã  publier, sans retouche.", color: "bg-indigo-100 text-indigo-700" },
+                { step: 3, title: "Validez et publiez", desc: "Publication sur Instagram, Facebook et WhatsApp aprÃ¨s validation.", color: "bg-emerald-100 text-emerald-700" },
               ].map(({ step, title, desc, color }) => (
                 <div key={step} className="flex items-start gap-4">
                   <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-black", color)}>{step}</span>
@@ -410,13 +419,14 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
                 </div>
               ))}
             </div>
+            <DavidAutomationCard className="mt-6" disabled={saving} onCtaClick={() => void setActiveState(true)} />
             <div className="mt-8 flex flex-col gap-3">
-              <Button type="button" size="xl" className="w-full bg-violet-700 hover:bg-violet-800" disabled={saving} onClick={() => void setActiveState(true)}>
+              <Button type="button" size="xl" className="w-full bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" disabled={saving} onClick={() => void setActiveState(true)}>
                 <Sparkles className="size-5" />
-                Activer le récap automatique
+                Commencer la configuration →
               </Button>
               <Button type="button" variant="outline" className="w-full" onClick={() => setShowWelcome(false)}>
-                Découvrir d&apos;abord
+                DÃ©couvrir d&apos;abord
               </Button>
             </div>
           </div>
@@ -424,19 +434,20 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
       )}
 
       {header}
+      <DavidAutomationCard disabled={saving} onCtaClick={() => void setActiveState(true)} />
 
       {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
 
       {view === "overview" && (
         <>
-          {/* Comment ça fonctionne */}
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-base font-bold text-slate-900">Comment ça fonctionne&nbsp;?</h2>
+          {/* Comment Ã§a fonctionne */}
+          <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
+            <h2 className="text-base font-bold text-slate-900">Comment Ã§a fonctionne&nbsp;?</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
               {[
-                { n: 1, t: "Recevez le rappel", d: "Le lendemain à 10h, hors Chabbat et Yom Tov." },
-                { n: 2, t: "Ajoutez vos photos", d: "Vous choisissez vous-même les photos à publier." },
-                { n: 3, t: "Validez et publiez", d: "Publication sur Instagram, Facebook et WhatsApp après validation." },
+                { n: 1, t: "Recevez le rappel", d: "Le lendemain Ã  10h, hors Chabbat et Yom Tov." },
+                { n: 2, t: "Ajoutez vos photos", d: "Vous choisissez vous-mÃªme les photos Ã  publier." },
+                { n: 3, t: "Validez et publiez", d: "Publication sur Instagram, Facebook et WhatsApp aprÃ¨s validation." },
               ].map((step) => (
                 <div key={step.n} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
                   <span className="flex size-7 items-center justify-center rounded-full bg-violet-600 text-xs font-bold text-white">
@@ -459,11 +470,11 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
               <div className="mt-3 flex flex-col gap-1">
                 <p className="text-sm font-semibold text-slate-800">{nextNotificationEvent.title}</p>
                 <p className="text-xs text-slate-500">
-                  {isActive && nextRunAt ? `Notification prévue le ${formatDateTime(nextRunAt)}` : "Activez l'automatisation pour recevoir le rappel."}
+                  {isActive && nextRunAt ? `Notification prÃ©vue le ${formatDateTime(nextRunAt)}` : "Activez l'automatisation pour recevoir le rappel."}
                 </p>
               </div>
             ) : (
-              <p className="mt-3 text-sm text-slate-500">Aucun événement récent en attente de récap.</p>
+              <p className="mt-3 text-sm text-slate-500">Aucun Ã©vÃ©nement rÃ©cent en attente de rÃ©cap.</p>
             )}
             <div className="mt-4 flex items-center gap-2">
               <label className="text-xs font-medium text-slate-500">Heure de notification</label>
@@ -476,12 +487,12 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
             </div>
           </section>
 
-          {/* Événements récents */}
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-base font-bold text-slate-900">Événements récents</h2>
+          {/* Ã‰vÃ©nements rÃ©cents */}
+          <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
+            <h2 className="text-base font-bold text-slate-900">Ã‰vÃ©nements rÃ©cents</h2>
             {finishedEvents.length === 0 ? (
               <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
-                Aucun événement terminé dans l&apos;Agenda IA pour l&apos;instant.
+                Aucun Ã©vÃ©nement terminÃ© dans l&apos;Agenda IA pour l&apos;instant.
               </p>
             ) : (
               <div className="mt-4 space-y-2">
@@ -507,7 +518,7 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
                               onClick={() => openRecap(ev)}
                               className="h-8 rounded-xl bg-violet-600 px-3 text-xs text-white hover:bg-violet-700"
                             >
-                              Créer le récap
+                              CrÃ©er le rÃ©cap
                             </Button>
                             <Button
                               size="sm"
@@ -541,7 +552,7 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
         <>
           <div className="flex items-center justify-between">
             <button onClick={() => setView("overview")} className="text-sm font-medium text-slate-500 hover:text-slate-700">
-              ← Retour
+              â† Retour
             </button>
             <span className="text-sm font-semibold text-slate-900">{selectedEvent.title}</span>
           </div>
@@ -551,7 +562,7 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
             <div className="flex gap-2">
               <AlertTriangle className="size-5 flex-shrink-0 text-amber-600" />
               <p className="text-sm leading-6 text-amber-800">
-                Attention : certaines photos peuvent inclure des enfants. Assurez-vous d&apos;avoir les autorisations nécessaires avant
+                Attention : certaines photos peuvent inclure des enfants. Assurez-vous d&apos;avoir les autorisations nÃ©cessaires avant
                 publication.
               </p>
             </div>
@@ -560,22 +571,22 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
             <div className="flex gap-2">
               <Video className="size-5 flex-shrink-0 text-violet-600" />
               <p className="text-sm leading-6 text-violet-800">
-                Bientôt, vous pourrez téléverser vos photos et l&apos;IA créera automatiquement un clip IA.
+                BientÃ´t, vous pourrez tÃ©lÃ©verser vos photos et l&apos;IA crÃ©era automatiquement un clip IA.
               </p>
             </div>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-            {/* Colonne édition */}
+            {/* Colonne Ã©dition */}
             <div className="space-y-5">
               {/* Photos */}
-              <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-bold text-slate-900">Vos photos</h2>
                   <span className="text-xs text-slate-400">{photos.length} photo{photos.length > 1 ? "s" : ""}</span>
                 </div>
                 <p className="mt-1 text-xs text-slate-500">
-                  Vous choisissez les photos. Elles ne sont ni retouchées, ni recadrées, ni modifiées.
+                  Vous choisissez les photos. Elles ne sont ni retouchÃ©es, ni recadrÃ©es, ni modifiÃ©es.
                 </p>
                 <input
                   ref={fileInputRef}
@@ -591,7 +602,7 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
                   className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 py-6 text-sm font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700 disabled:opacity-60"
                 >
                   {uploading ? <Loader2 className="size-5 animate-spin" /> : <ImagePlus className="size-5" />}
-                  {uploading ? "Téléversement…" : "Ajouter des photos"}
+                  {uploading ? "TÃ©lÃ©versementâ€¦" : "Ajouter des photos"}
                 </button>
                 {photos.length > 0 && (
                   <div className="mt-3 grid grid-cols-3 gap-2">
@@ -612,7 +623,7 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
               </section>
 
               {/* Texte */}
-              <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-bold text-slate-900">Texte de la publication</h2>
                   <Button
@@ -623,17 +634,17 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
                     className="h-8 rounded-xl border-violet-200 px-3 text-xs text-violet-700"
                   >
                     {generating ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-                    Générer avec l&apos;IA
+                    GÃ©nÃ©rer avec l&apos;IA
                   </Button>
                 </div>
                 <textarea
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
-                  placeholder="Le même message sera utilisé sur Instagram, Facebook et WhatsApp."
+                  placeholder="Le mÃªme message sera utilisÃ© sur Instagram, Facebook et WhatsApp."
                   className="mt-3 min-h-32 w-full resize-y rounded-2xl border border-slate-200 p-3 text-sm leading-6 text-slate-800 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200"
                 />
                 <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs text-slate-400">Publié sur&nbsp;:</span>
+                  <span className="text-xs text-slate-400">PubliÃ© sur&nbsp;:</span>
                   {localSettings.channels.map((c) => (
                     <span key={c} className="flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700">
                       {CHANNEL_LOGOS[c]}
@@ -644,7 +655,7 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
               </section>
 
               {/* Autorisation + publication */}
-              <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
                 <label className="flex items-start gap-3 text-sm text-slate-700">
                   <input
                     type="checkbox"
@@ -653,7 +664,7 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
                     className="mt-0.5 size-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
                   />
                   <span>
-                    Je confirme disposer des autorisations nécessaires pour publier ces photos, y compris celles où figurent des enfants.
+                    Je confirme disposer des autorisations nÃ©cessaires pour publier ces photos, y compris celles oÃ¹ figurent des enfants.
                   </span>
                 </label>
                 <Button
@@ -662,12 +673,12 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
                   className="mt-4 h-11 w-full rounded-2xl bg-violet-600 px-5 text-sm text-white hover:bg-violet-700"
                 >
                   {publishing ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-                  Valider et publier le récap
+                  Valider et publier le rÃ©cap
                 </Button>
               </section>
             </div>
 
-            {/* Colonne aperçu (cadre smartphone) */}
+            {/* Colonne aperÃ§u (cadre smartphone) */}
             <div>
               <div className="mx-auto w-full max-w-[300px] rounded-[2.5rem] border-[10px] border-slate-900 bg-slate-900 shadow-xl">
                 <div className="overflow-hidden rounded-[1.8rem] bg-white">
@@ -677,7 +688,7 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
                   </div>
                   {photos[0] ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={photos[0]} alt="Aperçu" className="aspect-square w-full object-cover" />
+                    <img src={photos[0]} alt="AperÃ§u" className="aspect-square w-full object-cover" />
                   ) : (
                     <div className="flex aspect-square w-full items-center justify-center bg-slate-50 text-xs text-slate-400">
                       Ajoutez une photo
@@ -685,12 +696,12 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
                   )}
                   <div className="px-3 py-2">
                     <p className="whitespace-pre-wrap text-xs leading-5 text-slate-700">
-                      {caption || "Votre texte apparaîtra ici."}
+                      {caption || "Votre texte apparaÃ®tra ici."}
                     </p>
                   </div>
                 </div>
               </div>
-              <p className="mt-3 text-center text-[11px] text-slate-400">Aperçu de la publication</p>
+              <p className="mt-3 text-center text-[11px] text-slate-400">AperÃ§u de la publication</p>
             </div>
           </div>
         </>
@@ -703,9 +714,9 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
               <CheckCircle2 className="size-6" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Récap publié&nbsp;!</h2>
+              <h2 className="text-lg font-bold text-slate-900">RÃ©cap publiÃ©&nbsp;!</h2>
               <p className="mt-1 text-sm text-slate-600">
-                La publication récap de « {selectedEvent.title} » a été envoyée sur {localSettings.channels.map((c) => CHANNEL_LABELS[c]).join(", ")}.
+                La publication rÃ©cap de Â« {selectedEvent.title} Â» a Ã©tÃ© envoyÃ©e sur {localSettings.channels.map((c) => CHANNEL_LABELS[c]).join(", ")}.
               </p>
             </div>
           </div>
@@ -724,7 +735,7 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
               variant="ghost"
               className="h-11 rounded-2xl px-5 text-sm text-slate-500"
             >
-              Retour aux événements
+              Retour aux Ã©vÃ©nements
             </Button>
           </div>
         </section>
@@ -732,3 +743,6 @@ export function EventRecapAutoClient({ community, finishedEvents, automation, se
     </div>
   );
 }
+
+
+

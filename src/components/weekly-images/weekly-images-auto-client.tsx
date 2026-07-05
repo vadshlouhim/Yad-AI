@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { DavidAutomationCard, DavidBannerAgent } from "@/components/automations/automation-design-kit";
 import {
   CalendarClock,
   CheckCircle2,
@@ -55,7 +56,7 @@ const CHANNEL_LABELS: Record<WeeklyImagesChannel, string> = {
   WHATSAPP: "WhatsApp",
 };
 
-// Photos grises de démonstration pour l'aperçu des fonds.
+// Photos grises de dÃ©monstration pour l'aperÃ§u des fonds.
 const PLACEHOLDER_PHOTO =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100' height='100' fill='%23dfe6f0'/></svg>";
 const PREVIEW_PHOTOS = [PLACEHOLDER_PHOTO, PLACEHOLDER_PHOTO, PLACEHOLDER_PHOTO, PLACEHOLDER_PHOTO];
@@ -157,6 +158,11 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
     }
   }
 
+  async function beginConfiguration() {
+    await setActiveState(true);
+    setView("models");
+  }
+
   async function saveDetail(partial: Partial<WeeklyImagesSettings>) {
     const updated = { ...localSettings, ...partial };
     setLocalSettings(updated);
@@ -174,7 +180,7 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
     setLocalSettings((s) => {
       const has = s.channels.includes(channel);
       const next = has ? s.channels.filter((c) => c !== channel) : [...s.channels, channel];
-      if (next.length === 0) return s; // au moins un réseau requis
+      if (next.length === 0) return s; // au moins un rÃ©seau requis
       const updated = { ...s, channels: next };
       void postConfig({ mode: "update-notification-detail", settings: updated }).catch(() => {});
       return updated;
@@ -196,7 +202,7 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
     }
   }
 
-  // Capture l'affiche composée (1080×1080) en PNG et la téléverse → renvoie l'URL.
+  // Capture l'affiche composÃ©e (1080Ã—1080) en PNG et la tÃ©lÃ©verse â†’ renvoie l'URL.
   async function capturePosterUrl(): Promise<string | null> {
     const node = posterRef.current;
     if (!node) return null;
@@ -207,7 +213,7 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
     form.append("file", file);
     const res = await fetch("/api/uploads/attachment", { method: "POST", body: form });
     const data = await res.json();
-    if (!res.ok || !data.url) throw new Error("Échec du téléversement de l'affiche.");
+    if (!res.ok || !data.url) throw new Error("Ã‰chec du tÃ©lÃ©versement de l'affiche.");
     return data.url as string;
   }
 
@@ -230,9 +236,9 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
         if (res.ok && data.isImage && data.url) urls.push(data.url as string);
       }
       setPhotos((prev) => [...prev, ...urls].slice(0, MAX_WEEKLY_PHOTOS));
-      if (files.length > remaining) setError(`Maximum ${MAX_WEEKLY_PHOTOS} photos : seules les premières ont été ajoutées.`);
+      if (files.length > remaining) setError(`Maximum ${MAX_WEEKLY_PHOTOS} photos : seules les premiÃ¨res ont Ã©tÃ© ajoutÃ©es.`);
     } catch {
-      setError("Erreur lors du téléversement des photos.");
+      setError("Erreur lors du tÃ©lÃ©versement des photos.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -253,7 +259,7 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
       const data = await postConfig({ mode: "prepare-weekly-images" });
       if (data.caption) setCaption(data.caption);
     } catch {
-      /* texte par défaut éditable à la main */
+      /* texte par dÃ©faut Ã©ditable Ã  la main */
     } finally {
       setGenerating(false);
     }
@@ -265,21 +271,21 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
       return;
     }
     if (!caption.trim()) {
-      setError("Préparez le texte de la publication.");
+      setError("PrÃ©parez le texte de la publication.");
       return;
     }
     setPublishing(true);
     setError("");
     try {
-      // 1 seule photo → on la publie telle quelle (sans fond, sans déformation).
-      // Sinon → on compose l'affiche dans le fond choisi et on la publie.
+      // 1 seule photo â†’ on la publie telle quelle (sans fond, sans dÃ©formation).
+      // Sinon â†’ on compose l'affiche dans le fond choisi et on la publie.
       let visualUrls: string[];
       if (photos.length === 1) {
         visualUrls = [photos[0]];
       } else {
         const posterUrl = await capturePosterUrl();
         if (!posterUrl) {
-          setError("Impossible de générer l'affiche. Réessayez.");
+          setError("Impossible de gÃ©nÃ©rer l'affiche. RÃ©essayez.");
           return;
         }
         visualUrls = [posterUrl];
@@ -297,47 +303,58 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
       });
       const data = await res.json();
       if (!res.ok) {
-        setError((data as { error?: string }).error ?? "Échec de la publication.");
+        setError((data as { error?: string }).error ?? "Ã‰chec de la publication.");
         return;
       }
       setView("success");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur réseau lors de la publication.");
+      setError(e instanceof Error ? e.message : "Erreur rÃ©seau lors de la publication.");
     } finally {
       setPublishing(false);
     }
   }
 
   const header = (
-    <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-600 p-6 text-white shadow-lg shadow-violet-900/20">
+    <div className="relative overflow-hidden rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">
+      <div className="pointer-events-none absolute inset-y-0 right-6 flex items-center" aria-hidden="true">
+        <div className="rounded-full bg-white/[0.04] p-5">
+          <ImagePlus className="size-28 text-white/[0.08]" strokeWidth={1.6} />
+        </div>
+      </div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="mb-3 h-1.5 w-10 rounded-full bg-violet-200" />
+        <div className="relative">
+          <div className="mb-3 h-1.5 w-10 rounded-full bg-white/80" />
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Cette semaine en images</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-violet-50/90">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/82">
             Publiez chaque semaine des photos sur tous vos réseaux en un clic.
           </p>
-          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs text-violet-50">
+          <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3 py-1 text-xs font-bold text-white/90">
             <CalendarClock className="size-3.5" />
             {WEEKLY_DAY_LABELS[localSettings.notificationDay]} à {localSettings.notificationTime}
           </p>
         </div>
-        <Link href="/dashboard/publications">
-          <Button size="sm" variant="outline" className="h-9 rounded-xl border-white/30 bg-white/10 px-4 text-xs text-white hover:bg-white/20">
-            <History className="size-4" />
-            Voir l&apos;historique
-          </Button>
-        </Link>
+        <div className="flex flex-col items-start gap-3 sm:items-end">
+          <Link href="/dashboard/publications">
+            <Button size="sm" variant="outline" className="h-9 rounded-xl border-white/25 bg-white/12 px-4 text-xs font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:text-white">
+              <History className="size-4" />
+              Voir l&apos;historique
+            </Button>
+          </Link>
+          <DavidBannerAgent
+            className="sm:max-w-xl"
+            text="Je suis David votre assistant IA, je vous aide à préparer les photos fortes de la semaine"
+          />
+        </div>
       </div>
 
-      {/* Activer / Désactiver — en bas à droite du bandeau */}
+      {/* Activer / DÃ©sactiver â€” en bas Ã  droite du bandeau */}
       <div className="mt-6 flex justify-end">
         <div className="relative">
           <Button
             type="button"
             variant="outline"
             disabled={saving}
-            className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+            className="border-white/20 bg-white/12 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/18 hover:text-white"
             onClick={() => setStatusOpen((open) => !open)}
           >
             {saving ? (
@@ -363,13 +380,21 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
     </div>
   );
 
-  // ── MODELS : choix du fond ──────────────────────────────────────────────
+  // â”€â”€ MODELS : choix du fond â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (view === "models") {
     return (
       <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
-        <div className="flex items-center justify-between">
-          <button onClick={() => setView("overview")} className="text-sm font-medium text-slate-500 hover:text-slate-700">← Retour</button>
-          <span className="text-sm font-semibold text-slate-900">Choisissez votre fond</span>
+        <div className="relative overflow-hidden rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <button onClick={() => setView("overview")} className="mb-4 text-sm font-medium text-white/75 hover:text-white">← Retour</button>
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Choisissez votre fond</h1>
+            </div>
+            <DavidBannerAgent
+              className="sm:max-w-xl"
+              text="Je suis David votre assistant IA, je vous aide à choisir le fond le plus adapté à vos photos de la semaine"
+            />
+          </div>
         </div>
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -405,23 +430,23 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
     );
   }
 
-  // ── CUSTOMIZE : assistant photos + aperçu ───────────────────────────────
+  // â”€â”€ CUSTOMIZE : assistant photos + aperÃ§u â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (view === "customize") {
     return (
       <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
         <div className="flex items-center justify-between">
-          <button onClick={() => setView("overview")} className="text-sm font-medium text-slate-500 hover:text-slate-700">← Retour</button>
-          <span className="text-sm font-semibold text-slate-900">Préparez votre publication</span>
+          <button onClick={() => setView("overview")} className="text-sm font-medium text-slate-500 hover:text-slate-700">â† Retour</button>
+          <span className="text-sm font-semibold text-slate-900">PrÃ©parez votre publication</span>
         </div>
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
 
         <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4 text-sm leading-6 text-violet-800">
-          Les photos sont conservées telles quelles. Aucune retouche n&apos;est appliquée — uniquement un placement dans le fond choisi.
+          Les photos sont conservÃ©es telles quelles. Aucune retouche n&apos;est appliquÃ©e â€” uniquement un placement dans le fond choisi.
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-5">
-            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-bold text-slate-900">Vos photos</h2>
                 <span className="text-xs text-slate-400">{photos.length} / {MAX_WEEKLY_PHOTOS}</span>
@@ -433,7 +458,7 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
                 className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 py-6 text-sm font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700 disabled:opacity-60"
               >
                 {uploading ? <Loader2 className="size-5 animate-spin" /> : <ImagePlus className="size-5" />}
-                {uploading ? "Téléversement…" : `Ajouter des photos (max ${MAX_WEEKLY_PHOTOS})`}
+                {uploading ? "TÃ©lÃ©versementâ€¦" : `Ajouter des photos (max ${MAX_WEEKLY_PHOTOS})`}
               </button>
               {photos.length > 0 && (
                 <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -453,18 +478,18 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
               )}
             </section>
 
-            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-bold text-slate-900">Texte de la publication</h2>
                 <Button size="sm" variant="outline" onClick={generateCaption} disabled={generating} className="h-8 rounded-xl border-violet-200 px-3 text-xs text-violet-700">
                   {generating ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-                  Texte par défaut
+                  Texte par dÃ©faut
                 </Button>
               </div>
               <textarea
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
-                placeholder="Le même message sera utilisé sur Instagram, Facebook et WhatsApp."
+                placeholder="Le mÃªme message sera utilisÃ© sur Instagram, Facebook et WhatsApp."
                 className="mt-3 min-h-28 w-full resize-y rounded-2xl border border-slate-200 p-3 text-sm leading-6 text-slate-800 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200"
               />
               <div className="mt-3">
@@ -505,7 +530,7 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
             </Button>
           </div>
 
-          {/* Aperçu iPhone */}
+          {/* AperÃ§u iPhone */}
           <div>
             <div className="mx-auto w-full max-w-[300px] rounded-[3rem] border-[12px] border-slate-900 bg-slate-900 shadow-2xl">
               <div className="overflow-hidden rounded-[2.2rem] bg-white">
@@ -517,7 +542,7 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
                   <div className="flex aspect-square w-full items-center justify-center bg-slate-50 text-xs text-slate-400">Ajoutez des photos</div>
                 ) : photos.length === 1 ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={photos[0]} alt="Aperçu" className="aspect-square w-full object-cover" />
+                  <img src={photos[0]} alt="AperÃ§u" className="aspect-square w-full object-cover" />
                 ) : (
                   <div className="aspect-square w-full overflow-hidden bg-white">
                     <div style={{ width: POSTER_SIZE, height: POSTER_SIZE, transform: "scale(0.2546)", transformOrigin: "top left" }}>
@@ -526,17 +551,17 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
                   </div>
                 )}
                 <div className="px-3 py-2">
-                  <p className="whitespace-pre-wrap text-xs leading-5 text-slate-700">{caption || "Votre texte apparaîtra ici."}</p>
+                  <p className="whitespace-pre-wrap text-xs leading-5 text-slate-700">{caption || "Votre texte apparaÃ®tra ici."}</p>
                 </div>
               </div>
             </div>
             <p className="mt-3 text-center text-[11px] text-slate-400">
-              {photos.length <= 1 ? "Photo publiée telle quelle (sans fond)" : `Affiche « ${selectedStyle.name} » · ${photos.length} photos`}
+              {photos.length <= 1 ? "Photo publiÃ©e telle quelle (sans fond)" : `Affiche Â« ${selectedStyle.name} Â» Â· ${photos.length} photos`}
             </p>
           </div>
         </div>
 
-        {/* Nœud de capture plein format (1080×1080), hors écran */}
+        {/* NÅ“ud de capture plein format (1080Ã—1080), hors Ã©cran */}
         {photos.length > 1 && (
           <div aria-hidden style={{ position: "fixed", left: -99999, top: 0, pointerEvents: "none", opacity: 0 }}>
             <div ref={posterRef}>
@@ -548,7 +573,7 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
     );
   }
 
-  // ── SUCCESS ─────────────────────────────────────────────────────────────
+  // â”€â”€ SUCCESS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (view === "success") {
     return (
       <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
@@ -556,9 +581,9 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
           <div className="flex items-start gap-3">
             <div className="flex size-11 items-center justify-center rounded-2xl bg-emerald-500 text-white"><CheckCircle2 className="size-6" /></div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Publication envoyée&nbsp;!</h2>
+              <h2 className="text-lg font-bold text-slate-900">Publication envoyÃ©e&nbsp;!</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Vos {photos.length} photo{photos.length > 1 ? "s" : ""} ont été publiées sur {localSettings.channels.map((c) => CHANNEL_LABELS[c]).join(", ")}.
+                Vos {photos.length} photo{photos.length > 1 ? "s" : ""} ont Ã©tÃ© publiÃ©es sur {localSettings.channels.map((c) => CHANNEL_LABELS[c]).join(", ")}.
               </p>
             </div>
           </div>
@@ -573,7 +598,7 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
     );
   }
 
-  // ── OVERVIEW ────────────────────────────────────────────────────────────
+  // â”€â”€ OVERVIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
       {showWelcome && (
@@ -588,7 +613,7 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
             <div className="mt-6 space-y-4">
               {[
                 { step: 1, title: "Recevez la notification", desc: "Chaque semaine, EasyCom IA vous demande si vous avez des photos.", color: "bg-violet-100 text-violet-700" },
-                { step: 2, title: "Ajoutez vos photos", desc: `Téléversez jusqu'à ${MAX_WEEKLY_PHOTOS} photos. L'IA les place sur votre fond.`, color: "bg-indigo-100 text-indigo-700" },
+                { step: 2, title: "Ajoutez vos photos", desc: `TÃ©lÃ©versez jusqu'Ã  ${MAX_WEEKLY_PHOTOS} photos. L'IA les place sur votre fond.`, color: "bg-indigo-100 text-indigo-700" },
                 { step: 3, title: "Validez et publiez", desc: "Publiez sur Instagram, Facebook et WhatsApp en un clic.", color: "bg-emerald-100 text-emerald-700" },
               ].map(({ step, title, desc, color }) => (
                 <div key={step} className="flex items-start gap-4">
@@ -600,28 +625,33 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
                 </div>
               ))}
             </div>
+            <DavidAutomationCard
+              className="mt-6"
+              onCtaClick={() => void beginConfiguration()}
+            />
             <div className="mt-8 flex flex-col gap-3">
-              <Button type="button" size="xl" className="w-full bg-violet-700 hover:bg-violet-800" onClick={() => { setShowWelcome(false); setView("models"); }}>
+              <Button type="button" size="xl" className="w-full bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" onClick={() => void beginConfiguration()}>
                 <Sparkles className="size-5" />
-                Choisir mon fond
+                Commencer la configuration →
               </Button>
-              <Button type="button" variant="outline" className="w-full" onClick={() => setShowWelcome(false)}>Découvrir d&apos;abord</Button>
+              <Button type="button" variant="outline" className="w-full" onClick={() => setShowWelcome(false)}>DÃ©couvrir d&apos;abord</Button>
             </div>
           </div>
         </div>
       )}
 
       {header}
+      <DavidAutomationCard onCtaClick={() => void beginConfiguration()} />
 
       {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
 
-      {/* Comment ça fonctionne */}
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-bold text-slate-900">Comment ça fonctionne&nbsp;?</h2>
+      {/* Comment Ã§a fonctionne */}
+      <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
+        <h2 className="text-base font-bold text-slate-900">Comment Ã§a fonctionne&nbsp;?</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           {[
             { n: 1, t: "Recevez la notification", d: "Chaque semaine, EasyCom IA vous demande si vous avez des photos." },
-            { n: 2, t: "Ajoutez vos photos", d: `Téléversez jusqu'à ${MAX_WEEKLY_PHOTOS} photos. L'IA les place sur votre fond.` },
+            { n: 2, t: "Ajoutez vos photos", d: `TÃ©lÃ©versez jusqu'Ã  ${MAX_WEEKLY_PHOTOS} photos. L'IA les place sur votre fond.` },
             { n: 3, t: "Validez et publiez", d: "Publiez sur Instagram, Facebook et WhatsApp en un clic." },
           ].map((step) => (
             <div key={step.n} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
@@ -633,10 +663,10 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
         </div>
       </section>
 
-      {/* Fond sélectionné + prochaine notification */}
+      {/* Fond sÃ©lectionnÃ© + prochaine notification */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-base font-bold text-slate-900">Fond sélectionné</h2>
+        <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
+          <h2 className="text-base font-bold text-slate-900">Fond sÃ©lectionnÃ©</h2>
           {hasSelectedStyle ? (
             <div className="mt-4 flex items-center gap-4">
               <div className="size-20 flex-shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
@@ -657,13 +687,13 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
           )}
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
           <div className="flex items-center gap-2">
             <Clock className="size-4 text-violet-600" />
             <h2 className="text-base font-bold text-slate-900">Prochaine notification</h2>
           </div>
           <p className="mt-3 text-sm font-semibold text-slate-800">
-            {WEEKLY_DAY_LABELS[localSettings.notificationDay]} à {localSettings.notificationTime}
+            {WEEKLY_DAY_LABELS[localSettings.notificationDay]} Ã  {localSettings.notificationTime}
           </p>
           <p className="text-xs text-slate-500">
             {isActive && nextRunAt ? `Prochaine : ${formatDateTime(nextRunAt)}` : "Activez l'automatisation pour recevoir la notification."}
@@ -694,30 +724,30 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
         </section>
       </div>
 
-      {/* CTA préparer maintenant */}
+      {/* CTA prÃ©parer maintenant */}
       <section className="rounded-3xl border border-violet-100 bg-gradient-to-br from-white to-violet-50/50 p-6 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-bold text-slate-900">Des photos à publier cette semaine&nbsp;?</p>
-            <p className="mt-1 text-sm text-slate-500">Préparez votre publication « Cette semaine en images » dès maintenant.</p>
+            <p className="text-sm font-bold text-slate-900">Des photos Ã  publier cette semaine&nbsp;?</p>
+            <p className="mt-1 text-sm text-slate-500">PrÃ©parez votre publication Â« Cette semaine en images Â» dÃ¨s maintenant.</p>
           </div>
           <Button onClick={openAssistant} className="h-11 rounded-2xl bg-violet-600 px-5 text-sm text-white hover:bg-violet-700">
             <ImagePlus className="size-4" />
-            Préparer ma publication
+            PrÃ©parer ma publication
           </Button>
         </div>
       </section>
 
       {/* Historique */}
       {localHistory.length > 0 && (
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
           <h2 className="text-base font-bold text-slate-900">Historique</h2>
           <div className="mt-4 space-y-2">
             {localHistory.map((run) => (
               <div key={run.id} className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-900">{formatDateTime(run.publishedAt)}</p>
-                  <p className="mt-0.5 text-xs text-slate-500">{run.photoCount} photo{run.photoCount > 1 ? "s" : ""} · {run.channels.map((c) => CHANNEL_LABELS[c]).join(", ")}</p>
+                  <p className="mt-0.5 text-xs text-slate-500">{run.photoCount} photo{run.photoCount > 1 ? "s" : ""} Â· {run.channels.map((c) => CHANNEL_LABELS[c]).join(", ")}</p>
                 </div>
                 <span className="flex items-center gap-1 text-slate-400">
                   {run.channels.map((c) => (
@@ -732,3 +762,6 @@ export function WeeklyImagesAutoClient({ community, automation, settings, histor
     </div>
   );
 }
+
+
+

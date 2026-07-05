@@ -20,7 +20,7 @@ export default async function PublicationsPage({
 
   let query = admin
     .from("Publication")
-    .select("*, channel:Channel(type, name), event:Event(title, category), draft:ContentDraft(title, body)")
+    .select("*, channel:Channel(type, name, handle, pageId, settings), event:Event(title, category), draft:ContentDraft(title, body)")
     .eq("communityId", communityId)
     .in("status", [...PUBLICATION_STATUSES])
     .eq("status", status)

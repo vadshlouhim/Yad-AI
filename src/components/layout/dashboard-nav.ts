@@ -440,6 +440,7 @@ export const DASHBOARD_TOP_ITEM: DashboardNavItem = {
 
 export const QUICK_ACCESS_ITEMS = [
   { href: "/dashboard/assistant", label: "Assistant IA", icon: Bot },
+  { href: "/dashboard/overview", label: "Tableau de bord", icon: House },
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell, notification: true },
   { href: "/dashboard/events", label: "Agenda connecte IA", icon: CalendarDays },
 ] as const;
@@ -463,7 +464,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "ASSISTANT PERSONNEL",
     items: [
-      { href: "/dashboard/events", label: "Agenda connecté IA", icon: CalendarDays },
+      { href: "/dashboard/events", label: "Mon Agenda IA", icon: CalendarDays },
     ],
   },
   {

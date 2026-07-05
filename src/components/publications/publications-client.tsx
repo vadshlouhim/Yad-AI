@@ -8,9 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   AlertCircle,
+  ChevronDown,
   CheckCircle,
   Copy,
   ExternalLink,
+  History,
   RefreshCw,
   Trash2,
   XCircle,
@@ -38,7 +40,7 @@ interface Publication {
   error: string | null;
   retryCount: number;
   createdAt: Date;
-  channel: { type: string; name: string };
+  channel: { type: string; name: string; handle: string | null; pageId: string | null; settings: Record<string, unknown> | null };
   event: { title: string; category: string } | null;
   draft: { title: string | null; body: string } | null;
 }
@@ -178,6 +180,21 @@ function buildChannelPreview(pub: Publication) {
   return text;
 }
 
+function buildChannelProfileUrl(pub: Publication) {
+  if (pub.channelType === "INSTAGRAM" && pub.channel?.handle) {
+    return `https://www.instagram.com/${pub.channel.handle.replace(/^@/, "")}`;
+  }
+  if (pub.channelType === "INSTAGRAM") {
+    return null;
+  }
+  if (pub.channelType === "FACEBOOK") {
+    const metaPageId = typeof pub.channel?.settings?.metaPageId === "string" ? pub.channel.settings.metaPageId : null;
+    const pageId = pub.channel?.pageId ?? metaPageId;
+    return pageId ? `https://www.facebook.com/${pageId}` : null;
+  }
+  return pub.externalUrl;
+}
+
 export function PublicationsClient({ publications, statsByStatus, activeStatus, activeChannel }: Props) {
   const router = useRouter();
   const [retrying, setRetrying] = useState<string | null>(null);
@@ -229,19 +246,21 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
       preview: "border-slate-200 bg-slate-50/60",
       dot: "bg-slate-400",
     };
+    const profileUrl = buildChannelProfileUrl(pub);
 
     return (
       <Card
         key={pub.id}
         className={cn(
-          "group overflow-hidden rounded-[28px] border border-slate-200/90 bg-white/95 shadow-sm shadow-slate-200/40 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-200/60",
+          "group overflow-hidden rounded-[24px] border border-slate-200/90 bg-white/95 shadow-sm shadow-slate-200/40 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-200/60",
           pub.status === "FAILED" && "border-red-200 bg-red-50/20 hover:border-red-300"
         )}
       >
         <CardContent className="p-0">
-          <div className="flex">
+          <details className="group/details">
+            <summary className="flex cursor-pointer list-none [&::-webkit-details-marker]:hidden">
             <div className={cn("w-1.5 flex-shrink-0", accent.line)} />
-            <div className="flex min-w-0 flex-1 items-start gap-4 p-4 sm:p-5">
+            <div className="flex min-w-0 flex-1 items-center gap-4 p-4 sm:p-5">
               <div className={cn("flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border shadow-sm", brand.bg, brand.text, brand.border)}>
                 {SOCIAL_LOGOS[pub.channelType] ?? <Zap className="size-4" />}
               </div>
@@ -259,13 +278,22 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-2">
                   {STATUS_ICON[pub.status]}
-                  <Badge variant={STATUS_VARIANT[pub.status] ?? "failed"} className="text-[11px]">
+                  <Badge variant={STATUS_VARIANT[pub.status] ?? "failed"} className="hidden text-[11px] sm:inline-flex">
                     {PUBLICATION_STATUS_LABELS[pub.status] ?? pub.status}
                   </Badge>
+                  <span className="flex size-9 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 transition-all duration-200 group-open/details:rotate-180 group-hover:bg-white group-hover:text-slate-800">
+                    <ChevronDown className="size-4" />
+                  </span>
                 </div>
               </div>
 
-              <div className={cn("mt-4 rounded-[22px] border-2 bg-white px-4 py-3 shadow-sm shadow-slate-200/60", accent.preview)}>
+            </div>
+          </div>
+            </summary>
+            <div className="flex border-t border-slate-100">
+              <div className={cn("w-1.5 flex-shrink-0", accent.line)} />
+              <div className="min-w-0 flex-1 px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
+              <div className={cn("rounded-[22px] border-2 bg-white px-4 py-3 shadow-sm shadow-slate-200/60", accent.preview)}>
                 <div className="contents">
                   <p className="line-clamp-6 whitespace-pre-line text-sm leading-relaxed text-slate-700">
                     {truncate(buildChannelPreview(pub), 320)}
@@ -280,8 +308,8 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
               )}
 
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
-                {pub.externalUrl && (
-                  <a href={pub.externalUrl} target="_blank" rel="noopener noreferrer">
+                {profileUrl && (
+                  <a href={profileUrl} target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" size="sm" className={cn("h-7 text-xs", interactiveButtonClass)}>
                       <ExternalLink className="size-3" />
                       Voir
@@ -328,8 +356,8 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
                 )}
               </div>
             </div>
-          </div>
-          </div>
+            </div>
+          </details>
         </CardContent>
       </Card>
     );
@@ -337,14 +365,22 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-3xl border border-blue-800/60 bg-gradient-to-br from-[#0a1b44] via-[#13346f] to-[#08172f] p-6 shadow-lg shadow-slate-950/35">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="relative overflow-hidden rounded-3xl border border-blue-800/60 bg-gradient-to-br from-[#0a1b44] via-[#13346f] to-[#08172f] p-6 shadow-lg shadow-slate-950/35">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.12)_0%,transparent_38%,transparent_70%,rgba(255,255,255,0.08)_100%)]" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="mb-3 h-1.5 w-10 rounded-full bg-blue-300" />
             <h1 className="mt-2 text-2xl font-bold text-white">Historique des publications</h1>
             <p className="mt-1 text-sm text-blue-100/80">
               Dès qu’une publication a été envoyée sur un réseau, elle apparaît ici.
             </p>
+          </div>
+          <div className="flex justify-end" aria-hidden="true">
+            <div className="relative flex size-20 items-center justify-center rounded-[1.6rem] border border-white/15 bg-white/10 text-white shadow-2xl shadow-slate-950/30 backdrop-blur animate-install-float">
+              <History className="size-9" strokeWidth={2.1} />
+              <span className="absolute -right-1 -top-1 size-3 rounded-full bg-white shadow-[0_0_18px_rgba(255,255,255,0.85)] animate-pulse" />
+              <span className="absolute bottom-4 left-4 size-1.5 rounded-full bg-white/80 shadow-[0_0_14px_rgba(255,255,255,0.75)] animate-ping" />
+            </div>
           </div>
         </div>
       </div>

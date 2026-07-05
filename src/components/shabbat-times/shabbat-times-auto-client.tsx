@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -7,20 +7,17 @@ import {
   ArrowRight,
   Bell,
   BookOpen,
-  Bot,
   Calendar,
   CheckCircle2,
   ChevronDown,
   Clock,
   Crown,
   Edit3,
-  ExternalLink,
   ImageIcon,
   Info,
   Loader2,
   Mail,
   MapPin,
-  PauseCircle,
   Pencil,
   Send,
   Settings,
@@ -33,6 +30,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DAVID_IMAGE_URL, DavidAutomationCard, DavidBannerAgent } from "@/components/automations/automation-design-kit";
 import { cn } from "@/lib/utils";
 import {
   SHABBAT_TEMPLATE_SOURCE_CONFIG,
@@ -130,7 +128,7 @@ type Props = {
 const paletteOptions = [
   { id: "violet", label: "Violet", classes: "from-violet-950 via-purple-900 to-violet-700", accent: "#f4c76a" },
   { id: "blue", label: "Bleu", classes: "from-slate-950 via-blue-950 to-sky-800", accent: "#d9b36a" },
-  { id: "emerald", label: "Émeraude", classes: "from-emerald-950 via-teal-900 to-emerald-700", accent: "#f0d48a" },
+  { id: "emerald", label: "Ã‰meraude", classes: "from-emerald-950 via-teal-900 to-emerald-700", accent: "#f0d48a" },
   { id: "rose", label: "Rose", classes: "from-rose-950 via-pink-900 to-rose-700", accent: "#ffd0a1" },
   { id: "gold", label: "Or", classes: "from-amber-950 via-yellow-800 to-amber-500", accent: "#2b1b0b" },
   { id: "mono", label: "Monochrome", classes: "from-zinc-950 via-zinc-900 to-zinc-700", accent: "#f8fafc" },
@@ -145,7 +143,7 @@ const dayOptions = [
   { label: "Vendredi", value: "Vendredi", dayOfWeek: 5 },
 ];
 
-const defaultPostText = "Chabbat Chalom à toute la communauté.\nRetrouvez les horaires de ce Chabbat.";
+const defaultPostText = "Chabbat Chalom Ã  toute la communautÃ©.\nRetrouvez les horaires de ce Chabbat.";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -158,7 +156,7 @@ function getPosterConfig(automation: InitialAutomation): PosterConfig {
 }
 
 function formatDate(value: string | null | undefined) {
-  if (!value) return "—";
+  if (!value) return "â€”";
   return new Date(`${value}T12:00:00`).toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
@@ -166,17 +164,17 @@ function formatDate(value: string | null | undefined) {
   });
 }
 
-// Calcule le libellé de la prochaine occurrence en fuseau Paris,
-// en affichant l'heure TELLE QUE configurée (jamais convertie depuis UTC).
+// Calcule le libellÃ© de la prochaine occurrence en fuseau Paris,
+// en affichant l'heure TELLE QUE configurÃ©e (jamais convertie depuis UTC).
 function getNextOccurrenceLabel(dayOfWeek: number, time: string): string {
-  if (!time || time === "00:00") return "À programmer";
+  if (!time || time === "00:00") return "Ã€ programmer";
   const [h, m] = time.split(":").map(Number);
-  if (!Number.isFinite(h) || !Number.isFinite(m)) return "À programmer";
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return "Ã€ programmer";
 
   const now = new Date();
   const TZ = "Europe/Paris";
 
-  // Jour et heure actuels en heure de Paris (indépendant du fuseau serveur/navigateur)
+  // Jour et heure actuels en heure de Paris (indÃ©pendant du fuseau serveur/navigateur)
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: TZ,
     weekday: "short",
@@ -190,10 +188,10 @@ function getNextOccurrenceLabel(dayOfWeek: number, time: string): string {
   const parisHour = parseInt(byType.hour ?? "0", 10);
   const parisMin = parseInt(byType.minute ?? "0", 10);
 
-  // Jours jusqu'à la prochaine occurrence
+  // Jours jusqu'Ã  la prochaine occurrence
   let daysUntil = (dayOfWeek - parisDay + 7) % 7;
   if (daysUntil === 0 && (h < parisHour || (h === parisHour && m <= parisMin))) {
-    daysUntil = 7; // l'heure est déjà passée aujourd'hui → semaine prochaine
+    daysUntil = 7; // l'heure est dÃ©jÃ  passÃ©e aujourd'hui â†’ semaine prochaine
   }
 
   const targetDate = new Date(now.getTime() + daysUntil * 24 * 60 * 60 * 1000);
@@ -204,13 +202,13 @@ function getNextOccurrenceLabel(dayOfWeek: number, time: string): string {
     month: "long",
   }).format(targetDate);
 
-  // L'heure est affichée EXACTEMENT comme configurée — pas de conversion UTC
+  // L'heure est affichÃ©e EXACTEMENT comme configurÃ©e â€” pas de conversion UTC
   const timePart = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-  return `${datePart} à ${timePart}`;
+  return `${datePart} Ã  ${timePart}`;
 }
 
 function formatField(value: string | null | undefined) {
-  return value && value.trim().length > 0 ? value : "—";
+  return value && value.trim().length > 0 ? value : "â€”";
 }
 
 function getInitials(name: string) {
@@ -348,7 +346,7 @@ function PosterFallback({
         <div className="my-5 h-px w-36 bg-white/40" />
         <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.15em] text-white/80">Entrée</p>
+            <p className="text-[10px] uppercase tracking-[0.15em] text-white/80">EntrÃ©e</p>
             <p className="mt-2 text-[38px] font-serif leading-none">{fields.entry || "21:39"}</p>
           </div>
           <div className="h-20 w-px bg-white/40" />
@@ -371,7 +369,7 @@ function PosterFallback({
               </p>
             </>
           )}
-          <p className="mt-5 text-[15px] font-semibold text-white/90">שבת שלום</p>
+          <p className="mt-5 text-[15px] font-semibold text-white/90">×©×‘×ª ×©×œ×•×</p>
         </div>
       </div>
     </div>
@@ -413,7 +411,7 @@ export function ShabbatTimesAutoClient({
     savedConfig.selectedTemplateId ?? selectedTemplateFromConfig(templates, initialMode, null)?.id ?? null
   );
   const [fields, setFields] = useState<ShabbatFields>(() => buildDefaultFields(community, shabbat, savedConfig.fields));
-  const [palette, setPalette] = useState(savedConfig.palette ?? "violet");
+  const [palette] = useState(savedConfig.palette ?? "violet");
   const [postText, setPostText] = useState(savedConfig.postText ?? defaultPostText);
   const [officeTimes, setOfficeTimes] = useState(savedConfig.officeTimes ?? "");
   const [notificationDay, setNotificationDay] = useState(savedConfig.notificationDay ?? "Vendredi");
@@ -462,12 +460,12 @@ export function ShabbatTimesAutoClient({
   function buildAiQuestions(): { field: AiField; question: string }[] {
     return [
       { field: "structureName", question: `Quel est le nom de votre structure ?` },
-      { field: "city", question: `Dans quelle ville êtes-vous ?${shabbat?.cityName ? ` (suggestion : ${shabbat.cityName})` : ""}` },
+      { field: "city", question: `Dans quelle ville Ãªtes-vous ?${shabbat?.cityName ? ` (suggestion : ${shabbat.cityName})` : ""}` },
       { field: "parasha", question: `Quelle est la paracha de ce Chabbat ?${shabbat?.parasha ? ` (suggestion : ${shabbat.parasha})` : ""}` },
-      { field: "entry", question: `Heure d'entrée de Chabbat ? (format hh:mm)${shabbat?.entry ? ` (suggestion : ${shabbat.entry})` : ""}` },
+      { field: "entry", question: `Heure d'entrÃ©e de Chabbat ? (format hh:mm)${shabbat?.entry ? ` (suggestion : ${shabbat.entry})` : ""}` },
       { field: "exit", question: `Heure de sortie de Chabbat ? (format hh:mm)${shabbat?.exit ? ` (suggestion : ${shabbat.exit})` : ""}` },
-      { field: "kiddouch", question: `Y a-t-il un kiddouch offert ce Chabbat ? Si oui, par qui ? (Entrée pour passer)` },
-      { field: "_postText", question: `Quel texte pour la publication ? (Entrée pour garder le texte par défaut)` },
+      { field: "kiddouch", question: `Y a-t-il un kiddouch offert ce Chabbat ? Si oui, par qui ? (EntrÃ©e pour passer)` },
+      { field: "_postText", question: `Quel texte pour la publication ? (EntrÃ©e pour garder le texte par dÃ©faut)` },
     ];
   }
 
@@ -513,7 +511,7 @@ export function ShabbatTimesAutoClient({
       setAiDone(true);
       setAiMessages((prev) => [
         ...prev,
-        { from: "ai", text: "Parfait ! Votre affiche est configurée. Vous pouvez la prévisualiser à droite et ajuster si nécessaire. Descendez pour choisir l'horaire d'envoi et valider." },
+        { from: "ai", text: "Parfait ! Votre affiche est configurÃ©e. Vous pouvez la prÃ©visualiser Ã  droite et ajuster si nÃ©cessaire. Descendez pour choisir l'horaire d'envoi et valider." },
       ]);
     } else {
       setAiStep(nextStep);
@@ -530,12 +528,12 @@ export function ShabbatTimesAutoClient({
     setPreviewError("");
     setPreviewImageUrl(null);
     try {
-      // Étape 1 : confirm → génère les textes pour chaque zone du template
-      const syntheticMessage = `Prépare l'affiche avec ces informations :
+      // Ã‰tape 1 : confirm â†’ gÃ©nÃ¨re les textes pour chaque zone du template
+      const syntheticMessage = `PrÃ©pare l'affiche avec ces informations :
 Structure : ${fields.structureName || community.name}
 Ville : ${fields.city || community.city || "Paris"}
 Paracha : ${fields.parasha || ""}
-Heure d'entrée de Chabbat : ${fields.entry || shabbat?.entry || ""}
+Heure d'entrÃ©e de Chabbat : ${fields.entry || shabbat?.entry || ""}
 Heure de sortie de Chabbat : ${fields.exit || shabbat?.exit || ""}
 ${fields.kiddouch ? `Kiddouch offert par : ${fields.kiddouch}` : ""}
 ${fields.logoUrl ? `Logo disponible` : ""}`;
@@ -548,11 +546,11 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
           messages: [{ role: "user", content: syntheticMessage }],
         }),
       });
-      if (!confirmRes.ok) throw new Error("Impossible de préparer les textes de l'affiche.");
+      if (!confirmRes.ok) throw new Error("Impossible de prÃ©parer les textes de l'affiche.");
       const confirmData = await confirmRes.json() as { generatedTexts?: Record<string, string> };
       const generatedTexts = confirmData.generatedTexts ?? {};
 
-      // Étape 2 : render → génère l'image
+      // Ã‰tape 2 : render â†’ gÃ©nÃ¨re l'image
       const renderRes = await fetch("/api/templates/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -560,13 +558,13 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
       });
       if (!renderRes.ok) {
         const err = await renderRes.json().catch(() => ({})) as { error?: string };
-        throw new Error(err.error ?? "Impossible de générer l'affiche.");
+        throw new Error(err.error ?? "Impossible de gÃ©nÃ©rer l'affiche.");
       }
       const renderData = await renderRes.json() as { imageUrl?: string };
       if (renderData.imageUrl) setPreviewImageUrl(renderData.imageUrl);
-      else throw new Error("Aucune image retournée.");
+      else throw new Error("Aucune image retournÃ©e.");
     } catch (e) {
-      setPreviewError(e instanceof Error ? e.message : "Erreur lors de la génération.");
+      setPreviewError(e instanceof Error ? e.message : "Erreur lors de la gÃ©nÃ©ration.");
     } finally {
       setGeneratingPreview(false);
     }
@@ -666,13 +664,13 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
       const response = await fetch(`/api/automations/${automation.id}/trigger`, { method: "POST" });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        setError((data as { error?: string }).error ?? "Erreur lors du déclenchement.");
+        setError((data as { error?: string }).error ?? "Erreur lors du dÃ©clenchement.");
       } else {
         setTriggerSuccess(true);
         setTimeout(() => setTriggerSuccess(false), 4000);
       }
     } catch {
-      setError("Erreur réseau lors du déclenchement.");
+      setError("Erreur rÃ©seau lors du dÃ©clenchement.");
     } finally {
       setTriggering(false);
     }
@@ -695,7 +693,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
   async function uploadLogo(file: File | null | undefined) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setLogoUploadError("Le logo doit être une image.");
+      setLogoUploadError("Le logo doit Ãªtre une image.");
       return;
     }
     setLogoUploading(true);
@@ -709,12 +707,12 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
       });
       const result = await response.json();
       if (!response.ok) {
-        setLogoUploadError(result.error ?? "Impossible de téléverser le logo.");
+        setLogoUploadError(result.error ?? "Impossible de tÃ©lÃ©verser le logo.");
         return;
       }
       updateField("logoUrl", result.logoUrl);
     } catch {
-      setLogoUploadError("Impossible de téléverser le logo.");
+      setLogoUploadError("Impossible de tÃ©lÃ©verser le logo.");
     } finally {
       setLogoUploading(false);
       setLogoDragActive(false);
@@ -722,7 +720,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
     }
   }
 
-  // ─── SUCCESS VIEW ───────────────────────────────────────────────────────────
+  // â”€â”€â”€ SUCCESS VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (view === "success") {
     return (
       <div className="mx-auto max-w-5xl px-4 pb-20 pt-10 sm:px-6">
@@ -731,12 +729,12 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
             <CheckCircle2 className="size-14 text-emerald-600" />
           </div>
           <h1 className="mt-8 text-3xl font-bold tracking-tight text-slate-950">
-            Votre automatisation a bien été créée !
+            Votre automatisation a bien Ã©tÃ© crÃ©Ã©e !
           </h1>
           <p className="mt-4 max-w-md text-slate-500 leading-7">
             {scheduleMode === "direct"
-              ? `Votre affiche de Chabbat sera publiée automatiquement chaque ${notificationDay} à ${notificationTime}.`
-              : `Chaque ${notificationDay} à ${notificationTime}, vous recevrez un e-mail vous invitant à valider votre affiche avant publication.`}
+              ? `Votre affiche de Chabbat sera publiÃ©e automatiquement chaque ${notificationDay} Ã  ${notificationTime}.`
+              : `Chaque ${notificationDay} Ã  ${notificationTime}, vous recevrez un e-mail vous invitant Ã  valider votre affiche avant publication.`}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-2">
             {CHANNEL_OPTIONS.filter(({ id }) => channels.includes(id)).map(({ id, label, Logo, badgeClass }) => (
@@ -747,9 +745,9 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
           </div>
           <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50 px-6 py-4 text-sm text-violet-800 max-w-sm">
             {scheduleMode === "direct" ? (
-              <p className="flex items-center gap-2"><Zap className="size-4 shrink-0" />Envoi automatique activé — aucune validation requise.</p>
+              <p className="flex items-center gap-2"><Zap className="size-4 shrink-0" />Envoi automatique activÃ© â€” aucune validation requise.</p>
             ) : (
-              <p className="flex items-center gap-2"><Mail className="size-4 shrink-0" />Un e-mail d'approbation vous sera envoyé à chaque cycle.</p>
+              <p className="flex items-center gap-2"><Mail className="size-4 shrink-0" />Un e-mail d&apos;approbation vous sera envoyÃ© Ã  chaque cycle.</p>
             )}
           </div>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -759,13 +757,13 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                 size="xl"
                 loading={triggering}
                 disabled={triggering}
-                className={triggerSuccess ? "bg-emerald-600 hover:bg-emerald-700" : "bg-violet-700 hover:bg-violet-800"}
+                className={triggerSuccess ? "bg-emerald-600 hover:bg-emerald-700" : "bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]"}
                 onClick={publishNow}
               >
-                {triggerSuccess ? <><CheckCircle2 className="size-5" />Envoyé !</> : <><Send className="size-5" />Publier maintenant</>}
+                {triggerSuccess ? <><CheckCircle2 className="size-5" />EnvoyÃ© !</> : <><Send className="size-5" />Publier maintenant</>}
               </Button>
             )}
-            <Button asChild size="xl" variant={automation?.id ? "outline" : "default"} className={automation?.id ? "" : "bg-violet-700 hover:bg-violet-800"}>
+            <Button asChild size="xl" variant={automation?.id ? "outline" : "default"} className={automation?.id ? "" : "bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]"}>
               <Link href="/dashboard/events">
                 <Calendar className="size-5" />
                 Voir dans l&apos;Agenda IA
@@ -780,7 +778,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
     );
   }
 
-  // ─── MODELS VIEW ────────────────────────────────────────────────────────────
+  // â”€â”€â”€ MODELS VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (view === "models") {
     const selectedModel = activeTemplates.find((t) => t.id === selectedTemplateId) ?? null;
     const selectedModelIndex = activeTemplates.findIndex((t) => t.id === selectedTemplateId);
@@ -788,27 +786,21 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
     return (
       <div className="container max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-24">
         {/* Header */}
-        <div className="rounded-[1.4rem] bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-600 p-5 text-white shadow-[0_22px_52px_rgba(76,29,149,0.26)]">
+        <div className="relative overflow-hidden rounded-[1.4rem] border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-[0_22px_52px_rgba(66,19,136,0.22)]">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-4">
               <Button type="button" variant="ghost" size="icon" className="border border-white/20 text-white hover:bg-white/10" onClick={() => setView("overview")}>
                 <ArrowLeft className="size-5" />
               </Button>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">Choisissez votre modèle</h1>
-                <p className="mt-2 text-sm text-violet-100">Le modèle sélectionné sera utilisé chaque semaine.</p>
+                <h1 className="text-3xl font-bold tracking-tight">Choisissez votre modÃ¨le</h1>
+                <p className="mt-2 text-sm text-violet-100">Le modÃ¨le sÃ©lectionnÃ© sera utilisÃ© chaque semaine.</p>
               </div>
             </div>
-            <div className="grid grid-cols-4 items-start gap-4 text-center text-xs text-violet-100">
-              {["Modèle", "Renseignements", "Programmation", "Validation"].map((label, index) => (
-                <div key={label} className="min-w-16">
-                  <div className={cn("mx-auto flex size-9 items-center justify-center rounded-full border border-white/30", index === 0 ? "bg-white text-violet-900" : "text-white/70")}>
-                    {index + 1}
-                  </div>
-                  <p className="mt-1 font-medium">{label}</p>
-                </div>
-              ))}
-            </div>
+            <DavidBannerAgent
+              className="lg:max-w-xl"
+              text="Je suis David votre assistant IA, je vous aide à choisir le meilleur modèle pour votre affiche de Chabbat"
+            />
           </div>
         </div>
 
@@ -834,7 +826,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
             {activeTemplates.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
                 <ImageIcon className="mx-auto size-9 text-slate-300" />
-                <p className="mt-3 font-semibold text-slate-950">Aucun modèle dans cette catégorie</p>
+                <p className="mt-3 font-semibold text-slate-950">Aucun modÃ¨le dans cette catÃ©gorie</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -871,7 +863,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                         )}
                       </div>
                       <div className="flex items-center justify-between gap-3 px-2 py-3">
-                        <span className="text-sm font-bold text-slate-900">{selected ? "Modèle sélectionné" : isLocked ? "Débloquer" : "Choisir ce modèle"}</span>
+                        <span className="text-sm font-bold text-slate-900">{selected ? "ModÃ¨le sÃ©lectionnÃ©" : isLocked ? "DÃ©bloquer" : "Choisir ce modÃ¨le"}</span>
                         <ArrowRight className="size-4 text-violet-500 transition group-hover:translate-x-0.5" />
                       </div>
                     </button>
@@ -883,7 +875,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
 
           {/* Summary sidebar */}
           <aside className="rounded-[1.2rem] border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-5 xl:self-start">
-            <h2 className="text-lg font-bold text-slate-950">Résumé de votre sélection</h2>
+            <h2 className="text-lg font-bold text-slate-950">RÃ©sumÃ© de votre sÃ©lection</h2>
             {selectedModel ? (
               <div className="mt-5 space-y-5">
                 <div className="flex gap-4">
@@ -891,7 +883,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                     <TemplateImage template={selectedModel} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-base font-bold text-slate-950">Modèle sélectionné</p>
+                    <p className="text-base font-bold text-slate-950">ModÃ¨le sÃ©lectionnÃ©</p>
                     <p className="mt-1 line-clamp-2 text-sm text-slate-600">{selectedModel.name}</p>
                     {selectedModelIndex === 0 && (
                       <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
@@ -902,7 +894,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                     {selectedModelIndex > 0 && (
                       <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">
                         <CheckCircle2 className="size-3.5" />
-                        Prêt pour l&apos;étape 2
+                        PrÃªt pour l&apos;Ã©tape 2
                       </span>
                     )}
                   </div>
@@ -940,7 +932,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
           <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 shadow-[0_-12px_32px_rgba(15,23,42,0.12)] backdrop-blur md:p-4 xl:hidden">
             <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-violet-700">Modèle sélectionné</p>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-violet-700">ModÃ¨le sÃ©lectionnÃ©</p>
                 <p className="truncate text-sm font-bold text-slate-950">{selectedModel.name}</p>
               </div>
               <Button
@@ -969,24 +961,24 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
               </div>
               <h2 className="mt-5 text-2xl font-bold text-slate-950">Activez EasyCom IA</h2>
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                Abonnez-vous pour accéder à tous les modèles et activer l&apos;automatisation hebdomadaire.
+                Abonnez-vous pour accÃ©der Ã  tous les modÃ¨les et activer l&apos;automatisation hebdomadaire.
               </p>
               <div className="mt-5 space-y-3 text-left text-sm text-slate-700">
-                {["Tous les modèles d'affiches Chabbat", "Horaires automatiques selon votre ville", "Publication Facebook, Instagram et WhatsApp", "Rappel chaque vendredi"].map((item) => (
+                {["Tous les modÃ¨les d'affiches Chabbat", "Horaires automatiques selon votre ville", "Publication Facebook, Instagram et WhatsApp", "Rappel chaque vendredi"].map((item) => (
                   <p key={item} className="flex items-center gap-3">
                     <CheckCircle2 className="size-5 text-emerald-500" />
                     {item}
                   </p>
                 ))}
               </div>
-              <Button asChild className="mt-6 w-full bg-violet-700 hover:bg-violet-800">
+              <Button asChild className="mt-6 w-full bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]">
                 <Link href="/dashboard/settings/billing">
                   <Crown className="size-4" />
-                  Découvrir l&apos;abonnement
+                  DÃ©couvrir l&apos;abonnement
                 </Link>
               </Button>
               <Button type="button" variant="outline" className="mt-3 w-full" onClick={() => setPaywallOpen(false)}>
-                Continuer à consulter
+                Continuer Ã  consulter
               </Button>
             </div>
           </div>
@@ -995,24 +987,23 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
     );
   }
 
-  // ─── CUSTOMIZE VIEW ──────────────────────────────────────────────────────────
+  // â”€â”€â”€ CUSTOMIZE VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (view === "customize") {
     return (
       <div className="container max-w-6xl mx-auto py-6 px-4 sm:px-6">
         {/* Header */}
-        <div className="rounded-[1.4rem] bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-600 p-5 text-white shadow-[0_22px_52px_rgba(76,29,149,0.26)]">
-          <div className="mb-5 grid grid-cols-4 items-start gap-4 text-center text-xs text-violet-100">
-            {["Modèle", "Renseignements", "Programmation", "Validation"].map((label, index) => (
-              <div key={label} className="min-w-0">
-                <div className={cn("mx-auto flex size-9 items-center justify-center rounded-full border border-white/30", index === 1 ? "bg-white text-violet-900" : "text-white/80")}>
-                  {index === 0 ? <CheckCircle2 className="size-4" /> : index + 1}
-                </div>
-                <p className={cn("mt-1 font-medium", index === 1 ? "text-white" : "text-violet-200")}>{label}</p>
-              </div>
-            ))}
+        <div className="relative overflow-hidden rounded-[1.4rem] border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-[0_22px_52px_rgba(66,19,136,0.22)]">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="mb-4 h-1.5 w-12 rounded-full bg-white/80" />
+              <h1 className="text-3xl font-bold tracking-tight">Renseignez votre affiche</h1>
+              <p className="mt-2 text-sm text-violet-100">Ces informations seront affichÃ©es sur votre affiche chaque semaine.</p>
+            </div>
+            <DavidBannerAgent
+              className="lg:max-w-xl"
+              text="Je suis David votre assistant IA, je vous aide à remplir les bonnes informations avant publication"
+            />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Renseignez votre affiche</h1>
-          <p className="mt-2 text-sm text-violet-100">Ces informations seront affichées sur votre affiche chaque semaine.</p>
         </div>
 
         <div className="mt-6 grid gap-5 xl:grid-cols-[1fr_460px]">
@@ -1035,7 +1026,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                     <User className="size-5" />
                   </span>
                   <span className="text-sm font-bold text-slate-900">Saisie manuelle</span>
-                  <span className="text-xs text-slate-500">Je remplis le formulaire moi-même</span>
+                  <span className="text-xs text-slate-500">Je remplis le formulaire moi-mÃªme</span>
                 </button>
                 <button
                   type="button"
@@ -1047,11 +1038,12 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                       : "border-slate-200 hover:border-violet-300"
                   )}
                 >
-                  <span className={cn("flex size-10 items-center justify-center rounded-full", fillMode === "ai" ? "bg-violet-600 text-white" : "bg-slate-100 text-slate-500")}>
-                    <Bot className="size-5" />
+                  <span className={cn("flex size-10 items-center justify-center rounded-full bg-white shadow-sm ring-1", fillMode === "ai" ? "ring-violet-300" : "ring-slate-200")}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={DAVID_IMAGE_URL} alt="David, agent intelligent" className="size-8 rounded-full object-contain" />
                   </span>
                   <span className="text-sm font-bold text-slate-900">Assistant IA</span>
-                  <span className="text-xs text-slate-500">L'IA me pose les questions</span>
+                  <span className="text-xs text-slate-500">L&apos;IA me pose les questions</span>
                 </button>
               </div>
             </div>
@@ -1060,32 +1052,14 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
             {fillMode === "manual" && (
               <>
                 <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <h2 className="text-lg font-bold text-slate-950">Palette de couleurs</h2>
-                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                    {paletteOptions.map((option) => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() => setPalette(option.id)}
-                        className={cn("relative rounded-lg border p-2 text-sm font-medium transition", palette === option.id ? "border-violet-600 ring-2 ring-violet-200" : "border-slate-200 hover:border-violet-300")}
-                      >
-                        <span className={cn("block h-12 rounded-md bg-gradient-to-br", option.classes)} />
-                        <span className="mt-2 block text-slate-700">{option.label}</span>
-                        {palette === option.id && <CheckCircle2 className="absolute right-1 top-1 size-5 rounded-full bg-violet-600 text-white" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <h2 className="text-lg font-bold text-slate-950">Informations affichées</h2>
+                  <h2 className="text-lg font-bold text-slate-950">Informations affichÃ©es</h2>
                   <div className="mt-4 divide-y divide-slate-100">
                     {[
                       { key: "logoUrl", label: "Logo de la structure", icon: Upload },
                       { key: "structureName", label: "Nom de la structure", icon: Pencil },
                       { key: "city", label: "Ville", icon: MapPin },
                       { key: "parasha", label: "Paracha", icon: BookOpen },
-                      { key: "entry", label: "Entrée de Chabbat", icon: Clock },
+                      { key: "entry", label: "EntrÃ©e de Chabbat", icon: Clock },
                       { key: "exit", label: "Sortie de Chabbat", icon: Clock },
                       { key: "kiddouch", label: "Kiddouch offert par", icon: Star },
                     ].map((item) => {
@@ -1133,7 +1107,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <p className="text-sm font-bold text-slate-900">
-                                    {logoUploading ? "Téléversement..." : "Glissez le logo ici ou cliquez pour le charger"}
+                                    {logoUploading ? "TÃ©lÃ©versement..." : "Glissez le logo ici ou cliquez pour le charger"}
                                   </p>
                                   <p className="mt-1 text-xs leading-5 text-slate-500">
                                     Conversion automatique en WebP, puis enregistrement dans Supabase au nom de la structure.
@@ -1203,17 +1177,23 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
             {fillMode === "ai" && (
               <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 bg-violet-50">
-                  <span className="flex size-8 items-center justify-center rounded-full bg-violet-600 text-white">
-                    <Bot className="size-4" />
+                  <span className="flex size-8 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-violet-200">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={DAVID_IMAGE_URL} alt="David, agent intelligent" className="size-7 rounded-full object-contain" />
                   </span>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm font-bold text-slate-900">Assistant IA</p>
                     <p className="text-xs text-slate-500">Je remplis votre affiche question par question</p>
                   </div>
+                  <Link href="/dashboard/assistant" className="ml-auto shrink-0">
+                    <Button type="button" variant="outline" size="sm" className="h-8 rounded-xl border-violet-200 bg-white px-3 text-xs font-bold text-violet-700 hover:bg-violet-50">
+                      Poser une question
+                    </Button>
+                  </Link>
                   {aiDone && (
-                    <span className="ml-auto flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                    <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
                       <CheckCircle2 className="size-3.5" />
-                      Terminé
+                      TerminÃ©
                     </span>
                   )}
                 </div>
@@ -1222,8 +1202,9 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                   {aiMessages.map((msg, index) => (
                     <div key={index} className={cn("flex", msg.from === "ai" ? "justify-start" : "justify-end")}>
                       {msg.from === "ai" && (
-                        <span className="mr-2 mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-violet-100 text-violet-600">
-                          <Bot className="size-3.5" />
+                        <span className="mr-2 mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-violet-100">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={DAVID_IMAGE_URL} alt="David" className="size-5 rounded-full object-contain" />
                         </span>
                       )}
                       <div
@@ -1240,8 +1221,9 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                   ))}
                   {!aiDone && aiMessages.length > 0 && (
                     <div className="flex justify-start">
-                      <span className="mr-2 mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-violet-100 text-violet-600">
-                        <Bot className="size-3.5" />
+                      <span className="mr-2 mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-violet-100">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={DAVID_IMAGE_URL} alt="David" className="size-5 rounded-full object-contain" />
                       </span>
                       <div className="flex items-center gap-1 rounded-2xl rounded-tl-sm bg-slate-100 px-4 py-3">
                         <span className="size-1.5 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "0ms" }} />
@@ -1266,7 +1248,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                         type="text"
                         value={aiInput}
                         onChange={(event) => setAiInput(event.target.value)}
-                        placeholder="Votre réponse... (Entrée pour envoyer)"
+                        placeholder="Votre rÃ©ponse... (EntrÃ©e pour envoyer)"
                         className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
                       />
                       <button
@@ -1277,7 +1259,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                       </button>
                     </form>
                     <p className="mt-2 text-center text-xs text-slate-400">
-                      Étape {Math.min(aiStep + 1, buildAiQuestions().length)}/{buildAiQuestions().length} · Appuyez sur Entrée pour passer une question
+                      Ã‰tape {Math.min(aiStep + 1, buildAiQuestions().length)}/{buildAiQuestions().length} Â· Appuyez sur EntrÃ©e pour passer une question
                     </p>
                   </div>
                 )}
@@ -1285,7 +1267,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                 {aiDone && (
                   <div className="border-t border-slate-100 p-4">
                     <p className="text-center text-sm text-slate-500">
-                      Aperçu mis à jour à droite. Continuez pour configurer l&apos;horaire d&apos;envoi.
+                      AperÃ§u mis Ã  jour Ã  droite. Continuez pour configurer l&apos;horaire d&apos;envoi.
                     </p>
                   </div>
                 )}
@@ -1295,7 +1277,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
             {/* Schedule section */}
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="text-lg font-bold text-slate-950">Automatisation hebdomadaire</h2>
-              <p className="mt-1 text-sm text-slate-500">Choisissez comment et quand votre publication doit être préparée.</p>
+              <p className="mt-1 text-sm text-slate-500">Choisissez comment et quand votre publication doit Ãªtre prÃ©parÃ©e.</p>
 
               {/* Schedule mode */}
               <div className="mt-4 grid grid-cols-2 gap-3">
@@ -1370,12 +1352,12 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                 {scheduleMode === "notification" ? (
                   <>
                     <Mail className="size-4 mt-0.5 shrink-0" />
-                    <span>Chaque <strong>{notificationDay}</strong> à <strong>{notificationTime}</strong>, vous recevrez un e-mail vous informant qu&apos;une publication attend votre approbation.</span>
+                    <span>Chaque <strong>{notificationDay}</strong> Ã  <strong>{notificationTime}</strong>, vous recevrez un e-mail vous informant qu&apos;une publication attend votre approbation.</span>
                   </>
                 ) : (
                   <>
                     <Zap className="size-4 mt-0.5 shrink-0" />
-                    <span>La publication sera envoyée automatiquement chaque <strong>{notificationDay}</strong> à <strong>{notificationTime}</strong>, sans validation préalable.</span>
+                    <span>La publication sera envoyÃ©e automatiquement chaque <strong>{notificationDay}</strong> Ã  <strong>{notificationTime}</strong>, sans validation prÃ©alable.</span>
                   </>
                 )}
               </div>
@@ -1383,8 +1365,8 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
 
             {/* Channel selector */}
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="text-lg font-bold text-slate-950">Où publier ?</h2>
-              <p className="mt-1 text-sm text-slate-500">Sélectionnez les canaux de diffusion. Vous pouvez en choisir plusieurs.</p>
+              <h2 className="text-lg font-bold text-slate-950">OÃ¹ publier ?</h2>
+              <p className="mt-1 text-sm text-slate-500">SÃ©lectionnez les canaux de diffusion. Vous pouvez en choisir plusieurs.</p>
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {CHANNEL_OPTIONS.map(({ id, label, Logo, activeClass }) => {
                   const active = channels.includes(id);
@@ -1411,7 +1393,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
               </div>
               {channels.length === 0 && (
                 <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-                  Sélectionnez au moins un canal pour activer l&apos;automatisation.
+                  SÃ©lectionnez au moins un canal pour activer l&apos;automatisation.
                 </p>
               )}
             </div>
@@ -1419,7 +1401,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
             {error && <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button type="button" size="xl" loading={saving} disabled={channels.length === 0} className="bg-violet-700 hover:bg-violet-800" onClick={activateAutomation}>
+              <Button type="button" size="xl" loading={saving} disabled={channels.length === 0} className="bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" onClick={activateAutomation}>
                 <Sparkles className="size-5" />
                 Valider et activer l&apos;automatisation
               </Button>
@@ -1431,19 +1413,19 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
           </section>
 
           {/* Preview aside */}
-          <aside className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-5 xl:self-start space-y-4">
+          <aside className="rounded-xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5 xl:sticky xl:top-5 xl:self-start space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-950">Aperçu de votre affiche</h2>
+              <h2 className="text-xl font-bold text-slate-950">AperÃ§u de votre affiche</h2>
               {selectedTemplateId && (
                 <Button
                   type="button"
                   size="sm"
-                  className="bg-violet-700 hover:bg-violet-800"
+                  className="bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]"
                   loading={generatingPreview}
                   onClick={() => void handleGeneratePreview()}
                 >
                   {!generatingPreview && <Wand2 className="size-3.5" />}
-                  {generatingPreview ? "Génération…" : "Générer l'aperçu"}
+                  {generatingPreview ? "GÃ©nÃ©rationâ€¦" : "GÃ©nÃ©rer l'aperÃ§u"}
                 </Button>
               )}
             </div>
@@ -1468,11 +1450,11 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                     {generatingPreview ? (
                       <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-violet-50">
                         <Loader2 className="size-8 animate-spin text-violet-500" />
-                        <p className="text-[11px] font-semibold text-violet-700">Génération en cours…</p>
+                        <p className="text-[11px] font-semibold text-violet-700">GÃ©nÃ©ration en coursâ€¦</p>
                       </div>
                     ) : previewImageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={previewImageUrl} alt="Aperçu généré" className="h-full w-full object-cover" />
+                      <img src={previewImageUrl} alt="AperÃ§u gÃ©nÃ©rÃ©" className="h-full w-full object-cover" />
                     ) : selectedTemplate ? (
                       <TemplateImage template={selectedTemplate} />
                     ) : (
@@ -1492,7 +1474,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                 <div className="mt-3 flex items-center justify-between">
                   <p className="flex items-center gap-1.5 text-xs text-emerald-700">
                     <CheckCircle2 className="size-3.5" />
-                    Rendu réel généré
+                    Rendu rÃ©el gÃ©nÃ©rÃ©
                   </p>
                   <button
                     type="button"
@@ -1500,13 +1482,13 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                     className="flex items-center gap-1 text-xs font-semibold text-violet-600 hover:text-violet-800"
                   >
                     <Wand2 className="size-3" />
-                    Regénérer
+                    RegÃ©nÃ©rer
                   </button>
                 </div>
               )}
               {selectedTemplateId && !previewImageUrl && !generatingPreview && (
                 <p className="mt-3 text-center text-xs text-slate-400">
-                  Cliquez sur &quot;Générer l&apos;aperçu&quot; pour voir le rendu réel.
+                  Cliquez sur &quot;GÃ©nÃ©rer l&apos;aperÃ§u&quot; pour voir le rendu rÃ©el.
                 </p>
               )}
             </div>
@@ -1514,7 +1496,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
             {selectedTemplate && (
               <div className="rounded-lg border border-violet-100 bg-violet-50 p-3 text-sm text-violet-900">
                 <Info className="mr-2 inline size-4" />
-                Modèle : {selectedTemplate.name}
+                ModÃ¨le : {selectedTemplate.name}
               </div>
             )}
           </aside>
@@ -1523,7 +1505,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
     );
   }
 
-  // ─── OVERVIEW VIEW ───────────────────────────────────────────────────────────
+  // â”€â”€â”€ OVERVIEW VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="container max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-16">
       {/* Welcome popup (first visit) */}
@@ -1539,18 +1521,18 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
               </button>
             </div>
             <h2 className="mt-5 text-2xl font-bold leading-tight text-slate-950">
-              Découvrez les automatisations pour les horaires de Chabbat
+              DÃ©couvrez les automatisations pour les horaires de Chabbat
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Chaque semaine, votre affiche est préparée automatiquement avec les bons horaires. Il vous suffit de valider en un clic.
+              Chaque semaine, votre affiche est prÃ©parÃ©e automatiquement avec les bons horaires. Il vous suffit de valider en un clic.
             </p>
 
             <div className="mt-6 space-y-4">
               {[
-                { step: 1, icon: ImageIcon, title: "Choisissez votre modèle d'affiche", desc: "Sélectionnez le design qui correspond à votre structure. Le premier est offert.", color: "bg-sky-100 text-sky-700" },
-                { step: 2, icon: Edit3, title: "Renseignez vos informations", desc: "Logo, ville, paracha, horaires… remplissez le formulaire ou laissez l'IA vous guider.", color: "bg-violet-100 text-violet-700" },
-                { step: 3, icon: Send, title: "Recevez un e-mail chaque semaine", desc: "Un e-mail vous invite à valider avant publication, ou activez l'envoi automatique.", color: "bg-emerald-100 text-emerald-700" },
-              ].map(({ step, icon: Icon, title, desc, color }) => (
+                { step: 1, icon: ImageIcon, title: "Choisissez votre modÃ¨le d'affiche", desc: "SÃ©lectionnez le design qui correspond Ã  votre structure. Le premier est offert.", color: "bg-sky-100 text-sky-700" },
+                { step: 2, icon: Edit3, title: "Renseignez vos informations", desc: "Logo, ville, paracha, horairesâ€¦ remplissez le formulaire ou laissez l&apos;IA vous guider.", color: "bg-violet-100 text-violet-700" },
+                { step: 3, icon: Send, title: "Recevez un e-mail chaque semaine", desc: "Un e-mail vous invite Ã  valider avant publication, ou activez l&apos;envoi automatique.", color: "bg-emerald-100 text-emerald-700" },
+              ].map(({ step, title, desc, color }) => (
                 <div key={step} className="flex items-start gap-4">
                   <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-black", color)}>
                     {step}
@@ -1563,18 +1545,25 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
               ))}
             </div>
 
+            <DavidAutomationCard
+              className="mt-6"
+              onCtaClick={() => {
+                setShowWelcomePopup(false);
+                setView("models");
+              }}
+            />
             <div className="mt-8 flex flex-col gap-3">
               <Button
                 type="button"
                 size="xl"
-                className="w-full bg-violet-700 hover:bg-violet-800"
+                className="w-full bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]"
                 onClick={() => {
                   setShowWelcomePopup(false);
                   setView("models");
                 }}
               >
                 <Sparkles className="size-5" />
-                Commencer maintenant
+                Commencer la configuration →
               </Button>
               <Button type="button" variant="outline" className="w-full" onClick={() => setShowWelcomePopup(false)}>
                 Découvrir d&apos;abord le tableau de bord
@@ -1585,24 +1574,36 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
       )}
 
       {/* Header */}
-      <div className="rounded-[1.4rem] bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-600 p-6 text-white shadow-[0_22px_52px_rgba(76,29,149,0.26)]">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <div className="mb-4 h-1.5 w-12 rounded-full bg-violet-200" />
-            <h1 className="text-4xl font-bold tracking-tight">Horaires de Chabbat</h1>
-            <p className="mt-2 text-violet-200 text-sm">Automatisation hebdomadaire de votre affiche</p>
+      <div className="relative overflow-hidden rounded-[1.4rem] border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-[0_22px_52px_rgba(66,19,136,0.22)]">
+        <div className="pointer-events-none absolute inset-y-0 right-6 flex items-center" aria-hidden="true">
+          <div className="rounded-full bg-white/[0.04] p-5">
+            <Clock className="size-28 text-white/[0.08]" strokeWidth={1.6} />
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+        </div>
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="relative">
+            <div className="mb-4 h-1.5 w-12 rounded-full bg-white/80" />
+            <h1 className="text-4xl font-bold tracking-tight">Horaires de Chabbat</h1>
+            <p className="mt-2 text-sm text-white/82">Automatisation hebdomadaire de votre affiche</p>
+          </div>
+          <div className="flex flex-col items-start gap-3 lg:items-end">
+            <DavidBannerAgent
+              className="lg:max-w-2xl"
+              text="Je suis David votre assistant IA, je vous aide à préparer et publier les horaires de Chabbat chaque semaine"
+            />
+            <div className="flex flex-wrap items-center gap-3">
             {/* Modifier la configuration */}
-            <Button
-              type="button"
-              variant="outline"
-              className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
-              onClick={() => setView(configured ? "customize" : "models")}
-            >
-              <Settings className="size-4" />
-              {configured ? "Modifier la configuration" : "Commencer la configuration"}
-            </Button>
+            {configured && (
+              <Button
+                type="button"
+                variant="outline"
+                className="border-white/20 bg-white/12 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/18 hover:text-white"
+                onClick={() => setView("customize")}
+              >
+                <Settings className="size-4" />
+                Modifier la configuration
+              </Button>
+            )}
 
             {/* Publier maintenant */}
             {automation?.id && configured && (
@@ -1611,30 +1612,23 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                 variant="outline"
                 loading={triggering}
                 disabled={triggering}
-                className={triggerSuccess ? "border-emerald-400/60 bg-emerald-500/20 text-white hover:bg-emerald-500/30 hover:text-white" : "border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"}
+                className={triggerSuccess ? "border-emerald-400/60 bg-emerald-500/20 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-500/30 hover:text-white" : "border-white/20 bg-white/12 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/18 hover:text-white"}
                 onClick={publishNow}
               >
                 {triggerSuccess ? <><CheckCircle2 className="size-4" />Envoyé !</> : <><Send className="size-4" />Publier maintenant</>}
               </Button>
             )}
-
-            {/* Toutes mes automatisations */}
-            <Button asChild variant="outline" className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white">
-              <Link href="/dashboard/automations">
-                <ExternalLink className="size-4" />
-                Toutes mes automatisations
-              </Link>
-            </Button>
+            </div>
           </div>
         </div>
 
-        {/* Activer / Désactiver — en bas à droite du bandeau */}
+        {/* Activer / DÃ©sactiver â€” en bas Ã  droite du bandeau */}
         <div className="mt-6 flex justify-end">
           <div className="relative">
             <Button
               type="button"
               variant="outline"
-              className="border-white/20 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+              className="border-white/20 bg-white/12 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/18 hover:text-white"
               onClick={() => setStatusOpen((open) => !open)}
             >
               <span className={cn("size-2.5 rounded-full", isActive ? "bg-emerald-400" : "bg-slate-300")} />
@@ -1663,8 +1657,16 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
         </div>
       </div>
 
+      <DavidAutomationCard
+        className="mt-6"
+        onCtaClick={() => {
+          if (configured) void activateAutomation();
+          else setView("models");
+        }}
+      />
+
       {/* Steps */}
-      <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="mt-6 rounded-xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
         <div className="grid gap-4 lg:grid-cols-3">
           {[
             { number: 1, icon: ImageIcon, title: "Choisissez votre modèle", text: "Sélectionnez un modèle d'affiche d'horaires de Chabbat.", tone: "border-sky-100 bg-sky-50 text-sky-700" },
@@ -1688,7 +1690,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
 
       {/* Chabbat info + Next notification */}
       <div className="mt-6 grid gap-5 xl:grid-cols-[1fr_400px]">
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
           <h2 className="text-xl font-bold text-slate-950">Chabbat à venir</h2>
           <div className="mt-4 flex items-center gap-3 text-2xl font-bold text-slate-950">
             <MapPin className="size-7 text-violet-700" />
@@ -1705,7 +1707,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
             <div className="flex items-center gap-3">
               <Clock className="size-7 text-violet-700" />
               <div>
-                <p className="text-xs text-slate-500">Entrée</p>
+                <p className="text-xs text-slate-500">EntrÃ©e</p>
                 <p className="font-bold text-slate-950">{formatField(shabbat?.entry)}</p>
               </div>
             </div>
@@ -1719,7 +1721,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
-              Horaires à jour · {formatDate(shabbat?.date)}
+              Horaires Ã  jour Â· {formatDate(shabbat?.date)}
             </p>
             <Button type="button" variant="outline" onClick={() => setView("customize")}>
               <Settings className="size-4" />
@@ -1728,7 +1730,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
           </div>
         </section>
 
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
           <h2 className="text-xl font-bold text-slate-950">Prochaine notification</h2>
           <div className="mt-5 flex items-center gap-4">
             <span className="flex size-14 items-center justify-center rounded-full bg-violet-100 text-violet-700">
@@ -1737,12 +1739,12 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
             <p className="font-bold text-violet-700">
               {isActive
                 ? getNextOccurrenceLabel(notificationDayOfWeek, notificationTime)
-                : "À programmer"}
+                : "Ã€ programmer"}
             </p>
           </div>
           <div className={cn("mt-4 flex items-start gap-2 rounded-xl border p-3 text-sm", scheduleMode === "notification" ? "border-blue-100 bg-blue-50 text-blue-700" : "border-amber-100 bg-amber-50 text-amber-700")}>
             {scheduleMode === "notification" ? (
-              <><Mail className="size-4 mt-0.5 shrink-0" /><span>Un e-mail d&apos;approbation vous sera envoyé avant publication.</span></>
+              <><Mail className="size-4 mt-0.5 shrink-0" /><span>Un e-mail d&apos;approbation vous sera envoyÃ© avant publication.</span></>
             ) : (
               <><Zap className="size-4 mt-0.5 shrink-0" /><span>Publication automatique sans validation.</span></>
             )}
@@ -1795,7 +1797,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                 />
               </label>
             </div>
-            <Button type="button" className="mt-6 w-full bg-violet-700 hover:bg-violet-800" loading={saving} onClick={updateSchedule}>
+            <Button type="button" className="mt-6 w-full bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" loading={saving} onClick={updateSchedule}>
               Enregistrer l&apos;horaire
             </Button>
           </div>
@@ -1805,3 +1807,8 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
     </div>
   );
 }
+
+
+
+
+

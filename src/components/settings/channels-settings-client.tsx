@@ -207,17 +207,20 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
   }
 
   return (
-    <div className="max-w-3xl space-y-8">
+    <div className="min-w-0 space-y-6 pb-8">
 
       {/* ── En-tête ──────────────────────────────────────────── */}
-      <div className="space-y-1">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl brand-gradient flex items-center justify-center shadow-sm">
+      <div className="overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#0f1f4d_0%,#17357a_58%,#2351b8_100%)] text-white shadow-[0_22px_50px_rgba(15,23,42,0.22)]">
+        <div className="flex items-center gap-4 px-5 py-6 sm:px-7 sm:py-7">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/15">
             <Zap className="size-5 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Canaux de diffusion</h1>
-            <p className="text-sm text-slate-500">
+            <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">Canaux de diffusion</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100 sm:text-[15px]">
+              Rassemblez vos connexions de publication dans un espace clair, moderne et coherent avec le reste du dashboard.
+            </p>
+            <p className="hidden">
               Connectez vos réseaux sociaux pour publier directement depuis EasyCom IA
             </p>
           </div>
@@ -227,7 +230,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
       {/* ── Bandeau résultat OAuth ────────────────────────────── */}
       {oauthMessage && (
         <div className={cn(
-          "rounded-2xl border p-4 flex items-center gap-3",
+          "flex items-center gap-3 rounded-[1.6rem] border p-4 shadow-sm",
           oauthMessage.tone === "success"
             ? "bg-emerald-50 border-emerald-200"
             : "bg-red-50 border-red-200"
@@ -245,7 +248,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
       )}
 
       {/* ── Stat bar ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         {[
           { label: "Canaux disponibles", value: CHANNEL_ORDER.length, color: "text-slate-700", bg: "bg-slate-50 border-slate-200" },
           { label: "Connectés", value: connectedCount, color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
@@ -254,15 +257,15 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
             return !!channel && channel.isActive && isChannelConnected(channel);
           }).length, color: "text-blue-700", bg: "bg-blue-50 border-blue-200" },
         ].map((s) => (
-          <div key={s.label} className={cn("rounded-2xl border p-4 text-center", s.bg)}>
-            <p className={cn("text-3xl font-bold", s.color)}>{s.value}</p>
-            <p className="text-xs text-slate-500 mt-1">{s.label}</p>
+          <div key={s.label} className={cn("rounded-[1.6rem] border bg-white p-4 shadow-sm", s.bg)}>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">{s.label}</p>
+            <p className={cn("mt-3 text-3xl font-black", s.color)}>{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* ── Info ─────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 flex gap-3">
+      <div className="hidden rounded-2xl border border-blue-100 bg-blue-50/60 p-4 flex gap-3">
         <Info className="size-4 text-blue-500 flex-shrink-0 mt-0.5" />
         <p className="text-sm text-blue-700 leading-relaxed">
           Les canaux <strong>Instagram</strong> et <strong>Facebook</strong> se connectent via Meta OAuth en un clic.
@@ -285,15 +288,15 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
             <div
               key={type}
               className={cn(
-                "rounded-2xl border bg-white transition-all duration-200 overflow-hidden",
+                "overflow-hidden rounded-[1.8rem] border bg-white shadow-sm transition-all duration-200",
                 isConnected
-                  ? "border-emerald-200 shadow-sm shadow-emerald-50"
+                  ? "border-emerald-200 shadow-emerald-50/80"
                   : "border-slate-200 hover:border-slate-300",
                 !isActive && channel && "opacity-60"
               )}
             >
               {/* ── Ligne principale ── */}
-              <div className="flex items-center gap-4 p-5">
+              <div className="flex items-center gap-4 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5">
 
                 {/* Logo réseau */}
                 <div className={cn(
@@ -377,10 +380,10 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                   <button
                     onClick={() => setExpandedChannel(isExpanded ? null : type)}
                     className={cn(
-                      "flex items-center gap-1.5 text-sm font-medium rounded-xl px-4 py-2 border transition-all",
+                      "flex items-center gap-1.5 rounded-2xl border px-4 py-2 text-sm font-semibold transition-all",
                       isConnected
                         ? "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                        : "brand-gradient text-white border-transparent shadow-sm hover:opacity-90"
+                        : "bg-blue-950 border-blue-950 text-white shadow-sm hover:bg-blue-900"
                     )}
                   >
                     <span>{isConnected ? "Configurer" : "Connecter"}</span>
@@ -393,7 +396,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
 
               {/* ── Panel de configuration ── */}
               {isExpanded && (
-                <div className="border-t border-slate-100 bg-slate-50/50 px-5 py-5 space-y-4">
+                <div className="space-y-4 border-t border-slate-100 bg-slate-50/70 px-5 py-5">
 
                   {/* OAuth (Instagram / Facebook) */}
                   {cfg.authType === "oauth" && (
@@ -677,7 +680,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                         <button
                           onClick={() => saveManualChannel(type)}
                           disabled={saving === type}
-                          className="flex items-center gap-2 brand-gradient text-white text-sm font-semibold rounded-xl px-4 py-2.5 shadow-sm hover:opacity-90 transition-all disabled:opacity-60"
+                          className="flex items-center gap-2 rounded-2xl bg-blue-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-900 disabled:opacity-60"
                         >
                           {saving === type
                             ? <Loader2 className="size-4 animate-spin" />
@@ -706,22 +709,24 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
       </div>
 
       {/* ── Footer aide ──────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
-          <Info className="size-5 text-slate-500" />
+      <div className="flex items-start gap-4 rounded-[1.8rem] border border-blue-100 bg-[linear-gradient(135deg,#eef4ff_0%,#ffffff_100%)] p-5 shadow-sm">
+        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-blue-950 text-white shadow-sm">
+          <Info className="size-5" />
         </div>
-        <div className="space-y-1">
-          <p className="text-sm font-semibold text-slate-800">Besoin d&apos;aide pour configurer un canal ?</p>
-          <p className="text-xs text-slate-500 leading-relaxed">
+        <div className="space-y-2">
+          <p className="text-sm font-bold text-slate-900">Besoin d&apos;aide pour configurer un canal ?</p>
+          <p className="text-sm leading-6 text-slate-600">
             Consultez notre documentation ou contactez le support. Pour Instagram et Facebook,
             assurez-vous d&apos;avoir un <strong>compte professionnel</strong> et d&apos;être <strong>administrateur</strong> de la Page.
           </p>
           <Link
-            href="mailto:contact@easycom-AI.com"
-            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline font-medium mt-1"
+            href="https://easycom-ai.com/contact"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 inline-flex items-center gap-2 rounded-full bg-blue-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-900"
           >
             Contacter le support
-            <ExternalLink className="size-3" />
+            <ExternalLink className="size-4" />
           </Link>
         </div>
       </div>

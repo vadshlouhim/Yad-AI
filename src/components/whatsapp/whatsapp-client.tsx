@@ -1515,7 +1515,7 @@ export function WhatsAppClient({
                 className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/50 px-4 py-4 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-60"
               >
                 {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-                {uploading ? "Ajout en cours..." : "Ajouter une piÃ¨ce jointe jusqu'Ã  20 Mo"}
+                {uploading ? "Ajout en cours..." : "Ajouter une pièce jointe jusqu'à 20 Mo"}
               </button>
 
               {attachments.length > 0 && (
