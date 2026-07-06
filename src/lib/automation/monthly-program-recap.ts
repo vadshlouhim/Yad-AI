@@ -6,7 +6,7 @@ import {
   DEFAULT_TIMEZONE,
 } from "./event-recap";
 
-export const MONTHLY_PROGRAM_RECAP_AUTOMATION_NAME = "Programme & récap du mois";
+export const MONTHLY_PROGRAM_RECAP_AUTOMATION_NAME = "Programme du mois";
 
 export const DEFAULT_MONTHLY_TIME = "10:00";
 export const MAX_PROGRAM_EVENTS = 10;

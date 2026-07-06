@@ -2,14 +2,13 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { DavidAutomationCard, DavidBannerAgent } from "@/components/automations/automation-design-kit";
 import {
   CalendarDays,
   CalendarPlus,
   CheckCircle2,
-  ChevronDown,
-  ChevronRight,
   Clock,
   Loader2,
   Plus,
@@ -22,7 +21,6 @@ import {
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_REMINDER_TIME,
-  REMINDER_CHANNELS,
   reminderLabel,
   recomputeReminderDates,
   sortReminders,
@@ -30,10 +28,9 @@ import {
   type EventReminder,
   type EventReminderCampaign,
   type ReminderChannel,
-  type ScheduleMode,
 } from "@/lib/automation/event-reminders";
 
-// â”€â”€ Logos SVG officiels (pas d'emojis) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ?? Logos SVG officiels (pas d'emojis) ??????????????????????????????????????
 const CHANNEL_LOGOS: Record<ReminderChannel, React.ReactNode> = {
   INSTAGRAM: (
     <svg className="size-4 stroke-current fill-none stroke-[2]" viewBox="0 0 24 24">
@@ -65,15 +62,6 @@ const CHANNEL_LABELS: Record<ReminderChannel, string> = {
   FACEBOOK: "Facebook",
   WHATSAPP: "WhatsApp",
   EMAIL: "Email",
-};
-
-const STATUS_LABELS: Record<EventReminder["status"], { label: string; cls: string }> = {
-  DRAFT: { label: "Brouillon", cls: "bg-slate-100 text-slate-600 border-slate-200" },
-  SCHEDULED: { label: "ProgrammÃ©", cls: "bg-blue-50 text-blue-700 border-blue-200" },
-  PENDING_VALIDATION: { label: "En attente de validation", cls: "bg-amber-50 text-amber-700 border-amber-200" },
-  PUBLISHED: { label: "PubliÃ©", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  CANCELLED: { label: "AnnulÃ©", cls: "bg-slate-100 text-slate-400 border-slate-200" },
-  ERROR: { label: "Erreur", cls: "bg-red-50 text-red-700 border-red-200" },
 };
 
 interface Community {
@@ -114,10 +102,19 @@ interface Props {
 
 type View = "overview" | "customize" | "success";
 
+type NewEventForm = { name: string; date: string; time: string; location: string; posterUrl: string };
+
+type PublishLink = {
+  channel: string;
+  url: string | null;
+  success: boolean;
+  error?: string;
+};
+
 const TZ = "Europe/Paris";
 
 function formatDate(date: string) {
-  if (!date) return "â€”";
+  if (!date) return "?";
   return new Intl.DateTimeFormat("fr-FR", {
     timeZone: TZ,
     weekday: "short",
@@ -143,7 +140,7 @@ function newReminderId() {
   return typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `rem_${Date.now()}_${Math.random()}`;
 }
 
-export function EventRemindersAutoClient({ community, upcomingEvents, campaigns }: Props) {
+export function EventRemindersAutoClient({ campaigns }: Props) {
   const [view, setView] = useState<View>("overview");
   const [campaign, setCampaign] = useState<EventReminderCampaign | null>(null);
   const [savedAutomationId, setSavedAutomationId] = useState<string | null>(null);
@@ -154,32 +151,33 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  // Formulaire Â« Ajouter un Ã©vÃ©nement Â»
+  // Formulaire ? Ajouter un événement ?
   const [showNewEvent, setShowNewEvent] = useState(false);
-  const [newEvent, setNewEvent] = useState({ name: "", date: "", time: "", location: "" });
+  const [newEvent, setNewEvent] = useState<NewEventForm>({ name: "", date: "", time: "", location: "", posterUrl: "" });
+  const [uploadingPoster, setUploadingPoster] = useState(false);
 
-  // Formulaire Â« ajouter un rappel libre Â»
+  // Formulaire ? ajouter un rappel libre ?
   const [freeMode, setFreeMode] = useState<"days" | "date">("days");
   const [freeDays, setFreeDays] = useState("");
   const [freeDate, setFreeDate] = useState("");
 
-  const hasActiveCampaign = campaigns.some((c) => c.status === "ACTIVE");
-  const [showWelcome, setShowWelcome] = useState(campaigns.length === 0);
+  const [showWelcome, setShowWelcome] = useState(false);
 
-  // â”€â”€ Construit une campagne via l'API generate-plan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ?? Construit une campagne via l'API generate-plan ??????????????????????
   async function startCampaign(params: {
     eventId: string | null;
     eventName: string;
     eventDate: string;
     eventTime: string | null;
     eventLocation: string | null;
+    eventPosterUrl?: string | null;
     sourceType: "existing_event" | "new_event";
   }) {
     setError("");
     setNotice("");
     setSaving(true);
     try {
-      // VÃ©rifie qu'aucune campagne n'existe dÃ©jÃ  pour cet Ã©vÃ©nement.
+      // V?rifie qu'aucune campagne n'existe déjà pour cet événement.
       if (params.eventId) {
         const dup = await fetch("/api/event-reminders-auto/config", {
           method: "POST",
@@ -191,14 +189,14 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
           if (existing) {
             setCampaign(existing);
             setSavedAutomationId((dup.automation as CampaignAutomation).id);
-            setNotice("Une campagne existe dÃ©jÃ  pour cet Ã©vÃ©nement â€” vous pouvez la modifier ci-dessous.");
+            setNotice("Une campagne existe déjà pour cet événement — vous pouvez la modifier ci-dessous.");
             setView("customize");
             return;
           }
         }
       }
 
-      const channels: ReminderChannel[] = ["INSTAGRAM", "FACEBOOK", "WHATSAPP"];
+      const channels: ReminderChannel[] = ["INSTAGRAM", "FACEBOOK"];
       const res = await fetch("/api/event-reminders-auto/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -206,13 +204,19 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Impossible de gÃ©nÃ©rer le plan de rappels.");
+        setError(data.error ?? "Impossible de générer le plan de rappels.");
         return;
       }
       if (data.removedPastReminders) {
-        setNotice("Les rappels dÃ©jÃ  passÃ©s ont Ã©tÃ© retirÃ©s automatiquement.");
+        setNotice("Les rappels déjà passés ont été retirés automatiquement.");
       }
-      setCampaign({
+      const posterUrl = params.eventPosterUrl ?? null;
+      const plannedReminders = (data.reminders as EventReminder[]).map((reminder) => ({
+        ...reminder,
+        channels,
+        visualUrl: reminder.visualUrl ?? posterUrl,
+      }));
+      const nextCampaign: EventReminderCampaign = {
         eventId: params.eventId,
         eventName: params.eventName,
         eventDate: params.eventDate,
@@ -220,19 +224,47 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
         eventLocation: params.eventLocation,
         eventContact: null,
         eventRegistrationUrl: null,
-        mainVisualUrl: null,
+        mainVisualUrl: posterUrl,
         sourceType: params.sourceType,
         scheduleMode: "notification",
         channels,
-        reminders: data.reminders as EventReminder[],
-        validated: false,
-      });
-      setSavedAutomationId(null);
+        reminders: plannedReminders,
+        validated: true,
+      };
+      setCampaign(nextCampaign);
+      const saved = await persistCampaign(nextCampaign, "validate-campaign");
+      if (!saved) return;
       setView("customize");
     } catch {
-      setError("Erreur rÃ©seau. RÃ©essayez.");
+      setError("Erreur réseau. Réessayez.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function uploadImage(file: File): Promise<string> {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/uploads/attachment", { method: "POST", body: form });
+    const data = await res.json();
+    if (!res.ok || !data.url || !data.isImage) {
+      throw new Error(data.error ?? "Téléversement impossible.");
+    }
+    return data.url as string;
+  }
+
+  async function handlePosterUpload(files: FileList | null) {
+    const file = files?.[0];
+    if (!file) return;
+    setUploadingPoster(true);
+    setError("");
+    try {
+      const url = await uploadImage(file);
+      setNewEvent((prev) => ({ ...prev, posterUrl: url }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur lors du téléversement de l'affiche.");
+    } finally {
+      setUploadingPoster(false);
     }
   }
 
@@ -297,7 +329,7 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
         exactDate: freeDate,
         date: freeDate,
         time: DEFAULT_REMINDER_TIME,
-        label: "Rappel personnalisÃ©",
+        label: "Rappel personnalis?",
         channels: [...campaign.channels],
         status: "DRAFT",
         visualUrl: null,
@@ -311,34 +343,33 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
     setFreeDate("");
   }
 
-  // Rappels triÃ©s et nettoyÃ©s (retire les passÃ©s) pour l'affichage.
+  // Rappels triés et nettoy?s (retire les passés) pour l'affichage.
   const displayReminders = useMemo(() => {
     if (!campaign) return [];
     return sortReminders(recomputeReminderDates(campaign.reminders, campaign.eventDate, new Date(), TZ));
   }, [campaign]);
 
-  async function persist(mode: "save-config" | "validate-campaign") {
-    if (!campaign) return;
+  async function persistCampaign(campaignPayload: EventReminderCampaign, mode: "save-config" | "validate-campaign") {
     setError("");
     setSaving(true);
     try {
-      const payload: EventReminderCampaign = { ...campaign, reminders: displayReminders };
       const res = await fetch("/api/event-reminders-auto/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, campaign: payload }),
+        body: JSON.stringify({ mode, campaign: campaignPayload }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Enregistrement impossible.");
-        return;
+        return null;
       }
       setSavedAutomationId(data.id ?? null);
       const updated = getCampaign(data as CampaignAutomation);
       if (updated) setCampaign(updated);
-      if (mode === "validate-campaign") setView("success");
+      return data as CampaignAutomation;
     } catch {
-      setError("Erreur rÃ©seau. RÃ©essayez.");
+      setError("Erreur réseau. Réessayez.");
+      return null;
     } finally {
       setSaving(false);
     }
@@ -353,21 +384,21 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
       const res = await fetch(`/api/automations/${savedAutomationId}/trigger`, { method: "POST" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError((data as { error?: string }).error ?? "Erreur lors du dÃ©clenchement.");
+        setError((data as { error?: string }).error ?? "Erreur lors du déclenchement.");
       } else {
         setTriggerSuccess(true);
         setTimeout(() => setTriggerSuccess(false), 4000);
       }
     } catch {
-      setError("Erreur rÃ©seau lors du dÃ©clenchement.");
+      setError("Erreur réseau lors du déclenchement.");
     } finally {
       setTriggering(false);
     }
   }
 
-  // â”€â”€ Bandeau d'en-tÃªte (toujours visible) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ?? Bandeau d'en-t?te (toujours visible) ???????????????????????????????
   const header = (
-    <div className="relative overflow-hidden rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">
+    <div className="relative overflow-visible rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">
       <div className="pointer-events-none absolute inset-y-0 right-6 flex items-center" aria-hidden="true">
         <div className="rounded-full bg-white/[0.04] p-5">
           <CalendarPlus className="size-28 text-white/[0.08]" strokeWidth={1.6} />
@@ -377,35 +408,13 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
         <div className="relative">
           <div className="mb-3 h-1.5 w-10 rounded-full bg-white/80" />
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Automatisation J-10 / J-5</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/82">
-            Planifiez automatiquement vos rappels avant chaque événement.
-          </p>
         </div>
         <div className="flex flex-col items-start gap-3 sm:items-end">
-          <Link href="/dashboard/events">
-            <Button size="sm" variant="outline" className="h-9 rounded-xl border-white/25 bg-white/12 px-4 text-xs font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:text-white">
-              <CalendarDays className="size-4" />
-              Voir dans l&apos;Agenda IA
-            </Button>
-          </Link>
           <DavidBannerAgent
             className="sm:max-w-xl"
-            text="Je suis David votre assistant IA, je vous aide à préparer les rappels avant vos événements au bon moment"
+            text="Je suis David, votre agent intelligent dédié aux automatisations. Choisissez un événement, et je m’occupe de préparer puis programmer tous vos rappels J-10, J-5 et Jour J sur vos réseaux"
           />
         </div>
-      </div>
-
-      {/* Statut â€” en bas Ã  droite du bandeau (mÃªme design que les autres pages) */}
-      <div className="mt-6 flex justify-end">
-        <Button
-          type="button"
-          variant="outline"
-          className="border-white/20 bg-white/12 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/18 hover:text-white"
-        >
-          <span className={cn("size-2.5 rounded-full", hasActiveCampaign ? "bg-emerald-400" : "bg-slate-300")} />
-          {hasActiveCampaign ? "Active" : "Désactivée"}
-          <ChevronDown className="size-4" />
-        </Button>
       </div>
     </div>
   );
@@ -471,38 +480,7 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
 
       {view === "overview" && (
         <OverviewView
-          community={community}
-          upcomingEvents={upcomingEvents}
           campaigns={campaigns}
-          saving={saving}
-          showNewEvent={showNewEvent}
-          setShowNewEvent={setShowNewEvent}
-          newEvent={newEvent}
-          setNewEvent={setNewEvent}
-          onChooseEvent={(ev) =>
-            startCampaign({
-              eventId: ev.id,
-              eventName: ev.title,
-              eventDate: ev.startDate.slice(0, 10),
-              eventTime: null,
-              eventLocation: null,
-              sourceType: "existing_event",
-            })
-          }
-          onCreateEvent={() => {
-            if (!newEvent.name.trim() || !newEvent.date) {
-              setError("Renseignez au moins le nom et la date de l'Ã©vÃ©nement.");
-              return;
-            }
-            startCampaign({
-              eventId: null,
-              eventName: newEvent.name.trim(),
-              eventDate: newEvent.date,
-              eventTime: newEvent.time || null,
-              eventLocation: newEvent.location || null,
-              sourceType: "new_event",
-            });
-          }}
           onEditCampaign={(automation) => {
             const c = getCampaign(automation);
             if (c) {
@@ -514,6 +492,32 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
         />
       )}
 
+      <NewEventModal
+        open={showNewEvent}
+        saving={saving}
+        uploadingPoster={uploadingPoster}
+        newEvent={newEvent}
+        setNewEvent={setNewEvent}
+        onPosterUpload={handlePosterUpload}
+        onClose={() => setShowNewEvent(false)}
+        onCreateEvent={() => {
+          if (!newEvent.name.trim() || !newEvent.date) {
+            setError("Renseignez au moins le nom et la date de l'événement.");
+            return;
+          }
+          setShowNewEvent(false);
+          startCampaign({
+            eventId: null,
+            eventName: newEvent.name.trim(),
+            eventDate: newEvent.date,
+            eventTime: newEvent.time || null,
+            eventLocation: newEvent.location || null,
+            eventPosterUrl: newEvent.posterUrl || null,
+            sourceType: "new_event",
+          });
+        }}
+      />
+
       {view === "customize" && campaign && (
         <CustomizeView
           campaign={campaign}
@@ -523,7 +527,6 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
             setView("overview");
             setNotice("");
           }}
-          setScheduleMode={(m) => setCampaign((prev) => (prev ? { ...prev, scheduleMode: m } : prev))}
           updateReminder={updateReminder}
           deleteReminder={deleteReminder}
           toggleReminderChannel={toggleReminderChannel}
@@ -534,8 +537,7 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
           freeDate={freeDate}
           setFreeDate={setFreeDate}
           addFreeReminder={addFreeReminder}
-          onSaveDraft={() => persist("save-config")}
-          onValidate={() => persist("validate-campaign")}
+          uploadImage={uploadImage}
         />
       )}
 
@@ -558,36 +560,26 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns 
   );
 }
 
-// â”€â”€ Vue d'ensemble â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ?? Vue d'ensemble ??????????????????????????????????????????????????????????
 function OverviewView(props: {
-  community: Community;
-  upcomingEvents: UpcomingEvent[];
   campaigns: CampaignAutomation[];
-  saving: boolean;
-  showNewEvent: boolean;
-  setShowNewEvent: (v: boolean) => void;
-  newEvent: { name: string; date: string; time: string; location: string };
-  setNewEvent: (v: { name: string; date: string; time: string; location: string }) => void;
-  onChooseEvent: (ev: UpcomingEvent) => void;
-  onCreateEvent: () => void;
   onEditCampaign: (automation: CampaignAutomation) => void;
 }) {
-  const { upcomingEvents, campaigns, saving, showNewEvent, setShowNewEvent, newEvent, setNewEvent } = props;
-  const [showEventList, setShowEventList] = useState(false);
+  const { campaigns } = props;
 
   return (
     <>
-      {/* Comment Ã§a fonctionne */}
+      {/* Comment ça fonctionne */}
       <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
-        <h2 className="text-base font-bold text-slate-900">Comment Ã§a fonctionne&nbsp;?</h2>
+        <h2 className="text-base font-bold text-slate-900">Comment ça fonctionne&nbsp;?</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          {[
-            { n: 1, t: "Choisissez l'Ã©vÃ©nement", d: "SÃ©lectionnez un Ã©vÃ©nement Ã  venir ou ajoutez un nouvel Ã©vÃ©nement." },
-            { n: 2, t: "L'IA prÃ©pare les rappels", d: "EasyCom IA propose automatiquement J-10, J-5, J-3, Demain et Jour J." },
-            { n: 3, t: "Validez la campagne", d: "VÃ©rifiez les aperÃ§us, choisissez le mode de publication et ajoutez Ã  l'Agenda IA." },
+          {[ 
+            { n: 1, t: "Choisissez l'événement", d: "Ajoutez votre événement et son affiche.", tone: "border-fuchsia-300 text-fuchsia-700" },
+            { n: 2, t: "L'IA prépare les rappels", d: "Je créerai pour vous les publications J-10, J-5, J-3, Demain et Jour J", tone: "border-cyan-300 text-cyan-700" },
+            { n: 3, t: "Agenda IA automatique", d: "Les notifications sont enregistrées automatiquement au bon moment.", tone: "border-emerald-300 text-emerald-700" },
           ].map((step) => (
-            <div key={step.n} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
-              <span className="flex size-7 items-center justify-center rounded-full bg-violet-600 text-xs font-bold text-white">
+            <div key={step.n} className={cn("rounded-2xl border bg-white p-4 shadow-sm", step.tone)}>
+              <span className={cn("flex size-8 items-center justify-center rounded-full border bg-white text-xs font-black", step.tone)}>
                 {step.n}
               </span>
               <p className="mt-3 text-sm font-semibold text-slate-900">{step.t}</p>
@@ -597,75 +589,91 @@ function OverviewView(props: {
         </div>
       </section>
 
-      {/* Deux entrÃ©es */}
-      <section className="grid gap-4 sm:grid-cols-2">
-        {/* Mes Ã©vÃ©nements Ã  venir */}
-        <div className="rounded-3xl border border-violet-100 bg-gradient-to-br from-white to-violet-50/50 p-6 shadow-sm">
-          <div className="flex size-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
-            <CalendarDays className="size-5" />
-          </div>
-          <h3 className="mt-4 text-base font-bold text-slate-900">Mes Ã©vÃ©nements Ã  venir</h3>
-          <p className="mt-1 text-sm leading-6 text-slate-500">
-            Choisissez un Ã©vÃ©nement dÃ©jÃ  prÃ©sent dans votre Agenda IA.
-          </p>
-          {!showEventList ? (
-            <Button
-              onClick={() => setShowEventList(true)}
-              className="mt-4 h-10 rounded-xl bg-violet-600 px-4 text-sm text-white hover:bg-violet-700"
-            >
-              Choisir un Ã©vÃ©nement
-              <ChevronRight className="size-4" />
-            </Button>
-          ) : upcomingEvents.length === 0 ? (
-            <p className="mt-4 rounded-xl bg-white p-3 text-xs text-slate-500">
-              Aucun Ã©vÃ©nement Ã  venir dans l&apos;Agenda IA.{" "}
-              <Link href="/dashboard/events" className="font-semibold text-violet-700 hover:underline">
-                Ajouter un Ã©vÃ©nement
-              </Link>
-            </p>
-          ) : (
-            <div className="mt-4 max-h-64 space-y-2 overflow-y-auto">
-              {upcomingEvents.map((ev) => (
-                <button
-                  key={ev.id}
-                  type="button"
-                  disabled={saving}
-                  onClick={() => props.onChooseEvent(ev)}
-                  className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left transition hover:border-violet-300 hover:bg-violet-50/50 disabled:opacity-60"
+      {/* Campagnes actives */}
+      {campaigns.length > 0 && (
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-[#421388]/5">
+          <div className="-mx-6 -mt-6 mb-6 h-1.5 rounded-t-3xl bg-[#421388]" />
+          <h2 className="text-base font-bold text-slate-900">Automatisation J-10 / J-5 actives</h2>
+          <div className="mt-4 space-y-2">
+            {campaigns.map((automation) => {
+              const c = getCampaign(automation);
+              if (!c) return null;
+              const remindersCount = c.reminders.length;
+              const next = automation.nextRunAt
+                ? new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(
+                    new Date(automation.nextRunAt)
+                  )
+                : "?";
+              return (
+                <div
+                  key={automation.id}
+                  className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-slate-50/60 p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-slate-800">{ev.title}</span>
-                    <span className="block text-xs text-slate-400">{formatDate(ev.startDate.slice(0, 10))}</span>
-                  </span>
-                  <ChevronRight className="size-4 flex-shrink-0 text-slate-300" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Ajouter un Ã©vÃ©nement */}
-        <div className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
-          <div className="flex size-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
-            <CalendarPlus className="size-5" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-900">{c.eventName}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {formatDate(c.eventDate)} · {remindersCount} rappel{remindersCount > 1 ? "s" : ""} · prochain&nbsp;: {next}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",
+                        automation.status === "ACTIVE"
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-slate-200 bg-white text-slate-500"
+                      )}
+                    >
+                      {automation.status === "ACTIVE" ? "Active" : automation.status === "PAUSED" ? "En pause" : "Configurée"}
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={() => props.onEditCampaign(automation)}
+                      className="h-8 rounded-xl bg-violet-600 px-3 text-xs text-white hover:bg-violet-700"
+                    >
+                      Modifier
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <h3 className="mt-4 text-base font-bold text-slate-900">Ajouter un Ã©vÃ©nement</h3>
-          <p className="mt-1 text-sm leading-6 text-slate-500">CrÃ©ez un Ã©vÃ©nement depuis zÃ©ro pour lancer la campagne.</p>
-          {!showNewEvent ? (
-            <Button
-              onClick={() => setShowNewEvent(true)}
-              variant="outline"
-              className="mt-4 h-10 rounded-xl border-slate-200 px-4 text-sm"
-            >
-              <Plus className="size-4" />
-              Nouvel Ã©vÃ©nement
-            </Button>
-          ) : (
-            <div className="mt-4 space-y-3">
+        </section>
+      )}
+    </>
+  );
+}
+
+function NewEventModal(props: {
+  open: boolean;
+  saving: boolean;
+  uploadingPoster: boolean;
+  newEvent: NewEventForm;
+  setNewEvent: (v: NewEventForm) => void;
+  onPosterUpload: (files: FileList | null) => void;
+  onClose: () => void;
+  onCreateEvent: () => void;
+}) {
+  const { open, saving, uploadingPoster, newEvent, setNewEvent } = props;
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-black text-slate-950">Ajouter un événement</h2>
+                <p className="mt-1 text-sm text-slate-500">Créez un événement puis nous préparerons tous les rappels associés.</p>
+              </div>
+              <button type="button" onClick={props.onClose} className="rounded-full p-2 text-slate-400 hover:bg-slate-100">
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="mt-5 space-y-3">
               <input
                 value={newEvent.name}
                 onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })}
-                placeholder="Nom de l'Ã©vÃ©nement"
+                placeholder="Nom de l'événement"
                 className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200"
               />
               <div className="grid grid-cols-2 gap-2">
@@ -689,80 +697,50 @@ function OverviewView(props: {
                 placeholder="Lieu (optionnel)"
                 className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200"
               />
-              <Button
-                onClick={props.onCreateEvent}
-                disabled={saving}
-                className="h-10 w-full rounded-xl bg-violet-600 px-4 text-sm text-white hover:bg-violet-700"
-              >
+              <label className="block rounded-2xl border border-dashed border-violet-200 bg-violet-50/40 p-4 text-sm">
+                <span className="font-bold text-slate-900">Téléverser l&apos;affiche de l&apos;événement</span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500">Elle sera mémorisée et affichée en miniature dans chaque rappel.</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={uploadingPoster || saving}
+                  onChange={(e) => props.onPosterUpload(e.target.files)}
+                  className="mt-3 block w-full text-xs text-slate-500 file:mr-3 file:rounded-full file:border-0 file:bg-violet-600 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white"
+                />
+                {uploadingPoster && (
+                  <span className="mt-2 flex items-center gap-2 text-xs font-semibold text-violet-700">
+                    <Loader2 className="size-3.5 animate-spin" />
+                    Téléversement en cours...
+                  </span>
+                )}
+                {newEvent.posterUrl && (
+                  <span className="mt-3 flex items-center gap-3 rounded-xl bg-white p-2">
+                    <Image src={newEvent.posterUrl} alt="Affiche téléversée" width={56} height={56} unoptimized className="size-14 rounded-lg object-cover" />
+                    <span className="text-xs font-semibold text-emerald-700">Affiche ajoutée</span>
+                  </span>
+                )}
+              </label>
+            </div>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" className="h-10 rounded-xl" onClick={props.onClose}>
+                Annuler
+              </Button>
+              <Button onClick={props.onCreateEvent} disabled={saving || uploadingPoster} className="h-10 rounded-xl bg-violet-600 px-4 text-sm text-white hover:bg-violet-700">
                 {saving ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-                PrÃ©parer les rappels
+                Préparer les rappels
               </Button>
             </div>
-          )}
-        </div>
-      </section>
-
-      {/* Campagnes actives */}
-      {campaigns.length > 0 && (
-        <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
-          <h2 className="text-base font-bold text-slate-900">Campagnes</h2>
-          <div className="mt-4 space-y-2">
-            {campaigns.map((automation) => {
-              const c = getCampaign(automation);
-              if (!c) return null;
-              const remindersCount = c.reminders.length;
-              const next = automation.nextRunAt
-                ? new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(
-                    new Date(automation.nextRunAt)
-                  )
-                : "â€”";
-              return (
-                <div
-                  key={automation.id}
-                  className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-slate-50/60 p-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-900">{c.eventName}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {formatDate(c.eventDate)} Â· {remindersCount} rappel{remindersCount > 1 ? "s" : ""} Â· prochain&nbsp;: {next}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        "rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",
-                        automation.status === "ACTIVE"
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                          : "border-slate-200 bg-white text-slate-500"
-                      )}
-                    >
-                      {automation.status === "ACTIVE" ? "Active" : automation.status === "PAUSED" ? "En pause" : "Brouillon"}
-                    </span>
-                    <Button
-                      size="sm"
-                      onClick={() => props.onEditCampaign(automation)}
-                      className="h-8 rounded-xl bg-violet-600 px-3 text-xs text-white hover:bg-violet-700"
-                    >
-                      Modifier
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
           </div>
-        </section>
-      )}
-    </>
+        </div>
   );
 }
 
-// â”€â”€ Vue de personnalisation (timeline) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ?? Vue de personnalisation (timeline) ??????????????????????????????????????
 function CustomizeView(props: {
   campaign: EventReminderCampaign;
   reminders: EventReminder[];
   saving: boolean;
   onBack: () => void;
-  setScheduleMode: (m: ScheduleMode) => void;
   updateReminder: (id: string, patch: Partial<EventReminder>) => void;
   deleteReminder: (id: string) => void;
   toggleReminderChannel: (id: string, channel: ReminderChannel) => void;
@@ -773,75 +751,120 @@ function CustomizeView(props: {
   freeDate: string;
   setFreeDate: (v: string) => void;
   addFreeReminder: () => void;
-  onSaveDraft: () => void;
-  onValidate: () => void;
+  uploadImage: (file: File) => Promise<string>;
 }) {
-  const { campaign, reminders, saving } = props;
+  const { campaign, reminders } = props;
+  const [publishReminder, setPublishReminder] = useState<EventReminder | null>(null);
+  const [publishMessage, setPublishMessage] = useState("");
+  const [publishImageUrl, setPublishImageUrl] = useState("");
+  const [publishing, setPublishing] = useState(false);
+  const [publishLinks, setPublishLinks] = useState<PublishLink[] | null>(null);
+  const [publishError, setPublishError] = useState("");
+  const [uploadingPublishImage, setUploadingPublishImage] = useState(false);
+
+  function openPublishModal(reminder: EventReminder) {
+    setPublishReminder(reminder);
+    setPublishMessage(`${campaign.eventName} - ${reminder.label}`);
+    setPublishImageUrl(reminder.visualUrl ?? campaign.mainVisualUrl ?? "");
+    setPublishLinks(null);
+    setPublishError("");
+  }
+
+  async function handlePublishImageUpload(files: FileList | null) {
+    const file = files?.[0];
+    if (!file) return;
+    setUploadingPublishImage(true);
+    setPublishError("");
+    try {
+      setPublishImageUrl(await props.uploadImage(file));
+    } catch (e) {
+      setPublishError(e instanceof Error ? e.message : "Erreur lors du téléversement de l'image.");
+    } finally {
+      setUploadingPublishImage(false);
+    }
+  }
+
+  async function publishReminderNow() {
+    if (!publishReminder) return;
+    if (!publishMessage.trim() && !publishImageUrl) {
+      setPublishError("Ajoutez un message ou une image avant de publier.");
+      return;
+    }
+    setPublishing(true);
+    setPublishError("");
+    try {
+      const res = await fetch("/api/event-reminders-auto/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "publish-reminder",
+          campaign,
+          reminderId: publishReminder.id,
+          caption: publishMessage,
+          imageUrl: publishImageUrl,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPublishError(data.error ?? "Publication impossible.");
+        return;
+      }
+      setPublishLinks((data.links ?? []) as PublishLink[]);
+    } catch {
+      setPublishError("Erreur réseau pendant la publication.");
+    } finally {
+      setPublishing(false);
+    }
+  }
 
   return (
     <>
       <div className="flex items-center justify-between">
         <button onClick={props.onBack} className="text-sm font-medium text-slate-500 hover:text-slate-700">
-          â† Retour
+          ← Retour
         </button>
         <span className="text-sm font-semibold text-slate-900">{campaign.eventName}</span>
       </div>
 
-      {/* Mode de publication (toute la campagne) */}
-      <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
-        <h2 className="text-base font-bold text-slate-900">Mode de publication</h2>
-        <p className="mt-1 text-sm text-slate-500">Choisi pour toute la campagne. Vous voyez les aperÃ§us avant toute publication.</p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {(
-            [
-              { mode: "notification" as ScheduleMode, title: "Avec validation", desc: "Chaque rappel est prÃ©parÃ© puis publiÃ© seulement aprÃ¨s votre validation." },
-              { mode: "direct" as ScheduleMode, title: "Publication automatique", desc: "AprÃ¨s validation de la campagne, les rappels partent automatiquement Ã  l'heure prÃ©vue." },
-            ]
-          ).map((opt) => (
-            <button
-              key={opt.mode}
-              type="button"
-              onClick={() => props.setScheduleMode(opt.mode)}
-              className={cn(
-                "rounded-2xl border p-4 text-left transition",
-                campaign.scheduleMode === opt.mode
-                  ? "border-violet-500 bg-violet-50 ring-1 ring-violet-200"
-                  : "border-slate-200 bg-white hover:border-violet-200"
-              )}
-            >
-              <p className="text-sm font-semibold text-slate-900">{opt.title}</p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">{opt.desc}</p>
-            </button>
-          ))}
-        </div>
-      </section>
-
       {/* Timeline des rappels */}
       <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900">Vos rappels</h2>
+          <h2 className="max-w-4xl text-base font-bold leading-6 text-slate-900">
+            Je vous ai préparé le planning de vos rappels : J-10, J-5, J-3, Demain et Jour J. Je vous notifierai au bon moment, puis vous pourrez valider et publier automatiquement sur vos réseaux sociaux
+          </h2>
           <span className="text-xs text-slate-400">{reminders.length} rappel{reminders.length > 1 ? "s" : ""}</span>
         </div>
 
         {reminders.length === 0 ? (
           <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
-            Aucun rappel programmable (l&apos;Ã©vÃ©nement est peut-Ãªtre trop proche). Ajoutez un rappel ci-dessous.
+            Aucun rappel programmable (l&apos;événement est peut-?tre trop proche). Ajoutez un rappel ci-dessous.
           </p>
         ) : (
           <div className="mt-4 space-y-3">
             {reminders.map((r) => {
-              const status = STATUS_LABELS[r.status];
+              const reminderVisual = r.visualUrl ?? campaign.mainVisualUrl;
               return (
                 <div key={r.id} className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      {reminderVisual ? (
+                        <Image src={reminderVisual} alt={`Affiche ${campaign.eventName}`} width={56} height={56} unoptimized className="size-14 shrink-0 rounded-xl object-cover ring-1 ring-slate-200" />
+                      ) : (
+                        <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-white text-slate-300 ring-1 ring-slate-200">
+                          <CalendarDays className="size-5" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
                       <span className="flex items-center gap-1.5 rounded-full bg-violet-600 px-2.5 py-1 text-xs font-bold text-white">
                         {r.label}
                       </span>
-                      <span className="text-sm font-medium text-slate-700">{formatDate(r.date)}</span>
+                        <span className="mt-1 block text-sm font-medium text-slate-700">{formatDate(r.date)}</span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-semibold", status.cls)}>{status.label}</span>
+                      <Button type="button" onClick={() => openPublishModal(r)} className="h-8 rounded-xl bg-emerald-600 px-3 text-xs text-white hover:bg-emerald-700">
+                        Publier !
+                      </Button>
                       <button
                         onClick={() => props.deleteReminder(r.id)}
                         className="flex size-7 items-center justify-center rounded-lg border border-red-100 bg-white text-red-500 hover:bg-red-50"
@@ -862,27 +885,6 @@ function CustomizeView(props: {
                         className="rounded-lg border border-slate-200 px-2 py-1 text-xs focus:border-violet-400 focus:outline-none"
                       />
                     </label>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {REMINDER_CHANNELS.map((channel) => {
-                        const active = r.channels.includes(channel);
-                        return (
-                          <button
-                            key={channel}
-                            type="button"
-                            onClick={() => props.toggleReminderChannel(r.id, channel)}
-                            className={cn(
-                              "flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition",
-                              active
-                                ? "border-violet-300 bg-violet-50 text-violet-700"
-                                : "border-slate-200 bg-white text-slate-400 hover:border-slate-300"
-                            )}
-                          >
-                            {CHANNEL_LOGOS[channel]}
-                            {CHANNEL_LABELS[channel]}
-                          </button>
-                        );
-                      })}
-                    </div>
                   </div>
                 </div>
               );
@@ -934,30 +936,100 @@ function CustomizeView(props: {
               Ajouter
             </Button>
           </div>
-          <p className="mt-2 text-[11px] text-slate-400">Les rappels en heures ne sont pas autorisÃ©s. Heure par dÃ©faut&nbsp;: 10h00.</p>
+          <p className="mt-2 text-[11px] text-slate-400">Les rappels en heures ne sont pas autorisés. Heure par défaut&nbsp;: 10h00.</p>
         </div>
       </section>
 
-      {/* Actions */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-        <Button onClick={props.onSaveDraft} disabled={saving} variant="outline" className="h-11 rounded-2xl border-slate-200 px-5 text-sm">
-          {saving ? <Loader2 className="size-4 animate-spin" /> : null}
-          Enregistrer le brouillon
-        </Button>
-        <Button
-          onClick={props.onValidate}
-          disabled={saving || reminders.length === 0}
-          className="h-11 rounded-2xl bg-violet-600 px-6 text-sm text-white hover:bg-violet-700"
-        >
-          {saving ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-          Tout valider et ajouter Ã  l&apos;Agenda IA
-        </Button>
-      </div>
+      {publishReminder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-[2rem] bg-white p-6 shadow-2xl">
+            {publishLinks ? (
+              <>
+                <div className="flex items-start gap-3">
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-white">
+                    <CheckCircle2 className="size-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-slate-950">Votre publication a bien été publiée</h2>
+                    <p className="mt-1 text-sm leading-6 text-slate-500">Vous pouvez maintenant la consulter depuis vos pages Instagram et Facebook.</p>
+                  </div>
+                </div>
+                <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                  {publishLinks.map((link) => (
+                    <Link
+                      key={link.channel}
+                      href={link.url ?? "/dashboard/publications"}
+                      target={link.url ? "_blank" : undefined}
+                      className={cn(
+                        "rounded-2xl border px-4 py-3 text-center text-sm font-bold",
+                        link.success ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-red-200 bg-red-50 text-red-700"
+                      )}
+                    >
+                      Voir sur {link.channel}
+                    </Link>
+                  ))}
+                </div>
+                <Button type="button" variant="outline" className="mt-5 h-10 w-full rounded-xl" onClick={() => setPublishReminder(null)}>
+                  Fermer
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-950">Publier ce rappel</h2>
+                    <p className="mt-1 text-sm text-slate-500">Message et visuel pour Instagram et Facebook.</p>
+                  </div>
+                  <button type="button" onClick={() => setPublishReminder(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100">
+                    <X className="size-5" />
+                  </button>
+                </div>
+                <textarea
+                  value={publishMessage}
+                  onChange={(e) => setPublishMessage(e.target.value)}
+                  rows={5}
+                  className="mt-5 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200"
+                  placeholder="Écrivez le message de publication..."
+                />
+                <label className="mt-3 block rounded-2xl border border-dashed border-slate-200 p-4 text-sm">
+                  <span className="font-bold text-slate-900">Image de publication</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploadingPublishImage || publishing}
+                    onChange={(e) => handlePublishImageUpload(e.target.files)}
+                    className="mt-3 block w-full text-xs text-slate-500 file:mr-3 file:rounded-full file:border-0 file:bg-violet-600 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-white"
+                  />
+                  {uploadingPublishImage && (
+                    <span className="mt-2 flex items-center gap-2 text-xs font-semibold text-violet-700">
+                      <Loader2 className="size-3.5 animate-spin" />
+                      Téléversement en cours...
+                    </span>
+                  )}
+                  {publishImageUrl && (
+                    <Image src={publishImageUrl} alt="Image de publication" width={112} height={112} unoptimized className="mt-3 h-28 w-28 rounded-xl object-cover ring-1 ring-slate-200" />
+                  )}
+                </label>
+                {publishError && <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{publishError}</p>}
+                <Button
+                  type="button"
+                  disabled={publishing || uploadingPublishImage}
+                  onClick={publishReminderNow}
+                  className="mt-5 h-11 w-full rounded-2xl bg-violet-600 text-sm text-white hover:bg-violet-700"
+                >
+                  {publishing ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                  Publier sur Instagram et Facebook
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }
 
-// â”€â”€ Vue de succÃ¨s â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ?? Vue de succ?s ????????????????????????????????????????????????????????????
 function SuccessView(props: {
   campaign: EventReminderCampaign;
   reminders: EventReminder[];
@@ -975,10 +1047,10 @@ function SuccessView(props: {
           <CheckCircle2 className="size-6" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Campagne validÃ©e&nbsp;!</h2>
+          <h2 className="text-lg font-bold text-slate-900">Campagne valid?e&nbsp;!</h2>
           <p className="mt-1 text-sm text-slate-600">
-            {reminders.length} rappel{reminders.length > 1 ? "s" : ""} pour Â« {campaign.eventName} Â» {reminders.length > 1 ? "ont" : "a"} Ã©tÃ© ajoutÃ©
-            {reminders.length > 1 ? "s" : ""} sÃ©parÃ©ment Ã  votre Agenda IA.
+            {reminders.length} rappel{reminders.length > 1 ? "s" : ""} pour « {campaign.eventName} » {reminders.length > 1 ? "ont" : "a"} été ajouté
+            {reminders.length > 1 ? "s" : ""} séparément à votre Agenda IA.
           </p>
         </div>
       </div>
@@ -1004,7 +1076,7 @@ function SuccessView(props: {
 
       {props.triggerSuccess && (
         <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700">
-          Le prochain rappel a Ã©tÃ© dÃ©clenchÃ©.
+          Le prochain rappel a été d?clench?.
         </div>
       )}
 

@@ -31,6 +31,7 @@ export interface HolidayTimes {
 }
 
 const HEBCAL_API = process.env.HEBCAL_API_URL ?? "https://www.hebcal.com/hebcal";
+const HAVDALAH_MINUTES = 63;
 
 // ============================================================
 // HORAIRES CHABBAT
@@ -66,8 +67,7 @@ export async function getShabbatTimes(params: {
       start: friday.toISOString().split("T")[0],
       end: new Date(friday.getTime() + 86400000).toISOString().split("T")[0],
       b: "18",      // Minutes avant coucher soleil pour l'allumage des bougies
-      M: "on",      // Activer l'affichage de la Havdalah
-      m: "42",      // Havdalah à 42 min après coucher du soleil (צאת הכוכבים)
+      m: HAVDALAH_MINUTES.toString(), // Havdalah a 63 min apres le coucher du soleil.
       s: "on",      // Sedrot (paracha)
       i: "off",
       lg: "fr",
@@ -222,7 +222,7 @@ export async function getHolidayTimes(params: {
       start: start.toISOString().split("T")[0],
       end: end.toISOString().split("T")[0],
       b: "18",
-      M: "on",
+      m: HAVDALAH_MINUTES.toString(),
       i: "off",
       lg: "fr",
     });

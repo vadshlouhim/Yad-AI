@@ -9,7 +9,7 @@ import {
   getRecapHistory,
 } from "@/lib/automation/monthly-program-recap";
 
-export const metadata: Metadata = { title: "Programme & récap du mois — EasyCom IA" };
+export const metadata: Metadata = { title: "Programme du mois — EasyCom IA" };
 
 export default async function MonthlyProgramRecapAutoPage({
   searchParams,

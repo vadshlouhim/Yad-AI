@@ -26,6 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { UpgradeModal } from "@/components/billing/upgrade-modal";
 import { cn } from "@/lib/utils";
+import { ISRAEL_WHATSAPP_IMAGE, SocialPageBanner } from "@/components/publish/social-page-banner";
 import type { BillingConfig } from "@/lib/billing";
 
 type RepeatFrequency = "once" | "daily" | "weekly" | "monthly" | "custom";
@@ -79,6 +80,7 @@ interface ScheduledSend {
 
 const WEEK_DAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Dim"];
 const STORAGE_KEY = "easycom-whatsapp-scheduled-sends";
+const PREFILL_STORAGE_KEY = "easycom-whatsapp-prefill";
 
 function formatPreviewText(value: string) {
   if (!value) return <span className="text-slate-400">Votre message apparaîtra ici.</span>;
@@ -1143,6 +1145,17 @@ export function WhatsAppClient({
 
   useEffect(() => {
     try {
+      const raw = window.localStorage.getItem(PREFILL_STORAGE_KEY);
+      if (!raw) return;
+      const payload = JSON.parse(raw) as { message?: string; attachments?: UploadedAttachment[] };
+      if (typeof payload.message === "string") setMessage(payload.message);
+      if (Array.isArray(payload.attachments)) setAttachments(payload.attachments);
+      window.localStorage.removeItem(PREFILL_STORAGE_KEY);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(scheduledSends));
     } catch {}
   }, [scheduledSends]);
@@ -1301,21 +1314,13 @@ export function WhatsAppClient({
         description="Le mode gratuit permet de découvrir EasyCom IA, mais WhatsApp nécessite l'abonnement payant."
       />
 
-      <section className="space-y-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-slate-950">
-              WhatsApp
-              <span className="inline-flex size-8 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-xs font-black text-emerald-700">
-                AI
-              </span>
-            </h1>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Préparez, planifiez et envoyez vos messages WhatsApp avec l&apos;IA.
-            </p>
-          </div>
-        </div>
-      </section>
+      <SocialPageBanner
+        title="WhatsApp"
+        color="#128C4A"
+        agentName="Israel"
+        agentImageUrl={ISRAEL_WHATSAPP_IMAGE}
+        statusLabel={isPersonalMode ? "Mode personnel" : isCloudConfigured ? "Canal configuré" : "Connexion requise"}
+      />
 
       <WhatsAppConnectionPanel
         isPaid={isPaid}

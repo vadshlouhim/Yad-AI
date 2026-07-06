@@ -12,7 +12,6 @@ import {
   CheckCircle,
   Copy,
   ExternalLink,
-  History,
   RefreshCw,
   Trash2,
   XCircle,
@@ -25,6 +24,7 @@ import {
   formatRelative,
   truncate,
 } from "@/lib/utils";
+import { SocialPageBanner } from "@/components/publish/social-page-banner";
 
 interface Publication {
   id: string;
@@ -365,25 +365,11 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-blue-800/60 bg-gradient-to-br from-[#0a1b44] via-[#13346f] to-[#08172f] p-6 shadow-lg shadow-slate-950/35">
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.12)_0%,transparent_38%,transparent_70%,rgba(255,255,255,0.08)_100%)]" />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="mb-3 h-1.5 w-10 rounded-full bg-blue-300" />
-            <h1 className="mt-2 text-2xl font-bold text-white">Historique des publications</h1>
-            <p className="mt-1 text-sm text-blue-100/80">
-              Dès qu’une publication a été envoyée sur un réseau, elle apparaît ici.
-            </p>
-          </div>
-          <div className="flex justify-end" aria-hidden="true">
-            <div className="relative flex size-20 items-center justify-center rounded-[1.6rem] border border-white/15 bg-white/10 text-white shadow-2xl shadow-slate-950/30 backdrop-blur animate-install-float">
-              <History className="size-9" strokeWidth={2.1} />
-              <span className="absolute -right-1 -top-1 size-3 rounded-full bg-white shadow-[0_0_18px_rgba(255,255,255,0.85)] animate-pulse" />
-              <span className="absolute bottom-4 left-4 size-1.5 rounded-full bg-white/80 shadow-[0_0_14px_rgba(255,255,255,0.75)] animate-ping" />
-            </div>
-          </div>
-        </div>
-      </div>
+      <SocialPageBanner
+        title="Historique des publications"
+        color="#071F49"
+        statusLabel="Publications envoyées"
+      />
 
       <div className="flex flex-wrap justify-center gap-2 pb-1">
         {CHANNEL_FILTERS.map((tab) => {

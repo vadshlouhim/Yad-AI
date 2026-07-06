@@ -48,6 +48,7 @@ const TIMEZONE = "Europe/Paris";
 const HOLIDAYS_SOURCE_URL = "https://www.hebcal.com/home/195/jewish-calendar-rest-api";
 const COMMUNES_URL = "https://geo.api.gouv.fr/communes?fields=nom,code,centre&format=json&geometry=centre";
 const BATCH_SIZE = 200;
+const HAVDALAH_MINUTES = 63;
 
 const argMap = Object.fromEntries(
   process.argv.slice(2).map((arg) => {
@@ -86,7 +87,7 @@ function parseSchedule(city) {
     location,
     sedrot: true,
     addHebrewDatesForEvents: true,
-    havdalahMins: 42,
+    havdalahMins: HAVDALAH_MINUTES,
   });
 
   const schedule = [];

@@ -14,6 +14,7 @@ type AutomationRow = Database["public"]["Tables"]["Automation"]["Row"];
 type HolidayPosterConfig = {
   configured?: boolean;
   suspended?: boolean;
+  notificationsEnabled?: boolean;
   country?: string | null;
   timezone?: string | null;
   daysBefore?: number;
@@ -49,6 +50,10 @@ function stringOrEmpty(value: unknown) {
 function normalizeDays(value: unknown) {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= 1 && parsed <= 90 ? parsed : DEFAULT_HOLIDAY_NOTIFICATION_DAYS;
+}
+
+function booleanValue(value: unknown) {
+  return value === true || value === "true";
 }
 
 function getHolidayPosterConfig(triggerConfig: Json | null): HolidayPosterConfig {
@@ -187,6 +192,20 @@ export async function POST(request: Request) {
       status = base.configured ? "ACTIVE" : "DRAFT";
     } else if (mode === "save-delay") {
       poster = { ...base, daysBefore: normalizeDays(body.daysBefore) };
+    } else if (mode === "set-notification-preference") {
+      const enabled = booleanValue(body.enabled);
+      poster = {
+        ...base,
+        notificationsEnabled: enabled,
+        configured: enabled ? true : base.configured,
+        suspended: !enabled,
+        daysBefore: normalizeDays(body.daysBefore ?? base.daysBefore),
+        selectedHolidayId: stringOrEmpty(body.holidayId) || base.selectedHolidayId || null,
+        selectedHolidayName: stringOrEmpty(body.holidayName) || base.selectedHolidayName || null,
+        selectedHolidayCategory: stringOrEmpty(body.holidayCategory) || base.selectedHolidayCategory || null,
+        selectedHolidayDate: stringOrEmpty(body.holidayDate) || base.selectedHolidayDate || null,
+      };
+      status = enabled ? "ACTIVE" : "PAUSED";
     } else if (mode === "save-selection") {
       poster = {
         ...base,
@@ -219,8 +238,13 @@ export async function POST(request: Request) {
         postText: stringOrEmpty(body.postText) || base.postText || "",
         selectedChannels,
         daysBefore: normalizeDays(body.daysBefore ?? base.daysBefore),
+        selectedHolidayId: stringOrEmpty(body.holidayId) || base.selectedHolidayId || null,
+        selectedHolidayName: stringOrEmpty(body.holidayName) || base.selectedHolidayName || null,
+        selectedHolidayCategory: stringOrEmpty(body.holidayCategory) || base.selectedHolidayCategory || null,
+        selectedHolidayDate: stringOrEmpty(body.holidayDate) || base.selectedHolidayDate || null,
         configured: mode === "activate" ? true : base.configured,
         suspended: mode === "activate" ? false : base.suspended,
+        notificationsEnabled: mode === "activate" ? true : base.notificationsEnabled,
       };
       status = mode === "activate" ? "ACTIVE" : status;
     } else {

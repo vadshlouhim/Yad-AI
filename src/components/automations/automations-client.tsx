@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { formatRelative, cn } from "@/lib/utils";
 import { UpgradeModal } from "@/components/billing/upgrade-modal";
-import { DavidAutomationCard, DavidBannerAgent } from "@/components/automations/automation-design-kit";
+import { DAVID_AUTOMATION_IMAGE_URL } from "@/components/automations/automation-design-kit";
 import type { BillingConfig } from "@/lib/billing";
 
 interface AutomationRun {
@@ -755,7 +755,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
         description="Le mode gratuit permet de créer une seule automatisation IA. Passez au mode payant pour programmer toutes vos routines de communication."
       />
       {!embedded && (
-        <div className="relative overflow-hidden rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">
+        <div className="relative overflow-visible rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">
           <div className="pointer-events-none absolute inset-y-0 right-6 flex items-center" aria-hidden="true">
             <div className="rounded-full bg-white/[0.04] p-5">
               <Zap className="size-28 text-white/[0.08]" strokeWidth={1.6} />
@@ -768,15 +768,17 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                 Toutes les automatisations spécialement conçues pour les{" "}
                 <span className="text-white">{automationTitleTarget}</span>
               </h1>
-              <p className="mt-3 text-sm leading-6 text-white/82">
-                Gérez vos automatisations et suivez celles déjà actives.
-              </p>
             </div>
             <div className="flex flex-col items-end gap-3">
-              <DavidBannerAgent
-                className="sm:max-w-xl"
-                text="Je suis David votre assistant IA, je vous aide à suivre et configurer toutes vos automatisations"
-              />
+              <div className="relative z-20 flex w-full max-w-xl items-center gap-4 rounded-3xl border border-white/15 bg-white/12 p-4 text-white shadow-sm shadow-[#22084b]/20 backdrop-blur-sm sm:w-auto">
+                <div className="flex size-20 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white shadow-lg shadow-black/10">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={DAVID_AUTOMATION_IMAGE_URL} alt="David, agent intelligent" className="size-16 rounded-full object-contain" />
+                </div>
+                <p className="max-w-sm text-sm font-black leading-6 text-white">
+                  Je suis David, gérez vos automatisations et suivez celles déjà actives.
+                </p>
+              </div>
               <div className="flex w-fit items-center gap-2 rounded-2xl border border-white/15 bg-white/12 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-[#22084b]/20">
                 <Zap className="size-4" />
                 {activeCount} active{activeCount > 1 ? "s" : ""}
@@ -785,8 +787,6 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
           </div>
         </div>
       )}
-
-      {!embedded && <DavidAutomationCard onCtaClick={openCreateForm} />}
 
       {!embedded && (
         <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5 shadow-violet-100/30">
@@ -814,19 +814,6 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
               {automations.map((automation) => renderAutomationCard(automation))}
             </div>
           )}
-        </section>
-      )}
-
-      {!embedded && (
-        <section className="rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-violet-50 p-5 text-center shadow-sm shadow-violet-100/40">
-          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-violet-400" />
-          <p className="text-sm font-semibold text-slate-700">Retrouvez vos automatisations créées dans votre Agenda IA.</p>
-          <Link href="/dashboard/events" className="mt-4 inline-flex">
-            <Button className="rounded-full bg-violet-700 px-5 text-white hover:bg-violet-800">
-              <Calendar className="size-4" />
-              Voir mon Agenda IA
-            </Button>
-          </Link>
         </section>
       )}
 

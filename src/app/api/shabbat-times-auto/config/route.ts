@@ -250,6 +250,16 @@ export async function POST(request: Request) {
       return NextResponse.json(automation);
     }
 
+    if (mode === "publish-now-config") {
+      const automation = await upsertAutomation(auth.admin, auth.communityId, existing, {
+        poster,
+        isActive: false,
+        status: "DRAFT",
+        nextRunAt: null,
+      });
+      return NextResponse.json(automation);
+    }
+
     if (mode === "activate") {
       const nextRunAt = getNextWeeklyRunAt({
         dayOfWeek: poster.notificationDayOfWeek ?? 5,

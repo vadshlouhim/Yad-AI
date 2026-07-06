@@ -22,6 +22,7 @@ import type { Database, Json } from "@/types/database.types";
 
 type AutomationRow = Database["public"]["Tables"]["Automation"]["Row"];
 type Admin = ReturnType<typeof createAdminClient>;
+type SocialChannelRow = { id: string; type: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -38,9 +39,10 @@ function normalizeDay(value: unknown, fallback: number): number {
   return Number.isInteger(day) && day >= 0 && day <= 28 ? day : fallback;
 }
 function normalizeChannels(value: unknown): MonthlyChannel[] {
-  if (!Array.isArray(value)) return [...DEFAULT_MONTHLY_SETTINGS.channels];
+  if (!Array.isArray(value)) return ["INSTAGRAM", "FACEBOOK"];
   const valid = value.filter((c): c is MonthlyChannel => (MONTHLY_CHANNELS as readonly string[]).includes(c as string));
-  return valid.length > 0 ? valid : [...DEFAULT_MONTHLY_SETTINGS.channels];
+  const socialOnly = valid.filter((channel) => channel === "INSTAGRAM" || channel === "FACEBOOK");
+  return socialOnly.length > 0 ? socialOnly : ["INSTAGRAM", "FACEBOOK"];
 }
 
 function sanitizeSettings(value: unknown, existing: MonthlySettings): MonthlySettings {
@@ -115,7 +117,7 @@ async function upsertMonthlyAutomation(
 
   const payload = {
     name: MONTHLY_PROGRAM_RECAP_AUTOMATION_NAME,
-    description: "Prépare le programme du mois et le récap, sur Instagram, Facebook, WhatsApp et Email, après validation.",
+    description: "Prépare le programme du mois sur Instagram et Facebook, après validation.",
     trigger: "CUSTOM_SCHEDULE" as const,
     triggerConfig,
     actions: buildActions(settings.channels, "MONTHLY_EVENT_PROGRAM"),
@@ -165,12 +167,14 @@ async function publishMonthly(
 
   const { data: socialChannels } = await admin
     .from("Channel")
-    .select("id")
+    .select("id,type")
     .eq("communityId", communityId)
     .in("type", channels as never[])
-    .eq("isActive", true);
-  if (!socialChannels || socialChannels.length === 0) {
-    return NextResponse.json({ error: "Aucun canal actif. Configurez vos réseaux dans Paramètres > Canaux." }, { status: 409 });
+    .eq("isActive", true)
+    .eq("isConnected", true);
+  const typedChannels = (socialChannels ?? []) as SocialChannelRow[];
+  if (typedChannels.length === 0) {
+    return NextResponse.json({ error: "Aucun canal Instagram ou Facebook actif. Configurez vos réseaux dans Paramètres > Canaux." }, { status: 409 });
   }
 
   const draftId = crypto.randomUUID();
@@ -188,9 +192,18 @@ async function publishMonthly(
     updatedAt: nowIso,
   } as never);
 
-  const channelIds = socialChannels.map((c) => c.id);
+  const channelIds = typedChannels.map((c) => c.id);
   await createPublicationsFromDraft({ draftId, communityId, channelIds });
   const results = await publishToAllChannels(draftId, channelIds);
+  const links = typedChannels.map((channel) => {
+    const result = results[channel.id];
+    return {
+      channel: channel.type === "INSTAGRAM" ? "Instagram" : "Facebook",
+      url: result?.externalUrl ?? null,
+      success: result?.success === true,
+      error: result?.error,
+    };
+  });
 
   const key = currentMonthKey(community.timezone ?? "Europe/Paris");
   if (runType === "program") programHistory[key] = { status: "PUBLISHED", publishedAt: nowIso, draftId };
@@ -202,7 +215,7 @@ async function publishMonthly(
     nextRunAt: existing?.nextRunAt ?? null,
   });
 
-  return NextResponse.json({ success: true, draftId, results });
+  return NextResponse.json({ success: true, draftId, results, links });
 }
 
 export async function POST(request: Request) {

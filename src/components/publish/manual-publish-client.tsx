@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
-  ArrowLeft,
   CalendarClock,
   CheckCircle,
   Copy,
@@ -27,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { DAVID_AGENT_IMAGE, DOV_BER_INSTAGRAM_IMAGE, MENDY_FACEBOOK_IMAGE, SocialPageBanner } from "@/components/publish/social-page-banner";
 
 const SOCIAL_LABELS: Record<string, string> = {
   WHATSAPP: "WhatsApp",
@@ -35,9 +35,6 @@ const SOCIAL_LABELS: Record<string, string> = {
   TELEGRAM: "Telegram",
   EMAIL: "Email / Gmail",
 };
-
-const CHANNEL_SHARED_DESCRIPTION =
-  "Ecrivez votre contenu, laissez l'IA vous aider a le reformuler, puis publiez-le sur le bon canal.";
 
 type Props = {
   platform: string;
@@ -174,22 +171,14 @@ function GenericPublishClient({ platformKey, isConnected, communityName }: Props
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-3xl border bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 p-6 text-white shadow-lg shadow-slate-950/20">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard/publications">
-              <Button size="icon" variant="ghost" className="rounded-2xl text-white hover:bg-white/10">
-                <ArrowLeft className="size-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold">Publier sur {label}</h1>
-              <p className="max-w-2xl text-sm leading-6 text-white/85">{CHANNEL_SHARED_DESCRIPTION}</p>
-            </div>
-          </div>
-          <Badge className="border-white/30 bg-white/20 text-white">Publication manuelle</Badge>
-        </div>
-      </div>
+      <SocialPageBanner
+        title={`Publier sur ${label}`}
+        color="#334155"
+        agentName="David"
+        agentImageUrl={DAVID_AGENT_IMAGE}
+        statusLabel="Publication manuelle"
+        backHref="/dashboard/publications"
+      />
 
       {!isConnected && (
         <Card className="overflow-hidden rounded-2xl border-amber-200 bg-amber-50/60">
@@ -475,24 +464,14 @@ function InstagramPublishClient({ channelId, isConnected, communityName }: Props
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-3xl border border-pink-200 bg-gradient-to-br from-[#833ab4] via-[#fd1d1d] to-[#fcb045] p-6 text-white shadow-lg shadow-pink-950/20">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard/publications">
-              <Button size="icon" variant="ghost" className="rounded-2xl text-white hover:bg-white/10">
-                <ArrowLeft className="size-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold">Publier sur Instagram</h1>
-              <p className="max-w-2xl text-sm leading-6 text-white/85">Redigez votre message avec l&apos;IA, ajoutez votre image, puis publiez ou planifiez.</p>
-            </div>
-          </div>
-          <Badge className="border-white/30 bg-white/15 text-white">
-            {isConnected ? "Compte connecte" : "Connexion requise"}
-          </Badge>
-        </div>
-      </div>
+      <SocialPageBanner
+        title="Publier sur Instagram"
+        color="#8A184D"
+        agentName="Dov Ber"
+        agentImageUrl={DOV_BER_INSTAGRAM_IMAGE}
+        statusLabel={isConnected ? "Compte connecté" : "Connexion requise"}
+        backHref="/dashboard/publications"
+      />
 
       {!isConnected && (
         <Card className="overflow-hidden rounded-2xl border-amber-200 bg-amber-50/60">
@@ -915,27 +894,14 @@ function FacebookPublishClient({ channelId, isConnected, communityName }: Props)
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-3xl border border-blue-200 bg-gradient-to-br from-[#1877f2] via-[#2563eb] to-[#0f3d91] p-6 text-white shadow-lg shadow-blue-950/20">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard/publications">
-              <Button size="icon" variant="ghost" className="rounded-2xl text-white hover:bg-white/10">
-                <ArrowLeft className="size-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="flex items-center gap-2 text-2xl font-bold">
-                Facebook
-                <span className="rounded-md border border-white/30 bg-white/15 px-1.5 py-0.5 text-xs font-bold">AI</span>
-              </h1>
-              <p className="max-w-2xl text-sm leading-6 text-white/85">
-                Generez vos textes Facebook avec l&apos;IA, ajoutez vos medias et programmez vos publications.
-              </p>
-            </div>
-          </div>
-          {isConnected && <Badge className="border-white/30 bg-white/15 text-white">Facebook connecte</Badge>}
-        </div>
-      </div>
+      <SocialPageBanner
+        title="Publier sur Facebook"
+        color="#0B4FB3"
+        agentName="Mendy"
+        agentImageUrl={MENDY_FACEBOOK_IMAGE}
+        statusLabel={isConnected ? "Facebook connecté" : "Connexion requise"}
+        backHref="/dashboard/publications"
+      />
 
       {!isConnected && (
         <div className="flex justify-end">
@@ -1361,27 +1327,14 @@ function TelegramPublishClient({ channelId, isConnected, communityName }: Props)
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-3xl border border-sky-200 bg-gradient-to-br from-[#229ed9] via-[#168acd] to-[#0b5f9f] p-6 text-white shadow-lg shadow-sky-950/20">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard/publications">
-              <Button size="icon" variant="ghost" className="rounded-2xl text-white hover:bg-white/10">
-                <ArrowLeft className="size-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="flex items-center gap-2 text-2xl font-bold">
-                Telegram
-                <span className="rounded-md border border-white/30 bg-white/15 px-1.5 py-0.5 text-xs font-bold">AI</span>
-              </h1>
-              <p className="max-w-2xl text-sm leading-6 text-white/85">
-                Generez vos textes Telegram avec l&apos;IA, ajoutez vos medias et programmez vos publications.
-              </p>
-            </div>
-          </div>
-          {isConnected && <Badge className="border-white/30 bg-white/15 text-white">Telegram connecte</Badge>}
-        </div>
-      </div>
+      <SocialPageBanner
+        title="Publier sur Telegram"
+        color="#1677A8"
+        agentName="David"
+        agentImageUrl={DAVID_AGENT_IMAGE}
+        statusLabel={isConnected ? "Telegram connecté" : "Connexion requise"}
+        backHref="/dashboard/publications"
+      />
 
       {!isConnected && (
         <div className="flex justify-end">

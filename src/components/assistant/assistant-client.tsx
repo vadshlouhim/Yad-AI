@@ -230,11 +230,11 @@ const ASSISTANT_PLACEHOLDER_SUGGESTIONS = [
 
 const STATIC_ASSISTANT_PLACEHOLDER = "Posez une question, demandez un contenu, lancez une action...";
 const MOBILE_ASSISTANT_PLACEHOLDER = "Décrivez votre besoin...";
-const SHLOMI_ASSISTANT_IMAGE_URL =
-  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/agent-orcetra-shlomi.webp";
+const AGENTS_IMAGE_URL =
+  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Tous%20les%20agnets.webp";
 
 const EASYCOM_FULL_MESSAGE =
-  "L'Assistant IA vous aide à gérer toute votre communication depuis un seul espace intelligent.\n\n" +
+  "Les agents intelligents vous aident à gérer toute votre communication depuis un seul espace intelligent.\n\n" +
   "* Programmez vos publications sur WhatsApp, Instagram et Facebook, puis recevez une notification au bon moment avant validation.\n" +
   "* Enregistrez vos contacts, organisez vos groupes et envoyez des messages bien rédigés, structurés et adaptés aux bonnes personnes.\n" +
   "* Gérez vos emails intelligemment : l'IA trie les messages importants, repère les urgences et vous propose des réponses prêtes à envoyer.\n" +
@@ -243,8 +243,8 @@ const EASYCOM_FULL_MESSAGE =
   "* Centralisez vos automatisations, publications prévues, rappels et événements dans votre Agenda IA avec des notifications au bon moment.\n" +
   "* Créez des clips vidéo IA à partir de vos photos et vidéos, prêts à être publiés sur vos réseaux.\n" +
   "* Notez vos ressources personnelles, organisez-les dans votre espace, puis publiez-les ou partagez-les en un clic.\n\n" +
-  "L'Assistant IA prépare, organise et automatise vos actions tout en vous laissant le contrôle : l'IA propose, vous validez, puis elle agit.\n\n" +
-  "Cliquez dans le menu ou demandez à l'Assistant IA ce que vous souhaitez.";
+  "Les agents intelligents préparent, organisent et automatisent vos actions tout en vous laissant le contrôle : l'IA propose, vous validez, puis elle agit.\n\n" +
+  "Cliquez dans le menu ou demandez aux agents intelligents ce que vous souhaitez.";
 
 function AssistantAvatar({
   className,
@@ -255,14 +255,14 @@ function AssistantAvatar({
   imageClassName?: string;
   iconClassName?: string;
 }) {
-  const [imageSrc, setImageSrc] = useState<string | null>(SHLOMI_ASSISTANT_IMAGE_URL);
+  const [imageSrc, setImageSrc] = useState<string | null>(AGENTS_IMAGE_URL);
 
   return (
     <div className={className}>
       {imageSrc ? (
         <img
           src={imageSrc}
-          alt="Assistant Shlomi"
+          alt="Agents intelligents EasyCom IA"
           className={imageClassName}
           onError={() => setImageSrc(null)}
         />
@@ -1162,7 +1162,7 @@ export function AssistantClient({
     ? seasonalPrompts.slice(0, 4)
     : [...seasonalPrompts, ...QUICK_PROMPTS].slice(0, 4);
   const simpleMenuSections = DASHBOARD_NAV_ITEMS
-    .filter((section) => section.section !== "ASSISTANT IA")
+    .filter((section) => section.section !== "AGENTS INTELLIGENTS")
     .map((section) => ({
       section: section.section,
       items: section.items.filter((item) => item.href !== "/dashboard/assistant"),
@@ -1982,9 +1982,9 @@ export function AssistantClient({
         open={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
         config={billingConfig}
-        featureLabel="Assistant IA"
-        title="Assistant IA illimité avec le mode payant"
-        description="Le mode gratuit inclut 20 messages avec l'assistant IA. Passez au mode payant pour continuer à créer, planifier et automatiser sans limite."
+        featureLabel="Agents intelligents"
+        title="Agents intelligents illimités avec le mode payant"
+        description="Le mode gratuit inclut 20 messages avec les agents intelligents. Passez au mode payant pour continuer à créer, planifier et automatiser sans limite."
       />
       {/* â”€â”€ Sidebar historique â”€â”€ */}
       {assistantExperience === "detailed" && historyOpen && (
@@ -2315,7 +2315,7 @@ export function AssistantClient({
               <h1 className="truncate text-base font-bold text-slate-900">
                 {assistantExperience === "detailed" && activeConversationId
                   ? conversations.find((c) => c.id === activeConversationId)?.title ?? "Conversation"
-                  : "Assistant Shlomi"}
+                  : "Agents intelligents"}
               </h1>
               {assistantExperience === "simple" && firstName && (
                 <p className="truncate text-xs font-medium text-slate-500 md:hidden">
@@ -2526,47 +2526,18 @@ export function AssistantClient({
 
             {assistantExperience === "simple" && (
               <div className="mb-6 w-full max-w-4xl px-5 py-2 text-center sm:px-8">
-                <div className="relative mx-auto mb-16 flex w-fit items-center justify-center md:mb-4">
+                <div className="relative mx-auto mb-4 flex w-fit items-center justify-center">
                   <AssistantAvatar
-                    className="flex h-36 w-36 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.14)] sm:h-44 sm:w-44"
-                    imageClassName="h-full w-full object-cover object-top"
+                    className="flex h-56 w-72 items-center justify-center sm:h-72 sm:w-[28rem]"
+                    imageClassName="h-full w-full object-contain drop-shadow-[0_28px_42px_rgba(15,23,42,0.30)] saturate-110"
                     iconClassName="size-7 text-slate-700"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setCapabilitiesOpen(true)}
-                    className="absolute left-[104%] top-7 hidden w-60 rounded-[2rem] border border-slate-200 bg-white px-4 py-3.5 text-left text-xs font-black leading-5 text-slate-800 shadow-[0_18px_38px_rgba(15,23,42,0.14)] transition hover:border-blue-200 hover:text-blue-700 md:block"
-                    aria-label="Voir tout ce que je peux faire pour toi"
-                  >
-                    <span className="relative z-10 flex items-center gap-2">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-black text-white">
-                        !
-                      </span>
-                      <span>Voir tout ce que je peux faire pour toi</span>
-                    </span>
-                    <span className="absolute left-0 top-7 h-4 w-4 -translate-x-1/2 rotate-45 border-b border-l border-slate-200 bg-white" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCapabilitiesOpen(true)}
-                    className="absolute -bottom-7 left-1/2 w-60 -translate-x-1/2 rounded-[2rem] border border-slate-200 bg-white px-4 py-3 text-center text-xs font-black leading-5 text-slate-800 shadow-[0_16px_34px_rgba(15,23,42,0.14)] transition hover:border-blue-200 hover:text-blue-700 md:hidden"
-                    aria-label="Voir tout ce que je peux faire pour toi"
-                  >
-                    <span className="relative z-10 inline-flex items-center justify-center gap-2">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-black text-white">
-                        !
-                      </span>
-                      <span>Voir tout ce que je peux faire pour toi</span>
-                    </span>
-                    <span className="absolute -top-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 border-l border-t border-slate-200 bg-white" />
-                  </button>
                 </div>
-                <h2 className="text-[2rem] font-black leading-tight tracking-tight text-slate-900 sm:text-3xl md:text-2xl">
-                  <span className="md:hidden">En quoi puis-je vous aider aujourd&apos;hui ?</span>
-                  <span className="hidden md:inline">Bienvenue{firstName ? `, ${firstName}` : ""}</span>
+                <h2 className="text-[2.35rem] font-black leading-tight tracking-tight text-slate-950 sm:text-5xl">
+                  Bienvenue{firstName ? ` ${firstName}` : ""}
                 </h2>
-                <p className="mx-auto mt-2 hidden max-w-2xl text-sm leading-6 text-slate-500 sm:text-[15px] md:block">
-                  Je suis Shlomi, ton assistant IA. Dis-moi ce dont tu as besoin !
+                <p className="mx-auto mt-2 max-w-3xl text-sm leading-6 text-slate-500 sm:text-[15px]">
+                  Découvrez Mendy, Dov Ber, Levik et les agents intelligents d’EasyCom IA : une équipe IA spécialement conçue pour gérer toute votre communication depuis une seule plateforme
                 </p>
               </div>
             )}
@@ -2578,7 +2549,7 @@ export function AssistantClient({
                   Bienvenue sur votre espace personnel
                 </h2>
                 <p className="mx-auto mt-2 max-w-3xl text-sm leading-7 text-slate-600 sm:text-[15px]">
-                  Votre temps est précieux — concentrez-vous sur l&apos;essentiel. l&apos;Assistant IA s&apos;occupe du reste !
+                  Votre temps est précieux — concentrez-vous sur l&apos;essentiel. Les agents intelligents s&apos;occupent du reste !
                 </p>
                 <p className="mx-auto mt-0.5 max-w-3xl text-sm leading-7 text-slate-500 sm:text-[15px]">
                   (Publications récurrentes et automatisées, mail et Avis Google, agenda IA, assistant du quotidien, ressources communautaires)

@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
-  Bell,
   BookOpen,
   Calendar,
   CheckCircle2,
@@ -24,7 +23,6 @@ import {
   Sparkles,
   Star,
   Upload,
-  User,
   Wand2,
   X,
   Zap,
@@ -86,6 +84,16 @@ type InitialAutomation = {
   updatedAt: string;
 } | null;
 
+type SocialChannel = {
+  type: "INSTAGRAM" | "FACEBOOK" | string;
+  name: string;
+  handle: string | null;
+  pageId: string | null;
+  settings: Json | null;
+  isConnected: boolean;
+  isActive: boolean;
+};
+
 type ShabbatFields = {
   logoUrl: string;
   structureName: string;
@@ -113,7 +121,6 @@ type PosterConfig = {
 };
 
 type View = "overview" | "models" | "customize" | "success";
-type FillMode = "manual" | "ai";
 type ScheduleMode = "notification" | "direct";
 
 type AiMessage = { from: "ai" | "user"; text: string };
@@ -123,12 +130,13 @@ type Props = {
   community: Community;
   shabbat: ShabbatCardItem | null;
   initialAutomation: InitialAutomation;
+  socialChannels: SocialChannel[];
 };
 
 const paletteOptions = [
   { id: "violet", label: "Violet", classes: "from-violet-950 via-purple-900 to-violet-700", accent: "#f4c76a" },
   { id: "blue", label: "Bleu", classes: "from-slate-950 via-blue-950 to-sky-800", accent: "#d9b36a" },
-  { id: "emerald", label: "Ã‰meraude", classes: "from-emerald-950 via-teal-900 to-emerald-700", accent: "#f0d48a" },
+  { id: "emerald", label: "Émeraude", classes: "from-emerald-950 via-teal-900 to-emerald-700", accent: "#f0d48a" },
   { id: "rose", label: "Rose", classes: "from-rose-950 via-pink-900 to-rose-700", accent: "#ffd0a1" },
   { id: "gold", label: "Or", classes: "from-amber-950 via-yellow-800 to-amber-500", accent: "#2b1b0b" },
   { id: "mono", label: "Monochrome", classes: "from-zinc-950 via-zinc-900 to-zinc-700", accent: "#f8fafc" },
@@ -143,7 +151,7 @@ const dayOptions = [
   { label: "Vendredi", value: "Vendredi", dayOfWeek: 5 },
 ];
 
-const defaultPostText = "Chabbat Chalom Ã  toute la communautÃ©.\nRetrouvez les horaires de ce Chabbat.";
+const defaultPostText = "Chabbat Chalom à toute la communauté.\nRetrouvez les horaires de ce Chabbat.";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -156,7 +164,7 @@ function getPosterConfig(automation: InitialAutomation): PosterConfig {
 }
 
 function formatDate(value: string | null | undefined) {
-  if (!value) return "â€”";
+  if (!value) return "—";
   return new Date(`${value}T12:00:00`).toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
@@ -164,51 +172,8 @@ function formatDate(value: string | null | undefined) {
   });
 }
 
-// Calcule le libellÃ© de la prochaine occurrence en fuseau Paris,
-// en affichant l'heure TELLE QUE configurÃ©e (jamais convertie depuis UTC).
-function getNextOccurrenceLabel(dayOfWeek: number, time: string): string {
-  if (!time || time === "00:00") return "Ã€ programmer";
-  const [h, m] = time.split(":").map(Number);
-  if (!Number.isFinite(h) || !Number.isFinite(m)) return "Ã€ programmer";
-
-  const now = new Date();
-  const TZ = "Europe/Paris";
-
-  // Jour et heure actuels en heure de Paris (indÃ©pendant du fuseau serveur/navigateur)
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: TZ,
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(now);
-  const byType = Object.fromEntries(parts.map((p) => [p.type, p.value]));
-  const WEEKDAY_MAP: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-  const parisDay = WEEKDAY_MAP[byType.weekday ?? ""] ?? 0;
-  const parisHour = parseInt(byType.hour ?? "0", 10);
-  const parisMin = parseInt(byType.minute ?? "0", 10);
-
-  // Jours jusqu'Ã  la prochaine occurrence
-  let daysUntil = (dayOfWeek - parisDay + 7) % 7;
-  if (daysUntil === 0 && (h < parisHour || (h === parisHour && m <= parisMin))) {
-    daysUntil = 7; // l'heure est dÃ©jÃ  passÃ©e aujourd'hui â†’ semaine prochaine
-  }
-
-  const targetDate = new Date(now.getTime() + daysUntil * 24 * 60 * 60 * 1000);
-  const datePart = new Intl.DateTimeFormat("fr-FR", {
-    timeZone: TZ,
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(targetDate);
-
-  // L'heure est affichÃ©e EXACTEMENT comme configurÃ©e â€” pas de conversion UTC
-  const timePart = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-  return `${datePart} Ã  ${timePart}`;
-}
-
 function formatField(value: string | null | undefined) {
-  return value && value.trim().length > 0 ? value : "â€”";
+  return value && value.trim().length > 0 ? value : "—";
 }
 
 function getInitials(name: string) {
@@ -238,6 +203,20 @@ function selectedTemplateFromConfig(
   templateId: string | null | undefined
 ) {
   return templates[mode].find((t) => t.id === templateId) ?? templates[mode][0] ?? null;
+}
+
+function buildSocialProfileUrl(channels: SocialChannel[], type: "INSTAGRAM" | "FACEBOOK") {
+  const channel = channels.find((item) => item.type === type && item.isActive && item.isConnected);
+  if (!channel) return null;
+
+  if (type === "INSTAGRAM") {
+    return channel.handle ? `https://www.instagram.com/${channel.handle.replace(/^@/, "")}` : null;
+  }
+
+  const settings = isRecord(channel.settings) ? channel.settings : {};
+  const metaPageId = typeof settings.metaPageId === "string" ? settings.metaPageId : null;
+  const pageId = channel.pageId ?? metaPageId;
+  return pageId ? `https://www.facebook.com/${pageId}` : null;
 }
 
 function InstagramLogo({ className }: { className?: string }) {
@@ -277,21 +256,9 @@ function WhatsAppLogo({ className }: { className?: string }) {
   );
 }
 
-function EmailLogo({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none">
-      <rect width="24" height="24" rx="6" fill="#6366f1" />
-      <rect x="4.5" y="7" width="15" height="10" rx="1.5" stroke="white" strokeWidth="1.5" />
-      <path d="M4.5 8.5 12 13.5l7.5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 const CHANNEL_OPTIONS = [
   { id: "INSTAGRAM", label: "Instagram", Logo: InstagramLogo, activeClass: "border-pink-400 bg-pink-50 ring-2 ring-pink-200", badgeClass: "border-pink-200 bg-pink-50 text-pink-700" },
   { id: "FACEBOOK", label: "Facebook", Logo: FacebookLogo, activeClass: "border-blue-500 bg-blue-50 ring-2 ring-blue-200", badgeClass: "border-blue-200 bg-blue-50 text-blue-700" },
-  { id: "WHATSAPP", label: "WhatsApp", Logo: WhatsAppLogo, activeClass: "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-200", badgeClass: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-  { id: "EMAIL", label: "E-mail", Logo: EmailLogo, activeClass: "border-indigo-400 bg-indigo-50 ring-2 ring-indigo-200", badgeClass: "border-indigo-200 bg-indigo-50 text-indigo-700" },
 ] as const;
 
 function SmartphoneFrame({ children }: { children: React.ReactNode }) {
@@ -346,7 +313,7 @@ function PosterFallback({
         <div className="my-5 h-px w-36 bg-white/40" />
         <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.15em] text-white/80">EntrÃ©e</p>
+            <p className="text-[10px] uppercase tracking-[0.15em] text-white/80">Entrée</p>
             <p className="mt-2 text-[38px] font-serif leading-none">{fields.entry || "21:39"}</p>
           </div>
           <div className="h-20 w-px bg-white/40" />
@@ -401,6 +368,7 @@ export function ShabbatTimesAutoClient({
   community,
   shabbat,
   initialAutomation,
+  socialChannels,
 }: Props) {
   const savedConfig = getPosterConfig(initialAutomation);
   const initialMode = savedConfig.selectedTemplateCategory ?? "simple";
@@ -418,7 +386,12 @@ export function ShabbatTimesAutoClient({
   const [notificationDayOfWeek, setNotificationDayOfWeek] = useState(savedConfig.notificationDayOfWeek ?? 5);
   const [notificationTime, setNotificationTime] = useState(savedConfig.notificationTime ?? "10:00");
   const [scheduleMode, setScheduleMode] = useState<ScheduleMode>((savedConfig.scheduleMode ?? "notification") as ScheduleMode);
-  const [channels, setChannels] = useState<string[]>(savedConfig.channels ?? ["INSTAGRAM", "FACEBOOK", "WHATSAPP"]);
+  const [weeklyOptIn, setWeeklyOptIn] = useState<boolean | null>(savedConfig.configured ? true : null);
+  const [channels, setChannels] = useState<string[]>(() => {
+    const savedChannels = savedConfig.channels ?? ["INSTAGRAM", "FACEBOOK"];
+    const socialChannels = savedChannels.filter((channel) => channel === "INSTAGRAM" || channel === "FACEBOOK");
+    return socialChannels.length > 0 ? socialChannels : ["INSTAGRAM", "FACEBOOK"];
+  });
   const [automation, setAutomation] = useState(initialAutomation);
   const [configured, setConfigured] = useState(Boolean(savedConfig.configured));
   const [saving, setSaving] = useState(false);
@@ -431,59 +404,52 @@ export function ShabbatTimesAutoClient({
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoUploadError, setLogoUploadError] = useState("");
   const [logoDragActive, setLogoDragActive] = useState(false);
-  const [statusOpen, setStatusOpen] = useState(false);
-  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [shabbatInfoOpen, setShabbatInfoOpen] = useState(false);
   const [paywallOpen, setPaywallOpen] = useState(false);
-  const [showWelcomePopup, setShowWelcomePopup] = useState(!savedConfig.configured && !initialAutomation);
+  const [publicationSuccessOpen, setPublicationSuccessOpen] = useState(false);
+  const [publishedChannels, setPublishedChannels] = useState<string[]>([]);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
 
-  // Fill mode
-  const [fillMode, setFillMode] = useState<FillMode>("manual");
   const [aiMessages, setAiMessages] = useState<AiMessage[]>([]);
-  const [aiStep, setAiStep] = useState(0);
   const [aiDone, setAiDone] = useState(false);
-  const [aiInput, setAiInput] = useState("");
   const aiChatRef = useRef<HTMLDivElement>(null);
-  const aiInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
 
   const activeTemplates = templates[templateMode];
   const selectedTemplate = selectedTemplateFromConfig(templates, templateMode, selectedTemplateId);
   const selectedPalette = paletteOptions.find((item) => item.id === palette) ?? paletteOptions[0];
-  const isActive = automation?.isActive === true && automation.status === "ACTIVE";
   const isPaid = community.plan !== "FREE_TRIAL";
+  const instagramProfileUrl = buildSocialProfileUrl(socialChannels, "INSTAGRAM");
+  const facebookProfileUrl = buildSocialProfileUrl(socialChannels, "FACEBOOK");
 
   const selectedTemplateIndex = activeTemplates.findIndex((t) => t.id === selectedTemplateId);
   const isFreeTemplate = selectedTemplateIndex === 0 || selectedTemplateIndex === -1;
-
-  type AiField = keyof ShabbatFields | "_postText";
-
-  function buildAiQuestions(): { field: AiField; question: string }[] {
-    return [
-      { field: "structureName", question: `Quel est le nom de votre structure ?` },
-      { field: "city", question: `Dans quelle ville Ãªtes-vous ?${shabbat?.cityName ? ` (suggestion : ${shabbat.cityName})` : ""}` },
-      { field: "parasha", question: `Quelle est la paracha de ce Chabbat ?${shabbat?.parasha ? ` (suggestion : ${shabbat.parasha})` : ""}` },
-      { field: "entry", question: `Heure d'entrÃ©e de Chabbat ? (format hh:mm)${shabbat?.entry ? ` (suggestion : ${shabbat.entry})` : ""}` },
-      { field: "exit", question: `Heure de sortie de Chabbat ? (format hh:mm)${shabbat?.exit ? ` (suggestion : ${shabbat.exit})` : ""}` },
-      { field: "kiddouch", question: `Y a-t-il un kiddouch offert ce Chabbat ? Si oui, par qui ? (EntrÃ©e pour passer)` },
-      { field: "_postText", question: `Quel texte pour la publication ? (EntrÃ©e pour garder le texte par dÃ©faut)` },
-    ];
-  }
+  const aiFieldItems = [
+    { key: "structureName", label: "Nom de la structure", icon: Pencil },
+    { key: "city", label: "Ville", icon: MapPin },
+    { key: "parasha", label: "Paracha", icon: BookOpen },
+    { key: "entry", label: "Entrée de Chabbat", icon: Clock },
+    { key: "exit", label: "Sortie de Chabbat", icon: Clock },
+    ...(templateMode === "detailed" ? [{ key: "kiddouch", label: "Kiddouch offert par", icon: Star }] : []),
+  ] as const;
 
   function startAiMode() {
-    const questions = buildAiQuestions();
-    setAiStep(0);
     setAiDone(false);
-    setAiInput("");
-    setAiMessages([{ from: "ai", text: questions[0].question }]);
-    setTimeout(() => aiInputRef.current?.focus(), 100);
+    const detailSentence = templateMode === "detailed"
+      ? "Comme vous avez choisi un visuel avec offices, indiquez aussi les horaires des offices si vous voulez les afficher."
+      : "Comme vous avez choisi une affiche simple, je garde uniquement les informations essentielles.";
+    setAiMessages([{
+      from: "ai",
+      text: `Voici les informations que j'ai : nom de la structure ${fields.structureName || community.name}, ville ${fields.city || community.city || "Paris"}, paracha ${fields.parasha || "à compléter"}, entrée ${fields.entry || shabbat?.entry || "à compléter"}, sortie ${fields.exit || shabbat?.exit || "à compléter"}. ${detailSentence} Validez-les ou modifiez ce qui doit l'être, puis je génère automatiquement l'aperçu.`,
+    }]);
   }
 
   useEffect(() => {
-    if (fillMode === "ai" && aiMessages.length === 0) {
+    if (aiMessages.length === 0) {
       startAiMode();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fillMode]);
+  }, []);
 
   useEffect(() => {
     if (aiChatRef.current) {
@@ -491,52 +457,35 @@ export function ShabbatTimesAutoClient({
     }
   }, [aiMessages]);
 
-  function handleAiAnswer(rawAnswer: string) {
-    const questions = buildAiQuestions();
-    const answer = rawAnswer.trim();
-    const currentQ = questions[aiStep];
-
-    setAiMessages((prev) => [...prev, { from: "user", text: answer || "(aucune valeur)" }]);
-
-    if (answer) {
-      if (currentQ.field === "_postText") {
-        setPostText(answer);
-      } else {
-        setFields((prev) => ({ ...prev, [currentQ.field]: answer }));
-      }
-    }
-
-    const nextStep = aiStep + 1;
-    if (nextStep >= questions.length) {
-      setAiDone(true);
-      setAiMessages((prev) => [
-        ...prev,
-        { from: "ai", text: "Parfait ! Votre affiche est configurÃ©e. Vous pouvez la prÃ©visualiser Ã  droite et ajuster si nÃ©cessaire. Descendez pour choisir l'horaire d'envoi et valider." },
-      ]);
-    } else {
-      setAiStep(nextStep);
-      setAiMessages((prev) => [...prev, { from: "ai", text: questions[nextStep].question }]);
-    }
-
-    setAiInput("");
-    setTimeout(() => aiInputRef.current?.focus(), 100);
+  async function validateAiInformation() {
+    setAiDone(true);
+    setAiMessages((prev) => [
+      ...prev,
+      { from: "user", text: "Informations validées" },
+      { from: "ai", text: "Parfait, je génère automatiquement l'aperçu. Ensuite, choisissez où publier." },
+    ]);
+    await handleGeneratePreview();
   }
 
   async function handleGeneratePreview() {
-    if (!selectedTemplateId || generatingPreview) return;
+    if (!selectedTemplateId || generatingPreview) return null;
     setGeneratingPreview(true);
     setPreviewError("");
     setPreviewImageUrl(null);
     try {
-      // Ã‰tape 1 : confirm â†’ gÃ©nÃ¨re les textes pour chaque zone du template
-      const syntheticMessage = `PrÃ©pare l'affiche avec ces informations :
-Structure : ${fields.structureName || community.name}
+      // Étape 1 : confirm ? g?n?re les textes pour chaque zone du template
+const syntheticMessage = `Prépare l'affiche avec ces informations :
+Nom de l'organisation : ${fields.structureName || community.name}
 Ville : ${fields.city || community.city || "Paris"}
 Paracha : ${fields.parasha || ""}
-Heure d'entrÃ©e de Chabbat : ${fields.entry || shabbat?.entry || ""}
+Heure d'entrée de Chabbat : ${fields.entry || shabbat?.entry || ""}
 Heure de sortie de Chabbat : ${fields.exit || shabbat?.exit || ""}
-${fields.kiddouch ? `Kiddouch offert par : ${fields.kiddouch}` : ""}
-${fields.logoUrl ? `Logo disponible` : ""}`;
+${templateMode === "detailed" && fields.kiddouch ? `Kiddouch offert par : ${fields.kiddouch}` : ""}
+${templateMode === "detailed" && officeTimes ? `Horaires des offices : ${officeTimes}` : ""}
+${fields.logoUrl ? `Logo utilisateur : ${fields.logoUrl}` : ""}
+
+Place exactement le logo utilisateur à l'emplacement prévu pour {logo utilisateur}.
+Place exactement le nom de l'organisation à l'emplacement prévu pour [nom de l'organisation].`;
 
       const confirmRes = await fetch("/api/templates/confirm", {
         method: "POST",
@@ -546,11 +495,11 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
           messages: [{ role: "user", content: syntheticMessage }],
         }),
       });
-      if (!confirmRes.ok) throw new Error("Impossible de prÃ©parer les textes de l'affiche.");
+      if (!confirmRes.ok) throw new Error("Impossible de préparer les textes de l'affiche.");
       const confirmData = await confirmRes.json() as { generatedTexts?: Record<string, string> };
       const generatedTexts = confirmData.generatedTexts ?? {};
 
-      // Ã‰tape 2 : render â†’ gÃ©nÃ¨re l'image
+      // Étape 2 : render ? g?n?re l'image
       const renderRes = await fetch("/api/templates/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -558,13 +507,17 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
       });
       if (!renderRes.ok) {
         const err = await renderRes.json().catch(() => ({})) as { error?: string };
-        throw new Error(err.error ?? "Impossible de gÃ©nÃ©rer l'affiche.");
+        throw new Error(err.error ?? "Impossible de générer l'affiche.");
       }
       const renderData = await renderRes.json() as { imageUrl?: string };
-      if (renderData.imageUrl) setPreviewImageUrl(renderData.imageUrl);
-      else throw new Error("Aucune image retournÃ©e.");
+      if (renderData.imageUrl) {
+        setPreviewImageUrl(renderData.imageUrl);
+        return renderData.imageUrl;
+      }
+      else throw new Error("Aucune image retourn?e.");
     } catch (e) {
-      setPreviewError(e instanceof Error ? e.message : "Erreur lors de la gÃ©nÃ©ration.");
+      setPreviewError(e instanceof Error ? e.message : "Erreur lors de la génération.");
+      return null;
     } finally {
       setGeneratingPreview(false);
     }
@@ -634,25 +587,97 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
     });
     if (!saved) return;
     setView("customize");
-    setFillMode("manual");
+    setAiMessages([]);
+    setAiDone(false);
   }
 
-  async function activateAutomation() {
+  async function publishShabbatNow() {
+    if (channels.length === 0) {
+      setError("Sélectionnez au moins un réseau pour publier.");
+      return;
+    }
+
+    const wantsWeeklyAutomation = weeklyOptIn === true;
+    const baseConfig = currentConfig();
+    const publishConfig: PosterConfig = { ...baseConfig, scheduleMode: "direct" };
+    const weeklyConfig: PosterConfig = { ...baseConfig, scheduleMode: "notification" };
+
     const saved = await saveToApi({
-      mode: "activate",
+      mode: "publish-now-config",
       templateId: selectedTemplateId,
       templateMode,
-      config: currentConfig(),
+      config: publishConfig,
     });
-    if (saved) {
-      setConfigured(true);
-      setView("success");
+    if (!saved?.id) return;
+
+    setConfigured(wantsWeeklyAutomation);
+    setAutomation(saved);
+    setTriggering(true);
+    setError("");
+    try {
+      const imageUrl = previewImageUrl ?? (await handleGeneratePreview());
+      if (channels.includes("INSTAGRAM") && !imageUrl) {
+        setError("L'aperçu de l'affiche est nécessaire pour publier sur Instagram.");
+        return;
+      }
+
+      const response = await fetch("/api/shabbat-times-auto/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: postText,
+          imageUrl,
+          channels,
+        }),
+      });
+      const data = await response.json().catch(() => ({})) as {
+        error?: string;
+        successfulChannels?: string[];
+      };
+      if (!response.ok) {
+        setError(data.error ?? "La publication n'a pas pu être envoyée aux réseaux sélectionnés.");
+        return;
+      }
+
+      const successfulChannels = Array.isArray(data.successfulChannels) ? data.successfulChannels : [];
+      if (successfulChannels.length === 0) {
+        setError("La publication n'a pas été confirmée par Instagram ou Facebook.");
+        return;
+      }
+
+      if (wantsWeeklyAutomation) {
+        const weeklyAutomation = await saveToApi({
+          mode: "activate",
+          templateId: selectedTemplateId,
+          templateMode,
+          config: weeklyConfig,
+        });
+        if (weeklyAutomation) {
+          setAutomation(weeklyAutomation);
+          setConfigured(true);
+        }
+      } else {
+        await saveToApi({ mode: "pause" });
+        setConfigured(false);
+      }
+
+      setPublishedChannels(successfulChannels);
+      setTriggerSuccess(true);
+      setPublicationSuccessOpen(true);
+      setTimeout(() => setTriggerSuccess(false), 4000);
+    } catch {
+      setError("Erreur réseau lors du déclenchement.");
+    } finally {
+      setTriggering(false);
     }
   }
 
   async function pauseAutomation() {
     const saved = await saveToApi({ mode: "pause" });
-    if (saved) setStatusOpen(false);
+    if (saved) {
+      setAutomation(saved);
+      setConfigured(false);
+    }
   }
 
   async function publishNow() {
@@ -664,36 +689,28 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
       const response = await fetch(`/api/automations/${automation.id}/trigger`, { method: "POST" });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        setError((data as { error?: string }).error ?? "Erreur lors du dÃ©clenchement.");
+        setError((data as { error?: string }).error ?? "Erreur lors du déclenchement.");
       } else {
         setTriggerSuccess(true);
+        setPublicationSuccessOpen(true);
         setTimeout(() => setTriggerSuccess(false), 4000);
       }
     } catch {
-      setError("Erreur rÃ©seau lors du dÃ©clenchement.");
+      setError("Erreur réseau lors du déclenchement.");
     } finally {
       setTriggering(false);
     }
   }
 
-  async function updateSchedule() {
-    const saved = await saveToApi({
-      mode: isActive ? "activate" : "save-config",
-      templateId: selectedTemplateId,
-      templateMode,
-      config: currentConfig(),
-    });
-    if (saved) setScheduleOpen(false);
-  }
-
   function updateField(key: keyof ShabbatFields, value: string) {
     setFields((current) => ({ ...current, [key]: value }));
+    setAiDone(false);
   }
 
   async function uploadLogo(file: File | null | undefined) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setLogoUploadError("Le logo doit Ãªtre une image.");
+      setLogoUploadError("Le logo doit être une image.");
       return;
     }
     setLogoUploading(true);
@@ -707,12 +724,12 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
       });
       const result = await response.json();
       if (!response.ok) {
-        setLogoUploadError(result.error ?? "Impossible de tÃ©lÃ©verser le logo.");
+        setLogoUploadError(result.error ?? "Impossible de téléverser le logo.");
         return;
       }
       updateField("logoUrl", result.logoUrl);
     } catch {
-      setLogoUploadError("Impossible de tÃ©lÃ©verser le logo.");
+      setLogoUploadError("Impossible de téléverser le logo.");
     } finally {
       setLogoUploading(false);
       setLogoDragActive(false);
@@ -720,7 +737,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
     }
   }
 
-  // â”€â”€â”€ SUCCESS VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ??? SUCCESS VIEW ???????????????????????????????????????????????????????????
   if (view === "success") {
     return (
       <div className="mx-auto max-w-5xl px-4 pb-20 pt-10 sm:px-6">
@@ -729,12 +746,12 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
             <CheckCircle2 className="size-14 text-emerald-600" />
           </div>
           <h1 className="mt-8 text-3xl font-bold tracking-tight text-slate-950">
-            Votre automatisation a bien Ã©tÃ© crÃ©Ã©e !
+            Votre automatisation a bien été créée !
           </h1>
           <p className="mt-4 max-w-md text-slate-500 leading-7">
             {scheduleMode === "direct"
-              ? `Votre affiche de Chabbat sera publiÃ©e automatiquement chaque ${notificationDay} Ã  ${notificationTime}.`
-              : `Chaque ${notificationDay} Ã  ${notificationTime}, vous recevrez un e-mail vous invitant Ã  valider votre affiche avant publication.`}
+              ? `Votre affiche de Chabbat sera publiée automatiquement chaque ${notificationDay} à ${notificationTime}.`
+              : `Chaque ${notificationDay} à ${notificationTime}, vous recevrez une notification vous invitant à valider votre affiche avant publication.`}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-2">
             {CHANNEL_OPTIONS.filter(({ id }) => channels.includes(id)).map(({ id, label, Logo, badgeClass }) => (
@@ -745,9 +762,9 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
           </div>
           <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50 px-6 py-4 text-sm text-violet-800 max-w-sm">
             {scheduleMode === "direct" ? (
-              <p className="flex items-center gap-2"><Zap className="size-4 shrink-0" />Envoi automatique activÃ© â€” aucune validation requise.</p>
+              <p className="flex items-center gap-2"><Zap className="size-4 shrink-0" />Envoi automatique activé, aucune validation requise.</p>
             ) : (
-              <p className="flex items-center gap-2"><Mail className="size-4 shrink-0" />Un e-mail d&apos;approbation vous sera envoyÃ© Ã  chaque cycle.</p>
+              <p className="flex items-center gap-2"><Mail className="size-4 shrink-0" />Une notification d&apos;approbation vous sera envoyée à chaque cycle.</p>
             )}
           </div>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -760,7 +777,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                 className={triggerSuccess ? "bg-emerald-600 hover:bg-emerald-700" : "bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]"}
                 onClick={publishNow}
               >
-                {triggerSuccess ? <><CheckCircle2 className="size-5" />EnvoyÃ© !</> : <><Send className="size-5" />Publier maintenant</>}
+                {triggerSuccess ? <><CheckCircle2 className="size-5" />Envoyé !</> : <><Send className="size-5" />Publier maintenant</>}
               </Button>
             )}
             <Button asChild size="xl" variant={automation?.id ? "outline" : "default"} className={automation?.id ? "" : "bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]"}>
@@ -778,23 +795,22 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
     );
   }
 
-  // â”€â”€â”€ MODELS VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ??? MODELS VIEW ????????????????????????????????????????????????????????????
   if (view === "models") {
     const selectedModel = activeTemplates.find((t) => t.id === selectedTemplateId) ?? null;
-    const selectedModelIndex = activeTemplates.findIndex((t) => t.id === selectedTemplateId);
 
     return (
       <div className="container max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-24">
         {/* Header */}
-        <div className="relative overflow-hidden rounded-[1.4rem] border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-[0_22px_52px_rgba(66,19,136,0.22)]">
+        <div className="relative overflow-visible rounded-[1.4rem] border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-[0_22px_52px_rgba(66,19,136,0.22)]">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-4">
               <Button type="button" variant="ghost" size="icon" className="border border-white/20 text-white hover:bg-white/10" onClick={() => setView("overview")}>
                 <ArrowLeft className="size-5" />
               </Button>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">Choisissez votre modÃ¨le</h1>
-                <p className="mt-2 text-sm text-violet-100">Le modÃ¨le sÃ©lectionnÃ© sera utilisÃ© chaque semaine.</p>
+                <h1 className="text-3xl font-bold tracking-tight">Choisissez votre modèle</h1>
+                <p className="mt-2 text-sm text-violet-100">Le modèle sélectionné sera utilisé chaque semaine.</p>
               </div>
             </div>
             <DavidBannerAgent
@@ -804,7 +820,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
           </div>
         </div>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_360px]">
+        <div className="mt-6 grid gap-6">
           {/* Template grid */}
           <section className="rounded-[1.2rem] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mx-auto mb-5 grid w-full max-w-2xl rounded-xl border border-slate-200 bg-slate-50 p-1 sm:grid-cols-2">
@@ -826,7 +842,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
             {activeTemplates.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
                 <ImageIcon className="mx-auto size-9 text-slate-300" />
-                <p className="mt-3 font-semibold text-slate-950">Aucun modÃ¨le dans cette catÃ©gorie</p>
+                <p className="mt-3 font-semibold text-slate-950">Aucun modèle dans cette catégorie</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -863,7 +879,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                         )}
                       </div>
                       <div className="flex items-center justify-between gap-3 px-2 py-3">
-                        <span className="text-sm font-bold text-slate-900">{selected ? "ModÃ¨le sÃ©lectionnÃ©" : isLocked ? "DÃ©bloquer" : "Choisir ce modÃ¨le"}</span>
+                        <span className="text-sm font-bold text-slate-900">{selected ? "Modèle sélectionné" : isLocked ? "Débloquer" : "Choisir ce modèle"}</span>
                         <ArrowRight className="size-4 text-violet-500 transition group-hover:translate-x-0.5" />
                       </div>
                     </button>
@@ -873,58 +889,25 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
             )}
           </section>
 
-          {/* Summary sidebar */}
-          <aside className="rounded-[1.2rem] border border-slate-200 bg-white p-5 shadow-sm xl:sticky xl:top-5 xl:self-start">
-            <h2 className="text-lg font-bold text-slate-950">RÃ©sumÃ© de votre sÃ©lection</h2>
-            {selectedModel ? (
-              <div className="mt-5 space-y-5">
-                <div className="flex gap-4">
-                  <div className="relative aspect-square w-28 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
-                    <TemplateImage template={selectedModel} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-base font-bold text-slate-950">ModÃ¨le sÃ©lectionnÃ©</p>
-                    <p className="mt-1 line-clamp-2 text-sm text-slate-600">{selectedModel.name}</p>
-                    {selectedModelIndex === 0 && (
-                      <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                        <CheckCircle2 className="size-3.5" />
-                        Inclus gratuitement
-                      </span>
-                    )}
-                    {selectedModelIndex > 0 && (
-                      <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">
-                        <CheckCircle2 className="size-3.5" />
-                        PrÃªt pour l&apos;Ã©tape 2
-                      </span>
-                    )}
-                  </div>
-                </div>
+          {error && (
+            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</p>
+          )}
 
-                {error && (
-                  <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</p>
-                )}
-
-                <Button
-                  type="button"
-                  size="xl"
-                  className="w-full bg-violet-700 shadow-lg shadow-violet-900/15 hover:bg-violet-800"
-                  disabled={saving}
-                  onClick={() => void continueToCustomize()}
-                >
-                  {saving ? <Loader2 className="size-5 animate-spin" /> : <ArrowRight className="size-5" />}
-                  Continuer vers les renseignements
-                </Button>
-                <Button type="button" variant="outline" className="w-full" onClick={() => setView("overview")}>
-                  Retour
-                </Button>
-              </div>
-            ) : (
-              <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
-                <ImageIcon className="mx-auto size-8 text-slate-300" />
-                <p className="mt-3 text-sm font-semibold text-slate-700">Choisissez une affiche pour continuer.</p>
-              </div>
-            )}
-          </aside>
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" size="xl" onClick={() => setView("overview")}>
+              Retour
+            </Button>
+            <Button
+              type="button"
+              size="xl"
+              className="bg-violet-700 px-8 shadow-lg shadow-violet-900/15 hover:bg-violet-800"
+              disabled={!selectedModel || saving}
+              onClick={() => void continueToCustomize()}
+            >
+              {saving ? <Loader2 className="size-5 animate-spin" /> : <ArrowRight className="size-5" />}
+              Continuer
+            </Button>
+          </div>
         </div>
 
         {/* Mobile sticky CTA */}
@@ -932,7 +915,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
           <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 shadow-[0_-12px_32px_rgba(15,23,42,0.12)] backdrop-blur md:p-4 xl:hidden">
             <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-violet-700">ModÃ¨le sÃ©lectionnÃ©</p>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-violet-700">Modèle sélectionné</p>
                 <p className="truncate text-sm font-bold text-slate-950">{selectedModel.name}</p>
               </div>
               <Button
@@ -961,10 +944,10 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
               </div>
               <h2 className="mt-5 text-2xl font-bold text-slate-950">Activez EasyCom IA</h2>
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                Abonnez-vous pour accÃ©der Ã  tous les modÃ¨les et activer l&apos;automatisation hebdomadaire.
+                Abonnez-vous pour accéder à tous les modèles et activer l&apos;automatisation hebdomadaire.
               </p>
               <div className="mt-5 space-y-3 text-left text-sm text-slate-700">
-                {["Tous les modÃ¨les d'affiches Chabbat", "Horaires automatiques selon votre ville", "Publication Facebook, Instagram et WhatsApp", "Rappel chaque vendredi"].map((item) => (
+                {["Tous les modèles d'affiches Chabbat", "Horaires automatiques selon votre ville", "Publication Facebook, Instagram et WhatsApp", "Rappel chaque vendredi"].map((item) => (
                   <p key={item} className="flex items-center gap-3">
                     <CheckCircle2 className="size-5 text-emerald-500" />
                     {item}
@@ -974,11 +957,11 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
               <Button asChild className="mt-6 w-full bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]">
                 <Link href="/dashboard/settings/billing">
                   <Crown className="size-4" />
-                  DÃ©couvrir l&apos;abonnement
+                  Découvrir l&apos;abonnement
                 </Link>
               </Button>
               <Button type="button" variant="outline" className="mt-3 w-full" onClick={() => setPaywallOpen(false)}>
-                Continuer Ã  consulter
+                Continuer à consulter
               </Button>
             </div>
           </div>
@@ -987,17 +970,17 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
     );
   }
 
-  // â”€â”€â”€ CUSTOMIZE VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ??? CUSTOMIZE VIEW ??????????????????????????????????????????????????????????
   if (view === "customize") {
     return (
       <div className="container max-w-6xl mx-auto py-6 px-4 sm:px-6">
         {/* Header */}
-        <div className="relative overflow-hidden rounded-[1.4rem] border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-[0_22px_52px_rgba(66,19,136,0.22)]">
+        <div className="relative overflow-visible rounded-[1.4rem] border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-[0_22px_52px_rgba(66,19,136,0.22)]">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="mb-4 h-1.5 w-12 rounded-full bg-white/80" />
               <h1 className="text-3xl font-bold tracking-tight">Renseignez votre affiche</h1>
-              <p className="mt-2 text-sm text-violet-100">Ces informations seront affichÃ©es sur votre affiche chaque semaine.</p>
+              <p className="mt-2 text-sm text-violet-100">Ces informations seront affichées sur votre affiche chaque semaine.</p>
             </div>
             <DavidBannerAgent
               className="lg:max-w-xl"
@@ -1008,192 +991,20 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
 
         <div className="mt-6 grid gap-5 xl:grid-cols-[1fr_460px]">
           <section className="space-y-4">
-            {/* Fill mode selector */}
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="text-base font-bold text-slate-950">Comment souhaitez-vous renseigner votre affiche ?</h2>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setFillMode("manual")}
-                  className={cn(
-                    "flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition",
-                    fillMode === "manual"
-                      ? "border-violet-500 bg-violet-50 ring-2 ring-violet-200"
-                      : "border-slate-200 hover:border-violet-300"
-                  )}
-                >
-                  <span className={cn("flex size-10 items-center justify-center rounded-full", fillMode === "manual" ? "bg-violet-600 text-white" : "bg-slate-100 text-slate-500")}>
-                    <User className="size-5" />
-                  </span>
-                  <span className="text-sm font-bold text-slate-900">Saisie manuelle</span>
-                  <span className="text-xs text-slate-500">Je remplis le formulaire moi-mÃªme</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFillMode("ai")}
-                  className={cn(
-                    "flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition",
-                    fillMode === "ai"
-                      ? "border-violet-500 bg-violet-50 ring-2 ring-violet-200"
-                      : "border-slate-200 hover:border-violet-300"
-                  )}
-                >
-                  <span className={cn("flex size-10 items-center justify-center rounded-full bg-white shadow-sm ring-1", fillMode === "ai" ? "ring-violet-300" : "ring-slate-200")}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={DAVID_IMAGE_URL} alt="David, agent intelligent" className="size-8 rounded-full object-contain" />
-                  </span>
-                  <span className="text-sm font-bold text-slate-900">Assistant IA</span>
-                  <span className="text-xs text-slate-500">L&apos;IA me pose les questions</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Manual form */}
-            {fillMode === "manual" && (
-              <>
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <h2 className="text-lg font-bold text-slate-950">Informations affichÃ©es</h2>
-                  <div className="mt-4 divide-y divide-slate-100">
-                    {[
-                      { key: "logoUrl", label: "Logo de la structure", icon: Upload },
-                      { key: "structureName", label: "Nom de la structure", icon: Pencil },
-                      { key: "city", label: "Ville", icon: MapPin },
-                      { key: "parasha", label: "Paracha", icon: BookOpen },
-                      { key: "entry", label: "EntrÃ©e de Chabbat", icon: Clock },
-                      { key: "exit", label: "Sortie de Chabbat", icon: Clock },
-                      { key: "kiddouch", label: "Kiddouch offert par", icon: Star },
-                    ].map((item) => {
-                      const Icon = item.icon;
-                      if (item.key === "logoUrl") {
-                        return (
-                          <div key={item.key} className="grid gap-3 py-3 md:grid-cols-[250px_1fr] md:items-start">
-                            <span className="flex items-center gap-3 text-sm font-bold text-slate-700">
-                              <Icon className="size-5 text-slate-500" />
-                              {item.label}
-                            </span>
-                            <div className="space-y-3">
-                              <div
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => logoInputRef.current?.click()}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter" || event.key === " ") {
-                                    event.preventDefault();
-                                    logoInputRef.current?.click();
-                                  }
-                                }}
-                                onDragOver={(event) => {
-                                  event.preventDefault();
-                                  setLogoDragActive(true);
-                                }}
-                                onDragLeave={() => setLogoDragActive(false)}
-                                onDrop={(event) => {
-                                  event.preventDefault();
-                                  void uploadLogo(event.dataTransfer.files?.[0]);
-                                }}
-                                className={cn(
-                                  "flex cursor-pointer flex-col gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 transition hover:border-violet-400 hover:bg-violet-50/40 sm:flex-row sm:items-center",
-                                  logoDragActive && "border-violet-500 bg-violet-50 ring-4 ring-violet-100",
-                                  logoUploading && "pointer-events-none opacity-75"
-                                )}
-                              >
-                                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white">
-                                  {fields.logoUrl ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={fields.logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />
-                                  ) : (
-                                    <Upload className="size-7 text-slate-400" />
-                                  )}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-bold text-slate-900">
-                                    {logoUploading ? "TÃ©lÃ©versement..." : "Glissez le logo ici ou cliquez pour le charger"}
-                                  </p>
-                                  <p className="mt-1 text-xs leading-5 text-slate-500">
-                                    Conversion automatique en WebP, puis enregistrement dans Supabase au nom de la structure.
-                                  </p>
-                                </div>
-                                <span className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-violet-700 px-4 text-sm font-semibold text-white shadow-sm">
-                                  {logoUploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-                                  {logoUploading ? "Envoi..." : "Choisir"}
-                                </span>
-                                <input
-                                  ref={logoInputRef}
-                                  type="file"
-                                  accept="image/*"
-                                  className="sr-only"
-                                  disabled={logoUploading}
-                                  onChange={(event) => void uploadLogo(event.target.files?.[0])}
-                                />
-                              </div>
-                              {logoUploadError && (
-                                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{logoUploadError}</p>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      }
-                      return (
-                        <label key={item.key} className="grid gap-3 py-3 md:grid-cols-[250px_1fr] md:items-center">
-                          <span className="flex items-center gap-3 text-sm font-bold text-slate-700">
-                            <Icon className="size-5 text-slate-500" />
-                            {item.label}
-                          </span>
-                          <input
-                            value={fields[item.key as keyof ShabbatFields]}
-                            onChange={(event) => updateField(item.key as keyof ShabbatFields, event.target.value)}
-                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-                          />
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {templateMode === "detailed" && (
-                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <h2 className="text-lg font-bold text-slate-950">Horaires des offices</h2>
-                    <textarea
-                      value={officeTimes}
-                      onChange={(event) => setOfficeTimes(event.target.value)}
-                      placeholder="Ex: Min'ha : 19 h 30"
-                      className="mt-3 min-h-32 w-full rounded-lg border border-slate-200 p-3 text-sm outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-                    />
-                  </div>
-                )}
-
-                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <h2 className="text-lg font-bold text-slate-950">Texte de la publication</h2>
-                  <textarea
-                    value={postText}
-                    onChange={(event) => setPostText(event.target.value)}
-                    className="mt-3 min-h-24 w-full rounded-lg border border-slate-200 p-3 text-sm outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-                  />
-                </div>
-              </>
-            )}
-
-            {/* AI chat mode */}
-            {fillMode === "ai" && (
-              <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 bg-violet-50">
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex items-center gap-3 border-b border-slate-100 bg-violet-50 px-4 py-3">
                   <span className="flex size-8 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-violet-200">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={DAVID_IMAGE_URL} alt="David, agent intelligent" className="size-7 rounded-full object-contain" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-900">Assistant IA</p>
-                    <p className="text-xs text-slate-500">Je remplis votre affiche question par question</p>
+                    <p className="text-sm font-bold text-slate-900">David, votre Agent intelligent</p>
+                    <p className="text-xs text-slate-500">Je prépare votre affiche à partir des informations connues.</p>
                   </div>
-                  <Link href="/dashboard/assistant" className="ml-auto shrink-0">
-                    <Button type="button" variant="outline" size="sm" className="h-8 rounded-xl border-violet-200 bg-white px-3 text-xs font-bold text-violet-700 hover:bg-violet-50">
-                      Poser une question
-                    </Button>
-                  </Link>
                   {aiDone && (
-                    <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                    <span className="ml-auto flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
                       <CheckCircle2 className="size-3.5" />
-                      TerminÃ©
+                      Validé
                     </span>
                   )}
                 </div>
@@ -1219,191 +1030,292 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                       </div>
                     </div>
                   ))}
-                  {!aiDone && aiMessages.length > 0 && (
-                    <div className="flex justify-start">
-                      <span className="mr-2 mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-violet-100">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={DAVID_IMAGE_URL} alt="David" className="size-5 rounded-full object-contain" />
-                      </span>
-                      <div className="flex items-center gap-1 rounded-2xl rounded-tl-sm bg-slate-100 px-4 py-3">
-                        <span className="size-1.5 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "0ms" }} />
-                        <span className="size-1.5 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "150ms" }} />
-                        <span className="size-1.5 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: "300ms" }} />
-                      </div>
-                    </div>
-                  )}
                 </div>
 
-                {!aiDone && (
-                  <div className="border-t border-slate-100 p-3">
-                    <form
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        handleAiAnswer(aiInput);
+                <div className="border-t border-slate-100 p-4">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {aiFieldItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <label key={item.key} className="space-y-1.5 text-sm font-medium text-slate-700">
+                          <span className="flex items-center gap-2">
+                            <Icon className="size-4 text-violet-600" />
+                            {item.label}
+                          </span>
+                          <input
+                            value={fields[item.key as keyof ShabbatFields]}
+                            onChange={(event) => updateField(item.key as keyof ShabbatFields, event.target.value)}
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                          />
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1fr]">
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => logoInputRef.current?.click()}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          logoInputRef.current?.click();
+                        }
                       }}
-                      className="flex gap-2"
-                    >
-                      <input
-                        ref={aiInputRef}
-                        type="text"
-                        value={aiInput}
-                        onChange={(event) => setAiInput(event.target.value)}
-                        placeholder="Votre rÃ©ponse... (EntrÃ©e pour envoyer)"
-                        className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-                      />
-                      <button
-                        type="submit"
-                        className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white hover:bg-violet-700"
-                      >
-                        <Send className="size-4" />
-                      </button>
-                    </form>
-                    <p className="mt-2 text-center text-xs text-slate-400">
-                      Ã‰tape {Math.min(aiStep + 1, buildAiQuestions().length)}/{buildAiQuestions().length} Â· Appuyez sur EntrÃ©e pour passer une question
-                    </p>
-                  </div>
-                )}
-
-                {aiDone && (
-                  <div className="border-t border-slate-100 p-4">
-                    <p className="text-center text-sm text-slate-500">
-                      AperÃ§u mis Ã  jour Ã  droite. Continuez pour configurer l&apos;horaire d&apos;envoi.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Schedule section */}
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="text-lg font-bold text-slate-950">Automatisation hebdomadaire</h2>
-              <p className="mt-1 text-sm text-slate-500">Choisissez comment et quand votre publication doit Ãªtre prÃ©parÃ©e.</p>
-
-              {/* Schedule mode */}
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setScheduleMode("notification")}
-                  className={cn(
-                    "flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition",
-                    scheduleMode === "notification"
-                      ? "border-violet-500 bg-violet-50 ring-2 ring-violet-200"
-                      : "border-slate-200 hover:border-violet-300"
-                  )}
-                >
-                  <span className={cn("flex size-9 items-center justify-center rounded-full", scheduleMode === "notification" ? "bg-violet-600 text-white" : "bg-slate-100 text-slate-500")}>
-                    <Bell className="size-4" />
-                  </span>
-                  <span className="text-sm font-bold text-slate-900">Approbation requise</span>
-                  <span className="text-xs leading-5 text-slate-500">Vous recevez un e-mail pour valider avant publication</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setScheduleMode("direct")}
-                  className={cn(
-                    "flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition",
-                    scheduleMode === "direct"
-                      ? "border-amber-400 bg-amber-50 ring-2 ring-amber-200"
-                      : "border-slate-200 hover:border-amber-300"
-                  )}
-                >
-                  <span className={cn("flex size-9 items-center justify-center rounded-full", scheduleMode === "direct" ? "bg-amber-500 text-white" : "bg-slate-100 text-slate-500")}>
-                    <Zap className="size-4" />
-                  </span>
-                  <span className="text-sm font-bold text-slate-900">Envoi direct</span>
-                  <span className="text-xs leading-5 text-slate-500">Publication automatique sans validation</span>
-                </button>
-              </div>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <label className="text-sm font-medium text-slate-700">
-                  Jour
-                  <select
-                    value={notificationDay}
-                    onChange={(event) => {
-                      const day = dayOptions.find((item) => item.value === event.target.value) ?? dayOptions[5];
-                      setNotificationDay(day.value);
-                      setNotificationDayOfWeek(day.dayOfWeek);
-                    }}
-                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-                  >
-                    {dayOptions.map((day) => (
-                      <option key={day.value} value={day.value}>{day.label}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="text-sm font-medium text-slate-700">
-                  Heure
-                  <input
-                    type="time"
-                    value={notificationTime}
-                    onChange={(event) => setNotificationTime(event.target.value)}
-                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-                  />
-                </label>
-              </div>
-
-              <div className={cn(
-                "mt-4 flex items-start gap-3 rounded-xl border p-3 text-sm",
-                scheduleMode === "notification"
-                  ? "border-blue-100 bg-blue-50 text-blue-800"
-                  : "border-amber-100 bg-amber-50 text-amber-800"
-              )}>
-                {scheduleMode === "notification" ? (
-                  <>
-                    <Mail className="size-4 mt-0.5 shrink-0" />
-                    <span>Chaque <strong>{notificationDay}</strong> Ã  <strong>{notificationTime}</strong>, vous recevrez un e-mail vous informant qu&apos;une publication attend votre approbation.</span>
-                  </>
-                ) : (
-                  <>
-                    <Zap className="size-4 mt-0.5 shrink-0" />
-                    <span>La publication sera envoyÃ©e automatiquement chaque <strong>{notificationDay}</strong> Ã  <strong>{notificationTime}</strong>, sans validation prÃ©alable.</span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Channel selector */}
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="text-lg font-bold text-slate-950">OÃ¹ publier ?</h2>
-              <p className="mt-1 text-sm text-slate-500">SÃ©lectionnez les canaux de diffusion. Vous pouvez en choisir plusieurs.</p>
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {CHANNEL_OPTIONS.map(({ id, label, Logo, activeClass }) => {
-                  const active = channels.includes(id);
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => toggleChannel(id)}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        setLogoDragActive(true);
+                      }}
+                      onDragLeave={() => setLogoDragActive(false)}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        void uploadLogo(event.dataTransfer.files?.[0]);
+                      }}
                       className={cn(
-                        "relative flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition",
-                        active ? activeClass : "border-slate-200 hover:border-slate-300"
+                        "flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 transition hover:border-violet-400 hover:bg-violet-50/40",
+                        logoDragActive && "border-violet-500 bg-violet-50 ring-4 ring-violet-100",
+                        logoUploading && "pointer-events-none opacity-75"
                       )}
                     >
-                      {active && (
-                        <span className="absolute right-2 top-2 flex size-4 items-center justify-center rounded-full bg-white shadow-sm">
-                          <CheckCircle2 className="size-4 text-green-500" />
-                        </span>
-                      )}
-                      <Logo className="size-8" />
-                      <span className="text-sm font-bold text-slate-900">{label}</span>
-                    </button>
-                  );
-                })}
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white">
+                        {fields.logoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={fields.logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />
+                        ) : (
+                          <Upload className="size-6 text-slate-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900">
+                          {logoUploading ? "Téléversement..." : "Logo de la structure"}
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-slate-500">Glissez le logo ici ou cliquez pour le charger.</p>
+                      </div>
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        disabled={logoUploading}
+                        onChange={(event) => void uploadLogo(event.target.files?.[0])}
+                      />
+                    </div>
+
+                    <label className="space-y-1.5 text-sm font-medium text-slate-700">
+                      Texte de la publication
+                      <textarea
+                        value={postText}
+                        onChange={(event) => {
+                          setPostText(event.target.value);
+                          setAiDone(false);
+                        }}
+                        className="min-h-24 w-full rounded-lg border border-slate-200 p-3 text-sm outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                      />
+                    </label>
+                  </div>
+
+                  {templateMode === "detailed" && (
+                    <label className="mt-4 block space-y-1.5 text-sm font-medium text-slate-700">
+                      Horaires des offices
+                      <textarea
+                        value={officeTimes}
+                        onChange={(event) => setOfficeTimes(event.target.value)}
+                        placeholder="Ex: Min'ha : 19 h 30"
+                        className="min-h-28 w-full rounded-lg border border-slate-200 p-3 text-sm outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                      />
+                    </label>
+                  )}
+
+                  <div className="mt-4 rounded-xl border border-violet-100 bg-violet-50 p-4">
+                    <p className="text-sm font-bold text-slate-950">Voulez-vous recevoir chaque semaine les horaires de Chabbat ?</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-600">
+                      Si oui, David mémorise ce rendez-vous dans l&apos;Agenda IA et vous notifie au bon moment.
+                    </p>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setWeeklyOptIn(true);
+                          setScheduleMode("notification");
+                        }}
+                        className={cn(
+                          "flex items-center justify-center rounded-xl border px-4 py-3 text-center text-sm font-black transition",
+                          weeklyOptIn === true ? "border-violet-500 bg-white text-violet-800 ring-2 ring-violet-200" : "border-violet-100 bg-white/70 text-slate-700"
+                        )}
+                      >
+                        Oui
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setWeeklyOptIn(false);
+                          setError("");
+                          setConfigured(false);
+                          if (automation?.id) void pauseAutomation();
+                        }}
+                        className={cn(
+                          "flex items-center justify-center rounded-xl border px-4 py-3 text-center text-sm font-black transition",
+                          weeklyOptIn === false ? "border-slate-500 bg-white text-slate-900 ring-2 ring-slate-200" : "border-violet-100 bg-white/70 text-slate-700"
+                        )}
+                      >
+                        Non
+                      </button>
+                    </div>
+                    {weeklyOptIn === true && (
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Jour
+                        <select
+                          value={notificationDay}
+                          onChange={(event) => {
+                            const day = dayOptions.find((item) => item.value === event.target.value) ?? dayOptions[5];
+                            setNotificationDay(day.value);
+                            setNotificationDayOfWeek(day.dayOfWeek);
+                          }}
+                          className="mt-1 w-full rounded-lg border border-violet-100 bg-white px-3 py-2 text-sm font-medium normal-case tracking-normal text-slate-800 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                        >
+                          {dayOptions.map((day) => (
+                            <option key={day.value} value={day.value}>{day.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Heure
+                        <input
+                          type="time"
+                          value={notificationTime}
+                          onChange={(event) => setNotificationTime(event.target.value)}
+                          className="mt-1 w-full rounded-lg border border-violet-100 bg-white px-3 py-2 text-sm font-medium normal-case tracking-normal text-slate-800 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                        />
+                      </label>
+                    </div>
+                    )}
+                  </div>
+
+                  {logoUploadError && (
+                    <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{logoUploadError}</p>
+                  )}
+
+                  <Button
+                    type="button"
+                    size="xl"
+                    className="mt-4 bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]"
+                    loading={generatingPreview}
+                    onClick={() => void validateAiInformation()}
+                  >
+                    <Sparkles className="size-5" />
+                    Créez l&apos;affiche
+                  </Button>
+                </div>
               </div>
-              {channels.length === 0 && (
-                <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-                  SÃ©lectionnez au moins un canal pour activer l&apos;automatisation.
-                </p>
+
+            {/* Preview */}
+            <div className="rounded-xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-950">Aperçu de votre affiche</h2>
+                  <p className="mt-1 text-sm text-slate-500">David génère cet aperçu automatiquement après validation des informations.</p>
+                </div>
+                {previewImageUrl && (
+                  <a
+                    href={previewImageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-10 items-center justify-center rounded-xl border border-violet-200 bg-white px-4 text-sm font-bold text-violet-700 transition hover:bg-violet-50"
+                  >
+                    Télécharger
+                  </a>
+                )}
+              </div>
+
+              {previewError && (
+                <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">{previewError}</p>
               )}
+
+              <div className="mt-5">
+                <SmartphoneFrame>
+                  <div className="flex-1 overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="flex size-8 items-center justify-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-500">
+                          {getInitials(fields.structureName || community.name)}
+                        </div>
+                        <p className="truncate text-[12px] font-bold text-slate-900">{(fields.structureName || community.name).toLowerCase().replace(/\s+/g, "")}</p>
+                      </div>
+                      <span className="text-lg leading-none text-slate-500">...</span>
+                    </div>
+                    <div className="flex w-full items-center justify-center overflow-hidden bg-slate-100">
+                      {generatingPreview ? (
+                        <div className="flex min-h-72 w-full flex-col items-center justify-center gap-2 bg-violet-50">
+                          <Loader2 className="size-8 animate-spin text-violet-500" />
+                          <p className="text-[11px] font-semibold text-violet-700">Génération en cours...</p>
+                        </div>
+                      ) : previewImageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={previewImageUrl} alt="Aperçu généré" className="h-auto w-full object-contain" />
+                      ) : selectedTemplate ? (
+                        <TemplateImage template={selectedTemplate} />
+                      ) : (
+                        <PosterFallback fields={fields} palette={selectedPalette} mode={templateMode} />
+                      )}
+                    </div>
+                    <div className="space-y-2 px-3 py-3 text-[11px] leading-4 text-slate-800">
+                      <p>
+                        <span className="font-bold">{(fields.structureName || community.name).toLowerCase().replace(/\s+/g, "")}</span>{" "}
+                        {postText.split("\n")[0] || "Chabbat Chalom"}
+                      </p>
+                      <p className="text-slate-400">Voir les commentaires</p>
+                    </div>
+                  </div>
+                </SmartphoneFrame>
+              </div>
+
+              <div className="mt-5">
+                <h2 className="text-lg font-bold text-slate-950">Où publier ?</h2>
+                <p className="mt-1 text-sm text-slate-500">Choisissez les plateformes avant de valider.</p>
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {CHANNEL_OPTIONS.map(({ id, label, Logo, activeClass }) => {
+                    const active = channels.includes(id);
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => toggleChannel(id)}
+                        className={cn(
+                          "relative flex min-h-28 flex-col items-center justify-center gap-2 rounded-2xl border bg-white p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+                          active ? activeClass : "border-slate-200 hover:border-slate-300"
+                        )}
+                      >
+                        {active && (
+                          <span className="absolute right-3 top-3 flex size-5 items-center justify-center rounded-full bg-white shadow-sm">
+                            <CheckCircle2 className="size-5 text-green-500" />
+                          </span>
+                        )}
+                        <Logo className="size-10" />
+                        <span className="text-sm font-black text-slate-900">{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {channels.length === 0 && (
+                  <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                    Sélectionnez au moins un réseau pour publier.
+                  </p>
+                )}
+                <div className="mt-4 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
+                  <WhatsAppLogo className="size-8 shrink-0" />
+                  <span>Publiez sur WhatsApp depuis la page &quot;WhatsApp&quot;.</span>
+                </div>
+              </div>
             </div>
 
             {error && <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button type="button" size="xl" loading={saving} disabled={channels.length === 0} className="bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" onClick={activateAutomation}>
+              <Button type="button" size="xl" loading={saving || triggering || generatingPreview} disabled={channels.length === 0} className="bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f] disabled:opacity-50" onClick={() => void publishShabbatNow()}>
                 <Sparkles className="size-5" />
-                Valider et activer l&apos;automatisation
+                Publiez Maintenant !
               </Button>
               <Button type="button" variant="outline" size="xl" onClick={() => setView("models")}>
                 <ArrowLeft className="size-5" />
@@ -1413,9 +1325,9 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
           </section>
 
           {/* Preview aside */}
-          <aside className="rounded-xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5 xl:sticky xl:top-5 xl:self-start space-y-4">
+          <aside className="hidden">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-950">AperÃ§u de votre affiche</h2>
+              <h2 className="text-xl font-bold text-slate-950">Aperçu de votre affiche</h2>
               {selectedTemplateId && (
                 <Button
                   type="button"
@@ -1425,7 +1337,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                   onClick={() => void handleGeneratePreview()}
                 >
                   {!generatingPreview && <Wand2 className="size-3.5" />}
-                  {generatingPreview ? "GÃ©nÃ©rationâ€¦" : "GÃ©nÃ©rer l'aperÃ§u"}
+                  {generatingPreview ? "Génération…" : "Générer l'aperçu"}
                 </Button>
               )}
             </div>
@@ -1450,11 +1362,11 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                     {generatingPreview ? (
                       <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-violet-50">
                         <Loader2 className="size-8 animate-spin text-violet-500" />
-                        <p className="text-[11px] font-semibold text-violet-700">GÃ©nÃ©ration en coursâ€¦</p>
+                        <p className="text-[11px] font-semibold text-violet-700">Génération en cours?</p>
                       </div>
                     ) : previewImageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={previewImageUrl} alt="AperÃ§u gÃ©nÃ©rÃ©" className="h-full w-full object-cover" />
+                      <img src={previewImageUrl} alt="Aperçu généré" className="h-full w-full object-cover" />
                     ) : selectedTemplate ? (
                       <TemplateImage template={selectedTemplate} />
                     ) : (
@@ -1474,7 +1386,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                 <div className="mt-3 flex items-center justify-between">
                   <p className="flex items-center gap-1.5 text-xs text-emerald-700">
                     <CheckCircle2 className="size-3.5" />
-                    Rendu rÃ©el gÃ©nÃ©rÃ©
+                    Rendu r?el généré
                   </p>
                   <button
                     type="button"
@@ -1482,13 +1394,13 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
                     className="flex items-center gap-1 text-xs font-semibold text-violet-600 hover:text-violet-800"
                   >
                     <Wand2 className="size-3" />
-                    RegÃ©nÃ©rer
+                    Regénérer
                   </button>
                 </div>
               )}
               {selectedTemplateId && !previewImageUrl && !generatingPreview && (
                 <p className="mt-3 text-center text-xs text-slate-400">
-                  Cliquez sur &quot;GÃ©nÃ©rer l&apos;aperÃ§u&quot; pour voir le rendu rÃ©el.
+                  Cliquez sur &quot;Générer l&apos;aperçu&quot; pour voir le rendu r?el.
                 </p>
               )}
             </div>
@@ -1496,7 +1408,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
             {selectedTemplate && (
               <div className="rounded-lg border border-violet-100 bg-violet-50 p-3 text-sm text-violet-900">
                 <Info className="mr-2 inline size-4" />
-                ModÃ¨le : {selectedTemplate.name}
+                Modèle : {selectedTemplate.name}
               </div>
             )}
           </aside>
@@ -1505,7 +1417,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
     );
   }
 
-  // â”€â”€â”€ OVERVIEW VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ??? OVERVIEW VIEW ???????????????????????????????????????????????????????????
   return (
     <div className="container max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-16">
       {/* Welcome popup (first visit) */}
@@ -1521,17 +1433,17 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
               </button>
             </div>
             <h2 className="mt-5 text-2xl font-bold leading-tight text-slate-950">
-              DÃ©couvrez les automatisations pour les horaires de Chabbat
+              Découvrez les automatisations pour les horaires de Chabbat
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Chaque semaine, votre affiche est prÃ©parÃ©e automatiquement avec les bons horaires. Il vous suffit de valider en un clic.
+              Chaque semaine, votre affiche est préparée automatiquement avec les bons horaires. Il vous suffit de valider en un clic.
             </p>
 
             <div className="mt-6 space-y-4">
               {[
-                { step: 1, icon: ImageIcon, title: "Choisissez votre modÃ¨le d'affiche", desc: "SÃ©lectionnez le design qui correspond Ã  votre structure. Le premier est offert.", color: "bg-sky-100 text-sky-700" },
-                { step: 2, icon: Edit3, title: "Renseignez vos informations", desc: "Logo, ville, paracha, horairesâ€¦ remplissez le formulaire ou laissez l&apos;IA vous guider.", color: "bg-violet-100 text-violet-700" },
-                { step: 3, icon: Send, title: "Recevez un e-mail chaque semaine", desc: "Un e-mail vous invite Ã  valider avant publication, ou activez l&apos;envoi automatique.", color: "bg-emerald-100 text-emerald-700" },
+                { step: 1, icon: ImageIcon, title: "Choisissez votre modèle d'affiche", desc: "Sélectionnez le design qui correspond à votre structure. Le premier est offert.", color: "bg-sky-100 text-sky-700" },
+                { step: 2, icon: Edit3, title: "Validez les informations", desc: "David reprend vos données connues, puis vous pouvez modifier uniquement ce qui doit l'être.", color: "bg-violet-100 text-violet-700" },
+                { step: 3, icon: Send, title: "Publiez automatiquement", desc: "Choisissez Instagram ou Facebook, puis lancez la publication.", color: "bg-emerald-100 text-emerald-700" },
               ].map(({ step, title, desc, color }) => (
                 <div key={step} className="flex items-start gap-4">
                   <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-black", color)}>
@@ -1574,7 +1486,7 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
       )}
 
       {/* Header */}
-      <div className="relative overflow-hidden rounded-[1.4rem] border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-[0_22px_52px_rgba(66,19,136,0.22)]">
+      <div className="relative overflow-visible rounded-[1.4rem] border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-[0_22px_52px_rgba(66,19,136,0.22)]">
         <div className="pointer-events-none absolute inset-y-0 right-6 flex items-center" aria-hidden="true">
           <div className="rounded-full bg-white/[0.04] p-5">
             <Clock className="size-28 text-white/[0.08]" strokeWidth={1.6} />
@@ -1584,84 +1496,21 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
           <div className="relative">
             <div className="mb-4 h-1.5 w-12 rounded-full bg-white/80" />
             <h1 className="text-4xl font-bold tracking-tight">Horaires de Chabbat</h1>
-            <p className="mt-2 text-sm text-white/82">Automatisation hebdomadaire de votre affiche</p>
           </div>
           <div className="flex flex-col items-start gap-3 lg:items-end">
             <DavidBannerAgent
               className="lg:max-w-2xl"
-              text="Je suis David votre assistant IA, je vous aide à préparer et publier les horaires de Chabbat chaque semaine"
+              text="Je suis David, l'agent intelligent dédié aux automatisations. Choisissez simplement un modèle visuel, et je m’occupe de publier automatiquement vos horaires de Chabbat sur tous vos réseaux"
             />
-            <div className="flex flex-wrap items-center gap-3">
-            {/* Modifier la configuration */}
-            {configured && (
-              <Button
-                type="button"
-                variant="outline"
-                className="border-white/20 bg-white/12 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/18 hover:text-white"
-                onClick={() => setView("customize")}
-              >
-                <Settings className="size-4" />
-                Modifier la configuration
-              </Button>
-            )}
-
-            {/* Publier maintenant */}
-            {automation?.id && configured && (
-              <Button
-                type="button"
-                variant="outline"
-                loading={triggering}
-                disabled={triggering}
-                className={triggerSuccess ? "border-emerald-400/60 bg-emerald-500/20 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-500/30 hover:text-white" : "border-white/20 bg-white/12 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/18 hover:text-white"}
-                onClick={publishNow}
-              >
-                {triggerSuccess ? <><CheckCircle2 className="size-4" />Envoyé !</> : <><Send className="size-4" />Publier maintenant</>}
-              </Button>
-            )}
-            </div>
           </div>
         </div>
 
-        {/* Activer / DÃ©sactiver â€” en bas Ã  droite du bandeau */}
-        <div className="mt-6 flex justify-end">
-          <div className="relative">
-            <Button
-              type="button"
-              variant="outline"
-              className="border-white/20 bg-white/12 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/18 hover:text-white"
-              onClick={() => setStatusOpen((open) => !open)}
-            >
-              <span className={cn("size-2.5 rounded-full", isActive ? "bg-emerald-400" : "bg-slate-300")} />
-              {isActive ? "Active" : "Désactivée"}
-              <ChevronDown className="size-4" />
-            </Button>
-            {statusOpen && (
-              <div className="absolute bottom-full right-0 z-20 mb-2 w-48 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-700 shadow-lg">
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-slate-50"
-                  onClick={() => {
-                    if (!configured) setView("models");
-                    else void activateAutomation();
-                    setStatusOpen(false);
-                  }}
-                >
-                  <span className="size-2.5 rounded-full bg-emerald-500" />Active
-                </button>
-                <button type="button" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-slate-50" onClick={pauseAutomation}>
-                  <span className="size-2.5 rounded-full bg-slate-300" />Désactivée
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       <DavidAutomationCard
         className="mt-6"
         onCtaClick={() => {
-          if (configured) void activateAutomation();
-          else setView("models");
+          setView(configured ? "customize" : "models");
         }}
       />
 
@@ -1688,118 +1537,89 @@ ${fields.logoUrl ? `Logo disponible` : ""}`;
         </div>
       </section>
 
-      {/* Chabbat info + Next notification */}
-      <div className="mt-6 grid gap-5 xl:grid-cols-[1fr_400px]">
+      {/* Chabbat info */}
+      <div className="mt-6 grid gap-5">
         <section className="rounded-xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
-          <h2 className="text-xl font-bold text-slate-950">Chabbat à venir</h2>
-          <div className="mt-4 flex items-center gap-3 text-2xl font-bold text-slate-950">
-            <MapPin className="size-7 text-violet-700" />
-            {formatField(shabbat?.cityName ?? community.city)}
-          </div>
-          <div className="mt-5 grid gap-3 rounded-xl border border-slate-200 p-4 md:grid-cols-3">
-            <div className="flex items-center gap-3">
-              <BookOpen className="size-7 text-violet-700" />
-              <div>
-                <p className="text-xs text-slate-500">Paracha</p>
-                <p className="font-bold text-slate-950">{formatField(shabbat?.parasha)}</p>
+          <button type="button" className="flex w-full items-center justify-between gap-3 text-left" onClick={() => setShabbatInfoOpen((open) => !open)}>
+            <h2 className="text-xl font-bold text-slate-950">Chabbat à venir</h2>
+            <ChevronDown className={cn("size-5 text-slate-500 transition", shabbatInfoOpen && "rotate-180")} />
+          </button>
+          {shabbatInfoOpen && (
+            <>
+              <div className="mt-4 flex items-center gap-3 text-2xl font-bold text-slate-950">
+                <MapPin className="size-7 text-violet-700" />
+                {formatField(shabbat?.cityName ?? community.city)}
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Clock className="size-7 text-violet-700" />
-              <div>
-                <p className="text-xs text-slate-500">EntrÃ©e</p>
-                <p className="font-bold text-slate-950">{formatField(shabbat?.entry)}</p>
+              <div className="mt-5 grid gap-3 rounded-xl border border-slate-200 p-4 md:grid-cols-3">
+                <div className="flex items-center gap-3">
+                  <BookOpen className="size-7 text-violet-700" />
+                  <div>
+                    <p className="text-xs text-slate-500">Paracha</p>
+                    <p className="font-bold text-slate-950">{formatField(shabbat?.parasha)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Clock className="size-7 text-violet-700" />
+                  <div>
+                    <p className="text-xs text-slate-500">Entrée</p>
+                    <p className="font-bold text-slate-950">{formatField(shabbat?.entry)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Clock className="size-7 text-violet-700" />
+                  <div>
+                    <p className="text-xs text-slate-500">Sortie</p>
+                    <p className="font-bold text-slate-950">{formatField(shabbat?.exit)}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Clock className="size-7 text-violet-700" />
-              <div>
-                <p className="text-xs text-slate-500">Sortie</p>
-                <p className="font-bold text-slate-950">{formatField(shabbat?.exit)}</p>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
+                  Horaires à jour · {formatDate(shabbat?.date)}
+                </p>
+                <Button type="button" variant="outline" onClick={() => setView("customize")}>
+                  <Settings className="size-4" />
+                  Modifier les informations
+                </Button>
               </div>
-            </div>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
-              Horaires Ã  jour Â· {formatDate(shabbat?.date)}
-            </p>
-            <Button type="button" variant="outline" onClick={() => setView("customize")}>
-              <Settings className="size-4" />
-              Modifier les informations
-            </Button>
-          </div>
-        </section>
-
-        <section className="rounded-xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
-          <h2 className="text-xl font-bold text-slate-950">Prochaine notification</h2>
-          <div className="mt-5 flex items-center gap-4">
-            <span className="flex size-14 items-center justify-center rounded-full bg-violet-100 text-violet-700">
-              <Calendar className="size-7" />
-            </span>
-            <p className="font-bold text-violet-700">
-              {isActive
-                ? getNextOccurrenceLabel(notificationDayOfWeek, notificationTime)
-                : "Ã€ programmer"}
-            </p>
-          </div>
-          <div className={cn("mt-4 flex items-start gap-2 rounded-xl border p-3 text-sm", scheduleMode === "notification" ? "border-blue-100 bg-blue-50 text-blue-700" : "border-amber-100 bg-amber-50 text-amber-700")}>
-            {scheduleMode === "notification" ? (
-              <><Mail className="size-4 mt-0.5 shrink-0" /><span>Un e-mail d&apos;approbation vous sera envoyÃ© avant publication.</span></>
-            ) : (
-              <><Zap className="size-4 mt-0.5 shrink-0" /><span>Publication automatique sans validation.</span></>
-            )}
-          </div>
-          <div className="mt-5 border-t border-slate-200 pt-4">
-            <Button type="button" variant="outline" className="w-full" onClick={() => setScheduleOpen(true)}>
-              <Bell className="size-4" />
-              Modifier l&apos;horaire de notification
-            </Button>
-          </div>
+            </>
+          )}
         </section>
       </div>
 
       {error && <p className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
 
-      {/* Schedule change modal */}
-      {scheduleOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-950">Modifier l&apos;horaire</h2>
-              <button type="button" className="rounded-full p-2 text-slate-400 hover:bg-slate-100" onClick={() => setScheduleOpen(false)}>
-                <X className="size-5" />
-              </button>
+      {publicationSuccessOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <button type="button" className="ml-auto flex rounded-full p-2 text-slate-400 hover:bg-slate-100" onClick={() => setPublicationSuccessOpen(false)}>
+              <X className="size-5" />
+            </button>
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+              <CheckCircle2 className="size-9" />
             </div>
-            <div className="mt-5 grid gap-4">
-              <label className="text-sm font-medium text-slate-700">
-                Jour de la semaine
-                <select
-                  value={notificationDay}
-                  onChange={(event) => {
-                    const day = dayOptions.find((item) => item.value === event.target.value) ?? dayOptions[5];
-                    setNotificationDay(day.value);
-                    setNotificationDayOfWeek(day.dayOfWeek);
-                  }}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-                >
-                  {dayOptions.map((day) => (
-                    <option key={day.value} value={day.value}>{day.label}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-sm font-medium text-slate-700">
-                Heure de notification
-                <input
-                  type="time"
-                  value={notificationTime}
-                  onChange={(event) => setNotificationTime(event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-                />
-              </label>
+            <h2 className="mt-5 text-2xl font-bold text-slate-950">Votre publication a bien été publiée</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              David a lancé la publication sur les réseaux sélectionnés.
+            </p>
+            <div className="mt-5 flex flex-col gap-3">
+              {publishedChannels.includes("INSTAGRAM") && (
+                <Button asChild type="button" variant="outline" className="w-full">
+                  <a href={instagramProfileUrl ?? "/dashboard/settings/channels"} target={instagramProfileUrl ? "_blank" : undefined} rel={instagramProfileUrl ? "noreferrer" : undefined}>
+                    <InstagramLogo className="size-5" />
+                    Voir sur Instagram
+                  </a>
+                </Button>
+              )}
+              {publishedChannels.includes("FACEBOOK") && (
+                <Button asChild type="button" variant="outline" className="w-full">
+                  <a href={facebookProfileUrl ?? "/dashboard/settings/channels"} target={facebookProfileUrl ? "_blank" : undefined} rel={facebookProfileUrl ? "noreferrer" : undefined}>
+                    <FacebookLogo className="size-5" />
+                    Voir sur Facebook
+                  </a>
+                </Button>
+              )}
             </div>
-            <Button type="button" className="mt-6 w-full bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" loading={saving} onClick={updateSchedule}>
-              Enregistrer l&apos;horaire
-            </Button>
           </div>
         </div>
       )}

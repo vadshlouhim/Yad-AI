@@ -18,13 +18,13 @@ type DavidBannerAgentProps = {
 
 export function DavidBannerAgent({ text, className }: DavidBannerAgentProps) {
   return (
-    <div className={cn("relative flex flex-col items-start gap-4 sm:flex-row sm:items-center", className)}>
-      <div className="pointer-events-none shrink-0" aria-hidden="true">
+    <div className={cn("relative z-20 flex flex-col items-start gap-4 sm:flex-row sm:items-center", className)}>
+      <div className="pointer-events-none relative z-30 shrink-0" aria-hidden="true">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={DAVID_AUTOMATION_IMAGE_URL}
           alt=""
-          className="-my-6 h-48 w-auto object-contain drop-shadow-[0_24px_34px_rgba(20,8,42,0.35)] animate-install-float sm:-my-8 lg:-my-10 lg:h-64"
+          className="-my-10 h-52 w-auto object-contain drop-shadow-[0_24px_34px_rgba(20,8,42,0.35)] animate-install-float sm:-my-12 lg:-my-16 lg:h-72"
         />
       </div>
       <div className="relative max-w-md rounded-2xl bg-white px-5 py-4 text-base font-black leading-6 text-[#421388] shadow-xl shadow-[#22084b]/20 before:absolute before:-left-2 before:top-10 before:size-4 before:rotate-45 before:bg-white">
@@ -120,7 +120,7 @@ export function DavidAutomationCard({
           <div className="min-w-0">
             <p className="text-sm font-black text-slate-950">Je suis David</p>
             <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-slate-600">
-              nous allons configurer cette automatisation ensemble. Allons-y !
+              nous allons configurer cette automatisation ensemble. <strong>Allons-y !</strong>
             </p>
           </div>
         </div>

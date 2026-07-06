@@ -58,7 +58,7 @@ export const HOLIDAY_TEMPLATE_RELATIONS: Record<string, { subCategories: string[
   "11_nissan": { subCategories: ["11_nissan"], tags: ["11 nissan", "youd alef nissan"] },
   "3_tamouz": { subCategories: ["3_tamouz"], tags: ["3 tamouz", "guimel tamouz"] },
   elloul: { subCategories: ["elloul"], tags: ["hai eloul", "eloul"] },
-  "jeunes_et_fetes_diverses": { subCategories: ["jeunes_et_fetes_diverses"], tags: ["tisha beav", "9 av", "tzom tammouz"] },
+  "jeunes_et_fetes_diverses": { subCategories: ["jeunes_et_fetes_diverses"], tags: ["tisha beav", "tichah beav", "ticha beav", "9 av", "tzom tammouz"] },
 };
 
 export function normalizeHolidayText(value: string | null | undefined) {
@@ -84,7 +84,7 @@ export function getHolidayRelationKey(name: string | null | undefined) {
   if (/\b(11 nissan|youd alef nissan)\b/.test(normalized)) return "11_nissan";
   if (/\b(3 tamouz|guimel tamouz)\b/.test(normalized)) return "3_tamouz";
   if (/\b(hai eloul|eloul)\b/.test(normalized)) return "elloul";
-  if (/\b(tisha beav|tich ah beav|9 av|tzom tammouz|tammouz)\b/.test(normalized)) return "jeunes_et_fetes_diverses";
+  if (/\b(tisha beav|tichah beav|ticha beav|tich ah beav|9 av|tzom tammouz|tammouz)\b/.test(normalized)) return "jeunes_et_fetes_diverses";
   return normalized.replace(/\s+/g, "_") || "holiday";
 }
 

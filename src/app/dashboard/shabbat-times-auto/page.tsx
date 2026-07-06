@@ -27,7 +27,7 @@ export default async function ShabbatTimesAutoPage() {
     .single();
 
   const calendarYears = [now.getFullYear(), now.getFullYear() + 1];
-  const [{ data: templates }, { data: automationRows }, currentYearScheduleRow, nextYearScheduleRow] =
+  const [{ data: templates }, { data: automationRows }, { data: socialChannels }, currentYearScheduleRow, nextYearScheduleRow] =
     await Promise.all([
       admin
         .from("Template")
@@ -43,6 +43,12 @@ export default async function ShabbatTimesAutoPage() {
         .eq("trigger", "WEEKLY_SHABBAT")
         .order("updatedAt", { ascending: false })
         .limit(1),
+      admin
+        .from("Channel")
+        .select("type, name, handle, pageId, settings, isConnected, isActive")
+        .eq("communityId", communityId)
+        .in("type", ["INSTAGRAM", "FACEBOOK"])
+        .eq("isActive", true),
       findCityScheduleForYear(admin, community?.city, calendarYears[0]),
       findCityScheduleForYear(admin, community?.city, calendarYears[1]),
     ]);
@@ -103,6 +109,7 @@ export default async function ShabbatTimesAutoPage() {
       community={community!}
       shabbat={shabbat}
       initialAutomation={automationRows?.[0] ?? null}
+      socialChannels={(socialChannels ?? []) as Parameters<typeof ShabbatTimesAutoClient>[0]["socialChannels"]}
     />
   );
 }

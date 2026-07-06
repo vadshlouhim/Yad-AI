@@ -3,7 +3,6 @@ import {
   Bell,
   BookOpen,
   Bot,
-  Calendar,
   CalendarClock,
   CalendarDays,
   CalendarRange,
@@ -196,7 +195,7 @@ export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActiv
     label: "text-cyan-300",
     itemActive: "bg-cyan-700 text-white shadow-sm",
   },
-  "ASSISTANT IA": {
+  "AGENTS INTELLIGENTS": {
     label: "text-blue-300",
     itemActive: "bg-blue-600 text-white shadow-sm",
   },
@@ -219,6 +218,10 @@ export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActiv
   "RESSOURCES & SERVICES": {
     label: "text-violet-300",
     itemActive: "bg-violet-600 text-white shadow-sm",
+  },
+  "COURS DE TORAH": {
+    label: "text-teal-300",
+    itemActive: "bg-teal-600 text-white shadow-sm",
   },
   "BANQUE VISUELLE": {
     label: "text-amber-300",
@@ -291,6 +294,15 @@ export const OFFICIAL_MENU_SECTION_STYLES: Record<
     itemHover: "hover:bg-slate-50 hover:text-slate-900",
     itemActive: "bg-amber-50 text-slate-950 ring-1 ring-amber-100",
   },
+  torah: {
+    accentBar: "bg-teal-500",
+    iconSurface: "bg-teal-50",
+    titleClass: "text-teal-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-teal-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-teal-50 text-slate-950 ring-1 ring-teal-100",
+  },
   clips: {
     accentBar: "bg-rose-500",
     iconSurface: "bg-rose-50",
@@ -360,7 +372,7 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
         { href: "/dashboard/event-reminders-auto", label: "Automatisation J-10 / J-5", icon: CalendarClock },
         { href: "/dashboard/event-recap-auto", label: "Recap automatique apres evenement", icon: Camera },
         { href: "/dashboard/weekly-images-auto", label: "Cette semaine en images", icon: Image },
-        { href: "/dashboard/monthly-program-recap-auto", label: "Programme & recap du mois", icon: CalendarRange },
+        { href: "/dashboard/monthly-program-recap-auto", label: "Programme du mois", icon: CalendarRange },
         { href: "/dashboard/automations", label: "Toutes les automatisations", icon: Zap },
       ],
     },
@@ -380,10 +392,6 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       subtitle: resourcesSubtitle,
       icon: BookOpen,
       items: [
-        { href: "/dashboard/resources", label: "Mes ressources", icon: ResourcePlusIcon },
-        { href: "/dashboard/community-library", label: "Bibliotheque communautaire", icon: Library },
-        { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
-        { href: "/dashboard/hebrew-calendar", label: "Calendrier hebraique", icon: Calendar },
         { href: "/dashboard/templates", label: "Affiches", icon: Image },
         { href: "/dashboard/boutique", label: "Boutique", icon: ShoppingBag },
         { href: "/dashboard/website", label: "Creation site web", icon: Globe },
@@ -392,22 +400,13 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       ],
     },
     {
-      key: "donation",
-      section: "CAMPAGNE DE DONS",
-      subtitle: "Pilotez vos campagnes de collecte de A a Z",
-      icon: HandHeart,
+      key: "torah",
+      section: "COURS DE TORAH",
+      subtitle: "Cours et bibliothèque communautaire",
+      icon: BookOpen,
       items: [
-        { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart },
-        { href: "/dashboard/donation-campaign/visuals", label: "Visuels & publications", icon: Share2 },
-      ],
-    },
-    {
-      key: "clips",
-      section: "CLIPS VIDEO",
-      subtitle: "Clips video crees instantanement avec l'IA",
-      icon: Video,
-      items: [
-        { href: "/dashboard/clip-recap", label: "Clip video", icon: Video, badge: "Bientot disponible", disabled: true },
+        { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
+        { href: "/dashboard/community-library", label: "Bibliotheque communautaire", icon: Library },
       ],
     },
     {
@@ -417,6 +416,25 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       icon: Plus,
       items: [
         { href: "/dashboard/settings?section=contacts", label: "Mes contacts", icon: Plus },
+      ],
+    },
+    {
+      key: "donation",
+      section: "CAMPAGNE DE DONS",
+      subtitle: "Pilotez vos campagnes de collecte de A a Z",
+      icon: HandHeart,
+      items: [
+        { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart, badge: "Bientot disponible", disabled: true },
+        { href: "/dashboard/donation-campaign/visuals", label: "Visuels & publications", icon: Share2, badge: "Bientot disponible", disabled: true },
+      ],
+    },
+    {
+      key: "clips",
+      section: "CLIPS VIDEO",
+      subtitle: "Clips video crees instantanement avec l'IA",
+      icon: Video,
+      items: [
+        { href: "/dashboard/clip-recap", label: "Clip video", icon: Video, badge: "Bientot disponible", disabled: true },
       ],
     },
     {
@@ -439,7 +457,7 @@ export const DASHBOARD_TOP_ITEM: DashboardNavItem = {
 };
 
 export const QUICK_ACCESS_ITEMS = [
-  { href: "/dashboard/assistant", label: "Assistant IA", icon: Bot },
+  { href: "/dashboard/assistant", label: "Agents intelligents", icon: Bot },
   { href: "/dashboard/overview", label: "Tableau de bord", icon: House },
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell, notification: true },
   { href: "/dashboard/events", label: "Agenda connecte IA", icon: CalendarDays },
@@ -447,8 +465,8 @@ export const QUICK_ACCESS_ITEMS = [
 
 export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
-    section: "ASSISTANT IA",
-    items: [{ href: "/dashboard/assistant", label: "Assistant IA", icon: Bot }],
+    section: "AGENTS INTELLIGENTS",
+    items: [{ href: "/dashboard/assistant", label: "Agents intelligents", icon: Bot }],
   },
   {
     section: "RESEAUX SOCIAUX",
@@ -468,12 +486,10 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     ],
   },
   {
-    section: "RESSOURCES",
+    section: "COURS DE TORAH",
     items: [
-      { href: "/dashboard/resources", label: "Mes Ressources", icon: ResourcePlusIcon },
-      { href: "/dashboard/community-library", label: "Bibliothèque communautaire", icon: Library },
       { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
-      { href: "/dashboard/hebrew-calendar", label: "Calendrier hebraique", icon: Calendar },
+      { href: "/dashboard/community-library", label: "Bibliothèque communautaire", icon: Library },
     ],
   },
   {
@@ -491,9 +507,16 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     ],
   },
   {
+    section: "CONTACTS",
+    items: [
+      { href: "/dashboard/settings?section=contacts", label: "Ajoutez mes contacts", icon: Plus },
+    ],
+  },
+  {
     section: "CAMPAGNE DE DONS",
     items: [
-      { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart },
+      { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart, badge: "Bientot disponible" },
+      { href: "/dashboard/donation-campaign/visuals", label: "Visuels & Publications", icon: Share2, badge: "Bientot disponible" },
     ],
   },
   {
@@ -512,7 +535,6 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "PARAMETRES",
     items: [
-      { href: "/dashboard/settings?section=contacts", label: "Ajoutez mes contacts", icon: Plus },
       { href: "/dashboard/settings", label: "Parametres", icon: Settings },
       { href: "/help", label: "Aide & FAQ", icon: HelpCircle },
     ],
@@ -521,7 +543,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
 
 export const MOBILE_PRIMARY_NAV: DashboardNavItem[] = [
   { href: "/dashboard/overview", label: "Accueil", icon: House },
-  { href: "/dashboard/assistant", label: "Assistant IA", icon: Sparkles },
+  { href: "/dashboard/assistant", label: "Agents IA", icon: Sparkles },
   { href: "/dashboard/events", label: "Agenda IA", icon: CalendarDays },
   { href: "/dashboard/settings", label: "Reglages", icon: Settings2 },
 ];
@@ -548,7 +570,7 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
       { href: "/dashboard/event-reminders-auto", label: "Automatisation J-10 / J-5", icon: CalendarClock },
       { href: "/dashboard/event-recap-auto", label: "Récap automatique après événement", icon: Camera },
       { href: "/dashboard/weekly-images-auto", label: "Cette semaine en images", icon: Image },
-      { href: "/dashboard/monthly-program-recap-auto", label: "Programme & récap du mois", icon: CalendarRange },
+      { href: "/dashboard/monthly-program-recap-auto", label: "Programme du mois", icon: CalendarRange },
     ],
   },
   {
@@ -560,20 +582,9 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     ],
   },
   {
-    section: "CAMPAGNE DE DONS",
-    icon: HandHeart,
-    items: [
-      { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart },
-      { href: "/dashboard/donation-campaign/visuals", label: "Visuels & Publications", icon: Share2 },
-    ],
-  },
-  {
     section: "RESSOURCES & SERVICES",
     icon: BookOpen,
     items: [
-      { href: "/dashboard/resources", label: "Mes Ressources", icon: ResourcePlusIcon },
-      { href: "/dashboard/community-library", label: "Bibliothèque communautaire", icon: Library },
-      { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
       { href: "/dashboard/templates", label: "Affiches", icon: Image },
       { href: "/dashboard/boutique", label: "Boutique", icon: ShoppingBag },
       { href: "/dashboard/website", label: "Creation site web", icon: Globe },
@@ -586,6 +597,29 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     ],
   },
   {
+    section: "CONTACTS",
+    icon: Plus,
+    items: [
+      { href: "/dashboard/settings?section=contacts", label: "Ajoutez mes contacts", icon: Plus },
+    ],
+  },
+  {
+    section: "CAMPAGNE DE DONS",
+    icon: HandHeart,
+    items: [
+      { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart, badge: "Bientot disponible" },
+      { href: "/dashboard/donation-campaign/visuals", label: "Visuels & Publications", icon: Share2, badge: "Bientot disponible" },
+    ],
+  },
+  {
+    section: "COURS DE TORAH",
+    icon: BookOpen,
+    items: [
+      { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
+      { href: "/dashboard/community-library", label: "Bibliothèque communautaire", icon: Library },
+    ],
+  },
+  {
     section: "CLIPS VIDEO",
     icon: Video,
     items: [{ href: "/dashboard/clip-recap", label: "Clip Video", icon: Video }],
@@ -594,7 +628,6 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     section: "PARAMETRES",
     icon: Settings,
     items: [
-      { href: "/dashboard/settings?section=contacts", label: "Ajoutez mes contacts", icon: Plus },
       { href: "/dashboard/settings", label: "Parametres", icon: Settings },
       { href: "/help", label: "Aide & FAQ", icon: HelpCircle },
     ],

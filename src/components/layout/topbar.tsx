@@ -43,7 +43,7 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
   }, []);
 
   function getPageTitle() {
-    if (pathname.startsWith("/dashboard/assistant")) return "";
+    if (pathname.startsWith("/dashboard/assistant")) return "Agents intelligents";
     if (pathname.startsWith("/dashboard/automations")) return "Automatisations";
     if (pathname.startsWith("/dashboard/notifications")) return "Notifications";
     if (pathname.startsWith("/dashboard/whatsapp")) return "WhatsApp";
@@ -54,7 +54,6 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
     if (pathname.startsWith("/dashboard/daily-assistant")) return "Assistant du quotidien";
     if (pathname.startsWith("/dashboard/events")) return "Agenda connecte IA";
     if (pathname.startsWith("/dashboard/clip-recap")) return "Clip video";
-    if (pathname.startsWith("/dashboard/resources")) return "Mes ressources";
     if (pathname.startsWith("/dashboard/boutique")) return "Boutique";
     if (pathname.startsWith("/dashboard/referencement")) return "Referencement";
     if (pathname.startsWith("/dashboard/shabbat-times-auto")) return "Horaire de Chabbat";
@@ -181,7 +180,7 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
     <>
       <header
         className={cn(
-          "z-10 flex h-16 flex-shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 lg:px-6",
+          "z-[900] flex h-16 flex-shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 lg:px-6",
           pathname.startsWith("/dashboard/assistant") && "md:hidden"
         )}
       >
@@ -228,8 +227,8 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
 
             {userMenuOpen && (
               <>
-                <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
-                <div className="absolute right-0 top-full z-20 mt-1 w-52 rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+                <div className="fixed inset-0 z-[998]" onClick={() => setUserMenuOpen(false)} />
+                <div className="absolute right-0 top-full z-[999] mt-1 w-52 rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
                   <div className="border-b border-slate-100 px-4 py-3">
                     <p className="text-sm font-semibold text-slate-800">{userName}</p>
                     <p className="mt-0.5 text-xs text-slate-400">{communityName}</p>

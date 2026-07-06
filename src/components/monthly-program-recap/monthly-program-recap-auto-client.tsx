@@ -4,11 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DavidAutomationCard, DavidBannerAgent } from "@/components/automations/automation-design-kit";
-import { CalendarDays, CheckCircle2, ChevronDown, Clock, History, ImagePlus, Loader2, Plus, Send, Sparkles, Trash2, X } from "lucide-react";
+import { CalendarDays, CheckCircle2, ImagePlus, Loader2, Plus, Send, Sparkles, Trash2, X } from "lucide-react";
 import { toPng } from "html-to-image";
 import { cn } from "@/lib/utils";
 import {
-  MONTHLY_CHANNELS,
   MAX_PROGRAM_EVENTS,
   MAX_RECAP_PHOTOS,
   monthLabel as monthKeyLabel,
@@ -46,11 +45,11 @@ const CHANNEL_LOGOS: Record<MonthlyChannel, React.ReactNode> = {
   ),
 };
 const CHANNEL_LABELS: Record<MonthlyChannel, string> = { INSTAGRAM: "Instagram", FACEBOOK: "Facebook", WHATSAPP: "WhatsApp", EMAIL: "Email" };
+const PUBLISH_CHANNELS: MonthlyChannel[] = ["INSTAGRAM", "FACEBOOK"];
 const PLACEHOLDER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100' height='100' fill='%23dfe6f0'/></svg>";
 const PREVIEW_PHOTOS = [PLACEHOLDER, PLACEHOLDER, PLACEHOLDER, PLACEHOLDER];
 
 const TZ = "Europe/Paris";
-const DAY_OPTIONS = Array.from({ length: 28 }, (_, i) => i + 1);
 
 interface Community { id: string; name: string; logoUrl: string | null; city: string | null; timezone: string; tone: string; plan: string }
 interface EventRow { id: string; title: string; startDate: string; endDate: string | null; coverImageUrl: string | null; status: string }
@@ -67,10 +66,8 @@ interface Props {
 
 type View = "overview" | "models" | "customize" | "success";
 type RunType = "program" | "recap";
+type PublishLink = { channel: string; url: string | null; success: boolean; error?: string };
 
-function formatDateTime(iso: string) {
-  return new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
-}
 function eventDateISO(e: EventRow) { return e.startDate.slice(0, 10); }
 function eventTime(e: EventRow) {
   return new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, hour: "2-digit", minute: "2-digit" }).format(new Date(e.startDate));
@@ -81,21 +78,19 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
   const [runType, setRunType] = useState<RunType>("program");
   const [localSettings, setLocalSettings] = useState<MonthlySettings>(settings);
   const [automationId, setAutomationId] = useState<string | null>(automation?.id ?? null);
-  const [isActive, setIsActive] = useState<boolean>(automation?.status === "ACTIVE");
-  const [nextRunAt, setNextRunAt] = useState<string | null>(automation?.nextRunAt ?? null);
 
-  const [statusOpen, setStatusOpen] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(automation === null);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState("");
+  const [publishLinks, setPublishLinks] = useState<PublishLink[] | null>(null);
 
   // Programme
   const [selectedEventIds, setSelectedEventIds] = useState<Set<string>>(new Set());
   const [manualEvents, setManualEvents] = useState<ProgramEvent[]>([]);
   const [manualDraft, setManualDraft] = useState<ProgramEvent>({ name: "", date: "", time: "", location: "" });
-  // RÃ©cap
+  // Récap
   const [photos, setPhotos] = useState<string[]>([]);
   const [caption, setCaption] = useState("");
 
@@ -119,42 +114,12 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
     });
     const data = await res.json();
     if (!res.ok) throw new Error((data as { error?: string }).error ?? "Erreur");
-    return data as MonthlyAutomation & { success?: boolean; caption?: string };
-  }
-
-  async function setActiveState(next: boolean) {
-    setStatusOpen(false);
-    setShowWelcome(false);
-    if (next === isActive) return;
-    setError("");
-    setSaving(true);
-    try {
-      const data = await postConfig(next ? { mode: "activate", settings: localSettings } : { mode: "pause" });
-      setAutomationId(data.id ?? automationId);
-      setIsActive(next);
-      setNextRunAt(data.nextRunAt ?? null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur");
-    } finally {
-      setSaving(false);
-    }
+    return data as MonthlyAutomation & { success?: boolean; caption?: string; links?: PublishLink[] };
   }
 
   async function beginConfiguration() {
-    await setActiveState(true);
-    setView("models");
-  }
-
-  async function saveDetail(partial: Partial<MonthlySettings>) {
-    const updated = { ...localSettings, ...partial };
-    setLocalSettings(updated);
-    try {
-      const data = await postConfig({ mode: "update-notification-detail", settings: updated });
-      setAutomationId(data.id ?? automationId);
-      setNextRunAt(data.nextRunAt ?? nextRunAt);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur");
-    }
+    setShowWelcome(false);
+    openFlow("program");
   }
 
   function toggleChannel(channel: MonthlyChannel) {
@@ -201,7 +166,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
       const data = await postConfig({ mode: type === "program" ? "prepare-program" : "prepare-recap" });
       if (data.caption) setCaption(data.caption);
     } catch {
-      /* texte Ã©ditable */
+      /* texte ?ditable */
     }
   }
 
@@ -225,7 +190,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
       }
       setPhotos((prev) => [...prev, ...urls].slice(0, MAX_RECAP_PHOTOS));
     } catch {
-      setError("Erreur lors du tÃ©lÃ©versement.");
+      setError("Erreur lors du téléversement.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -239,7 +204,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
 
   async function capturePosterUrl(): Promise<string> {
     const node = posterRef.current;
-    if (!node) throw new Error("AperÃ§u indisponible.");
+    if (!node) throw new Error("Aperçu indisponible.");
     const dataUrl = await toPng(node, { width: POSTER_SIZE, height: POSTER_SIZE, pixelRatio: 1, cacheBust: true });
     const blob = await (await fetch(dataUrl)).blob();
     const file = new File([blob], `${runType}-${Date.now()}.png`, { type: "image/png" });
@@ -247,17 +212,17 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
     form.append("file", file);
     const res = await fetch("/api/uploads/attachment", { method: "POST", body: form });
     const data = await res.json();
-    if (!res.ok || !data.url) throw new Error("Ã‰chec du tÃ©lÃ©versement de l'affiche.");
+    if (!res.ok || !data.url) throw new Error("Échec du téléversement de l'affiche.");
     return data.url as string;
   }
 
   async function publish() {
     if (!caption.trim()) {
-      setError("PrÃ©parez le texte de la publication.");
+      setError("Préparez le texte de la publication.");
       return;
     }
     if (runType === "program" && programEvents.length === 0) {
-      setError("SÃ©lectionnez ou ajoutez au moins un Ã©vÃ©nement.");
+      setError("Sélectionnez ou ajoutez au moins un événement.");
       return;
     }
     if (runType === "recap" && photos.length === 0) {
@@ -276,23 +241,24 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
       const data = await postConfig({
         mode: runType === "program" ? "publish-program" : "publish-recap",
         caption: caption.trim(),
-        channels: localSettings.channels,
+        channels: localSettings.channels.filter((channel) => PUBLISH_CHANNELS.includes(channel)),
         visualUrls,
       });
       if (!data.success) {
-        setError("Ã‰chec de la publication.");
+        setError("Échec de la publication.");
         return;
       }
+      setPublishLinks(data.links ?? null);
       setView("success");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur rÃ©seau lors de la publication.");
+      setError(e instanceof Error ? e.message : "Erreur réseau lors de la publication.");
     } finally {
       setPublishing(false);
     }
   }
 
   const header = (
-    <div className="relative overflow-hidden rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">
+    <div className="relative overflow-visible rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">
       <div className="pointer-events-none absolute inset-y-0 right-6 flex items-center" aria-hidden="true">
         <div className="rounded-full bg-white/[0.04] p-5">
           <CalendarDays className="size-28 text-white/[0.08]" strokeWidth={1.6} />
@@ -301,37 +267,13 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="relative">
           <div className="mb-3 h-1.5 w-10 rounded-full bg-white/80" />
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Programme &amp; récap du mois</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/82">
-            Préparez le programme du mois et partagez le récap sur Instagram, Facebook, WhatsApp et Email en un clic.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Programme du mois</h1>
         </div>
         <div className="flex flex-col items-start gap-3 sm:items-end">
-          <Link href="/dashboard/events">
-            <Button size="sm" variant="outline" className="h-9 rounded-xl border-white/25 bg-white/12 px-4 text-xs font-bold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20 hover:text-white">
-              <CalendarDays className="size-4" />
-              Voir dans l&apos;Agenda IA
-            </Button>
-          </Link>
           <DavidBannerAgent
             className="sm:max-w-xl"
-            text="Je suis David votre assistant IA, je vous aide à préparer le programme du mois et le récap au bon moment"
+            text="Je suis David, votre assistant IA. Chaque début de mois, je prépare pour vous une image avec les événements à venir, prête à être publiée sur vos réseaux en un clic. Voulez-vous activer cette fonction ?"
           />
-        </div>
-      </div>
-      <div className="mt-6 flex justify-end">
-        <div className="relative">
-          <Button type="button" variant="outline" disabled={saving} className="border-white/20 bg-white/12 text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/18 hover:text-white" onClick={() => setStatusOpen((o) => !o)}>
-            {saving ? <Loader2 className="size-4 animate-spin" /> : <span className={cn("size-2.5 rounded-full", isActive ? "bg-emerald-400" : "bg-slate-300")} />}
-            {isActive ? "Active" : "Désactivée"}
-            <ChevronDown className="size-4" />
-          </Button>
-          {statusOpen && (
-            <div className="absolute bottom-full right-0 z-20 mb-2 w-48 rounded-xl border border-slate-200 bg-white p-2 text-sm text-slate-700 shadow-lg">
-              <button type="button" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-slate-50" onClick={() => void setActiveState(true)}><span className="size-2.5 rounded-full bg-emerald-500" />Active</button>
-              <button type="button" className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-slate-50" onClick={() => void setActiveState(false)}><span className="size-2.5 rounded-full bg-slate-300" />Désactivée</button>
-            </div>
-          )}
         </div>
       </div>
     </div>
@@ -341,11 +283,18 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
     <div className="mt-3">
       <span className="text-xs text-slate-400">Publier sur&nbsp;:</span>
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        {MONTHLY_CHANNELS.map((c) => {
+        {PUBLISH_CHANNELS.map((c) => {
           const active = localSettings.channels.includes(c);
           return (
             <button key={c} type="button" onClick={() => toggleChannel(c)} aria-pressed={active}
-              className={cn("flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition", active ? "border-violet-300 bg-violet-50 text-violet-700" : "border-slate-200 bg-white text-slate-400 hover:border-slate-300")}>
+              className={cn(
+                "flex min-h-14 items-center justify-center gap-2 rounded-2xl border px-5 text-sm font-black transition hover:-translate-y-0.5",
+                active
+                  ? c === "INSTAGRAM"
+                    ? "border-pink-300 bg-pink-50 text-pink-700 shadow-lg shadow-pink-100"
+                    : "border-blue-300 bg-blue-50 text-blue-700 shadow-lg shadow-blue-100"
+                  : "border-slate-200 bg-white text-slate-400"
+              )}>
               {CHANNEL_LOGOS[c]}{CHANNEL_LABELS[c]}{active && <CheckCircle2 className="size-3.5" />}
             </button>
           );
@@ -354,7 +303,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
     </div>
   );
 
-  // NÅ“ud de capture hors Ã©cran (programme ou rÃ©cap selon le flux).
+  // Nœud de capture hors écran (programme ou récap selon le flux).
   const captureNode = (
     <div aria-hidden style={{ position: "fixed", left: -99999, top: 0, pointerEvents: "none", opacity: 0 }}>
       <div ref={posterRef}>
@@ -367,11 +316,11 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
     </div>
   );
 
-  // â”€â”€ MODELS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ?? MODELS ????????????????????????????????????????????????????????????????
   if (view === "models") {
     return (
       <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
-        <div className="relative overflow-hidden rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">
+        <div className="relative overflow-visible rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <button onClick={() => setView("overview")} className="mb-4 text-sm font-medium text-white/75 hover:text-white">← Retour</button>
@@ -386,8 +335,8 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
 
         <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
-          <h2 className="text-base font-bold text-slate-900">Fond â€” RÃ©cap du mois</h2>
-          <p className="mt-1 text-sm text-slate-500">Mise en page utilisÃ©e pour le rÃ©cap en images.</p>
+          <h2 className="text-base font-bold text-slate-900">Fond — Récap du mois</h2>
+          <p className="mt-1 text-sm text-slate-500">Mise en page utilisée pour le récap en images.</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {WEEKLY_IMAGE_STYLES.map((style) => {
               const active = localSettings.selectedRecapBackgroundId === style.id;
@@ -412,12 +361,12 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
         </section>
 
         <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
-          <h2 className="text-base font-bold text-slate-900">Fond â€” Programme du mois</h2>
-          <p className="mt-1 text-sm text-slate-500">Mise en page utilisÃ©e pour la liste des Ã©vÃ©nements Ã  venir.</p>
+          <h2 className="text-base font-bold text-slate-900">Fond — Programme du mois</h2>
+          <p className="mt-1 text-sm text-slate-500">Mise en page utilisée pour la liste des événements à venir.</p>
           <div className="mt-4 flex aspect-square w-full max-w-xs items-center justify-center overflow-hidden rounded-2xl bg-slate-100 p-2">
             <div style={{ width: 288, height: 288, overflow: "hidden", borderRadius: 14, boxShadow: "0 6px 20px rgba(15,23,42,0.12)" }}>
               <div style={{ width: POSTER_SIZE, height: POSTER_SIZE, transform: `scale(${288 / POSTER_SIZE})`, transformOrigin: "top left" }}>
-                <ProgramPoster events={[{ name: "Cours de Torah", date: "2026-06-03", time: "20:30" }, { name: "SoirÃ©e communautaire", date: "2026-06-12", time: "19:00" }]} logoUrl={community.logoUrl} monthLabel="ce mois-ci" />
+                <ProgramPoster events={[{ name: "Cours de Torah", date: "2026-06-03", time: "20:30" }, { name: "Soir?e communautaire", date: "2026-06-12", time: "19:00" }]} logoUrl={community.logoUrl} monthLabel="ce mois-ci" />
               </div>
             </div>
           </div>
@@ -426,31 +375,36 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
     );
   }
 
-  // â”€â”€ CUSTOMIZE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ?? CUSTOMIZE ???????????????????????????????????????????????????????????????
   if (view === "customize") {
     const isProgram = runType === "program";
     return (
       <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
-        <div className="flex items-center justify-between">
-          <button onClick={() => setView("overview")} className="text-sm font-medium text-slate-500 hover:text-slate-700">â† Retour</button>
-          <span className="text-sm font-semibold text-slate-900">{isProgram ? "Programme du mois" : "RÃ©cap du mois"}</span>
+        <div className="relative overflow-hidden rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">
+          <div className="pointer-events-none absolute inset-y-0 right-6 flex items-center" aria-hidden="true">
+            <div className="rounded-full bg-white/[0.04] p-5">
+              <CalendarDays className="size-24 text-white/[0.08]" strokeWidth={1.6} />
+            </div>
+          </div>
+          <button onClick={() => setView("overview")} className="relative mb-4 text-sm font-medium text-white/75 hover:text-white">← Retour</button>
+          <div className="relative max-w-3xl">
+            <div className="mb-3 h-1.5 w-10 rounded-full bg-white/80" />
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{isProgram ? "Programme du mois" : "Récap du mois"}</h1>
+            <p className="mt-2 text-sm leading-6 text-white/78">
+              Préparez l’image, ajustez le texte, puis publiez sur Instagram et Facebook.
+            </p>
+          </div>
         </div>
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
-
-        <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4 text-sm leading-6 text-violet-800">
-          {isProgram
-            ? "Les Ã©vÃ©nements proviennent de votre Agenda IA. Aucun Ã©vÃ©nement n'est inventÃ©."
-            : "Les photos sont conservÃ©es telles quelles. Aucune retouche n'est appliquÃ©e."}
-        </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-5">
             {isProgram ? (
               <>
                 <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
-                  <h2 className="text-sm font-bold text-slate-900">Ã‰vÃ©nements Ã  venir (Agenda IA)</h2>
+                  <h2 className="text-sm font-bold text-slate-900">événements à venir (Agenda IA)</h2>
                   {upcomingEvents.length === 0 ? (
-                    <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-500">Aucun Ã©vÃ©nement Ã  venir. Ajoutez-en ci-dessous.</p>
+                    <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-500">Aucun événement à venir. Ajoutez-en ci-dessous.</p>
                   ) : (
                     <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
                       {upcomingEvents.map((e) => {
@@ -460,7 +414,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
                             className={cn("flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition", checked ? "border-violet-300 bg-violet-50" : "border-slate-200 bg-white hover:border-slate-300")}>
                             <span className="min-w-0">
                               <span className="block truncate font-medium text-slate-800">{e.title}</span>
-                              <span className="block text-xs text-slate-400">{new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, day: "numeric", month: "long" }).format(new Date(e.startDate))} Â· {eventTime(e)}</span>
+                              <span className="block text-xs text-slate-400">{new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, day: "numeric", month: "long" }).format(new Date(e.startDate))} · {eventTime(e)}</span>
                             </span>
                             <span className={cn("flex size-5 flex-shrink-0 items-center justify-center rounded-md border", checked ? "border-violet-500 bg-violet-500 text-white" : "border-slate-300 bg-white")}>{checked && <CheckCircle2 className="size-3.5" />}</span>
                           </button>
@@ -471,9 +425,9 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
                 </section>
 
                 <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
-                  <h2 className="text-sm font-bold text-slate-900">Ajouter un Ã©vÃ©nement</h2>
+                  <h2 className="text-sm font-bold text-slate-900">Ajouter un événement</h2>
                   <div className="mt-3 space-y-2">
-                    <input value={manualDraft.name ?? ""} onChange={(e) => setManualDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Nom de l'Ã©vÃ©nement" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-violet-400 focus:outline-none" />
+                    <input value={manualDraft.name ?? ""} onChange={(e) => setManualDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Nom de l'événement" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-violet-400 focus:outline-none" />
                     <div className="grid grid-cols-3 gap-2">
                       <input type="date" value={manualDraft.date ?? ""} onChange={(e) => setManualDraft((d) => ({ ...d, date: e.target.value }))} className="rounded-xl border border-slate-200 px-2 py-2 text-sm focus:border-violet-400 focus:outline-none" />
                       <input type="time" value={manualDraft.time ?? ""} onChange={(e) => setManualDraft((d) => ({ ...d, time: e.target.value }))} className="rounded-xl border border-slate-200 px-2 py-2 text-sm focus:border-violet-400 focus:outline-none" />
@@ -487,13 +441,13 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
                     <div className="mt-3 space-y-1.5">
                       {manualEvents.map((m, i) => (
                         <div key={i} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs">
-                          <span className="truncate text-slate-700">{m.name} {m.date ? `Â· ${m.date}` : ""}</span>
+                          <span className="truncate text-slate-700">{m.name} {m.date ? `· ${m.date}` : ""}</span>
                           <button onClick={() => setManualEvents((arr) => arr.filter((_, j) => j !== i))} className="text-slate-400 hover:text-red-600"><Trash2 className="size-3.5" /></button>
                         </div>
                       ))}
                     </div>
                   )}
-                  <p className="mt-2 text-[11px] text-slate-400">{programEvents.length} / {MAX_PROGRAM_EVENTS} Ã©vÃ©nements</p>
+                  <p className="mt-2 text-[11px] text-slate-400">{programEvents.length} / {MAX_PROGRAM_EVENTS} événements</p>
                 </section>
               </>
             ) : (
@@ -505,7 +459,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
                 <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUpload(e.target.files)} />
                 <button onClick={() => fileInputRef.current?.click()} disabled={uploading || photos.length >= MAX_RECAP_PHOTOS}
                   className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 py-6 text-sm font-medium text-slate-500 transition hover:border-violet-300 hover:text-violet-700 disabled:opacity-60">
-                  {uploading ? <Loader2 className="size-5 animate-spin" /> : <ImagePlus className="size-5" />}{uploading ? "TÃ©lÃ©versementâ€¦" : `Ajouter des photos (max ${MAX_RECAP_PHOTOS})`}
+                  {uploading ? <Loader2 className="size-5 animate-spin" /> : <ImagePlus className="size-5" />}{uploading ? "Téléversement…" : `Ajouter des photos (max ${MAX_RECAP_PHOTOS})`}
                 </button>
                 {photos.length > 0 && (
                   <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -521,48 +475,87 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
               </section>
             )}
 
-            <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
-              <h2 className="text-sm font-bold text-slate-900">Texte de la publication</h2>
-              <textarea value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Texte de la publicationâ€¦" className="mt-3 min-h-28 w-full resize-y rounded-2xl border border-slate-200 p-3 text-sm leading-6 text-slate-800 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200" />
+            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-sm font-bold text-slate-900">Texte de la publication</h2>
+                <Button type="button" variant="outline" onClick={() => void prepareCaption(runType)} className="h-9 rounded-xl border-violet-200 text-xs font-bold text-violet-700">
+                  <Sparkles className="size-4" />
+                  Retravailler avec l’IA
+                </Button>
+              </div>
+              <textarea value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Texte de la publication?" className="mt-3 min-h-28 w-full resize-y rounded-2xl border border-slate-200 p-3 text-sm leading-6 text-slate-800 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200" />
               {channelSelector}
             </section>
 
-            <Button onClick={publish} disabled={publishing} className="h-12 w-full rounded-2xl bg-violet-700 px-5 text-sm text-white hover:bg-violet-800">
+            <Button onClick={publish} disabled={publishing} className="h-12 w-full rounded-2xl bg-[#421388] px-5 text-sm font-black text-white hover:bg-[#35106f]">
               {publishing ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-              Valider et publier sur tous mes rÃ©seaux
+              Publier sur Instagram et Facebook
             </Button>
           </div>
 
-          {/* AperÃ§u iPhone */}
-          <div>
-            <div className="mx-auto w-full max-w-[300px] rounded-[3rem] border-[12px] border-slate-900 bg-slate-900 shadow-2xl">
-              <div className="overflow-hidden rounded-[2.2rem] bg-white">
-                <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2">
-                  <div className="size-7 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500" />
-                  <span className="text-xs font-semibold text-slate-800">{community.name}</span>
-                </div>
-                {isProgram ? (
-                  <div className="aspect-square w-full overflow-hidden bg-white">
-                    <div style={{ width: POSTER_SIZE, height: POSTER_SIZE, transform: "scale(0.2546)", transformOrigin: "top left" }}>
-                      <ProgramPoster events={programEvents} logoUrl={community.logoUrl} monthLabel={new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric", timeZone: TZ }).format(new Date())} />
-                    </div>
-                  </div>
-                ) : photos.length === 0 ? (
-                  <div className="flex aspect-square w-full items-center justify-center bg-slate-50 text-xs text-slate-400">Ajoutez des photos</div>
-                ) : photos.length === 1 ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={photos[0]} alt="AperÃ§u" className="aspect-square w-full object-cover" />
-                ) : (
-                  <div className="aspect-square w-full overflow-hidden bg-white">
-                    <div style={{ width: POSTER_SIZE, height: POSTER_SIZE, transform: "scale(0.2546)", transformOrigin: "top left" }}>
-                      <WeeklyPoster styleId={recapStyleId} photos={photos} logoUrl={community.logoUrl} subtitle="Retour en images sur le mois" />
-                    </div>
-                  </div>
-                )}
-                <div className="px-3 py-2"><p className="whitespace-pre-wrap text-xs leading-5 text-slate-700">{caption || "Votre texte apparaÃ®tra ici."}</p></div>
+          <div className="flex flex-col items-center justify-start lg:sticky lg:top-6">
+            <div className="w-full max-w-[380px] space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400">Aperçu Instagram</h3>
+                <span className="rounded-full bg-pink-50 px-2.5 py-1 text-[10px] font-bold text-pink-700">Live</span>
               </div>
+              <div className="mx-auto flex w-full justify-center">
+                <div className="relative aspect-[12/25] w-full max-w-[320px] rounded-[3.5rem] border-[1.5px] border-[#b0853e] bg-[#f2935a] p-[4px] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                  <div className="absolute -left-[5px] top-[110px] h-[30px] w-[5px] rounded-l-md border-y border-l border-[#b0853e] bg-[#f2935a]" />
+                  <div className="absolute -left-[5px] top-[160px] h-[55px] w-[5px] rounded-l-md border-y border-l border-[#b0853e] bg-[#f2935a]" />
+                  <div className="absolute -left-[5px] top-[230px] h-[55px] w-[5px] rounded-l-md border-y border-l border-[#b0853e] bg-[#f2935a]" />
+                  <div className="absolute -right-[5px] top-[180px] h-[85px] w-[5px] rounded-r-md border-y border-r border-[#b0853e] bg-[#f2935a]" />
+                  <div className="relative flex h-full w-full flex-col overflow-hidden rounded-[3.2rem] bg-white">
+                    <div className="flex h-12 w-full shrink-0 items-center justify-between px-6 pt-2">
+                      <div className="w-1/3 pl-1 text-[15px] font-semibold text-black">9:41</div>
+                      <div className="mt-1 h-[30px] w-[120px] rounded-full bg-black" />
+                      <div className="flex w-1/3 justify-end pr-1 text-xs font-semibold text-black">LTE</div>
+                    </div>
+                    <div className="mt-2 flex flex-1 flex-col overflow-hidden bg-white">
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-[11px] font-bold text-gray-500">
+                            {community.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <span className="truncate text-[13px] font-semibold tracking-tight text-gray-900">{community.name}</span>
+                        </div>
+                        <span className="shrink-0 text-lg leading-none text-slate-700">...</span>
+                      </div>
+                      <div className="aspect-square w-full bg-gradient-to-br from-pink-50 via-white to-orange-50">
+                        {isProgram ? (
+                          <div className="h-full w-full overflow-hidden bg-white">
+                            <div style={{ width: POSTER_SIZE, height: POSTER_SIZE, transform: "scale(0.2963)", transformOrigin: "top left" }}>
+                              <ProgramPoster events={programEvents} logoUrl={community.logoUrl} monthLabel={new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric", timeZone: TZ }).format(new Date())} />
+                            </div>
+                          </div>
+                        ) : photos.length === 0 ? (
+                          <div className="flex h-full items-center justify-center text-xs text-slate-400">Ajoutez des photos</div>
+                        ) : photos.length === 1 ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={photos[0]} alt="Aperçu" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="h-full w-full overflow-hidden bg-white">
+                            <div style={{ width: POSTER_SIZE, height: POSTER_SIZE, transform: "scale(0.2963)", transformOrigin: "top left" }}>
+                              <WeeklyPoster styleId={recapStyleId} photos={photos} logoUrl={community.logoUrl} subtitle="Retour en images sur le mois" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="px-3 py-3">
+                        <div className="mb-3 flex items-center gap-4 text-slate-900">
+                          <span className="text-xl">♡</span>
+                          <span className="text-xl">◯</span>
+                          <span className="text-xl">➤</span>
+                        </div>
+                        <p className="whitespace-pre-wrap text-[13px] leading-[18px] text-gray-900"><strong className="mr-1">{community.name}</strong>{caption || "Votre texte apparaîtra ici."}</p>
+                      </div>
+                    </div>
+                    <div className="absolute bottom-2 flex w-full justify-center pb-1"><div className="h-[5px] w-[130px] rounded-full bg-gray-300" /></div>
+                  </div>
+                </div>
+              </div>
+              <p className="text-center text-xs font-semibold text-slate-400">Aperçu smartphone, aligné sur la page Instagram</p>
             </div>
-            <p className="mt-3 text-center text-[11px] text-slate-400">AperÃ§u de la publication</p>
           </div>
         </div>
         {captureNode}
@@ -570,7 +563,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
     );
   }
 
-  // â”€â”€ SUCCESS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ?? SUCCESS ?????????????????????????????????????????????????????????????????
   if (view === "success") {
     return (
       <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
@@ -578,12 +571,26 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
           <div className="flex items-start gap-3">
             <div className="flex size-11 items-center justify-center rounded-2xl bg-emerald-500 text-white"><CheckCircle2 className="size-6" /></div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Publication envoyÃ©e&nbsp;!</h2>
-              <p className="mt-1 text-sm text-slate-600">{runType === "program" ? "Le programme du mois" : "Le rÃ©cap du mois"} a Ã©tÃ© publiÃ© sur {localSettings.channels.map((c) => CHANNEL_LABELS[c]).join(", ")}.</p>
+              <h2 className="text-lg font-bold text-slate-900">Votre publication a bien été publiée&nbsp;!</h2>
+              <p className="mt-1 text-sm text-slate-600">Vous pouvez maintenant la consulter sur vos pages Instagram et Facebook.</p>
             </div>
           </div>
-          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-            <Link href="/dashboard/publications" className="flex-1 sm:flex-none"><Button variant="outline" className="h-11 w-full rounded-2xl border-slate-200 px-5 text-sm sm:w-auto"><History className="size-4" />Voir l&apos;historique</Button></Link>
+          <div className="mt-5 grid gap-2 sm:grid-cols-2">
+            {(publishLinks?.length ? publishLinks : PUBLISH_CHANNELS.map((channel) => ({ channel: CHANNEL_LABELS[channel], url: null, success: true }))).map((link) => (
+              <Link
+                key={link.channel}
+                href={link.url ?? "/dashboard/publications"}
+                target={link.url ? "_blank" : undefined}
+                className={cn(
+                  "rounded-2xl border px-4 py-3 text-center text-sm font-bold",
+                  link.success ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-red-200 bg-red-50 text-red-700"
+                )}
+              >
+                Voir sur {link.channel}
+              </Link>
+            ))}
+          </div>
+          <div className="mt-4 flex justify-center">
             <Button onClick={() => setView("overview")} variant="ghost" className="h-11 rounded-2xl px-5 text-sm text-slate-500">Retour</Button>
           </div>
         </section>
@@ -591,7 +598,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
     );
   }
 
-  // â”€â”€ OVERVIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ?? OVERVIEW ????????????????????????????????????????????????????????????????
   const publishedMonths = Array.from(new Set([...Object.keys(programHistory), ...Object.keys(recapHistory)])).sort().reverse();
 
   return (
@@ -603,13 +610,12 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
               <div className="flex size-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><Sparkles className="size-7" /></div>
               <button type="button" onClick={() => setShowWelcome(false)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100"><X className="size-5" /></button>
             </div>
-            <h2 className="mt-5 text-2xl font-bold leading-tight text-slate-950">Programme &amp; récap du mois</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">Une affiche en début de mois, un récap en images en fin de mois.</p>
+            <h2 className="mt-5 text-2xl font-bold leading-tight text-slate-950">Programme du mois</h2>
             <div className="mt-6 space-y-4">
               {[
                 { step: 1, title: "Préparez le programme", desc: "L'IA reprend les événements à venir du mois depuis l'Agenda IA.", color: "bg-violet-100 text-violet-700" },
-                { step: 2, title: "Partagez le récap", desc: "En fin de mois, l'IA prépare un récap avec vos photos et un texte.", color: "bg-indigo-100 text-indigo-700" },
-                { step: 3, title: "Validez et publiez", desc: "Sur Instagram, Facebook, WhatsApp et Email en un clic.", color: "bg-emerald-100 text-emerald-700" },
+                { step: 2, title: "David prépare le visuel", desc: "Une image claire et prête pour vos réseaux.", color: "bg-indigo-100 text-indigo-700" },
+                { step: 3, title: "Validez et publiez", desc: "Publiez sur Instagram et Facebook en un clic.", color: "bg-emerald-100 text-emerald-700" },
               ].map(({ step, title, desc, color }) => (
                 <div key={step} className="flex items-start gap-4">
                   <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-black", color)}>{step}</span>
@@ -623,7 +629,7 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
             />
             <div className="mt-8 flex flex-col gap-3">
               <Button type="button" size="xl" className="w-full bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" onClick={() => void beginConfiguration()}><Sparkles className="size-5" />Commencer la configuration →</Button>
-              <Button type="button" variant="outline" className="w-full" onClick={() => setShowWelcome(false)}>DÃ©couvrir d&apos;abord</Button>
+              <Button type="button" variant="outline" className="w-full" onClick={() => setShowWelcome(false)}>Découvrir d&apos;abord</Button>
             </div>
           </div>
         </div>
@@ -634,73 +640,20 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
       {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
 
       <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
-        <h2 className="text-base font-bold text-slate-900">Comment Ã§a fonctionne&nbsp;?</h2>
+        <h2 className="text-base font-bold text-slate-900">Comment ça fonctionne&nbsp;?</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           {[
-            { n: 1, t: "Préparez le programme", d: "L'IA reprend les événements à venir du mois depuis l'Agenda IA." },
-            { n: 2, t: "Partagez le récap", d: "À la fin du mois, l'IA prépare un récap avec les photos et les textes." },
-            { n: 3, t: "Validez et publiez", d: "Validez puis publiez sur vos réseaux en un clic." },
+            { n: 1, t: "Choisissez les événements", d: "David reprend les événements à venir depuis l'Agenda IA.", tone: "border-fuchsia-300 text-fuchsia-700" },
+            { n: 2, t: "Préparez le visuel", d: "Une image du programme du mois est générée pour vos réseaux.", tone: "border-cyan-300 text-cyan-700" },
+            { n: 3, t: "Publiez", d: "Validez puis publiez sur Instagram et Facebook.", tone: "border-emerald-300 text-emerald-700" },
           ].map((s) => (
-            <div key={s.n} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
-              <span className="flex size-7 items-center justify-center rounded-full bg-violet-600 text-xs font-bold text-white">{s.n}</span>
+            <div key={s.n} className={cn("rounded-2xl border bg-white p-4 shadow-sm", s.tone)}>
+              <span className={cn("flex size-8 items-center justify-center rounded-full border bg-white text-xs font-black", s.tone)}>{s.n}</span>
               <p className="mt-3 text-sm font-semibold text-slate-900">{s.t}</p>
               <p className="mt-1 text-xs leading-5 text-slate-500">{s.d}</p>
             </div>
           ))}
         </div>
-      </section>
-
-      {/* Prochaines notifications */}
-      <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
-        <div className="flex items-center gap-2"><Clock className="size-4 text-violet-600" /><h2 className="text-base font-bold text-slate-900">Prochaines notifications</h2></div>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
-            <p className="text-sm font-semibold text-slate-900">Programme du mois</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-              Le
-              <select value={localSettings.programNotificationDay} onChange={(e) => saveDetail({ programNotificationDay: Number(e.target.value) })} className="rounded-lg border border-slate-200 px-2 py-1">
-                {DAY_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
-              Ã 
-              <input type="time" value={localSettings.programNotificationTime} onChange={(e) => saveDetail({ programNotificationTime: e.target.value })} className="rounded-lg border border-slate-200 px-2 py-1" />
-            </div>
-          </div>
-          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
-            <p className="text-sm font-semibold text-slate-900">RÃ©cap du mois</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-              <select value={localSettings.recapNotificationDay} onChange={(e) => saveDetail({ recapNotificationDay: Number(e.target.value) })} className="rounded-lg border border-slate-200 px-2 py-1">
-                <option value={0}>Dernier jour</option>
-                {DAY_OPTIONS.map((d) => <option key={d} value={d}>Le {d}</option>)}
-              </select>
-              Ã 
-              <input type="time" value={localSettings.recapNotificationTime} onChange={(e) => saveDetail({ recapNotificationTime: e.target.value })} className="rounded-lg border border-slate-200 px-2 py-1" />
-            </div>
-          </div>
-        </div>
-        {isActive && nextRunAt && <p className="mt-3 text-xs text-slate-400">Prochaine notification&nbsp;: {formatDateTime(nextRunAt)}</p>}
-      </section>
-
-      {/* PrÃ©parer maintenant */}
-      <section className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-3xl border border-violet-100 bg-gradient-to-br from-white to-violet-50/50 p-6 shadow-sm">
-          <p className="text-sm font-bold text-slate-900">Programme du mois</p>
-          <p className="mt-1 text-sm text-slate-500">PrÃ©sentez les Ã©vÃ©nements Ã  venir.</p>
-          <Button onClick={() => openFlow("program")} className="mt-4 h-10 rounded-xl bg-violet-600 px-4 text-sm text-white hover:bg-violet-700"><CalendarDays className="size-4" />PrÃ©parer le programme</Button>
-        </div>
-        <div className="rounded-3xl border border-violet-100 bg-gradient-to-br from-white to-violet-50/50 p-6 shadow-sm">
-          <p className="text-sm font-bold text-slate-900">RÃ©cap du mois</p>
-          <p className="mt-1 text-sm text-slate-500">Partagez les photos du mois Ã©coulÃ©.</p>
-          <Button onClick={() => openFlow("recap")} className="mt-4 h-10 rounded-xl bg-violet-600 px-4 text-sm text-white hover:bg-violet-700"><ImagePlus className="size-4" />PrÃ©parer le rÃ©cap</Button>
-        </div>
-      </section>
-
-      {/* Fonds + bouton modifier */}
-      <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-6 shadow-sm shadow-[#421388]/5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900">Fonds sÃ©lectionnÃ©s</h2>
-          <Button size="sm" variant="outline" onClick={() => setView("models")} className="h-8 rounded-xl border-slate-200 px-3 text-xs">Modifier les fonds</Button>
-        </div>
-        <p className="mt-2 text-sm text-slate-500">RÃ©cap&nbsp;: {WEEKLY_IMAGE_STYLES.find((s) => s.id === recapStyleId)?.name} Â· Programme&nbsp;: Liste d&apos;Ã©vÃ©nements</p>
       </section>
 
       {/* Historique */}
@@ -712,8 +665,8 @@ export function MonthlyProgramRecapAutoClient({ community, upcomingEvents, autom
               <div key={key} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
                 <p className="text-sm font-semibold capitalize text-slate-900">{monthKeyLabel(key)}</p>
                 <div className="flex items-center gap-2">
-                  {programHistory[key]?.status === "PUBLISHED" && <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">Programme publiÃ©</span>}
-                  {recapHistory[key]?.status === "PUBLISHED" && <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">RÃ©cap publiÃ©</span>}
+                  {programHistory[key]?.status === "PUBLISHED" && <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">Programme publié</span>}
+                  {recapHistory[key]?.status === "PUBLISHED" && <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">Récap publié</span>}
                 </div>
               </div>
             ))}

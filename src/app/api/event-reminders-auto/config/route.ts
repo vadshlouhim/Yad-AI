@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createPublicationsFromDraft, publishToAllChannels } from "@/lib/publishing/publisher";
 import {
   EVENT_REMINDERS_AUTOMATION_NAME,
   REMINDER_CHANNELS,
@@ -20,6 +21,7 @@ import type { Database, Json } from "@/types/database.types";
 
 type AutomationRow = Database["public"]["Tables"]["Automation"]["Row"];
 type Admin = ReturnType<typeof createAdminClient>;
+type SocialChannelRow = { id: string; type: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -257,6 +259,87 @@ async function upsertCampaignAutomation(
   return data;
 }
 
+async function publishReminder(
+  admin: Admin,
+  communityId: string,
+  existing: AutomationRow | null,
+  campaign: EventReminderCampaign,
+  body: Record<string, unknown>
+) {
+  const reminderId = stringOrEmpty(body.reminderId);
+  const reminder = campaign.reminders.find((item) => item.id === reminderId) ?? campaign.reminders[0];
+  if (!reminder) {
+    return NextResponse.json({ error: "Rappel introuvable." }, { status: 404 });
+  }
+
+  const caption = stringOrEmpty(body.caption);
+  const imageUrl = stringOrEmpty(body.imageUrl) || reminder.visualUrl || campaign.mainVisualUrl || null;
+  if (!caption && !imageUrl) {
+    return NextResponse.json({ error: "Ajoutez un message ou une image avant de publier." }, { status: 400 });
+  }
+
+  const { data: socialChannels } = await admin
+    .from("Channel")
+    .select("id,type")
+    .eq("communityId", communityId)
+    .in("type", ["INSTAGRAM", "FACEBOOK"] as never[])
+    .eq("isActive", true)
+    .eq("isConnected", true);
+
+  const channels = ((socialChannels ?? []) as SocialChannelRow[]).filter((channel) =>
+    ["INSTAGRAM", "FACEBOOK"].includes(channel.type)
+  );
+  if (channels.length === 0) {
+    return NextResponse.json(
+      { error: "Aucun canal Instagram ou Facebook actif. Configurez vos réseaux dans Paramètres > Canaux." },
+      { status: 409 }
+    );
+  }
+
+  const draftId = crypto.randomUUID();
+  const nowIso = new Date().toISOString();
+  await admin.from("ContentDraft").insert({
+    id: draftId,
+    communityId,
+    title: `${campaign.eventName} - ${reminder.label}`,
+    body: caption || `${campaign.eventName} - ${reminder.label}`,
+    imageUrl,
+    contentType: "EVENT_POST" as never,
+    status: "APPROVED",
+    aiGenerated: true,
+    aiPromptUsed: "event-reminders-auto-publish-reminder",
+    createdAt: nowIso,
+    updatedAt: nowIso,
+  } as never);
+
+  const channelIds = channels.map((channel) => channel.id);
+  await createPublicationsFromDraft({ draftId, communityId, channelIds });
+  const results = await publishToAllChannels(draftId, channelIds);
+
+  const updatedCampaign: EventReminderCampaign = {
+    ...campaign,
+    reminders: campaign.reminders.map((item) =>
+      item.id === reminder.id ? { ...item, status: "PUBLISHED", publishedDraftId: draftId, visualUrl: imageUrl } : item
+    ),
+  };
+  const timezone = await getTimezone(admin, communityId);
+  const next = getNextPendingReminder(updatedCampaign, timezone);
+  await upsertCampaignAutomation(admin, communityId, existing, updatedCampaign, {
+    isActive: Boolean(next),
+    status: next ? "ACTIVE" : "DRAFT",
+    nextRunAt: next?.runAt.toISOString() ?? null,
+  });
+
+  const links = channels.map((channel) => ({
+    channel: channel.type === "INSTAGRAM" ? "Instagram" : "Facebook",
+    url: results[channel.id]?.externalUrl ?? null,
+    success: results[channel.id]?.success === true,
+    error: results[channel.id]?.error,
+  }));
+
+  return NextResponse.json({ success: true, draftId, results, links });
+}
+
 export async function POST(request: Request) {
   try {
     const auth = await getAuth();
@@ -307,6 +390,10 @@ export async function POST(request: Request) {
 
     const timezone = await getTimezone(admin, communityId);
     const existing = await findCampaignAutomation(admin, communityId, campaign.eventId);
+
+    if (mode === "publish-reminder") {
+      return publishReminder(admin, communityId, existing, campaign, body);
+    }
 
     if (mode === "save-config") {
       const automation = await upsertCampaignAutomation(admin, communityId, existing, campaign, {

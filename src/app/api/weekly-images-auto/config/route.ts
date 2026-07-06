@@ -3,61 +3,65 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicationsFromDraft, publishToAllChannels } from "@/lib/publishing/publisher";
 import {
+  DEFAULT_WEEKLY_IMAGES_SETTINGS,
+  DEFAULT_WEEKLY_IMAGES_DAY,
+  DEFAULT_WEEKLY_IMAGES_TIME,
+  MAX_WEEKLY_PHOTOS,
   WEEKLY_IMAGES_AUTOMATION_NAME,
   WEEKLY_IMAGES_CHANNELS,
-  DEFAULT_WEEKLY_IMAGES_SETTINGS,
-  DEFAULT_WEEKLY_IMAGES_TIME,
-  DEFAULT_WEEKLY_IMAGES_DAY,
-  MAX_WEEKLY_PHOTOS,
-  nextWeeklyImagesRunAt,
   defaultWeeklyImagesCaption,
-  getWeeklyImagesSettings,
   getWeeklyImagesHistory,
-  type WeeklyImagesSettings,
+  getWeeklyImagesSettings,
+  nextWeeklyImagesRunAt,
   type WeeklyImagesChannel,
   type WeeklyImagesHistory,
+  type WeeklyImagesSettings,
 } from "@/lib/automation/weekly-images";
 import type { Database, Json } from "@/types/database.types";
 
 type AutomationRow = Database["public"]["Tables"]["Automation"]["Row"];
 type Admin = ReturnType<typeof createAdminClient>;
+type SocialChannelRow = { id: string; type: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
+
 function stringOrEmpty(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
+
 function normalizeTime(value: unknown) {
   const time = typeof value === "string" ? value.trim() : DEFAULT_WEEKLY_IMAGES_TIME;
   return /^\d{2}:\d{2}$/.test(time) ? time : DEFAULT_WEEKLY_IMAGES_TIME;
 }
+
 function normalizeDay(value: unknown): number {
   const day = typeof value === "number" ? value : Number(value);
   return Number.isInteger(day) && day >= 0 && day <= 6 ? day : DEFAULT_WEEKLY_IMAGES_DAY;
 }
+
 function normalizeChannels(value: unknown): WeeklyImagesChannel[] {
-  if (!Array.isArray(value)) return [...DEFAULT_WEEKLY_IMAGES_SETTINGS.channels];
-  const valid = value.filter((c): c is WeeklyImagesChannel =>
-    (WEEKLY_IMAGES_CHANNELS as readonly string[]).includes(c as string)
+  if (!Array.isArray(value)) return ["INSTAGRAM", "FACEBOOK"];
+  const valid = value.filter((channel): channel is WeeklyImagesChannel =>
+    (WEEKLY_IMAGES_CHANNELS as readonly string[]).includes(channel as string)
   );
-  return valid.length > 0 ? valid : [...DEFAULT_WEEKLY_IMAGES_SETTINGS.channels];
+  const socialOnly = valid.filter((channel) => channel === "INSTAGRAM" || channel === "FACEBOOK");
+  return socialOnly.length > 0 ? socialOnly : ["INSTAGRAM", "FACEBOOK"];
 }
 
 function sanitizeSettings(value: unknown, existing: WeeklyImagesSettings): WeeklyImagesSettings {
-  if (!isRecord(value)) return existing;
+  if (!isRecord(value)) return { ...existing, channels: normalizeChannels(existing.channels) };
   return {
     status: value.status === "paused" ? "paused" : "active",
     notificationDay: normalizeDay(value.notificationDay ?? existing.notificationDay),
     notificationTime: normalizeTime(value.notificationTime ?? existing.notificationTime),
     timezone: stringOrEmpty(value.timezone) || existing.timezone,
-    selectedBackgroundTemplateId:
-      stringOrEmpty(value.selectedBackgroundTemplateId) || existing.selectedBackgroundTemplateId || null,
+    selectedBackgroundTemplateId: stringOrEmpty(value.selectedBackgroundTemplateId) || existing.selectedBackgroundTemplateId || null,
     channels: normalizeChannels(value.channels ?? existing.channels),
   };
 }
 
-// requiresValidation TOUJOURS true (photos d'événements, validation humaine).
 function buildActions(channels: WeeklyImagesChannel[]): Json {
   return [
     { type: "GENERATE_CONTENT", contentType: "WEEKLY_IMAGES_POST", channels, requiresValidation: true },
@@ -71,6 +75,7 @@ async function getAuth() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: NextResponse.json({ error: "Non autorisé" }, { status: 401 }) };
+
   const admin = createAdminClient();
   const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
   if (!profile?.communityId) return { error: NextResponse.json({ error: "Communauté introuvable" }, { status: 403 }) };
@@ -85,6 +90,7 @@ async function findWeeklyImagesAutomation(admin: Admin, communityId: string): Pr
     .eq("trigger", "CUSTOM_SCHEDULE")
     .order("updatedAt", { ascending: false })
     .limit(50);
+
   const rows = (data ?? []) as AutomationRow[];
   return rows.find((row) => getWeeklyImagesSettings(row.triggerConfig)) ?? null;
 }
@@ -114,7 +120,7 @@ async function upsertWeeklyImagesAutomation(
 
   const payload = {
     name: WEEKLY_IMAGES_AUTOMATION_NAME,
-    description: "Publie chaque semaine vos photos sur Instagram, Facebook et WhatsApp, après validation.",
+    description: "Prépare chaque semaine une publication en images pour Instagram et Facebook, après validation.",
     trigger: "CUSTOM_SCHEDULE" as const,
     triggerConfig,
     actions: buildActions(settings.channels),
@@ -135,6 +141,7 @@ async function upsertWeeklyImagesAutomation(
     if (error) throw error;
     return data;
   }
+
   const { data, error } = await admin
     .from("Automation")
     .insert({ id: crypto.randomUUID(), communityId, eventId: null, ...payload })
@@ -158,13 +165,12 @@ export async function POST(request: Request) {
     const community = await getCommunity(admin, communityId);
     const timezone = community.timezone ?? "Europe/Paris";
     const currentSettings: WeeklyImagesSettings = existing
-      ? getWeeklyImagesSettings(existing.triggerConfig) ?? { ...DEFAULT_WEEKLY_IMAGES_SETTINGS, timezone }
-      : { ...DEFAULT_WEEKLY_IMAGES_SETTINGS, timezone };
+      ? getWeeklyImagesSettings(existing.triggerConfig) ?? { ...DEFAULT_WEEKLY_IMAGES_SETTINGS, timezone, channels: ["INSTAGRAM", "FACEBOOK"] }
+      : { ...DEFAULT_WEEKLY_IMAGES_SETTINGS, timezone, channels: ["INSTAGRAM", "FACEBOOK"] };
     const history: WeeklyImagesHistory = existing ? getWeeklyImagesHistory(existing.triggerConfig) : [];
 
-    // ── pause ──
     if (mode === "pause") {
-      const settings: WeeklyImagesSettings = { ...currentSettings, status: "paused" };
+      const settings: WeeklyImagesSettings = { ...currentSettings, status: "paused", channels: normalizeChannels(currentSettings.channels) };
       const automation = await upsertWeeklyImagesAutomation(admin, communityId, existing, settings, history, {
         isActive: false,
         status: "PAUSED",
@@ -173,11 +179,24 @@ export async function POST(request: Request) {
       return NextResponse.json(automation);
     }
 
-    // ── save-selection : choix du fond ──
+    if (mode === "save-config" || mode === "activate" || mode === "update-notification-detail") {
+      const settings = sanitizeSettings(body.settings, currentSettings);
+      const active = mode === "activate" ? true : mode === "save-config" ? existing?.isActive ?? false : existing?.isActive ?? true;
+      const effectiveSettings: WeeklyImagesSettings = { ...settings, status: active ? "active" : settings.status };
+      const automation = await upsertWeeklyImagesAutomation(admin, communityId, existing, effectiveSettings, history, {
+        isActive: active,
+        status: active ? "ACTIVE" : existing?.status === "PAUSED" ? "PAUSED" : "DRAFT",
+        nextRunAt: active ? nextWeeklyImagesRunAt(effectiveSettings, now).toISOString() : existing?.nextRunAt ?? null,
+      });
+      return NextResponse.json(automation);
+    }
+
     if (mode === "save-selection") {
-      const templateId = stringOrEmpty(body.templateId);
-      if (!templateId) return NextResponse.json({ error: "Fond manquant." }, { status: 400 });
-      const settings: WeeklyImagesSettings = { ...currentSettings, selectedBackgroundTemplateId: templateId };
+      const settings: WeeklyImagesSettings = {
+        ...currentSettings,
+        selectedBackgroundTemplateId: stringOrEmpty(body.templateId) || currentSettings.selectedBackgroundTemplateId,
+        channels: normalizeChannels(currentSettings.channels),
+      };
       const automation = await upsertWeeklyImagesAutomation(admin, communityId, existing, settings, history, {
         isActive: existing?.isActive ?? false,
         status: existing?.status === "ACTIVE" ? "ACTIVE" : "DRAFT",
@@ -186,46 +205,42 @@ export async function POST(request: Request) {
       return NextResponse.json(automation);
     }
 
-    // ── save-config / activate / update-notification-detail ──
-    if (mode === "save-config" || mode === "activate" || mode === "update-notification-detail") {
-      const settings = sanitizeSettings(body.settings, currentSettings);
-      const active = mode === "activate" ? true : mode === "save-config" ? existing?.isActive ?? false : existing?.isActive ?? true;
-      const status: "ACTIVE" | "PAUSED" | "DRAFT" = active ? "ACTIVE" : existing?.status === "PAUSED" ? "PAUSED" : "DRAFT";
-      const effectiveSettings: WeeklyImagesSettings = { ...settings, status: active ? "active" : settings.status };
-      const automation = await upsertWeeklyImagesAutomation(admin, communityId, existing, effectiveSettings, history, {
-        isActive: active,
-        status,
-        nextRunAt: active ? nextWeeklyImagesRunAt(effectiveSettings, now).toISOString() : existing?.nextRunAt ?? null,
-      });
-      return NextResponse.json(automation);
-    }
-
-    // ── prepare-weekly-images : texte par défaut ──
     if (mode === "prepare-weekly-images") {
-      const caption = defaultWeeklyImagesCaption({ communityName: community.name, city: community.city });
+      const currentCaption = stringOrEmpty(body.caption);
+      const base = defaultWeeklyImagesCaption({ communityName: community.name, city: community.city });
+      const caption = currentCaption
+        ? `${currentCaption}\n\nUne belle semaine en images, à partager avec toute notre communauté.`
+        : base;
       return NextResponse.json({ caption });
     }
 
-    // ── publish-weekly-images : crée le draft + publie ──
     if (mode === "publish-weekly-images") {
       const caption = stringOrEmpty(body.caption);
       const channels = normalizeChannels(body.channels);
-      const visualUrls = Array.isArray(body.visualUrls)
+      const mediaUrls = Array.isArray(body.mediaUrls)
+        ? (body.mediaUrls as unknown[]).map(String).filter(Boolean).slice(0, MAX_WEEKLY_PHOTOS)
+        : Array.isArray(body.visualUrls)
         ? (body.visualUrls as unknown[]).map(String).filter(Boolean).slice(0, MAX_WEEKLY_PHOTOS)
         : [];
+
       if (!caption) return NextResponse.json({ error: "Le texte de la publication est vide." }, { status: 400 });
-      if (visualUrls.length === 0) return NextResponse.json({ error: "Ajoutez au moins une photo." }, { status: 400 });
+      if (mediaUrls.length === 0) return NextResponse.json({ error: "Ajoutez au moins une photo ou une vidéo." }, { status: 400 });
 
       const { data: socialChannels } = await admin
         .from("Channel")
-        .select("id")
+        .select("id,type")
         .eq("communityId", communityId)
         .in("type", channels as never[])
-        .eq("isActive", true);
+        .eq("isActive", true)
+        .eq("isConnected", true);
 
-      if (!socialChannels || socialChannels.length === 0) {
+      const typedChannels = ((socialChannels ?? []) as SocialChannelRow[]).filter((channel) =>
+        channel.type === "INSTAGRAM" || channel.type === "FACEBOOK"
+      );
+
+      if (typedChannels.length === 0) {
         return NextResponse.json(
-          { error: "Aucun canal actif. Configurez vos réseaux dans Paramètres > Canaux." },
+          { error: "Aucun canal Instagram ou Facebook actif. Configurez vos réseaux dans Paramètres > Canaux." },
           { status: 409 }
         );
       }
@@ -237,20 +252,34 @@ export async function POST(request: Request) {
         communityId,
         title: "Cette semaine en images",
         body: caption,
-        imageUrl: visualUrls[0],
+        imageUrl: mediaUrls[0],
         contentType: "GENERAL" as never,
         status: "APPROVED",
         aiGenerated: true,
+        aiPromptUsed: "weekly-images-auto",
         createdAt: nowIso,
         updatedAt: nowIso,
       } as never);
 
-      const channelIds = socialChannels.map((c) => c.id);
+      await admin.from("ChannelAdaptation").upsert(
+        typedChannels.map((channel) => ({
+          draftId,
+          channelType: channel.type,
+          body: caption,
+          imageUrl: mediaUrls[0],
+          metadata: { mediaUrls, source: "weekly-images-auto" },
+          updatedAt: nowIso,
+        })) as never,
+        { onConflict: "draftId,channelType" }
+      );
+
+      const channelIds = typedChannels.map((channel) => channel.id);
       await createPublicationsFromDraft({ draftId, communityId, channelIds });
+      await admin.from("Publication").update({ mediaUrls, updatedAt: nowIso }).eq("draftId", draftId).eq("communityId", communityId);
       const results = await publishToAllChannels(draftId, channelIds);
 
       const newHistory: WeeklyImagesHistory = [
-        { id: crypto.randomUUID(), publishedAt: nowIso, photoCount: visualUrls.length, channels, visualUrls, draftId },
+        { id: crypto.randomUUID(), publishedAt: nowIso, photoCount: mediaUrls.length, channels, visualUrls: mediaUrls, draftId },
         ...history,
       ].slice(0, 52);
 
@@ -260,7 +289,14 @@ export async function POST(request: Request) {
         nextRunAt: existing?.nextRunAt ?? null,
       });
 
-      return NextResponse.json({ success: true, draftId, results });
+      const links = typedChannels.map((channel) => ({
+        channel: channel.type === "INSTAGRAM" ? "Instagram" : "Facebook",
+        url: results[channel.id]?.externalUrl ?? null,
+        success: results[channel.id]?.success === true,
+        error: results[channel.id]?.error,
+      }));
+
+      return NextResponse.json({ success: true, draftId, results, links });
     }
 
     return NextResponse.json({ error: "Action invalide" }, { status: 400 });
