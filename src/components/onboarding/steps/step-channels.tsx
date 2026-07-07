@@ -107,6 +107,39 @@ export function StepChannels({ data, updateData, onNext, onPrev, communityId, si
   const [oauthNotice, setOauthNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [connected, setConnected] = useState<ConnectedStatus>({ INSTAGRAM: false, FACEBOOK: false, EMAIL: false });
 
+  useEffect(() => {
+    function handleOAuthMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== "meta_oauth_success" && event.data?.type !== "meta_oauth_error") return;
+
+      const oauth = event.data.oauth as string | undefined;
+      const provider = event.data.provider as string | undefined;
+      setConnecting(null);
+
+      if (event.data.type === "meta_oauth_success" && provider) {
+        const providerKey = provider.toUpperCase() as keyof ConnectedStatus;
+        setConnected((prev) => ({ ...prev, [providerKey]: true }));
+
+        const channelDef = AVAILABLE_CHANNELS.find((channel) => channel.type === providerKey);
+        if (channelDef && !data.channels.find((channel) => channel.type === providerKey)) {
+          updateData({
+            channels: [...data.channels, { type: providerKey, name: channelDef.label, handle: "" }],
+          });
+        }
+        setOauthNotice({ type: "success", message: `${channelDef?.label ?? provider} connecté avec succès ! ✓` });
+        return;
+      }
+
+      setOauthNotice({
+        type: "error",
+        message: OAUTH_ERROR_MESSAGES[oauth ?? "error"] ?? "Erreur inconnue lors de la connexion.",
+      });
+    }
+
+    window.addEventListener("message", handleOAuthMessage);
+    return () => window.removeEventListener("message", handleOAuthMessage);
+  }, [data.channels, updateData]);
+
   // Lire le résultat OAuth au retour (param ?oauth=...)
   useEffect(() => {
     const oauth = searchParams.get("oauth");
@@ -149,7 +182,7 @@ export function StepChannels({ data, updateData, onNext, onPrev, communityId, si
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [searchParams]);
+  }, [data.channels, searchParams, updateData]);
 
   function toggleChannel(type: string) {
     const exists = data.channels.find((c) => c.type === type);
@@ -205,8 +238,31 @@ export function StepChannels({ data, updateData, onNext, onPrev, communityId, si
     }
     if (communityId) url.searchParams.set("communityId", communityId);
     // Retour vers l'onboarding (pas les Settings)
-    url.searchParams.set("returnTo", "onboarding");
-    window.location.assign(url.toString());
+    url.searchParams.set("returnTo", provider === "gmail" ? "onboarding" : "meta_popup");
+
+    if (provider === "gmail") {
+      window.location.assign(url.toString());
+      return;
+    }
+
+    const popup = window.open(
+      url.toString(),
+      `meta_oauth_${provider}`,
+      "width=560,height=720,left=220,top=80,toolbar=0,menubar=0,location=0"
+    );
+
+    if (!popup) {
+      url.searchParams.set("returnTo", "onboarding");
+      window.location.assign(url.toString());
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      if (popup.closed) {
+        window.clearInterval(timer);
+        setConnecting(null);
+      }
+    }, 700);
   }
 
   function disconnectChannel(type: string) {

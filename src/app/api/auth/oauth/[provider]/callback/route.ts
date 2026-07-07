@@ -60,10 +60,13 @@ function getOAuthBaseUrl(requestUrl: URL) {
   return appUrl?.replace(/\/$/, "") ?? requestUrl.origin;
 }
 
-/** Construit l'URL de retour selon returnTo ("onboarding" ou "settings") */
+/** Construit l'URL de retour selon returnTo ("onboarding", "meta_popup" ou "settings") */
 function buildReturnUrl(origin: string, returnTo: string | undefined): URL {
   if (returnTo === "onboarding") {
     return new URL("/onboarding", origin);
+  }
+  if (returnTo === "meta_popup") {
+    return new URL("/dashboard/settings/channels/oauth-done", origin);
   }
   return new URL("/dashboard/settings/channels", origin);
 }
@@ -93,6 +96,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   const stored = rawState ? (JSON.parse(rawState) as StoredOAuthState) : null;
   const returnTo = stored?.returnTo ?? "settings";
   const returnUrl = buildReturnUrl(url.origin, returnTo);
+  returnUrl.searchParams.set("provider", provider);
 
   if (!code || !state) {
     returnUrl.searchParams.set("oauth", "missing_code");
@@ -221,7 +225,6 @@ export async function GET(request: Request, { params }: RouteParams) {
     );
 
     returnUrl.searchParams.set("oauth", "success");
-    returnUrl.searchParams.set("provider", provider);
     return NextResponse.redirect(returnUrl);
   } catch (error) {
     console.error("[Meta OAuth]", error);

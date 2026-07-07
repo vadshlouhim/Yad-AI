@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   CheckCircle2, AlertCircle, ExternalLink,
@@ -128,6 +128,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expandedChannel, setExpandedChannel] = useState<string | null>(null);
   const [tokenInput, setTokenInput] = useState<Record<string, string>>({});
+  const [oauthPopupProvider, setOauthPopupProvider] = useState<string | null>(null);
 
   const channelMap = Object.fromEntries(channels.map((c) => [c.type, c]));
   const oauthStatus = searchParams.get("oauth");
@@ -139,8 +140,50 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
 
   const connectedCount = CHANNEL_ORDER.filter((type) => isChannelConnected(channelMap[type])).length;
 
+  useEffect(() => {
+    function handleOAuthMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== "meta_oauth_success" && event.data?.type !== "meta_oauth_error") return;
+
+      setOauthPopupProvider(null);
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set("oauth", event.data.oauth ?? "error");
+      if (event.data.provider) nextUrl.searchParams.set("provider", event.data.provider);
+      router.replace(`${nextUrl.pathname}${nextUrl.search}`);
+      router.refresh();
+    }
+
+    window.addEventListener("message", handleOAuthMessage);
+    return () => window.removeEventListener("message", handleOAuthMessage);
+  }, [router]);
+
   function connectOAuth(type: string) {
-    window.location.href = `/api/auth/oauth/${type.toLowerCase()}?communityId=${communityId}`;
+    const provider = type.toLowerCase();
+    setOauthPopupProvider(type);
+
+    const authUrl = new URL(`/api/auth/oauth/${provider}`, window.location.origin);
+    authUrl.searchParams.set("communityId", communityId);
+    authUrl.searchParams.set("returnTo", "meta_popup");
+
+    const popup = window.open(
+      authUrl.toString(),
+      `meta_oauth_${provider}`,
+      "width=560,height=720,left=220,top=80,toolbar=0,menubar=0,location=0"
+    );
+
+    if (!popup) {
+      setOauthPopupProvider(null);
+      window.location.href = authUrl.toString();
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      if (popup.closed) {
+        window.clearInterval(timer);
+        setOauthPopupProvider(null);
+        router.refresh();
+      }
+    }, 700);
   }
 
   async function saveManualChannel(type: string) {
@@ -424,9 +467,10 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => connectOAuth(type)}
+                              disabled={oauthPopupProvider === type}
                               className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
                             >
-                              Reconnecter
+                              {oauthPopupProvider === type ? "Ouverture..." : "Reconnecter"}
                             </button>
                             <button
                               onClick={() => disconnectChannel(channel!)}
@@ -443,14 +487,19 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                       ) : (
                         <button
                           onClick={() => connectOAuth(type)}
+                          disabled={oauthPopupProvider === type}
                           className={cn(
-                            "flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 bg-gradient-to-r",
+                            "flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 disabled:cursor-wait disabled:opacity-70 bg-gradient-to-r",
                             cfg.brandColor
                           )}
                         >
-                          <img src={cfg.logo} alt="" className="w-5 h-5 object-contain brightness-0 invert" />
-                          Se connecter via {CHANNEL_LABELS[type]}
-                          <ExternalLink className="size-4 ml-1 opacity-80" />
+                          {oauthPopupProvider === type ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <img src={cfg.logo} alt="" className="w-5 h-5 object-contain brightness-0 invert" />
+                          )}
+                          {oauthPopupProvider === type ? "Ouverture de la fenetre..." : `Se connecter via ${CHANNEL_LABELS[type]}`}
+                          {oauthPopupProvider !== type && <ExternalLink className="size-4 ml-1 opacity-80" />}
                         </button>
                       )}
                     </div>
