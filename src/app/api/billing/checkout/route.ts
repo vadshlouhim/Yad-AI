@@ -20,9 +20,10 @@ export async function POST(request: Request) {
     .single();
 
   const body = await request.json();
-  const { successUrl, cancelUrl } = body;
+  const { successUrl, cancelUrl, applyLaunchOffer } = body;
+  const tier = body.tier === "ENTERPRISE" ? "ENTERPRISE" : "PROFESSIONAL";
   const config = await getBillingConfig(admin);
-  const priceId = getActivePaidPriceId(config);
+  const priceId = getActivePaidPriceId(config, tier, applyLaunchOffer ?? true);
 
   if (!priceId) {
     return NextResponse.json({ error: "Prix Stripe payant non configuré" }, { status: 500 });

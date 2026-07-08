@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicationsFromDraft, publishToAllChannels } from "@/lib/publishing/publisher";
-import { FREE_LIMITS, getBillingGate, getBillingUsage, paywallResponse } from "@/lib/billing";
+import { TIER_LIMITS, getBillingGate, getBillingUsage, paywallResponse, tierLimitMessage } from "@/lib/billing";
 
 const LIMITED_SOCIAL_CHANNELS = new Set(["INSTAGRAM", "FACEBOOK", "TELEGRAM"]);
 
@@ -23,13 +23,14 @@ export async function POST(request: Request) {
 
   const requestedSocialCount = channelTypes.filter((channelType) => LIMITED_SOCIAL_CHANNELS.has(String(channelType))).length;
   const gate = await getBillingGate(admin, user.id);
-  if (!gate.isPaid && requestedSocialCount > 0) {
-    const usage = await getBillingUsage(admin, profile.communityId);
-    if (usage.socialPublications + requestedSocialCount > FREE_LIMITS.socialPublications) {
+  if (!gate.isSuperAdmin && requestedSocialCount > 0) {
+    const usage = await getBillingUsage(admin, profile.communityId, gate.tier);
+    if (usage.socialPublications + requestedSocialCount > TIER_LIMITS[gate.tier].socialPublications) {
       return paywallResponse(
         "social_publications",
-        "Le mode gratuit inclut une seule publication Instagram, Facebook ou Telegram. Passez au mode payant pour publier sans limite.",
-        { socialPublications: usage.socialPublications }
+        tierLimitMessage(gate.tier, "socialPublications"),
+        { socialPublications: usage.socialPublications },
+        TIER_LIMITS[gate.tier]
       );
     }
   }

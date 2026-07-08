@@ -2,7 +2,7 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TemplatesClient } from "@/components/templates/templates-client";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
-import { getBillingConfig, getBillingUsage } from "@/lib/billing";
+import { getBillingConfig, getBillingUsage, planToTier } from "@/lib/billing";
 import { getStoredShabbatTimes } from "@/lib/ai/engine";
 import type { Metadata } from "next";
 
@@ -13,7 +13,7 @@ export default async function TemplatesPage() {
   const communityId = profile.communityId!;
   const admin = createAdminClient();
 
-  const [{ data: templates }, { data: community }, billingConfig, billingUsage] = await Promise.all([
+  const [{ data: templates }, { data: community }, billingConfig] = await Promise.all([
     admin
       .from("Template")
       .select("*")
@@ -28,8 +28,8 @@ export default async function TemplatesPage() {
       .eq("id", communityId)
       .single(),
     getBillingConfig(admin),
-    getBillingUsage(admin, communityId),
   ]);
+  const billingUsage = await getBillingUsage(admin, communityId, planToTier(community?.plan));
 
   const hydratedTemplates = (templates ?? []).map((template) => ({
     ...template,

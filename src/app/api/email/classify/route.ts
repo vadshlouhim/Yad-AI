@@ -12,6 +12,7 @@ import {
 } from "@/lib/email/ai-settings";
 import { fetchGmailMessages, type GmailFetchedMessage } from "@/lib/email/gmail-fetch";
 import { notifyForMatchingEmailRules } from "@/lib/email/email-alerts";
+import { assertTierFeature } from "@/lib/billing";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -38,6 +39,15 @@ export async function POST(request: Request) {
   if (!profile?.communityId) {
     return NextResponse.json({ error: "Communaute introuvable" }, { status: 400 });
   }
+
+  const tierCheck = await assertTierFeature(
+    admin,
+    user.id,
+    "BUSINESS",
+    "email_management",
+    "La gestion des emails est réservée à l'offre Business."
+  );
+  if (!tierCheck.ok) return tierCheck.response;
 
   let payload: RequestBody = {};
   try {

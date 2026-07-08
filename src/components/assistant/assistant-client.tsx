@@ -1983,8 +1983,8 @@ export function AssistantClient({
         onClose={() => setUpgradeOpen(false)}
         config={billingConfig}
         featureLabel="Agents intelligents"
-        title="Agents intelligents illimités avec le mode payant"
-        description="Le mode gratuit inclut 20 messages avec les agents intelligents. Passez au mode payant pour continuer à créer, planifier et automatiser sans limite."
+        title="Continuez avec l'assistant IA"
+        description="Le mode gratuit inclut 20 messages avec l'assistant IA au total. Passez à l'offre Pro pour 50 messages par mois, ou Business pour un nombre illimité."
       />
       {/* â”€â”€ Sidebar historique â”€â”€ */}
       {assistantExperience === "detailed" && historyOpen && (

@@ -3,7 +3,7 @@ import { sendCommunityEmail } from "@/lib/email/send-community-email";
 import { generateContent } from "@/lib/ai/engine";
 import { createPublicationsFromDraft, publishToAllChannels } from "@/lib/publishing/publisher";
 import { resolveCommunityPhones, sendWhatsAppMessages, sanitizePhone } from "@/lib/whatsapp/send";
-import { FREE_LIMITS, getBillingGate, getBillingUsage } from "@/lib/billing";
+import { TIER_LIMITS, getBillingGate, getBillingUsage, tierLimitMessage } from "@/lib/billing";
 import { fromZonedTime } from "date-fns-tz";
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -180,12 +180,12 @@ export async function executeAction(
       case "create_automation": {
         if (ctx.userId) {
           const gate = await getBillingGate(admin, ctx.userId);
-          if (!gate.isPaid) {
-            const usage = await getBillingUsage(admin, communityId);
-            if (usage.automations >= FREE_LIMITS.automations) {
+          if (!gate.isSuperAdmin) {
+            const usage = await getBillingUsage(admin, communityId, gate.tier);
+            if (usage.automations >= TIER_LIMITS[gate.tier].automations) {
               return {
                 success: false,
-                message: "Le mode gratuit permet de créer une seule automatisation IA. Passez au mode payant pour en programmer d'autres.",
+                message: tierLimitMessage(gate.tier, "automations"),
               };
             }
           }
@@ -433,12 +433,12 @@ export async function executeAction(
         if (ctx.userId) {
           const requestedSocialCount = channelTypes.filter((channelType) => LIMITED_SOCIAL_CHANNELS.has(String(channelType))).length;
           const gate = await getBillingGate(admin, ctx.userId);
-          if (!gate.isPaid && requestedSocialCount > 0) {
-            const usage = await getBillingUsage(admin, communityId);
-            if (usage.socialPublications + requestedSocialCount > FREE_LIMITS.socialPublications) {
+          if (!gate.isSuperAdmin && requestedSocialCount > 0) {
+            const usage = await getBillingUsage(admin, communityId, gate.tier);
+            if (usage.socialPublications + requestedSocialCount > TIER_LIMITS[gate.tier].socialPublications) {
               return {
                 success: false,
-                message: "Le mode gratuit inclut une seule publication Instagram, Facebook ou Telegram. Passez au mode payant pour publier sans limite.",
+                message: tierLimitMessage(gate.tier, "socialPublications"),
               };
             }
           }

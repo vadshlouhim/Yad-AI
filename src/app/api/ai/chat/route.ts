@@ -22,7 +22,7 @@ import {
 } from "@/lib/templates/shared";
 import { analyzeTemplateVisuals } from "@/lib/templates/analysis";
 import { runAssistant } from "@/lib/ai/assistant/runner";
-import { FREE_LIMITS, getBillingGate, getBillingUsage, paywallResponse } from "@/lib/billing";
+import { TIER_LIMITS, getBillingGate, getBillingUsage, paywallResponse, tierLimitMessage } from "@/lib/billing";
 import OpenAI from "openai";
 import type { ChatCompletionContentPart } from "openai/resources/chat/completions";
 
@@ -223,13 +223,14 @@ export async function POST(request: Request) {
     const hasExplicitArticleIntent = isUserPrompt && looksLikeArticleIntent(lastUserMessage.content);
 
     const billingGate = await getBillingGate(admin, user.id);
-    if (isUserPrompt && !billingGate.isPaid) {
-      const usage = await getBillingUsage(admin, communityId);
-      if (usage.assistantMessages >= FREE_LIMITS.assistantMessages) {
+    if (isUserPrompt && !billingGate.isSuperAdmin) {
+      const usage = await getBillingUsage(admin, communityId, billingGate.tier);
+      if (usage.assistantMessages >= TIER_LIMITS[billingGate.tier].assistantMessages) {
         return paywallResponse(
           "assistant_messages",
-          "Le mode gratuit inclut 20 messages avec l'assistant IA. Passez au mode payant pour continuer la conversation.",
-          { assistantMessages: usage.assistantMessages }
+          tierLimitMessage(billingGate.tier, "assistantMessages"),
+          { assistantMessages: usage.assistantMessages },
+          TIER_LIMITS[billingGate.tier]
         );
       }
     }

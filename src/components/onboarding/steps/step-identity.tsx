@@ -6,44 +6,35 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import type { OnboardingData } from "../onboarding-wizard";
 import {
   Building2, MapPin, Phone, Mail, Globe, ChevronRight,
-  Heart, Landmark, GraduationCap, Trophy, Palette, UtensilsCrossed,
-  Briefcase, Home, BookOpen, Wifi, Users, Layers, Store, Video,
   Image as ImageIcon, Loader2, Upload,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface Props {
   data: OnboardingData;
   updateData: (partial: Partial<OnboardingData>) => void;
-  onNext: () => void;
+  onNext: () => void | Promise<void>;
   onPrev: () => void;
   simulationMode?: boolean;
 }
 
-const COMMUNITY_TYPES = [
-  { value: "RESTAURANT", label: "Restaurateur", icon: UtensilsCrossed, accent: "text-orange-600 bg-orange-50 border-orange-200" },
-  { value: "CATERER", label: "Traiteur", icon: Store, accent: "text-amber-600 bg-amber-50 border-amber-200" },
-  { value: "SPORT_COACH", label: "Coach sportif", icon: Trophy, accent: "text-lime-700 bg-lime-50 border-lime-200" },
-  { value: "COMMERCE", label: "Commerce", icon: Store, accent: "text-green-600 bg-green-50 border-green-200" },
-  { value: "BUSINESS", label: "Entreprise", icon: Briefcase, accent: "text-slate-700 bg-slate-100 border-slate-200" },
-  { value: "CONTENT_CREATOR", label: "Créateur de contenu", icon: Video, accent: "text-pink-600 bg-pink-50 border-pink-200" },
-  { value: "ASSOCIATION", label: "Association / ONG", icon: Heart, accent: "text-rose-600 bg-rose-50 border-rose-200" },
-  { value: "RELIGIOUS", label: "Lieu de culte", icon: Landmark, accent: "text-purple-600 bg-purple-50 border-purple-200" },
-  { value: "SCHOOL", label: "École / Formation", icon: GraduationCap, accent: "text-blue-600 bg-blue-50 border-blue-200" },
-  { value: "SPORT", label: "Sport & Loisirs", icon: Trophy, accent: "text-orange-600 bg-orange-50 border-orange-200" },
-  { value: "CULTURE", label: "Culture & Arts", icon: Palette, accent: "text-pink-600 bg-pink-50 border-pink-200" },
-  { value: "PROFESSIONAL", label: "Réseau professionnel", icon: Briefcase, accent: "text-slate-700 bg-slate-100 border-slate-200" },
-  { value: "LOCAL", label: "Quartier / Local", icon: Home, accent: "text-green-600 bg-green-50 border-green-200" },
-  { value: "STUDENT", label: "Étudiants / Campus", icon: BookOpen, accent: "text-indigo-600 bg-indigo-50 border-indigo-200" },
-  { value: "ONLINE", label: "Communauté en ligne", icon: Wifi, accent: "text-cyan-600 bg-cyan-50 border-cyan-200" },
-  { value: "CENTER", label: "Centre communautaire", icon: Users, accent: "text-teal-600 bg-teal-50 border-teal-200" },
-  { value: "OTHER", label: "Autre", icon: Layers, accent: "text-slate-500 bg-white border-slate-200" },
-];
-
 export function StepIdentity({ data, updateData, onNext, simulationMode = false }: Props) {
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
+  const [continuing, setContinuing] = useState(false);
+  const [continueError, setContinueError] = useState<string | null>(null);
   const isValid = data.communityName.trim().length >= 2 && data.city.trim().length >= 2;
+
+  async function handleContinue() {
+    setContinueError(null);
+    setContinuing(true);
+    try {
+      await onNext();
+    } catch {
+      setContinueError("Impossible d'enregistrer vos informations, réessayez.");
+    } finally {
+      setContinuing(false);
+    }
+  }
 
   async function uploadLogo(file: File) {
     setLogoUploading(true);
@@ -148,74 +139,6 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
           )}
         </div>
 
-        {/* Type de structure */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700">
-            Quel type de structure êtes-vous ?
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {COMMUNITY_TYPES.map(({ value, label, icon: Icon, accent }) => {
-              const selected = data.communityType === value || (value === "RELIGIOUS" && data.communityType === "SYNAGOGUE");
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => updateData({ communityType: value, isBethHabad: false })}
-                  className={cn(
-                    "flex items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 text-left text-sm transition-all",
-                    selected
-                      ? "border-blue-600 bg-blue-50 text-blue-700 font-semibold"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-                  )}
-                >
-                  <div className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border",
-                    selected ? "bg-blue-100 border-blue-200 text-blue-600" : accent
-                  )}>
-                    <Icon className="size-3.5" />
-                  </div>
-                  <span className="leading-tight text-xs sm:text-sm">{label}</span>
-                </button>
-              );
-            })}
-          </div>
-          {(data.communityType === "RELIGIOUS" || data.communityType === "SYNAGOGUE") && (
-            <button
-              type="button"
-              onClick={() => updateData({ communityType: "SYNAGOGUE", isBethHabad: true })}
-              className={cn(
-                "mt-3 flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition",
-                data.communityType === "SYNAGOGUE" && data.isBethHabad
-                  ? "border-blue-300 bg-blue-50 text-blue-700"
-                  : "border-blue-100 bg-blue-50/70 text-slate-700 hover:border-blue-200 hover:bg-blue-50"
-              )}
-            >
-              <span className="font-semibold">{"ב''ה"}</span>
-              <span className="text-xs text-slate-500">Identifier ce lieu de culte comme une Shoul</span>
-            </button>
-          )}
-        </div>
-
-        {/* Description - clé pour l'IA */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-slate-700 flex items-center gap-2 flex-wrap">
-            Décrivez votre structure en une phrase
-            <span className="text-xs font-normal text-slate-400 border border-slate-200 rounded-full px-2 py-0.5">
-              Facultatif - recommandé
-            </span>
-          </label>
-          <textarea
-            value={data.description}
-            onChange={(e) => updateData({ description: e.target.value })}
-            placeholder="Ex. Club de football de 150 membres proposant des entraînements et tournois pour adultes et enfants à Lyon."
-            rows={3}
-            className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-none"
-          />
-          <p className="text-xs text-slate-400">
-            Cette phrase aide l&apos;IA à personnaliser vos contenus avec précision.
-          </p>
-        </div>
-
         {/* Localisation */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
@@ -296,13 +219,23 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
 
         {/* Navigation */}
         <div className="pt-2">
-          <Button onClick={onNext} disabled={!simulationMode && !isValid} size="lg" className="w-full">
+          <Button
+            onClick={handleContinue}
+            disabled={(!simulationMode && !isValid) || continuing}
+            size="lg"
+            className="w-full"
+          >
+            {continuing ? <Loader2 className="size-4 animate-spin" /> : <ChevronRight className="size-4" />}
             Continuer
-            <ChevronRight className="size-4" />
           </Button>
           {!simulationMode && !isValid && (
             <p className="text-xs text-slate-400 text-center mt-2">
               Renseignez le nom et la ville pour continuer.
+            </p>
+          )}
+          {continueError && (
+            <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-center text-xs font-medium text-red-700">
+              {continueError}
             </p>
           )}
         </div>

@@ -60,10 +60,13 @@ function getOAuthBaseUrl(requestUrl: URL) {
   return appUrl?.replace(/\/$/, "") ?? requestUrl.origin;
 }
 
-/** Construit l'URL de retour selon returnTo ("onboarding" ou "settings") */
+/** Construit l'URL de retour selon returnTo ("onboarding", "onboarding_popup" ou "settings") */
 function buildReturnUrl(origin: string, returnTo: string | undefined): URL {
   if (returnTo === "onboarding") {
     return new URL("/onboarding", origin);
+  }
+  if (returnTo === "onboarding_popup") {
+    return new URL("/onboarding/oauth-done", origin);
   }
   return new URL("/dashboard/settings/channels", origin);
 }

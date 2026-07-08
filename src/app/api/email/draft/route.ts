@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStoredShabbatTimes } from "@/lib/ai/engine";
+import { assertTierFeature } from "@/lib/billing";
 import OpenAI from "openai";
 
 export const runtime = "nodejs";
@@ -38,6 +39,15 @@ export async function POST(request: Request) {
   if (!profile?.communityId) {
     return NextResponse.json({ error: "Communauté introuvable" }, { status: 400 });
   }
+
+  const tierCheck = await assertTierFeature(
+    admin,
+    user.id,
+    "BUSINESS",
+    "email_management",
+    "La gestion des emails est réservée à l'offre Business."
+  );
+  if (!tierCheck.ok) return tierCheck.response;
 
   let payload: DraftRequest = {};
   try {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createGmbOAuth2Client, getGmbRedirectUri } from '@/lib/gmb';
+import { assertTierFeature } from '@/lib/billing';
 
 export async function POST(request: Request) {
   const url = new URL(request.url);
@@ -20,6 +21,15 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: profile } = await admin.from('profiles').select('communityId').eq('id', user.id).single();
   if (!profile?.communityId) return NextResponse.json({ error: 'Pas de communauté' }, { status: 400 });
+
+  const tierCheck = await assertTierFeature(
+    admin,
+    user.id,
+    'BUSINESS',
+    'reviews_management',
+    "La gestion des avis Google est réservée à l'offre Business."
+  );
+  if (!tierCheck.ok) return tierCheck.response;
 
   const { data: channel } = await admin
     .from('Channel')

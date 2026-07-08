@@ -13,7 +13,25 @@ interface Props {
   title?: string;
   description?: string;
   featureLabel?: string;
+  /** "PRO" (défaut) = n'importe quel palier payant débloque ; "BUSINESS" = réservé au palier Business */
+  requiredTier?: "PRO" | "BUSINESS";
 }
+
+const PRO_FEATURES = [
+  "WhatsApp débloqué",
+  "Affiches illimitées",
+  "20 publications sociales / mois",
+  "3 automatisations IA",
+  "50 messages Agent IA",
+];
+
+const BUSINESS_FEATURES = [
+  "Gestion des emails",
+  "Gestion des avis Google",
+  "Messages Agent IA illimités",
+  "50 publications sociales / mois",
+  "5 automatisations IA",
+];
 
 function formatPrice(cents: number) {
   return new Intl.NumberFormat("fr-FR", {
@@ -27,13 +45,18 @@ export function UpgradeModal({
   open,
   onClose,
   config,
-  title = "Fonctionnalité réservée au mode payant",
-  description = "Passez à l'abonnement payant pour débloquer cette action et continuer sans limite.",
+  title,
+  description = "Passez à l'offre supérieure pour débloquer cette action.",
   featureLabel = "Action premium",
+  requiredTier = "PRO",
 }: Props) {
   const [loading, setLoading] = useState(false);
 
   if (!open) return null;
+
+  const isBusiness = requiredTier === "BUSINESS";
+  const resolvedTitle = title ?? (isBusiness ? "Fonctionnalité réservée à l'offre Business" : "Fonctionnalité réservée au mode payant");
+  const features = isBusiness ? BUSINESS_FEATURES : PRO_FEATURES;
 
   async function goToCheckout() {
     setLoading(true);
@@ -42,6 +65,8 @@ export function UpgradeModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          tier: isBusiness ? "ENTERPRISE" : "PROFESSIONAL",
+          applyLaunchOffer: !isBusiness,
           successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
           cancelUrl: window.location.href,
         }),
@@ -71,7 +96,7 @@ export function UpgradeModal({
             <Lock className="size-3.5" />
             {featureLabel}
           </div>
-          <h2 className="mt-4 max-w-md text-2xl font-black tracking-tight text-slate-950">{title}</h2>
+          <h2 className="mt-4 max-w-md text-2xl font-black tracking-tight text-slate-950">{resolvedTitle}</h2>
           <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">{description}</p>
         </div>
 
@@ -81,37 +106,39 @@ export function UpgradeModal({
               <div>
                 <div className="flex items-center gap-2">
                   <Sparkles className="size-5 text-blue-700" />
-                  <p className="font-black text-slate-950">Mode payant</p>
+                  <p className="font-black text-slate-950">{isBusiness ? "Offre Business" : "Offre Pro"}</p>
                 </div>
-                <p className="mt-1 text-xs font-semibold text-blue-700">{config.launchMessage}</p>
+                {!isBusiness && <p className="mt-1 text-xs font-semibold text-blue-700">{config.launchMessage}</p>}
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold text-slate-400 line-through">
-                  {formatPrice(config.basePriceCents)} {config.taxLabel}
-                </p>
-                <p className="text-3xl font-black text-blue-700">
-                  {formatPrice(config.launchPriceCents)}
-                </p>
+                {isBusiness ? (
+                  <p className="text-3xl font-black text-blue-700">59,99 €</p>
+                ) : (
+                  <>
+                    <p className="text-sm font-bold text-slate-400 line-through">
+                      {formatPrice(config.basePriceCents)} {config.taxLabel}
+                    </p>
+                    <p className="text-3xl font-black text-blue-700">
+                      {formatPrice(config.launchPriceCents)}
+                    </p>
+                  </>
+                )}
                 <p className="text-xs font-semibold text-slate-500">{config.taxLabel} / mois</p>
               </div>
             </div>
-            <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-600">
-              Tarif réduit valable jusqu&apos;au {new Date(`${config.launchEndsAt}T12:00:00`).toLocaleDateString("fr-FR", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}.
-            </p>
+            {!isBusiness && (
+              <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-600">
+                Tarif réduit valable jusqu&apos;au {new Date(`${config.launchEndsAt}T12:00:00`).toLocaleDateString("fr-FR", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}.
+              </p>
+            )}
           </div>
 
           <div className="grid gap-2 text-sm text-slate-700">
-            {[
-              "WhatsApp débloqué",
-              "Affiches modifiables sans limite",
-              "Publications Instagram, Facebook et Telegram sans limite",
-              "Automatisations IA sans limite",
-              "Assistant IA sans limite de 20 messages",
-            ].map((feature) => (
+            {features.map((feature) => (
               <div key={feature} className="flex items-center gap-2">
                 <CheckCircle2 className="size-4 text-emerald-500" />
                 <span>{feature}</span>

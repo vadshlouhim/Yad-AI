@@ -1,30 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { slugify } from "@/lib/utils";
+import { slugifyUnique, defaultCommunityType } from "@/lib/onboarding/community-draft";
 import {
   GENERAL_DEFAULT_AUTOMATION_PUBLICATIONS,
   isDefaultAutomationPublicationId,
 } from "@/lib/automation/suggested-publications";
 import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels";
-
-function normalizeCommunityType(value: unknown) {
-  if (value === "RELIGIOUS") return "OTHER";
-  if (
-    value === "SYNAGOGUE" ||
-    value === "SCHOOL" ||
-    value === "CENTER" ||
-    value === "ASSOCIATION" ||
-    value === "RESTAURANT" ||
-    value === "CATERER" ||
-    value === "SPORT_COACH" ||
-    value === "COMMERCE" ||
-    value === "BUSINESS" ||
-    value === "CONTENT_CREATOR" ||
-    value === "OTHER"
-  ) return value;
-  return "ASSOCIATION";
-}
 
 export async function POST(request: Request) {
   try {
@@ -43,98 +25,136 @@ export async function POST(request: Request) {
     }
 
     const admin = createAdminClient();
-    const communityType = normalizeCommunityType(data.communityType);
-    const religiousStream = communityType === "SYNAGOGUE" && data.isBethHabad ? "BETH_HABAD" : null;
+    const communityType = defaultCommunityType();
     const automationValidationMode = data.automationValidationMode === "automatic" ? "automatic" : "manual";
     const automationNotificationLeadHours =
       typeof data.automationNotificationLeadHours === "number" && Number.isFinite(data.automationNotificationLeadHours)
         ? Math.max(0.25, data.automationNotificationLeadHours)
         : 2;
 
-    // Générer un slug unique
-    const baseSlug = slugify(data.communityName);
-    let slug = baseSlug;
-    let counter = 1;
-    while (true) {
-      const { data: existing } = await admin.from("Community").select("id").eq("slug", slug).maybeSingle();
-      if (!existing) break;
-      slug = `${baseSlug}-${counter++}`;
-    }
+    const vocabulary = {
+      aiNotificationLeadHours: automationNotificationLeadHours,
+      automationValidationMode,
+      manualValidationBeforeSend: automationValidationMode === "manual",
+      communityProfileType: communityType,
+      communityProfileLabel: getCommunityProfileDisplayLabel(communityType),
+    };
 
-    // 1. Créer la communauté
-    const { data: community, error: communityError } = await admin
-      .from("Community")
-      .insert({
-        id: crypto.randomUUID(),
-        name: data.communityName,
-        slug,
-        description: data.description || null,
-        city: data.city || null,
-        country: data.country || "France",
-        timezone: data.timezone || "Europe/Paris",
-        phone: data.phone || null,
-        email: data.email || null,
-        website: data.website || null,
-        address: data.address || null,
-        logoUrl: data.logoUrl || null,
-        communityType,
-        religiousStream,
-        tone: data.tone || "MODERN",
-        language: data.language || "fr",
-        signature: data.signature || null,
-        hashtags: data.hashtags || [],
-        editorialRules: data.editorialRules || null,
-        vocabulary: {
-          aiNotificationLeadHours: automationNotificationLeadHours,
-          automationValidationMode,
-          manualValidationBeforeSend: automationValidationMode === "manual",
-          communityProfileType: typeof data.communityType === "string" ? data.communityType : communityType,
-          communityProfileLabel: getCommunityProfileDisplayLabel(
-            typeof data.communityType === "string" ? data.communityType : communityType
-          ),
-        },
-        onboardingDone: true,
-        onboardingStep: 4,
-        updatedAt: new Date().toISOString(),
-      })
-      .select()
+    const sharedFields = {
+      name: data.communityName,
+      description: data.description || null,
+      city: data.city || null,
+      country: data.country || "France",
+      timezone: data.timezone || "Europe/Paris",
+      phone: data.phone || null,
+      email: data.email || null,
+      website: data.website || null,
+      address: data.address || null,
+      logoUrl: data.logoUrl || null,
+      tone: data.tone || "MODERN",
+      language: data.language || "fr",
+      signature: data.signature || null,
+      hashtags: data.hashtags || [],
+      editorialRules: data.editorialRules || null,
+      vocabulary,
+      onboardingDone: true,
+      onboardingStep: 3,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("communityId")
+      .eq("id", userId)
       .single();
 
-    if (communityError || !community) {
-      console.error("[Onboarding] Erreur création communauté:", communityError);
-      return NextResponse.json({ error: "Erreur lors de la création de la communauté" }, { status: 500 });
-    }
+    let community: { id: string; name: string; slug: string; communityType: string } | null = null;
 
-    // 2. Lier l'utilisateur à la communauté
-    const { error: profileUpdateError } = await admin
-      .from("profiles")
-      .update({ communityId: community.id, updatedAt: new Date().toISOString() })
-      .eq("id", userId);
+    if (profile?.communityId) {
+      // Le brouillon a été créé à la fin de l'étape Identité (/api/onboarding/draft) : on le finalise.
+      const { data: existing } = await admin
+        .from("Community")
+        .select("id, onboardingDone")
+        .eq("id", profile.communityId)
+        .single();
 
-    if (profileUpdateError) {
-      console.error("[Onboarding] Erreur mise à jour communityId:", profileUpdateError);
-      // Rollback : supprimer la communauté créée pour ne pas laisser d'orphelin
-      await admin.from("Community").delete().eq("id", community.id);
-      return NextResponse.json({ error: "Impossible de lier le profil à la communauté" }, { status: 500 });
-    }
+      if (existing?.onboardingDone) {
+        return NextResponse.json({ error: "Onboarding déjà finalisé" }, { status: 409 });
+      }
 
-    // 3. Créer les canaux sélectionnés
-    if (data.channels && data.channels.length > 0) {
-      await admin.from("Channel").insert(
-        data.channels.map((ch: { type: string; name: string; handle: string }) => ({
+      const { data: updated, error: updateError } = await admin
+        .from("Community")
+        .update(sharedFields)
+        .eq("id", profile.communityId)
+        .select("id, name, slug, communityType")
+        .single();
+
+      if (updateError || !updated) {
+        console.error("[Onboarding] Erreur finalisation communauté:", updateError);
+        return NextResponse.json({ error: "Erreur lors de la finalisation de la communauté" }, { status: 500 });
+      }
+      community = updated;
+    } else {
+      // Filet de sécurité : pas de brouillon (ex. ancien flux), on crée directement.
+      const slug = await slugifyUnique(admin, data.communityName);
+      const { data: created, error: communityError } = await admin
+        .from("Community")
+        .insert({
           id: crypto.randomUUID(),
-          communityId: community.id,
-          type: ch.type,
-          name: ch.name,
-          handle: ch.handle || null,
-          isConnected: false,
-          isActive: true,
-          updatedAt: new Date().toISOString(),
-        }))
-      );
+          slug,
+          communityType,
+          ...sharedFields,
+        })
+        .select("id, name, slug, communityType")
+        .single();
+
+      if (communityError || !created) {
+        console.error("[Onboarding] Erreur création communauté:", communityError);
+        return NextResponse.json({ error: "Erreur lors de la création de la communauté" }, { status: 500 });
+      }
+      community = created;
+
+      const { error: profileUpdateError } = await admin
+        .from("profiles")
+        .update({ communityId: community.id, updatedAt: new Date().toISOString() })
+        .eq("id", userId);
+
+      if (profileUpdateError) {
+        console.error("[Onboarding] Erreur mise à jour communityId:", profileUpdateError);
+        await admin.from("Community").delete().eq("id", community.id);
+        return NextResponse.json({ error: "Impossible de lier le profil à la communauté" }, { status: 500 });
+      }
     }
 
-    // 4. Créer les événements récurrents
+    // Canaux : ne pas toucher aux canaux déjà connectés via OAuth pendant l'onboarding
+    // (leurs tokens réels seraient écrasés par la version vide envoyée par le client).
+    if (Array.isArray(data.channels) && data.channels.length > 0) {
+      const { data: existingChannels } = await admin
+        .from("Channel")
+        .select("type")
+        .eq("communityId", community.id);
+      const existingTypes = new Set((existingChannels ?? []).map((c) => c.type));
+      const newChannels = data.channels.filter(
+        (ch: { type: string }) => !existingTypes.has(ch.type)
+      );
+
+      if (newChannels.length > 0) {
+        await admin.from("Channel").insert(
+          newChannels.map((ch: { type: string; name: string; handle: string }) => ({
+            id: crypto.randomUUID(),
+            communityId: community!.id,
+            type: ch.type,
+            name: ch.name,
+            handle: ch.handle || null,
+            isConnected: false,
+            isActive: true,
+            updatedAt: new Date().toISOString(),
+          }))
+        );
+      }
+    }
+
+    // Événements récurrents
     if (data.recurringEvents && data.recurringEvents.length > 0) {
       for (const event of data.recurringEvents) {
         await admin.from("Event").insert({
@@ -153,7 +173,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // 5. Initialiser la mémoire IA
+    // Automatisations sélectionnées
     if (Array.isArray(data.selectedAutomationScenarioIds) && data.selectedAutomationScenarioIds.length > 0) {
       const selectedIds = data.selectedAutomationScenarioIds.map(String).filter(Boolean).slice(0, 1);
       const dbSelectedIds = selectedIds.filter((id: string) => !isDefaultAutomationPublicationId(id));
@@ -177,7 +197,7 @@ export async function POST(request: Request) {
         await admin.from("Automation").insert(
           selectedPublications.map((preset) => ({
             id: crypto.randomUUID(),
-            communityId: community.id,
+            communityId: community!.id,
             presetId: isDefaultAutomationPublicationId(preset.id) ? null : preset.id,
             name: preset.title,
             description: preset.description ?? null,
@@ -217,7 +237,6 @@ export async function POST(request: Request) {
         key: "identity",
         value: {
           communityType,
-          religiousStream,
           description: data.description || null,
           city: data.city || null,
           country: data.country || "France",
@@ -226,22 +245,21 @@ export async function POST(request: Request) {
       },
     ]);
 
-    // 6. Log audit
     await admin.from("AuditLog").insert({
       id: crypto.randomUUID(),
       userId,
       communityId: community.id,
-      action: "community.created",
+      action: "community.onboarding_completed",
       resource: "Community",
       resourceId: community.id,
-      newData: { name: community.name, slug: community.slug, communityType: community.communityType, religiousStream },
+      newData: { name: community.name, slug: community.slug, communityType: community.communityType },
     });
 
     return NextResponse.json({ success: true, communityId: community.id });
   } catch (error) {
     console.error("[Onboarding] Erreur:", error);
     return NextResponse.json(
-      { error: "Erreur lors de la création de la communauté" },
+      { error: "Erreur lors de la finalisation de la communauté" },
       { status: 500 }
     );
   }

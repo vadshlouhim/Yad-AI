@@ -1,40 +1,48 @@
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
-import { getBillingConfig } from "@/lib/billing";
+import { OnboardingWizard, type OnboardingData } from "@/components/onboarding/onboarding-wizard";
 
-export default async function OnboardingPage(
-  { searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }
-) {
+export default async function OnboardingPage() {
   const { profile } = await requireAuth();
-  const params = await searchParams;
+
+  const admin = createAdminClient();
+  let initialData: Partial<OnboardingData> | undefined;
 
   if (profile.communityId) {
-    const admin = createAdminClient();
     const { data: community } = await admin
       .from("Community")
-      .select("onboardingDone")
+      .select("onboardingDone, name, city, country, phone, email, website, logoUrl")
       .eq("id", profile.communityId)
       .single();
+
     if (community?.onboardingDone) {
       redirect("/dashboard");
     }
+
+    if (community) {
+      initialData = {
+        communityName: community.name ?? "",
+        city: community.city ?? "",
+        country: community.country ?? "France",
+        phone: community.phone ?? "",
+        email: community.email ?? "",
+        website: community.website ?? "",
+        logoUrl: community.logoUrl ?? "",
+      };
+    }
   }
 
-  // Si on revient d'un OAuth (Meta ou Gmail), on démarre directement à l'étape Canaux
-  const hasOAuthReturn = typeof params.oauth === "string";
-  const initialStep = hasOAuthReturn ? 2 : profile.communityId ? 1 : 0;
-  const admin = createAdminClient();
-  const [{ data: automationPresets }, billingConfig] = await Promise.all([
-    admin
-      .from("AutomationPreset")
-      .select("id, title, description, category, icon, clientTypes")
-      .eq("isActive", true)
-      .order("sortOrder", { ascending: true })
-      .order("title", { ascending: true }),
-    getBillingConfig(admin),
-  ]);
+  // L'étape Identité crée le brouillon de communauté : profile.communityId présent
+  // signifie donc qu'elle est déjà passée (y compris au retour d'une popup OAuth).
+  const initialStep = profile.communityId ? 1 : 0;
+
+  const { data: automationPresets } = await admin
+    .from("AutomationPreset")
+    .select("id, title, description, category, icon, clientTypes")
+    .eq("isActive", true)
+    .order("sortOrder", { ascending: true })
+    .order("title", { ascending: true });
 
   return (
     <OnboardingWizard
@@ -42,8 +50,8 @@ export default async function OnboardingPage(
       userName={profile.name ?? ""}
       communityId={profile.communityId ?? undefined}
       initialStep={initialStep}
+      initialData={initialData}
       automationPresets={(automationPresets ?? []) as Parameters<typeof OnboardingWizard>[0]["automationPresets"]}
-      billingConfig={billingConfig}
     />
   );
 }
