@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createGmbOAuth2Client, getGmbRedirectUri } from '@/lib/gmb';
 import { assertTierFeature } from '@/lib/billing';
+import { replyToGmbReview } from '@/lib/gmb/reviews';
 
 export async function POST(request: Request) {
   const url = new URL(request.url);
@@ -31,49 +31,9 @@ export async function POST(request: Request) {
   );
   if (!tierCheck.ok) return tierCheck.response;
 
-  const { data: channel } = await admin
-    .from('Channel')
-    .select('refreshToken')
-    .eq('communityId', profile.communityId)
-    .eq('type', 'GOOGLE_BUSINESS')
-    .maybeSingle();
-
-  if (!channel?.refreshToken) {
-    return NextResponse.json({ error: 'GMB non connecté' }, { status: 400 });
+  const result = await replyToGmbReview(admin, profile.communityId, { reviewName, replyText }, url);
+  if (!result.success) {
+    return NextResponse.json({ error: result.error ?? 'Erreur lors de la publication' }, { status: 500 });
   }
-
-  try {
-    const oauth2Client = createGmbOAuth2Client(getGmbRedirectUri(url));
-    oauth2Client.setCredentials({ refresh_token: channel.refreshToken });
-    const { token } = await oauth2Client.getAccessToken();
-    if (!token) throw new Error('Impossible de rafraîchir le token');
-
-    // PUT /v4/{reviewName}/reply
-    const apiUrl = `https://mybusiness.googleapis.com/v4/${reviewName}/reply`;
-    const res = await fetch(apiUrl, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ comment: replyText }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      console.error('[GMB Reply Error]', data);
-      throw new Error(data?.error?.message ?? 'Erreur lors de la publication');
-    }
-
-    // Mettre à jour lastSyncAt
-    await admin.from('Channel')
-      .update({ lastSyncAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
-      .eq('communityId', profile.communityId)
-      .eq('type', 'GOOGLE_BUSINESS');
-
-    return NextResponse.json({ success: true, reply: data });
-  } catch (error) {
-    console.error('[GMB Reply Error]', error);
-    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
-  }
+  return NextResponse.json({ success: true });
 }

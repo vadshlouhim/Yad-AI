@@ -163,7 +163,8 @@ function buildActionModeNote(mode: "AUTO" | "CONFIRM"): string {
   if (mode === "AUTO") {
     return `\n\nMODE D'EXÉCUTION : AUTOMATIQUE.
 - Quand tu utilises un outil qui modifie le compte, il est exécuté immédiatement.
-- Confirme alors clairement ce qui a été fait, sans demander d'autorisation.`;
+- Confirme alors clairement ce qui a été fait, sans demander d'autorisation.
+- EXCEPTION : les actions sensibles (envois de masse, publications, suppressions, réponses publiques) demandent TOUJOURS une validation via le bouton affiché, même en mode automatique.`;
   }
   return `\n\nMODE D'EXÉCUTION : VALIDATION MANUELLE.
 - Quand tu utilises un outil qui modifie le compte, l'action n'est PAS exécutée tout de suite : elle est proposée à l'utilisateur sous forme de carte à valider.
@@ -235,6 +236,16 @@ export async function POST(request: Request) {
       }
     }
 
+    // Templates/articles : chargés uniquement quand l'intention est explicite
+    // (économie DB/latence — le bloc post-agent refait un fetch ciblé si besoin).
+    const fetchTemplates = () =>
+      admin
+        .from("Template")
+        .select("id, communityId, name, description, category, channelType, thumbnailUrl, previewUrl, tags, subCategory, isPremium, design, usageCount")
+        .eq("isActive", true)
+        .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
+        .limit(250);
+
     const [{ data: dbCommunity }, { data: memories }, { data: candidateTemplates }, { data: candidateArticles }, { data: gmailChannel }, { data: upcomingEvents }, { count: contactsCount }] = await Promise.all([
       admin
         .from("Community")
@@ -247,15 +258,10 @@ export async function POST(request: Request) {
         .eq("communityId", communityId)
         .order("relevance", { ascending: false })
         .limit(10),
-      isUserPrompt
-        ? admin
-            .from("Template")
-            .select("id, communityId, name, description, category, channelType, thumbnailUrl, previewUrl, tags, subCategory, isPremium, design, usageCount")
-            .eq("isActive", true)
-            .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
-            .limit(250)
+      isUserPrompt && (hasExplicitVisualIntent || selectedTemplateId)
+        ? fetchTemplates()
         : Promise.resolve({ data: [] }),
-      isUserPrompt
+      isUserPrompt && hasExplicitArticleIntent
         ? admin
             .from("Article")
             .select("id, communityId, slug, name, description, priceCents, currency, imageUrl, tags")
@@ -513,6 +519,7 @@ export async function POST(request: Request) {
             userId: user.id,
             actionMode: isDailyRoutineMode ? "AUTO" : community.assistantActionMode,
             gmailConnected: Boolean(gmailChannel?.isConnected),
+            billingGate,
             emit: {
               delta: (text) => send({ content: text }),
               event: (obj) => send(obj),
@@ -535,19 +542,25 @@ export async function POST(request: Request) {
             !shouldSuggestTemplates &&
             !selectedTemplateId &&
             isUserPrompt &&
-            (candidateTemplates?.length ?? 0) > 0 &&
             proposesPoster(fullResponse)
           ) {
-            const themeText = `${lastUserMessage.content}\n${fullResponse}`;
-            const proposedCategory = detectedCategory ?? detectStrictCategory(fullResponse);
-            const proposedTemplates = buildTemplateSuggestions(candidateTemplates ?? [], themeText, {
-              limit: 5,
-              communityId,
-              forceAtLeastOne: Boolean(proposedCategory),
-              strictCategory: proposedCategory,
-            });
-            if (proposedTemplates.length > 0) {
-              send({ type: "template_suggestions", templates: proposedTemplates });
+            // Fetch paresseux : les templates ne sont préchargés que sur intention
+            // visuelle explicite — ici l'IA en propose spontanément une.
+            const posterTemplates = (candidateTemplates?.length ?? 0) > 0
+              ? candidateTemplates
+              : (await fetchTemplates()).data;
+            if ((posterTemplates?.length ?? 0) > 0) {
+              const themeText = `${lastUserMessage.content}\n${fullResponse}`;
+              const proposedCategory = detectedCategory ?? detectStrictCategory(fullResponse);
+              const proposedTemplates = buildTemplateSuggestions(posterTemplates ?? [], themeText, {
+                limit: 5,
+                communityId,
+                forceAtLeastOne: Boolean(proposedCategory),
+                strictCategory: proposedCategory,
+              });
+              if (proposedTemplates.length > 0) {
+                send({ type: "template_suggestions", templates: proposedTemplates });
+              }
             }
           }
 
