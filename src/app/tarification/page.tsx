@@ -13,22 +13,13 @@ import {
 } from "lucide-react";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicNavbar } from "@/components/layout/public-navbar";
-import {
-  DEFAULT_BILLING_CONFIG,
-  formatEuroCents,
-  isLaunchOfferActive,
-} from "@/lib/billing";
 
 export const metadata: Metadata = {
-  title: "Tarification EasyCom IA - Offre de lancement et abonnement",
+  title: "Tarification EasyCom IA - Gratuit, Pro et Business",
   description:
-    "Découvrez la tarification EasyCom IA : essai gratuit, offre de lancement, abonnement mensuel et accompagnement pour centraliser votre communication avec l'IA.",
+    "Découvrez la tarification EasyCom IA : essai gratuit, offre Pro et offre Business pour centraliser votre communication avec l'IA.",
   alternates: { canonical: "/tarification" },
 };
-
-const config = DEFAULT_BILLING_CONFIG;
-const launchIsActive = isLaunchOfferActive(config);
-const activePrice = launchIsActive ? config.launchPriceCents : config.basePriceCents;
 
 const INCLUDED_FEATURES = [
   "Assistant IA pour rédiger, adapter et améliorer vos messages",
@@ -73,9 +64,9 @@ const FAQ_ITEMS = [
       "Oui. L'essai permet de tester les fonctionnalités principales avant de passer sur l'offre complète.",
   },
   {
-    question: "L'offre de lancement est-elle limitée dans le temps ?",
+    question: "Puis-je changer d'offre à tout moment ?",
     answer:
-      "Oui. Elle est prévue jusqu'à la date indiquée dans les paramètres de facturation, puis le tarif standard s'applique aux nouveaux abonnements.",
+      "Oui. Vous pouvez passer de Gratuit à Pro ou Business, ou changer d'offre, à tout moment depuis la facturation.",
   },
   {
     question: "Puis-je me faire accompagner pour configurer mon espace ?",
@@ -162,14 +153,9 @@ export default function PricingPage() {
                   Pour utiliser EasyCom IA au quotidien avec les fonctionnalités avancées et les automatisations.
                 </p>
                 <div className="mt-6">
-                  <span className="text-5xl font-black">{formatEuroCents(activePrice)}</span>
-                  <span className="ml-2 text-sm font-bold text-blue-100">/ mois HT</span>
+                  <span className="text-5xl font-black">29,99 €</span>
+                  <span className="ml-2 text-sm font-bold text-blue-100">/ mois</span>
                 </div>
-                {launchIsActive ? (
-                  <p className="mt-3 text-sm font-bold text-blue-50">
-                    Prix standard : {formatEuroCents(config.basePriceCents)} / mois HT.
-                  </p>
-                ) : null}
                 <div className="mt-6 grid gap-3">
                   {PRO_ITEMS.map((item) => (
                     <p key={item} className="flex items-start gap-3 text-sm font-semibold text-blue-50">
@@ -201,7 +187,7 @@ export default function PricingPage() {
                 </p>
                 <div className="mt-6">
                   <span className="text-5xl font-black">59,99 €</span>
-                  <span className="ml-2 text-sm font-bold text-slate-300">/ mois HT</span>
+                  <span className="ml-2 text-sm font-bold text-slate-300">/ mois</span>
                 </div>
                 <div className="mt-6 grid gap-3">
                   {BUSINESS_ITEMS.map((item) => (

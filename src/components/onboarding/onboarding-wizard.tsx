@@ -59,15 +59,6 @@ export interface OnboardingData {
   billingChoice: "free" | "pro" | "business";
 }
 
-export interface OnboardingAutomationPreset {
-  id: string;
-  title: string;
-  description: string | null;
-  category: string;
-  icon: string | null;
-  clientTypes: string[];
-}
-
 const defaultData: OnboardingData = {
   communityName: "",
   communityType: "ASSOCIATION",
@@ -121,7 +112,6 @@ interface Props {
   communityId?: string;
   initialStep?: number;
   initialData?: Partial<OnboardingData>;
-  automationPresets?: OnboardingAutomationPreset[];
   simulationMode?: boolean;
 }
 
@@ -131,7 +121,6 @@ export function OnboardingWizard({
   communityId: initialCommunityId,
   initialStep = 0,
   initialData,
-  automationPresets = [],
   simulationMode = false,
 }: Props) {
   const router = useRouter();
@@ -317,7 +306,6 @@ export function OnboardingWizard({
               onNext={goNext}
               onPrev={goPrev}
               communityId={communityId}
-              automationPresets={automationPresets}
               simulationMode={simulationMode}
             />
           )}

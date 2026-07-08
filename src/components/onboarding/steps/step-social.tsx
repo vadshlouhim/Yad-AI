@@ -4,11 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import type { OnboardingAutomationPreset, OnboardingData } from "../onboarding-wizard";
-import {
-  GENERAL_DEFAULT_AUTOMATION_PUBLICATIONS,
-  GENERAL_DEFAULT_PUBLICATION_CATEGORY,
-} from "@/lib/automation/suggested-publications";
+import type { OnboardingData } from "../onboarding-wizard";
 import { enablePushNotifications } from "@/lib/push/client";
 import {
   Radio, ChevronRight, ChevronLeft, CheckCircle2, Info, ExternalLink, Loader2, Unlink, Calendar,
@@ -21,7 +17,6 @@ interface Props {
   onNext: () => void;
   onPrev: () => void;
   communityId?: string;
-  automationPresets?: OnboardingAutomationPreset[];
   simulationMode?: boolean;
 }
 
@@ -115,7 +110,6 @@ export function StepSocial({
   onNext,
   onPrev,
   communityId,
-  automationPresets = [],
   simulationMode = false,
 }: Props) {
   const searchParams = useSearchParams();
@@ -264,19 +258,6 @@ export function StepSocial({
     }
   }
 
-  // ── Automatisations ──
-  const dbDefaultPublications = automationPresets.filter((preset) => preset.category === GENERAL_DEFAULT_PUBLICATION_CATEGORY);
-  const suggestedPublications = dbDefaultPublications.length > 0 ? dbDefaultPublications : GENERAL_DEFAULT_AUTOMATION_PUBLICATIONS;
-
-  function togglePublication(id: string) {
-    const selected = data.selectedAutomationScenarioIds.includes(id);
-    updateData({
-      selectedAutomationScenarioIds: selected
-        ? data.selectedAutomationScenarioIds.filter((publicationId) => publicationId !== id)
-        : [...data.selectedAutomationScenarioIds, id],
-    });
-  }
-
   return (
     <div className="space-y-8">
       <Card className="shadow-md">
@@ -421,47 +402,11 @@ export function StepSocial({
             </span>
           </div>
           <CardDescription>
-            Sélectionnez vos rendez-vous réguliers. L&apos;IA préparera automatiquement les contenus et publications automatiques.
+            L&apos;IA préparera automatiquement vos contenus et publications selon vos préférences ci-dessous.
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-8">
-          {suggestedPublications.length > 0 && (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {suggestedPublications.map((publication) => {
-                const selected = data.selectedAutomationScenarioIds.includes(publication.id);
-                return (
-                  <button
-                    key={publication.id}
-                    type="button"
-                    onClick={() => togglePublication(publication.id)}
-                    className={cn(
-                      "rounded-xl border-2 p-3 text-left transition-all",
-                      selected
-                        ? "border-blue-500 bg-blue-50 text-blue-800"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-                    )}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-lg">
-                        {publication.icon ?? "⚡"}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold">{publication.title}</p>
-                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500">
-                          {publication.description ?? "Publication automatique IA proposée pour ce profil."}
-                        </p>
-                        <span className="mt-2 inline-flex rounded-full bg-white px-2 py-1 text-[11px] font-bold text-blue-700 ring-1 ring-blue-100">
-                          {selected ? "Sélectionnée" : "Sélectionner"}
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
           <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
             <p className="text-sm font-semibold text-slate-800">Préférences d&apos;automatisation</p>
             <p className="mt-1 text-xs leading-relaxed text-slate-500">

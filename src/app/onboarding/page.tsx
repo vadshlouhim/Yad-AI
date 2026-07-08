@@ -37,13 +37,6 @@ export default async function OnboardingPage() {
   // signifie donc qu'elle est déjà passée (y compris au retour d'une popup OAuth).
   const initialStep = profile.communityId ? 1 : 0;
 
-  const { data: automationPresets } = await admin
-    .from("AutomationPreset")
-    .select("id, title, description, category, icon, clientTypes")
-    .eq("isActive", true)
-    .order("sortOrder", { ascending: true })
-    .order("title", { ascending: true });
-
   return (
     <OnboardingWizard
       userId={profile.id}
@@ -51,7 +44,6 @@ export default async function OnboardingPage() {
       communityId={profile.communityId ?? undefined}
       initialStep={initialStep}
       initialData={initialData}
-      automationPresets={(automationPresets ?? []) as Parameters<typeof OnboardingWizard>[0]["automationPresets"]}
     />
   );
 }

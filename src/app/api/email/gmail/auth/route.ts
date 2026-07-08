@@ -19,6 +19,8 @@ export async function GET(request: Request) {
       ? new URL('/onboarding', request.url)
       : returnTo === 'email_popup'
       ? new URL('/dashboard/email/oauth-done', request.url)
+      : returnTo === 'settings_gmail_popup'
+      ? new URL('/dashboard/settings/channels/oauth-done', request.url)
       : new URL('/dashboard/settings/channels', request.url);
 
   const envError = getGmailOAuthEnvError();
