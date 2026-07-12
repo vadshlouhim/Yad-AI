@@ -287,7 +287,7 @@ export default function HomePage() {
           <div className="mt-20 space-y-24 lg:mt-28 lg:space-y-40">
             {EASYCOM_AGENTS.map((agent, index) => {
               const imagePanel = (
-                <div className="relative min-h-96 sm:min-h-[34rem]">
+                <div className={`relative order-1 min-h-96 sm:min-h-[34rem] ${index % 2 === 0 ? "lg:order-1" : "lg:order-2"}`}>
                   <div className={`absolute inset-x-[12%] bottom-[8%] top-[12%] rounded-full bg-gradient-to-br ${agent.tone} opacity-15 blur-3xl`} />
                   <Image
                     src={agent.image}
@@ -299,7 +299,7 @@ export default function HomePage() {
                 </div>
               );
               const contentPanel = (
-                <div className="flex h-full max-w-xl flex-col justify-center py-8 lg:py-16">
+                <div className={`order-2 flex h-full max-w-xl flex-col justify-center py-8 lg:py-16 ${index % 2 === 0 ? "lg:order-2" : "lg:order-1"}`}>
                   <p className="text-sm font-bold text-blue-600">{agent.name} · {agent.role}</p>
                   <h3 className="mt-4 text-[clamp(2.5rem,5vw,4.75rem)] font-black leading-[0.98] tracking-[-0.045em] text-slate-950">
                     <AgentMarketingTitle slug={agent.slug} title={agent.marketingTitle} />
@@ -319,7 +319,8 @@ export default function HomePage() {
               return (
                 <article key={agent.slug}>
                   <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-20">
-                    {index % 2 === 0 ? <>{imagePanel}{contentPanel}</> : <>{contentPanel}{imagePanel}</>}
+                    {imagePanel}
+                    {contentPanel}
                   </div>
                 </article>
               );
