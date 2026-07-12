@@ -2,19 +2,9 @@ import type { Metadata } from "next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getHolidayTimes, getJewishHolidays, getShabbatTimes } from "@/lib/automation/hebcal";
+import { getHolidayTimes, getJewishHolidays, getShabbatTimes, getUpcomingShabbatTimes } from "@/lib/automation/hebcal";
 
 export const metadata: Metadata = { title: "Calendrier hébraïque — EasyCom IA" };
-
-type AdminClient = ReturnType<typeof createAdminClient>;
-
-type ShabbatScheduleItem = {
-  gregorian_date: string;
-  hebrew_date?: string | null;
-  parasha?: string | null;
-  shabbat_entry_time?: string | null;
-  shabbat_exit_time?: string | null;
-};
 
 type HolidayCardItem = {
   date: string;
@@ -64,11 +54,6 @@ function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-function getNextShabbatFromSchedule(schedule: ShabbatScheduleItem[], now: Date) {
-  const today = startOfDay(now);
-  return schedule.find((entry) => new Date(`${entry.gregorian_date}T00:00:00`) >= today) ?? null;
-}
-
 function isErevHoliday(name: string, hebrewName: string | null) {
   const normalizedName = normalizeCityName(name);
   const normalizedHebrewName = hebrewName ? normalizeCityName(hebrewName) : "";
@@ -79,53 +64,6 @@ function isErevHoliday(name: string, hebrewName: string | null) {
     normalizedHebrewName.startsWith("ערב") ||
     normalizedHebrewName.includes(" ערב")
   );
-}
-
-async function findCityScheduleForYear(admin: AdminClient, city: string | null | undefined, year: number) {
-  if (city) {
-    const exactMatch = await admin
-      .from("FranceCityShabbatSchedule")
-      .select("city_code, city_name, shabbat_schedule")
-      .eq("year", year)
-      .eq("city_name", city)
-      .maybeSingle();
-
-    if (exactMatch.data) {
-      return exactMatch.data;
-    }
-
-    const primaryToken =
-      city
-        .split(/[\s,'-]+/)
-        .find((token) => token.trim().length >= 3)
-        ?.trim() ?? city;
-
-    const closeMatches = await admin
-      .from("FranceCityShabbatSchedule")
-      .select("city_code, city_name, shabbat_schedule")
-      .eq("year", year)
-      .ilike("city_name", `%${primaryToken}%`)
-      .limit(50);
-
-    if (closeMatches.data?.length) {
-      const normalizedCity = normalizeCityName(city);
-      return (
-        closeMatches.data.find((row) => normalizeCityName(row.city_name) === normalizedCity) ??
-        closeMatches.data.find((row) => normalizeCityName(row.city_name).includes(normalizedCity)) ??
-        closeMatches.data.find((row) => normalizedCity.includes(normalizeCityName(row.city_name))) ??
-        closeMatches.data[0]
-      );
-    }
-  }
-
-  const parisFallback = await admin
-    .from("FranceCityShabbatSchedule")
-    .select("city_code, city_name, shabbat_schedule")
-    .eq("year", year)
-    .eq("city_code", "75056")
-    .maybeSingle();
-
-  return parisFallback.data ?? null;
 }
 
 export default async function HebrewCalendarPage() {
@@ -141,9 +79,7 @@ export default async function HebrewCalendarPage() {
     .single();
 
   const calendarYears = [now.getFullYear(), now.getFullYear() + 1];
-  const [currentYearScheduleRow, nextYearScheduleRow, holidayRows] = await Promise.all([
-    findCityScheduleForYear(admin, community?.city, calendarYears[0]),
-    findCityScheduleForYear(admin, community?.city, calendarYears[1]),
+  const [holidayRows, liveShabbatSchedule] = await Promise.all([
     admin
       .from("HebrewCalendarReference")
       .select("gregorian_date, hebrew_date, holiday_name, holiday_name_hebrew")
@@ -152,32 +88,31 @@ export default async function HebrewCalendarPage() {
       .gte("gregorian_date", now.toISOString().slice(0, 10))
       .order("gregorian_date", { ascending: true })
       .limit(12),
+    getUpcomingShabbatTimes({
+      city: community?.city ?? "Paris",
+      timezone: community?.timezone ?? "Europe/Paris",
+      count: 8,
+    }),
   ]);
+  const upcomingShabbatSchedule = liveShabbatSchedule.map((entry) => ({
+    gregorian_date: entry.date,
+    hebrew_date: entry.hebrewDate,
+    parasha: entry.parasha,
+    shabbat_entry_time: entry.entry,
+    shabbat_exit_time: entry.exit,
+  }));
 
-  const currentYearSchedule = Array.isArray(currentYearScheduleRow?.shabbat_schedule)
-    ? (currentYearScheduleRow.shabbat_schedule as ShabbatScheduleItem[])
-    : [];
-  const nextYearSchedule = Array.isArray(nextYearScheduleRow?.shabbat_schedule)
-    ? (nextYearScheduleRow.shabbat_schedule as ShabbatScheduleItem[])
-    : [];
-  const upcomingShabbatSchedule = [...currentYearSchedule, ...nextYearSchedule]
-    .filter((entry) => new Date(`${entry.gregorian_date}T00:00:00`) >= startOfDay(now))
-    .sort((left, right) => new Date(left.gregorian_date).getTime() - new Date(right.gregorian_date).getTime())
-    .slice(0, 8);
-
-  const nextShabbatFromDatabase =
-    getNextShabbatFromSchedule(currentYearSchedule, now) ?? getNextShabbatFromSchedule(nextYearSchedule, now);
-
-  let shabbat: ShabbatCardItem | null = nextShabbatFromDatabase
+  const nextLiveShabbat = liveShabbatSchedule[0] ?? null;
+  let shabbat: ShabbatCardItem | null = nextLiveShabbat
     ? {
-        candleLighting: nextShabbatFromDatabase.shabbat_entry_time ?? null,
-        cityName: currentYearScheduleRow?.city_name ?? nextYearScheduleRow?.city_name ?? community?.city ?? null,
-        date: nextShabbatFromDatabase.gregorian_date,
-        entry: nextShabbatFromDatabase.shabbat_entry_time ?? null,
-        exit: nextShabbatFromDatabase.shabbat_exit_time ?? null,
-        havdalah: nextShabbatFromDatabase.shabbat_exit_time ?? null,
-        hebrewDate: nextShabbatFromDatabase.hebrew_date ?? null,
-        parasha: nextShabbatFromDatabase.parasha ?? null,
+        candleLighting: nextLiveShabbat.candleLighting,
+        cityName: community?.city ?? "Paris",
+        date: nextLiveShabbat.date,
+        entry: nextLiveShabbat.entry,
+        exit: nextLiveShabbat.exit,
+        havdalah: nextLiveShabbat.havdalah,
+        hebrewDate: nextLiveShabbat.hebrewDate,
+        parasha: nextLiveShabbat.parasha,
       }
     : null;
 

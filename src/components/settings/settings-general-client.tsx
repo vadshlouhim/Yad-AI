@@ -10,6 +10,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels";
 import { enablePushNotifications } from "@/lib/push/client";
+import { ContactsManager } from "@/components/settings/contacts-manager";
+import { PushNotificationsCard } from "@/components/settings/push-notifications-card";
 
 interface Community {
   id: string;
@@ -183,7 +185,6 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
   const [googleEmailAddress, setGoogleEmailAddress] = useState("");
 
   useEffect(() => {
-    loadMembers();
     const storedMode = window.localStorage.getItem("easycom-assistant-experience");
     if (storedMode === "detailed") setAssistantMode("detailed");
     setGoogleConnected(window.localStorage.getItem("google_email_connected") === "true");
@@ -666,7 +667,8 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
             </Card>
           )}
 
-          {activeSection === "contacts" && (
+          {activeSection === "contacts" && <ContactsManager />}
+          {false && (
             <Card className={settingsCardClass}>
               <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
@@ -1049,6 +1051,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                 </div>
 
                 <div className="border-t border-slate-200 pt-4 space-y-4">
+                  <PushNotificationsCard />
                   <div className="space-y-1">
                     <h3 className="text-sm font-semibold text-slate-900">Connexion Google</h3>
                     <p className="text-sm text-slate-500">

@@ -69,9 +69,9 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
   }
 
   return (
-    <Card className="shadow-md">
+    <Card className="border-blue-100 shadow-xl shadow-blue-100/70">
       <CardHeader className="pb-4">
-        <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center mb-3">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-100 to-sky-100 flex items-center justify-center mb-3">
           <Building2 className="size-6 text-blue-600" />
         </div>
         <CardTitle className="text-xl">Identité de votre structure</CardTitle>
@@ -243,6 +243,5 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
     </Card>
   );
 }
-
 
 

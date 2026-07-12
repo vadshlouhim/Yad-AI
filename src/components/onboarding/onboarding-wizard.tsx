@@ -97,7 +97,6 @@ export const demoOnboardingData: OnboardingData = {
   signature: "L'équipe Chlomi-test",
   hashtags: ["#ChlomiTest", "#DemoEasycom"],
   channels: [
-    { type: "WHATSAPP", name: "WhatsApp", handle: "" },
     { type: "EMAIL", name: "Email", handle: "" },
   ],
   recurringEvents: [
@@ -226,23 +225,25 @@ export function OnboardingWizard({
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-8 sm:py-12">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-sky-100 px-4 py-8 sm:py-12">
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center">
-        <div className="mb-8 w-full overflow-hidden rounded-[2rem] border border-slate-800/10 bg-slate-950 p-6 text-center text-white shadow-xl shadow-slate-300/40 sm:mb-10 sm:p-8">
-          <div className="mx-auto mb-5 h-1.5 w-24 rounded-full bg-gradient-to-r from-blue-500 via-violet-500 to-emerald-400" />
+        <div className="relative mb-8 w-full overflow-hidden rounded-[2rem] border border-blue-400/30 bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 p-6 text-center text-white shadow-xl shadow-blue-300/50 sm:mb-10 sm:p-8">
+          <div className="pointer-events-none absolute -right-16 -top-16 size-52 rounded-full bg-white/10 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-20 -left-12 size-48 rounded-full bg-cyan-300/20 blur-2xl" />
+          <div className="relative mx-auto mb-5 h-1.5 w-24 rounded-full bg-gradient-to-r from-white via-sky-200 to-cyan-200" />
           {simulationMode && (
-            <div className="mx-auto mb-4 inline-flex rounded-full border border-amber-300/50 bg-amber-300/10 px-3 py-1 text-xs font-bold text-amber-100">
+            <div className="relative mx-auto mb-4 inline-flex rounded-full border border-white/30 bg-white/15 px-3 py-1 text-xs font-bold text-white">
               Simulation UI - aucune donnée n&apos;est enregistrée
             </div>
           )}
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-200">
-            Bienvenue, {userName.split(" ")[0]}
+          <p className="relative text-xs font-bold uppercase tracking-[0.22em] text-blue-100">
+            Bienvenue chez EasyCom IA{userName ? `, ${userName.split(" ")[0]}` : ""}
           </p>
-          <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-4xl">
-            Configurez votre assistant IA personnel en quelques minutes
+          <h1 className="relative mt-3 text-2xl font-black tracking-tight sm:text-4xl">
+            Créons un espace qui vous ressemble
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-base">
-            Ces informations permettent à EasyCom IA de comprendre votre identité et vos besoins pour personnaliser automatiquement vos contenus.
+          <p className="relative mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-blue-50 sm:text-base">
+            En quelques étapes, EasyCom IA apprend à connaître votre structure pour vous aider à créer des communications plus justes, plus simples et plus personnelles.
           </p>
         </div>
 
@@ -250,7 +251,7 @@ export function OnboardingWizard({
           <div className="relative flex min-w-[460px] items-center justify-between">
             <div className="absolute left-0 right-0 top-4 h-0.5 bg-slate-200 -z-0" />
             <div
-              className="absolute left-0 top-4 h-0.5 bg-gradient-to-r from-blue-600 via-violet-500 to-emerald-500 transition-all duration-500 -z-0"
+              className="absolute left-0 top-4 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-500 transition-all duration-500 -z-0"
               style={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
             />
 

@@ -11,7 +11,7 @@ const NAVIGATION_TARGETS: Record<string, { href: string; label: string }> = {
   billing: { href: "/dashboard/settings/billing", label: "Facturation" },
   channels: { href: "/dashboard/settings/channels", label: "Réglages → Canaux" },
   settings: { href: "/dashboard/settings", label: "Paramètres" },
-  contacts: { href: "/dashboard/settings?section=contacts", label: "Contacts" },
+  contacts: { href: "/dashboard/contacts", label: "Contacts" },
   templates: { href: "/dashboard/templates", label: "Banque d'affiches" },
   events: { href: "/dashboard/events", label: "Agenda connecté IA" },
   automations: { href: "/dashboard/automations", label: "Automatisations" },

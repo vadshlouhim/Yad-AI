@@ -44,17 +44,37 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const members: MemberInput[] = Array.isArray(body.members) ? body.members : [body];
-  const rows = members
+  const candidateRows = members
     .map((member) => buildMemberRow(communityId, member))
     .filter((member) => member.email || member.phone || member.displayName !== "Membre");
 
-  if (rows.length === 0) {
+  if (candidateRows.length === 0) {
     return NextResponse.json({ error: "Aucun contact exploitable" }, { status: 400 });
   }
 
   const admin = createAdminClient() as ReturnType<typeof createAdminClient> & {
     from: (table: string) => ReturnType<ReturnType<typeof createAdminClient>["from"]>;
   };
+
+  // Un import mobile peut inclure plusieurs fois le même contact. On évite les
+  // doublons à partir de l'email ou du numéro déjà enregistré pour la communauté.
+  const { data: existing, error: existingError } = await admin
+    .from("CommunityMember")
+    .select("email, phone")
+    .eq("communityId", communityId);
+  if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 });
+
+  const knownEmails = new Set((existing ?? []).map((member) => member.email).filter(Boolean));
+  const knownPhones = new Set((existing ?? []).map((member) => member.phone).filter(Boolean));
+  const rows = candidateRows.filter((member) => {
+    const duplicate = (member.email && knownEmails.has(member.email)) || (member.phone && knownPhones.has(member.phone));
+    if (duplicate) return false;
+    if (member.email) knownEmails.add(member.email);
+    if (member.phone) knownPhones.add(member.phone);
+    return true;
+  });
+
+  if (rows.length === 0) return NextResponse.json([]);
 
   const { data, error } = await admin
     .from("CommunityMember")

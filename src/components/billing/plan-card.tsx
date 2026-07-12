@@ -1,14 +1,19 @@
 import type { ReactNode } from "react";
-import { Check } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PlanTier } from "@/lib/billing";
+
+export interface PlanFeature {
+  label: string;
+  included: boolean;
+}
 
 interface Props {
   tier: PlanTier;
   title: string;
   priceLabel: string;
   priceSuffix?: string;
-  features: string[];
+  features: Array<string | PlanFeature>;
   badge?: string;
   highlighted?: boolean;
   /** Rend toute la carte cliquable (usage sélecteur, ex. onboarding) */
@@ -52,20 +57,34 @@ export function PlanCard({
           </span>
         </div>
       )}
-      <div className="text-center">
-        <p className="text-lg font-black text-slate-950">{title}</p>
-        <div className="mt-3 flex items-end justify-center gap-1">
-          <span className="text-3xl font-black text-slate-950">{priceLabel}</span>
-          {priceLabel !== "0 €" && <span className="pb-1 text-sm font-semibold text-slate-500">{priceSuffix}</span>}
+      <div className="flex min-h-24 flex-col justify-end text-center">
+        <p className="text-base font-black text-slate-950 sm:text-lg">{title}</p>
+        <div className="mt-3 flex min-h-10 flex-nowrap items-end justify-center gap-1 whitespace-nowrap">
+          <span className="whitespace-nowrap text-2xl font-black tracking-tight text-slate-950">{priceLabel}</span>
+          {priceLabel !== "0 €" && <span className="whitespace-nowrap pb-1 text-xs font-semibold text-slate-500">{priceSuffix}</span>}
         </div>
       </div>
-      <ul className="space-y-2.5">
-        {features.map((feature) => (
-          <li key={feature} className="flex items-start gap-2 text-sm text-slate-700">
-            <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" />
-            <span>{feature}</span>
-          </li>
-        ))}
+      <ul className="space-y-2.5 text-left">
+        {features.map((feature) => {
+          const { label, included } = typeof feature === "string" ? { label: feature, included: true } : feature;
+
+          return (
+            <li
+              key={label}
+              className={cn(
+                "flex min-h-5 items-start gap-2 text-xs leading-5 sm:text-sm",
+                included ? "text-slate-700" : "text-slate-400 line-through"
+              )}
+            >
+              {included ? (
+                <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" aria-hidden="true" />
+              ) : (
+                <X className="mt-0.5 size-4 shrink-0 text-slate-300" aria-hidden="true" />
+              )}
+              <span>{label}</span>
+            </li>
+          );
+        })}
       </ul>
       {footer}
     </>
@@ -74,6 +93,7 @@ export function PlanCard({
   const className = cn(
     "relative space-y-5 rounded-3xl border-2 bg-white p-6 shadow-sm transition-all",
     selected || highlighted ? TIER_ACCENT[tier] : "border-slate-200",
+    tier === "PRO" && badge && "plan-card-popular",
     selected && (tier === "BUSINESS" ? "bg-violet-50/40" : tier === "PRO" ? "bg-blue-50/40" : "bg-slate-50"),
     isClickable && "cursor-pointer hover:border-slate-300 text-left"
   );

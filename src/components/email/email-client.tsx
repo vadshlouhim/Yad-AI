@@ -65,6 +65,12 @@ const CATEGORY_META: Record<
 const OAUTH_MESSAGES: Record<string, { tone: "success" | "error"; text: string }> = {
   gmail_success: { tone: "success", text: "Gmail connecte avec succes." },
   gmail_cancelled: { tone: "error", text: "Connexion Gmail annulee." },
+  gmail_missing_env: { tone: "error", text: "La configuration Gmail est incomplète côté serveur." },
+  gmail_invalid_client: { tone: "error", text: "Le client OAuth Gmail est invalide : vérifiez que GMAIL_CLIENT_ID et GMAIL_CLIENT_SECRET proviennent du même client Google." },
+  gmail_invalid_grant: { tone: "error", text: "Le code Google a expiré ou n’est plus valide. Relancez la connexion Gmail." },
+  gmail_redirect_uri_mismatch: { tone: "error", text: "L’URL de redirection Gmail n’est pas autorisée dans Google Cloud." },
+  gmail_no_token: { tone: "error", text: "Google n’a renvoyé aucun jeton d’accès. Relancez la connexion Gmail." },
+  gmail_no_community: { tone: "error", text: "Aucune communauté n’est associée à votre compte." },
   gmail_error: { tone: "error", text: "Erreur lors de la connexion Gmail." },
 };
 
@@ -350,7 +356,7 @@ export function EmailClient({
       }
       if (event.data?.type === "gmail_oauth_error") {
         setIsConnecting(false);
-        setOauthNotice(OAUTH_MESSAGES.gmail_error);
+        setOauthNotice(OAUTH_MESSAGES[event.data.oauth] ?? OAUTH_MESSAGES.gmail_error);
       }
     }
 

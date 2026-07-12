@@ -5,10 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getShabbatTimes } from "@/lib/automation/hebcal";
 import {
   filterShabbatTemplatesByMode,
-  findCityScheduleForYear,
-  getNextShabbatFromSchedule,
   type ShabbatCardItem,
-  type ShabbatScheduleItem,
 } from "@/lib/automation/shabbat-times";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 
@@ -18,7 +15,6 @@ export default async function ShabbatTimesAutoPage() {
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
   const admin = createAdminClient();
-  const now = new Date();
 
   const { data: community } = await admin
     .from("Community")
@@ -26,8 +22,7 @@ export default async function ShabbatTimesAutoPage() {
     .eq("id", communityId)
     .single();
 
-  const calendarYears = [now.getFullYear(), now.getFullYear() + 1];
-  const [{ data: templates }, { data: automationRows }, { data: socialChannels }, currentYearScheduleRow, nextYearScheduleRow] =
+  const [{ data: templates }, { data: automationRows }, { data: socialChannels }] =
     await Promise.all([
       admin
         .from("Template")
@@ -49,47 +44,24 @@ export default async function ShabbatTimesAutoPage() {
         .eq("communityId", communityId)
         .in("type", ["INSTAGRAM", "FACEBOOK"])
         .eq("isActive", true),
-      findCityScheduleForYear(admin, community?.city, calendarYears[0]),
-      findCityScheduleForYear(admin, community?.city, calendarYears[1]),
     ]);
 
-  const currentYearSchedule = Array.isArray(currentYearScheduleRow?.shabbat_schedule)
-    ? (currentYearScheduleRow.shabbat_schedule as ShabbatScheduleItem[])
-    : [];
-  const nextYearSchedule = Array.isArray(nextYearScheduleRow?.shabbat_schedule)
-    ? (nextYearScheduleRow.shabbat_schedule as ShabbatScheduleItem[])
-    : [];
-  const nextShabbatFromDatabase =
-    getNextShabbatFromSchedule(currentYearSchedule, now) ?? getNextShabbatFromSchedule(nextYearSchedule, now);
+  const liveShabbat = await getShabbatTimes({
+    city: community?.city ?? "Paris",
+    timezone: community?.timezone ?? "Europe/Paris",
+  });
 
-  let shabbat: ShabbatCardItem | null = nextShabbatFromDatabase
+  // Source unique : API REST Hebcal.
+  const shabbat: ShabbatCardItem | null = liveShabbat
     ? {
-        cityName: currentYearScheduleRow?.city_name ?? nextYearScheduleRow?.city_name ?? community?.city ?? null,
-        date: nextShabbatFromDatabase.gregorian_date,
-        entry: nextShabbatFromDatabase.shabbat_entry_time ?? null,
-        exit: nextShabbatFromDatabase.shabbat_exit_time ?? null,
-        hebrewDate: nextShabbatFromDatabase.hebrew_date ?? null,
-        parasha: nextShabbatFromDatabase.parasha ?? null,
+        cityName: community?.city ?? "Paris",
+        date: liveShabbat.date,
+        entry: liveShabbat.entry ?? liveShabbat.candleLighting ?? null,
+        exit: liveShabbat.exit ?? liveShabbat.havdalah ?? null,
+        hebrewDate: liveShabbat.hebrewDate ?? null,
+        parasha: liveShabbat.parasha ?? null,
       }
     : null;
-
-  if (!shabbat) {
-    const liveShabbat = await getShabbatTimes({
-      city: community?.city ?? "Paris",
-      timezone: community?.timezone ?? "Europe/Paris",
-    });
-
-    shabbat = liveShabbat
-      ? {
-          cityName: community?.city ?? "Paris",
-          date: liveShabbat.date,
-          entry: liveShabbat.entry ?? liveShabbat.candleLighting ?? null,
-          exit: liveShabbat.exit ?? liveShabbat.havdalah ?? null,
-          hebrewDate: liveShabbat.hebrewDate ?? null,
-          parasha: liveShabbat.parasha ?? null,
-        }
-      : null;
-  }
 
   const hydratedTemplates = (templates ?? []).map((template) => ({
     ...template,

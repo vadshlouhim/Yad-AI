@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PlanCard } from "@/components/billing/plan-card";
+import { PlanCard, type PlanFeature } from "@/components/billing/plan-card";
 import type { OnboardingData } from "../onboarding-wizard";
 import { ChevronLeft, ChevronRight, Loader2, Rocket } from "lucide-react";
 
@@ -14,38 +14,44 @@ interface Props {
   saving?: boolean;
 }
 
-const FREE_FEATURES = [
-  "Tableau de bord et aperçu",
-  "5 publications sociales manuelles / mois",
-  "0 automatisation IA",
-  "20 messages Agent IA",
-  "WhatsApp bloqué",
-  "Affiches limitées",
+const FREE_FEATURES: PlanFeature[] = [
+  { label: "Tableau de bord et aperçu", included: true },
+  { label: "5 publications sociales manuelles / mois", included: true },
+  { label: "20 messages Agent IA", included: true },
+  { label: "Affiches limitées", included: true },
+  { label: "0 automatisation IA", included: false },
+  { label: "WhatsApp bloqué", included: false },
+  { label: "Gestion des emails", included: false },
+  { label: "Gestion des avis Google", included: false },
 ];
 
-const PRO_FEATURES = [
-  "WhatsApp débloqué",
-  "Affiches illimitées",
-  "20 publications sociales / mois",
-  "3 automatisations IA",
-  "50 messages Agent IA",
+const PRO_FEATURES: PlanFeature[] = [
+  { label: "Tableau de bord et aperçu", included: true },
+  { label: "20 publications sociales / mois", included: true },
+  { label: "3 automatisations IA", included: true },
+  { label: "50 messages Agent IA", included: true },
+  { label: "WhatsApp débloqué", included: true },
+  { label: "Affiches illimitées", included: true },
+  { label: "Gestion des emails", included: false },
+  { label: "Gestion des avis Google", included: false },
 ];
 
-const BUSINESS_FEATURES = [
-  "WhatsApp débloqué",
-  "Affiches illimitées",
-  "50 publications sociales / mois",
-  "5 automatisations IA",
-  "Messages Agent IA illimités",
-  "Gestion des emails",
-  "Gestion des avis Google",
+const BUSINESS_FEATURES: PlanFeature[] = [
+  { label: "Tableau de bord et aperçu", included: true },
+  { label: "50 publications sociales / mois", included: true },
+  { label: "5 automatisations IA", included: true },
+  { label: "Messages Agent IA illimités", included: true },
+  { label: "WhatsApp débloqué", included: true },
+  { label: "Affiches illimitées", included: true },
+  { label: "Gestion des emails", included: true },
+  { label: "Gestion des avis Google", included: true },
 ];
 
 export function StepPlan({ data, updateData, onPrev, onFinish, saving = false }: Props) {
   return (
-    <Card className="shadow-md">
+    <Card className="border-blue-100 shadow-xl shadow-blue-100/70">
       <CardHeader className="pb-4">
-        <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center mb-3">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-100 to-sky-100 flex items-center justify-center mb-3">
           <Rocket className="size-6 text-blue-600" />
         </div>
         <CardTitle className="text-xl">Choisissez votre mode de départ</CardTitle>

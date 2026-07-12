@@ -165,12 +165,7 @@ export default async function AdminPage() {
       users={(users ?? []).map((user) => {
         const community = (communities ?? []).find((item) => item.id === user.communityId) ?? null;
         const subscription = (subscriptions ?? []).find((item) => item.communityId === user.communityId) ?? null;
-        const vocabulary = community?.vocabulary as { adminBillingMode?: unknown; adminBillingSince?: unknown } | null | undefined;
-        const adminBillingMode = vocabulary?.adminBillingMode === "TEST"
-          ? "TEST"
-          : community?.plan === "FREE_TRIAL"
-            ? "FREE"
-            : "PAID";
+        const vocabulary = community?.vocabulary as { adminBillingSince?: unknown } | null | undefined;
 
         return {
           ...user,
@@ -178,7 +173,6 @@ export default async function AdminPage() {
           communityCity: community?.city ?? null,
           communityPlan: community?.plan ?? null,
           planExpiresAt: community?.planExpiresAt ?? null,
-          adminBillingMode,
           adminBillingSince:
             typeof vocabulary?.adminBillingSince === "string"
               ? vocabulary.adminBillingSince

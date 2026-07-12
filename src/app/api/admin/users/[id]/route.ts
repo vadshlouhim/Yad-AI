@@ -28,20 +28,16 @@ function addYears(date: Date, years: number) {
 
 function updateAdminBillingVocabulary(
   current: unknown,
-  mode: "FREE" | "PAID" | "TEST",
   startedAt: Date
 ): Json {
   const base = isRecord(current) ? current : {};
   const next = { ...base };
 
-  if (mode === "TEST") {
-    next.adminBillingMode = "TEST";
-    next.adminBillingSince = startedAt.toISOString();
-  } else {
-    delete next.adminBillingMode;
-    if (mode === "PAID") next.adminBillingSince = startedAt.toISOString();
-    else delete next.adminBillingSince;
-  }
+  // Les anciens accès « TEST » étaient stockés dans le vocabulaire. Un choix
+  // d'offre depuis l'admin doit désormais toujours refléter l'un des trois
+  // paliers produit réels.
+  delete next.adminBillingMode;
+  next.adminBillingSince = startedAt.toISOString();
 
   return next as Json;
 }
@@ -64,9 +60,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-  const billingMode = body.billingMode;
-  if (billingMode !== "FREE" && billingMode !== "PAID" && billingMode !== "TEST") {
-    return NextResponse.json({ error: "Version demandée invalide" }, { status: 400 });
+  const planTier = body.planTier;
+  if (planTier !== "FREE" && planTier !== "PRO" && planTier !== "BUSINESS") {
+    return NextResponse.json({ error: "Offre demandée invalide" }, { status: 400 });
   }
 
   const admin = createAdminClient();
@@ -96,8 +92,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const startedAt = parseDate(body.subscriptionStartedAt);
   const now = new Date();
-  const nextVocabulary = updateAdminBillingVocabulary(community.vocabulary, billingMode, startedAt);
-  const nextPlan = billingMode === "FREE" ? "FREE_TRIAL" : "PROFESSIONAL";
+  const nextVocabulary = updateAdminBillingVocabulary(community.vocabulary, startedAt);
+  const nextPlan = planTier === "FREE" ? "FREE_TRIAL" : planTier === "PRO" ? "PROFESSIONAL" : "ENTERPRISE";
 
   const { error: communityError } = await admin
     .from("Community")
@@ -114,7 +110,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const manualSubscriptionId = `manual:${targetProfile.communityId}`;
-  if (billingMode === "FREE") {
+  if (planTier === "FREE") {
     await admin
       .from("Subscription")
       .update({
@@ -129,14 +125,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         id: crypto.randomUUID(),
         communityId: targetProfile.communityId,
         stripeSubscriptionId: manualSubscriptionId,
-        stripePriceId: billingMode === "TEST" ? "manual-test-access" : "manual-paid-access",
-        plan: "PROFESSIONAL",
+        stripePriceId: planTier === "BUSINESS" ? "manual-business-access" : "manual-pro-access",
+        plan: nextPlan,
         status: "ACTIVE",
         currentPeriodStart: startedAt.toISOString(),
-        currentPeriodEnd: addYears(startedAt, billingMode === "TEST" ? 10 : 1).toISOString(),
+        currentPeriodEnd: addYears(startedAt, 1).toISOString(),
         cancelAtPeriodEnd: false,
         canceledAt: null,
-        trialStart: billingMode === "TEST" ? startedAt.toISOString() : null,
+        trialStart: null,
         trialEnd: null,
         updatedAt: now.toISOString(),
       },
@@ -150,7 +146,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   return NextResponse.json({
     success: true,
-    billingMode,
+    planTier,
     plan: nextPlan,
     subscriptionStartedAt: startedAt.toISOString(),
   });

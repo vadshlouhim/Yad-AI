@@ -50,28 +50,6 @@ const AVAILABLE_CHANNELS = [
     canConnectNow: true,
   },
   {
-    type: "WHATSAPP",
-    label: "WhatsApp",
-    logo: "/logo/whatsapp-svgrepo-com.svg",
-    logoBg: "bg-green-50 border border-green-100",
-    description: "Canal ou groupe broadcast",
-    needsHandle: false,
-    handlePlaceholder: "",
-    oauthProvider: null,
-    canConnectNow: false,
-  },
-  {
-    type: "TELEGRAM",
-    label: "Telegram",
-    logo: "/logo/telegram-svgrepo-com.svg",
-    logoBg: "bg-sky-50 border border-sky-100",
-    description: "Canal ou groupe",
-    needsHandle: true,
-    handlePlaceholder: "@votre_canal",
-    oauthProvider: null,
-    canConnectNow: false,
-  },
-  {
     type: "EMAIL",
     label: "Email",
     logo: "/logo/gmail-svgrepo-com.svg",
@@ -260,14 +238,17 @@ export function StepSocial({
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-md">
+      <Card className="border-blue-100 shadow-xl shadow-blue-100/70">
         <CardHeader className="pb-4">
-          <div className="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center mb-3">
-            <Radio className="size-6 text-green-600" />
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-sky-100">
+            <Radio className="size-6 text-blue-600" />
           </div>
-          <CardTitle className="text-xl">Réseaux sociaux</CardTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle className="text-xl">Connectez vos canaux</CardTitle>
+            <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">Facultatif</span>
+          </div>
           <CardDescription>
-            Connectez vos réseaux sociaux maintenant ou plus tard depuis les Paramètres.
+            Connectez Instagram, Facebook ou votre boîte Gmail maintenant. Vous pourrez aussi le faire plus tard depuis les Paramètres.
           </CardDescription>
         </CardHeader>
 
@@ -382,18 +363,16 @@ export function StepSocial({
             })}
           </div>
 
-          {data.channels.length === 0 && Object.values(connected).every((v) => !v) && (
-            <p className="text-xs text-slate-400 text-center py-2">
-              Vous pouvez passer cette étape et connecter vos canaux depuis les Paramètres.
-            </p>
-          )}
+          <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2.5 text-center text-xs leading-relaxed text-blue-800">
+            Cette étape est entièrement facultative : vous pourrez connecter vos canaux et régler vos automatisations à tout moment depuis les Paramètres.
+          </div>
         </CardContent>
       </Card>
 
-      <Card className="border-white bg-white shadow-xl shadow-slate-200/80">
+      <Card className="border-blue-100 bg-white shadow-xl shadow-blue-100/50">
         <CardHeader className="pb-4">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-blue-100">
-            <Calendar className="size-6 text-violet-700" />
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-sky-100">
+            <Calendar className="size-6 text-blue-700" />
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <CardTitle className="text-xl">Automatisations de vos réseaux sociaux</CardTitle>
@@ -472,6 +451,9 @@ export function StepSocial({
         <Button variant="outline" size="lg" onClick={onPrev} className="flex-shrink-0">
           <ChevronLeft className="size-4" />
           Retour
+        </Button>
+        <Button variant="outline" size="lg" className="flex-1" onClick={onNext}>
+          Passer pour l&apos;instant
         </Button>
         <Button size="lg" className="flex-1" onClick={onNext}>
           Continuer
