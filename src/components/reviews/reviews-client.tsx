@@ -246,9 +246,9 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
   }), [reviews, now]);
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+    <div className="mx-auto w-full max-w-6xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6">
       {/* Header */}
-      <div className="overflow-hidden rounded-3xl border border-cyan-800/60 bg-gradient-to-br from-[#081f36] via-[#0d304f] to-[#08192d] p-6 shadow-lg shadow-slate-950/35">
+      <div className="overflow-hidden rounded-2xl border border-cyan-800/60 bg-gradient-to-br from-[#081f36] via-[#0d304f] to-[#08192d] p-4 shadow-lg shadow-slate-950/35 sm:rounded-3xl sm:p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="max-w-3xl">
             <div className="flex items-center gap-2.5">
@@ -286,12 +286,12 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
               </p>
             )}
           </div>
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
             {isConnected && (
               <button
                 onClick={() => fetchReviews()}
                 disabled={isLoading}
-                className="flex items-center gap-1.5 text-xs text-cyan-300 hover:text-white transition-colors"
+                className="flex items-center justify-center gap-1.5 text-xs text-cyan-300 transition-colors hover:text-white sm:justify-end"
               >
                 <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
                 Actualiser
@@ -302,7 +302,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
               onClick={handleConnect}
               disabled={isConnecting}
               className={cn(
-                "rounded-full px-5 py-5 text-sm font-semibold transition-all hover:scale-[1.02]",
+                "w-full rounded-full px-5 py-5 text-sm font-semibold transition-all hover:scale-[1.02] sm:w-auto",
                 isConnected
                   ? "bg-rose-600 hover:bg-rose-700 text-white border-none"
                   : "bg-white text-cyan-950 border-cyan-200 hover:bg-cyan-50"
@@ -328,7 +328,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
       )}
 
       {!isConnected ? (
-        <Card className="rounded-[28px] border border-slate-200/80 bg-white p-12 text-center shadow-[0_18px_45px_-30px_rgba(8,31,54,0.28)]">
+        <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 text-center shadow-[0_18px_45px_-30px_rgba(8,31,54,0.28)] sm:rounded-[28px] sm:p-12">
           <CardContent className="space-y-4 max-w-md mx-auto pt-6">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-50">
               <Star className="size-8 fill-amber-400 text-amber-400" />
@@ -380,9 +380,9 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[600px]">
+          <div className="grid grid-cols-1 gap-4 lg:min-h-[600px] lg:grid-cols-12 lg:gap-6">
             {/* Liste */}
-            <Card className="lg:col-span-5 rounded-[28px] border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
+            <Card className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-[28px] lg:col-span-5">
               <CardHeader className="border-b border-slate-100 bg-slate-50/50 p-4 space-y-3">
                 <CardTitle className="text-base text-slate-900 font-bold flex items-center justify-between">
                   <span>{reviews.length} avis</span>
@@ -409,7 +409,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
                   ))}
                 </div>
               </CardHeader>
-              <CardContent className="p-0 flex-1 overflow-y-auto divide-y divide-slate-100">
+              <CardContent className="max-h-[48vh] flex-1 divide-y divide-slate-100 overflow-y-auto overscroll-contain p-0 lg:max-h-none">
                 {filteredReviews.length === 0 ? (
                   <div className="p-8 text-center">
                     <CheckCircle2 className="size-8 mx-auto mb-2 text-emerald-500" />
@@ -462,7 +462,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
             </Card>
 
             {/* Détail + Réponse */}
-            <Card className="lg:col-span-7 rounded-[28px] border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
+            <Card className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-[28px] lg:col-span-7">
               {selectedReview ? (
                 <div className="flex flex-col h-full">
                   <div className="border-b border-slate-100 p-4 bg-slate-50/30 flex items-center justify-between">
@@ -477,7 +477,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
                     </div>
                   </div>
 
-                  <div className="flex-1 p-6 overflow-y-auto space-y-4">
+                  <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
                     <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/50 text-sm text-slate-800 leading-relaxed">
                       {selectedReview.comment ? `"${selectedReview.comment}"` : "(Avis sans commentaire)"}
                     </div>
@@ -511,7 +511,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
 
                   {/* Suggestion IA */}
                   {aiDraft && (
-                    <div className="mx-6 my-2 p-4 rounded-2xl bg-cyan-50 border border-cyan-200/80 shadow-sm space-y-3">
+                    <div className="mx-4 my-2 space-y-3 rounded-2xl border border-cyan-200/80 bg-cyan-50 p-4 shadow-sm sm:mx-6">
                       <div className="flex items-center justify-between">
                         <span className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-800">
                           <Bot className="size-4 text-cyan-700 animate-bounce" />Réponse IA proposée
@@ -534,12 +534,12 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
                         className="rounded-full text-xs font-semibold text-cyan-700 border-cyan-200 bg-cyan-50/30 hover:bg-cyan-50 flex items-center gap-1.5">
                         {isAiDrafting ? <><RefreshCw className="size-3 animate-spin" />Rédaction...</> : <><Sparkles className="size-3 text-cyan-600" />Rédiger avec EasyCom IA</>}
                       </Button>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2 sm:flex-row">
                         <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)}
                           placeholder={`Répondre à ${selectedReview.author}...`} rows={3}
                           className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 resize-none" />
                         <Button onClick={handleSendReply} disabled={!replyText.trim() || isSending}
-                          className="rounded-xl bg-cyan-700 text-white hover:bg-cyan-800 flex flex-col justify-center px-4 self-end h-[76px]">
+                          className="h-11 rounded-xl bg-cyan-700 px-4 text-white hover:bg-cyan-800 sm:h-[76px] sm:self-end">
                           {isSending ? <RefreshCw className="size-4 animate-spin" /> : <Send className="size-4 mb-1" />}
                           <span className="text-[10px] font-semibold">{isSending ? "Envoi..." : "Publier"}</span>
                         </Button>
@@ -575,5 +575,4 @@ function generateFallbackReply(review: GoogleReview): string {
   }
   return `Bonjour ${review.author},\n\nMerci beaucoup pour ce retour positif ! Votre satisfaction est notre priorité et vos encouragements nous motivent chaque jour. Au plaisir de vous revoir bientôt !\n\nChaleureusement,\nL'équipe`;
 }
-
 

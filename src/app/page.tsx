@@ -286,8 +286,16 @@ export default function HomePage() {
 
           <div className="mt-20 space-y-24 lg:mt-28 lg:space-y-40">
             {EASYCOM_AGENTS.map((agent, index) => {
+              const mobileTitlePanel = (
+                <div className="order-1 pb-2 lg:hidden">
+                  <p className="text-sm font-bold text-blue-600">{agent.name} · {agent.role}</p>
+                  <h3 className="mt-3 text-[clamp(2.25rem,12vw,3.5rem)] font-black leading-[0.98] tracking-[-0.045em] text-slate-950">
+                    <AgentMarketingTitle slug={agent.slug} title={agent.marketingTitle} />
+                  </h3>
+                </div>
+              );
               const imagePanel = (
-                <div className={`relative order-1 min-h-96 sm:min-h-[34rem] ${index % 2 === 0 ? "lg:order-1" : "lg:order-2"}`}>
+                <div className={`relative order-2 min-h-96 sm:min-h-[34rem] ${index % 2 === 0 ? "lg:order-1" : "lg:order-2"}`}>
                   <div className={`absolute inset-x-[12%] bottom-[8%] top-[12%] rounded-full bg-gradient-to-br ${agent.tone} opacity-15 blur-3xl`} />
                   <Image
                     src={agent.image}
@@ -299,12 +307,14 @@ export default function HomePage() {
                 </div>
               );
               const contentPanel = (
-                <div className={`order-2 flex h-full max-w-xl flex-col justify-center py-8 lg:py-16 ${index % 2 === 0 ? "lg:order-2" : "lg:order-1"}`}>
-                  <p className="text-sm font-bold text-blue-600">{agent.name} · {agent.role}</p>
-                  <h3 className="mt-4 text-[clamp(2.5rem,5vw,4.75rem)] font-black leading-[0.98] tracking-[-0.045em] text-slate-950">
-                    <AgentMarketingTitle slug={agent.slug} title={agent.marketingTitle} />
-                  </h3>
-                  <p className="mt-7 text-lg leading-8 text-slate-600">{agent.shortDescription}</p>
+                <div className={`order-3 flex h-full max-w-xl flex-col justify-center py-2 lg:py-16 ${index % 2 === 0 ? "lg:order-2" : "lg:order-1"}`}>
+                  <div className="hidden lg:block">
+                    <p className="text-sm font-bold text-blue-600">{agent.name} · {agent.role}</p>
+                    <h3 className="mt-4 text-[clamp(2.5rem,5vw,4.75rem)] font-black leading-[0.98] tracking-[-0.045em] text-slate-950">
+                      <AgentMarketingTitle slug={agent.slug} title={agent.marketingTitle} />
+                    </h3>
+                  </div>
+                  <p className="mt-4 text-lg leading-8 text-slate-600 lg:mt-7">{agent.shortDescription}</p>
                   <details className="group mt-8">
                     <summary className="cursor-pointer list-none text-sm font-black text-blue-600 transition hover:text-blue-800 [&::-webkit-details-marker]:hidden">
                       <span className="inline-flex items-center gap-2">En savoir plus <ArrowRight className="size-4 transition group-open:rotate-90" /></span>
@@ -319,6 +329,7 @@ export default function HomePage() {
               return (
                 <article key={agent.slug}>
                   <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-20">
+                    {mobileTitlePanel}
                     {imagePanel}
                     {contentPanel}
                   </div>

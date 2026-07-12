@@ -34,7 +34,13 @@ export function PublicNavbar() {
     document.body.style.width = "100%";
     document.documentElement.style.overflow = "hidden";
 
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", handleEscape);
+
     return () => {
+      window.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = previous.bodyOverflow;
       document.body.style.position = previous.bodyPosition;
       document.body.style.top = previous.bodyTop;
@@ -88,7 +94,7 @@ export function PublicNavbar() {
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
-            className="relative z-[60] inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700 md:hidden"
+            className="relative z-[100] inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700 md:hidden"
             aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
             aria-expanded={menuOpen}
           >
@@ -99,13 +105,18 @@ export function PublicNavbar() {
 
       {menuOpen ? (
         <>
-          <button
-            type="button"
-            className="fixed inset-0 z-40 bg-slate-950/45 md:hidden"
+            <button
+              type="button"
+            className="fixed inset-0 z-[80] bg-slate-950/45 backdrop-blur-[1px] md:hidden"
             aria-label="Fermer le menu"
             onClick={() => setMenuOpen(false)}
           />
-          <div className="fixed inset-y-0 right-0 z-50 flex w-[86vw] max-w-sm flex-col border-l border-slate-200 bg-white shadow-2xl md:hidden">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu de navigation"
+            className="fixed inset-y-0 right-0 z-[90] flex w-[86vw] max-w-sm flex-col border-l border-slate-200 bg-white shadow-2xl md:hidden"
+          >
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4">
               <div className="flex items-center gap-3">
                 <Image src="/easycom-ai-logo.png" alt="Logo EasyCom IA" width={38} height={38} className="rounded-xl border border-slate-200 bg-white p-1" />
