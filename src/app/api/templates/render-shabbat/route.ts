@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { renderTemplatePoster } from "@/lib/templates/render";
 import { getStoredShabbatTimes } from "@/lib/ai/engine";
-import { getBillingGate, getBillingUsage, FREE_LIMITS, paywallResponse } from "@/lib/billing";
+import { getBillingGate, getBillingUsage, FREE_POSTER_LIMIT, paywallResponse } from "@/lib/billing";
 
 // Normalise une clé de zone pour la comparaison
 function normalizeKey(key: string) {
@@ -133,8 +133,8 @@ export async function POST(request: Request) {
 
     const gate = await getBillingGate(admin, user.id);
     if (!gate.isPaid) {
-      const usage = await getBillingUsage(admin, profile.communityId);
-      if (usage.posterGenerations >= FREE_LIMITS.posterGenerations) {
+      const usage = await getBillingUsage(admin, profile.communityId, gate.tier);
+      if (usage.posterGenerations >= FREE_POSTER_LIMIT) {
         return paywallResponse("poster_generations", "Limite atteinte pour les affiches gratuites.", { posterGenerations: usage.posterGenerations });
       }
     }

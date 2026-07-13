@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchGmailMessages } from "@/lib/email/gmail-fetch";
+import { assertTierFeature } from "@/lib/billing";
 
 export async function GET() {
   const supabase = await createClient();
@@ -22,6 +23,15 @@ export async function GET() {
   if (!profile?.communityId) {
     return NextResponse.json({ error: "Aucune communaute associee" }, { status: 400 });
   }
+
+  const tierCheck = await assertTierFeature(
+    admin,
+    user.id,
+    "BUSINESS",
+    "email_management",
+    "La gestion des emails est réservée à l'offre Business."
+  );
+  if (!tierCheck.ok) return tierCheck.response;
 
   const { data: channel } = await admin
     .from("Channel")

@@ -415,7 +415,7 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       subtitle: "Centralises et organises par l'IA",
       icon: Plus,
       items: [
-        { href: "/dashboard/settings?section=contacts", label: "Mes contacts", icon: Plus },
+        { href: "/dashboard/contacts", label: "Mes contacts", icon: Plus },
       ],
     },
     {
@@ -509,7 +509,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "CONTACTS",
     items: [
-      { href: "/dashboard/settings?section=contacts", label: "Ajoutez mes contacts", icon: Plus },
+      { href: "/dashboard/contacts", label: "Ajoutez mes contacts", icon: Plus },
     ],
   },
   {
@@ -600,7 +600,7 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     section: "CONTACTS",
     icon: Plus,
     items: [
-      { href: "/dashboard/settings?section=contacts", label: "Ajoutez mes contacts", icon: Plus },
+      { href: "/dashboard/contacts", label: "Ajoutez mes contacts", icon: Plus },
     ],
   },
   {

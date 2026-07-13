@@ -53,9 +53,9 @@ const TYPE_LABELS: Record<string, string> = {
 
 const PLAN_LABELS: Record<string, { label: string; color: string }> = {
   FREE_TRIAL: { label: "Gratuit", color: "bg-slate-100 text-slate-700" },
-  STARTER: { label: "Payant", color: "bg-violet-100 text-violet-700" },
-  PROFESSIONAL: { label: "Payant", color: "bg-violet-100 text-violet-700" },
-  ENTERPRISE: { label: "Payant", color: "bg-violet-100 text-violet-700" },
+  STARTER: { label: "Pro", color: "bg-blue-100 text-blue-700" },
+  PROFESSIONAL: { label: "Pro", color: "bg-blue-100 text-blue-700" },
+  ENTERPRISE: { label: "Business", color: "bg-violet-100 text-violet-700" },
 };
 
 export function CommunityClient({ community }: Props) {

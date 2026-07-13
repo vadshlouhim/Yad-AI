@@ -65,6 +65,12 @@ const CATEGORY_META: Record<
 const OAUTH_MESSAGES: Record<string, { tone: "success" | "error"; text: string }> = {
   gmail_success: { tone: "success", text: "Gmail connecte avec succes." },
   gmail_cancelled: { tone: "error", text: "Connexion Gmail annulee." },
+  gmail_missing_env: { tone: "error", text: "La configuration Gmail est incomplète côté serveur." },
+  gmail_invalid_client: { tone: "error", text: "Le client OAuth Gmail est invalide : vérifiez que GMAIL_CLIENT_ID et GMAIL_CLIENT_SECRET proviennent du même client Google." },
+  gmail_invalid_grant: { tone: "error", text: "Le code Google a expiré ou n’est plus valide. Relancez la connexion Gmail." },
+  gmail_redirect_uri_mismatch: { tone: "error", text: "L’URL de redirection Gmail n’est pas autorisée dans Google Cloud." },
+  gmail_no_token: { tone: "error", text: "Google n’a renvoyé aucun jeton d’accès. Relancez la connexion Gmail." },
+  gmail_no_community: { tone: "error", text: "Aucune communauté n’est associée à votre compte." },
   gmail_error: { tone: "error", text: "Erreur lors de la connexion Gmail." },
 };
 
@@ -350,7 +356,7 @@ export function EmailClient({
       }
       if (event.data?.type === "gmail_oauth_error") {
         setIsConnecting(false);
-        setOauthNotice(OAUTH_MESSAGES.gmail_error);
+        setOauthNotice(OAUTH_MESSAGES[event.data.oauth] ?? OAUTH_MESSAGES.gmail_error);
       }
     }
 
@@ -478,8 +484,8 @@ export function EmailClient({
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
-      <div className="overflow-hidden rounded-3xl border border-cyan-800/60 bg-gradient-to-br from-[#081f36] via-[#0d304f] to-[#08192d] p-6 shadow-lg shadow-slate-950/35">
+    <div className="mx-auto w-full max-w-6xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6">
+      <div className="overflow-hidden rounded-2xl border border-cyan-800/60 bg-gradient-to-br from-[#081f36] via-[#0d304f] to-[#08192d] p-4 shadow-lg shadow-slate-950/35 sm:rounded-3xl sm:p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="max-w-3xl">
             <div className="mb-3 h-1.5 w-10 rounded-full bg-cyan-300" />
@@ -488,7 +494,7 @@ export function EmailClient({
               Classement intelligent, reponses assistees et alertes utiles, sans bruit.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
             {isClassifying && (
               <Badge className="border-cyan-200/30 bg-cyan-400/15 text-cyan-50">
                 Classement en cours
@@ -528,7 +534,7 @@ export function EmailClient({
       )}
 
       {!googleConnected ? (
-        <Card className="rounded-[28px] border border-slate-200/80 bg-white p-10 text-center shadow-[0_18px_45px_-30px_rgba(8,31,54,0.28)]">
+        <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 text-center shadow-[0_18px_45px_-30px_rgba(8,31,54,0.28)] sm:rounded-[28px] sm:p-10">
           <CardContent className="mx-auto max-w-md space-y-4 pt-4">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-cyan-50 text-cyan-600 shadow-inner">
               <Mail className="size-8" />
@@ -548,13 +554,13 @@ export function EmailClient({
         </Card>
       ) : (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <Button
                 variant="outline"
                 onClick={refreshEmails}
                 disabled={isLoadingEmails || isClassifying}
-                className="rounded-full border-slate-200"
+                className="w-full rounded-full border-slate-200 sm:w-auto"
               >
                 <RefreshCw className={cn("size-4", (isLoadingEmails || isClassifying) && "animate-spin")} />
                 {isLoadingEmails ? "Actualisation..." : "Classer les emails par IA"}
@@ -562,13 +568,13 @@ export function EmailClient({
               <Button
                 variant="outline"
                 onClick={() => openRuleModal()}
-                className="rounded-full border-cyan-200 bg-cyan-50 text-cyan-800 hover:bg-cyan-100"
+                className="w-full rounded-full border-cyan-200 bg-cyan-50 text-cyan-800 hover:bg-cyan-100 sm:w-auto"
               >
                 <Settings2 className="size-4" />
                 Configurer mes alertes email
               </Button>
             </div>
-            <Badge className="border-slate-200 bg-white text-slate-600">
+            <Badge className="w-fit border-slate-200 bg-white text-slate-600">
               Push navigateur : {pushPermission === "granted" ? "active" : pushPermission === "denied" ? "bloque" : "a autoriser"}
             </Badge>
           </div>
@@ -614,9 +620,9 @@ export function EmailClient({
             })}
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[0.95fr_1.25fr]">
-            <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-              <CardHeader className="space-y-4 border-b border-slate-100">
+          <div className="grid gap-4 lg:grid-cols-[0.95fr_1.25fr] lg:gap-6">
+            <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
+              <CardHeader className="space-y-4 border-b border-slate-100 p-4 sm:p-6">
                 <CardTitle className="text-base font-bold text-slate-900">Boite de reception</CardTitle>
                 <div className="relative">
                   <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
@@ -628,7 +634,7 @@ export function EmailClient({
                   />
                 </div>
               </CardHeader>
-              <CardContent className="max-h-[760px] overflow-y-auto p-0">
+              <CardContent className="max-h-[48vh] overflow-y-auto overscroll-contain p-0 lg:max-h-[760px]">
                 {filteredEmails.length === 0 ? (
                   <div className="p-8 text-center text-slate-400">
                     <Mail className="mx-auto mb-3 size-8 text-slate-300" />
@@ -663,7 +669,7 @@ export function EmailClient({
               </CardContent>
             </Card>
 
-            <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
               {selectedMail ? (
                 <>
                   <CardHeader className="border-b border-slate-100">
@@ -679,7 +685,7 @@ export function EmailClient({
                       </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-5 p-6">
+                  <CardContent className="space-y-5 p-4 sm:p-6">
                     <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                       <p className="whitespace-pre-line text-sm leading-6 text-slate-700">{selectedMail.body}</p>
                     </div>
@@ -737,11 +743,11 @@ export function EmailClient({
                           placeholder={`Reponse modifiable pour ${selectedMail.sender}...`}
                           className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                         />
-                        <div className="flex justify-end">
+                        <div className="flex justify-stretch sm:justify-end">
                           <Button
                             onClick={handleSendReply}
                             disabled={!replyText.trim() || isSending}
-                            className="rounded-2xl bg-cyan-700 text-white hover:bg-cyan-800"
+                            className="w-full rounded-2xl bg-cyan-700 text-white hover:bg-cyan-800 sm:w-auto"
                           >
                             {isSending ? <RefreshCw className="size-4 animate-spin" /> : <Send className="size-4" />}
                             {isSending ? "Envoi..." : "Envoyer apres validation"}
@@ -761,14 +767,14 @@ export function EmailClient({
           </div>
 
           <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-slate-100">
+            <CardHeader className="flex flex-col items-stretch gap-3 border-b border-slate-100 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle className="text-lg font-bold text-slate-950">Mes regles de notification</CardTitle>
               </div>
               <Button
                 variant="outline"
                 onClick={() => openRuleModal()}
-                className="rounded-full border-slate-200"
+                className="w-full rounded-full border-slate-200 sm:w-auto"
               >
                 <WandSparkles className="size-4" />
                 Configurer mes alertes email

@@ -3,19 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { StepIdentity } from "./steps/step-identity";
-import { StepEditorial } from "./steps/step-editorial";
-import { StepChannels } from "./steps/step-channels";
-import { StepRecurring } from "./steps/step-recurring";
+import { StepSocial } from "./steps/step-social";
+import { StepPlan } from "./steps/step-plan";
 import { WelcomeAnimation } from "./welcome-animation";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
-import type { BillingConfig } from "@/lib/billing";
 
 const STEPS = [
   { id: 0, label: "Identité", description: "Votre structure" },
-  { id: 1, label: "Style", description: "Ton & règles" },
-  { id: 2, label: "Canaux", description: "Où diffuser" },
-  { id: 3, label: "C'est parti !", description: "Automatisations" },
+  { id: 1, label: "Réseaux sociaux", description: "Connexion & automatisations" },
+  { id: 2, label: "C'est parti !", description: "Choisissez votre offre" },
 ];
 
 export interface OnboardingData {
@@ -33,21 +30,21 @@ export interface OnboardingData {
   address: string;
   logoUrl: string;
 
-  // Étape 2 - Style
+  // Style éditorial (non collecté à l'onboarding, réglable dans les Paramètres)
   tone: string;
   language: string;
   signature: string;
   hashtags: string[];
   editorialRules: string;
 
-  // Étape 3 - Canaux
+  // Étape 2 - Réseaux sociaux
   channels: Array<{
     type: string;
     name: string;
     handle: string;
   }>;
 
-  // Étape 4 - Automatisations
+  // Étape 2 - Automatisations
   recurringEvents: Array<{
     title: string;
     category: string;
@@ -57,16 +54,9 @@ export interface OnboardingData {
   selectedAutomationScenarioIds: string[];
   automationNotificationLeadHours: number;
   automationValidationMode: "manual" | "automatic";
-  billingChoice: "free" | "paid";
-}
 
-export interface OnboardingAutomationPreset {
-  id: string;
-  title: string;
-  description: string | null;
-  category: string;
-  icon: string | null;
-  clientTypes: string[];
+  // Étape 3 - Offre
+  billingChoice: "free" | "pro" | "business";
 }
 
 const defaultData: OnboardingData = {
@@ -107,7 +97,6 @@ export const demoOnboardingData: OnboardingData = {
   signature: "L'équipe Chlomi-test",
   hashtags: ["#ChlomiTest", "#DemoEasycom"],
   channels: [
-    { type: "WHATSAPP", name: "WhatsApp", handle: "" },
     { type: "EMAIL", name: "Email", handle: "" },
   ],
   recurringEvents: [
@@ -122,24 +111,21 @@ interface Props {
   communityId?: string;
   initialStep?: number;
   initialData?: Partial<OnboardingData>;
-  automationPresets?: OnboardingAutomationPreset[];
-  billingConfig?: BillingConfig;
   simulationMode?: boolean;
 }
 
 export function OnboardingWizard({
   userId,
   userName,
-  communityId,
+  communityId: initialCommunityId,
   initialStep = 0,
   initialData,
-  automationPresets = [],
-  billingConfig,
   simulationMode = false,
 }: Props) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(Math.min(initialStep, STEPS.length - 1));
   const [data, setData] = useState<OnboardingData>(() => ({ ...defaultData, ...initialData }));
+  const [communityId, setCommunityId] = useState<string | undefined>(initialCommunityId);
   const [saving, setSaving] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
 
@@ -153,6 +139,29 @@ export function OnboardingWizard({
 
   function goPrev() {
     setCurrentStep((s) => Math.max(s - 1, 0));
+  }
+
+  // Crée (ou met à jour) le brouillon de communauté dès la fin de l'étape Identité,
+  // pour que la connexion OAuth (étape suivante) ait un communityId auquel s'attacher.
+  async function handleIdentityContinue() {
+    if (simulationMode) {
+      goNext();
+      return;
+    }
+
+    const res = await fetch("/api/onboarding/draft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, data }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Erreur lors de l'enregistrement du brouillon");
+    }
+
+    const json = await res.json();
+    setCommunityId(json.communityId);
+    goNext();
   }
 
   async function finishOnboarding() {
@@ -174,11 +183,14 @@ export function OnboardingWizard({
 
       if (!res.ok) throw new Error("Erreur lors de la sauvegarde");
 
-      if (data.billingChoice === "paid") {
+      if (data.billingChoice !== "free") {
+        const tier = data.billingChoice === "business" ? "ENTERPRISE" : "PROFESSIONAL";
         const checkout = await fetch("/api/billing/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            tier,
+            applyLaunchOffer: false,
             successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
             cancelUrl: `${window.location.origin}/dashboard`,
           }),
@@ -197,8 +209,6 @@ export function OnboardingWizard({
     }
   }
 
-  const stepProps = { data, updateData, onNext: goNext, onPrev: goPrev };
-
   if (showWelcome) {
     return (
       <WelcomeAnimation
@@ -215,23 +225,25 @@ export function OnboardingWizard({
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-8 sm:py-12">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-sky-100 px-4 py-8 sm:py-12">
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center">
-        <div className="mb-8 w-full overflow-hidden rounded-[2rem] border border-slate-800/10 bg-slate-950 p-6 text-center text-white shadow-xl shadow-slate-300/40 sm:mb-10 sm:p-8">
-          <div className="mx-auto mb-5 h-1.5 w-24 rounded-full bg-gradient-to-r from-blue-500 via-violet-500 to-emerald-400" />
+        <div className="relative mb-8 w-full overflow-hidden rounded-[2rem] border border-blue-400/30 bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 p-6 text-center text-white shadow-xl shadow-blue-300/50 sm:mb-10 sm:p-8">
+          <div className="pointer-events-none absolute -right-16 -top-16 size-52 rounded-full bg-white/10 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-20 -left-12 size-48 rounded-full bg-cyan-300/20 blur-2xl" />
+          <div className="relative mx-auto mb-5 h-1.5 w-24 rounded-full bg-gradient-to-r from-white via-sky-200 to-cyan-200" />
           {simulationMode && (
-            <div className="mx-auto mb-4 inline-flex rounded-full border border-amber-300/50 bg-amber-300/10 px-3 py-1 text-xs font-bold text-amber-100">
+            <div className="relative mx-auto mb-4 inline-flex rounded-full border border-white/30 bg-white/15 px-3 py-1 text-xs font-bold text-white">
               Simulation UI - aucune donnée n&apos;est enregistrée
             </div>
           )}
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-200">
-            Bienvenue, {userName.split(" ")[0]}
+          <p className="relative text-xs font-bold uppercase tracking-[0.22em] text-blue-100">
+            Bienvenue chez EasyCom IA{userName ? `, ${userName.split(" ")[0]}` : ""}
           </p>
-          <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-4xl">
-            Configurez votre assistant IA personnel en quelques minutes
+          <h1 className="relative mt-3 text-2xl font-black tracking-tight sm:text-4xl">
+            Créons un espace qui vous ressemble
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-base">
-            Ces informations permettent à EasyCom IA de comprendre votre identité, votre ton et vos besoins pour personnaliser automatiquement vos contenus.
+          <p className="relative mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-blue-50 sm:text-base">
+            En quelques étapes, EasyCom IA apprend à connaître votre structure pour vous aider à créer des communications plus justes, plus simples et plus personnelles.
           </p>
         </div>
 
@@ -239,7 +251,7 @@ export function OnboardingWizard({
           <div className="relative flex min-w-[460px] items-center justify-between">
             <div className="absolute left-0 right-0 top-4 h-0.5 bg-slate-200 -z-0" />
             <div
-              className="absolute left-0 top-4 h-0.5 bg-gradient-to-r from-blue-600 via-violet-500 to-emerald-500 transition-all duration-500 -z-0"
+              className="absolute left-0 top-4 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-500 transition-all duration-500 -z-0"
               style={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
             />
 
@@ -279,20 +291,32 @@ export function OnboardingWizard({
         </div>
 
         <div className="w-full max-w-2xl animate-fade-in">
-          {currentStep === 0 && <StepIdentity {...stepProps} simulationMode={simulationMode} />}
-          {currentStep === 1 && <StepEditorial {...stepProps} />}
-          {currentStep === 2 && (
-            <StepChannels {...stepProps} communityId={communityId} simulationMode={simulationMode} />
+          {currentStep === 0 && (
+            <StepIdentity
+              data={data}
+              updateData={updateData}
+              onNext={handleIdentityContinue}
+              onPrev={goPrev}
+              simulationMode={simulationMode}
+            />
           )}
-          {currentStep === 3 && (
-            <StepRecurring
+          {currentStep === 1 && (
+            <StepSocial
+              data={data}
+              updateData={updateData}
+              onNext={goNext}
+              onPrev={goPrev}
+              communityId={communityId}
+              simulationMode={simulationMode}
+            />
+          )}
+          {currentStep === 2 && (
+            <StepPlan
               data={data}
               updateData={updateData}
               onPrev={goPrev}
               onFinish={finishOnboarding}
               saving={saving}
-              automationPresets={automationPresets}
-              billingConfig={billingConfig}
             />
           )}
         </div>

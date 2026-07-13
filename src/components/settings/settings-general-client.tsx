@@ -10,6 +10,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels";
 import { enablePushNotifications } from "@/lib/push/client";
+import { ContactsManager } from "@/components/settings/contacts-manager";
+import { PushNotificationsCard } from "@/components/settings/push-notifications-card";
 
 interface Community {
   id: string;
@@ -115,9 +117,9 @@ function getCommunityTypeChoice(value: string) {
 
 const PLAN_LABELS: Record<string, { label: string; color: string }> = {
   FREE_TRIAL: { label: "Gratuit", color: "bg-slate-100 text-slate-700" },
-  STARTER: { label: "Payant", color: "bg-purple-100 text-purple-700" },
-  PROFESSIONAL: { label: "Payant", color: "bg-purple-100 text-purple-700" },
-  ENTERPRISE: { label: "Payant", color: "bg-purple-100 text-purple-700" },
+  STARTER: { label: "Pro", color: "bg-blue-100 text-blue-700" },
+  PROFESSIONAL: { label: "Pro", color: "bg-blue-100 text-blue-700" },
+  ENTERPRISE: { label: "Business", color: "bg-purple-100 text-purple-700" },
 };
 
 export function SettingsGeneralClient({ community, profile, initialSection = "community" }: Props) {
@@ -183,7 +185,6 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
   const [googleEmailAddress, setGoogleEmailAddress] = useState("");
 
   useEffect(() => {
-    loadMembers();
     const storedMode = window.localStorage.getItem("easycom-assistant-experience");
     if (storedMode === "detailed") setAssistantMode("detailed");
     setGoogleConnected(window.localStorage.getItem("google_email_connected") === "true");
@@ -434,9 +435,9 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
     { id: "editorial" as const, label: "Identité éditoriale", icon: Palette },
     { id: "profile" as const, label: "Mon profil", icon: User },
   ];
-  const settingsCardClass = "rounded-[1.9rem] border border-slate-200/90 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)]";
-  const settingsHeaderClass = "border-b border-slate-100 pb-5";
-  const settingsContentClass = "space-y-5 p-6 sm:p-7";
+  const settingsCardClass = "rounded-2xl border border-slate-200/90 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] sm:rounded-[1.9rem]";
+  const settingsHeaderClass = "border-b border-slate-100 px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-6";
+  const settingsContentClass = "space-y-5 p-4 sm:p-7";
 
   return (
     <div className="space-y-6">
@@ -480,15 +481,15 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
         )}
       </div>
 
-      <div className="flex gap-6">
-        {/* Nav latérale */}
-        <nav className="w-48 flex-shrink-0 space-y-1">
+      <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
+        {/* Onglets horizontaux sur mobile, navigation latérale sur bureau */}
+        <nav className="-mx-4 flex w-[calc(100%+2rem)] gap-2 overflow-x-auto border-y border-slate-200 bg-white px-4 py-3 overscroll-x-contain sm:-mx-6 sm:w-[calc(100%+3rem)] sm:px-6 lg:mx-0 lg:w-48 lg:shrink-0 lg:flex-col lg:space-y-1 lg:overflow-visible lg:border-0 lg:bg-transparent lg:p-0">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveSection(item.id)}
               className={cn(
-                "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left",
+                "flex shrink-0 items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors lg:w-full",
                 activeSection === item.id
                   ? "bg-emerald-600 text-white"
                   : "text-slate-600 hover:bg-emerald-50 hover:text-emerald-800"
@@ -500,7 +501,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
           ))}
           <Link
             href="/dashboard/settings/channels"
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left text-slate-600 hover:bg-slate-100"
+            className="flex shrink-0 items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 lg:w-full"
           >
             <Share2 className="size-4" />
             Réseaux sociaux
@@ -508,7 +509,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
         </nav>
 
         {/* Contenu */}
-        <div className="flex-1 space-y-4">
+        <div className="min-w-0 flex-1 space-y-4">
           {activeSection === "interface" && (
             <Card className={settingsCardClass}>
               <CardHeader className={settingsHeaderClass}>
@@ -666,7 +667,8 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
             </Card>
           )}
 
-          {activeSection === "contacts" && (
+          {activeSection === "contacts" && <ContactsManager />}
+          {false && (
             <Card className={settingsCardClass}>
               <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
@@ -1049,6 +1051,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                 </div>
 
                 <div className="border-t border-slate-200 pt-4 space-y-4">
+                  <PushNotificationsCard />
                   <div className="space-y-1">
                     <h3 className="text-sm font-semibold text-slate-900">Connexion Google</h3>
                     <p className="text-sm text-slate-500">

@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { renderTemplatePoster } from "@/lib/templates/render";
-import { FREE_LIMITS, getBillingGate, getBillingUsage, paywallResponse } from "@/lib/billing";
+import { FREE_POSTER_LIMIT, getBillingGate, getBillingUsage, paywallResponse } from "@/lib/billing";
 
 export async function POST(request: Request) {
   try {
@@ -43,8 +43,8 @@ export async function POST(request: Request) {
 
     const gate = await getBillingGate(admin, user.id);
     if (!gate.isPaid) {
-      const usage = await getBillingUsage(admin, profile.communityId);
-      if (usage.posterGenerations >= FREE_LIMITS.posterGenerations) {
+      const usage = await getBillingUsage(admin, profile.communityId, gate.tier);
+      if (usage.posterGenerations >= FREE_POSTER_LIMIT) {
         return paywallResponse(
           "poster_generations",
           "Le mode gratuit permet de modifier une seule affiche. Passez au mode payant pour personnaliser toutes les affiches.",

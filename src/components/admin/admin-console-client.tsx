@@ -37,7 +37,8 @@ import Link from "next/link";
 import type { PointerEvent } from "react";
 import { useMemo, useState } from "react";
 import { OnboardingWizard, demoOnboardingData } from "@/components/onboarding/onboarding-wizard";
-import type { BillingConfig } from "@/lib/billing";
+import type { BillingConfig, PlanTier } from "@/lib/billing";
+import { planToTier, tierLabel } from "@/lib/billing";
 
 interface AdminMetrics {
   userCount: number;
@@ -122,7 +123,6 @@ interface AdminUser {
   communityCity?: string | null;
   communityPlan?: string | null;
   planExpiresAt?: string | null;
-  adminBillingMode?: "FREE" | "PAID" | "TEST";
   adminBillingSince?: string | null;
   subscription?: {
     id: string;
@@ -290,10 +290,10 @@ const COMMUNITY_PROFILE_OPTIONS = [
   { value: "CENTER", label: "Centre" },
   { value: "OTHER", label: "Autre profil" },
 ];
-const USER_BILLING_MODES = [
-  { value: "FREE", label: "Version gratuite", helper: "Limites gratuites actives" },
-  { value: "PAID", label: "Version payante", helper: "Accès complet avec abonnement manuel" },
-  { value: "TEST", label: "Version test", helper: "Accès complet activé par le Super Admin" },
+const USER_PLAN_TIERS: Array<{ value: PlanTier; label: string; helper: string }> = [
+  { value: "FREE", label: "Gratuit", helper: "Limites de l'offre gratuite" },
+  { value: "PRO", label: "Pro", helper: "WhatsApp, 3 automatisations et 50 messages IA / mois" },
+  { value: "BUSINESS", label: "Business", helper: "Droits Business, emails, avis Google et messages IA illimités" },
 ] as const;
 const ADMIN_AUTOMATION_PRESETS = [
   { key: "WEEKLY_SHABBAT", logo: "🕯️", name: "Horaires de Chabbat", description: "Prépare les horaires chaque semaine.", trigger: "WEEKLY_SHABBAT" },
@@ -1145,13 +1145,13 @@ export function AdminConsoleClient({ metrics, templates, communities, users, con
     window.location.reload();
   }
 
-  async function saveUserBilling(user: AdminUser, mode: "FREE" | "PAID" | "TEST", startedAt: string) {
+  async function saveUserBilling(user: AdminUser, planTier: PlanTier, startedAt: string) {
     setSavingUserBillingId(user.id);
     setStatus(null);
     const response = await fetch(`/api/admin/users/${user.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ billingMode: mode, subscriptionStartedAt: startedAt }),
+      body: JSON.stringify({ planTier, subscriptionStartedAt: startedAt }),
     });
     const payload = await response.json().catch(() => ({}));
     setSavingUserBillingId(null);
@@ -2328,8 +2328,8 @@ export function AdminConsoleClient({ metrics, templates, communities, users, con
                 <div className="mt-5 space-y-3">
                   {users.map((user) => {
                     const community = communities.find((community) => community.id === user.communityId);
-                    const billingMode = user.adminBillingMode ?? (user.communityPlan === "FREE_TRIAL" ? "FREE" : "PAID");
-                    const billingModeMeta = USER_BILLING_MODES.find((item) => item.value === billingMode) ?? USER_BILLING_MODES[0];
+                    const planTier = planToTier(user.communityPlan);
+                    const planTierMeta = USER_PLAN_TIERS.find((item) => item.value === planTier) ?? USER_PLAN_TIERS[0];
                     const billingSince = user.adminBillingSince
                       ? new Date(user.adminBillingSince).toISOString().slice(0, 10)
                       : formatDateInput(new Date());
@@ -2342,13 +2342,13 @@ export function AdminConsoleClient({ metrics, templates, communities, users, con
                               {user.role}
                             </span>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                              billingMode === "TEST"
+                              planTier === "BUSINESS"
                                 ? "bg-violet-500/15 text-violet-600"
-                                : billingMode === "PAID"
+                                : planTier === "PRO"
                                   ? "bg-emerald-500/15 text-emerald-600"
                                   : "bg-slate-500/15 text-slate-500"
                             }`}>
-                              {billingModeMeta.label}
+                              {planTierMeta.label}
                             </span>
                           </div>
                           <p className={`mt-0.5 text-sm ${mutedText}`}>{user.email}</p>
@@ -2380,22 +2380,22 @@ export function AdminConsoleClient({ metrics, templates, communities, users, con
                             onSubmit={(event) => {
                               event.preventDefault();
                               const formData = new FormData(event.currentTarget);
-                              const mode = String(formData.get("billingMode")) as "FREE" | "PAID" | "TEST";
+                              const planTier = String(formData.get("planTier")) as PlanTier;
                               const startedAt = String(formData.get("subscriptionStartedAt") ?? "");
-                              void saveUserBilling(user, mode, startedAt);
+                              void saveUserBilling(user, planTier, startedAt);
                             }}
                           >
                             <div className="grid gap-3 sm:grid-cols-2">
                               <label className={`text-xs font-black uppercase tracking-[0.14em] ${mutedText}`}>
-                                Version
+                                Offre et permissions
                                 <select
-                                  name="billingMode"
-                                  defaultValue={billingMode}
+                                  name="planTier"
+                                  defaultValue={planTier}
                                   disabled={!user.communityId || savingUserBillingId === user.id}
                                   className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm font-semibold normal-case tracking-normal outline-none ${inputClass}`}
                                 >
-                                  {USER_BILLING_MODES.map((mode) => (
-                                    <option key={mode.value} value={mode.value}>{mode.label}</option>
+                                  {USER_PLAN_TIERS.map((tier) => (
+                                    <option key={tier.value} value={tier.value}>{tier.label}</option>
                                   ))}
                                 </select>
                               </label>
@@ -2411,7 +2411,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, con
                               </label>
                             </div>
                             <p className={`text-xs ${mutedText}`}>
-                              La version test donne accès à tout, sans paiement Stripe, et reste marquée comme test dans l&apos;admin.
+                              Le choix met immédiatement à jour le plan de la communauté et les permissions associées. {tierLabel(planTier)} : {planTierMeta.helper}.
                             </p>
                             <div className="flex flex-wrap justify-end gap-2">
                               <button

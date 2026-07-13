@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { COMMUNITY_SETTINGS_FIELDS } from "@/lib/community/settings-fields";
 
 export async function PATCH(request: Request) {
   const supabase = await createClient();
@@ -21,15 +22,8 @@ export async function PATCH(request: Request) {
 
   const body = await request.json();
 
-  const allowed = [
-    "name", "description", "city", "country", "timezone",
-    "phone", "email", "website", "address", "postalCode",
-    "tone", "language", "signature", "hashtags", "mentions",
-    "editorialRules", "logoUrl", "coverUrl", "vocabulary",
-  ];
-
   const data: Record<string, unknown> = { updatedAt: new Date().toISOString() };
-  for (const key of allowed) {
+  for (const key of COMMUNITY_SETTINGS_FIELDS) {
     if (key in body) data[key] = body[key];
   }
 

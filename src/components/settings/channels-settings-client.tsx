@@ -140,50 +140,54 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
 
   const connectedCount = CHANNEL_ORDER.filter((type) => isChannelConnected(channelMap[type])).length;
 
+  // Écoute le popup OAuth (Meta ou Gmail) : met à jour l'URL (pour le bandeau de résultat
+  // existant, dérivé de `?oauth=`) puis rafraîchit les données serveur (canaux connectés).
   useEffect(() => {
-    function handleOAuthMessage(event: MessageEvent) {
+    function handleMessage(event: MessageEvent) {
       if (event.origin !== window.location.origin) return;
-      if (event.data?.type !== "meta_oauth_success" && event.data?.type !== "meta_oauth_error") return;
-
-      setOauthPopupProvider(null);
-      const nextUrl = new URL(window.location.href);
-      nextUrl.searchParams.set("oauth", event.data.oauth ?? "error");
-      if (event.data.provider) nextUrl.searchParams.set("provider", event.data.provider);
-      router.replace(`${nextUrl.pathname}${nextUrl.search}`);
-      router.refresh();
+      const { type, provider, oauth } = (event.data ?? {}) as { type?: string; provider?: string; oauth?: string };
+      if (type !== "meta_oauth_success" && type !== "meta_oauth_error" && type !== "gmail_oauth_success" && type !== "gmail_oauth_error") {
+        return;
+      }
+      const params = new URLSearchParams(window.location.search);
+      params.set("oauth", oauth ?? (type.endsWith("success") ? "success" : "error"));
+      if (provider) params.set("provider", provider);
+      router.replace(`${window.location.pathname}?${params.toString()}`);
+      if (type.endsWith("success")) router.refresh();
     }
-
-    window.addEventListener("message", handleOAuthMessage);
-    return () => window.removeEventListener("message", handleOAuthMessage);
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
   }, [router]);
 
-  function connectOAuth(type: string) {
-    const provider = type.toLowerCase();
-    setOauthPopupProvider(type);
-
-    const authUrl = new URL(`/api/auth/oauth/${provider}`, window.location.origin);
-    authUrl.searchParams.set("communityId", communityId);
-    authUrl.searchParams.set("returnTo", "meta_popup");
-
+  function openOAuthPopup(url: URL, name: string, fallbackUrl: URL) {
     const popup = window.open(
-      authUrl.toString(),
-      `meta_oauth_${provider}`,
-      "width=560,height=720,left=220,top=80,toolbar=0,menubar=0,location=0"
+      url.toString(),
+      name,
+      "width=520,height=660,left=200,top=100,toolbar=0,menubar=0,location=0"
     );
-
     if (!popup) {
-      setOauthPopupProvider(null);
-      window.location.href = authUrl.toString();
-      return;
+      window.location.href = fallbackUrl.toString();
     }
+  }
 
-    const timer = window.setInterval(() => {
-      if (popup.closed) {
-        window.clearInterval(timer);
-        setOauthPopupProvider(null);
-        router.refresh();
-      }
-    }, 700);
+  function connectOAuth(type: string) {
+    const popupUrl = new URL(`/api/auth/oauth/${type.toLowerCase()}`, window.location.origin);
+    popupUrl.searchParams.set("communityId", communityId);
+    popupUrl.searchParams.set("returnTo", "settings_popup");
+    const fallbackUrl = new URL(`/api/auth/oauth/${type.toLowerCase()}`, window.location.origin);
+    fallbackUrl.searchParams.set("communityId", communityId);
+    fallbackUrl.searchParams.set("returnTo", "settings");
+    openOAuthPopup(popupUrl, `${type.toLowerCase()}_oauth`, fallbackUrl);
+  }
+
+  function connectGmail() {
+    const popupUrl = new URL("/api/email/gmail/auth", window.location.origin);
+    popupUrl.searchParams.set("communityId", communityId);
+    popupUrl.searchParams.set("returnTo", "settings_gmail_popup");
+    const fallbackUrl = new URL("/api/email/gmail/auth", window.location.origin);
+    fallbackUrl.searchParams.set("communityId", communityId);
+    fallbackUrl.searchParams.set("returnTo", "settings");
+    openOAuthPopup(popupUrl, "gmail_oauth", fallbackUrl);
   }
 
   async function saveManualChannel(type: string) {
@@ -528,7 +532,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                           </div>
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => window.location.href = `/api/email/gmail/auth?communityId=${communityId}`}
+                              onClick={connectGmail}
                               className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
                             >
                               Reconnecter
@@ -547,7 +551,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                         </div>
                       ) : (
                         <button
-                          onClick={() => window.location.href = `/api/email/gmail/auth?communityId=${communityId}`}
+                          onClick={connectGmail}
                           className="flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 bg-gradient-to-r from-red-500 to-orange-400"
                         >
                           <img src="/logo/gmail-svgrepo-com.svg" alt="Gmail" className="w-5 h-5 object-contain brightness-0 invert" />

@@ -14,6 +14,8 @@ export interface ShabbatTimes {
   havdalah: string;       // Havdalah
 }
 
+export type UpcomingShabbatTimes = ShabbatTimes;
+
 export interface JewishHoliday {
   date: string;
   hebrewDate: string;
@@ -131,6 +133,101 @@ export async function getShabbatTimes(params: {
   } catch (error) {
     console.error("[Hebcal] Erreur getShabbatTimes:", error);
     return null;
+  }
+}
+
+/**
+ * Charge les prochains horaires de Chabbat directement depuis l'API REST Hebcal.
+ * La source locale peut ensuite servir de secours, mais les heures affichées restent
+ * ainsi à jour pour la ville configurée par la communauté.
+ */
+export async function getUpcomingShabbatTimes(params: {
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  timezone?: string;
+  date?: Date;
+  count?: number;
+}): Promise<UpcomingShabbatTimes[]> {
+  try {
+    const { city, latitude, longitude, timezone = "Europe/Paris", date = new Date(), count = 8 } = params;
+    const friday = getNextFriday(date);
+    const end = new Date(friday);
+    end.setDate(end.getDate() + Math.max(count * 8, 14));
+
+    const searchParams = new URLSearchParams({
+      v: "1",
+      cfg: "json",
+      maj: "off",
+      min: "off",
+      mod: "off",
+      nx: "off",
+      ss: "on",
+      c: "on",
+      s: "on",
+      b: "18",
+      m: HAVDALAH_MINUTES.toString(),
+      i: "off",
+      lg: "fr",
+      start: friday.toISOString().slice(0, 10),
+      end: end.toISOString().slice(0, 10),
+    });
+
+    if (latitude && longitude) {
+      searchParams.set("geo", "pos");
+      searchParams.set("latitude", latitude.toString());
+      searchParams.set("longitude", longitude.toString());
+      searchParams.set("tzid", timezone);
+    } else {
+      searchParams.set("geo", "city");
+      searchParams.set("city", getCityGeoId(city ?? "Paris"));
+    }
+
+    const response = await fetch(`${HEBCAL_API}?${searchParams.toString()}`, {
+      next: { revalidate: 3600 },
+    });
+    if (!response.ok) return [];
+
+    const data = await response.json() as {
+      items?: Array<{ category?: string; date?: string; title?: string; hdate?: string }>;
+    };
+    const entries = new Map<string, { candleLighting?: string; havdalah?: string; parasha?: string; hebrewDate?: string }>();
+    const getEntry = (key: string) => {
+      const current = entries.get(key) ?? {};
+      entries.set(key, current);
+      return current;
+    };
+
+    for (const item of data.items ?? []) {
+      if (!item.date) continue;
+      const itemDate = item.date.slice(0, 10);
+      // Havdalah et paracha sont datées du samedi ; elles appartiennent au vendredi précédent.
+      const shabbatDate = item.category === "candles" ? itemDate : previousDay(itemDate);
+      const entry = getEntry(shabbatDate);
+      if (item.category === "candles") entry.candleLighting = formatTime(item.date, timezone);
+      if (item.category === "havdalah") entry.havdalah = formatTime(item.date, timezone);
+      if (item.category === "parashat") {
+        entry.parasha = item.title;
+        entry.hebrewDate = item.hdate;
+      }
+    }
+
+    return Array.from(entries.entries())
+      .filter(([, entry]) => Boolean(entry.candleLighting))
+      .sort(([left], [right]) => left.localeCompare(right))
+      .slice(0, count)
+      .map(([dateKey, entry]) => ({
+        date: dateKey,
+        hebrewDate: entry.hebrewDate ?? "",
+        parasha: entry.parasha ?? "",
+        entry: entry.candleLighting ?? "",
+        exit: entry.havdalah ?? "",
+        candleLighting: entry.candleLighting ?? "",
+        havdalah: entry.havdalah ?? "",
+      }));
+  } catch (error) {
+    console.error("[Hebcal] Erreur getUpcomingShabbatTimes:", error);
+    return [];
   }
 }
 
@@ -336,13 +433,19 @@ function getNextFriday(from: Date): Date {
   return date;
 }
 
-function formatTime(isoDateTime: string): string {
+function formatTime(isoDateTime: string, timezone = "Europe/Paris"): string {
   const date = new Date(isoDateTime);
   return date.toLocaleTimeString("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "Europe/Paris",
+    timeZone: timezone,
   });
+}
+
+function previousDay(date: string) {
+  const value = new Date(`${date}T12:00:00Z`);
+  value.setUTCDate(value.getUTCDate() - 1);
+  return value.toISOString().slice(0, 10);
 }
 
 function getCityGeoId(city: string): string {

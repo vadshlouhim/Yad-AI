@@ -1,20 +1,12 @@
 ﻿import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { EventsClient } from "@/components/events/events-client";
-import { getShabbatTimes, getJewishHolidays } from "@/lib/automation/hebcal";
+import { getJewishHolidays, getUpcomingShabbatTimes } from "@/lib/automation/hebcal";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Mon Agenda IA - EasyCom IA" };
 
 const EVENT_STATUSES = ["DRAFT", "READY", "SCHEDULED", "PUBLISHED", "COMPLETED", "ARCHIVED"];
-
-type ShabbatScheduleItem = {
-  gregorian_date: string;
-  hebrew_date?: string | null;
-  parasha?: string | null;
-  shabbat_entry_time?: string | null;
-  shabbat_exit_time?: string | null;
-};
 
 function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -104,61 +96,24 @@ export default async function EventsPage({
 
   const city = community?.city ?? "Paris";
   const timezone = community?.timezone && community.timezone !== "UTC" ? community.timezone : "Europe/Paris";
-  const calendarYears = [now.getFullYear(), now.getFullYear() + 1];
   const isBethHabad = community?.communityType === "SYNAGOGUE" || community?.religiousStream === "BETH_HABAD";
 
-  // Données Chabbat depuis la BDD
-  const shabbatRows = isBethHabad ? await (async () => {
-    const rows: ShabbatScheduleItem[] = [];
-    for (const year of calendarYears) {
-      const primaryToken = city.split(/[\s,'-]+/).find((t: string) => t.trim().length >= 3)?.trim() ?? city;
-      const { data } = await admin
-        .from("FranceCityShabbatSchedule")
-        .select("shabbat_schedule")
-        .eq("year", year)
-        .ilike("city_name", `%${primaryToken}%`)
-        .limit(1)
-        .maybeSingle();
-      if (data?.shabbat_schedule && Array.isArray(data.shabbat_schedule)) {
-        rows.push(...(data.shabbat_schedule as ShabbatScheduleItem[]));
-      }
-    }
-    return rows;
-  })() : [];
-
-  // Prochains Chabbats (8 max)
-  let shabbatItems = shabbatRows
-    .filter((s) => new Date(`${s.gregorian_date}T00:00:00`) >= startOfDay(now))
-    .sort((a, b) => a.gregorian_date.localeCompare(b.gregorian_date))
-    .slice(0, 8)
-    .map((s) => ({
-      date: s.gregorian_date,
-      hebrewDate: s.hebrew_date ?? null,
-      parasha: s.parasha ?? null,
-      entry: s.shabbat_entry_time ?? null,
-      exit: s.shabbat_exit_time ?? null,
-    }));
-
-  // Fallback API si pas de BDD
-  if (isBethHabad && !shabbatItems.length) {
-    const live = await getShabbatTimes({ city, timezone });
-    if (live) {
-      shabbatItems = [{
-        date: live.date,
-        hebrewDate: live.hebrewDate ?? null,
-        parasha: live.parasha ?? null,
-        entry: live.entry ?? null,
-        exit: live.exit ?? null,
-      }];
-    }
-  }
+  const shabbatItems = isBethHabad
+    ? (await getUpcomingShabbatTimes({ city, timezone, count: 8 })).map((item) => ({
+        date: item.date,
+        hebrewDate: item.hebrewDate || null,
+        parasha: item.parasha || null,
+        entry: item.entry || null,
+        exit: item.exit || null,
+      }))
+    : [];
 
   // Fêtes depuis la BDD
   const { data: holidayRows } = isBethHabad ? await admin
     .from("HebrewCalendarReference")
     .select("gregorian_date, hebrew_date, holiday_name, holiday_name_hebrew")
     .eq("entry_type", "HOLIDAY")
-    .in("calendar_year", calendarYears)
+    .in("calendar_year", [now.getFullYear(), now.getFullYear() + 1])
     .gte("gregorian_date", now.toISOString().slice(0, 10))
     .order("gregorian_date", { ascending: true })
     .limit(20) : { data: [] };

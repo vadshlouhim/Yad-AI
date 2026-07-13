@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { BookOpen, CheckCircle2, CreditCard, LogIn, Menu, MessageCircle, X } from "lucide-react";
@@ -15,6 +15,40 @@ const NAV_LINKS = [
 
 export function PublicNavbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const scrollY = window.scrollY;
+    const previous = {
+      bodyOverflow: document.body.style.overflow,
+      bodyPosition: document.body.style.position,
+      bodyTop: document.body.style.top,
+      bodyWidth: document.body.style.width,
+      htmlOverflow: document.documentElement.style.overflow,
+    };
+
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    document.documentElement.style.overflow = "hidden";
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = previous.bodyOverflow;
+      document.body.style.position = previous.bodyPosition;
+      document.body.style.top = previous.bodyTop;
+      document.body.style.width = previous.bodyWidth;
+      document.documentElement.style.overflow = previous.htmlOverflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, [menuOpen]);
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur">
@@ -50,32 +84,39 @@ export function PublicNavbar() {
         <div className="flex shrink-0 items-center gap-2">
           <Link
             href="/auth/login"
-            className="hidden h-10 items-center justify-center rounded-full bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 min-[390px]:inline-flex"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-blue-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-100"
+            aria-label="Se connecter"
+            title="Se connecter"
           >
-            <LogIn className="mr-2 size-4" />
-            Essayer maintenant
+            <LogIn className="size-4" />
           </Link>
 
           <button
             type="button"
-            onClick={() => setMenuOpen(true)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700 md:hidden"
-            aria-label="Ouvrir le menu"
+            onClick={() => setMenuOpen((open) => !open)}
+            className="relative z-[100] inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700 md:hidden"
+            aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            aria-expanded={menuOpen}
           >
-            <Menu className="size-5" />
+            {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
         </div>
       </div>
 
       {menuOpen ? (
         <>
-          <button
-            type="button"
-            className="fixed inset-0 z-40 bg-slate-950/45 md:hidden"
+            <button
+              type="button"
+            className="fixed inset-0 z-[80] bg-slate-950/45 backdrop-blur-[1px] md:hidden"
             aria-label="Fermer le menu"
             onClick={() => setMenuOpen(false)}
           />
-          <div className="fixed inset-y-0 right-0 z-50 flex w-[86vw] max-w-sm flex-col border-l border-slate-200 bg-white shadow-2xl md:hidden">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu de navigation"
+            className="fixed inset-y-0 right-0 z-[90] flex w-[86vw] max-w-sm flex-col border-l border-slate-200 bg-white shadow-2xl md:hidden"
+          >
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4">
               <div className="flex items-center gap-3">
                 <Image src="/easycom-ai-logo.png" alt="Logo EasyCom IA" width={38} height={38} className="rounded-xl border border-slate-200 bg-white p-1" />
@@ -94,7 +135,7 @@ export function PublicNavbar() {
               </button>
             </div>
 
-            <nav className="flex-1 space-y-3 overflow-y-auto bg-slate-50 px-4 py-5">
+            <nav className="flex-1 space-y-3 overflow-y-auto overscroll-contain bg-slate-50 px-4 py-5">
               {NAV_LINKS.map((link) => {
                 const Icon = link.icon;
                 return (

@@ -49,6 +49,8 @@ export async function GET(request: Request) {
       ? new URL('/onboarding', appOrigin)
       : returnTo === 'email_popup'
       ? new URL('/dashboard/email/oauth-done', appOrigin)
+      : returnTo === 'settings_gmail_popup'
+      ? new URL('/dashboard/settings/channels/oauth-done', appOrigin)
       : settingsUrl;
 
   // Accès refusé par l'utilisateur

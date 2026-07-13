@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendCommunityEmail } from "@/lib/email/send-community-email";
+import { assertTierFeature } from "@/lib/billing";
 
 export async function POST(request: Request) {
   try {
@@ -19,6 +20,15 @@ export async function POST(request: Request) {
     if (!profile?.communityId) {
       return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
     }
+
+    const tierCheck = await assertTierFeature(
+      admin,
+      user.id,
+      "BUSINESS",
+      "email_management",
+      "La gestion des emails est réservée à l'offre Business."
+    );
+    if (!tierCheck.ok) return tierCheck.response;
 
     const { to, subject, bodyText } = await request.json();
     if (!to || !subject || !bodyText) {

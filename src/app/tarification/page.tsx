@@ -13,23 +13,13 @@ import {
 } from "lucide-react";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicNavbar } from "@/components/layout/public-navbar";
-import {
-  DEFAULT_BILLING_CONFIG,
-  FREE_LIMITS,
-  formatEuroCents,
-  isLaunchOfferActive,
-} from "@/lib/billing";
 
 export const metadata: Metadata = {
-  title: "Tarification EasyCom IA - Offre de lancement et abonnement",
+  title: "Tarification EasyCom IA - Gratuit, Pro et Business",
   description:
-    "Découvrez la tarification EasyCom IA : essai gratuit, offre de lancement, abonnement mensuel et accompagnement pour centraliser votre communication avec l'IA.",
+    "Découvrez la tarification EasyCom IA : essai gratuit, offre Pro et offre Business pour centraliser votre communication avec l'IA.",
   alternates: { canonical: "/tarification" },
 };
-
-const config = DEFAULT_BILLING_CONFIG;
-const launchIsActive = isLaunchOfferActive(config);
-const activePrice = launchIsActive ? config.launchPriceCents : config.basePriceCents;
 
 const INCLUDED_FEATURES = [
   "Assistant IA pour rédiger, adapter et améliorer vos messages",
@@ -41,10 +31,30 @@ const INCLUDED_FEATURES = [
 ];
 
 const TRIAL_ITEMS = [
-  `${FREE_LIMITS.assistantMessages} messages assistant IA inclus`,
-  `${FREE_LIMITS.posterGenerations} génération d'affiche incluse`,
-  `${FREE_LIMITS.automations} automatisation active incluse`,
-  `${FREE_LIMITS.socialPublications} publication sociale incluse`,
+  "Tableau de bord et aperçu",
+  "5 publications sociales manuelles / mois",
+  "0 automatisation IA",
+  "20 messages Agent IA",
+  "WhatsApp bloqué",
+  "Affiches limitées",
+];
+
+const PRO_ITEMS = [
+  "WhatsApp débloqué",
+  "Affiches illimitées",
+  "20 publications sociales / mois",
+  "3 automatisations IA",
+  "50 messages Agent IA",
+];
+
+const BUSINESS_ITEMS = [
+  "WhatsApp débloqué",
+  "Affiches illimitées",
+  "50 publications sociales / mois",
+  "5 automatisations IA",
+  "Messages Agent IA illimités",
+  "Gestion des emails",
+  "Gestion des avis Google",
 ];
 
 const FAQ_ITEMS = [
@@ -54,9 +64,9 @@ const FAQ_ITEMS = [
       "Oui. L'essai permet de tester les fonctionnalités principales avant de passer sur l'offre complète.",
   },
   {
-    question: "L'offre de lancement est-elle limitée dans le temps ?",
+    question: "Puis-je changer d'offre à tout moment ?",
     answer:
-      "Oui. Elle est prévue jusqu'à la date indiquée dans les paramètres de facturation, puis le tarif standard s'applique aux nouveaux abonnements.",
+      "Oui. Vous pouvez passer de Gratuit à Pro ou Business, ou changer d'offre, à tout moment depuis la facturation.",
   },
   {
     question: "Puis-je me faire accompagner pour configurer mon espace ?",
@@ -74,24 +84,24 @@ export default function PricingPage() {
         <div className="absolute right-[-8rem] top-10 h-72 w-72 rounded-full bg-blue-200/40 blur-3xl" />
         <div className="absolute bottom-[-8rem] left-[-5rem] h-72 w-72 rounded-full bg-emerald-200/35 blur-3xl" />
 
-        <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-          <div>
+        <div className="relative mx-auto max-w-7xl">
+          <div className="mx-auto max-w-3xl text-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-black text-blue-700 shadow-sm">
               <CreditCard className="size-4" />
               Tarification simple et transparente
             </div>
 
-            <h1 className="mt-6 max-w-4xl text-[clamp(2.25rem,7vw,4.5rem)] font-black leading-[1.02] tracking-tight text-slate-950">
+            <h1 className="mx-auto mt-6 max-w-4xl text-[clamp(2.25rem,7vw,4.5rem)] font-black leading-[1.02] tracking-tight text-slate-950">
               Un abonnement pour centraliser toute votre{" "}
               <span className="text-blue-600">communication IA</span>
             </h1>
 
-            <p className="mt-6 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
+            <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
               Essayez EasyCom IA, gardez vos messages, publications, avis et automatisations dans un même espace,
-              puis passez à l&apos;offre complète quand vous voulez accélérer.
+              puis passez à l&apos;offre supérieure quand vous voulez accélérer.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Link
                 href="/auth/register"
                 className="inline-flex h-12 items-center justify-center rounded-full bg-blue-600 px-6 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700"
@@ -108,12 +118,12 @@ export default function PricingPage() {
             </div>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-2">
+          <div className="mt-12 grid gap-5 md:grid-cols-3">
             <article className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/70">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
                 <Clock3 className="size-6" />
               </div>
-              <h2 className="mt-5 text-2xl font-black">Essai gratuit</h2>
+              <h2 className="mt-5 text-2xl font-black">Gratuit</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 Idéal pour découvrir l&apos;assistant et vérifier que l&apos;outil correspond à votre quotidien.
               </p>
@@ -138,24 +148,60 @@ export default function PricingPage() {
                   <Sparkles className="size-3.5" />
                   Offre recommandée
                 </div>
-                <h2 className="mt-5 text-2xl font-black">EasyCom IA Pro</h2>
+                <h2 className="mt-5 text-2xl font-black">Pro</h2>
                 <p className="mt-2 text-sm leading-6 text-blue-50">
                   Pour utiliser EasyCom IA au quotidien avec les fonctionnalités avancées et les automatisations.
                 </p>
                 <div className="mt-6">
-                  <span className="text-5xl font-black">{formatEuroCents(activePrice)}</span>
-                  <span className="ml-2 text-sm font-bold text-blue-100">/ mois HT</span>
+                  <span className="text-5xl font-black">29,99 €</span>
+                  <span className="ml-2 text-sm font-bold text-blue-100">/ mois</span>
                 </div>
-                {launchIsActive ? (
-                  <p className="mt-3 text-sm font-bold text-blue-50">
-                    Prix standard : {formatEuroCents(config.basePriceCents)} / mois HT.
-                  </p>
-                ) : null}
+                <div className="mt-6 grid gap-3">
+                  {PRO_ITEMS.map((item) => (
+                    <p key={item} className="flex items-start gap-3 text-sm font-semibold text-blue-50">
+                      <Check className="mt-0.5 size-4 shrink-0 text-white" />
+                      {item}
+                    </p>
+                  ))}
+                </div>
                 <Link
                   href="/auth/register"
                   className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-full bg-white px-5 text-sm font-black text-blue-700 transition hover:bg-blue-50"
                 >
-                  Activer l&apos;offre
+                  Activer l&apos;offre Pro
+                  <ArrowRight className="ml-2 size-4" />
+                </Link>
+              </div>
+            </article>
+
+            <article className="relative overflow-hidden rounded-[2rem] border border-violet-200 bg-slate-950 p-6 text-white shadow-xl shadow-slate-900/25">
+              <div className="absolute right-[-3rem] top-[-3rem] h-36 w-36 rounded-full bg-violet-500/25 blur-2xl" />
+              <div className="relative">
+                <div className="inline-flex items-center gap-2 rounded-full bg-violet-500/20 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-violet-200">
+                  <Sparkles className="size-3.5" />
+                  Pour aller plus loin
+                </div>
+                <h2 className="mt-5 text-2xl font-black">Business</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-300">
+                  Pour les structures qui gèrent aussi leurs emails et leurs avis Google au quotidien.
+                </p>
+                <div className="mt-6">
+                  <span className="text-5xl font-black">59,99 €</span>
+                  <span className="ml-2 text-sm font-bold text-slate-300">/ mois</span>
+                </div>
+                <div className="mt-6 grid gap-3">
+                  {BUSINESS_ITEMS.map((item) => (
+                    <p key={item} className="flex items-start gap-3 text-sm font-semibold text-slate-200">
+                      <Check className="mt-0.5 size-4 shrink-0 text-violet-300" />
+                      {item}
+                    </p>
+                  ))}
+                </div>
+                <Link
+                  href="/auth/register"
+                  className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-full bg-violet-500 px-5 text-sm font-black text-white transition hover:bg-violet-400"
+                >
+                  Activer l&apos;offre Business
                   <ArrowRight className="ml-2 size-4" />
                 </Link>
               </div>

@@ -751,8 +751,8 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
         onClose={() => setUpgradeOpen(false)}
         config={billingConfig}
         featureLabel="Automatisations"
-        title="Automatisations illimitées avec le mode payant"
-        description="Le mode gratuit permet de créer une seule automatisation IA. Passez au mode payant pour programmer toutes vos routines de communication."
+        title="Débloquez les automatisations IA"
+        description="Le mode gratuit ne permet aucune automatisation IA. Passez à l'offre Pro (3 automatisations) ou Business (5 automatisations) pour programmer vos routines de communication."
       />
       {!embedded && (
         <div className="relative overflow-visible rounded-3xl border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-lg shadow-[#421388]/20">

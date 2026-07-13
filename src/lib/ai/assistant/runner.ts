@@ -1,10 +1,11 @@
 import type OpenAI from "openai";
 import type { ChatCompletionMessageParam, ChatCompletionContentPart } from "openai/resources/chat/completions";
 import type { createAdminClient } from "@/lib/supabase/admin";
-import { buildTools } from "./tools";
-import { executeAction, summarizeAction, isMutatingAction, actionLabelFor } from "./actions";
+import type { BillingGate } from "@/lib/billing";
+import { buildTools, getToolDef } from "./registry";
+import { summarizeAction, actionLabelFor } from "./actions";
+import { isToolAllowed, requiresConfirmation, resolveSensitivity, TOOL_PERMISSIONS } from "./permissions";
 import { createPendingAction } from "./pending";
-import { rememberFact } from "./memory";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -39,31 +40,33 @@ export interface RunAssistantParams {
   userId: string | null;
   actionMode: "AUTO" | "CONFIRM";
   gmailConnected: boolean;
+  /** Gate billing pré-calculé par le chat route (évite un re-fetch par outil). */
+  billingGate: BillingGate;
   emit: AssistantEmit;
 }
 
-const READ_ONLY_TOOLS = new Set(["list_automations", "check_channels", "list_events"]);
-
 function cardTypeFor(kind: string): AssistantActionCard["type"] {
-  if (kind.includes("automation")) return "automation";
-  if (kind === "send_email" || kind === "email_community") return "email";
-  if (kind === "update_community_settings") return "setting";
-  return "creation";
+  return TOOL_PERMISSIONS[kind]?.cardType ?? "creation";
 }
 
 // Exécute l'agent : boucle d'outils, puis stream de la réponse finale.
 // Retourne le texte final complet (pour persistance).
 export async function runAssistant(params: RunAssistantParams): Promise<string> {
-  const { openrouter, model, systemPrompt, messages, admin, communityId, userId, actionMode, gmailConnected, emit } = params;
+  const { openrouter, model, systemPrompt, messages, admin, communityId, userId, actionMode, gmailConnected, billingGate, emit } = params;
 
-  const tools = buildTools({ gmailConnected });
+  const tools = buildTools({
+    gmailConnected,
+    tier: billingGate.tier,
+    isPaid: billingGate.isPaid,
+    isSuperAdmin: billingGate.isSuperAdmin,
+  });
   const currentMessages: ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },
     ...messages.slice(-20).map((m) => ({ role: m.role, content: m.content }) as ChatCompletionMessageParam),
   ];
 
   const cards: AssistantActionCard[] = [];
-  let maxLoops = 4;
+  let maxLoops = 6;
 
   while (maxLoops > 0) {
     maxLoops--;
@@ -122,6 +125,8 @@ export async function runAssistant(params: RunAssistantParams): Promise<string> 
       })),
     });
 
+    let ranReadTool = false;
+
     for (const toolCall of toolCalls) {
       const name = toolCall.name ?? "";
       let args: Record<string, unknown> = {};
@@ -131,11 +136,15 @@ export async function runAssistant(params: RunAssistantParams): Promise<string> 
         args = {};
       }
 
+      const sensitivity = resolveSensitivity(name, args);
+      if (sensitivity === "READ" || sensitivity === "SAFE_WRITE") ranReadTool = true;
+
       const toolResult = await handleToolCall({
         admin,
         communityId,
         userId,
         actionMode,
+        billingGate,
         name,
         args,
         cards,
@@ -150,9 +159,10 @@ export async function runAssistant(params: RunAssistantParams): Promise<string> 
     }
 
     // Court-circuit (essentiel sur Netlify Free, cap 10 s) : si tous les outils de ce
-    // tour étaient des actions déjà matérialisées en cartes (email, événement, réglage…),
+    // tour étaient des actions matérialisées en cartes (email, événement, réglage…),
     // on conclut sans 2ᵉ appel au modèle — la carte + un message déterministe suffisent.
-    if (cards.length > 0 && toolCalls.every((tc) => isMutatingAction(tc.name ?? ""))) {
+    // Jamais après un outil de lecture : le modèle doit narrer les résultats.
+    if (!ranReadTool && cards.length > 0) {
       emit.event({ type: "assistant_actions", actions: cards });
       const text = fallbackText(cards, actionMode);
       streamChunks(text, emit);
@@ -172,6 +182,7 @@ interface ToolCtx {
   communityId: string;
   userId: string | null;
   actionMode: "AUTO" | "CONFIRM";
+  billingGate: BillingGate;
   name: string;
   args: Record<string, unknown>;
   cards: AssistantActionCard[];
@@ -180,76 +191,91 @@ interface ToolCtx {
 
 // Traite un appel d'outil et retourne le contenu du message "tool" pour le modèle.
 async function handleToolCall(ctx: ToolCtx): Promise<string> {
-  const { admin, communityId, userId, actionMode, name, args, cards, emit } = ctx;
+  const { admin, communityId, userId, actionMode, billingGate, name, args, cards, emit } = ctx;
 
-  // ── Outils lecture seule ──
-  if (READ_ONLY_TOOLS.has(name)) {
-    if (name === "list_automations") {
-      const { data } = await admin
-        .from("Automation")
-        .select("id, name, trigger, isActive, status")
-        .eq("communityId", communityId)
-        .order("createdAt", { ascending: false })
-        .limit(20);
-      return JSON.stringify({ automations: data ?? [] });
-    }
-    if (name === "check_channels") {
-      const { data } = await admin
-        .from("Channel")
-        .select("type, isConnected, isActive, handle")
-        .eq("communityId", communityId);
-      return JSON.stringify({ channels: data ?? [] });
-    }
-    if (name === "list_events") {
-      const { data } = await admin
-        .from("Event")
-        .select("title, startDate, location, category, status")
-        .eq("communityId", communityId)
-        .gte("startDate", new Date().toISOString())
-        .neq("status", "ARCHIVED")
-        .order("startDate", { ascending: true })
-        .limit(15);
-      return JSON.stringify({ events: data ?? [] });
-    }
-  }
+  const def = getToolDef(name);
+  if (!def) return `Outil inconnu : ${name}.`;
 
-  // ── Mémoire ──
-  if (name === "remember") {
-    const res = await rememberFact(admin, communityId, {
-      type: String(args.type ?? "USER_FEEDBACK"),
-      key: String(args.key ?? ""),
-      value: args.value,
+  // ── Gate palier/paiement (ceinture-bretelles : buildTools filtre déjà le catalogue) ──
+  const allowed = isToolAllowed(name, {
+    tier: billingGate.tier,
+    isPaid: billingGate.isPaid,
+    isSuperAdmin: billingGate.isSuperAdmin,
+  });
+  if (!allowed.allowed) {
+    cards.push({
+      id: `nav-${crypto.randomUUID()}`,
+      type: "navigation",
+      title: "Offre supérieure requise",
+      description: allowed.reason,
+      status: "Indisponible",
+      action: { kind: "done", actionKind: name },
     });
-    return res.message;
+    return `Refusé : ${allowed.reason} Propose à l'utilisateur d'ouvrir la page Facturation (suggest_navigation billing).`;
   }
 
-  // ── Actions soumises au mode AUTO/CONFIRM ──
-  if (isMutatingAction(name)) {
-    if (actionMode === "CONFIRM") {
-      const summary = summarizeAction(name, args);
-      // Persistance (notifications + lien profond). Peut échouer si la table n'existe
-      // pas encore : la carte reste affichée et fonctionnelle grâce au payload embarqué.
-      const pending = await createPendingAction(admin, {
-        communityId,
-        userId,
-        kind: name,
-        payload: args,
-        source: "chat",
-        summary,
-      });
-      cards.push({
-        id: pending ? `pending-${pending.id}` : `pending-${crypto.randomUUID()}`,
-        type: cardTypeFor(name),
-        title: actionLabelFor(name),
-        description: summary,
-        status: "À valider",
-        action: { kind: "confirm_pending", pendingActionId: pending?.id, actionKind: name, payload: args },
-      });
-      return "Action préparée et EN ATTENTE de validation. Ne dis pas qu'elle est faite : indique en une phrase qu'elle attend sa confirmation via le bouton affiché juste en dessous.";
-    }
+  const execCtx = { admin, communityId, userId, gate: billingGate };
+  const sensitivity = resolveSensitivity(name, args) ?? "REVERSIBLE";
 
-    // Mode AUTO → exécution immédiate.
-    const result = await executeAction({ admin, communityId, userId }, name, args);
+  // ── Lectures : exécution directe + panneau interactif éventuel ──
+  if (sensitivity === "READ") {
+    if (!def.read) return `Outil ${name} mal configuré (pas de handler de lecture).`;
+    try {
+      const { llmResult, panel } = await def.read(execCtx, args);
+      if (panel) emit.event({ type: "data_panel", panel });
+      return JSON.stringify(llmResult);
+    } catch (error) {
+      return `Erreur de lecture : ${(error as Error).message}`;
+    }
+  }
+
+  // ── Écritures sans danger (mémoire, génération de brouillon) ──
+  if (sensitivity === "SAFE_WRITE") {
+    if (!def.execute) return `Outil ${name} mal configuré.`;
+    try {
+      const result = await def.execute(execCtx, args);
+      emit.event({ type: "system_updated", action: name });
+      return result.success
+        ? `OK — ${result.message}${result.data ? ` ${JSON.stringify(result.data)}` : ""}`
+        : `Échec — ${result.message}`;
+    } catch (error) {
+      return `Erreur : ${(error as Error).message}`;
+    }
+  }
+
+  // ── Mutations : REVERSIBLE suit le mode global, IRREVERSIBLE confirme toujours ──
+  const mustConfirm = requiresConfirmation(sensitivity, actionMode);
+
+  if (mustConfirm) {
+    const summary = summarizeAction(name, args);
+    // Persistance (notifications + lien profond). Peut échouer si la table n'existe
+    // pas encore : la carte reste affichée et fonctionnelle grâce au payload embarqué.
+    const pending = await createPendingAction(admin, {
+      communityId,
+      userId,
+      kind: name,
+      payload: args,
+      source: "chat",
+      summary,
+    });
+    cards.push({
+      id: pending ? `pending-${pending.id}` : `pending-${crypto.randomUUID()}`,
+      type: cardTypeFor(name),
+      title: actionLabelFor(name),
+      description: summary,
+      status: "À valider",
+      action: { kind: "confirm_pending", pendingActionId: pending?.id, actionKind: name, payload: args },
+    });
+    if (sensitivity === "IRREVERSIBLE" && actionMode === "AUTO") {
+      return "Action sensible (irréversible ou publique) : la validation est TOUJOURS requise, même en mode automatique. Ne dis pas qu'elle est faite : indique en une phrase qu'elle attend sa confirmation via le bouton affiché juste en dessous.";
+    }
+    return "Action préparée et EN ATTENTE de validation. Ne dis pas qu'elle est faite : indique en une phrase qu'elle attend sa confirmation via le bouton affiché juste en dessous.";
+  }
+
+  // Mode AUTO (mutation réversible) → exécution immédiate.
+  if (!def.execute) return `Outil ${name} mal configuré.`;
+  try {
+    const result = await def.execute(execCtx, args);
     emit.event({ type: "system_updated", action: name });
     cards.push({
       id: `done-${crypto.randomUUID()}`,
@@ -260,22 +286,17 @@ async function handleToolCall(ctx: ToolCtx): Promise<string> {
       action: { kind: "done", actionKind: name },
     });
     return result.success ? `OK — ${result.message}` : `Échec — ${result.message}`;
+  } catch (error) {
+    return `Erreur : ${(error as Error).message}`;
   }
-
-  // ── generate_content (toujours exécuté, non soumis à confirmation) ──
-  if (name === "generate_content") {
-    const result = await executeAction({ admin, communityId, userId }, name, args);
-    emit.event({ type: "system_updated", action: name });
-    return result.success
-      ? `Contenu généré : ${JSON.stringify(result.data ?? {})}`
-      : `Échec génération : ${result.message}`;
-  }
-
-  return `Outil inconnu : ${name}.`;
 }
 
 function fallbackText(cards: AssistantActionCard[], actionMode: "AUTO" | "CONFIRM"): string {
   if (cards.length === 0) return "C'est noté.";
+  const pending = cards.some((card) => card.status === "À valider");
+  if (pending) {
+    return "J'ai préparé l'action ci-dessous. Validez-la avec le bouton pour que je l'exécute.";
+  }
   if (actionMode === "CONFIRM") {
     return "J'ai préparé l'action ci-dessous. Validez-la avec le bouton pour que je l'exécute.";
   }

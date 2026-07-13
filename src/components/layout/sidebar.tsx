@@ -29,16 +29,16 @@ interface SidebarProps {
 
 const PLAN_COLORS: Record<string, string> = {
   FREE_TRIAL: "bg-amber-500",
-  STARTER: "bg-violet-500",
-  PROFESSIONAL: "bg-violet-500",
+  STARTER: "bg-blue-500",
+  PROFESSIONAL: "bg-blue-500",
   ENTERPRISE: "bg-violet-500",
 };
 
 const PLAN_LABELS: Record<string, string> = {
   FREE_TRIAL: "Gratuit",
-  STARTER: "Payant",
-  PROFESSIONAL: "Payant",
-  ENTERPRISE: "Payant",
+  STARTER: "Pro",
+  PROFESSIONAL: "Pro",
+  ENTERPRISE: "Business",
 };
 
 export function Sidebar({ community, userAvatar, userName, unreadNotifications = 0, basePath = "/dashboard" }: SidebarProps) {

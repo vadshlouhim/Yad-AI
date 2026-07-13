@@ -7,14 +7,54 @@ type UserRole = "SUPER_ADMIN" | "ADMIN" | "EDITOR" | "VIEWER";
 
 export const BILLING_CONFIG_KEY = "billing.pricing";
 
-export const FREE_LIMITS = {
-  assistantMessages: 20,
-  posterGenerations: 1,
-  automations: 1,
-  socialPublications: 1,
-} as const;
+export type PlanTier = "FREE" | "PRO" | "BUSINESS";
 
-export const PAID_PLAN_ID = "PROFESSIONAL";
+const TIER_LABELS: Record<PlanTier, string> = { FREE: "Gratuit", PRO: "Pro", BUSINESS: "Business" };
+
+export function planToTier(plan: string | null | undefined): PlanTier {
+  if (plan === "ENTERPRISE") return "BUSINESS";
+  if (plan === "PROFESSIONAL" || plan === "STARTER") return "PRO";
+  return "FREE";
+}
+
+/**
+ * Limites par palier. `socialPublications` se réinitialise chaque mois calendaire pour
+ * tous les paliers. `assistantMessages` est un cumul à vie pour FREE (jamais remis à
+ * zéro) et un cumul mensuel pour PRO/BUSINESS — voir `getBillingUsage`.
+ */
+export const TIER_LIMITS: Record<PlanTier, { assistantMessages: number; automations: number; socialPublications: number }> = {
+  FREE: { assistantMessages: 20, automations: 0, socialPublications: 5 },
+  PRO: { assistantMessages: 50, automations: 3, socialPublications: 20 },
+  BUSINESS: { assistantMessages: Number.MAX_SAFE_INTEGER, automations: 5, socialPublications: 50 },
+};
+
+export function tierLimitMessage(
+  tier: PlanTier,
+  metric: "assistantMessages" | "automations" | "socialPublications"
+): string {
+  if (metric === "automations") {
+    if (tier === "FREE") return "Le mode gratuit ne permet pas de créer d'automatisation IA. Passez à l'offre Pro (3 automatisations) ou Business (5 automatisations).";
+    if (tier === "PRO") return "Vous avez atteint la limite de 3 automatisations IA de l'offre Pro. Passez à l'offre Business pour en programmer jusqu'à 5.";
+    return "Vous avez atteint la limite de 5 automatisations IA de l'offre Business.";
+  }
+  if (metric === "socialPublications") {
+    if (tier === "FREE") return "Le mode gratuit permet 5 publications sociales manuelles par mois. Passez à l'offre Pro (20/mois) ou Business (50/mois).";
+    if (tier === "PRO") return "Vous avez atteint la limite de 20 publications sociales par mois de l'offre Pro. Passez à l'offre Business pour 50/mois.";
+    return "Vous avez atteint la limite de 50 publications sociales par mois de l'offre Business.";
+  }
+  if (tier === "FREE") return "Le mode gratuit inclut 20 messages avec l'assistant IA au total. Passez à l'offre Pro pour 50 messages renouvelés chaque mois.";
+  if (tier === "PRO") return "Vous avez atteint la limite de 50 messages avec l'assistant IA ce mois-ci. Passez à l'offre Business pour un nombre illimité de messages.";
+  return "";
+}
+
+export function tierLabel(tier: PlanTier): string {
+  return TIER_LABELS[tier];
+}
+
+/** Limite du poster/affiche gratuit (binaire, indépendante des paliers) */
+export const FREE_POSTER_LIMIT = 1;
+
+export const LIMITED_SOCIAL_CHANNELS = ["INSTAGRAM", "FACEBOOK", "TELEGRAM"] as const;
 
 export interface BillingConfig {
   basePriceCents: number;
@@ -29,6 +69,7 @@ export interface BillingGate {
   userId: string;
   communityId: string | null;
   plan: string;
+  tier: PlanTier;
   isPaid: boolean;
   isSuperAdmin: boolean;
 }
@@ -123,6 +164,7 @@ export async function getBillingGate(admin: Admin, userId: string): Promise<Bill
       userId,
       communityId: null,
       plan: "FREE_TRIAL",
+      tier: "FREE",
       isPaid: false,
       isSuperAdmin: canAccessAdmin(typedProfile),
     };
@@ -140,12 +182,25 @@ export async function getBillingGate(admin: Admin, userId: string): Promise<Bill
     userId,
     communityId: typedProfile.communityId,
     plan,
+    tier: planToTier(plan),
     isPaid: isSuperAdmin || isPaidPlan(plan),
     isSuperAdmin,
   };
 }
 
-export async function getBillingUsage(admin: Admin, communityId: string): Promise<BillingUsage> {
+function startOfCurrentMonthUTC(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+}
+
+/**
+ * `tier` détermine si `assistantMessages` est compté à vie (FREE) ou sur le mois
+ * calendaire en cours (PRO/BUSINESS). `socialPublications` est toujours mensuel.
+ * `automations` reste un cumul à vie (pas de notion de "par mois" dans le cahier des charges).
+ */
+export async function getBillingUsage(admin: Admin, communityId: string, tier: PlanTier): Promise<BillingUsage> {
+  const monthStart = startOfCurrentMonthUTC();
+
   const [{ count: posterGenerations }, { count: automations }, { count: socialPublications }, { data: conversations }] =
     await Promise.all([
       admin
@@ -161,7 +216,8 @@ export async function getBillingUsage(admin: Admin, communityId: string): Promis
         .from("Publication")
         .select("id", { count: "exact", head: true })
         .eq("communityId", communityId)
-        .in("channelType", ["INSTAGRAM", "FACEBOOK", "TELEGRAM"]),
+        .in("channelType", LIMITED_SOCIAL_CHANNELS as unknown as string[])
+        .gte("createdAt", monthStart),
       admin
         .from("Conversation")
         .select("id")
@@ -172,11 +228,15 @@ export async function getBillingUsage(admin: Admin, communityId: string): Promis
   const conversationIds = ((conversations ?? []) as Array<{ id: string }>).map((conversation) => conversation.id);
   let assistantMessages = 0;
   if (conversationIds.length > 0) {
-    const { count } = await admin
+    let query = admin
       .from("ConversationMessage")
       .select("id", { count: "exact", head: true })
       .eq("role", "user")
       .in("conversationId", conversationIds);
+    if (tier !== "FREE") {
+      query = query.gte("createdAt", monthStart);
+    }
+    const { count } = await query;
     assistantMessages = count ?? 0;
   }
 
@@ -188,19 +248,30 @@ export async function getBillingUsage(admin: Admin, communityId: string): Promis
   };
 }
 
-export function paywallPayload(feature: string, message: string, usage?: Partial<BillingUsage>) {
+export function paywallPayload(
+  feature: string,
+  message: string,
+  usage?: Partial<BillingUsage>,
+  limits?: Record<string, number>
+) {
   return {
     error: message,
     code: "PAYWALL_REQUIRED",
     feature,
     usage,
-    limits: FREE_LIMITS,
+    limits: limits ?? TIER_LIMITS.FREE,
     billingUrl: "/dashboard/settings/billing",
   };
 }
 
-export function paywallResponse(feature: string, message: string, usage?: Partial<BillingUsage>, status = 402) {
-  return NextResponse.json(paywallPayload(feature, message, usage), { status });
+export function paywallResponse(
+  feature: string,
+  message: string,
+  usage?: Partial<BillingUsage>,
+  limits?: Record<string, number>,
+  status = 402
+) {
+  return NextResponse.json(paywallPayload(feature, message, usage, limits), { status });
 }
 
 export async function assertPaidFeature(
@@ -219,9 +290,32 @@ export async function assertPaidFeature(
   return { ok: true as const, gate };
 }
 
-export function getActivePaidPriceId(config: BillingConfig) {
-  if (isLaunchOfferActive(config) && process.env.STRIPE_LAUNCH_PRICE_ID) {
+/** Réservé aux fonctionnalités exclusives à l'offre Business (gestion des emails, avis Google) */
+export async function assertTierFeature(
+  admin: Admin,
+  userId: string,
+  requiredTier: PlanTier,
+  feature: string,
+  message: string
+) {
+  const gate = await getBillingGate(admin, userId);
+  if (!gate.communityId) {
+    return { ok: false as const, gate, response: NextResponse.json({ error: "Communauté introuvable" }, { status: 403 }) };
+  }
+  if (!gate.isSuperAdmin && gate.tier !== requiredTier) {
+    return { ok: false as const, gate, response: paywallResponse(feature, message) };
+  }
+  return { ok: true as const, gate };
+}
+
+export function getActivePaidPriceId(
+  config: BillingConfig,
+  tier: "PROFESSIONAL" | "ENTERPRISE" = "PROFESSIONAL",
+  applyLaunchOffer = true
+) {
+  if (applyLaunchOffer && tier === "PROFESSIONAL" && isLaunchOfferActive(config) && process.env.STRIPE_LAUNCH_PRICE_ID) {
     return process.env.STRIPE_LAUNCH_PRICE_ID;
   }
+  if (tier === "ENTERPRISE") return process.env.STRIPE_ENTERPRISE_PRICE_ID;
   return process.env.STRIPE_PAID_PRICE_ID ?? process.env.STRIPE_PRO_PRICE_ID;
 }

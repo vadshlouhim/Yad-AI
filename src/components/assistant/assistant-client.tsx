@@ -22,6 +22,8 @@ import { AUTOMATION_PRESETS, type AutomationPresetKey } from "@/lib/automation/p
 import { DASHBOARD_NAV_ITEMS } from "@/components/layout/dashboard-nav";
 import { DailyRoutineWizard } from "./daily-routine-wizard";
 import { UpgradeModal } from "@/components/billing/upgrade-modal";
+import { AssistantDataPanel, type PanelActionPayload } from "./assistant-data-panel";
+import type { DataPanel } from "@/lib/ai/assistant/panels";
 import type { RoutineItem } from "./daily-routine-wizard";
 import type { BillingConfig } from "@/lib/billing";
 
@@ -71,6 +73,7 @@ interface Message {
   publishDraft?: PublishDraft | null;
   assistantActions?: AssistantActionCard[];
   automationSetup?: AutomationSetupDraft;
+  dataPanels?: DataPanel[];
 }
 
 interface TemplateSuggestion {
@@ -969,6 +972,15 @@ export function AssistantClient({
                   prev.map((m) =>
                     m.id === assistantMessage.id
                       ? { ...m, assistantActions: parsed.actions }
+                      : m
+                  )
+                );
+              }
+              if (parsed.type === "data_panel" && parsed.panel) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMessage.id
+                      ? { ...m, dataPanels: [...(m.dataPanels ?? []), parsed.panel as DataPanel] }
                       : m
                   )
                 );
@@ -1965,6 +1977,67 @@ export function AssistantClient({
     }
   }
 
+  // Actions des panneaux interactifs (data_panel) : exécution d'outil via la voie
+  // directe de /api/ai/action (le clic utilisateur vaut confirmation), message de
+  // relance dans le chat, ou navigation.
+  async function runPanelAction({ action, edits }: PanelActionPayload) {
+    if (action.kind === "navigate" && action.href) {
+      if (/^https?:\/\//.test(action.href)) {
+        window.open(action.href, "_blank", "noopener,noreferrer");
+      } else {
+        router.push(action.href);
+      }
+      return;
+    }
+    if (action.kind === "send_message" && action.message) {
+      void sendMessage(action.message);
+      return;
+    }
+    if (action.kind !== "execute_tool" || !action.toolKind) return;
+
+    setRunningActionId(action.id);
+    try {
+      const response = await fetch("/api/ai/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: action.toolKind,
+          payload: { ...(action.payload ?? {}), ...(edits ?? {}) },
+          decision: "confirm",
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (data.code === "PAYWALL_REQUIRED") {
+        setUpgradeOpen(true);
+        throw new Error(data.message || "Passez à une offre supérieure pour continuer.");
+      }
+      if (!response.ok || !data.ok) throw new Error(data.message || "Action échouée");
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: data.message || "C'est fait.",
+          timestamp: new Date(),
+        },
+      ]);
+      router.refresh();
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: error instanceof Error ? error.message : "Je n'ai pas pu exécuter cette action.",
+          timestamp: new Date(),
+        },
+      ]);
+    } finally {
+      setRunningActionId(null);
+    }
+  }
+
   // ============================================================
   // RENDER
   // ============================================================
@@ -1983,8 +2056,8 @@ export function AssistantClient({
         onClose={() => setUpgradeOpen(false)}
         config={billingConfig}
         featureLabel="Agents intelligents"
-        title="Agents intelligents illimités avec le mode payant"
-        description="Le mode gratuit inclut 20 messages avec les agents intelligents. Passez au mode payant pour continuer à créer, planifier et automatiser sans limite."
+        title="Continuez avec l'assistant IA"
+        description="Le mode gratuit inclut 20 messages avec l'assistant IA au total. Passez à l'offre Pro pour 50 messages par mois, ou Business pour un nombre illimité."
       />
       {/* â”€â”€ Sidebar historique â”€â”€ */}
       {assistantExperience === "detailed" && historyOpen && (
@@ -2993,6 +3066,15 @@ export function AssistantClient({
                       </div>
                     </div>
                   )}
+
+                  {message.dataPanels?.map((panel) => (
+                    <AssistantDataPanel
+                      key={panel.id}
+                      panel={panel}
+                      runningActionId={runningActionId}
+                      onAction={runPanelAction}
+                    />
+                  ))}
 
                   {message.assistantActions && message.assistantActions.length > 0 && (() => {
                     const automationCards = message.assistantActions.filter(isAutomationAction);

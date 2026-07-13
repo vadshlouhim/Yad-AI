@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  ArrowLeft, CreditCard, Check, Shield, Sparkles,
-  ExternalLink, AlertCircle, Lock, X
+  ArrowLeft, CreditCard, Shield, Sparkles,
+  ExternalLink, AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { formatDateTime, cn } from "@/lib/utils";
-import type { BillingConfig } from "@/lib/billing";
+import { formatDateTime } from "@/lib/utils";
+import { planToTier, type BillingConfig, type PlanTier } from "@/lib/billing";
+import { PlanCard } from "@/components/billing/plan-card";
 
 interface Community {
   plan: string;
@@ -34,23 +35,30 @@ interface Props {
 }
 
 const FREE_FEATURES = [
-  { label: "Tableau de bord et aperçu des pages", included: true },
-  { label: "1 affiche modifiable", included: true },
-  { label: "1 publication Instagram/Facebook/Telegram", included: true },
-  { label: "1 automatisation IA", included: true },
-  { label: "20 messages avec l'assistant IA", included: true },
-  { label: "WhatsApp", included: false },
-  { label: "Affiches illimitées", included: false },
-  { label: "Automatisations avancées", included: false },
+  "Tableau de bord et aperçu",
+  "5 publications sociales manuelles / mois",
+  "0 automatisation IA",
+  "20 messages Agent IA",
+  "WhatsApp bloqué",
+  "Affiches limitées",
 ];
 
-const PAID_FEATURES = [
+const PRO_FEATURES = [
   "WhatsApp débloqué",
-  "Affiches modifiables sans limite",
-  "Publications Instagram, Facebook et Telegram sans limite",
-  "Automatisations IA sans limite",
-  "Assistant IA sans limite de 20 messages",
-  "Support et services additionnels selon options",
+  "Affiches illimitées",
+  "20 publications sociales / mois",
+  "3 automatisations IA",
+  "50 messages Agent IA",
+];
+
+const BUSINESS_FEATURES = [
+  "WhatsApp débloqué",
+  "Affiches illimitées",
+  "50 publications sociales / mois",
+  "5 automatisations IA",
+  "Messages Agent IA illimités",
+  "Gestion des emails",
+  "Gestion des avis Google",
 ];
 
 const STATUS_LABELS: Record<string, string> = {
@@ -76,16 +84,17 @@ function formatPrice(cents: number) {
 }
 
 export function BillingClient({ community, subscription, billingConfig }: Props) {
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loading, setLoading] = useState<PlanTier | "portal" | null>(null);
 
-  async function goToCheckout() {
-    const planId = "PROFESSIONAL";
-    setLoading(planId);
+  async function goToCheckout(tier: "PRO" | "BUSINESS") {
+    setLoading(tier);
     try {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          tier: tier === "BUSINESS" ? "ENTERPRISE" : "PROFESSIONAL",
+          applyLaunchOffer: tier === "PRO",
           successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
           cancelUrl: `${window.location.origin}/dashboard/settings/billing`,
         }),
@@ -116,8 +125,8 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
     }
   }
 
-  const isPaid = community.plan !== "FREE_TRIAL";
-  const currentPlan = isPaid ? "Payant" : "Gratuit";
+  const tier = planToTier(community.plan);
+  const currentPlanLabel = tier === "FREE" ? "Gratuit" : tier === "PRO" ? "Pro" : "Business";
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
@@ -147,7 +156,7 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-slate-800">
-                      Plan {currentPlan}
+                      Plan {currentPlanLabel}
                     </p>
                     <Badge variant={STATUS_VARIANT[subscription.status] ?? "draft"} className="text-xs">
                       {STATUS_LABELS[subscription.status] ?? subscription.status}
@@ -197,92 +206,72 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
       {/* Grille des plans */}
       <div>
         <h2 className="mb-4 text-center text-lg font-semibold text-slate-900">Choisir un mode</h2>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card className={cn("relative border-2", !isPaid ? "border-slate-900 bg-slate-50" : "border-slate-200")}>
-            {!isPaid && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white">Plan actuel</span>
-              </div>
-            )}
-            <CardContent className="space-y-5 p-6">
-              <div className="text-center">
-                <p className="text-lg font-black text-slate-950">Gratuit</p>
-                <p className="mt-1 text-sm text-slate-500">Pour découvrir EasyCom IA avec des limites claires.</p>
-                <p className="mt-4 text-3xl font-black text-slate-950">0 €</p>
-              </div>
-              <ul className="space-y-2.5">
-                {FREE_FEATURES.map((feature) => (
-                  <li key={feature.label} className="flex items-start gap-2 text-sm text-slate-700">
-                    {feature.included ? (
-                      <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" />
-                    ) : (
-                      <X className="mt-0.5 size-4 shrink-0 text-slate-400" />
-                    )}
-                    <span className={cn(!feature.included && "text-slate-400")}>{feature.label}</span>
-                  </li>
-                ))}
-              </ul>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <PlanCard
+            tier="FREE"
+            title="Gratuit"
+            priceLabel="0 €"
+            features={FREE_FEATURES}
+            badge={tier === "FREE" ? "Plan actuel" : undefined}
+            highlighted={tier === "FREE"}
+            footer={
               <Button variant="outline" className="w-full rounded-2xl" disabled>
-                Continuer gratuitement
+                {tier === "FREE" ? "Plan actuel" : "Non disponible"}
               </Button>
-            </CardContent>
-          </Card>
+            }
+          />
 
-          <Card className={cn("relative overflow-hidden border-2", isPaid ? "border-blue-600 bg-blue-50/40" : "border-blue-200 ring-2 ring-blue-100")}>
-            <div className="absolute right-4 top-4 rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">
-              Lancement
-            </div>
-            {isPaid && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <span className="rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">Plan actuel</span>
-              </div>
-            )}
-            <CardContent className="space-y-5 p-6">
-              <div className="text-center">
-                <p className="text-lg font-black text-slate-950">Payant</p>
-                <p className="mt-1 text-sm text-blue-700">{billingConfig.launchMessage}</p>
-                <div className="mt-4 flex flex-wrap items-end justify-center gap-3">
-                  <span className="text-lg font-bold text-slate-400 line-through">
-                    {formatPrice(billingConfig.basePriceCents)} {billingConfig.taxLabel}
-                  </span>
-                  <span className="text-4xl font-black text-blue-700">
-                    {formatPrice(billingConfig.launchPriceCents)}
-                  </span>
-                  <span className="pb-1 text-sm font-semibold text-slate-500">{billingConfig.taxLabel} / mois</span>
-                </div>
-                <p className="mt-2 text-xs font-semibold text-slate-500">
-                  Tarif réduit jusqu&apos;au {new Date(`${billingConfig.launchEndsAt}T12:00:00`).toLocaleDateString("fr-FR", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}.
-                </p>
-              </div>
-              <ul className="space-y-2.5">
-                {PAID_FEATURES.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2 text-sm text-slate-700">
-                    <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              {isPaid ? (
+          <PlanCard
+            tier="PRO"
+            title="Pro"
+            priceLabel={tier === "FREE" ? formatPrice(billingConfig.launchPriceCents) : formatPrice(billingConfig.basePriceCents)}
+            features={PRO_FEATURES}
+            badge={tier === "PRO" ? "Plan actuel" : "Populaire"}
+            highlighted={tier === "PRO"}
+            footer={
+              tier === "PRO" ? (
                 <Button variant="outline" className="w-full rounded-2xl" disabled>
                   Plan actuel
                 </Button>
               ) : (
                 <Button
                   className="w-full rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700"
-                  onClick={goToCheckout}
-                  loading={loading === "PROFESSIONAL"}
+                  onClick={() => goToCheckout("PRO")}
+                  loading={loading === "PRO"}
                 >
-                  <Lock className="size-4" />
-                  Passer au payant
+                  Passer à l&apos;offre Pro
                 </Button>
-              )}
-            </CardContent>
-          </Card>
+              )
+            }
+          />
+
+          <PlanCard
+            tier="BUSINESS"
+            title="Business"
+            priceLabel="59,99 €"
+            features={BUSINESS_FEATURES}
+            badge={tier === "BUSINESS" ? "Plan actuel" : undefined}
+            highlighted={tier === "BUSINESS"}
+            footer={
+              tier === "BUSINESS" ? (
+                <Button variant="outline" className="w-full rounded-2xl" disabled>
+                  Plan actuel
+                </Button>
+              ) : (
+                <Button
+                  className="w-full rounded-2xl bg-violet-600 text-white shadow-lg shadow-violet-600/20 hover:bg-violet-700"
+                  onClick={() => goToCheckout("BUSINESS")}
+                  loading={loading === "BUSINESS"}
+                >
+                  Passer à l&apos;offre Business
+                </Button>
+              )
+            }
+          />
         </div>
+        {tier === "FREE" && (
+          <p className="mt-3 text-center text-xs font-semibold text-blue-700">{billingConfig.launchMessage}</p>
+        )}
       </div>
 
       {/* Découverte info */}
