@@ -17,6 +17,7 @@ import {
   WandSparkles,
   X,
 } from "lucide-react";
+import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
 import {
   RESOURCE_CATEGORIES,
   RESOURCE_THEMES,
@@ -44,6 +45,9 @@ interface Props {
 }
 
 type Tab = "explorer" | "demandes";
+const SHMOUEL_TORAH_IMAGE =
+  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Shmouel%20Torah.webp";
+const DEFAULT_AUTHORIZED_SOURCES = ["chabad.org", "loubavitch.fr", "sefaria.org"];
 
 const FILE_ICONS: Record<string, React.ReactNode> = {
   pdf: <FileText className="size-5 text-red-500" />,
@@ -291,6 +295,15 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
   const [loading, setLoading] = useState(false);
   const [adaptTarget, setAdaptTarget] = useState<CommunityResource | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [sourceInput, setSourceInput] = useState("");
+  const [authorizedSources, setAuthorizedSources] = useState(DEFAULT_AUTHORIZED_SOURCES);
+
+  const addAuthorizedSource = () => {
+    const normalized = sourceInput.trim().replace(/^https?:\/\//i, "").replace(/\/$/, "");
+    if (!normalized || authorizedSources.includes(normalized)) return;
+    setAuthorizedSources((current) => [...current, normalized]);
+    setSourceInput("");
+  };
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchResources = useCallback(async (q: string, category: string, theme: string) => {
@@ -336,8 +349,88 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+      <AgentPageBanner
+        eyebrow="Bibliothèque communautaire"
+        title="Vos ressources, enrichies par l’intelligence collective"
+        description="Partagez et découvrez des cours, affiches, lettres et textes WhatsApp créés par et pour votre communauté. Shmouel vous aide à adapter chaque ressource au bon moment."
+        icon={Library}
+        imageUrl={SHMOUEL_TORAH_IMAGE}
+        imageAlt="Shmouel, agent IA Bibliothèque communautaire"
+        bubbleTitle="Je suis Shmouel, votre agent IA Bibliothèque communautaire"
+        bubbleText="Je classe vos ressources Torah et vous aide à les partager au bon moment"
+        tone="purple"
+      />
+
+      <div className="flex flex-wrap gap-3">
+        {isPaid ? (
+          <>
+            <Link
+              href="/dashboard/community-library/submit"
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#421388] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#35106f]"
+            >
+              <Plus className="size-4" /> Soumettre une ressource
+            </Link>
+            <Link
+              href="/dashboard/community-library/request"
+              className="inline-flex items-center gap-2 rounded-2xl border border-[#421388]/15 bg-white px-4 py-2.5 text-sm font-bold text-[#421388] shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-50"
+            >
+              <MessageCircle className="size-4" /> Faire une demande
+            </Link>
+          </>
+        ) : (
+          <div className="inline-flex items-center gap-2 rounded-2xl border border-violet-100 bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-800">
+            <Lock className="size-4" /> Abonnez-vous pour contribuer
+          </div>
+        )}
+      </div>
+
+      <section className="rounded-3xl border border-violet-100 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-black text-slate-900">Sources autorisées</p>
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Ajoutez les sites de référence que vous souhaitez garder visibles dans votre espace Bibliothèque.
+            </p>
+          </div>
+          <div className="flex w-full gap-2 sm:max-w-md">
+            <input
+              value={sourceInput}
+              onChange={(event) => setSourceInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  addAuthorizedSource();
+                }
+              }}
+              placeholder="exemple.org"
+              className="min-w-0 flex-1 rounded-2xl border border-violet-200 bg-violet-50/40 px-4 py-2.5 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
+            />
+            <button
+              type="button"
+              onClick={addAuthorizedSource}
+              className="rounded-2xl bg-[#421388] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#35106f]"
+            >
+              Ajouter
+            </button>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {authorizedSources.map((source) => (
+            <button
+              key={source}
+              type="button"
+              onClick={() => setAuthorizedSources((current) => current.filter((item) => item !== source))}
+              className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-800 transition hover:border-violet-300 hover:bg-violet-100"
+              title="Retirer cette source"
+            >
+              {source}
+            </button>
+          ))}
+        </div>
+      </section>
+
       {/* Bandeau violet */}
-      <section className="overflow-hidden rounded-[2rem] border border-violet-900/30 bg-[linear-gradient(135deg,#2e1065,#4c1d95,#6d28d9)] p-[1px] shadow-[0_24px_60px_rgba(109,40,217,0.18)]">
+      <section className="hidden overflow-hidden rounded-[2rem] border border-violet-900/30 bg-[linear-gradient(135deg,#2e1065,#4c1d95,#6d28d9)] p-[1px] shadow-[0_24px_60px_rgba(109,40,217,0.18)]">
         <div className="relative rounded-[calc(2rem-1px)] bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.10),transparent_30%),linear-gradient(135deg,rgba(46,16,101,0.97),rgba(76,29,149,0.95),rgba(109,40,217,0.92))] px-6 py-7 text-white sm:px-8">
           <div className="absolute right-6 top-5 text-right font-serif text-2xl font-bold text-white/60 sm:right-8">
             ב&quot;ה

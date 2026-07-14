@@ -1,55 +1,62 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Globe, Mail } from "lucide-react";
+import { ArrowRight, Globe, Mail, Palette, ShieldCheck, Sparkles } from "lucide-react";
+import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = { title: "Site web - EasyCom IA" };
 
+const contactUrl =
+  "https://wa.me/33668508898?text=Bonjour%2C%20je%20suis%20int%C3%A9ress%C3%A9%20par%20vos%20services%20de%20cr%C3%A9ation%20de%20site%20web.%20Pourriez-vous%20m%E2%80%99en%20dire%20plus%2C%20s%E2%80%99il%20vous%20pla%C3%AEt%20%3F";
+
 export default function WebsiteCreationPage() {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 sm:px-6">
-      <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-[#6b3f0d] via-[#8b5611] to-[#b7791f] p-6 shadow-[0_20px_44px_-28px_rgba(146,64,14,0.35)]">
-        <div className="max-w-4xl">
-          <div className="mb-3 h-1.5 w-10 rounded-full bg-amber-200/90" />
-          <h1 className="text-3xl font-bold tracking-tight text-white">Site web</h1>
-          <p className="mt-3 text-sm leading-6 text-amber-50/90">
-            Nous creons des sites web professionnels, modernes et elegants pour les Bate Habad et les synagogues,
-            avec l&apos;aide de l&apos;IA et l&apos;accompagnement de designers specialises. Que vous ayez deja un site
-            ou que vous souhaitiez en creer un nouveau, notre equipe vous accompagne avec une solution claire, rapide
-            et adaptee a vos besoins.
-          </p>
+      <AgentPageBanner
+        eyebrow="Service web"
+        title="Site web"
+        description="Nous créons des sites professionnels, modernes et élégants pour les Bate Habad, synagogues et associations communautaires, avec un accompagnement clair de la conception à la mise en ligne."
+        icon={Globe}
+        tone="purple"
+        stats={[
+          { label: "Design", value: "Sur mesure" },
+          { label: "Mobile", value: "Optimisé" },
+          { label: "Projet", value: "Accompagné" },
+        ]}
+      />
+
+      <div className="rounded-3xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+        <div className="mx-auto grid max-w-4xl gap-4 sm:grid-cols-3">
+          {[
+            { icon: Palette, title: "Design clair", text: "Une présentation propre, rassurante et adaptée à votre communauté." },
+            { icon: ShieldCheck, title: "Structure pro", text: "Horaires, événements, contact et informations importantes bien organisés." },
+            { icon: Sparkles, title: "Effet premium", text: "Un rendu moderne qui donne envie de découvrir vos activités." },
+          ].map((item) => (
+            <div key={item.title} className="rounded-3xl border border-violet-100 bg-violet-50/40 p-5">
+              <item.icon className="mx-auto size-7 text-[#421388]" />
+              <h2 className="mt-3 text-base font-black text-slate-950">{item.title}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{item.text}</p>
+            </div>
+          ))}
         </div>
-      </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white px-6 py-12 shadow-sm">
-        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-          <div className="mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-700 shadow-inner">
-            <Globe className="size-7" />
-          </div>
-          <div className="mb-4 h-1.5 w-10 rounded-full bg-amber-500" />
-          <p className="max-w-2xl text-sm leading-6 text-slate-600">
-            Presentez votre communaute, vos evenements, vos horaires et vos informations pratiques dans un site web
-            clair, moderne et pense pour inspirer confiance des la premiere visite.
-          </p>
+        <div className="mt-8 flex w-full flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <Link href={contactUrl} target="_blank" rel="noreferrer" className="w-full sm:w-auto">
+            <Button className="h-12 w-full rounded-2xl bg-[#421388] px-6 text-white shadow-[0_14px_30px_rgba(66,19,136,0.20)] transition hover:-translate-y-0.5 hover:bg-[#35106f] sm:w-auto">
+              <Mail className="size-4" />
+              Contactez notre equipe professionnelle
+            </Button>
+          </Link>
 
-          <div className="mt-8 flex w-full flex-col items-center gap-4">
-            <Link href="mailto:contact@easycom-AI.com" className="w-full sm:w-auto">
-              <Button className="h-12 w-full rounded-2xl bg-amber-700 px-6 text-white shadow-[0_12px_28px_rgba(180,83,9,0.22)] transition-transform duration-200 hover:bg-amber-800 hover:shadow-[0_16px_34px_rgba(180,83,9,0.28)] active:scale-[0.98] sm:w-auto">
-                <Mail className="size-4" />
-                Contactez notre equipe professionnelle
-              </Button>
-            </Link>
-
-            <Link href="/demo/website" className="w-full sm:w-auto">
-              <Button
-                variant="outline"
-                className="h-12 w-full rounded-2xl border-amber-200 bg-white px-6 text-amber-700 transition-all duration-200 hover:bg-amber-50 hover:text-amber-800 hover:shadow-sm active:scale-[0.98] sm:w-auto"
-              >
-                <ArrowRight className="size-4" />
-                Voir nos creations web deja creees pour la communaute
-              </Button>
-            </Link>
-          </div>
+          <Link href="https://webfityou.com" target="_blank" rel="noreferrer" className="w-full sm:w-auto">
+            <Button
+              variant="outline"
+              className="h-12 w-full rounded-2xl border-[#421388]/20 bg-white px-6 text-[#421388] transition hover:-translate-y-0.5 hover:bg-violet-50 sm:w-auto"
+            >
+              <ArrowRight className="size-4" />
+              Voir nos creations web deja creees pour la communaute
+            </Button>
+          </Link>
         </div>
       </div>
     </div>

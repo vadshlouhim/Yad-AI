@@ -4,6 +4,8 @@ import { canAccessAdmin } from "@/lib/admin-access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { SettingsGeneralClient } from "@/components/settings/settings-general-client";
+import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
+import { Settings2 } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Paramètres - EasyCom IA" };
@@ -49,7 +51,20 @@ export default async function SettingsPage({
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6">
-      <section className="overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-700 shadow-[0_20px_48px_rgba(6,95,70,0.16)] sm:rounded-[1.75rem]">
+      <AgentPageBanner
+        eyebrow="Espace de réglages"
+        title="Paramètres"
+        description="Gérez votre communauté, vos canaux, votre identité éditoriale et votre profil dans une interface claire, moderne et cohérente."
+        icon={Settings2}
+        tone="teal"
+        stats={[
+          { label: "Canaux", value: "Connectés" },
+          { label: "Profil", value: "Sécurisé" },
+          { label: "Design", value: "Centralisé" },
+        ]}
+      />
+
+      <section className="hidden overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-700 shadow-[0_20px_48px_rgba(6,95,70,0.16)] sm:rounded-[1.75rem]">
         <div className="bg-[linear-gradient(135deg,#047857,#059669,#10b981)] px-4 py-5 text-white sm:px-8 sm:py-7">
           <div className="max-w-3xl">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-50">Paramètres</p>

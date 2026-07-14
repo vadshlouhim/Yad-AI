@@ -128,6 +128,18 @@ canvas {
   0%, 100% { transform: scale(1); box-shadow: 0 12px 30px rgba(37,99,235,0.28); }
   50% { transform: scale(1.08); box-shadow: 0 18px 42px rgba(37,99,235,0.45); }
 }
+@keyframes homeGlow {
+  0%, 100% { opacity: 0.55; transform: scale(0.96) rotate(-3deg); }
+  50% { opacity: 0.95; transform: scale(1.05) rotate(3deg); }
+}
+@keyframes homeFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes homeShimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -120% 0; }
+}
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
 .animate-mobile-feature-card-in { animation: mobileFeatureCardIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .animate-chat-home { animation: chatHome 7.5s ease-in-out infinite; }
@@ -141,6 +153,16 @@ canvas {
 .animate-testimonial-marquee { animation: testimonialMarquee 42s linear infinite; }
 .animate-install-float { animation: installFloat 5.4s ease-in-out infinite; }
 .animate-install-pulse { animation: installPulse 1.9s ease-in-out infinite; }
+.animate-home-glow { animation: homeGlow 7s ease-in-out infinite; }
+.animate-home-float { animation: homeFloat 3.8s ease-in-out infinite; }
+.animate-home-shimmer { animation: homeShimmer 6s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-home-glow,
+  .animate-home-float,
+  .animate-home-shimmer {
+    animation: none;
+  }
+}
 .typing-line {
   display: block;
   max-width: max-content;

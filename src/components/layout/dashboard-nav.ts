@@ -25,6 +25,7 @@ import {
   Share2,
   ShoppingBag,
   Star,
+  Users,
   Video,
   Zap,
   Sparkles,
@@ -268,22 +269,22 @@ export const OFFICIAL_MENU_SECTION_STYLES: Record<
     itemActive: "bg-violet-50 text-slate-950 ring-1 ring-violet-100",
   },
   email: {
-    accentBar: "bg-cyan-500",
-    iconSurface: "bg-cyan-50",
-    titleClass: "text-cyan-700",
+    accentBar: "bg-[#8A184D]",
+    iconSurface: "bg-rose-50",
+    titleClass: "text-[#8A184D]",
     descriptionClass: "text-slate-500",
-    itemIcon: "text-cyan-600",
+    itemIcon: "text-[#8A184D]",
     itemHover: "hover:bg-slate-50 hover:text-slate-900",
-    itemActive: "bg-cyan-50 text-slate-950 ring-1 ring-cyan-100",
+    itemActive: "bg-rose-50 text-slate-950 ring-1 ring-rose-100",
   },
   donation: {
-    accentBar: "bg-orange-500",
-    iconSurface: "bg-orange-50",
-    titleClass: "text-orange-600",
+    accentBar: "bg-[#421388]",
+    iconSurface: "bg-violet-50",
+    titleClass: "text-[#421388]",
     descriptionClass: "text-slate-500",
-    itemIcon: "text-orange-500",
+    itemIcon: "text-[#421388]",
     itemHover: "hover:bg-slate-50 hover:text-slate-900",
-    itemActive: "bg-orange-50 text-slate-950 ring-1 ring-orange-200",
+    itemActive: "bg-violet-50 text-slate-950 ring-1 ring-violet-100",
   },
   resources: {
     accentBar: "bg-amber-500",
@@ -313,13 +314,13 @@ export const OFFICIAL_MENU_SECTION_STYLES: Record<
     itemActive: "bg-rose-50 text-slate-950 ring-1 ring-rose-100",
   },
   contacts: {
-    accentBar: "bg-emerald-500",
-    iconSurface: "bg-emerald-50",
-    titleClass: "text-emerald-700",
+    accentBar: "bg-blue-950",
+    iconSurface: "bg-blue-950/5",
+    titleClass: "text-blue-950",
     descriptionClass: "text-slate-500",
-    itemIcon: "text-emerald-600",
+    itemIcon: "text-blue-900",
     itemHover: "hover:bg-slate-50 hover:text-slate-900",
-    itemActive: "bg-emerald-50 text-slate-950 ring-1 ring-emerald-100",
+    itemActive: "bg-blue-50 text-slate-950 ring-1 ring-blue-100",
   },
   settings: {
     accentBar: "bg-slate-500",
@@ -339,19 +340,14 @@ function getStructureTypeLabel(communityType?: string | null) {
 }
 
 export function getOfficialDashboardMenuSections(communityType?: string | null): OfficialDashboardMenuSection[] {
-  const structureType = getStructureTypeLabel(communityType);
-  const automationsSubtitle = structureType
-    ? `Pour les ${structureType}`
-    : "Pour vous";
-  const resourcesSubtitle = structureType
-    ? `Pour les ${structureType}`
-    : "Pour vous";
+  getStructureTypeLabel(communityType);
+  const resourcesSubtitle = "Des outils pratiques pour accompagner votre communauté";
 
   return [
     {
       key: "social",
       section: "RESEAUX SOCIAUX",
-      subtitle: "Publier planifier vos reseaux",
+      subtitle: "Publiez et planifiez vos réseaux avec Dov Ber, Mendy et Israel",
       icon: Share2,
       items: [
         { href: "/dashboard/instagram", label: "Instagram", icon: InstagramIcon },
@@ -364,7 +360,7 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
     {
       key: "automations",
       section: "PUBLICATIONS AUTOMATIQUES",
-      subtitle: automationsSubtitle,
+      subtitle: "Automatisez vos publications avec David",
       icon: CalendarRange,
       items: [
         { href: "/dashboard/shabbat-times-auto", label: "Horaires de Chabbat", icon: Clock3 },
@@ -379,11 +375,21 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
     {
       key: "email",
       section: "EMAIL & AVIS GOOGLE",
-      subtitle: "Emails et avis Google geres par l'IA",
+      subtitle: "Vos emails et avis Google, classés et suivis automatiquement",
       icon: Mail,
       items: [
         { href: "/dashboard/email", label: "Email", icon: Mail },
         { href: "/dashboard/google-reviews", label: "Avis Google", icon: Star },
+      ],
+    },
+    {
+      key: "torah",
+      section: "COURS DE TORAH",
+      subtitle: "Un agent IA pour vos cours et contenus de Torah",
+      icon: BookOpen,
+      items: [
+        { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
+        { href: "/dashboard/community-library", label: "Bibliotheque communautaire", icon: Library },
       ],
     },
     {
@@ -400,22 +406,12 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       ],
     },
     {
-      key: "torah",
-      section: "COURS DE TORAH",
-      subtitle: "Cours et bibliothèque communautaire",
-      icon: BookOpen,
-      items: [
-        { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
-        { href: "/dashboard/community-library", label: "Bibliotheque communautaire", icon: Library },
-      ],
-    },
-    {
       key: "contacts",
       section: "CONTACTS",
-      subtitle: "Centralises et organises par l'IA",
-      icon: Plus,
+      subtitle: "Votre CRM centralises et organises par l'IA",
+      icon: Users,
       items: [
-        { href: "/dashboard/contacts", label: "Mes contacts", icon: Plus },
+        { href: "/dashboard/contacts", label: "Mes contacts", icon: Users },
       ],
     },
     {
@@ -424,8 +420,8 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       subtitle: "Pilotez vos campagnes de collecte de A a Z",
       icon: HandHeart,
       items: [
-        { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart, badge: "Bientot disponible", disabled: true },
-        { href: "/dashboard/donation-campaign/visuals", label: "Visuels & publications", icon: Share2, badge: "Bientot disponible", disabled: true },
+        { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart, badge: "Bientot disponible" },
+        { href: "/dashboard/donation-campaign/visuals", label: "Visuels & publications", icon: Share2, badge: "Bientot disponible" },
       ],
     },
     {
@@ -434,7 +430,7 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       subtitle: "Clips video crees instantanement avec l'IA",
       icon: Video,
       items: [
-        { href: "/dashboard/clip-recap", label: "Clip video", icon: Video, badge: "Bientot disponible", disabled: true },
+        { href: "/dashboard/clip-recap", label: "Clip video", icon: Video, badge: "Bientot disponible" },
       ],
     },
     {
@@ -460,7 +456,7 @@ export const QUICK_ACCESS_ITEMS = [
   { href: "/dashboard/assistant", label: "Agents intelligents", icon: Bot },
   { href: "/dashboard/overview", label: "Tableau de bord", icon: House },
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell, notification: true },
-  { href: "/dashboard/events", label: "Agenda connecte IA", icon: CalendarDays },
+  { href: "/dashboard/events", label: "Mon agenda", icon: CalendarDays },
 ] as const;
 
 export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
@@ -482,7 +478,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "ASSISTANT PERSONNEL",
     items: [
-      { href: "/dashboard/events", label: "Mon Agenda IA", icon: CalendarDays },
+      { href: "/dashboard/events", label: "Mon agenda", icon: CalendarDays },
     ],
   },
   {
@@ -509,7 +505,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "CONTACTS",
     items: [
-      { href: "/dashboard/contacts", label: "Ajoutez mes contacts", icon: Plus },
+      { href: "/dashboard/contacts", label: "Mes contacts", icon: Users },
     ],
   },
   {
@@ -544,7 +540,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
 export const MOBILE_PRIMARY_NAV: DashboardNavItem[] = [
   { href: "/dashboard/overview", label: "Accueil", icon: House },
   { href: "/dashboard/assistant", label: "Agents IA", icon: Sparkles },
-  { href: "/dashboard/events", label: "Agenda IA", icon: CalendarDays },
+  { href: "/dashboard/events", label: "Mon agenda", icon: CalendarDays },
   { href: "/dashboard/settings", label: "Reglages", icon: Settings2 },
 ];
 
@@ -574,7 +570,7 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     ],
   },
   {
-    section: "EMAIL",
+    section: "EMAIL & AVIS GOOGLE",
     icon: Mail,
     items: [
       { href: "/dashboard/email", label: "Email", icon: Mail },
@@ -600,7 +596,7 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     section: "CONTACTS",
     icon: Plus,
     items: [
-      { href: "/dashboard/contacts", label: "Ajoutez mes contacts", icon: Plus },
+      { href: "/dashboard/contacts", label: "Mes contacts", icon: Users },
     ],
   },
   {

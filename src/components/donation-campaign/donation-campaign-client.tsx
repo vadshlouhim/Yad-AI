@@ -24,6 +24,7 @@ import {
   Video,
   Zap,
 } from "lucide-react";
+import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
 import type {
   DonationCampaign,
   CampaignStep,
@@ -410,8 +411,21 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
   if (view === "overview") {
     return (
       <div className="mx-auto w-full max-w-5xl space-y-8 px-4 py-6 sm:px-6">
+        <AgentPageBanner
+          eyebrow="Campagne de dons"
+          title="Centre de pilotage complet de campagne de dons"
+          description="Construisez, pilotez et diffusez toute votre campagne de dons depuis un seul espace intelligent, clair et prêt à accompagner chaque étape."
+          icon={HandHeart}
+          tone="purple"
+          stats={[
+            { label: "Plan", value: "IA" },
+            { label: "Visuels", value: "Prêts" },
+            { label: "Diffusion", value: "Guidée" },
+          ]}
+        />
+
         {/* Hero */}
-        <section className="overflow-hidden rounded-[2rem] border border-orange-900/30 bg-[linear-gradient(135deg,#431407,#7C2D12,#EA580C)] p-[1px] shadow-[0_24px_60px_rgba(234,88,12,0.22)]">
+        <section className="hidden overflow-hidden rounded-[2rem] border border-orange-900/30 bg-[linear-gradient(135deg,#431407,#7C2D12,#EA580C)] p-[1px] shadow-[0_24px_60px_rgba(234,88,12,0.22)]">
           <div className="relative rounded-[calc(2rem-1px)] bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.09),transparent_30%),linear-gradient(135deg,rgba(67,20,7,0.97),rgba(124,45,18,0.95),rgba(234,88,12,0.92))] px-6 py-10 text-white sm:px-10">
             <div className="absolute right-6 top-5 font-serif text-2xl font-bold text-white/50">ב&quot;ה</div>
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-orange-200">
@@ -429,9 +443,9 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
         {/* 4 étapes */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {STEP_CARDS.map((card) => (
-            <div key={card.num} className={`flex flex-col gap-3 rounded-2xl border bg-gradient-to-br p-5 ${card.color}`}>
+            <div key={card.num} className="flex flex-col gap-3 rounded-3xl border border-violet-100 bg-gradient-to-br from-white via-violet-50/50 to-fuchsia-50/40 p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(66,19,136,0.10)]">
               <div className="flex items-center gap-2">
-                <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${card.iconColor}`}>
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-[#421388]">
                   <card.icon className="size-4.5" />
                 </div>
                 <span className="text-xs font-black text-slate-400">0{card.num}</span>
@@ -445,9 +459,9 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
         {/* Choix du mode */}
         <div className="grid gap-4 sm:grid-cols-2">
           {/* Mode IA */}
-          <div className="flex flex-col rounded-2xl border border-slate-200 bg-white px-6 py-7 shadow-[0_8px_32px_rgba(15,23,42,0.06)]">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100">
-              <Sparkles className="size-5 text-orange-600" />
+          <div className="flex flex-col rounded-3xl border border-violet-100 bg-white px-6 py-7 shadow-[0_16px_42px_rgba(66,19,136,0.07)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100">
+              <Sparkles className="size-5 text-[#421388]" />
             </div>
             <h2 className="mt-4 text-lg font-black text-slate-900">Avec l&apos;Assistant IA</h2>
             <p className="mt-1 text-sm text-slate-500">Répondez à quelques questions et l&apos;IA construit votre plan de campagne.</p>
@@ -457,11 +471,11 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ex : du 15 au 30 mars 2025"
-                className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
+                className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
               />
               <button
                 type="submit"
-                className="flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-orange-600"
+                className="flex items-center gap-2 rounded-xl bg-[#421388] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#35106f]"
               >
                 <ArrowRight className="size-4" />
               </button>
@@ -469,16 +483,16 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
           </div>
 
           {/* Mode manuel */}
-          <div className="flex flex-col rounded-2xl border border-slate-200 bg-white px-6 py-7 shadow-[0_8px_32px_rgba(15,23,42,0.06)]">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100">
-              <FileText className="size-5 text-slate-600" />
+          <div className="flex flex-col rounded-3xl border border-violet-100 bg-white px-6 py-7 shadow-[0_16px_42px_rgba(66,19,136,0.07)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-fuchsia-100">
+              <FileText className="size-5 text-fuchsia-700" />
             </div>
             <h2 className="mt-4 text-lg font-black text-slate-900">Mode manuel</h2>
             <p className="mt-1 text-sm text-slate-500">Remplissez le formulaire vous-même et générez le plan en un clic.</p>
             <button
               type="button"
               onClick={() => setView("manual")}
-              className="mt-5 flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-700 hover:border-slate-300 hover:bg-slate-100"
+              className="mt-5 flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-bold text-[#421388] hover:border-violet-300 hover:bg-violet-100"
             >
               Remplir le formulaire
               <ArrowRight className="size-4" />
@@ -973,8 +987,21 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
   if (view === "plan") {
     return (
       <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-6">
+        <AgentPageBanner
+          eyebrow="Plan de campagne"
+          title={campaign?.title ?? "Votre campagne de dons"}
+          description={campaign?.slogan ?? "Votre plan de campagne est organisé pour suivre chaque étape, valider les contenus et préparer les prochaines publications."}
+          icon={LayoutGrid}
+          tone="purple"
+          stats={[
+            { label: "Étapes", value: steps.length },
+            { label: "Canaux", value: campaign?.channels?.length ?? 0 },
+            { label: "Statut", value: "Pilotage" },
+          ]}
+        />
+
         {/* Mini hero */}
-        <section className="overflow-hidden rounded-2xl border border-orange-900/30 bg-[linear-gradient(135deg,#431407,#C2410C)] p-[1px]">
+        <section className="hidden overflow-hidden rounded-2xl border border-orange-900/30 bg-[linear-gradient(135deg,#431407,#C2410C)] p-[1px]">
           <div className="relative rounded-[calc(0.75rem-1px)] bg-[linear-gradient(135deg,rgba(67,20,7,0.96),rgba(194,65,12,0.90))] px-6 py-6 text-white">
             <div className="absolute right-5 top-4 font-serif text-xl font-bold text-white/40">ב&quot;ה</div>
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1008,7 +1035,7 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
         </section>
 
         {/* Tableau du plan */}
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-3xl border border-violet-100 bg-white shadow-[0_18px_48px_rgba(66,19,136,0.07)]">
           {steps.length === 0 ? (
             <div className="py-12 text-center text-sm text-slate-400">Aucune étape générée</div>
           ) : (
@@ -1075,9 +1102,9 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
         <div className="flex justify-center">
           <Link
             href="/dashboard/donation-campaign/visuals"
-            className="group flex items-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 px-6 py-4 text-orange-700 shadow-sm transition-all hover:border-orange-400 hover:bg-orange-100 hover:shadow-md"
+            className="group flex items-center gap-3 rounded-2xl border border-violet-200 bg-violet-50 px-6 py-4 text-[#421388] shadow-sm transition-all hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-100 hover:shadow-md"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500 text-white shadow-sm">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#421388] text-white shadow-sm">
               <Share2 className="size-5" />
             </div>
             <div>

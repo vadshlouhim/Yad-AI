@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Film, Sparkles, UploadCloud, Video, WandSparkles } from "lucide-react";
+import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ComingSoonActionGuard } from "@/components/dashboard/coming-soon-action-guard";
 
 export const metadata: Metadata = { title: "Clip Video - EasyCom IA" };
 
@@ -14,8 +16,22 @@ const mockClips = [
 
 export default function ClipRecapPage() {
   return (
+    <ComingSoonActionGuard>
     <div className="mx-auto w-full max-w-5xl space-y-8 px-4 py-6 sm:px-6">
-      <section className="overflow-hidden rounded-3xl border border-[#c97a85] bg-gradient-to-br from-[#6c1829] via-[#8c2339] to-[#b03b52] p-6 shadow-[0_24px_60px_-32px_rgba(127,29,29,0.45)]">
+      <AgentPageBanner
+        eyebrow="Studio vidéo"
+        title="CLIP VIDEO"
+        description="Bientôt, vous pourrez téléverser vos photos et vidéos, donner vos instructions à l’IA, et recevoir un clip prêt à publier sur vos réseaux."
+        icon={Video}
+        tone="rose"
+        stats={[
+          { label: "Format", value: "Réseaux" },
+          { label: "Montage", value: "IA" },
+          { label: "Statut", value: "Bientôt" },
+        ]}
+      />
+
+      <section className="hidden overflow-hidden rounded-3xl border border-[#c97a85] bg-gradient-to-br from-[#6c1829] via-[#8c2339] to-[#b03b52] p-6 shadow-[0_24px_60px_-32px_rgba(127,29,29,0.45)]">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="max-w-3xl">
             <div className="mb-4 h-1.5 w-12 rounded-full bg-rose-200/90" />
@@ -34,7 +50,7 @@ export default function ClipRecapPage() {
       </section>
 
       <div className="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">
-        <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm shadow-slate-200/60">
+        <Card className="rounded-3xl border border-rose-100 bg-white shadow-[0_18px_48px_rgba(127,29,29,0.07)]">
           <CardHeader className="space-y-2 border-b border-slate-100 pb-5">
             <div className="flex items-center gap-2 text-rose-600">
               <WandSparkles className="size-4" />
@@ -44,7 +60,7 @@ export default function ClipRecapPage() {
             <p className="text-sm text-slate-500">Decrivez le clip que vous aimeriez creer.</p>
           </CardHeader>
           <CardContent className="space-y-5 p-6">
-            <div className="rounded-3xl border border-rose-100 bg-rose-50/60 p-4 shadow-inner shadow-rose-100/40">
+            <div className="rounded-3xl border border-rose-100 bg-gradient-to-br from-rose-50 via-white to-red-50/50 p-4 shadow-inner shadow-rose-100/40">
               <div className="flex items-start gap-3">
                 <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-rose-600 shadow-sm">
                   <Sparkles className="size-5" />
@@ -64,7 +80,7 @@ export default function ClipRecapPage() {
                 rows={5}
                 disabled
                 placeholder="Ex. Clip dynamique de 45 secondes, musique joyeuse, textes courts, format reseaux sociaux..."
-                className="w-full resize-none rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-500 outline-none"
+                className="w-full resize-none rounded-3xl border border-rose-100 bg-rose-50/40 px-4 py-4 text-sm leading-6 text-slate-500 outline-none"
               />
             </div>
 
@@ -73,7 +89,7 @@ export default function ClipRecapPage() {
                 <label className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Photos et videos</label>
                 <Badge variant="secondary" className="bg-rose-100 text-rose-700">Bientot disponible</Badge>
               </div>
-              <div className="rounded-3xl border border-dashed border-rose-200 bg-gradient-to-br from-rose-50 via-white to-amber-50 p-6 text-center">
+              <div className="rounded-3xl border border-dashed border-rose-200 bg-gradient-to-br from-rose-50 via-white to-red-50 p-6 text-center">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-rose-600 shadow-sm shadow-rose-100/70">
                   <UploadCloud className="size-6" />
                 </div>
@@ -82,8 +98,8 @@ export default function ClipRecapPage() {
               </div>
             </div>
 
-            <div className="flex flex-col items-start gap-3 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
-              <Button disabled className="h-11 rounded-2xl bg-rose-300 px-5 text-white hover:bg-rose-300">
+            <div className="flex flex-col items-start gap-3 rounded-3xl border border-rose-100 bg-rose-50/50 p-4">
+              <Button className="h-11 rounded-2xl bg-[#8A184D] px-5 text-white hover:bg-[#731441]">
                 Creer mon clip
               </Button>
               <p className="text-xs text-slate-500">Cette fonctionnalite sera bientot disponible.</p>
@@ -92,7 +108,7 @@ export default function ClipRecapPage() {
         </Card>
 
         <div className="space-y-6">
-          <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm shadow-slate-200/60">
+          <Card className="rounded-3xl border border-rose-100 bg-white shadow-[0_18px_48px_rgba(127,29,29,0.07)]">
             <CardHeader className="border-b border-slate-100 pb-5">
               <div className="flex items-center gap-2 text-rose-600">
                 <Film className="size-4" />
@@ -131,5 +147,6 @@ export default function ClipRecapPage() {
         </div>
       </div>
     </div>
+    </ComingSoonActionGuard>
   );
 }

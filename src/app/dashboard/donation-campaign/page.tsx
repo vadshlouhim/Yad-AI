@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DonationCampaignClient } from "@/components/donation-campaign/donation-campaign-client";
+import { ComingSoonActionGuard } from "@/components/dashboard/coming-soon-action-guard";
 
 export const metadata: Metadata = { title: "Campagne de dons — EasyCom IA" };
 
@@ -40,10 +41,12 @@ export default async function DonationCampaignPage() {
     : { data: null };
 
   return (
-    <DonationCampaignClient
-      community={community!}
-      initialCampaign={latestCampaign}
-      initialSteps={stepsResult.data ?? []}
-    />
+    <ComingSoonActionGuard>
+      <DonationCampaignClient
+        community={community!}
+        initialCampaign={latestCampaign}
+        initialSteps={stepsResult.data ?? []}
+      />
+    </ComingSoonActionGuard>
   );
 }

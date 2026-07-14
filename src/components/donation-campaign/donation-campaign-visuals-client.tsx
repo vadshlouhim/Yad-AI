@@ -19,6 +19,7 @@ import {
   Sparkles,
   Video,
 } from "lucide-react";
+import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
 import type { DonationCampaign, CampaignStep, CampaignAsset, StepStatus } from "@/lib/donation-campaign";
 import { ASSET_TYPE_LABELS, STEP_TYPE_LABELS } from "@/lib/donation-campaign";
 import { FacebookIcon, InstagramIcon } from "@/components/layout/dashboard-nav";
@@ -386,8 +387,21 @@ export function DonationCampaignVisualsClient({ community, campaign, steps, asse
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-6">
+      <AgentPageBanner
+        eyebrow="Campagne de dons"
+        title="Visuels & Publications"
+        description="Retrouvez tous les supports créés pour votre campagne de dons : affiches, messages, publications et contenus prêts à valider."
+        icon={Share2}
+        tone="purple"
+        stats={[
+          { label: "Étapes", value: steps.length },
+          { label: "Supports", value: assets.length },
+          { label: "Diffusion", value: "Guidée" },
+        ]}
+      />
+
       {/* Hero */}
-      <section className="overflow-hidden rounded-[2rem] border border-orange-900/30 bg-[linear-gradient(135deg,#431407,#7C2D12,#EA580C)] p-[1px]">
+      <section className="hidden overflow-hidden rounded-[2rem] border border-orange-900/30 bg-[linear-gradient(135deg,#431407,#7C2D12,#EA580C)] p-[1px]">
         <div className="relative rounded-[calc(2rem-1px)] bg-[linear-gradient(135deg,rgba(67,20,7,0.97),rgba(124,45,18,0.95),rgba(234,88,12,0.92))] px-6 py-7 text-white sm:px-8">
           <div className="absolute right-6 top-5 font-serif text-xl font-bold text-white/40">ב&quot;ה</div>
           <Link
@@ -409,12 +423,12 @@ export function DonationCampaignVisualsClient({ community, campaign, steps, asse
       {/* 3 encarts */}
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { icon: ImageIcon, title: "Affiche carrée", desc: "Pour le lancement et les réseaux sociaux", color: "from-orange-50 to-amber-50 border-orange-100 text-orange-700 bg-orange-100" },
-          { icon: MessageCircle, title: "Messages", desc: "WhatsApp, Email et contenus SMS", color: "from-green-50 to-teal-50 border-green-100 text-green-700 bg-green-100" },
-          { icon: Play, title: "Publication", desc: "Validez, modifiez et diffusez au bon moment", color: "from-amber-50 to-orange-50 border-amber-100 text-amber-700 bg-amber-100" },
+          { icon: ImageIcon, title: "Affiche carrée", desc: "Pour le lancement et les réseaux sociaux", color: "from-violet-50 to-fuchsia-50 border-violet-100 text-[#421388] bg-violet-100" },
+          { icon: MessageCircle, title: "Messages", desc: "WhatsApp, Email et contenus SMS", color: "from-indigo-50 to-violet-50 border-indigo-100 text-indigo-700 bg-indigo-100" },
+          { icon: Play, title: "Publication", desc: "Validez, modifiez et diffusez au bon moment", color: "from-fuchsia-50 to-violet-50 border-fuchsia-100 text-fuchsia-700 bg-fuchsia-100" },
         ].map((card, i) => (
-          <div key={i} className={`flex flex-col gap-3 rounded-2xl border bg-gradient-to-br p-4 ${card.color.split(" ").slice(0, 3).join(" ")}`}>
-            <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${card.color.split(" ").slice(3).join(" ")}`}>
+          <div key={i} className={`flex flex-col gap-3 rounded-3xl border bg-gradient-to-br p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(66,19,136,0.10)] ${card.color.split(" ").slice(0, 3).join(" ")}`}>
+            <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${card.color.split(" ").slice(3).join(" ")}`}>
               <card.icon className="size-4.5" />
             </div>
             <div>
@@ -426,13 +440,13 @@ export function DonationCampaignVisualsClient({ community, campaign, steps, asse
       </div>
 
       {/* Campaign summary */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="rounded-3xl border border-violet-100 bg-white p-4 shadow-[0_18px_48px_rgba(66,19,136,0.07)]">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex-1">
             <h2 className="text-base font-black text-slate-900">{campaign.title}</h2>
             {campaign.slogan && <p className="mt-0.5 text-sm italic text-slate-500">{campaign.slogan}</p>}
           </div>
-          <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700">
+          <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-[#421388]">
             {steps.length} étapes
           </span>
         </div>

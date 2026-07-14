@@ -1,52 +1,52 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { MessageCircle, Plane } from "lucide-react";
+import { FileCheck2, MessageCircle, Plane, ShieldCheck } from "lucide-react";
+import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
 import { FlightCompensationReviewsCarousel } from "@/components/services/flight-compensation-reviews-carousel";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = { title: "Assistance Indemnisations - EasyCom IA" };
 
 const whatsappUrl =
-  "https://wa.me/33668508898?text=Bonjour%2C%20je%20souhaite%20%C3%AAtre%20accompagn%C3%A9%20pour%20mes%20d%C3%A9marches%20en%20cas%20de%20vol%20retard%C3%A9%20ou%20annul%C3%A9.";
+  "https://wa.me/33668508898?text=Bonjour%2C%20je%20suis%20int%C3%A9ress%C3%A9%20par%20vos%20services%20d%E2%80%99indemnisation%20pour%20un%20vol%20retard%C3%A9.%20Pourriez-vous%20m%E2%80%99en%20dire%20plus%2C%20s%E2%80%99il%20vous%20pla%C3%AEt%20%3F";
 
 export default function AssistanceIndemnisationAeriennePage() {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 sm:px-6">
-      <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-[#6b3f0d] via-[#8b5611] to-[#b7791f] p-6 shadow-[0_20px_44px_-28px_rgba(146,64,14,0.35)]">
-        <div className="max-w-4xl">
-          <div className="mb-4 inline-flex size-11 items-center justify-center rounded-2xl bg-white/12 text-amber-100 shadow-inner ring-1 ring-white/15">
-            <Plane className="size-5" />
-          </div>
-          <div className="mb-3 h-1.5 w-10 rounded-full bg-amber-200/90" />
-          <h1 className="text-3xl font-bold tracking-tight text-white">
-            Vol retardé ou annulé ? Soyez indemnisé jusqu’à 600 €
-          </h1>
-          <p className="mt-3 text-sm leading-6 text-amber-50/90">
-            Nous proposons un service d’accompagnement pour les demandes d’indemnisation liées aux vols retardés ou annulés.
-            Vous nous transmettez les informations nécessaires, et notre équipe s’occupe des démarches auprès de la compagnie aérienne.
-          </p>
+      <AgentPageBanner
+        eyebrow="Service pratique"
+        title="Vol retardé ou annulé ? Soyez indemnisé jusqu’à 600 €"
+        description="Nous vous accompagnons dans les demandes d’indemnisation liées aux vols retardés ou annulés : collecte des informations, préparation du dossier et suivi des démarches."
+        icon={Plane}
+        tone="amber"
+        stats={[
+          { label: "Montant", value: "600 €" },
+          { label: "Dossier", value: "Suivi" },
+          { label: "Temps", value: "Gagné" },
+        ]}
+      />
+
+      <div className="rounded-3xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+        <div className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-2">
+          {[
+            { icon: FileCheck2, title: "Dossier préparé", text: "Vous transmettez les informations utiles, nous organisons la demande." },
+            { icon: ShieldCheck, title: "Suivi clair", text: "Votre démarche est accompagnée pour éviter les oublis et gagner du temps." },
+          ].map((item) => (
+            <div key={item.title} className="rounded-3xl border border-amber-100 bg-amber-50/40 p-5">
+              <item.icon className="mx-auto size-7 text-amber-700" />
+              <h2 className="mt-3 text-base font-black text-slate-950">{item.title}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{item.text}</p>
+            </div>
+          ))}
         </div>
-      </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white px-6 py-12 shadow-sm">
-        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-          <div className="mb-4 inline-flex size-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-700 shadow-inner">
-            <Plane className="size-7" />
-          </div>
-          <div className="mb-4 h-1.5 w-10 rounded-full bg-amber-500" />
-          <p className="max-w-2xl text-sm leading-6 text-slate-600">
-            Partagez-nous les détails de votre vol, les justificatifs utiles et les informations nécessaires. Nous
-            préparons ensuite votre dossier et assurons le suivi des démarches pour vous faire gagner du temps.
-          </p>
-
-          <div className="mt-8 flex w-full flex-col items-center gap-4">
-            <Link href={whatsappUrl} target="_blank" rel="noreferrer" className="w-full sm:w-auto">
-              <Button className="h-12 w-full rounded-2xl bg-amber-700 px-6 text-white shadow-[0_12px_28px_rgba(180,83,9,0.22)] transition-transform duration-200 hover:bg-amber-800 hover:shadow-[0_16px_34px_rgba(180,83,9,0.28)] active:scale-[0.98] sm:w-auto">
-                <MessageCircle className="size-4" />
-                Envoyer ma demande
-              </Button>
-            </Link>
-          </div>
+        <div className="mt-8 flex w-full flex-col items-center gap-4">
+          <Link href={whatsappUrl} target="_blank" rel="noreferrer" className="w-full sm:w-auto">
+            <Button className="h-12 w-full rounded-2xl bg-amber-700 px-6 text-white shadow-[0_14px_30px_rgba(180,83,9,0.20)] transition hover:-translate-y-0.5 hover:bg-amber-800 sm:w-auto">
+              <MessageCircle className="size-4" />
+              Envoyer ma demande
+            </Button>
+          </Link>
         </div>
       </div>
 

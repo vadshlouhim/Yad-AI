@@ -2380,9 +2380,9 @@ export function AssistantClient({
               </button>
             )}
             <AssistantAvatar
-              className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-900 shadow-sm"
+              className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
               imageClassName="h-full w-full object-cover object-top"
-              iconClassName="size-5 text-white"
+              iconClassName="size-5 text-blue-700"
             />
             <div className="flex min-w-0 flex-col gap-0.5">
               <h1 className="truncate text-base font-bold text-slate-900">
@@ -2390,9 +2390,9 @@ export function AssistantClient({
                   ? conversations.find((c) => c.id === activeConversationId)?.title ?? "Conversation"
                   : "Agents intelligents"}
               </h1>
-              {assistantExperience === "simple" && firstName && (
-                <p className="truncate text-xs font-medium text-slate-500 md:hidden">
-                  Bonjour {firstName}
+              {assistantExperience === "simple" && (
+                <p className="truncate text-xs font-semibold text-slate-500 md:hidden">
+                  Une équipe d&apos;agents IA qui s&apos;occupe de tout
                 </p>
               )}
             </div>

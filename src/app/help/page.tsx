@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ChevronLeft, HelpCircle, Mail, Sparkles } from "lucide-react";
+import { ChevronLeft, HelpCircle, Mail, MessageCircle, Sparkles } from "lucide-react";
+import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
 
 export const metadata: Metadata = {
   title: "FAQ - EasyCom IA",
@@ -102,20 +103,18 @@ export default function HelpPage() {
           Retour a l&apos;accueil
         </Link>
 
-        <section className="overflow-hidden rounded-[1.9rem] border border-blue-200 bg-blue-700 shadow-[0_20px_48px_rgba(29,78,216,0.18)]">
-          <div className="bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9,#2563eb)] px-6 py-7 text-white sm:px-8">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-blue-50">
-                <HelpCircle className="size-3.5" />
-                FAQ
-              </div>
-              <h1 className="mt-3 text-3xl font-black tracking-tight">FAQ</h1>
-              <p className="mt-3 text-sm leading-6 text-blue-50">
-                Foire aux questions courantes
-              </p>
-            </div>
-          </div>
-        </section>
+        <AgentPageBanner
+          eyebrow="Centre d’aide"
+          title="FAQ"
+          description="Retrouvez les réponses essentielles pour utiliser EasyCom IA, connecter vos outils et comprendre les principales rubriques du dashboard."
+          icon={HelpCircle}
+          tone="purple"
+          stats={[
+            { label: "Support", value: "Guidé" },
+            { label: "Réponses", value: FAQ_ITEMS.length },
+            { label: "Contact", value: "Formulaire" },
+          ]}
+        />
 
         <section className="grid gap-4 md:grid-cols-2">
           {FAQ_ITEMS.map((item, index) => (
@@ -142,20 +141,23 @@ export default function HelpPage() {
         </section>
 
         <section className="rounded-[1.6rem] border border-blue-100 bg-white p-5 shadow-[0_14px_34px_rgba(15,23,42,0.05)]">
-          <div className="flex items-start gap-3">
+          <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
             <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
               <Mail className="size-4.5" />
             </span>
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-base font-bold tracking-tight text-slate-900">Besoin d&apos;une aide supplementaire ?</p>
               <p className="mt-2 text-sm leading-7 text-slate-600">
-                Contactez-nous a{" "}
-                <a className="font-semibold text-blue-700 underline" href="mailto:contact@easycom-AI.com">
-                  contact@easycom-AI.com
-                </a>
-                {" "}pour une aide plus precise.
+                Envoyez-nous votre demande depuis le formulaire de contact afin que l’équipe puisse vous répondre proprement.
               </p>
             </div>
+            <Link
+              href="/contact"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#421388] px-5 py-3 text-sm font-bold text-white shadow-[0_14px_30px_rgba(66,19,136,0.18)] transition hover:-translate-y-0.5 hover:bg-[#35106f] sm:w-auto"
+            >
+              <MessageCircle className="size-4" />
+              Contacter l’équipe
+            </Link>
           </div>
         </section>
       </div>

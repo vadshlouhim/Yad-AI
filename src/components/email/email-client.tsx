@@ -33,6 +33,9 @@ import type {
 } from "@/lib/email/ai-settings";
 import { describeRule } from "@/lib/email/notification-rules";
 
+const LEVIK_EMAIL_IMAGE =
+  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Levik%20Email.webp";
+
 const CATEGORY_META: Record<
   EmailCategory,
   {
@@ -485,18 +488,47 @@ export function EmailClient({
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6">
-      <div className="overflow-hidden rounded-2xl border border-cyan-800/60 bg-gradient-to-br from-[#081f36] via-[#0d304f] to-[#08192d] p-4 shadow-lg shadow-slate-950/35 sm:rounded-3xl sm:p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="relative overflow-visible rounded-[1.4rem] border border-[#8A184D]/10 bg-[#8A184D] p-5 text-white shadow-[0_22px_55px_rgba(138,24,77,0.24)] sm:p-6">
+        <div className="pointer-events-none absolute inset-y-0 right-6 hidden items-center sm:flex" aria-hidden="true">
+          <div className="rounded-full bg-white/[0.045] p-5">
+            <div className="size-28 rounded-full border border-white/[0.04] bg-white/[0.035]" />
+          </div>
+        </div>
+        <div className="absolute -bottom-8 left-8 size-20 rounded-full bg-rose-300/20 blur-2xl" aria-hidden />
+
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
-            <div className="mb-3 h-1.5 w-10 rounded-full bg-cyan-300" />
-            <h1 className="mt-2 text-2xl font-bold text-white">Email</h1>
-            <p className="mt-1 text-sm text-cyan-100/80">
-              Classement intelligent, reponses assistees et alertes utiles, sans bruit.
+            <div className="mb-4 h-1.5 w-12 rounded-full bg-white/80" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-rose-50">
+              <Mail className="size-3.5" />
+              Agent Email
+            </div>
+            <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">Email</h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-rose-50/90">
+              Classement intelligent, réponses assistées et alertes utiles pour garder une boîte email claire et maîtrisée
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs">
+
+          <div className="relative z-20 flex flex-col items-start gap-4 sm:flex-row sm:items-center lg:max-w-2xl">
+            <div className="pointer-events-none relative z-30 shrink-0" aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={LEVIK_EMAIL_IMAGE}
+                alt=""
+                className="-my-8 h-48 w-auto object-contain drop-shadow-[0_24px_34px_rgba(0,0,0,0.30)] sm:-my-10 lg:-my-14 lg:h-72"
+              />
+            </div>
+            <div className="relative max-w-md rounded-2xl bg-white px-5 py-4 text-base leading-6 text-[#8A184D] shadow-xl before:absolute before:-left-2 before:top-10 before:size-4 before:rotate-45 before:bg-white">
+              <p className="font-black">Je suis Levik, l’agent IA responsable de vos emails</p>
+              <p className="mt-1 font-semibold text-slate-600">
+                Je vous aide à classer vos messages, préparer des réponses assistées et recevoir les alertes
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 text-xs lg:absolute lg:bottom-5 lg:left-5">
             {isClassifying && (
-              <Badge className="border-cyan-200/30 bg-cyan-400/15 text-cyan-50">
+              <Badge className="border-white/20 bg-white/10 text-white">
                 Classement en cours
               </Badge>
             )}
@@ -506,7 +538,7 @@ export function EmailClient({
               </Badge>
             )}
             {googleConnected && googleEmail && (
-              <Badge className="border-cyan-200/30 bg-white/10 text-cyan-50">{googleEmail}</Badge>
+              <Badge className="border-white/20 bg-white/10 text-white">{googleEmail}</Badge>
             )}
           </div>
         </div>
@@ -634,7 +666,7 @@ export function EmailClient({
                   />
                 </div>
               </CardHeader>
-              <CardContent className="max-h-[48vh] overflow-y-auto overscroll-contain p-0 lg:max-h-[760px]">
+              <CardContent className="max-h-none overflow-visible overscroll-contain p-0 sm:max-h-[48vh] sm:overflow-y-auto lg:max-h-[760px]">
                 {filteredEmails.length === 0 ? (
                   <div className="p-8 text-center text-slate-400">
                     <Mail className="mx-auto mb-3 size-8 text-slate-300" />
@@ -650,13 +682,13 @@ export function EmailClient({
                         selectedId === mail.id && "bg-cyan-50/50"
                       )}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-slate-900">{mail.sender}</p>
                           <p className="truncate text-sm text-slate-700">{mail.subject}</p>
-                          <p className="mt-1 line-clamp-2 text-xs text-slate-500">{mail.body}</p>
+                          <p className="mt-1 break-words text-xs leading-5 text-slate-500">{mail.body}</p>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
+                        <div className="flex shrink-0 flex-row items-center justify-between gap-2 sm:flex-col sm:items-end">
                           <Badge className={cn("border", CATEGORY_META[mail.category].badgeClass)}>
                             {CATEGORY_META[mail.category].title}
                           </Badge>
@@ -686,8 +718,8 @@ export function EmailClient({
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-5 p-4 sm:p-6">
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                      <p className="whitespace-pre-line text-sm leading-6 text-slate-700">{selectedMail.body}</p>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 text-center sm:text-left">
+                      <p className="whitespace-pre-line break-words text-sm leading-6 text-slate-700">{selectedMail.body}</p>
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2">

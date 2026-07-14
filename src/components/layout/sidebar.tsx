@@ -80,6 +80,18 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
     return pathname.startsWith(resolved) && resolved !== basePath;
   }
 
+  function renderSectionSubtitle(section: OfficialDashboardMenuSection, className: string) {
+    if (section.key === "social") {
+      return (
+        <p className={className}>
+          Publiez et planifiez vos réseaux avec <em>Dov Ber, Mendy et Israel</em>
+        </p>
+      );
+    }
+
+    return <p className={className}>{section.subtitle}</p>;
+  }
+
   function renderSectionItems(section: OfficialDashboardMenuSection, compact = false) {
     const style = OFFICIAL_MENU_SECTION_STYLES[section.key] ?? OFFICIAL_MENU_SECTION_STYLES.resources;
 
@@ -132,7 +144,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
             className={cn(
               compact
                 ? "flex items-center gap-3 rounded-2xl border p-3"
-                : "flex min-w-0 items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all duration-200",
+                : "flex min-w-0 items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-all duration-200",
               itemClass
             )}
           >
@@ -150,7 +162,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
           className={cn(
             compact
               ? "flex items-center gap-3 rounded-2xl border p-3 transition"
-              : "flex min-w-0 items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all duration-200",
+              : "flex min-w-0 items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-all duration-200",
             compact && (active ? "border-slate-300 bg-slate-50" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"),
             !compact && itemClass
           )}
@@ -254,7 +266,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
               <div
                 key={section.section}
                 className={cn(
-                  "rounded-[1.6rem] border border-slate-200 bg-white p-3 shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition duration-200 hover:border-slate-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.09)]",
+                  "rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition duration-200 hover:border-slate-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.09)]",
                   collapsed && "border-0 bg-transparent p-0 shadow-none hover:border-0 hover:shadow-none"
                 )}
               >
@@ -269,7 +281,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
                         }))
                   }
                   className={cn(
-                    "flex w-full items-start gap-3 rounded-[1.15rem] px-1 py-1 text-left transition-all duration-200",
+                    "flex w-full items-start gap-3 rounded-[1.15rem] px-1 py-1.5 text-left transition-all duration-200",
                     collapsed && "justify-center rounded-xl px-0 py-2 hover:bg-slate-100"
                   )}
                   aria-expanded={isOpen}
@@ -289,7 +301,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
                       <div className="min-w-0 flex-1">
                         <div className={cn("mb-3 h-1 w-10 rounded-full", style.accentBar)} />
                         <p className={cn("text-[15px] font-black tracking-tight", style.titleClass)}>{section.section}</p>
-                        <p className={cn("mt-1.5 text-xs leading-5", style.descriptionClass)}>{section.subtitle}</p>
+                        {renderSectionSubtitle(section, cn("mt-1.5 text-xs leading-5", style.descriptionClass))}
                       </div>
                       <ChevronDown
                         className={cn(
@@ -309,7 +321,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
                     )}
                   >
                     <div className="overflow-hidden">
-                      <div className="mt-3 space-y-1.5 rounded-[1.2rem] bg-slate-50/80 p-2">
+                      <div className="mt-3 space-y-2 rounded-[1.2rem] bg-slate-50/80 p-2.5">
                         {renderSectionItems(section)}
                       </div>
                     </div>
@@ -407,7 +419,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <p className={cn("text-base font-semibold tracking-tight", style.titleClass)}>{section.section}</p>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">{section.subtitle}</p>
+                  {renderSectionSubtitle(section, "mt-1 text-xs leading-5 text-slate-500")}
                 </div>
                 <button
                   type="button"

@@ -52,7 +52,7 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
     if (pathname.startsWith("/dashboard/email")) return "Email";
     if (pathname.startsWith("/dashboard/google-reviews")) return "Avis Google";
     if (pathname.startsWith("/dashboard/daily-assistant")) return "Assistant du quotidien";
-    if (pathname.startsWith("/dashboard/events")) return "Agenda connecte IA";
+    if (pathname.startsWith("/dashboard/events")) return "Mon agenda";
     if (pathname.startsWith("/dashboard/clip-recap")) return "Clip video";
     if (pathname.startsWith("/dashboard/boutique")) return "Boutique";
     if (pathname.startsWith("/dashboard/referencement")) return "Referencement";

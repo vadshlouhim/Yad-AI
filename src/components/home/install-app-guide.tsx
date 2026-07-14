@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { ArrowDownToLine, CheckCircle2, MoreVertical, PlusSquare, Share, Smartphone } from "lucide-react";
+import { ArrowDownToLine, CheckCircle2, MoreVertical, PlusSquare, Share } from "lucide-react";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -69,29 +69,20 @@ export function InstallAppGuide() {
       : platform === "ios"
         ? "Suivre les étapes iPhone"
         : "Voir le raccourci mobile";
-  const detectedPlatformLabel = platform === "ios" ? "Vous êtes sur iPhone" : platform === "android" ? "Vous êtes sur Android" : "Sur iPhone et Android";
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-blue-900 px-4 py-16 text-white sm:px-6 lg:px-8">
       <div className="absolute left-[-8rem] top-10 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
       <div className="absolute bottom-[-9rem] right-[-6rem] h-80 w-80 rounded-full bg-emerald-400/20 blur-3xl" />
 
-      <div className="relative mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
-        <div>
-          <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-blue-100">
-            <Smartphone className="size-4" />
-            Version application mobile
-          </p>
-          <h2 className="mt-5 max-w-3xl text-[clamp(2rem,7vw,3.75rem)] font-black leading-[1.04] tracking-tight">
+      <div className="relative mx-auto grid max-w-7xl gap-12 text-center lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
+        <div className="flex flex-col items-center">
+          <h2 className="max-w-3xl text-[clamp(2rem,7vw,3.75rem)] font-black leading-[1.04] tracking-tight">
             Ajoutez EasyCom IA sur votre écran d&apos;accueil.
           </h2>
           <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300">
             Retrouvez EasyCom IA comme une application, sans passer par vos favoris. Un accès direct, plus rapide,
             avec l&apos;interface responsive pensée pour smartphone.
-          </p>
-          <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-blue-300/25 bg-blue-400/10 px-3 py-1.5 text-xs font-bold text-blue-100">
-            <CheckCircle2 className="size-4 text-cyan-300" />
-            {detectedPlatformLabel} : le raccourci s&apos;ajoute directement à votre écran d&apos;accueil.
           </p>
 
           <button

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UpgradeModal } from "@/components/billing/upgrade-modal";
+import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
 import type { BillingConfig, BillingUsage } from "@/lib/billing";
 import {
   CATEGORY_EMOJI,
@@ -666,39 +667,18 @@ export function TemplatesClient({
           title="Débloquez toutes les affiches"
           description="Le mode gratuit permet de modifier une seule affiche. Passez au mode payant pour personnaliser toute la banque d'affiches sans limite."
         />
-        <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-[#8a4b11] via-[#a86216] to-[#c98319] p-6 shadow-[0_18px_40px_-28px_rgba(146,64,14,0.35)]">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <div className="mb-3 h-1.5 w-10 rounded-full bg-amber-200/90" />
-              <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">
-                {galleryTitle}
-              </h1>
-              <p className="mt-2 text-sm leading-6 text-amber-50/90">
-                {gallerySubtitle}
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <Card className="rounded-2xl border-white/20 bg-white/10 shadow-sm backdrop-blur">
-                <CardContent className="p-4">
-                  <p className="text-xs uppercase tracking-wide text-amber-100">Affiches</p>
-                  <p className="mt-1 text-2xl font-bold text-white">{templates.length}</p>
-                </CardContent>
-              </Card>
-              <Card className="rounded-2xl border-white/20 bg-white/10 shadow-sm backdrop-blur">
-                <CardContent className="p-4">
-                  <p className="text-xs uppercase tracking-wide text-amber-100">Catégories</p>
-                  <p className="mt-1 text-2xl font-bold text-white">{categories.length}</p>
-                </CardContent>
-              </Card>
-              <Card className="rounded-2xl border-white/20 bg-white/10 shadow-sm backdrop-blur">
-                <CardContent className="p-4">
-                  <p className="text-xs uppercase tracking-wide text-amber-100">Sous-thèmes</p>
-                  <p className="mt-1 text-2xl font-bold text-white">{subCategoryCount}</p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
+        <AgentPageBanner
+          eyebrow="Banque visuelle"
+          title={galleryTitle}
+          description={gallerySubtitle}
+          icon={ImageIcon}
+          tone="amber"
+          stats={[
+            { label: "Affiches", value: templates.length },
+            { label: "Catégories", value: categories.length },
+            { label: "Sous-thèmes", value: subCategoryCount },
+          ]}
+        />
 
         {showGalleryFilters && (
         <Card className="rounded-3xl border-slate-200 shadow-sm">
