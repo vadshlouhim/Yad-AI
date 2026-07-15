@@ -113,6 +113,46 @@ export const EASYCOM_AGENTS: readonly EasyComAgent[] = [
   },
 ];
 
+export const HOME_EASYCOM_AGENTS: readonly EasyComAgent[] = [
+  ...EASYCOM_AGENTS.filter((agent) => agent.slug !== "shlomi"),
+  {
+    slug: "avi",
+    name: "Avi",
+    role: "Campagnes de dons",
+    marketingTitle: "Une campagne claire, a chaque etape.",
+    shortDescription: "Il vous aide a preparer, organiser et diffuser votre campagne de dons avec des contenus prets a valider.",
+    description: "Avi structure votre campagne afin que chaque etape, visuel et message reste simple a suivre.",
+    details: "Il vous accompagne pour planifier les dates, preparer les visuels et coordonner la diffusion de votre campagne, tout en vous laissant la validation finale.",
+    image: "/agents/avi-donation-transparent.png",
+    tone: "from-rose-600 to-red-400",
+    capabilities: ["Organise les etapes de campagne", "Prepare les contenus a diffuser", "Garde un suivi clair des actions"],
+  },
+  {
+    slug: "tsemah",
+    name: "Tsemah",
+    role: "Newsletter IA",
+    marketingTitle: "Vos nouvelles, bien envoyees.",
+    shortDescription: "Il transforme vos evenements et vos photos en newsletters pretes a programmer.",
+    description: "Tsemah rassemble les informations utiles de votre communaute pour creer des newsletters simples et soignees.",
+    details: "Il prepare le contenu, vous permet de verifier l'email avant l'envoi et vous aide a choisir le bon moment pour le programmer.",
+    image: "/agents/tsemah-newsletter-transparent.png",
+    tone: "from-fuchsia-600 to-pink-400",
+    capabilities: ["Compose vos newsletters", "Prepare une validation avant l'envoi", "Aide a planifier la diffusion"],
+  },
+  {
+    slug: "zalman",
+    name: "Zalman",
+    role: "Affiches & visuels",
+    marketingTitle: "Vos visuels, a votre image.",
+    shortDescription: "Il vous accompagne pour personnaliser et creer des affiches coherentes avec vos evenements.",
+    description: "Zalman vous aide a choisir, personnaliser et preparer les bons visuels pour chaque moment important.",
+    details: "A partir de la banque d'affiches ou de vos idees, il vous guide pour creer un visuel clair, elegant et pret a partager.",
+    image: "/agents/zalman-visuals-transparent.png",
+    tone: "from-red-600 to-orange-400",
+    capabilities: ["Personnalise vos affiches", "Aide a creer de nouveaux visuels", "Prepare les creations a partager"],
+  },
+];
+
 export function getEasyComAgent(slug: string) {
   return EASYCOM_AGENTS.find((agent) => agent.slug === slug);
 }

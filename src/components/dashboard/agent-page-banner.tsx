@@ -8,6 +8,7 @@ type AgentPageBannerProps = {
   title: string;
   description: string;
   icon?: LucideIcon;
+  titleIcon?: LucideIcon;
   imageUrl?: string;
   imageAlt?: string;
   bubbleTitle?: string;
@@ -30,6 +31,7 @@ export function AgentPageBanner({
   title,
   description,
   icon: Icon = Sparkles,
+  titleIcon: TitleIcon,
   imageUrl,
   imageAlt = "",
   bubbleTitle,
@@ -55,7 +57,14 @@ export function AgentPageBanner({
             <Icon className="size-3.5" />
             {eyebrow}
           </div>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">{title}</h1>
+          <h1 className="mt-3 flex flex-wrap items-center gap-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
+            {title}
+            {TitleIcon ? (
+              <span className="animate-home-float inline-flex size-11 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-white shadow-lg shadow-rose-950/20 sm:size-12" aria-hidden="true">
+                <TitleIcon className="size-6 -rotate-12 sm:size-7" />
+              </span>
+            ) : null}
+          </h1>
           <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-white/85 sm:text-base">{description}</p>
 
           {stats && stats.length > 0 ? (

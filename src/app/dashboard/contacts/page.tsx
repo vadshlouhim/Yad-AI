@@ -18,7 +18,7 @@ export default async function ContactsPage() {
         title="Contacts"
         description="Bientôt, l’IA pourra classer intelligemment vos contacts selon leur récurrence, le montant total des dons effectués dans l’année, ainsi que de nombreux autres critères pertinents."
         icon={UsersRound}
-        tone="slate"
+        tone="teal"
       />
       <ContactsManager />
     </div>

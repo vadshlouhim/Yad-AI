@@ -21,6 +21,151 @@ interface TopBarProps {
   unreadNotifications: number;
 }
 
+const SOCIAL_AGENT_IMAGES = [
+  {
+    src: "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Dov%20ber%20insta.webp",
+    className: "left-0 -top-2 h-[4.7rem] w-[3.35rem] -rotate-6",
+  },
+  {
+    src: "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/MENDY%20FAC.webp",
+    className: "left-1/2 -top-3 h-20 w-16 -translate-x-1/2 z-10",
+  },
+  {
+    src: "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Israel%20Whatssap.webp",
+    className: "right-0 -top-2 h-[4.7rem] w-[3.35rem] rotate-6",
+  },
+];
+
+const DAVID_AUTOMATION_IMAGE_URL =
+  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/David%20responsable%20automatisations.webp";
+const LEVIK_EMAIL_IMAGE_URL =
+  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Levik%20Email.webp";
+const SHMOUEL_TORAH_IMAGE_URL =
+  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Shmouel%20Torah.webp";
+const AVI_DONATION_IMAGE_URL = "/agents/avi-donation-transparent.png";
+const ZALMAN_VISUALS_IMAGE_URL = "/agents/zalman-visuals-transparent.png";
+const TSEMAH_NEWSLETTER_IMAGE_URL = "/agents/tsemah-newsletter-transparent.png";
+
+function SocialAgentBubble() {
+  return (
+    <span className="relative flex h-16 w-[4.9rem] shrink-0 items-center justify-center self-center overflow-visible">
+      {SOCIAL_AGENT_IMAGES.map((agent) => (
+        <img
+          key={agent.src}
+          src={agent.src}
+          alt=""
+          aria-hidden="true"
+          className={cn(
+            "absolute object-contain object-top drop-shadow-[0_10px_14px_rgba(15,23,42,0.18)]",
+            agent.className
+          )}
+        />
+      ))}
+    </span>
+  );
+}
+
+function AutomationAgentBubble() {
+  return <SingleAgentBubble src={DAVID_AUTOMATION_IMAGE_URL} />;
+}
+
+function SingleAgentBubble({ src }: { src: string }) {
+  return (
+    <span className="relative flex h-16 w-[4.9rem] shrink-0 items-center justify-center self-center overflow-visible">
+      <img
+        src={src}
+        alt=""
+        aria-hidden="true"
+        className="absolute -top-3 h-20 w-16 object-contain object-top drop-shadow-[0_10px_14px_rgba(15,23,42,0.18)]"
+      />
+    </span>
+  );
+}
+
+function AviAgentBubble() {
+  return (
+    <span className="relative flex h-16 w-[5.4rem] shrink-0 items-center justify-center self-center overflow-visible">
+      <img
+        src={AVI_DONATION_IMAGE_URL}
+        alt=""
+        aria-hidden="true"
+        className="absolute -top-4 h-[6.1rem] w-[4.9rem] object-contain object-top drop-shadow-[0_12px_16px_rgba(15,23,42,0.2)]"
+      />
+    </span>
+  );
+}
+
+function renderSectionSubtitle(section: OfficialDashboardMenuSection, className: string) {
+  if (section.key === "social") {
+    return (
+      <p className={className}>
+        Publiez et planifiez vos réseaux avec{" "}
+        <em className="font-semibold italic">Dov Ber, Mendy et Israel</em>
+      </p>
+    );
+  }
+
+  if (section.key === "automations") {
+    return (
+      <p className={className}>
+        Automatisez vos publications avec{" "}
+        <em className="font-semibold italic">David</em>
+      </p>
+    );
+  }
+
+  if (section.key === "email") {
+    return (
+      <p className={className}>
+        Vos emails et avis Google, classés automatiquement avec{" "}
+        <em className="font-semibold italic">Levik</em>
+      </p>
+    );
+  }
+
+  if (section.key === "torah") {
+    return (
+      <p className={className}>
+        Un agent IA pour vos cours et contenus de Torah avec{" "}
+        <em className="font-semibold italic">Shmouel</em>
+      </p>
+    );
+  }
+
+  if (section.key === "donation") {
+    return (
+      <p className={className}>
+        {section.subtitle} avec{" "}
+        <em className="font-semibold italic">Avi</em>
+      </p>
+    );
+  }
+
+  if (section.key === "newsletter") {
+    return (
+      <p className={className}>
+        Créez et programmez vos newsletters{" "}
+        <em className="font-semibold italic">Avec Tsemah</em>
+      </p>
+    );
+  }
+
+  if (section.key === "visuals") {
+    return (
+      <p className={className}>
+        Personnalisez et créez vos visuels{" "}
+        <em className="font-semibold italic">avec Zalman</em>
+      </p>
+    );
+  }
+
+  return <p className={className}>{section.subtitle}</p>;
+}
+
+function shouldHideSectionAccent(section: OfficialDashboardMenuSection) {
+  return section.key === "contacts" || section.key === "settings";
+}
+
 export function TopBar({ communityName, communityType, userAvatar, userName, unreadNotifications }: TopBarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -46,6 +191,7 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
     if (pathname.startsWith("/dashboard/assistant")) return "Agents intelligents";
     if (pathname.startsWith("/dashboard/automations")) return "Automatisations";
     if (pathname.startsWith("/dashboard/notifications")) return "Notifications";
+    if (pathname.startsWith("/dashboard/social-networks")) return "Tous mes réseaux";
     if (pathname.startsWith("/dashboard/whatsapp")) return "WhatsApp";
     if (pathname.startsWith("/dashboard/facebook")) return "Facebook";
     if (pathname.startsWith("/dashboard/instagram")) return "Instagram";
@@ -53,7 +199,6 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
     if (pathname.startsWith("/dashboard/google-reviews")) return "Avis Google";
     if (pathname.startsWith("/dashboard/daily-assistant")) return "Assistant du quotidien";
     if (pathname.startsWith("/dashboard/events")) return "Mon agenda";
-    if (pathname.startsWith("/dashboard/clip-recap")) return "Clip video";
     if (pathname.startsWith("/dashboard/boutique")) return "Boutique";
     if (pathname.startsWith("/dashboard/referencement")) return "Referencement";
     if (pathname.startsWith("/dashboard/shabbat-times-auto")) return "Horaire de Chabbat";
@@ -316,10 +461,19 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
                             <section.icon className={cn("size-[18px]", style.itemIcon)} />
                           </span>
                           <div className="min-w-0 flex-1">
-                            <div className={cn("mb-3 h-1 w-10 rounded-full", style.accentBar)} />
+                            {!shouldHideSectionAccent(section) && (
+                              <div className={cn("mb-3 h-1 w-10 rounded-full", style.accentBar)} />
+                            )}
                             <p className={cn("text-[15px] font-black tracking-tight", style.titleClass)}>{section.section}</p>
-                            <p className={cn("mt-1.5 text-xs leading-5", style.descriptionClass)}>{section.subtitle}</p>
+                            {renderSectionSubtitle(section, cn("mt-1.5 text-xs leading-5", style.descriptionClass))}
                           </div>
+                          {section.key === "social" && <SocialAgentBubble />}
+                          {section.key === "automations" && <AutomationAgentBubble />}
+                          {section.key === "email" && <SingleAgentBubble src={LEVIK_EMAIL_IMAGE_URL} />}
+                          {section.key === "torah" && <SingleAgentBubble src={SHMOUEL_TORAH_IMAGE_URL} />}
+                          {section.key === "donation" && <AviAgentBubble />}
+                          {section.key === "newsletter" && <SingleAgentBubble src={TSEMAH_NEWSLETTER_IMAGE_URL} />}
+                          {section.key === "visuals" && <SingleAgentBubble src={ZALMAN_VISUALS_IMAGE_URL} />}
                           <ChevronDown
                             className={cn(
                               "mt-4 size-4 shrink-0 text-slate-400 transition-transform duration-300",

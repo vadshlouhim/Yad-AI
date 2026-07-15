@@ -6,7 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Sparkles, ArrowLeft, Download, Check,
-  Pencil, Crown, ImageIcon, Loader2, Search, X, Lock, Wand2,
+  Pencil, Crown, ImageIcon, Loader2, Paintbrush, Search, X, Lock, Wand2,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UpgradeModal } from "@/components/billing/upgrade-modal";
@@ -16,6 +17,10 @@ import {
   CATEGORY_EMOJI,
   CATEGORY_LABELS,
 } from "@/lib/templates/shared";
+
+const CHATGPT_VISUAL_CREATOR_URL =
+  "https://chatgpt.com/g/g-6a57add3a0d08191b66d9d72eac619a7-createur-d-affiches-visuels-by-easycom-ai";
+const ZALMAN_VISUALS_AGENT_IMAGE_URL = "/agents/zalman-visuals-transparent.png";
 
 // ============================================================
 // TYPES
@@ -478,9 +483,6 @@ export function TemplatesClient({
     return buildTemplateSearchText(template).includes(searchValue);
   });
   const categorySections = buildCategorySections(filteredTemplates);
-  const subCategoryCount = new Set(
-    templates.map((template) => template.subCategory?.trim()).filter(Boolean)
-  ).size;
 
   const isPremiumUser = plan !== "FREE_TRIAL";
   const firstUnlockedTemplateId = sortTemplates(templates)[0]?.id ?? null;
@@ -672,20 +674,34 @@ export function TemplatesClient({
           title={galleryTitle}
           description={gallerySubtitle}
           icon={ImageIcon}
-          tone="slate"
-          flat
-          stats={[
-            { label: "Affiches", value: templates.length },
-            { label: "Catégories", value: categories.length },
-            { label: "Sous-thèmes", value: subCategoryCount },
-          ]}
+          titleIcon={Paintbrush}
+          tone="rose"
         />
+
+        <section className="grid items-center gap-5 overflow-hidden rounded-[1.6rem] border border-rose-100 bg-gradient-to-br from-rose-50 via-white to-orange-50 p-5 shadow-[0_18px_46px_-34px_rgba(190,18,60,0.55)] md:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="min-w-0 space-y-4">
+            <div className="relative max-w-2xl rounded-[1.25rem] border border-white/80 bg-white/90 p-4 shadow-sm">
+              <div className="absolute -right-2 top-8 hidden h-4 w-4 rotate-45 border-r border-t border-white/80 bg-white/90 md:block" />
+              <p className="text-sm font-semibold leading-6 text-slate-700">
+                Je suis Zalman, votre agent IA créatif pour personnaliser et créer vos visuels
+              </p>
+            </div>
+          </div>
+          <div className="relative mx-auto flex h-36 w-32 items-end justify-center overflow-visible md:h-40 md:w-36">
+            <img
+              src={ZALMAN_VISUALS_AGENT_IMAGE_URL}
+              alt=""
+              aria-hidden="true"
+              className="absolute bottom-[-1.1rem] h-48 w-36 object-contain object-bottom drop-shadow-[0_18px_24px_rgba(15,23,42,0.18)] md:h-56 md:w-40"
+            />
+          </div>
+        </section>
 
         <section className="grid gap-3 sm:grid-cols-3">
           {[
-            { icon: ImageIcon, label: "Bibliothèque", value: `${templates.length} affiches`, tone: "text-cyan-700 bg-cyan-50 border-cyan-100" },
-            { icon: Wand2, label: "Personnalisation", value: "Guidée par IA", tone: "text-violet-700 bg-violet-50 border-violet-100" },
-            { icon: Sparkles, label: "Prêt à publier", value: "En quelques clics", tone: "text-amber-700 bg-amber-50 border-amber-100" },
+            { icon: ImageIcon, label: "Bibliothèque", value: `${templates.length} affiches`, tone: "text-rose-700 bg-rose-50 border-rose-100" },
+            { icon: Wand2, label: "Personnalisation", value: "Guidée par IA", tone: "text-red-700 bg-red-50 border-red-100" },
+            { icon: Sparkles, label: "Prêt à publier", value: "En quelques clics", tone: "text-orange-700 bg-orange-50 border-orange-100" },
           ].map((item) => {
             const Icon = item.icon;
             return (
@@ -701,8 +717,18 @@ export function TemplatesClient({
         </section>
 
         {showGalleryFilters && (
-        <Card className="rounded-[1.5rem] border-slate-200 bg-white/95 shadow-[0_18px_48px_-34px_rgba(15,23,42,0.42)]">
+        <Card className="rounded-[1.5rem] border-rose-100 bg-white/95 shadow-[0_18px_48px_-34px_rgba(190,24,93,0.22)]">
           <CardContent className="space-y-5 p-5">
+            <a
+              href={CHATGPT_VISUAL_CREATOR_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-600 bg-rose-600 px-4 py-3 text-center text-sm font-black text-white shadow-[0_12px_24px_-14px_rgba(190,24,93,0.8)] transition hover:-translate-y-0.5 hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-200 sm:w-auto"
+            >
+              <Sparkles className="size-4" />
+              <span>Créez une image avec ChatGPT By EasyCom-AI</span>
+              <ExternalLink className="size-4" />
+            </a>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="relative w-full lg:max-w-md">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -711,7 +737,7 @@ export function TemplatesClient({
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Rechercher une fête, un cours, une affiche, un thème..."
-                  className="w-full rounded-2xl border border-amber-200 bg-amber-50/40 py-3 pl-10 pr-11 text-sm text-slate-700 outline-none transition focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-100"
+                  className="w-full rounded-2xl border border-rose-200 bg-rose-50/40 py-3 pl-10 pr-11 text-sm text-slate-700 outline-none transition focus:border-rose-400 focus:bg-white focus:ring-4 focus:ring-rose-100"
                 />
                 {search && (
                   <button
@@ -733,7 +759,10 @@ export function TemplatesClient({
               <Button
                 variant={activeCategory === null ? "default" : "outline"}
                 size="sm"
-                className="rounded-full"
+                className={cn(
+                  "rounded-full border-rose-200",
+                  activeCategory === null ? "bg-rose-600 text-white hover:bg-rose-700" : "text-rose-700 hover:border-rose-300 hover:bg-rose-50"
+                )}
                 onClick={() => handleCategoryChange(null)}
               >
                 Toutes ({templates.length})
@@ -743,7 +772,10 @@ export function TemplatesClient({
                   key={cat}
                   variant={activeCategory === cat ? "default" : "outline"}
                   size="sm"
-                  className="rounded-full"
+                  className={cn(
+                    "rounded-full border-rose-200",
+                    activeCategory === cat ? "bg-rose-600 text-white hover:bg-rose-700" : "text-rose-700 hover:border-rose-300 hover:bg-rose-50"
+                  )}
                   onClick={() => handleCategoryChange(cat)}
                 >
                   {CATEGORY_EMOJI[cat] ?? "🖼️"} {CATEGORY_LABELS[cat] ?? cat} (
@@ -761,7 +793,10 @@ export function TemplatesClient({
                   <Button
                     variant={activeSubCategory === null ? "default" : "outline"}
                     size="sm"
-                    className="rounded-full"
+                    className={cn(
+                      "rounded-full border-rose-200",
+                      activeSubCategory === null ? "bg-rose-600 text-white hover:bg-rose-700" : "text-rose-700 hover:border-rose-300 hover:bg-rose-50"
+                    )}
                     onClick={() => handleSubCategoryChange(null)}
                   >
                     Tous
@@ -771,7 +806,10 @@ export function TemplatesClient({
                       key={group.key}
                       variant={activeSubCategory === group.key ? "default" : "outline"}
                       size="sm"
-                      className="rounded-full"
+                      className={cn(
+                        "rounded-full border-rose-200",
+                        activeSubCategory === group.key ? "bg-rose-600 text-white hover:bg-rose-700" : "text-rose-700 hover:border-rose-300 hover:bg-rose-50"
+                      )}
                       onClick={() => handleSubCategoryChange(group.key)}
                     >
                       {group.label} ({group.templates.length})
@@ -790,7 +828,10 @@ export function TemplatesClient({
                   <Button
                     variant={activeCollection === null ? "default" : "outline"}
                     size="sm"
-                    className="rounded-full"
+                    className={cn(
+                      "rounded-full border-rose-200",
+                      activeCollection === null ? "bg-rose-600 text-white hover:bg-rose-700" : "text-rose-700 hover:border-rose-300 hover:bg-rose-50"
+                    )}
                     onClick={() => setActiveCollection(null)}
                   >
                     Toutes
@@ -800,7 +841,10 @@ export function TemplatesClient({
                       key={collection.key}
                       variant={activeCollection === collection.key ? "default" : "outline"}
                       size="sm"
-                      className="rounded-full"
+                      className={cn(
+                        "rounded-full border-rose-200",
+                        activeCollection === collection.key ? "bg-rose-600 text-white hover:bg-rose-700" : "text-rose-700 hover:border-rose-300 hover:bg-rose-50"
+                      )}
                       onClick={() => setActiveCollection(collection.key)}
                     >
                       {collection.label} ({collection.total})

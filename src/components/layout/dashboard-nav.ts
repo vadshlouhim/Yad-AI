@@ -26,7 +26,6 @@ import {
   ShoppingBag,
   Star,
   Users,
-  Video,
   Zap,
   Sparkles,
 } from "lucide-react";
@@ -317,7 +316,7 @@ export const OFFICIAL_MENU_SECTION_STYLES: Record<
     itemHover: "hover:bg-slate-50 hover:text-slate-900",
     itemActive: "bg-teal-50 text-slate-950 ring-1 ring-teal-100",
   },
-  clips: {
+  visuals: {
     accentBar: "bg-rose-500",
     iconSurface: "bg-rose-50",
     titleClass: "text-rose-700",
@@ -327,13 +326,13 @@ export const OFFICIAL_MENU_SECTION_STYLES: Record<
     itemActive: "bg-rose-50 text-slate-950 ring-1 ring-rose-100",
   },
   contacts: {
-    accentBar: "bg-blue-950",
-    iconSurface: "bg-blue-950/5",
-    titleClass: "text-blue-950",
-    descriptionClass: "text-slate-500",
-    itemIcon: "text-blue-900",
-    itemHover: "hover:bg-slate-50 hover:text-slate-900",
-    itemActive: "bg-blue-50 text-slate-950 ring-1 ring-blue-100",
+    accentBar: "bg-emerald-500",
+    iconSurface: "bg-emerald-50",
+    titleClass: "text-emerald-800",
+    descriptionClass: "text-emerald-700/75",
+    itemIcon: "text-emerald-700",
+    itemHover: "hover:bg-emerald-50/70 hover:text-emerald-950",
+    itemActive: "bg-emerald-50 text-emerald-950 ring-1 ring-emerald-100",
   },
   settings: {
     accentBar: "bg-slate-500",
@@ -363,10 +362,10 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       subtitle: "Publiez et planifiez vos réseaux avec Dov Ber, Mendy et Israel",
       icon: Share2,
       items: [
+        { href: "/dashboard/social-networks", label: "Tous mes réseaux", icon: Share2, badge: "Bientôt disponible" },
         { href: "/dashboard/instagram", label: "Instagram", icon: InstagramIcon },
         { href: "/dashboard/facebook", label: "Facebook", icon: FacebookIcon },
         { href: "/dashboard/whatsapp", label: "WhatsApp", icon: WhatsAppIcon },
-        { href: "/dashboard/publish/telegram", label: "Telegram", icon: TelegramIcon },
         { href: "/dashboard/publications", label: "Historique des publications", icon: History },
       ],
     },
@@ -406,28 +405,6 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       ],
     },
     {
-      key: "resources",
-      section: "RESSOURCES & SERVICES",
-      subtitle: resourcesSubtitle,
-      icon: Library,
-      items: [
-        { href: "/dashboard/templates", label: "Affiches", icon: Image },
-        { href: "/dashboard/boutique", label: "Boutique", icon: ShoppingBag },
-        { href: "/dashboard/website", label: "Creation site web", icon: Globe },
-        { href: "/dashboard/referencement", label: "Referencement Google et IA", icon: Search },
-        { href: "/dashboard/assistance-indemnisation-aerienne", label: "Assistance indemnisations", icon: Plane },
-      ],
-    },
-    {
-      key: "contacts",
-      section: "CONTACTS",
-      subtitle: "Votre CRM centralises et organises par l'IA",
-      icon: Users,
-      items: [
-        { href: "/dashboard/contacts", label: "Mes contacts", icon: Users },
-      ],
-    },
-    {
       key: "donation",
       section: "CAMPAGNE DE DONS",
       subtitle: "Pilotez vos campagnes de collecte de A a Z",
@@ -447,12 +424,33 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       ],
     },
     {
-      key: "clips",
-      section: "CLIPS VIDEO",
-      subtitle: "Clips video crees instantanement avec l'IA",
-      icon: Video,
+      key: "visuals",
+      section: "AFFICHES & VISUELS",
+      subtitle: "Personnalisez et creez vos visuels avec Zalman",
+      icon: Image,
       items: [
-        { href: "/dashboard/clip-recap", label: "Clip video", icon: Video, badge: "Bientot disponible" },
+        { href: "/dashboard/templates", label: "Affiches & visuels", icon: Image },
+      ],
+    },
+    {
+      key: "resources",
+      section: "RESSOURCES & SERVICES",
+      subtitle: resourcesSubtitle,
+      icon: Library,
+      items: [
+        { href: "/dashboard/boutique", label: "Boutique", icon: ShoppingBag },
+        { href: "/dashboard/website", label: "Creation site web", icon: Globe },
+        { href: "/dashboard/referencement", label: "Referencement Google et IA", icon: Search },
+        { href: "/dashboard/assistance-indemnisation-aerienne", label: "Assistance indemnisations", icon: Plane },
+      ],
+    },
+    {
+      key: "contacts",
+      section: "CONTACTS",
+      subtitle: "Votre CRM centralises et organises par l'IA",
+      icon: Users,
+      items: [
+        { href: "/dashboard/contacts", label: "Mes contacts", icon: Users },
       ],
     },
     {
@@ -490,10 +488,10 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     section: "RESEAUX SOCIAUX",
     items: [
       { href: "/dashboard/automations", label: "Automatisations", icon: Zap },
+      { href: "/dashboard/social-networks", label: "Tous mes réseaux", icon: Share2, badge: "Bientôt disponible" },
       { href: "/dashboard/whatsapp", label: "WhatsApp", icon: WhatsAppIcon },
       { href: "/dashboard/instagram", label: "Instagram", icon: InstagramIcon },
       { href: "/dashboard/facebook", label: "Facebook", icon: FacebookIcon },
-      { href: "/dashboard/publish/telegram", label: "Telegram", icon: TelegramIcon },
       { href: "/dashboard/publications", label: "Historique des publications", icon: History },
     ],
   },
@@ -511,15 +509,14 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     ],
   },
   {
-    section: "CLIPS VIDEO",
+    section: "AFFICHES & VISUELS",
     items: [
-      { href: "/dashboard/clip-recap", label: "Clip Video", icon: Video },
+      { href: "/dashboard/templates", label: "Affiches & visuels", icon: Image },
     ],
   },
   {
     section: "BANQUE VISUELLE",
     items: [
-      { href: "/dashboard/templates", label: "Affiches", icon: Image },
       { href: "/dashboard/shabbat-times-auto", label: "Horaires de Chabbat", icon: Clock3 },
       { href: "/dashboard/jewish-holidays-auto", label: "Fetes juives et Hassidiques", icon: Gift },
     ],
@@ -578,10 +575,10 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     icon: Share2,
     items: [
       { href: "/dashboard/automations", label: "Automatisations", icon: Zap },
+      { href: "/dashboard/social-networks", label: "Tous mes réseaux", icon: Share2, badge: "Bientôt disponible" },
       { href: "/dashboard/whatsapp", label: "WhatsApp", icon: WhatsAppIcon },
       { href: "/dashboard/instagram", label: "Instagram", icon: InstagramIcon },
       { href: "/dashboard/facebook", label: "Facebook", icon: FacebookIcon },
-      { href: "/dashboard/publish/telegram", label: "Telegram", icon: TelegramIcon },
       { href: "/dashboard/publications", label: "Historique des publications", icon: History },
     ],
   },
@@ -606,10 +603,16 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     ],
   },
   {
+    section: "AFFICHES & VISUELS",
+    icon: Image,
+    items: [
+      { href: "/dashboard/templates", label: "Affiches & visuels", icon: Image },
+    ],
+  },
+  {
     section: "RESSOURCES & SERVICES",
     icon: Library,
     items: [
-      { href: "/dashboard/templates", label: "Affiches", icon: Image },
       { href: "/dashboard/boutique", label: "Boutique", icon: ShoppingBag },
       { href: "/dashboard/website", label: "Creation site web", icon: Globe },
       { href: "/dashboard/referencement", label: "Referencement Google et IA", icon: Search },
@@ -649,11 +652,6 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
       { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
       { href: "/dashboard/community-library", label: "Bibliothèque communautaire", icon: Library },
     ],
-  },
-  {
-    section: "CLIPS VIDEO",
-    icon: Video,
-    items: [{ href: "/dashboard/clip-recap", label: "Clip Video", icon: Video }],
   },
   {
     section: "PARAMETRES",

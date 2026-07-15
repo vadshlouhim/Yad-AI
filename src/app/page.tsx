@@ -5,14 +5,17 @@ import { AgentShowcase } from "@/components/home/agent-showcase";
 import { InstallAppGuide } from "@/components/home/install-app-guide";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicNavbar } from "@/components/layout/public-navbar";
-import { AGENTS_GROUP_IMAGE, EASYCOM_AGENTS } from "@/lib/agents";
+import { AGENTS_GROUP_IMAGE, HOME_EASYCOM_AGENTS } from "@/lib/agents";
 import {
   ArrowRight,
   BrainCircuit,
   CalendarDays,
-  Clapperboard,
   ClipboardCheck,
+  HeartHandshake,
+  ImageIcon,
   LogIn,
+  MailCheck,
+  Newspaper,
   Send,
   Share2,
   WandSparkles,
@@ -47,12 +50,37 @@ const FEATURES = [
     tone: "border-teal-200 text-teal-700 bg-teal-50",
     line: "bg-teal-600",
   },
+];
+
+const PLATFORM_FEATURES = [
+  ...FEATURES.slice(0, 4),
   {
-    label: "Ressources & vidéos IA",
-    description: "Téléversez vos ressources, photos et vidéos, créez des clips en quelques secondes, puis publiez-les directement sur vos réseaux.",
-    icon: Clapperboard,
+    label: "Affiches & visuels",
+    description: "Personnalisez vos affiches et creez des visuels prets a partager pour chaque evenement.",
+    icon: ImageIcon,
+    tone: "border-rose-200 text-rose-700 bg-rose-50",
+    line: "bg-rose-600",
+  },
+  {
+    label: "Campagnes de dons",
+    description: "Planifiez les etapes, preparez les contenus et suivez votre campagne au meme endroit.",
+    icon: HeartHandshake,
     tone: "border-red-200 text-red-700 bg-red-50",
     line: "bg-red-600",
+  },
+  {
+    label: "Newsletter IA",
+    description: "Creez une newsletter a partir de vos evenements et programmez son envoi au bon moment.",
+    icon: Newspaper,
+    tone: "border-fuchsia-200 text-fuchsia-700 bg-fuchsia-50",
+    line: "bg-fuchsia-600",
+  },
+  {
+    label: "Emails & avis Google",
+    description: "Classez les messages importants et preparez des reponses qui respectent votre ton.",
+    icon: MailCheck,
+    tone: "border-sky-200 text-sky-700 bg-sky-50",
+    line: "bg-sky-600",
   },
 ];
 
@@ -163,7 +191,7 @@ export default function HomePage() {
           </div>
 
           <div className="mx-auto mt-24 max-w-3xl text-center lg:mt-32">
-            <p className="bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-700 bg-clip-text text-sm font-black uppercase tracking-[0.16em] text-transparent">Découvrez vos 8 agents IA</p>
+            <p className="bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-700 bg-clip-text text-sm font-black uppercase tracking-[0.16em] text-transparent">Découvrez vos agents IA</p>
             <h2 className="mt-4 text-[clamp(2.25rem,6vw,4rem)] font-black leading-none tracking-tight text-slate-950">
               Instagram, Facebook, WhatsApp, Email, Avis Google, Automatisations, Dons et Contenus...
             </h2>
@@ -172,10 +200,10 @@ export default function HomePage() {
             </p>
           </div>
 
-          <AgentShowcase agents={EASYCOM_AGENTS} />
+          <AgentShowcase agents={HOME_EASYCOM_AGENTS} />
 
           <div className="hidden">
-            {EASYCOM_AGENTS.map((agent) => (
+            {HOME_EASYCOM_AGENTS.map((agent) => (
               <details
                 key={agent.slug}
                 className="group text-center"
@@ -219,8 +247,8 @@ export default function HomePage() {
             </h2>
           </div>
 
-          <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-5">
-            {FEATURES.map(({ label, description, icon: Icon, tone, line }) => (
+          <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {PLATFORM_FEATURES.map(({ label, description, icon: Icon, tone, line }) => (
               <article key={label} className={`rounded-2xl border bg-white p-4 text-center shadow-sm ${tone}`}>
                 <div className={`mx-auto mb-4 h-1 w-10 rounded-full ${line}`} />
                 <div className={`mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-xl border bg-white ${tone}`}>

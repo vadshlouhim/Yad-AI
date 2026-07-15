@@ -2388,10 +2388,10 @@ export function AssistantClient({
               iconClassName="size-6 stroke-[2.25] text-[#421388]"
             />
             <div className="flex min-w-0 flex-col gap-0.5">
-              <h1 className="truncate text-base font-bold text-slate-900">
+              <h1 className="text-sm font-bold leading-5 text-slate-900 sm:text-base">
                 {assistantExperience === "detailed" && activeConversationId
                   ? conversations.find((c) => c.id === activeConversationId)?.title ?? "Conversation"
-                  : "Agents intelligents"}
+                  : "Bienvenue sur EasyCom AI"}
               </h1>
               {assistantExperience === "simple" && (
                 <p className="truncate text-xs font-semibold text-slate-500 md:hidden">
