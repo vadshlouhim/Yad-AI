@@ -13,6 +13,7 @@ type AgentPageBannerProps = {
   bubbleTitle?: string;
   bubbleText?: string;
   tone?: "purple" | "amber" | "teal" | "rose" | "slate";
+  flat?: boolean;
   stats?: Array<{ label: string; value: string | number }>;
 };
 
@@ -34,13 +35,14 @@ export function AgentPageBanner({
   bubbleTitle,
   bubbleText,
   tone = "purple",
+  flat = false,
   stats,
 }: AgentPageBannerProps) {
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br p-5 text-white shadow-[0_24px_70px_-34px_rgba(15,23,42,0.55)] sm:p-7",
-        toneClasses[tone]
+        "relative overflow-hidden rounded-[1.75rem] p-5 text-white shadow-[0_24px_70px_-34px_rgba(15,23,42,0.55)] sm:p-7",
+        flat ? "bg-[#181827]" : cn("bg-gradient-to-br", toneClasses[tone])
       )}
     >
       <div className="pointer-events-none absolute -right-12 -top-16 size-56 rounded-full bg-white/10 blur-3xl" aria-hidden />

@@ -1,6 +1,14 @@
 // Helpers client pour les notifications push web.
 // Aucune UI : juste la logique d'enregistrement du service worker et de l'abonnement.
 
+export type PushEnableResult =
+  | { ok: true }
+  | {
+      ok: false;
+      reason: "unsupported" | "missing-vapid-key" | "permission-denied" | "subscribe-failed" | "test-failed" | "network-error";
+      message?: string;
+    };
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -24,19 +32,17 @@ export function getPushPermission(): NotificationPermission | "unsupported" {
   return Notification.permission;
 }
 
-// Demande la permission, abonne le navigateur et enregistre l'abonnement côté serveur.
-// Retourne true si l'abonnement est actif.
-export async function enablePushNotifications(): Promise<boolean> {
-  if (!isPushSupported()) return false;
+export async function enablePushNotificationsDetailed(): Promise<PushEnableResult> {
+  if (!isPushSupported()) return { ok: false, reason: "unsupported" };
   const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   if (!vapidKey) {
     console.warn("[Push] NEXT_PUBLIC_VAPID_PUBLIC_KEY absente.");
-    return false;
+    return { ok: false, reason: "missing-vapid-key" };
   }
 
   try {
     const permission = await Notification.requestPermission();
-    if (permission !== "granted") return false;
+    if (permission !== "granted") return { ok: false, reason: "permission-denied" };
 
     const registration = await navigator.serviceWorker.register("/sw.js");
     await navigator.serviceWorker.ready;
@@ -54,14 +60,28 @@ export async function enablePushNotifications(): Promise<boolean> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ subscription: subscription.toJSON(), userAgent: navigator.userAgent }),
     });
-    return res.ok;
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({})) as { error?: string };
+      return { ok: false, reason: "subscribe-failed", message: data.error };
+    }
+
+    const testRes = await fetch("/api/push/test", { method: "POST" });
+    if (!testRes.ok) {
+      const data = await testRes.json().catch(() => ({})) as { error?: string };
+      return { ok: false, reason: "test-failed", message: data.error };
+    }
+
+    return { ok: true };
   } catch (error) {
-    console.error("[Push] Échec de l'abonnement:", error);
-    return false;
+    console.error("[Push] Echec de l'abonnement:", error);
+    return { ok: false, reason: "network-error", message: error instanceof Error ? error.message : undefined };
   }
 }
 
-// Réenregistre silencieusement le service worker si la permission est déjà accordée.
+export async function enablePushNotifications(): Promise<boolean> {
+  return (await enablePushNotificationsDetailed()).ok;
+}
+
 export async function ensurePushRegistered(): Promise<void> {
   if (!isPushSupported() || Notification.permission !== "granted") return;
   try {
@@ -76,6 +96,6 @@ export async function ensurePushRegistered(): Promise<void> {
       });
     }
   } catch {
-    // silencieux
+    // Silencieux: cette routine ne doit pas bloquer l'ouverture de l'app.
   }
 }

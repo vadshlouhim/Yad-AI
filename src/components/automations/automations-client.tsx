@@ -770,10 +770,10 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
               </h1>
             </div>
             <div className="flex flex-col items-end gap-3">
-              <div className="relative z-20 flex w-full max-w-xl items-center gap-4 rounded-3xl border border-white/15 bg-white/12 p-4 text-white shadow-sm shadow-[#22084b]/20 backdrop-blur-sm sm:w-auto">
-                <div className="flex size-20 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white shadow-lg shadow-black/10">
+              <div className="relative z-20 flex w-full max-w-xl items-center gap-4 text-white sm:w-auto">
+                <div className="flex size-24 shrink-0 items-center justify-center">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={DAVID_AUTOMATION_IMAGE_URL} alt="David, agent intelligent" className="size-16 rounded-full object-contain" />
+                  <img src={DAVID_AUTOMATION_IMAGE_URL} alt="David, agent intelligent" className="h-full w-full object-contain object-bottom" />
                 </div>
                 <p className="max-w-sm text-sm font-black leading-6 text-white">
                   Je suis David, gérez vos automatisations et suivez celles déjà actives.

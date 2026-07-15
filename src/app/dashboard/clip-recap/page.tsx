@@ -24,11 +24,6 @@ export default function ClipRecapPage() {
         description="Bientôt, vous pourrez téléverser vos photos et vidéos, donner vos instructions à l’IA, et recevoir un clip prêt à publier sur vos réseaux."
         icon={Video}
         tone="rose"
-        stats={[
-          { label: "Format", value: "Réseaux" },
-          { label: "Montage", value: "IA" },
-          { label: "Statut", value: "Bientôt" },
-        ]}
       />
 
       <section className="hidden overflow-hidden rounded-3xl border border-[#c97a85] bg-gradient-to-br from-[#6c1829] via-[#8c2339] to-[#b03b52] p-6 shadow-[0_24px_60px_-32px_rgba(127,29,29,0.45)]">

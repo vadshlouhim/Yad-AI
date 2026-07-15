@@ -8,6 +8,7 @@ import {
   CalendarClock,
   CheckCircle,
   Copy,
+  ExternalLink,
   FileText,
   Eye,
   Heart,
@@ -27,6 +28,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { DAVID_AGENT_IMAGE, DOV_BER_INSTAGRAM_IMAGE, MENDY_FACEBOOK_IMAGE, SocialPageBanner } from "@/components/publish/social-page-banner";
+
+const CHATGPT_VISUAL_CREATOR_URL =
+  "https://chatgpt.com/g/g-6a57add3a0d08191b66d9d72eac619a7-createur-d-affiches-visuels-by-easycom-ai";
 
 const SOCIAL_LABELS: Record<string, string> = {
   WHATSAPP: "WhatsApp",
@@ -80,6 +84,30 @@ function formatPreviewText(value: string) {
   html = html.replace(/\*(.*?)\*/g, "<strong>$1</strong>");
   html = html.replace(/\n/g, "<br />");
   return <span dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
+function ChatGptVisualCreatorButton({ tone = "pink" }: { tone?: "pink" | "blue" | "emerald" }) {
+  const toneClasses = {
+    pink: "border-pink-200 bg-gradient-to-r from-pink-50 via-white to-orange-50 text-pink-700 hover:border-pink-300 hover:from-pink-100 hover:to-orange-100",
+    blue: "border-blue-200 bg-gradient-to-r from-blue-50 via-white to-sky-50 text-blue-700 hover:border-blue-300 hover:from-blue-100 hover:to-sky-100",
+    emerald: "border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-teal-50 text-emerald-700 hover:border-emerald-300 hover:from-emerald-100 hover:to-teal-100",
+  };
+
+  return (
+    <a
+      href={CHATGPT_VISUAL_CREATOR_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={cn(
+        "flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-center text-sm font-black shadow-sm transition",
+        toneClasses[tone],
+      )}
+    >
+      <Sparkles className="size-4" />
+      <span>Créez une image avec ChatGPT By EasyCom-AI</span>
+      <ExternalLink className="size-4" />
+    </a>
+  );
 }
 
 function renderSmartphoneFrame(children: React.ReactNode, screenClassName = "bg-white") {
@@ -221,6 +249,11 @@ function GenericPublishClient({ platformKey, isConnected, communityName }: Props
           </Card>
 
           <Card className="rounded-3xl border border-slate-200 p-5">
+            {platformKey === "WHATSAPP" && (
+              <div className="mb-5">
+                <ChatGptVisualCreatorButton tone="emerald" />
+              </div>
+            )}
             {platformKey === "EMAIL" && (
               <div className="mb-4 space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Objet</label>
@@ -590,6 +623,7 @@ function InstagramPublishClient({ channelId, isConnected, communityName }: Props
             <div className="space-y-5">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Image de publication</label>
+                <ChatGptVisualCreatorButton tone="pink" />
                 <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-pink-200 bg-gradient-to-r from-pink-50 to-orange-50 px-4 py-4 text-sm font-medium text-pink-700 transition hover:from-pink-100 hover:to-orange-100">
                   <ImagePlus className="size-4" />
                   {uploading ? "Envoi en cours..." : imageName || "Ajouter une image"}
@@ -1016,6 +1050,7 @@ function FacebookPublishClient({ channelId, isConnected, communityName }: Props)
             <div className="space-y-5">
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Medias</label>
+                <ChatGptVisualCreatorButton tone="blue" />
                 <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-blue-200 bg-blue-50 px-4 py-4 text-sm font-medium text-blue-700 transition hover:bg-blue-100">
                   <ImagePlus className="size-4" />
                   {uploading ? "Envoi en cours..." : "Ajouter des images"}

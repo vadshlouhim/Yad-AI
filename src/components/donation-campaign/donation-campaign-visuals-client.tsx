@@ -393,11 +393,6 @@ export function DonationCampaignVisualsClient({ community, campaign, steps, asse
         description="Retrouvez tous les supports créés pour votre campagne de dons : affiches, messages, publications et contenus prêts à valider."
         icon={Share2}
         tone="purple"
-        stats={[
-          { label: "Étapes", value: steps.length },
-          { label: "Supports", value: assets.length },
-          { label: "Diffusion", value: "Guidée" },
-        ]}
       />
 
       {/* Hero */}

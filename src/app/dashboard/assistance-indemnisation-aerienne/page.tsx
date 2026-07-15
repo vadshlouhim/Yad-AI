@@ -19,11 +19,6 @@ export default function AssistanceIndemnisationAeriennePage() {
         description="Nous vous accompagnons dans les demandes d’indemnisation liées aux vols retardés ou annulés : collecte des informations, préparation du dossier et suivi des démarches."
         icon={Plane}
         tone="amber"
-        stats={[
-          { label: "Montant", value: "600 €" },
-          { label: "Dossier", value: "Suivi" },
-          { label: "Temps", value: "Gagné" },
-        ]}
       />
 
       <div className="rounded-3xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">

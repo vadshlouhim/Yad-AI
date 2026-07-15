@@ -249,7 +249,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
   }), [reviews, now]);
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6">
+    <div className="mx-auto w-full min-w-0 max-w-6xl space-y-4 overflow-x-clip px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6">
       {/* Header */}
       <div className="relative overflow-visible rounded-[1.4rem] border border-[#8A184D]/10 bg-[#8A184D] p-5 text-white shadow-[0_22px_55px_rgba(138,24,77,0.24)] sm:p-6">
         <div className="pointer-events-none absolute inset-y-0 right-6 hidden items-center sm:flex" aria-hidden="true">
@@ -259,8 +259,8 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
         </div>
         <div className="absolute -bottom-8 left-8 size-20 rounded-full bg-amber-300/20 blur-2xl" aria-hidden />
 
-        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl">
+        <div className="relative flex flex-col items-center gap-5 text-center lg:flex-row lg:items-start lg:justify-between lg:text-left">
+          <div className="w-full max-w-3xl">
             <div className="mb-4 h-1.5 w-12 rounded-full bg-white/80" />
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-rose-50">
               <Star className="size-3.5 fill-amber-300 text-amber-300" />
@@ -278,7 +278,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
               ))}
             </div>
             {isConnected && locationName && (
-              <div className="mt-1 flex items-center gap-1.5 text-cyan-200/70">
+              <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5 text-cyan-200/70 lg:justify-start">
                 <MapPin className="size-3.5" />
                 <span className="text-sm">{locationName}</span>
                 {counts.avgRating && (
@@ -295,7 +295,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
             )}
           </div>
 
-          <div className="relative z-20 flex flex-col items-start gap-4 sm:flex-row sm:items-center lg:max-w-2xl">
+          <div className="relative z-20 flex w-full flex-col items-center gap-4 text-center lg:w-auto lg:flex-row lg:items-center lg:text-left lg:max-w-2xl">
             <div className="pointer-events-none relative z-30 shrink-0" aria-hidden="true">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -304,7 +304,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
                 className="-my-8 h-48 w-auto object-contain drop-shadow-[0_24px_34px_rgba(0,0,0,0.30)] sm:-my-10 lg:-my-14 lg:h-72"
               />
             </div>
-            <div className="relative max-w-md rounded-2xl bg-white px-5 py-4 text-base leading-6 text-[#8A184D] shadow-xl before:absolute before:-left-2 before:top-10 before:size-4 before:rotate-45 before:bg-white">
+            <div className="relative w-full max-w-md rounded-2xl bg-white px-5 py-4 text-center text-base leading-6 text-[#8A184D] shadow-xl before:hidden lg:w-auto lg:text-left lg:before:block lg:before:absolute lg:before:-left-2 lg:before:top-10 lg:before:size-4 lg:before:rotate-45 lg:before:bg-white">
               <p className="font-black">Je suis Barouh, l’agent IA responsable de vos avis Google</p>
               <p className="mt-1 font-semibold text-slate-600">
                 Je réceptionne vos avis Google, je les classe par importance et je vous notifie quand un avis mérite votre attention
@@ -312,7 +312,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
             </div>
           </div>
 
-          <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end lg:absolute lg:bottom-5 lg:left-5">
+          <div className="flex w-full flex-col items-center gap-2 lg:absolute lg:bottom-5 lg:left-5 lg:w-auto lg:items-start">
             {isConnected && (
               <button
                 onClick={() => fetchReviews()}
@@ -328,7 +328,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
               onClick={handleConnect}
               disabled={isConnecting}
               className={cn(
-                "w-full rounded-full px-5 py-5 text-sm font-semibold transition-all hover:scale-[1.02] sm:w-auto",
+                "w-full max-w-sm rounded-full px-5 py-5 text-sm font-semibold transition-all hover:scale-[1.02] sm:w-auto",
                 isConnected
                   ? "bg-rose-600 hover:bg-rose-700 text-white border-none"
                   : "bg-white text-[#8A184D] border-white hover:bg-rose-50"
@@ -410,7 +410,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
             {/* Liste */}
             <Card className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-[28px] lg:col-span-5">
               <CardHeader className="border-b border-slate-100 bg-slate-50/50 p-4 space-y-3">
-                <CardTitle className="text-base text-slate-900 font-bold flex items-center justify-between">
+                <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base font-bold text-slate-900">
                   <span>{reviews.length} avis</span>
                   {counts.unanswered > 0 && (
                     <span className="rounded-full bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5">
@@ -491,9 +491,9 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
             <Card className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-[28px] lg:col-span-7">
               {selectedReview ? (
                 <div className="flex flex-col h-full">
-                  <div className="border-b border-slate-100 p-4 bg-slate-50/30 flex items-center justify-between">
-                    <div>
-                      <h2 className="text-base font-bold text-slate-900">Avis de {selectedReview.author}</h2>
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/30 p-4">
+                    <div className="min-w-0">
+                      <h2 className="break-words text-base font-bold text-slate-900">Avis de {selectedReview.author}</h2>
                       <p className="text-xs text-slate-500">{selectedReview.relativeTime}</p>
                     </div>
                     <div className="flex items-center gap-0.5">
@@ -538,7 +538,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
                   {/* Suggestion IA */}
                   {aiDraft && (
                     <div className="mx-4 my-2 space-y-3 rounded-2xl border border-cyan-200/80 bg-cyan-50 p-4 shadow-sm sm:mx-6">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-800">
                           <Bot className="size-4 text-cyan-700 animate-bounce" />Réponse IA proposée
                         </span>

@@ -25,7 +25,7 @@ export default async function JewishHolidaysAutoPage() {
     .eq("id", communityId)
     .single();
 
-  const country = community?.country ?? "France";
+  const country = community?.country && community.country !== "Other" ? community.country : "France";
 
   const [{ data: holidayRows }, { data: templates }, { data: automationRows }, { data: channels }] = await Promise.all([
     admin

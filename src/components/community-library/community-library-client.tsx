@@ -358,7 +358,8 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
         imageAlt="Shmouel, agent IA Bibliothèque communautaire"
         bubbleTitle="Je suis Shmouel, votre agent IA Bibliothèque communautaire"
         bubbleText="Je classe vos ressources Torah et vous aide à les partager au bon moment"
-        tone="purple"
+        tone="slate"
+        flat
       />
 
       <div className="flex flex-wrap gap-3">

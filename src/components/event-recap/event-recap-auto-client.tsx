@@ -8,7 +8,7 @@ import { ImagePlus, Loader2 } from "lucide-react";
 import type { EventRecapSettings, RecapHistory } from "@/lib/automation/event-recap";
 
 const DAVID_IMAGE_URL =
-  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/agent-orcetra-shlomi.webp";
+  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/David%20responsable%20automatisations.webp";
 
 interface Community {
   id: string;
@@ -138,10 +138,8 @@ export function EventRecapAutoClient({ automation, settings }: Props) {
         <div className="pointer-events-none absolute -left-16 top-12 size-40 rounded-full bg-amber-100/60 blur-3xl" />
         <div className="pointer-events-none absolute -right-12 bottom-8 size-48 rounded-full bg-violet-100/80 blur-3xl" />
 
-        <div className="relative mx-auto flex size-44 items-center justify-center rounded-full bg-gradient-to-br from-violet-100 via-white to-amber-100 p-3 shadow-2xl shadow-violet-200/70 sm:size-56">
-          <div className="relative size-full overflow-hidden rounded-full border-4 border-white bg-white">
-            <Image src={DAVID_IMAGE_URL} alt="David, assistant IA" fill unoptimized className="object-cover" priority />
-          </div>
+        <div className="relative mx-auto h-56 w-44 sm:h-72 sm:w-56">
+          <Image src={DAVID_IMAGE_URL} alt="David, assistant IA" fill unoptimized className="object-contain object-bottom" priority />
         </div>
 
         <p className="relative mx-auto mt-8 max-w-4xl text-2xl font-black leading-tight text-slate-950 sm:text-4xl">

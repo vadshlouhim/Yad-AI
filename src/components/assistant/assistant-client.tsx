@@ -253,16 +253,18 @@ function AssistantAvatar({
   className,
   imageClassName,
   iconClassName,
+  iconOnly = false,
 }: {
   className?: string;
   imageClassName?: string;
   iconClassName?: string;
+  iconOnly?: boolean;
 }) {
   const [imageSrc, setImageSrc] = useState<string | null>(AGENTS_IMAGE_URL);
 
   return (
     <div className={className}>
-      {imageSrc ? (
+      {!iconOnly && imageSrc ? (
         <img
           src={imageSrc}
           alt="Agents intelligents EasyCom IA"
@@ -270,7 +272,7 @@ function AssistantAvatar({
           onError={() => setImageSrc(null)}
         />
       ) : (
-        <Bot className={iconClassName} />
+        <Sparkles className={iconClassName} />
       )}
     </div>
   );
@@ -2380,9 +2382,10 @@ export function AssistantClient({
               </button>
             )}
             <AssistantAvatar
-              className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+              iconOnly
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#421388]/10 bg-white shadow-sm shadow-[#421388]/10"
               imageClassName="h-full w-full object-cover object-top"
-              iconClassName="size-5 text-blue-700"
+              iconClassName="size-6 stroke-[2.25] text-[#421388]"
             />
             <div className="flex min-w-0 flex-col gap-0.5">
               <h1 className="truncate text-base font-bold text-slate-900">

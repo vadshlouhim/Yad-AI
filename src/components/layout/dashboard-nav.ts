@@ -212,6 +212,10 @@ export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActiv
     label: "text-rose-300",
     itemActive: "bg-rose-600 text-white shadow-sm",
   },
+  "NEWSLETTER IA": {
+    label: "text-lime-300",
+    itemActive: "bg-lime-600 text-white shadow-sm",
+  },
   RESSOURCES: {
     label: "text-violet-300",
     itemActive: "bg-violet-600 text-white shadow-sm",
@@ -285,6 +289,15 @@ export const OFFICIAL_MENU_SECTION_STYLES: Record<
     itemIcon: "text-[#421388]",
     itemHover: "hover:bg-slate-50 hover:text-slate-900",
     itemActive: "bg-violet-50 text-slate-950 ring-1 ring-violet-100",
+  },
+  newsletter: {
+    accentBar: "bg-lime-500",
+    iconSurface: "bg-lime-50",
+    titleClass: "text-lime-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-lime-600",
+    itemHover: "hover:bg-slate-50 hover:text-slate-900",
+    itemActive: "bg-lime-50 text-slate-950 ring-1 ring-lime-100",
   },
   resources: {
     accentBar: "bg-amber-500",
@@ -396,7 +409,7 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       key: "resources",
       section: "RESSOURCES & SERVICES",
       subtitle: resourcesSubtitle,
-      icon: BookOpen,
+      icon: Library,
       items: [
         { href: "/dashboard/templates", label: "Affiches", icon: Image },
         { href: "/dashboard/boutique", label: "Boutique", icon: ShoppingBag },
@@ -422,6 +435,15 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       items: [
         { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart, badge: "Bientot disponible" },
         { href: "/dashboard/donation-campaign/visuals", label: "Visuels & publications", icon: Share2, badge: "Bientot disponible" },
+      ],
+    },
+    {
+      key: "newsletter",
+      section: "NEWSLETTER IA",
+      subtitle: "Créez et programmez vos newsletters avec l'IA",
+      icon: Mail,
+      items: [
+        { href: "/dashboard/newsletter", label: "Création de newsletter", icon: Mail, badge: "Bientôt disponible" },
       ],
     },
     {
@@ -516,6 +538,12 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     ],
   },
   {
+    section: "NEWSLETTER IA",
+    items: [
+      { href: "/dashboard/newsletter", label: "Création de newsletter", icon: Mail, badge: "Bientôt disponible" },
+    ],
+  },
+  {
     section: "SERVICES",
     items: [
       { href: "/dashboard/boutique", label: "Boutique", icon: ShoppingBag },
@@ -579,7 +607,7 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
   },
   {
     section: "RESSOURCES & SERVICES",
-    icon: BookOpen,
+    icon: Library,
     items: [
       { href: "/dashboard/templates", label: "Affiches", icon: Image },
       { href: "/dashboard/boutique", label: "Boutique", icon: ShoppingBag },
@@ -605,6 +633,13 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     items: [
       { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart, badge: "Bientot disponible" },
       { href: "/dashboard/donation-campaign/visuals", label: "Visuels & Publications", icon: Share2, badge: "Bientot disponible" },
+    ],
+  },
+  {
+    section: "NEWSLETTER IA",
+    icon: Mail,
+    items: [
+      { href: "/dashboard/newsletter", label: "Création de newsletter", icon: Mail, badge: "Bientôt disponible" },
     ],
   },
   {

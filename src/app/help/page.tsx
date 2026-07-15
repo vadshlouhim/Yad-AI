@@ -109,11 +109,6 @@ export default function HelpPage() {
           description="Retrouvez les réponses essentielles pour utiliser EasyCom IA, connecter vos outils et comprendre les principales rubriques du dashboard."
           icon={HelpCircle}
           tone="purple"
-          stats={[
-            { label: "Support", value: "Guidé" },
-            { label: "Réponses", value: FAQ_ITEMS.length },
-            { label: "Contact", value: "Formulaire" },
-          ]}
         />
 
         <section className="grid gap-4 md:grid-cols-2">

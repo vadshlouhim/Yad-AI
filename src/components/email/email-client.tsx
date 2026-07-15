@@ -487,7 +487,7 @@ export function EmailClient({
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6">
+    <div className="mx-auto w-full min-w-0 max-w-6xl space-y-4 overflow-x-clip px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6">
       <div className="relative overflow-visible rounded-[1.4rem] border border-[#8A184D]/10 bg-[#8A184D] p-5 text-white shadow-[0_22px_55px_rgba(138,24,77,0.24)] sm:p-6">
         <div className="pointer-events-none absolute inset-y-0 right-6 hidden items-center sm:flex" aria-hidden="true">
           <div className="rounded-full bg-white/[0.045] p-5">
@@ -496,8 +496,8 @@ export function EmailClient({
         </div>
         <div className="absolute -bottom-8 left-8 size-20 rounded-full bg-rose-300/20 blur-2xl" aria-hidden />
 
-        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl">
+        <div className="relative flex flex-col items-center gap-5 text-center lg:flex-row lg:items-start lg:justify-between lg:text-left">
+          <div className="w-full max-w-3xl">
             <div className="mb-4 h-1.5 w-12 rounded-full bg-white/80" />
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-rose-50">
               <Mail className="size-3.5" />
@@ -509,7 +509,7 @@ export function EmailClient({
             </p>
           </div>
 
-          <div className="relative z-20 flex flex-col items-start gap-4 sm:flex-row sm:items-center lg:max-w-2xl">
+          <div className="relative z-20 flex w-full flex-col items-center gap-4 text-center lg:w-auto lg:flex-row lg:items-center lg:text-left lg:max-w-2xl">
             <div className="pointer-events-none relative z-30 shrink-0" aria-hidden="true">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -518,7 +518,7 @@ export function EmailClient({
                 className="-my-8 h-48 w-auto object-contain drop-shadow-[0_24px_34px_rgba(0,0,0,0.30)] sm:-my-10 lg:-my-14 lg:h-72"
               />
             </div>
-            <div className="relative max-w-md rounded-2xl bg-white px-5 py-4 text-base leading-6 text-[#8A184D] shadow-xl before:absolute before:-left-2 before:top-10 before:size-4 before:rotate-45 before:bg-white">
+            <div className="relative w-full max-w-md rounded-2xl bg-white px-5 py-4 text-center text-base leading-6 text-[#8A184D] shadow-xl before:hidden lg:w-auto lg:text-left lg:before:block lg:before:absolute lg:before:-left-2 lg:before:top-10 lg:before:size-4 lg:before:rotate-45 lg:before:bg-white">
               <p className="font-black">Je suis Levik, l’agent IA responsable de vos emails</p>
               <p className="mt-1 font-semibold text-slate-600">
                 Je vous aide à classer vos messages, préparer des réponses assistées et recevoir les alertes
@@ -526,7 +526,7 @@ export function EmailClient({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-xs lg:absolute lg:bottom-5 lg:left-5">
+          <div className="flex flex-wrap items-center justify-center gap-2 text-xs lg:absolute lg:bottom-5 lg:left-5 lg:justify-start">
             {isClassifying && (
               <Badge className="border-white/20 bg-white/10 text-white">
                 Classement en cours
@@ -707,8 +707,8 @@ export function EmailClient({
                   <CardHeader className="border-b border-slate-100">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <CardTitle className="text-lg font-bold text-slate-950">{selectedMail.subject}</CardTitle>
-                        <p className="mt-1 text-sm text-slate-500">
+                        <CardTitle className="break-words text-lg font-bold text-slate-950">{selectedMail.subject}</CardTitle>
+                        <p className="mt-1 break-all text-sm text-slate-500">
                           {selectedMail.sender} · {selectedMail.senderEmail}
                         </p>
                       </div>
@@ -736,7 +736,7 @@ export function EmailClient({
                     {(selectedMail.category === "urgent" || selectedMail.category === "important") && (
                       <div className="space-y-3 rounded-3xl border border-cyan-100 bg-cyan-50/50 p-4">
                         <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
+                          <div className="min-w-0 text-center sm:text-left">
                             <p className="text-sm font-semibold text-slate-900">Redaction assistee par IA</p>
                             <p className="text-xs text-slate-500">Resume court, ton professionnel et reponse modifiable.</p>
                           </div>
@@ -744,7 +744,7 @@ export function EmailClient({
                             variant="outline"
                             onClick={handleDraftWithAi}
                             disabled={isDrafting}
-                            className="rounded-full border-cyan-200 bg-white text-cyan-800 hover:bg-cyan-100"
+                            className="w-full rounded-full border-cyan-200 bg-white text-cyan-800 hover:bg-cyan-100 sm:w-auto"
                           >
                             {isDrafting ? <RefreshCw className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
                             {isDrafting ? "Generation..." : "Rediger avec l'IA"}
@@ -753,7 +753,7 @@ export function EmailClient({
 
                         {draftSuggestion && (
                           <div className="rounded-2xl border border-cyan-200 bg-white p-4">
-                            <div className="flex items-center justify-between gap-3">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
                               <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-700">Suggestion IA</p>
                               <Button
                                 variant="ghost"
@@ -826,7 +826,7 @@ export function EmailClient({
                       <p className="text-sm font-semibold text-slate-900">{rule.name}</p>
                       <p className="mt-1 text-xs text-slate-500">{describeRule(rule)}</p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-end">
                       <Badge className={rule.status === "ACTIVE" ? "border-emerald-200 bg-emerald-100 text-emerald-800" : "border-slate-200 bg-slate-100 text-slate-700"}>
                         {rule.status === "ACTIVE" ? "Active" : "Desactivee"}
                       </Badge>

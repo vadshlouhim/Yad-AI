@@ -18,11 +18,6 @@ export default function ReferencementPage() {
         description="Nous renforçons votre présence sur Google et dans les réponses des agents IA, avec une présentation claire, cohérente et pensée pour être recommandée au bon moment."
         icon={Search}
         tone="teal"
-        stats={[
-          { label: "SEO local", value: "Google" },
-          { label: "IA", value: "Agents" },
-          { label: "Présence", value: "Durable" },
-        ]}
       />
 
       <div className="rounded-3xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">

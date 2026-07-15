@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export const DAVID_IMAGE_URL =
-  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/agent-orcetra-shlomi.webp";
+  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Shlomi%20agent-orcetra-Itshak.webp";
 
 export const DAVID_AUTOMATION_IMAGE_URL =
   "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/David%20responsable%20automatisations.webp";
@@ -19,12 +19,12 @@ type DavidBannerAgentProps = {
 export function DavidBannerAgent({ text, className }: DavidBannerAgentProps) {
   return (
     <div className={cn("relative z-20 flex flex-col items-start gap-4 sm:flex-row sm:items-center", className)}>
-      <div className="pointer-events-none relative z-30 shrink-0" aria-hidden="true">
+      <div className="pointer-events-none relative z-30 flex h-48 w-44 shrink-0 items-center justify-center sm:h-56 sm:w-52 lg:-my-10 lg:h-64 lg:w-60" aria-hidden="true">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={DAVID_AUTOMATION_IMAGE_URL}
           alt=""
-          className="-my-10 h-52 w-auto object-contain drop-shadow-[0_24px_34px_rgba(20,8,42,0.35)] animate-install-float sm:-my-12 lg:-my-16 lg:h-72"
+          className="h-full w-full object-contain object-bottom drop-shadow-[0_24px_34px_rgba(20,8,42,0.35)] animate-install-float"
         />
       </div>
       <div className="relative max-w-md rounded-2xl bg-white px-5 py-4 text-base font-black leading-6 text-[#421388] shadow-xl shadow-[#22084b]/20 before:absolute before:-left-2 before:top-10 before:size-4 before:rotate-45 before:bg-white">
@@ -110,9 +110,9 @@ export function DavidAutomationCard({
     >
       <div className="flex flex-col gap-4 pl-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-4">
-          <div className="relative flex size-20 shrink-0 items-center justify-center rounded-full bg-white shadow-[0_16px_34px_rgba(66,19,136,0.18)] ring-1 ring-[#421388]/10 animate-install-float">
+          <div className="relative flex size-24 shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-violet-50 via-white to-amber-50 p-2 shadow-[0_16px_34px_rgba(66,19,136,0.18)] ring-1 ring-[#421388]/10 animate-install-float">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={DAVID_IMAGE_URL} alt="David, agent intelligent" className="size-16 rounded-full object-contain" />
+            <img src={DAVID_IMAGE_URL} alt="David, agent intelligent" className="h-full w-full object-contain object-bottom" />
             <span className="absolute -right-1 top-2 flex size-7 items-center justify-center rounded-full bg-[#421388] text-white shadow-lg shadow-[#421388]/25">
               <Bot className="size-4" />
             </span>

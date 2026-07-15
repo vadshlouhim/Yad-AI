@@ -3,16 +3,25 @@
 import { useEffect, useState } from "react";
 import { Bell, BellOff, CheckCircle2, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { enablePushNotifications, getPushPermission, isPushSupported } from "@/lib/push/client";
+import { enablePushNotificationsDetailed, getPushPermission, isPushSupported } from "@/lib/push/client";
 
 type PushNotificationSwitchProps = {
   labelClassName?: string;
   align?: "start" | "end";
 };
 
+function failureLabel(reason: string, message?: string) {
+  if (message) return message;
+  if (reason === "missing-vapid-key") return "Cle push absente";
+  if (reason === "permission-denied") return "Autorisation refusee";
+  if (reason === "unsupported") return "Non supporte";
+  return "Activation incomplete";
+}
+
 export function PushNotificationSwitch({ labelClassName, align = "end" }: PushNotificationSwitchProps) {
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">(() => getPushPermission());
   const [requesting, setRequesting] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const syncPermission = () => setPermission(getPushPermission());
@@ -30,9 +39,11 @@ export function PushNotificationSwitch({ labelClassName, align = "end" }: PushNo
 
   async function enable() {
     setRequesting(true);
-    await enablePushNotifications();
+    setStatusMessage(null);
+    const result = await enablePushNotificationsDetailed();
     setPermission(getPushPermission());
     window.dispatchEvent(new Event("push-permission-change"));
+    setStatusMessage(result.ok ? "Test envoye" : failureLabel(result.reason, result.message));
     setRequesting(false);
   }
 
@@ -46,25 +57,25 @@ export function PushNotificationSwitch({ labelClassName, align = "end" }: PushNo
         role="switch"
         aria-checked={enabled}
         aria-label="Activer les notifications sur cet appareil"
-        disabled={enabled || blocked || !isPushSupported() || requesting}
+        disabled={blocked || !isPushSupported() || requesting}
         onClick={() => void enable()}
         className={cn(
           "relative h-8 w-14 rounded-full p-0.5 transition-all duration-300 ease-out focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-default",
           enabled
             ? "bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-400 shadow-[inset_0_1px_1px_rgba(255,255,255,0.45),0_4px_12px_rgba(16,185,129,0.3)]"
-            : "bg-slate-300 shadow-[inset_0_1px_2px_rgba(15,23,42,0.16)]"
+            : "bg-slate-300 shadow-[inset_0_1px_2px_rgba(15,23,42,0.16)]",
         )}
       >
         <span
           className={cn(
             "block size-7 rounded-full bg-white shadow-[0_2px_7px_rgba(15,23,42,0.28)] transition-transform duration-300 ease-out",
             enabled ? "translate-x-6" : "translate-x-0",
-            requesting && "animate-pulse"
+            requesting && "animate-pulse",
           )}
         />
       </button>
       <span className={cn("text-[11px] font-semibold", enabled ? "text-emerald-700" : "text-slate-500", labelClassName)}>
-        {enabled ? "Activées" : requesting ? "Activation…" : blocked ? "Bloquées" : "Activer"}
+        {requesting ? "Activation..." : statusMessage ?? (enabled ? "Tester" : blocked ? "Bloquees" : "Activer")}
       </span>
     </div>
   );
@@ -101,17 +112,17 @@ export function PushNotificationsCard() {
             <p className="text-sm font-bold text-slate-900">Notifications sur cet appareil</p>
             <p className="mt-1 text-xs leading-5 text-slate-600">
               {enabled
-                ? "Actives : vous recevrez les alertes même lorsque l’application est fermée."
+                ? "Actives : vous recevrez les alertes meme lorsque l'application est fermee."
                 : blocked
-                  ? "Bloquées dans les réglages du navigateur ou du téléphone."
+                  ? "Bloquees dans les reglages du navigateur ou du telephone."
                   : isPushSupported()
-                    ? "Activez-les après avoir installé l’application sur votre écran d’accueil."
+                    ? "Activez-les apres avoir installe l'application sur votre ecran d'accueil."
                     : "Cet appareil ou navigateur ne prend pas en charge les notifications web."}
             </p>
             {!enabled && (
               <p className="mt-1 text-[11px] text-slate-500">
                 <Smartphone className="mr-1 inline size-3" />
-                Sur iPhone, ouvrez l’app depuis l’écran d’accueil avant d’activer les notifications.
+                Sur iPhone, ouvrez l&apos;app depuis l&apos;ecran d&apos;accueil avant d&apos;activer les notifications.
               </p>
             )}
           </div>

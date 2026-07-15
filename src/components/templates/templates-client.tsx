@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Sparkles, ArrowLeft, Download, Check,
-  Pencil, Crown, ImageIcon, Loader2, Search, X, Lock,
+  Pencil, Crown, ImageIcon, Loader2, Search, X, Lock, Wand2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UpgradeModal } from "@/components/billing/upgrade-modal";
@@ -672,7 +672,8 @@ export function TemplatesClient({
           title={galleryTitle}
           description={gallerySubtitle}
           icon={ImageIcon}
-          tone="amber"
+          tone="slate"
+          flat
           stats={[
             { label: "Affiches", value: templates.length },
             { label: "Catégories", value: categories.length },
@@ -680,8 +681,27 @@ export function TemplatesClient({
           ]}
         />
 
+        <section className="grid gap-3 sm:grid-cols-3">
+          {[
+            { icon: ImageIcon, label: "Bibliothèque", value: `${templates.length} affiches`, tone: "text-cyan-700 bg-cyan-50 border-cyan-100" },
+            { icon: Wand2, label: "Personnalisation", value: "Guidée par IA", tone: "text-violet-700 bg-violet-50 border-violet-100" },
+            { icon: Sparkles, label: "Prêt à publier", value: "En quelques clics", tone: "text-amber-700 bg-amber-50 border-amber-100" },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.label} className={cn("animate-fade-in flex min-w-0 items-center gap-3 rounded-2xl border p-4 shadow-sm", item.tone)}>
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm"><Icon className="size-5" /></span>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em]">{item.label}</p>
+                  <p className="mt-1 truncate text-sm font-black text-slate-900">{item.value}</p>
+                </div>
+              </div>
+            );
+          })}
+        </section>
+
         {showGalleryFilters && (
-        <Card className="rounded-3xl border-slate-200 shadow-sm">
+        <Card className="rounded-[1.5rem] border-slate-200 bg-white/95 shadow-[0_18px_48px_-34px_rgba(15,23,42,0.42)]">
           <CardContent className="space-y-5 p-5">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="relative w-full lg:max-w-md">

@@ -508,9 +508,9 @@ export function JewishHolidaysAutoClient({
             <h1 className="text-3xl font-bold tracking-tight">Personnalisez et activez</h1>
           </div>
           <div className="absolute right-6 top-1/2 hidden -translate-y-1/2 sm:block" aria-hidden="true">
-            <div className="flex size-20 items-center justify-center rounded-full bg-white shadow-2xl shadow-[#22084b]/30 ring-1 ring-white/70 animate-install-float">
+            <div className="flex size-24 items-center justify-center rounded-3xl bg-white p-2 shadow-2xl shadow-[#22084b]/30 ring-1 ring-white/70 animate-install-float">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={DAVID_IMAGE_URL} alt="" className="size-16 rounded-full object-contain" />
+              <img src={DAVID_IMAGE_URL} alt="" className="h-full w-full object-contain object-bottom" />
             </div>
           </div>
         </div>
@@ -752,9 +752,9 @@ export function JewishHolidaysAutoClient({
             <Sparkles className="size-5" />
             Commencer la configuration →
           </Button>
-          <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-white shadow-[0_14px_30px_rgba(66,19,136,0.18)] ring-1 ring-[#421388]/10 animate-install-float">
+          <span className="inline-flex size-16 shrink-0 items-center justify-center rounded-2xl bg-white p-1.5 shadow-[0_14px_30px_rgba(66,19,136,0.18)] ring-1 ring-[#421388]/10 animate-install-float">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={DAVID_IMAGE_URL} alt="" className="size-10 rounded-full object-contain" />
+            <img src={DAVID_IMAGE_URL} alt="" className="h-full w-full object-contain object-bottom" />
           </span>
           <p className="max-w-md text-sm font-medium leading-6 text-slate-600">
             nous allons configurer cette automatisation ensemble. <strong className="font-black text-slate-950">Allons-y !</strong>
@@ -777,7 +777,7 @@ export function JewishHolidaysAutoClient({
               </p>
             </>
           ) : (
-            <p className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">Aucune fête disponible dans Supabase pour ce pays.</p>
+            <p className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">Aucune fête future n&apos;est disponible pour le moment.</p>
           )}
         </HolidayAccordion>
 

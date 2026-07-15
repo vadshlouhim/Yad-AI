@@ -18,11 +18,6 @@ export default function WebsiteCreationPage() {
         description="Nous créons des sites professionnels, modernes et élégants pour les Bate Habad, synagogues et associations communautaires, avec un accompagnement clair de la conception à la mise en ligne."
         icon={Globe}
         tone="purple"
-        stats={[
-          { label: "Design", value: "Sur mesure" },
-          { label: "Mobile", value: "Optimisé" },
-          { label: "Projet", value: "Accompagné" },
-        ]}
       />
 
       <div className="rounded-3xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">

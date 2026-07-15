@@ -417,11 +417,6 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
           description="Construisez, pilotez et diffusez toute votre campagne de dons depuis un seul espace intelligent, clair et prêt à accompagner chaque étape."
           icon={HandHeart}
           tone="purple"
-          stats={[
-            { label: "Plan", value: "IA" },
-            { label: "Visuels", value: "Prêts" },
-            { label: "Diffusion", value: "Guidée" },
-          ]}
         />
 
         {/* Hero */}
@@ -441,9 +436,9 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
         </section>
 
         {/* 4 étapes */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {STEP_CARDS.map((card) => (
-            <div key={card.num} className="flex flex-col gap-3 rounded-3xl border border-violet-100 bg-gradient-to-br from-white via-violet-50/50 to-fuchsia-50/40 p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(66,19,136,0.10)]">
+            <div key={card.num} className="animate-fade-in flex min-w-0 flex-col gap-3 rounded-2xl border border-violet-100 bg-gradient-to-br from-white via-violet-50/50 to-fuchsia-50/40 p-3 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(66,19,136,0.10)] sm:rounded-3xl sm:p-5">
               <div className="flex items-center gap-2">
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-[#421388]">
                   <card.icon className="size-4.5" />
@@ -993,11 +988,6 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
           description={campaign?.slogan ?? "Votre plan de campagne est organisé pour suivre chaque étape, valider les contenus et préparer les prochaines publications."}
           icon={LayoutGrid}
           tone="purple"
-          stats={[
-            { label: "Étapes", value: steps.length },
-            { label: "Canaux", value: campaign?.channels?.length ?? 0 },
-            { label: "Statut", value: "Pilotage" },
-          ]}
         />
 
         {/* Mini hero */}

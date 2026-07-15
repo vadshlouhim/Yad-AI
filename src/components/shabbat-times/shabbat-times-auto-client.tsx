@@ -993,9 +993,9 @@ Place exactement le nom de l'organisation à l'emplacement prévu pour [nom de l
           <section className="space-y-4">
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <div className="flex items-center gap-3 border-b border-slate-100 bg-violet-50 px-4 py-3">
-                  <span className="flex size-8 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-violet-200">
+                  <span className="flex size-10 items-center justify-center rounded-2xl bg-white p-1 shadow-sm ring-1 ring-violet-200">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={DAVID_IMAGE_URL} alt="David, agent intelligent" className="size-7 rounded-full object-contain" />
+                    <img src={DAVID_IMAGE_URL} alt="David, agent intelligent" className="h-full w-full object-contain object-bottom" />
                   </span>
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-slate-900">David, votre Agent intelligent</p>
@@ -1013,9 +1013,9 @@ Place exactement le nom de l'organisation à l'emplacement prévu pour [nom de l
                   {aiMessages.map((msg, index) => (
                     <div key={index} className={cn("flex", msg.from === "ai" ? "justify-start" : "justify-end")}>
                       {msg.from === "ai" && (
-                        <span className="mr-2 mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-violet-100">
+                        <span className="mr-2 mt-1 flex size-8 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-sm ring-1 ring-violet-100">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={DAVID_IMAGE_URL} alt="David" className="size-5 rounded-full object-contain" />
+                          <img src={DAVID_IMAGE_URL} alt="David" className="h-full w-full object-contain object-bottom" />
                         </span>
                       )}
                       <div

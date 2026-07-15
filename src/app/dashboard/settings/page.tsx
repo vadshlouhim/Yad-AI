@@ -57,11 +57,6 @@ export default async function SettingsPage({
         description="Gérez votre communauté, vos canaux, votre identité éditoriale et votre profil dans une interface claire, moderne et cohérente."
         icon={Settings2}
         tone="teal"
-        stats={[
-          { label: "Canaux", value: "Connectés" },
-          { label: "Profil", value: "Sécurisé" },
-          { label: "Design", value: "Centralisé" },
-        ]}
       />
 
       <section className="hidden overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-700 shadow-[0_20px_48px_rgba(6,95,70,0.16)] sm:rounded-[1.75rem]">
