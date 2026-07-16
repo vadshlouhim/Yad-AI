@@ -33,6 +33,7 @@ export function InstallAppGuide() {
   const [selectedGuide, setSelectedGuide] = useState<"ios" | "android">(() =>
     getMobilePlatform() === "android" ? "android" : "ios"
   );
+  const [guideOpen, setGuideOpen] = useState(false);
 
   useEffect(() => {
     function handleBeforeInstallPrompt(event: Event) {
@@ -62,6 +63,14 @@ export function InstallAppGuide() {
     setInstallPrompt(null);
   }
 
+  async function handlePrimaryAction() {
+    if (installPrompt) {
+      await installOnAndroid();
+      return;
+    }
+    setGuideOpen(true);
+  }
+
   const primaryLabel = installed
     ? "Application déjà installée"
     : installPrompt
@@ -71,41 +80,39 @@ export function InstallAppGuide() {
         : "Voir le raccourci mobile";
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-slate-950 via-blue-950 to-blue-900 px-4 py-16 text-white sm:px-6 lg:px-8">
-      <div className="absolute left-[-8rem] top-10 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
-      <div className="absolute bottom-[-9rem] right-[-6rem] h-80 w-80 rounded-full bg-emerald-400/20 blur-3xl" />
+    <section className="relative overflow-hidden border-y border-cyan-400/20 bg-[#0b1230] px-4 py-9 text-white sm:px-6 sm:py-11 lg:px-8">
+      <div className="home-ai-grid absolute inset-0" aria-hidden="true" />
 
-      <div className="relative mx-auto grid max-w-7xl gap-12 text-center lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
+      <div className="relative mx-auto grid max-w-7xl gap-8 text-center lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
         <div className="flex flex-col items-center">
-          <h2 className="max-w-3xl text-[clamp(2rem,7vw,3.75rem)] font-black leading-[1.04] tracking-tight">
+          <h2 className="max-w-3xl text-[clamp(1.7rem,5vw,2.8rem)] font-black leading-[1.08] tracking-tight">
             Ajoutez EasyCom IA sur votre écran d&apos;accueil.
           </h2>
-          <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300">
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
             Retrouvez EasyCom IA comme une application, sans passer par vos favoris. Un accès direct, plus rapide,
             avec l&apos;interface responsive pensée pour smartphone.
           </p>
 
           <button
             type="button"
-            onClick={installOnAndroid}
-            disabled={!installPrompt || installed}
-            className="mt-7 inline-flex h-12 items-center justify-center rounded-full bg-white px-6 text-sm font-black text-slate-950 shadow-xl shadow-blue-950/30 transition hover:bg-blue-50 disabled:cursor-default disabled:opacity-80"
+            onClick={handlePrimaryAction}
+            disabled={installed}
+            className="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-black text-[#070b1d] shadow-xl shadow-cyan-950/30 transition hover:bg-cyan-200 disabled:cursor-default disabled:opacity-80"
           >
-            {installed ? <CheckCircle2 className="mr-2 size-4 text-emerald-600" /> : <ArrowDownToLine className="mr-2 size-4 text-blue-600" />}
+            {installed ? <CheckCircle2 className="mr-2 size-4 text-cyan-700" /> : <ArrowDownToLine className="mr-2 size-4 text-cyan-700" />}
             {primaryLabel}
           </button>
         </div>
 
-        <div className="grid items-center gap-5 md:grid-cols-[minmax(15rem,0.78fr)_1.22fr]">
-            <div className="relative flex min-h-[36rem] items-center justify-center px-2 pt-16">
-              <div className="absolute left-1/2 top-1/2 size-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-400/25 blur-3xl" />
-              <div className="absolute inset-x-1 top-0 z-10 flex items-center gap-3 rounded-2xl border border-white/70 bg-white/95 p-3 text-slate-950 shadow-xl shadow-blue-950/20 backdrop-blur">
-                <Image src="/easycom-ai-logo.png" alt="" width={36} height={36} className="size-9 rounded-xl border border-blue-100 bg-white p-1" />
+        <div className="grid items-center gap-0 md:grid-cols-[minmax(12rem,0.7fr)_1.3fr] md:gap-5">
+            <div className="relative flex min-h-[27rem] items-center justify-center px-2 pt-14">
+              <div className="absolute inset-x-1 top-0 z-10 flex items-center gap-3 rounded-2xl border border-white/70 bg-white/95 p-3 text-slate-950 shadow-xl shadow-black/20 backdrop-blur">
+                <Image src="/easycom-ai-logo.png" alt="" width={36} height={36} className="size-9 rounded-xl border border-cyan-100 bg-white p-1" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-black">Installer EasyCom IA</p>
                   <p className="truncate text-[10px] font-medium text-slate-500">Sur {selectedGuide === "ios" ? "iPhone" : "Android"} · écran d&apos;accueil</p>
                 </div>
-                <span className={`flex size-7 items-center justify-center overflow-hidden rounded-full ${selectedGuide === "ios" ? "bg-slate-950" : "bg-emerald-600"}`}>
+                <span className={`flex size-7 items-center justify-center overflow-hidden rounded-full ${selectedGuide === "ios" ? "bg-slate-950" : "bg-cyan-600"}`}>
                   <Image
                     src={selectedGuide === "ios" ? APPLE_LOGO_URL : "/logo/android-white.svg"}
                     alt=""
@@ -114,7 +121,7 @@ export function InstallAppGuide() {
                     className={selectedGuide === "ios" ? "scale-[2.35]" : "size-4"}
                   />
                 </span>
-                <span className="rounded-full bg-blue-600 px-3 py-1.5 text-[10px] font-black text-white">Ajouter</span>
+                <span className="rounded-full bg-cyan-600 px-3 py-1.5 text-[10px] font-black text-white">Ajouter</span>
               </div>
               <Image
                 src="/images/easycom-phone-mendy-transparent.png"
@@ -122,17 +129,23 @@ export function InstallAppGuide() {
                 width={941}
                 height={1672}
                 sizes="(max-width: 768px) 90vw, 31vw"
-                className="relative h-auto w-[148%] max-w-none drop-shadow-[0_34px_45px_rgba(2,12,44,0.6)]"
+                className="relative h-auto w-[116%] max-w-none drop-shadow-[0_28px_38px_rgba(2,12,44,0.6)]"
               />
             </div>
 
-            <div className="rounded-[2rem] border border-white/15 bg-white/[0.08] p-5 shadow-2xl shadow-slate-950/30 backdrop-blur-sm sm:p-7">
-              <div className="mb-5">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-200">Installation guidée</p>
-                  <h3 className="mt-2 text-xl font-black text-white">Votre raccourci en moins d&apos;une minute</h3>
+            <details
+              open={guideOpen}
+              onToggle={(event) => setGuideOpen((event.currentTarget as HTMLDetailsElement).open)}
+              className="group rounded-[1.5rem] border border-white/15 bg-white/[0.08] p-5 shadow-2xl shadow-slate-950/30 backdrop-blur-sm sm:p-6"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
+                <div className="text-left">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-cyan-300">Installation guidée</p>
+                  <h3 className="mt-1 text-lg font-black text-white">Votre raccourci en moins d&apos;une minute</h3>
                 </div>
-              </div>
+                <span className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-black text-white transition group-open:bg-white group-open:text-slate-950">Voir les étapes</span>
+              </summary>
+              <div className="mt-5">
               <div className="mb-4 grid grid-cols-2 rounded-2xl border border-white/10 bg-slate-950/20 p-1.5">
                 {([
                   { value: "ios" as const, label: "iPhone", logo: APPLE_LOGO_URL },
@@ -155,32 +168,33 @@ export function InstallAppGuide() {
 
               <div className="grid gap-3">
                 {selectedGuide === "android" ? (
-                  <article className="rounded-[1.4rem] border border-emerald-300/30 bg-emerald-400/10 p-5 backdrop-blur">
+                  <article className="rounded-[1.4rem] border border-cyan-300/30 bg-cyan-300/10 p-5 backdrop-blur">
                     <div className="mb-4 flex items-center gap-3">
-                      <span className="flex size-11 items-center justify-center rounded-2xl bg-emerald-400/15"><Image src="/logo/android-white.svg" alt="Logo Android" width={22} height={22} /></span>
-                      <div><p className="text-xs font-bold text-emerald-200">Avec Chrome</p><h4 className="text-lg font-black">Installer sur Android</h4></div>
+                      <span className="flex size-11 items-center justify-center rounded-2xl bg-cyan-300/20"><Image src="/logo/android-white.svg" alt="Logo Android" width={22} height={22} /></span>
+                      <div><p className="text-xs font-bold text-cyan-300">Avec Chrome</p><h4 className="text-lg font-black">Installer sur Android</h4></div>
                     </div>
                     <ol className="space-y-3 text-sm leading-6 text-slate-300">
                       <li><span className="mr-2 font-black text-white">1.</span>Ouvrez EasyCom IA dans <span className="font-bold text-white">Chrome</span>.</li>
                       <li><span className="mr-2 font-black text-white">2.</span>Appuyez sur <span className="font-bold text-white">Installer en un clic</span> quand le bouton apparaît.</li>
-                      <li className="flex gap-2"><MoreVertical className="mt-1 size-4 shrink-0 text-emerald-200" /><span>Sinon, menu puis <span className="font-bold text-white">Ajouter à l&apos;écran d&apos;accueil</span>.</span></li>
+                      <li className="flex gap-2"><MoreVertical className="mt-1 size-4 shrink-0 text-cyan-300" /><span>Sinon, menu puis <span className="font-bold text-white">Ajouter à l&apos;écran d&apos;accueil</span>.</span></li>
                     </ol>
                   </article>
                 ) : (
-                  <article className="rounded-[1.4rem] border border-blue-300/30 bg-blue-400/10 p-5 backdrop-blur">
+                  <article className="rounded-[1.4rem] border border-slate-300/30 bg-slate-400/10 p-5 backdrop-blur">
                     <div className="mb-4 flex items-center gap-3">
                       <span className="flex size-11 items-center justify-center overflow-hidden rounded-2xl bg-slate-950"><Image src={APPLE_LOGO_URL} alt="Logo Apple" width={34} height={34} className="scale-[2.15]" /></span>
-                      <div><p className="text-xs font-bold text-blue-200">Avec Safari</p><h4 className="text-lg font-black">Installer sur iPhone</h4></div>
+                      <div><p className="text-xs font-bold text-slate-200">Avec Safari</p><h4 className="text-lg font-black">Installer sur iPhone</h4></div>
                     </div>
                     <ol className="space-y-3 text-sm leading-6 text-slate-300">
                       <li><span className="mr-2 font-black text-white">1.</span>Ouvrez EasyCom IA dans <span className="font-bold text-white">Safari</span>.</li>
-                      <li className="flex gap-2"><Share className="mt-1 size-4 shrink-0 text-blue-200" /><span>Appuyez sur <span className="font-bold text-white">Partager</span>, en bas de l&apos;écran.</span></li>
-                      <li className="flex gap-2"><PlusSquare className="mt-1 size-4 shrink-0 text-blue-200" /><span>Choisissez <span className="font-bold text-white">Sur l&apos;écran d&apos;accueil</span>, puis <span className="font-bold text-white">Ajouter</span>.</span></li>
+                      <li className="flex gap-2"><Share className="mt-1 size-4 shrink-0 text-slate-200" /><span>Appuyez sur <span className="font-bold text-white">Partager</span>, en bas de l&apos;écran.</span></li>
+                      <li className="flex gap-2"><PlusSquare className="mt-1 size-4 shrink-0 text-slate-200" /><span>Choisissez <span className="font-bold text-white">Sur l&apos;écran d&apos;accueil</span>, puis <span className="font-bold text-white">Ajouter</span>.</span></li>
                     </ol>
                   </article>
                 )}
               </div>
-            </div>
+              </div>
+            </details>
         </div>
       </div>
     </section>

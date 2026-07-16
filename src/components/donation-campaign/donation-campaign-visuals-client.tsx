@@ -392,7 +392,13 @@ export function DonationCampaignVisualsClient({ community, campaign, steps, asse
         title="Visuels & Publications"
         description="Retrouvez tous les supports créés pour votre campagne de dons : affiches, messages, publications et contenus prêts à valider."
         icon={Share2}
-        tone="purple"
+        imageUrl="https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Avi%20campagne%20de%20dons.webp"
+        imageAlt="Avi, agent IA campagne de dons"
+        bubbleTitle="Je suis Avi, votre agent IA Campagne de dons"
+        bubbleTitleClassName="text-slate-950"
+        bubbleText="Je rassemble vos visuels et vos publications pour faciliter chaque diffusion."
+        tone="rose"
+        flat
       />
 
       {/* Hero */}
@@ -418,11 +424,11 @@ export function DonationCampaignVisualsClient({ community, campaign, steps, asse
       {/* 3 encarts */}
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { icon: ImageIcon, title: "Affiche carrée", desc: "Pour le lancement et les réseaux sociaux", color: "from-violet-50 to-fuchsia-50 border-violet-100 text-[#421388] bg-violet-100" },
-          { icon: MessageCircle, title: "Messages", desc: "WhatsApp, Email et contenus SMS", color: "from-indigo-50 to-violet-50 border-indigo-100 text-indigo-700 bg-indigo-100" },
-          { icon: Play, title: "Publication", desc: "Validez, modifiez et diffusez au bon moment", color: "from-fuchsia-50 to-violet-50 border-fuchsia-100 text-fuchsia-700 bg-fuchsia-100" },
+          { icon: ImageIcon, title: "Affiche carrée", desc: "Pour le lancement et les réseaux sociaux", color: "from-rose-50 to-white border-rose-100 text-[#8A184D] bg-rose-100" },
+          { icon: MessageCircle, title: "Messages", desc: "WhatsApp, Email et contenus SMS", color: "from-pink-50 to-white border-pink-100 text-pink-700 bg-pink-100" },
+          { icon: Play, title: "Publication", desc: "Validez, modifiez et diffusez au bon moment", color: "from-rose-50 to-pink-50 border-rose-100 text-[#8A184D] bg-rose-100" },
         ].map((card, i) => (
-          <div key={i} className={`flex flex-col gap-3 rounded-3xl border bg-gradient-to-br p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(66,19,136,0.10)] ${card.color.split(" ").slice(0, 3).join(" ")}`}>
+          <div key={i} className={`flex flex-col gap-3 rounded-3xl border bg-gradient-to-br p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(138,24,77,0.14)] ${card.color.split(" ").slice(0, 3).join(" ")}`}>
             <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${card.color.split(" ").slice(3).join(" ")}`}>
               <card.icon className="size-4.5" />
             </div>
@@ -435,13 +441,13 @@ export function DonationCampaignVisualsClient({ community, campaign, steps, asse
       </div>
 
       {/* Campaign summary */}
-      <div className="rounded-3xl border border-violet-100 bg-white p-4 shadow-[0_18px_48px_rgba(66,19,136,0.07)]">
+      <div className="rounded-3xl border border-rose-100 bg-white p-4 shadow-[0_18px_48px_rgba(138,24,77,0.10)]">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex-1">
             <h2 className="text-base font-black text-slate-900">{campaign.title}</h2>
             {campaign.slogan && <p className="mt-0.5 text-sm italic text-slate-500">{campaign.slogan}</p>}
           </div>
-          <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-[#421388]">
+          <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-bold text-[#8A184D]">
             {steps.length} étapes
           </span>
         </div>

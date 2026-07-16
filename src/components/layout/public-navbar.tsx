@@ -52,7 +52,7 @@ export function PublicNavbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-cyan-100 bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex min-w-0 items-center gap-3">
           <Image
@@ -85,7 +85,7 @@ export function PublicNavbar() {
         <div className="flex shrink-0 items-center gap-2">
           <Link
             href="/auth/login"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-blue-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-100"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#070b1d] bg-[#070b1d] text-cyan-300 shadow-sm transition hover:border-cyan-300 hover:bg-cyan-300 hover:text-[#070b1d]"
             aria-label="Se connecter"
             title="Se connecter"
           >
@@ -95,7 +95,7 @@ export function PublicNavbar() {
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
-            className="relative z-[100] inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700 md:hidden"
+            className="relative z-[100] inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-cyan-300 hover:text-cyan-700 md:hidden"
             aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
             aria-expanded={menuOpen}
           >
@@ -135,7 +135,7 @@ export function PublicNavbar() {
                       <Icon className="size-4.5" />
                     </span>
                     <span className="flex-1">{link.label}</span>
-                    <span className="h-1.5 w-1.5 rounded-full bg-slate-200 transition group-hover:bg-blue-600" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-200 transition group-hover:bg-cyan-500" />
                   </Link>
                 );
               })}
@@ -145,7 +145,7 @@ export function PublicNavbar() {
               <Link
                 href="/auth/login"
                 onClick={() => setMenuOpen(false)}
-                className="inline-flex h-11 w-full items-center justify-center rounded-2xl bg-blue-700 px-5 text-sm font-black text-white shadow-sm transition hover:bg-blue-800"
+                className="inline-flex h-11 w-full items-center justify-center rounded-2xl bg-[#070b1d] px-5 text-sm font-black text-cyan-300 shadow-sm transition hover:bg-cyan-300 hover:text-[#070b1d]"
               >
                 <LogIn className="mr-2 size-4" />
                 Essayer maintenant

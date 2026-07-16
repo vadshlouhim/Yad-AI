@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import OpenAI from "openai";
 import type { DonationCampaignBrief, ConversationMessage, StepType, AssetType, CampaignChannel } from "@/lib/donation-campaign";
 import { notifyUser } from "@/lib/notifications/notify";
+import { createNotificationOnce } from "@/lib/notifications/create-once";
 
 const openrouter = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
@@ -475,23 +476,25 @@ Réponds UNIQUEMENT avec le texte de la publication, sans guillemets ni commenta
       weekday: "long", day: "2-digit", month: "long", year: "numeric",
       hour: "2-digit", minute: "2-digit",
     });
-    await Promise.allSettled([
-      admin.from("Notification").insert({
-        id: crypto.randomUUID(),
-        userId: user.id,
-        communityId,
-        type: "PUBLICATION_SCHEDULED",
-        title: `📅 Étape programmée — ${stepLabel}`,
-        body: `L'étape "${stepLabel}" de la campagne "${camp?.title ?? "de dons"}" est programmée pour le ${scheduledDate}.`,
-        link: "/dashboard/donation-campaign/visuals",
-        data: { stepId, campaignId, scheduledAt },
-      }),
-      notifyUser(admin, user.id, {
+    const title = `📅 Étape programmée — ${stepLabel}`;
+    const body = `L'étape "${stepLabel}" de la campagne "${camp?.title ?? "de dons"}" est programmée pour le ${scheduledDate}.`;
+    const created = await createNotificationOnce(admin, {
+      userId: user.id,
+      communityId,
+      type: "PUBLICATION_SCHEDULED",
+      title,
+      body,
+      link: "/dashboard/donation-campaign/visuals",
+      data: { stepId, campaignId, scheduledAt },
+      dedupeKey: `donation-schedule:${stepId}:${scheduledAt}`,
+    });
+    if (created) {
+      await notifyUser(admin, user.id, {
         title: `📅 Étape programmée — ${stepLabel}`,
         body: `L'étape "${stepLabel}" est programmée pour le ${scheduledDate}. Vous recevrez un rappel à cette heure.`,
         link: "/dashboard/donation-campaign/visuals",
-      }),
-    ]);
+      });
+    }
     return NextResponse.json({ success: true });
   }
 

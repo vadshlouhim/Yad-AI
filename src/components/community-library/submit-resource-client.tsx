@@ -155,7 +155,9 @@ export function SubmitResourceClient({ communityName }: { communityName: string 
   if (success) {
     return (
       <div className="mx-auto w-full max-w-xl px-4 py-16 text-center">
-        <CheckCircle className="mx-auto size-14 text-emerald-500" />
+        <div className="mx-auto flex size-16 items-center justify-center rounded-3xl bg-teal-50">
+          <CheckCircle className="size-10 text-teal-600" />
+        </div>
         <h2 className="mt-4 text-xl font-black text-slate-900">Ressource publiée !</h2>
         <p className="mt-2 text-sm text-slate-500">Redirection en cours…</p>
       </div>
@@ -164,14 +166,17 @@ export function SubmitResourceClient({ communityName }: { communityName: string 
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6 px-4 py-6 sm:px-6">
-      {/* En-tête */}
-      <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} className="rounded-xl border border-slate-200 p-2 hover:bg-slate-50">
-          <ArrowLeft className="size-4 text-slate-500" />
-        </button>
-        <div>
-          <h1 className="text-xl font-black text-slate-900">Soumettre une ressource</h1>
-          <p className="text-sm text-slate-500">Partagez un document avec votre communauté</p>
+      <div className="rounded-3xl bg-[#063c37] p-5 text-white shadow-[0_18px_45px_-30px_rgba(6,95,70,0.60)] sm:p-6">
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.back()} className="rounded-xl border border-white/15 bg-white/10 p-2 hover:bg-white/20">
+            <ArrowLeft className="size-4 text-white" />
+          </button>
+          <div className="flex size-10 items-center justify-center rounded-xl bg-white/10 text-teal-100"><Upload className="size-5 animate-pulse" /></div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-teal-200">Bibliothèque communautaire</p>
+            <h1 className="mt-1 text-xl font-black">Soumettre une ressource</h1>
+            <p className="mt-1 text-sm text-white/75">Partagez un document utile avec votre communauté</p>
+          </div>
         </div>
       </div>
 
@@ -179,29 +184,29 @@ export function SubmitResourceClient({ communityName }: { communityName: string 
       <div className="flex items-center gap-2">
         {(["upload", "metadata", "confirm"] as Step[]).map((s, i) => (
           <div key={s} className="flex items-center gap-2">
-            <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors ${step === s ? "bg-violet-600 text-white" : ["upload", "metadata", "confirm"].indexOf(step) > i ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-400"}`}>
+            <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors ${step === s ? "bg-teal-700 text-white" : ["upload", "metadata", "confirm"].indexOf(step) > i ? "bg-teal-500 text-white" : "bg-slate-100 text-slate-400"}`}>
               {["upload", "metadata", "confirm"].indexOf(step) > i ? <CheckCircle className="size-4" /> : i + 1}
             </div>
-            <span className={`text-xs font-semibold hidden sm:inline ${step === s ? "text-violet-700" : "text-slate-400"}`}>
+            <span className={`text-xs font-semibold hidden sm:inline ${step === s ? "text-teal-800" : "text-slate-400"}`}>
               {s === "upload" ? "Fichier" : s === "metadata" ? "Métadonnées" : "Confirmer"}
             </span>
-            {i < 2 && <div className={`h-px flex-1 ${["upload", "metadata", "confirm"].indexOf(step) > i ? "bg-emerald-300" : "bg-slate-200"} hidden sm:block`} />}
+            {i < 2 && <div className={`h-px flex-1 ${["upload", "metadata", "confirm"].indexOf(step) > i ? "bg-teal-300" : "bg-slate-200"} hidden sm:block`} />}
           </div>
         ))}
       </div>
 
       {/* Étape 1 — Upload */}
       {step === "upload" && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-teal-100 bg-white p-6 shadow-[0_18px_45px_-30px_rgba(6,95,70,0.28)]">
           <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             onClick={() => fileInput.current?.click()}
-            className={`flex cursor-pointer flex-col items-center justify-center gap-4 rounded-xl border-2 border-dashed p-10 transition-colors ${dragOver ? "border-violet-400 bg-violet-50" : "border-slate-300 hover:border-violet-300 hover:bg-violet-50/40"}`}
+            className={`flex cursor-pointer flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed p-10 transition-colors ${dragOver ? "border-teal-500 bg-teal-50" : "border-slate-300 hover:border-teal-300 hover:bg-teal-50/40"}`}
           >
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100">
-              <Upload className="size-6 text-violet-600" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-100">
+              <Upload className="size-6 text-teal-700" />
             </div>
             <div className="text-center">
               <p className="text-sm font-bold text-slate-800">
@@ -232,17 +237,17 @@ export function SubmitResourceClient({ communityName }: { communityName: string 
 
       {/* Étape 2 — Métadonnées */}
       {step === "metadata" && uploaded && (
-        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="space-y-4 rounded-3xl border border-teal-100 bg-white p-6 shadow-[0_18px_45px_-30px_rgba(6,95,70,0.28)]">
           {suggestingMeta && (
-            <div className="flex items-center gap-2 rounded-lg bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-700">
+            <div className="flex items-center gap-2 rounded-xl bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800">
               <Sparkles className="size-4 animate-pulse" /> L&apos;IA analyse le fichier et suggère des métadonnées…
             </div>
           )}
 
-          <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          <div className="flex min-w-0 items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
             <FileText className="size-4 text-slate-400" />
-            <span className="font-medium">{uploaded.originalName}</span>
-            <span className="text-slate-400">({(uploaded.fileSize / 1024).toFixed(0)} Ko)</span>
+            <span className="min-w-0 flex-1 truncate font-medium" title={uploaded.originalName}>{uploaded.originalName}</span>
+            <span className="shrink-0 text-slate-400">({(uploaded.fileSize / 1024).toFixed(0)} Ko)</span>
           </div>
 
           <div>
@@ -252,7 +257,7 @@ export function SubmitResourceClient({ communityName }: { communityName: string 
               value={meta.title}
               onChange={(e) => setMeta((m) => ({ ...m, title: e.target.value }))}
               placeholder="Titre de la ressource"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
             />
           </div>
 
@@ -263,17 +268,17 @@ export function SubmitResourceClient({ communityName }: { communityName: string 
               onChange={(e) => setMeta((m) => ({ ...m, description: e.target.value }))}
               placeholder="Décrivez brièvement cette ressource…"
               rows={3}
-              className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
+              className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">Catégorie *</label>
               <select
                 value={meta.category}
                 onChange={(e) => setMeta((m) => ({ ...m, category: e.target.value as ResourceCategory }))}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
               >
                 {RESOURCE_CATEGORIES.map((cat) => <option key={cat}>{cat}</option>)}
               </select>
@@ -283,7 +288,7 @@ export function SubmitResourceClient({ communityName }: { communityName: string 
               <select
                 value={meta.theme}
                 onChange={(e) => setMeta((m) => ({ ...m, theme: e.target.value as ResourceTheme }))}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
               >
                 {RESOURCE_THEMES.map((th) => <option key={th}>{th}</option>)}
               </select>
@@ -292,19 +297,19 @@ export function SubmitResourceClient({ communityName }: { communityName: string 
 
           <div>
             <label className="mb-1 block text-xs font-semibold text-slate-700">Mots-clés (max 8)</label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 type="text"
                 value={keywordInput}
                 onChange={(e) => setKeywordInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addKeyword(); } }}
                 placeholder="Ajouter un mot-clé…"
-                className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
+                className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
               />
               <button
                 type="button"
                 onClick={addKeyword}
-                className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700 hover:bg-violet-100"
+                className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-800 hover:bg-teal-100"
               >
                 Ajouter
               </button>
@@ -312,7 +317,7 @@ export function SubmitResourceClient({ communityName }: { communityName: string 
             {meta.keywords.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {meta.keywords.map((kw) => (
-                  <span key={kw} className="flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700">
+                  <span key={kw} className="flex items-center gap-1 rounded-full bg-teal-100 px-2 py-0.5 text-xs font-semibold text-teal-800">
                     {kw}
                     <button onClick={() => removeKeyword(kw)}><X className="size-3" /></button>
                   </span>
@@ -321,7 +326,7 @@ export function SubmitResourceClient({ communityName }: { communityName: string 
             )}
           </div>
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row">
             <button
               onClick={() => setStep("upload")}
               className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
@@ -331,7 +336,7 @@ export function SubmitResourceClient({ communityName }: { communityName: string 
             <button
               onClick={() => { if (meta.title && meta.description) setStep("confirm"); }}
               disabled={!meta.title || !meta.description}
-              className="flex-1 rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
+              className="flex-1 rounded-xl bg-teal-700 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-50"
             >
               Continuer
             </button>
@@ -341,7 +346,7 @@ export function SubmitResourceClient({ communityName }: { communityName: string 
 
       {/* Étape 3 — Confirmation */}
       {step === "confirm" && (
-        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="space-y-4 rounded-3xl border border-teal-100 bg-white p-6 shadow-[0_18px_45px_-30px_rgba(6,95,70,0.28)]">
           <h2 className="text-base font-bold text-slate-900">Confirmer la publication</h2>
 
           <div className="space-y-2 rounded-xl bg-slate-50 p-4 text-sm">
@@ -364,7 +369,7 @@ export function SubmitResourceClient({ communityName }: { communityName: string 
             {meta.keywords.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {meta.keywords.map((kw) => (
-                  <span key={kw} className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700">{kw}</span>
+                  <span key={kw} className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-semibold text-teal-800">{kw}</span>
                 ))}
               </div>
             )}
@@ -374,7 +379,7 @@ export function SubmitResourceClient({ communityName }: { communityName: string 
             En publiant, vous confirmez que vous êtes autorisé(e) à partager ce document avec votre communauté.
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <button
               onClick={() => setStep("metadata")}
               className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
@@ -384,7 +389,7 @@ export function SubmitResourceClient({ communityName }: { communityName: string 
             <button
               onClick={handlePublish}
               disabled={publishing}
-              className="flex-1 rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
+              className="flex-1 rounded-xl bg-teal-700 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-60"
             >
               {publishing ? "Publication…" : "Publier"}
             </button>

@@ -3,6 +3,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 import { renderPendingActionEmail, renderNotificationEmail } from "./pending-action-email";
 import { sendPushToUser } from "./push";
 import { actionLabelFor } from "@/lib/ai/assistant/actions";
+import { createNotificationOnce } from "./create-once";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -41,30 +42,26 @@ export async function notifyPendingAction(
     recipientName = (profile as { name?: string } | null)?.name ?? null;
   }
 
+  const title = `${actionLabel} à valider`;
+  const body = action.summary;
+  const link = `/dashboard/assistant?action=${action.id}`;
+  const created = await createNotificationOnce(admin, {
+    userId: action.userId,
+    communityId: action.communityId,
+    type: "AI_CONTENT_READY",
+    title,
+    body,
+    link,
+    dedupeKey: `pending-action:${action.id}`,
+    data: { pendingActionId: action.id, kind: action.kind },
+  });
+
+  if (!created) return;
+
   await Promise.allSettled([
-    // 1. Notification in-app (cloche)
-    admin.from("Notification").insert({
-      id: crypto.randomUUID(),
-      userId: action.userId,
-      communityId: action.communityId,
-      type: "AI_CONTENT_READY",
-      title: `${actionLabel} à valider`,
-      body: action.summary,
-      link: `/dashboard/assistant?action=${action.id}`,
-      data: { pendingActionId: action.id, kind: action.kind },
-    }),
-
-    // 2. Email Resend
     sendPendingActionEmail({ recipientEmail, recipientName, communityName, actionLabel, summary: action.summary, ctaUrl }),
-
-    // 3. Push web
     action.userId
-      ? sendPushToUser(admin, action.userId, {
-          title: `${actionLabel} à valider`,
-          body: action.summary,
-          url: `/dashboard/assistant?action=${action.id}`,
-          tag: `pending-action-${action.id}`,
-        })
+      ? sendPushToUser(admin, action.userId, { title, body, url: link, tag: `pending-action-${action.id}` })
       : Promise.resolve(),
   ]);
 }

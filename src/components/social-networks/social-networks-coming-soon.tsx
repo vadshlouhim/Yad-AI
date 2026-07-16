@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Instagram, MessageCircle, Share2, Sparkles, X } from "lucide-react";
+import { MessageCircle, Share2, Sparkles, X } from "lucide-react";
 import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
+import { InstagramIcon } from "@/components/layout/dashboard-nav";
 import { Button } from "@/components/ui/button";
 
 function FacebookSocialIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -15,7 +16,7 @@ function FacebookSocialIcon(props: React.SVGProps<SVGSVGElement>) {
 
 const features = [
   { icon: Sparkles, label: "Message unique", detail: "Préparez un contenu clair à adapter à vos réseaux." },
-  { icon: Instagram, label: "Instagram", detail: "Publiez vos visuels et textes depuis un même espace." },
+  { icon: InstagramIcon, label: "Instagram", detail: "Publiez vos visuels et textes depuis un même espace." },
   { icon: FacebookSocialIcon, label: "Facebook", detail: "Diffusez le même message sur votre page en un clic." },
 ];
 

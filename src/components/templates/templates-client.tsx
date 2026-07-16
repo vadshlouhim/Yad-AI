@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Sparkles, ArrowLeft, Download, Check,
-  Pencil, Crown, ImageIcon, Loader2, Paintbrush, Search, X, Lock, Wand2,
+  Pencil, Crown, ImageIcon, Loader2, Paintbrush, Search, X, Lock,
   ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -676,6 +676,7 @@ export function TemplatesClient({
           icon={ImageIcon}
           titleIcon={Paintbrush}
           tone="rose"
+          flat
         />
 
         <section className="grid items-center gap-5 overflow-hidden rounded-[1.6rem] border border-rose-100 bg-gradient-to-br from-rose-50 via-white to-orange-50 p-5 shadow-[0_18px_46px_-34px_rgba(190,18,60,0.55)] md:grid-cols-[minmax(0,1fr)_auto]">
@@ -697,11 +698,9 @@ export function TemplatesClient({
           </div>
         </section>
 
-        <section className="grid gap-3 sm:grid-cols-3">
+        <section className="grid gap-3">
           {[
-            { icon: ImageIcon, label: "Bibliothèque", value: `${templates.length} affiches`, tone: "text-rose-700 bg-rose-50 border-rose-100" },
-            { icon: Wand2, label: "Personnalisation", value: "Guidée par IA", tone: "text-red-700 bg-red-50 border-red-100" },
-            { icon: Sparkles, label: "Prêt à publier", value: "En quelques clics", tone: "text-orange-700 bg-orange-50 border-orange-100" },
+            { icon: ImageIcon, label: "Bibliothèque", value: `${templates.length} affiches disponibles`, tone: "text-rose-800 bg-rose-50 border-rose-100" },
           ].map((item) => {
             const Icon = item.icon;
             return (
@@ -723,11 +722,11 @@ export function TemplatesClient({
               href={CHATGPT_VISUAL_CREATOR_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-600 bg-rose-600 px-4 py-3 text-center text-sm font-black text-white shadow-[0_12px_24px_-14px_rgba(190,24,93,0.8)] transition hover:-translate-y-0.5 hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-200 sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 py-2 text-center text-xs font-bold text-rose-800 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-400 hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-100 sm:w-auto"
             >
-              <Sparkles className="size-4" />
-              <span>Créez une image avec ChatGPT By EasyCom-AI</span>
-              <ExternalLink className="size-4" />
+              <Sparkles className="size-3.5" />
+              <span>Vous ne trouvez pas ? Créez une images avec ChatGPT by EasyCom AI</span>
+              <ExternalLink className="size-3.5" />
             </a>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="relative w-full lg:max-w-md">
@@ -927,7 +926,7 @@ export function TemplatesClient({
 
   if (step === "questions" && selectedTemplate) {
     return (
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="mx-auto max-w-2xl space-y-6">
         <UpgradeModal
           open={upgradeOpen}
           onClose={() => setUpgradeOpen(false)}
@@ -937,8 +936,8 @@ export function TemplatesClient({
           description="Le mode gratuit permet de modifier une seule affiche. Passez au mode payant pour personnaliser toute la banque d'affiches sans limite."
         />
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={goBack}>
+        <div className="flex items-center gap-3 rounded-2xl border border-rose-100 bg-white px-3 py-2 shadow-sm">
+          <Button variant="ghost" size="icon" onClick={goBack} className="text-rose-700 hover:bg-rose-50 hover:text-rose-900">
             <ArrowLeft className="size-5" />
           </Button>
           <div>
@@ -950,9 +949,9 @@ export function TemplatesClient({
         </div>
 
         {/* Aperçu du template choisi */}
-        <Card className="overflow-hidden rounded-2xl border-blue-100 bg-gradient-to-br from-blue-50 via-sky-100 to-indigo-100 p-2 shadow-sm ring-1 ring-white/80">
+        <Card className="overflow-hidden rounded-2xl border-rose-100 bg-rose-50 p-2 shadow-sm ring-1 ring-white/80">
           <div className="flex gap-4 p-4">
-            <div className="w-32 shrink-0 rounded-xl border border-blue-100 bg-white p-1.5 shadow-inner">
+            <div className="w-32 shrink-0 rounded-xl border border-rose-100 bg-white p-1.5 shadow-inner">
               <div className="aspect-[3/4] overflow-hidden rounded-lg bg-slate-100">
                 <PosterThumbnail
                   template={selectedTemplate}
@@ -974,10 +973,10 @@ export function TemplatesClient({
         </Card>
 
         {/* Info communauté pré-remplie */}
-        <Card>
+        <Card className="border-rose-100 shadow-sm">
           <CardContent className="py-4">
             <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="size-4 text-violet-500" />
+              <Sparkles className="size-4 text-rose-600" />
               <p className="text-sm font-semibold text-slate-700">
                 Informations de {community.name} (pré-remplies)
               </p>
@@ -992,25 +991,21 @@ export function TemplatesClient({
         </Card>
 
         {/* Assistant IA */}
-        <Card className="border-violet-100 bg-gradient-to-br from-white via-violet-50/70 to-fuchsia-50/60 shadow-sm">
+        <Card className="border-rose-100 bg-rose-50/70 shadow-sm">
           <CardContent className="space-y-4 py-5">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-violet-700">
+              <div className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-rose-800">
                 <Sparkles className="size-3.5" />
                 Assistant IA
               </div>
               <p className="text-sm font-semibold text-slate-800">
                 Renseignez les variables détectées sur ce modèle. Le système compose ensuite automatiquement l&apos;image finale.
               </p>
-              <p className="text-sm text-slate-500">
-                Les champs ci-dessous correspondent aux zones placées dans l&apos;administration : titre, horaires, message,
-                logo ou informations de votre organisation. Aucune génération IA n&apos;est nécessaire.
-              </p>
             </div>
 
-            <div className="rounded-3xl border border-violet-200 bg-white p-4 shadow-sm">
+            <div className="rounded-3xl border border-rose-200 bg-white p-4 shadow-sm">
               <div className="flex items-start gap-3">
-                <div className="mt-0.5 rounded-2xl bg-violet-100 p-2 text-violet-700">
+                <div className="mt-0.5 rounded-2xl bg-rose-100 p-2 text-rose-700">
                   <Sparkles className="size-4" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -1029,7 +1024,7 @@ export function TemplatesClient({
                       className={cn(
                         "max-w-[90%] rounded-2xl px-3 py-2 text-xs leading-5",
                         message.role === "user"
-                          ? "ml-auto bg-violet-600 text-white"
+                          ? "ml-auto bg-rose-700 text-white"
                           : "bg-white text-slate-600 shadow-sm"
                       )}
                     >
@@ -1039,7 +1034,7 @@ export function TemplatesClient({
                 </div>
               )}
 
-              <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/60 p-3">
+              <div className="mt-4 rounded-2xl border border-rose-100 bg-rose-50/70 p-3">
                 <textarea
                   value={aiChatPrompt}
                   onChange={(event) => setAiChatPrompt(event.target.value)}
@@ -1049,8 +1044,8 @@ export function TemplatesClient({
                       void applyAiChatToVariables();
                     }
                   }}
-                  placeholder="Exemple : Fais une affiche Chabbat chaleureuse, garde les horaires, ajoute un message court et professionnel, titre Beth Din de Paris."
-                  className="min-h-[92px] w-full resize-y rounded-2xl border border-violet-100 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                  placeholder="Décrivez les ajustements souhaités pour votre affiche..."
+                  className="min-h-[92px] w-full resize-y rounded-2xl border border-rose-100 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
                 />
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-xs text-slate-500">Astuce : Ctrl/Cmd + Entrée pour créer.</p>
@@ -1058,7 +1053,7 @@ export function TemplatesClient({
                     type="button"
                     onClick={applyAiChatToVariables}
                     disabled={aiChatLoading || loading || aiChatPrompt.trim().length === 0 || (selectedTemplate.design ?? []).length === 0}
-                    className="rounded-2xl bg-violet-600 text-white hover:bg-violet-700"
+                    className="rounded-2xl bg-rose-700 text-white hover:bg-rose-800"
                   >
                     {aiChatLoading || loading ? (
                       <><Loader2 className="mr-2 size-4 animate-spin" /> Création de l&apos;affiche...</>
@@ -1071,7 +1066,7 @@ export function TemplatesClient({
             </div>
 
             {(selectedTemplate.design ?? []).length === 0 && (
-              <div className="rounded-3xl border border-violet-200 bg-white p-4 shadow-inner">
+              <div className="rounded-3xl border border-rose-200 bg-white p-4 shadow-inner">
                 <p className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
                   Ce modèle n&apos;a pas encore de zones dynamiques. Ajoutez-les depuis l&apos;administration avant de générer l&apos;image finale.
                 </p>
@@ -1088,13 +1083,13 @@ export function TemplatesClient({
 
         {/* Action */}
         <div className="flex gap-3">
-          <Button variant="outline" onClick={goBack} className="flex-1">
+          <Button variant="outline" onClick={goBack} className="flex-1 border-rose-200 text-rose-800 hover:bg-rose-50 hover:text-rose-900">
             <ArrowLeft className="size-4 mr-2" /> Retour
           </Button>
           <Button
             onClick={() => void generateImage()}
             disabled={loading || (selectedTemplate.design ?? []).length === 0}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-violet-600 text-white"
+            className="flex-1 bg-rose-700 text-white hover:bg-rose-800"
           >
             {loading ? (
               <><Loader2 className="size-4 mr-2 animate-spin" /> Création de l&apos;image...</>
@@ -1140,7 +1135,7 @@ export function TemplatesClient({
           <Button
             onClick={downloadPoster}
             loading={rendering}
-            className="bg-gradient-to-r from-blue-600 to-violet-600 text-white"
+            className="bg-rose-700 text-white hover:bg-rose-800"
           >
             <Download className="size-4 mr-2" /> Télécharger
           </Button>
@@ -1168,7 +1163,7 @@ export function TemplatesClient({
               {!generatedImageUrl && zones.map((zone) => (
                 <div
                   key={zone.id}
-                  className="absolute cursor-pointer hover:outline hover:outline-2 hover:outline-blue-400 hover:outline-dashed rounded transition-all"
+                  className="absolute cursor-pointer rounded transition-all hover:outline hover:outline-2 hover:outline-dashed hover:outline-rose-500"
                   style={{
                     left: `${zone.x}%`,
                     top: `${zone.y}%`,
@@ -1196,10 +1191,10 @@ export function TemplatesClient({
           {/* Panneau d'édition des textes */}
           <div className="space-y-4">
             {/* Recomposition déterministe de l'image */}
-            <Card className="border-violet-100 bg-gradient-to-br from-white via-violet-50/60 to-fuchsia-50/50">
+            <Card className="border-rose-100 bg-rose-50/70">
               <CardContent className="space-y-3 py-4">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="size-4 text-violet-500" />
+                  <Sparkles className="size-4 text-rose-600" />
                   <p className="text-sm font-semibold text-slate-700">Recomposer l&apos;image finale</p>
                 </div>
                 <p className="text-sm leading-6 text-slate-500">
@@ -1210,7 +1205,7 @@ export function TemplatesClient({
                 <Button
                   onClick={() => void generateImage()}
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-blue-600 to-violet-600 text-white"
+                  className="w-full bg-rose-700 text-white hover:bg-rose-800"
                 >
                   {loading ? (
                     <><Loader2 className="size-4 mr-2 animate-spin" /> Création de l&apos;image...</>
@@ -1225,7 +1220,7 @@ export function TemplatesClient({
             <Card>
               <CardContent className="py-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <Pencil className="size-4 text-blue-500" />
+                  <Pencil className="size-4 text-rose-600" />
                   <p className="text-sm font-semibold text-slate-700">Variables du modèle</p>
                 </div>
 
@@ -1258,7 +1253,7 @@ export function TemplatesClient({
                                 }))
                               }
                               autoFocus
-                              className="flex-1 rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                              className="flex-1 rounded-lg border border-rose-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                             />
                             <Button
                               size="icon"
@@ -1277,7 +1272,7 @@ export function TemplatesClient({
                           <p className="flex-1 text-sm text-slate-800">
                             {getZoneDisplayValue(zone, generatedTexts[zone.id] ?? zone.defaultText)}
                           </p>
-                          <Pencil className="size-3.5 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                          <Pencil className="size-3.5 text-slate-300 transition-colors group-hover:text-rose-600" />
                         </div>
                       )}
                     </div>
@@ -1296,7 +1291,7 @@ export function TemplatesClient({
               onClick={downloadPoster}
               loading={rendering}
               disabled={!generatedImageUrl}
-              className="w-full bg-gradient-to-r from-blue-600 to-violet-600 text-white h-12 text-base"
+              className="h-12 w-full bg-rose-700 text-base text-white hover:bg-rose-800"
             >
               <Download className="size-5 mr-2" /> Télécharger l&apos;affiche
             </Button>

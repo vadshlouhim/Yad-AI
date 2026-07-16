@@ -91,7 +91,9 @@ export function RequestResourceClient() {
   if (success) {
     return (
       <div className="mx-auto w-full max-w-xl px-4 py-16 text-center">
-        <CheckCircle className="mx-auto size-14 text-emerald-500" />
+        <div className="mx-auto flex size-16 items-center justify-center rounded-3xl bg-teal-50">
+          <CheckCircle className="size-10 text-teal-600" />
+        </div>
         <h2 className="mt-4 text-xl font-black text-slate-900">Demande envoyée !</h2>
         <p className="mt-2 text-sm text-slate-500">Les membres de votre communauté pourront y répondre. Redirection…</p>
       </div>
@@ -100,18 +102,21 @@ export function RequestResourceClient() {
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6 px-4 py-6 sm:px-6">
-      {/* En-tête */}
-      <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} className="rounded-xl border border-slate-200 p-2 hover:bg-slate-50">
-          <ArrowLeft className="size-4 text-slate-500" />
-        </button>
-        <div>
-          <h1 className="text-xl font-black text-slate-900">Faire une demande de ressource</h1>
-          <p className="text-sm text-slate-500">Exprimez un besoin — l&apos;IA peut vous aider à le formuler</p>
+      <div className="rounded-3xl bg-[#063c37] p-5 text-white shadow-[0_18px_45px_-30px_rgba(6,95,70,0.60)] sm:p-6">
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.back()} className="rounded-xl border border-white/15 bg-white/10 p-2 hover:bg-white/20">
+            <ArrowLeft className="size-4 text-white" />
+          </button>
+          <div className="flex size-10 items-center justify-center rounded-xl bg-white/10 text-teal-100"><MessageCircle className="size-5 animate-pulse" /></div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-teal-200">Bibliothèque communautaire</p>
+            <h1 className="mt-1 text-xl font-black">Faire une demande</h1>
+            <p className="mt-1 text-sm text-white/75">Décrivez la ressource dont votre communauté a besoin</p>
+          </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-teal-100 bg-white p-6 shadow-[0_18px_45px_-30px_rgba(6,95,70,0.28)]">
         {/* Titre */}
         <div className="mb-4">
           <label className="mb-1 block text-xs font-semibold text-slate-700">Titre de la demande *</label>
@@ -120,7 +125,7 @@ export function RequestResourceClient() {
             value={form.title}
             onChange={(e) => set("title")(e.target.value)}
             placeholder="Ex : Discours de Bar-Mitsva en français pour jeunes adultes"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
+            className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
           />
         </div>
 
@@ -132,18 +137,18 @@ export function RequestResourceClient() {
             onChange={(e) => set("description")(e.target.value)}
             placeholder="Décrivez en détail le type de ressource dont vous avez besoin, le contexte, le public cible…"
             rows={4}
-            className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
+            className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
           />
         </div>
 
         {/* Catégorie + Thème */}
-        <div className="mb-4 grid grid-cols-2 gap-3">
+        <div className="mb-4 grid gap-3 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-xs font-semibold text-slate-700">Catégorie *</label>
             <select
               value={form.category}
               onChange={(e) => set("category")(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
             >
               {RESOURCE_CATEGORIES.map((cat) => <option key={cat}>{cat}</option>)}
             </select>
@@ -153,7 +158,7 @@ export function RequestResourceClient() {
             <select
               value={form.theme}
               onChange={(e) => set("theme")(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
             >
               {RESOURCE_THEMES.map((th) => <option key={th}>{th}</option>)}
             </select>
@@ -163,7 +168,7 @@ export function RequestResourceClient() {
         {/* Urgence */}
         <div className="mb-5">
           <label className="mb-2 block text-xs font-semibold text-slate-700">Urgence</label>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             {(["low", "medium", "high"] as RequestUrgency[]).map((u) => (
               <button
                 key={u}
@@ -185,14 +190,14 @@ export function RequestResourceClient() {
           type="button"
           onClick={handleRefine}
           disabled={refining || !form.title || !form.description}
-          className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 py-2.5 text-sm font-semibold text-violet-700 hover:bg-violet-100 disabled:opacity-50"
+          className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 py-2.5 text-sm font-semibold text-teal-800 hover:bg-teal-100 disabled:opacity-50"
         >
           <Sparkles className="size-4" />
           {refining ? "Affinement en cours…" : aiRefined ? "Réaffiner avec l'IA" : "Affiner la demande avec l'IA"}
         </button>
 
         {aiRefined && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700">
+          <div className="mb-4 flex items-center gap-2 rounded-xl bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-800">
             <Sparkles className="size-3.5" /> Demande affinée par l&apos;assistant IA
           </div>
         )}
@@ -201,7 +206,7 @@ export function RequestResourceClient() {
           <p className="mb-3 text-sm font-semibold text-red-600">{error}</p>
         )}
 
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <button
             type="button"
             onClick={() => router.back()}
@@ -213,7 +218,7 @@ export function RequestResourceClient() {
             type="button"
             onClick={handleSubmit}
             disabled={submitting || !form.title || !form.description}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-teal-700 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-50"
           >
             <MessageCircle className="size-4" />
             {submitting ? "Envoi…" : "Soumettre la demande"}

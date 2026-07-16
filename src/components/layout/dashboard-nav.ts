@@ -450,7 +450,7 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       subtitle: "Votre CRM centralises et organises par l'IA",
       icon: Users,
       items: [
-        { href: "/dashboard/contacts", label: "Mes contacts", icon: Users },
+        { href: "/dashboard/contacts", label: "CRM Inteligent IA", icon: Users },
       ],
     },
     {
@@ -524,7 +524,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "CONTACTS",
     items: [
-      { href: "/dashboard/contacts", label: "Mes contacts", icon: Users },
+      { href: "/dashboard/contacts", label: "CRM Inteligent IA", icon: Users },
     ],
   },
   {
@@ -627,7 +627,7 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     section: "CONTACTS",
     icon: Plus,
     items: [
-      { href: "/dashboard/contacts", label: "Mes contacts", icon: Users },
+      { href: "/dashboard/contacts", label: "CRM Inteligent IA", icon: Users },
     ],
   },
   {

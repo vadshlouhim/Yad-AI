@@ -150,7 +150,7 @@ export default function ContactPage() {
               </article>
             ))}
           </div>
-          <Link href="/tarification" className="mt-8 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-6 py-3 text-sm font-black text-blue-800 transition hover:bg-blue-100">
+          <Link href="/tarification" className="mt-8 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-6 py-3 text-sm font-black text-blue-900 transition hover:bg-blue-100">
             Voir les offres <ArrowRight className="size-4" />
           </Link>
         </div>

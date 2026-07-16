@@ -2,6 +2,7 @@ import { sendPushToUser } from "@/lib/notifications/push";
 import { describeRule } from "@/lib/email/notification-rules";
 import type { EmailAiClassification, EmailNotificationRule } from "@/lib/email/ai-settings";
 import type { createAdminClient } from "@/lib/supabase/admin";
+import { createNotificationOnce } from "@/lib/notifications/create-once";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -62,8 +63,7 @@ export async function notifyForMatchingEmailRules({
   const top = matched[0];
   const matchingRule = rules.find((rule) => ruleMatchesEmail(rule, top, now));
 
-  await admin.from("Notification").insert({
-    id: crypto.randomUUID(),
+  const created = await createNotificationOnce(admin, {
     userId,
     communityId,
     type: "SYSTEM",
@@ -75,13 +75,16 @@ export async function notifyForMatchingEmailRules({
       source,
       rule: matchingRule ? describeRule(matchingRule) : null,
     },
+    dedupeKey: `email-ai:${userId}:${top.id}:${matchingRule?.id ?? "matching-rule"}`,
   });
+
+  if (!created) return { matchedCount: matched.length, notificationSent: false };
 
   await sendPushToUser(admin, userId, {
     title: "Alerte Email IA",
     body: `${top.sender} - ${top.subject}`,
     url: "/dashboard/email",
-    tag: `email-ai-${source}-${userId}`,
+    tag: `email-ai-${top.id}`,
   });
 
   return { matchedCount: matched.length, notificationSent: true };

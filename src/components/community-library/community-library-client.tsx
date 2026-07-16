@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   BookOpen,
   Download,
@@ -47,7 +48,6 @@ interface Props {
 type Tab = "explorer" | "demandes";
 const SHMOUEL_TORAH_IMAGE =
   "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Shmouel%20Torah.webp";
-const DEFAULT_AUTHORIZED_SOURCES = ["chabad.org", "loubavitch.fr", "sefaria.org"];
 
 const FILE_ICONS: Record<string, React.ReactNode> = {
   pdf: <FileText className="size-5 text-red-500" />,
@@ -80,7 +80,7 @@ function ResourceCard({
   };
 
   return (
-    <article className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,0.06)] transition-shadow hover:shadow-[0_8px_24px_rgba(15,23,42,0.10)]">
+    <article className="flex min-w-0 flex-col gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,0.06)] transition-shadow hover:shadow-[0_8px_24px_rgba(15,23,42,0.10)]">
       {resource.isFeatured && (
         <div className="flex items-center gap-1 text-xs font-semibold text-amber-600">
           <Sparkles className="size-3.5" /> À la une
@@ -115,18 +115,18 @@ function ResourceCard({
         </div>
       )}
 
-      <div className="mt-auto flex gap-2 pt-1">
+      <div className="mt-auto flex flex-col gap-2 pt-1 sm:flex-row">
         {isPaid ? (
           <>
             <button
               onClick={handleDownload}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-violet-700"
+              className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg bg-teal-700 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-teal-800"
             >
               <Download className="size-3.5" /> Télécharger
             </button>
             <button
               onClick={() => onAdapt(resource)}
-              className="flex items-center justify-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-100"
+              className="flex min-w-0 items-center justify-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-800 transition-colors hover:bg-teal-100"
             >
               <WandSparkles className="size-3.5" /> Adapter
             </button>
@@ -145,8 +145,8 @@ function ResourceCard({
 function RequestCard({ req }: { req: ResourceRequest }) {
   return (
     <article className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-50">
-        <MessageCircle className="size-4 text-violet-600" />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-50">
+        <MessageCircle className="size-4 text-teal-700" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
@@ -162,7 +162,7 @@ function RequestCard({ req }: { req: ResourceRequest }) {
             {URGENCY_LABELS[req.urgency]}
           </span>
           {req.aiRefined && (
-            <span className="flex items-center gap-0.5 text-violet-500">
+            <span className="flex items-center gap-0.5 text-teal-600">
               <Sparkles className="size-3" /> Affiné par IA
             </span>
           )}
@@ -174,11 +174,9 @@ function RequestCard({ req }: { req: ResourceRequest }) {
 
 function AdaptModal({
   resource,
-  communityId,
   onClose,
 }: {
   resource: CommunityResource;
-  communityId: string;
   onClose: () => void;
 }) {
   const [action, setAction] = useState<"generate-whatsapp-text" | "adapt-description">("generate-whatsapp-text");
@@ -236,13 +234,13 @@ function AdaptModal({
         <div className="mt-4 flex gap-2">
           <button
             onClick={() => setAction("generate-whatsapp-text")}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${action === "generate-whatsapp-text" ? "bg-violet-600 text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${action === "generate-whatsapp-text" ? "bg-teal-700 text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
           >
             <MessageCircle className="size-3.5" /> Texte WhatsApp
           </button>
           <button
             onClick={() => setAction("adapt-description")}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${action === "adapt-description" ? "bg-violet-600 text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${action === "adapt-description" ? "bg-teal-700 text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
           >
             <WandSparkles className="size-3.5" /> Adapter la fiche
           </button>
@@ -253,13 +251,13 @@ function AdaptModal({
           onChange={(e) => setInstructions(e.target.value)}
           placeholder="Instructions spécifiques (optionnel) : ton, public cible, langue..."
           rows={2}
-          className="mt-3 w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
+          className="mt-3 w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
         />
 
         <button
           onClick={handleAdapt}
           disabled={loading}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-teal-700 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-60"
         >
           <Sparkles className="size-4" />
           {loading ? "Génération en cours…" : "Générer"}
@@ -269,7 +267,7 @@ function AdaptModal({
           <div className="mt-4">
             <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
               <span>Résultat</span>
-              <button onClick={handleCopy} className="text-violet-600 hover:underline">
+              <button onClick={handleCopy} className="text-teal-700 hover:underline">
                 {copied ? "Copié !" : "Copier"}
               </button>
             </div>
@@ -295,15 +293,6 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
   const [loading, setLoading] = useState(false);
   const [adaptTarget, setAdaptTarget] = useState<CommunityResource | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [sourceInput, setSourceInput] = useState("");
-  const [authorizedSources, setAuthorizedSources] = useState(DEFAULT_AUTHORIZED_SOURCES);
-
-  const addAuthorizedSource = () => {
-    const normalized = sourceInput.trim().replace(/^https?:\/\//i, "").replace(/\/$/, "");
-    if (!normalized || authorizedSources.includes(normalized)) return;
-    setAuthorizedSources((current) => [...current, normalized]);
-    setSourceInput("");
-  };
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchResources = useCallback(async (q: string, category: string, theme: string) => {
@@ -348,7 +337,7 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
   const hasFilters = query || activeCategory || activeTheme;
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6 overflow-x-hidden px-4 py-6 sm:px-6">
       <AgentPageBanner
         eyebrow="Bibliothèque communautaire"
         title="Vos ressources, enrichies par l’intelligence collective"
@@ -358,77 +347,33 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
         imageAlt="Shmouel, agent IA Bibliothèque communautaire"
         bubbleTitle="Je suis Shmouel, votre agent IA Bibliothèque communautaire"
         bubbleText="Je classe vos ressources Torah et vous aide à les partager au bon moment"
-        tone="slate"
+        bubbleTitleClassName="text-slate-950"
+        tone="teal-dark"
         flat
       />
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap justify-center gap-3">
         {isPaid ? (
           <>
             <Link
               href="/dashboard/community-library/submit"
-              className="inline-flex items-center gap-2 rounded-2xl bg-[#421388] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#35106f]"
+              className="inline-flex items-center gap-2 rounded-2xl bg-teal-700 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-teal-800"
             >
               <Plus className="size-4" /> Soumettre une ressource
             </Link>
             <Link
               href="/dashboard/community-library/request"
-              className="inline-flex items-center gap-2 rounded-2xl border border-[#421388]/15 bg-white px-4 py-2.5 text-sm font-bold text-[#421388] shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-50"
+              className="inline-flex items-center gap-2 rounded-2xl border border-teal-200 bg-white px-4 py-2.5 text-sm font-bold text-teal-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-teal-50"
             >
               <MessageCircle className="size-4" /> Faire une demande
             </Link>
           </>
         ) : (
-          <div className="inline-flex items-center gap-2 rounded-2xl border border-violet-100 bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-800">
+          <div className="inline-flex items-center gap-2 rounded-2xl border border-teal-100 bg-teal-50 px-4 py-2.5 text-sm font-semibold text-teal-800">
             <Lock className="size-4" /> Abonnez-vous pour contribuer
           </div>
         )}
       </div>
-
-      <section className="rounded-3xl border border-violet-100 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm font-black text-slate-900">Sources autorisées</p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">
-              Ajoutez les sites de référence que vous souhaitez garder visibles dans votre espace Bibliothèque.
-            </p>
-          </div>
-          <div className="flex w-full gap-2 sm:max-w-md">
-            <input
-              value={sourceInput}
-              onChange={(event) => setSourceInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  addAuthorizedSource();
-                }
-              }}
-              placeholder="exemple.org"
-              className="min-w-0 flex-1 rounded-2xl border border-violet-200 bg-violet-50/40 px-4 py-2.5 text-sm outline-none transition focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
-            />
-            <button
-              type="button"
-              onClick={addAuthorizedSource}
-              className="rounded-2xl bg-[#421388] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#35106f]"
-            >
-              Ajouter
-            </button>
-          </div>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {authorizedSources.map((source) => (
-            <button
-              key={source}
-              type="button"
-              onClick={() => setAuthorizedSources((current) => current.filter((item) => item !== source))}
-              className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-800 transition hover:border-violet-300 hover:bg-violet-100"
-              title="Retirer cette source"
-            >
-              {source}
-            </button>
-          ))}
-        </div>
-      </section>
 
       {/* Bandeau violet */}
       <section className="hidden overflow-hidden rounded-[2rem] border border-violet-900/30 bg-[linear-gradient(135deg,#2e1065,#4c1d95,#6d28d9)] p-[1px] shadow-[0_24px_60px_rgba(109,40,217,0.18)]">
@@ -477,7 +422,7 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
       {/* Stats rapides */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {[
-          { label: "Ressources", value: total, icon: BookOpen, color: "text-violet-600" },
+          { label: "Ressources", value: total, icon: BookOpen, color: "text-teal-700" },
           { label: "Demandes ouvertes", value: requests.filter((r) => r.status === "open").length, icon: MessageCircle, color: "text-blue-600" },
           { label: "Catégories", value: RESOURCE_CATEGORIES.length, icon: Filter, color: "text-emerald-600" },
         ].map((stat) => (
@@ -497,7 +442,7 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${tab === key ? "bg-white text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${tab === key ? "bg-white text-teal-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
           >
             {label}
           </button>
@@ -507,7 +452,7 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
       {tab === "explorer" && (
         <>
           {/* Barre de recherche + filtres */}
-          <div className="space-y-3">
+          <div className="mx-auto w-full max-w-4xl space-y-3">
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -516,19 +461,46 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
                   value={query}
                   onChange={(e) => handleSearch(e.target.value)}
                   placeholder="Rechercher une ressource…"
-                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
                 />
               </div>
               <button
                 onClick={() => setShowFilters((v) => !v)}
-                className={`flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${showFilters ? "border-violet-300 bg-violet-50 text-violet-700" : "border-slate-200 bg-white text-slate-600 hover:border-violet-200"}`}
+                className={`flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${showFilters ? "border-teal-300 bg-teal-50 text-teal-800" : "border-slate-200 bg-white text-slate-600 hover:border-teal-200"}`}
               >
                 <Filter className="size-4" /> Filtres
                 {(activeCategory || activeTheme) && (
-                  <span className="ml-1 size-2 rounded-full bg-violet-500" />
+                  <span className="ml-1 size-2 rounded-full bg-teal-500" />
                 )}
               </button>
             </div>
+
+            <section className="relative overflow-hidden rounded-3xl border border-teal-100 bg-white px-4 py-4 shadow-[0_18px_45px_-30px_rgba(6,95,70,0.28)] sm:px-6 sm:py-5">
+              <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-end">
+                <Image
+                  src={SHMOUEL_TORAH_IMAGE}
+                  alt="Shmouel, agent IA Bibliothèque"
+                  width={128}
+                  height={128}
+                  className="h-24 w-auto shrink-0 object-contain drop-shadow-[0_14px_18px_rgba(6,60,55,0.18)] sm:-mb-7 sm:h-32"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="relative rounded-2xl bg-teal-50 px-4 py-3 text-sm text-slate-700 before:absolute before:-top-2 before:left-1/2 before:size-4 before:-translate-x-1/2 before:rotate-45 before:bg-teal-50 sm:before:-left-2 sm:before:top-auto sm:before:bottom-8 sm:before:translate-x-0">
+                    <p className="font-black text-slate-950">Que cherchez-vous ?</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-600">Décrivez simplement le document, le thème ou le besoin. Je recherche dans la bibliothèque pour vous.</p>
+                  </div>
+                  <div className="relative mt-4">
+                    <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-teal-700" />
+                    <input
+                      value={query}
+                      onChange={(event) => handleSearch(event.target.value)}
+                      placeholder="Ex. un cours sur la paracha, une affiche pour une fête..."
+                      className="w-full rounded-xl border border-teal-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
 
             {showFilters && (
               <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
@@ -537,7 +509,7 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => handleCategoryFilter("")}
-                      className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${!activeCategory ? "bg-violet-600 text-white" : "border border-slate-200 text-slate-600 hover:border-violet-200"}`}
+                      className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${!activeCategory ? "bg-teal-700 text-white" : "border border-slate-200 text-slate-600 hover:border-teal-200"}`}
                     >
                       Toutes
                     </button>
@@ -545,7 +517,7 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
                       <button
                         key={cat}
                         onClick={() => handleCategoryFilter(cat)}
-                        className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${activeCategory === cat ? "bg-violet-600 text-white" : `border border-slate-200 hover:border-violet-200 ${CATEGORY_COLORS[cat]}`}`}
+                        className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${activeCategory === cat ? "bg-teal-700 text-white" : `border border-slate-200 hover:border-teal-200 ${CATEGORY_COLORS[cat]}`}`}
                       >
                         {cat}
                       </button>
@@ -557,7 +529,7 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => handleThemeFilter("")}
-                      className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${!activeTheme ? "bg-violet-600 text-white" : "border border-slate-200 text-slate-600 hover:border-violet-200"}`}
+                      className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${!activeTheme ? "bg-teal-700 text-white" : "border border-slate-200 text-slate-600 hover:border-teal-200"}`}
                     >
                       Tous
                     </button>
@@ -565,7 +537,7 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
                       <button
                         key={th}
                         onClick={() => handleThemeFilter(th)}
-                        className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${activeTheme === th ? "bg-violet-600 text-white" : `border border-slate-200 hover:border-violet-200 ${THEME_COLORS[th]}`}`}
+                        className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${activeTheme === th ? "bg-teal-700 text-white" : `border border-slate-200 hover:border-teal-200 ${THEME_COLORS[th]}`}`}
                       >
                         {th}
                       </button>
@@ -578,7 +550,7 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
             {hasFilters && (
               <div className="flex items-center gap-2 text-sm text-slate-500">
                 <span>{total} résultat{total !== 1 ? "s" : ""}</span>
-                <button onClick={clearFilters} className="flex items-center gap-1 text-violet-600 hover:underline">
+                <button onClick={clearFilters} className="flex items-center gap-1 text-teal-700 hover:underline">
                   <X className="size-3.5" /> Effacer les filtres
                 </button>
               </div>
@@ -594,8 +566,8 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
             </div>
           ) : resources.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-50">
-                <Library className="size-6 text-violet-400" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-50">
+                <Library className="size-6 text-teal-500" />
               </div>
               <h2 className="mt-4 text-base font-bold text-slate-800">
                 {hasFilters ? "Aucune ressource trouvée" : "La bibliothèque est vide"}
@@ -608,7 +580,7 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
               {!hasFilters && isPaid && (
                 <Link
                   href="/dashboard/community-library/submit"
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white hover:bg-violet-700"
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-teal-700 px-4 py-2 text-sm font-bold text-white hover:bg-teal-800"
                 >
                   <Plus className="size-4" /> Soumettre
                 </Link>
@@ -647,7 +619,7 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
             {isPaid && (
               <Link
                 href="/dashboard/community-library/request"
-                className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white hover:bg-violet-700"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-teal-700 px-4 py-2 text-sm font-bold text-white hover:bg-teal-800"
               >
                 <Plus className="size-4" /> Faire une demande
               </Link>
@@ -661,7 +633,7 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
               {isPaid && (
                 <Link
                   href="/dashboard/community-library/request"
-                  className="mt-3 text-sm text-violet-600 hover:underline"
+                  className="mt-3 text-sm text-teal-700 hover:underline"
                 >
                   Faire la première demande
                 </Link>
@@ -680,7 +652,6 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
       {adaptTarget && (
         <AdaptModal
           resource={adaptTarget}
-          communityId={community.id}
           onClose={() => setAdaptTarget(null)}
         />
       )}

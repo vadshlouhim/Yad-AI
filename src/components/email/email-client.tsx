@@ -15,9 +15,7 @@ import {
   MessageSquareText,
   RefreshCw,
   Search,
-  Send,
   Settings2,
-  Sparkles,
   Trash2,
   TriangleAlert,
   WandSparkles,
@@ -42,26 +40,30 @@ const CATEGORY_META: Record<
     title: string;
     icon: React.ReactNode;
     badgeClass: string;
+    listBadgeClass: string;
     cardClass: string;
   }
 > = {
   urgent: {
     title: "Urgent",
     icon: <TriangleAlert className="size-4" />,
-    badgeClass: "border-rose-200 bg-rose-100 text-rose-800",
-    cardClass: "border-rose-200 bg-gradient-to-br from-rose-50/70 via-white to-red-50/40",
+    badgeClass: "border-white/20 bg-white/10 text-white",
+    listBadgeClass: "border-[#8A184D]/30 bg-[#8A184D] text-white",
+    cardClass: "border-[#8A184D] bg-[#8A184D]",
   },
   important: {
     title: "Important",
     icon: <BellRing className="size-4" />,
-    badgeClass: "border-amber-200 bg-amber-100 text-amber-800",
-    cardClass: "border-amber-200 bg-gradient-to-br from-amber-50/70 via-white to-orange-50/30",
+    badgeClass: "border-orange-300/30 bg-orange-300/15 text-orange-50",
+    listBadgeClass: "border-orange-300 bg-orange-500 text-white",
+    cardClass: "border-orange-600 bg-orange-500",
   },
   non_important: {
     title: "Non important",
     icon: <Clock3 className="size-4" />,
-    badgeClass: "border-slate-200 bg-slate-100 text-slate-700",
-    cardClass: "border-slate-200 bg-gradient-to-br from-slate-50/80 via-white to-slate-50/30",
+    badgeClass: "border-slate-900 bg-slate-900 text-white",
+    listBadgeClass: "border-slate-900 bg-white text-slate-900",
+    cardClass: "border-slate-900 bg-white",
   },
 };
 
@@ -204,18 +206,14 @@ export function EmailClient({
   const [lastClassifiedAt, setLastClassifiedAt] = useState<string | null>(initialState.lastClassifiedAt);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<EmailCategory | "all">("all");
+  const [openCategory, setOpenCategory] = useState<EmailCategory | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(initialState.classifications[0]?.id ?? null);
   const [isClassifying, setIsClassifying] = useState(false);
   const [isLoadingEmails, setIsLoadingEmails] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isDrafting, setIsDrafting] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const [replyText, setReplyText] = useState("");
-  const [draftSuggestion, setDraftSuggestion] = useState("");
   const [ruleModal, setRuleModal] = useState<RuleModalState>({ open: false, prompt: "", editingRuleId: null });
   const [ruleBuilder, setRuleBuilder] = useState<RuleBuilderState>(EMPTY_RULE_BUILDER);
   const [rulesLoading, setRulesLoading] = useState(false);
-  const [classificationError, setClassificationError] = useState<string | null>(null);
   const [oauthNotice, setOauthNotice] = useState<{ tone: "success" | "error"; text: string } | null>(() => {
     const status = searchParams.get("oauth");
     return status ? OAUTH_MESSAGES[status] ?? null : null;
@@ -283,7 +281,6 @@ export function EmailClient({
   async function runClassification(trigger: "page_open" | "manual") {
     if (isClassifying) return;
     setIsClassifying(true);
-    setClassificationError(null);
     try {
       const response = await fetch("/api/email/classify", {
         method: "POST",
@@ -299,9 +296,7 @@ export function EmailClient({
       if (!response.ok) {
         throw new Error(data?.error ?? "Classification impossible.");
       }
-      if (data?.syncError) {
-        setClassificationError(data.syncError);
-      }
+      if (data?.syncError) console.warn("[Email] Synchronisation incomplète:", data.syncError);
       const items = Array.isArray(data?.classifications) ? data.classifications : [];
       setClassifications(items);
       setLastClassifiedAt(typeof data?.lastClassifiedAt === "string" ? data.lastClassifiedAt : null);
@@ -309,7 +304,7 @@ export function EmailClient({
         setSelectedId(items[0].id);
       }
     } catch (error) {
-      setClassificationError(error instanceof Error ? error.message : "Classification impossible.");
+      console.error("[Email] Classification impossible:", error);
     } finally {
       setIsClassifying(false);
     }
@@ -366,59 +361,6 @@ export function EmailClient({
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, []);
-
-  async function handleDraftWithAi() {
-    if (!selectedMail || isDrafting) return;
-    setIsDrafting(true);
-    setDraftSuggestion("");
-    try {
-      const response = await fetch("/api/email/draft", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sender: selectedMail.sender,
-          subject: selectedMail.subject,
-          body: selectedMail.body,
-          history: selectedMail.history,
-        }),
-      });
-      const data = (await readJsonSafely<{ error?: string; draft?: string }>(response)) ?? {};
-      if (!response.ok) {
-        throw new Error(data.error ?? "Rédaction IA impossible.");
-      }
-      setDraftSuggestion(data.draft ?? "");
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Rédaction IA impossible.");
-    } finally {
-      setIsDrafting(false);
-    }
-  }
-
-  async function handleSendReply() {
-    if (!selectedMail || !replyText.trim() || isSending) return;
-    setIsSending(true);
-    try {
-      const response = await fetch("/api/email/gmail/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: selectedMail.senderEmail,
-          subject: `Re: ${selectedMail.subject}`,
-          bodyText: replyText,
-        }),
-      });
-      const data = (await readJsonSafely<{ error?: string }>(response)) ?? {};
-      if (!response.ok) {
-        throw new Error(data.error ?? "Envoi impossible.");
-      }
-      setReplyText("");
-      setDraftSuggestion("");
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Envoi impossible.");
-    } finally {
-      setIsSending(false);
-    }
-  }
 
   async function saveRulePrompt() {
     const builtPrompt = buildRulePrompt(ruleBuilder);
@@ -484,6 +426,15 @@ export function EmailClient({
         ? current.selected.filter((item) => item !== optionId)
         : [...current.selected, optionId],
     }));
+  }
+
+  function openEmail(mailId: string, scrollToReader = false) {
+    setSelectedId(mailId);
+    if (!scrollToReader || !window.matchMedia("(max-width: 1023px)").matches) return;
+
+    window.requestAnimationFrame(() => {
+      document.getElementById("email-reader")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   return (
@@ -558,13 +509,6 @@ export function EmailClient({
         </div>
       )}
 
-      {classificationError && googleConnected && (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-          <p>{classificationError}</p>
-        </div>
-      )}
-
       {!googleConnected ? (
         <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 text-center shadow-[0_18px_45px_-30px_rgba(8,31,54,0.28)] sm:rounded-[28px] sm:p-10">
           <CardContent className="mx-auto max-w-md space-y-4 pt-4">
@@ -611,17 +555,18 @@ export function EmailClient({
             </Badge>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-3">
             {(Object.keys(CATEGORY_META) as EmailCategory[]).map((category) => {
               const meta = CATEGORY_META[category];
               const count = classifications.filter((item) => item.category === category).length;
               const preview = classifications.filter((item) => item.category === category).slice(0, 2);
+              const isOpen = openCategory === category;
+              const isLightCard = category === "non_important";
               return (
-                <button
+                <section
                   key={category}
-                  onClick={() => setActiveCategory(activeCategory === category ? "all" : category)}
                   className={cn(
-                    "rounded-3xl border p-5 text-left shadow-sm transition hover:-translate-y-0.5",
+                    "rounded-[1.4rem] border p-4 text-left shadow-sm",
                     meta.cardClass,
                     activeCategory === category && "ring-2 ring-cyan-500/40"
                   )}
@@ -631,29 +576,54 @@ export function EmailClient({
                       {meta.icon}
                       {meta.title}
                     </Badge>
-                    <span className="text-sm font-bold text-slate-900">{count}</span>
+                    <span className={cn("text-sm font-bold", isLightCard ? "text-slate-950" : "text-white")}>{count} {count > 1 ? "emails" : "email"}</span>
                   </div>
-                  <div className="mt-4 space-y-2">
-                    {preview.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 px-3 py-4 text-sm text-slate-400">
-                        Aucun email
-                      </div>
-                    ) : (
-                      preview.map((mail) => (
-                        <div key={mail.id} className="rounded-2xl border border-white/80 bg-white/80 px-3 py-3">
-                          <p className="truncate text-sm font-semibold text-slate-900">{mail.subject}</p>
-                          <p className="mt-1 truncate text-xs text-slate-500">{mail.sender}</p>
-                        </div>
-                      ))
-                    )}
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <p className={cn("text-xs", isLightCard ? "text-slate-500" : "text-white/65")}>{count === 0 ? "Aucun email à consulter" : `${count} email${count > 1 ? "s" : ""} à consulter`}</p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setOpenCategory(isOpen ? null : category);
+                        setActiveCategory(category);
+                      }}
+                      className={cn(
+                        "h-8 shrink-0 px-3 text-xs",
+                        isLightCard
+                          ? "border-slate-900 bg-white text-slate-900 hover:bg-slate-900 hover:text-white"
+                          : "border-white/25 bg-white/10 text-white hover:bg-white hover:text-slate-950"
+                      )}
+                    >
+                      {isOpen ? "Fermer" : "Ouvrir"}
+                    </Button>
                   </div>
-                </button>
+                  {isOpen && (
+                    <div className={cn("mt-3 space-y-2 border-t pt-3", isLightCard ? "border-slate-200" : "border-white/10")}>
+                      {preview.length === 0 ? (
+                        <p className={cn("text-sm", isLightCard ? "text-slate-500" : "text-white/60")}>Aucun email</p>
+                      ) : (
+                        preview.map((mail) => (
+                          <button
+                            key={mail.id}
+                            type="button"
+                            onClick={() => openEmail(mail.id)}
+                            className={cn("block w-full rounded-md px-3 py-2 text-left", isLightCard ? "bg-slate-100 hover:bg-slate-200" : "bg-white/10 hover:bg-white/15")}
+                          >
+                            <p className={cn("truncate text-sm font-semibold", isLightCard ? "text-slate-900" : "text-white")}>{mail.subject}</p>
+                            <p className={cn("mt-0.5 truncate text-xs", isLightCard ? "text-slate-500" : "text-white/65")}>{mail.sender}</p>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </section>
               );
             })}
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[0.95fr_1.25fr] lg:gap-6">
-            <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
+            <Card className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
               <CardHeader className="space-y-4 border-b border-slate-100 p-4 sm:p-6">
                 <CardTitle className="text-base font-bold text-slate-900">Boite de reception</CardTitle>
                 <div className="relative">
@@ -666,42 +636,54 @@ export function EmailClient({
                   />
                 </div>
               </CardHeader>
-              <CardContent className="max-h-none overflow-visible overscroll-contain p-0 sm:max-h-[48vh] sm:overflow-y-auto lg:max-h-[760px]">
+              <CardContent className="min-w-0 overflow-x-hidden p-0">
                 {filteredEmails.length === 0 ? (
                   <div className="p-8 text-center text-slate-400">
                     <Mail className="mx-auto mb-3 size-8 text-slate-300" />
                     <p className="text-sm font-semibold text-slate-700">Aucun email</p>
                   </div>
                 ) : (
-                  filteredEmails.map((mail) => (
-                    <button
+                  filteredEmails.map((mail) => {
+                    return (
+                    <div
                       key={mail.id}
-                      onClick={() => setSelectedId(mail.id)}
                       className={cn(
-                        "w-full border-b border-slate-100 px-4 py-4 text-left transition hover:bg-slate-50",
+                        "min-w-0 border-b border-slate-100 px-4 py-4",
                         selectedId === mail.id && "bg-cyan-50/50"
                       )}
                     >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0 flex-1">
+                        <button type="button" onClick={() => openEmail(mail.id)} className="min-w-0 flex-1 text-left">
                           <p className="truncate text-sm font-semibold text-slate-900">{mail.sender}</p>
                           <p className="truncate text-sm text-slate-700">{mail.subject}</p>
-                          <p className="mt-1 break-words text-xs leading-5 text-slate-500">{mail.body}</p>
-                        </div>
+                        </button>
                         <div className="flex shrink-0 flex-row items-center justify-between gap-2 sm:flex-col sm:items-end">
-                          <Badge className={cn("border", CATEGORY_META[mail.category].badgeClass)}>
+                          <Badge className={cn("border", CATEGORY_META[mail.category].listBadgeClass)}>
                             {CATEGORY_META[mail.category].title}
                           </Badge>
                           <span className="text-[11px] text-slate-400">{mail.date}</span>
                         </div>
                       </div>
-                    </button>
-                  ))
+                      <p className="mt-2 max-w-full break-words text-xs leading-5 text-slate-500 line-clamp-2">
+                        {mail.body}
+                      </p>
+                      {mail.body.length > 140 && (
+                        <button
+                          type="button"
+                          onClick={() => openEmail(mail.id, true)}
+                          className="mt-1 text-xs font-semibold text-cyan-700 hover:text-cyan-900"
+                        >
+                          Voir la suite
+                        </button>
+                      )}
+                    </div>
+                    );
+                  })
                 )}
               </CardContent>
             </Card>
 
-            <Card className="rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
+            <Card id="email-reader" className="scroll-mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
               {selectedMail ? (
                 <>
                   <CardHeader className="border-b border-slate-100">
@@ -712,7 +694,7 @@ export function EmailClient({
                           {selectedMail.sender} · {selectedMail.senderEmail}
                         </p>
                       </div>
-                      <Badge className={cn("border", CATEGORY_META[selectedMail.category].badgeClass)}>
+                      <Badge className={cn("border", CATEGORY_META[selectedMail.category].listBadgeClass)}>
                         {CATEGORY_META[selectedMail.category].title}
                       </Badge>
                     </div>
@@ -733,60 +715,6 @@ export function EmailClient({
                       </div>
                     </div>
 
-                    {(selectedMail.category === "urgent" || selectedMail.category === "important") && (
-                      <div className="space-y-3 rounded-3xl border border-cyan-100 bg-cyan-50/50 p-4">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="min-w-0 text-center sm:text-left">
-                            <p className="text-sm font-semibold text-slate-900">Redaction assistee par IA</p>
-                            <p className="text-xs text-slate-500">Resume court, ton professionnel et reponse modifiable.</p>
-                          </div>
-                          <Button
-                            variant="outline"
-                            onClick={handleDraftWithAi}
-                            disabled={isDrafting}
-                            className="w-full rounded-full border-cyan-200 bg-white text-cyan-800 hover:bg-cyan-100 sm:w-auto"
-                          >
-                            {isDrafting ? <RefreshCw className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-                            {isDrafting ? "Generation..." : "Rediger avec l'IA"}
-                          </Button>
-                        </div>
-
-                        {draftSuggestion && (
-                          <div className="rounded-2xl border border-cyan-200 bg-white p-4">
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                              <p className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-700">Suggestion IA</p>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setReplyText(draftSuggestion)}
-                                className="text-cyan-700"
-                              >
-                                Inserer
-                              </Button>
-                            </div>
-                            <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">{draftSuggestion}</p>
-                          </div>
-                        )}
-
-                        <textarea
-                          rows={6}
-                          value={replyText}
-                          onChange={(event) => setReplyText(event.target.value)}
-                          placeholder={`Reponse modifiable pour ${selectedMail.sender}...`}
-                          className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
-                        />
-                        <div className="flex justify-stretch sm:justify-end">
-                          <Button
-                            onClick={handleSendReply}
-                            disabled={!replyText.trim() || isSending}
-                            className="w-full rounded-2xl bg-cyan-700 text-white hover:bg-cyan-800 sm:w-auto"
-                          >
-                            {isSending ? <RefreshCw className="size-4 animate-spin" /> : <Send className="size-4" />}
-                            {isSending ? "Envoi..." : "Envoyer apres validation"}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </>
               ) : (
@@ -1023,9 +951,9 @@ export function EmailClient({
       )}
 
       {ruleModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-          <Card className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/20">
-            <CardHeader className="border-b border-slate-200 bg-white px-6 py-5">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/50 p-2 py-4 backdrop-blur-sm sm:items-center sm:p-4">
+          <Card className="my-auto w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/20">
+            <CardHeader className="border-b border-slate-200 bg-white px-4 py-4 sm:px-6 sm:py-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700">
@@ -1050,7 +978,7 @@ export function EmailClient({
               </div>
             </CardHeader>
 
-            <CardContent className="max-h-[calc(92vh-84px)] overflow-y-auto bg-slate-50 p-6">
+            <CardContent className="max-h-[calc(100dvh-112px)] overflow-y-auto bg-slate-50 p-4 sm:max-h-[calc(92vh-84px)] sm:p-6">
               <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">

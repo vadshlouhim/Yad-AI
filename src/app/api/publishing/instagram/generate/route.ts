@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateContent } from "@/lib/ai/engine";
+import { appendSocialMessageGuidelines } from "@/lib/ai/social-message-guidelines";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
       communityId: profile.communityId,
       contentType: "GENERAL",
       channelType: "INSTAGRAM",
-      customInstructions: `${userPrompt}\n\nImportant: reponds uniquement dans la langue de la demande utilisateur. Si la demande est en francais, n'ajoute pas d'hebreu.`,
+      customInstructions: `${appendSocialMessageGuidelines(userPrompt)}\n\nImportant: reponds uniquement dans la langue de la demande utilisateur. Si la demande est en francais, n'ajoute pas d'hebreu.`,
     });
 
     const caption = generated.body?.trim() ?? "";

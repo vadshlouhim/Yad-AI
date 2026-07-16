@@ -140,6 +140,23 @@ canvas {
   from { background-position: 100% 0; }
   to { background-position: -120% 0; }
 }
+@keyframes aiBeam {
+  0%, 100% { opacity: 0.18; transform: translateX(-12%); }
+  50% { opacity: 0.72; transform: translateX(12%); }
+}
+.home-ai-grid {
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.07) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent 88%);
+}
+.home-ai-beam {
+  height: 1px;
+  background: #67e8f9;
+  box-shadow: 0 0 20px rgba(103, 232, 249, 0.72), 0 0 48px rgba(99, 102, 241, 0.25);
+  animation: aiBeam 6s ease-in-out infinite;
+}
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
 .animate-mobile-feature-card-in { animation: mobileFeatureCardIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .animate-chat-home { animation: chatHome 7.5s ease-in-out infinite; }
@@ -162,6 +179,7 @@ canvas {
   .animate-home-shimmer {
     animation: none;
   }
+  .home-ai-beam { animation: none; }
 }
 .typing-line {
   display: block;

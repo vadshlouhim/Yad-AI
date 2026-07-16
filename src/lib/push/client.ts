@@ -5,7 +5,7 @@ export type PushEnableResult =
   | { ok: true }
   | {
       ok: false;
-      reason: "unsupported" | "missing-vapid-key" | "permission-denied" | "subscribe-failed" | "test-failed" | "network-error";
+      reason: "unsupported" | "missing-vapid-key" | "permission-denied" | "push-unavailable" | "subscribe-failed" | "test-failed" | "network-error";
       message?: string;
     };
 
@@ -30,6 +30,11 @@ export function isPushSupported(): boolean {
 export function getPushPermission(): NotificationPermission | "unsupported" {
   if (!isPushSupported()) return "unsupported";
   return Notification.permission;
+}
+
+function isPushServiceUnavailable(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+  return error instanceof DOMException && error.name === "AbortError" || /push service not available/i.test(message);
 }
 
 export async function enablePushNotificationsDetailed(): Promise<PushEnableResult> {
@@ -73,7 +78,13 @@ export async function enablePushNotificationsDetailed(): Promise<PushEnableResul
 
     return { ok: true };
   } catch (error) {
-    console.error("[Push] Echec de l'abonnement:", error);
+    if (isPushServiceUnavailable(error)) {
+      return {
+        ok: false,
+        reason: "push-unavailable",
+        message: "Les notifications push ne sont pas disponibles dans ce navigateur pour le moment.",
+      };
+    }
     return { ok: false, reason: "network-error", message: error instanceof Error ? error.message : undefined };
   }
 }
@@ -85,8 +96,10 @@ export async function enablePushNotifications(): Promise<boolean> {
 export async function ensurePushRegistered(): Promise<void> {
   if (!isPushSupported() || Notification.permission !== "granted") return;
   try {
-    const registration = await navigator.serviceWorker.register("/sw.js");
-    await navigator.serviceWorker.ready;
+    // Do not create a new registration during page load. Some browsers expose PushManager
+    // but have no push service; registration is reserved for the explicit user action.
+    const registration = await navigator.serviceWorker.getRegistration("/sw.js");
+    if (!registration) return;
     const subscription = await registration.pushManager.getSubscription();
     if (subscription) {
       await fetch("/api/push/subscribe", {

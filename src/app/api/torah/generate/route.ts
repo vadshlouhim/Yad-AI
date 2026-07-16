@@ -14,6 +14,23 @@ const requestSchema = z.object({
   prompt: z.string().min(10),
 });
 
+const MAX_TOKENS_BY_DURATION: Record<string, number> = {
+  "5 minutes": 900,
+  "10 minutes": 1600,
+  "15 minutes": 2400,
+  "30 minutes": 4200,
+  "Plus de 45 minutes": 6500,
+};
+
+function cleanCourseText(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value
+    .replace(/<[^>]*>/g, "")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/\*\*/g, "")
+    .trim();
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -50,6 +67,7 @@ Regles absolues :
 - 10 a 15 minutes = structure courte mais developpee
 - 30 minutes = cours plus complet
 - Plus de 45 minutes = plan et developpement plus approfondis
+- N'utilise jamais de balises HTML (par exemple <h3> ou <p>) ni de Markdown dans les textes.
 
 Format de reponse obligatoire :
 Reponds UNIQUEMENT en JSON valide avec cette structure :
@@ -77,7 +95,7 @@ Important :
 
     const response = await openrouter.chat.completions.create({
       model: "google/gemini-2.5-flash",
-      max_tokens: 1800,
+      max_tokens: MAX_TOKENS_BY_DURATION[duration] ?? 1600,
       temperature: 0.3,
       messages: [
         { role: "system", content: systemPrompt },
@@ -106,6 +124,17 @@ Important :
     } catch {
       return NextResponse.json({ error: "Erreur de parsing IA" }, { status: 500 });
     }
+
+    result = {
+      ...result,
+      title: cleanCourseText(result.title),
+      introduction: cleanCourseText(result.introduction),
+      outline: Array.isArray(result.outline) ? result.outline.map(cleanCourseText).filter(Boolean) : [],
+      body: cleanCourseText(result.body),
+      conclusion: cleanCourseText(result.conclusion),
+      sources: Array.isArray(result.sources) ? result.sources.map(cleanCourseText).filter(Boolean) : [],
+      note: cleanCourseText(result.note) || undefined,
+    };
 
     return NextResponse.json({ result });
   } catch (error) {

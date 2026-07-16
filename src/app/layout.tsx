@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { DisableSpellcheck } from "@/components/ui/disable-spellcheck";
 import "./globals.css";
 
 const SITE_NAME = "EasyCom IA";
@@ -59,7 +60,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className="h-full antialiased">
-      <body className="min-h-full bg-slate-50">{children}</body>
+      <body className="min-h-full bg-slate-50" spellCheck={false}>
+        <DisableSpellcheck />
+        {children}
+      </body>
     </html>
   );
 }

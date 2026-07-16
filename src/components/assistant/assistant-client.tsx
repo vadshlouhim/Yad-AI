@@ -223,16 +223,7 @@ const QUICK_PROMPT_STYLES = [
   "border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50",
 ];
 
-const ASSISTANT_PLACEHOLDER_SUGGESTIONS = [
-  "Prépare un email important à envoyer aujourd'hui",
-  "Propose 3 idées de publication pour Instagram et Facebook",
-  "Aide-moi à répondre à un avis Google négatif avec tact",
-  "Organise mon agenda communautaire de la semaine",
-  "Rédige un message WhatsApp clair et professionnel",
-];
-
-const STATIC_ASSISTANT_PLACEHOLDER = "Posez une question, demandez un contenu, lancez une action...";
-const MOBILE_ASSISTANT_PLACEHOLDER = "Décrivez votre besoin...";
+const ASSISTANT_PLACEHOLDER = "En quoi puis-je vous aider ?";
 const AGENTS_IMAGE_URL =
   "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Tous%20les%20agnets.webp";
 
@@ -433,7 +424,6 @@ export function AssistantClient({
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [capabilitiesOpen, setCapabilitiesOpen] = useState(false);
@@ -465,7 +455,6 @@ export function AssistantClient({
   const [showDailyRoutineBubble, setShowDailyRoutineBubble] = useState(true);
   const [showAllFeaturesMobile, setShowAllFeaturesMobile] = useState(false);
   const [bubblePosition, setBubblePosition] = useState({ x: 24, y: 24 });
-  const [animatedPlaceholder, setAnimatedPlaceholder] = useState(ASSISTANT_PLACEHOLDER_SUGGESTIONS[0]);
   const [hasStartedPromptEntry, setHasStartedPromptEntry] = useState(false);
   // Pièces jointes (images / documents) en attente d'envoi avec le prochain message.
   const [pendingAttachments, setPendingAttachments] = useState<ChatAttachment[]>([]);
@@ -483,7 +472,6 @@ export function AssistantClient({
   const showQuickPrompts = messages.length === 0;
   const hasStreamingAssistantMessage =
     loading && messages.some((message) => message.role === "assistant" && !message.content);
-  const shouldAnimatePlaceholder = showQuickPrompts && !hasStartedPromptEntry && !loading;
 
   // Charger l'historique + routine au montage
   useEffect(() => {
@@ -496,16 +484,6 @@ export function AssistantClient({
     // Lien profond depuis email/push : ?action=<id> → afficher la carte à valider.
     void handleDeepLinkAction();
     return undefined;
-  }, []);
-
-  useEffect(() => {
-    function syncViewport() {
-      setIsMobileViewport(window.innerWidth < 768);
-    }
-
-    syncViewport();
-    window.addEventListener("resize", syncViewport);
-    return () => window.removeEventListener("resize", syncViewport);
   }, []);
 
   async function handleDeepLinkAction() {
@@ -596,55 +574,6 @@ export function AssistantClient({
     window.addEventListener("resize", syncMobileMode);
     return () => window.removeEventListener("resize", syncMobileMode);
   }, []);
-
-  useEffect(() => {
-    if (!shouldAnimatePlaceholder) {
-      setAnimatedPlaceholder(STATIC_ASSISTANT_PLACEHOLDER);
-      return;
-    }
-
-    const suggestions = ASSISTANT_PLACEHOLDER_SUGGESTIONS;
-    let suggestionIndex = 0;
-    let characterIndex = 0;
-    let deleting = false;
-    let timeoutId: number | undefined;
-
-    const run = () => {
-      const current = suggestions[suggestionIndex] ?? "";
-
-      if (!deleting) {
-        characterIndex += 1;
-        setAnimatedPlaceholder(current.slice(0, characterIndex));
-
-        if (characterIndex === current.length) {
-          deleting = true;
-          timeoutId = window.setTimeout(run, 1700);
-          return;
-        }
-
-        timeoutId = window.setTimeout(run, 42);
-        return;
-      }
-
-      characterIndex -= 1;
-      setAnimatedPlaceholder(current.slice(0, Math.max(characterIndex, 0)));
-
-      if (characterIndex === 0) {
-        deleting = false;
-        suggestionIndex = (suggestionIndex + 1) % suggestions.length;
-        timeoutId = window.setTimeout(run, 260);
-        return;
-      }
-
-      timeoutId = window.setTimeout(run, 24);
-    };
-
-    timeoutId = window.setTimeout(run, 900);
-
-    return () => {
-      if (timeoutId) window.clearTimeout(timeoutId);
-    };
-  }, [shouldAnimatePlaceholder]);
 
   // â”€â”€ API calls â”€â”€
 
@@ -2609,10 +2538,10 @@ export function AssistantClient({
                     iconClassName="size-7 text-slate-700"
                   />
                 </div>
-                <h2 className="text-[2.35rem] font-black leading-tight tracking-tight text-slate-950 sm:text-5xl">
+                <h2 className="-translate-y-2 text-[2.35rem] font-black leading-tight tracking-tight text-slate-950 sm:text-5xl">
                   Bienvenue{firstName ? ` ${firstName}` : ""}
                 </h2>
-                <p className="mx-auto mt-2 max-w-3xl text-sm leading-6 text-slate-500 sm:text-[15px]">
+                <p className="mx-auto mt-1.5 max-w-3xl -translate-y-2 text-sm leading-6 text-slate-500 sm:text-[15px]">
                   Découvrez Mendy, Dov Ber, Levik et les agents intelligents d’EasyCom IA : une équipe IA spécialement conçue pour gérer toute votre communication depuis une seule plateforme
                 </p>
               </div>
@@ -3742,7 +3671,7 @@ export function AssistantClient({
                   setInput(nextValue);
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder={isRecording ? "Parlez, je vous écoute…" : isMobileViewport ? MOBILE_ASSISTANT_PLACEHOLDER : animatedPlaceholder}
+                placeholder={isRecording ? "Parlez, je vous écoute…" : ASSISTANT_PLACEHOLDER}
                 rows={1}
                 className="max-h-40 flex-1 resize-none bg-transparent px-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400"
               />

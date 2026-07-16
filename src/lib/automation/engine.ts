@@ -35,6 +35,7 @@ import {
   type MonthlyHistory,
 } from "./monthly-program-recap";
 import { notifyUser } from "@/lib/notifications/notify";
+import { createNotificationOnce } from "@/lib/notifications/create-once";
 import { addDays, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 import type { Tables, Enums } from "@/types/database.types";
 import { Resend } from "resend";
@@ -43,6 +44,8 @@ type Automation = Tables<"Automation">;
 type Publication = Tables<"Publication">;
 type Channel = Tables<"Channel">;
 type AutomationTrigger = Enums<"AutomationTrigger">;
+type NotificationType = Enums<"NotificationType">;
+type AdminClient = ReturnType<typeof createAdminClient>;
 
 interface AutomationAction {
   type: string;
@@ -420,20 +423,17 @@ async function prepareAutomationNotification(automation: AutomationWithCommunity
       const notifTitle = "Publication automatique programmée";
       const notifBody = `Cette publication partira automatiquement dans ${leadHours}h.`;
       const notifLink = "/dashboard/automations";
-      await supabase.from("Notification").insert(
-        notifyUsers.map((user) => ({
-          id: crypto.randomUUID(),
-          userId: user.id,
-          communityId: automation.community.id,
-          type: "AUTOMATION_TRIGGERED",
-          title: notifTitle,
-          body: notifBody,
-          link: notifLink,
-          data: { automationId: automation.id, preparedFor, channelTypes: autoAction.channels ?? [] },
-        })),
-      );
+      const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
+        communityId: automation.community.id,
+        type: "AUTOMATION_TRIGGERED",
+        title: notifTitle,
+        body: notifBody,
+        link: notifLink,
+        dedupeKey: `automation-auto-scheduled:${automation.id}:${preparedFor}`,
+        data: { automationId: automation.id, preparedFor, channelTypes: autoAction.channels ?? [] },
+      });
       await Promise.allSettled(
-        notifyUsers.map((user) => notifyUser(supabase, user.id, { title: notifTitle, body: notifBody, link: notifLink }))
+        notifiedUsers.map((user) => notifyUser(supabase, user.id, { title: notifTitle, body: notifBody, link: notifLink }))
       );
     }
 
@@ -518,20 +518,17 @@ async function prepareAutomationNotification(automation: AutomationWithCommunity
     const notifTitle = automation.trigger === "WEEKLY_SHABBAT" ? "Affiche Chabbat prête à valider" : "Validation requise";
     const notifBody = `Dans ${leadHours}h, votre publication sera envoyée. Validez ?`;
     const notifLink = `/dashboard/assistant?draftId=${draft.id}`;
-    await supabase.from("Notification").insert(
-      notifyUsers.map((user) => ({
-        id: crypto.randomUUID(),
-        userId: user.id,
-        communityId: automation.community.id,
-        type: "AI_CONTENT_READY",
-        title: notifTitle,
-        body: notifBody,
-        link: notifLink,
-        data: { draftId: draft.id, automationId: automation.id, preparedFor, channelTypes: channels },
-      })),
-    );
+    const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
+      communityId: automation.community.id,
+      type: "AI_CONTENT_READY",
+      title: notifTitle,
+      body: notifBody,
+      link: notifLink,
+      dedupeKey: `automation-validation:${automation.id}:${preparedFor}`,
+      data: { draftId: draft.id, automationId: automation.id, preparedFor, channelTypes: channels },
+    });
     await Promise.allSettled(
-      notifyUsers.map((user) => notifyUser(supabase, user.id, { title: notifTitle, body: notifBody, link: notifLink }))
+      notifiedUsers.map((user) => notifyUser(supabase, user.id, { title: notifTitle, body: notifBody, link: notifLink }))
     );
   }
 
@@ -774,18 +771,15 @@ async function executeEventReminderCampaign(
         await publishToAllChannels(draft.id, channelIds);
       } else if (notifyUsers && notifyUsers.length > 0) {
         newStatus = "ERROR";
-        await supabase.from("Notification").insert(
-          notifyUsers.map((user) => ({
-            id: crypto.randomUUID(),
-            userId: user.id,
-            communityId: automation.community.id,
-            type: "AI_CONTENT_READY" as const,
-            title: "Canaux non configurés",
-            body: `Le rappel "${labelText}" est prêt mais aucun canal actif (${socialChannels.join(", ")}) n'est trouvé. Configurez-les dans Paramètres > Canaux.`,
-            link: "/dashboard/settings/channels",
-            data: { draftId: draft.id },
-          }))
-        );
+        await insertAutomationNotificationsOnce(supabase, notifyUsers, {
+          communityId: automation.community.id,
+          type: "AI_CONTENT_READY",
+          title: "Canaux non configurés",
+          body: `Le rappel "${labelText}" est prêt mais aucun canal actif (${socialChannels.join(", ")}) n'est trouvé. Configurez-les dans Paramètres > Canaux.`,
+          link: "/dashboard/settings/channels",
+          dedupeKey: `event-reminder-missing-channels:${automation.id}:${due.id}`,
+          data: { draftId: draft.id, automationId: automation.id, reminderId: due.id },
+        });
       }
     }
 
@@ -793,20 +787,17 @@ async function executeEventReminderCampaign(
       const notifTitle = `${labelText} : ${campaign.eventName}`;
       const notifBody = `Votre rappel "${labelText}" est prêt. Ouvrez l'Assistant pour le valider et le publier.`;
       const notifLink = `/dashboard/assistant?draftId=${draft.id}`;
-      await supabase.from("Notification").insert(
-        notifyUsers.map((user) => ({
-          id: crypto.randomUUID(),
-          userId: user.id,
-          communityId: automation.community.id,
-          type: "AI_CONTENT_READY" as const,
-          title: notifTitle,
-          body: notifBody,
-          link: notifLink,
-          data: { draftId: draft.id, automationId: automation.id, channelTypes: due.channels },
-        }))
-      );
+      const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
+        communityId: automation.community.id,
+        type: "AI_CONTENT_READY",
+        title: notifTitle,
+        body: notifBody,
+        link: notifLink,
+        dedupeKey: `event-reminder-validation:${automation.id}:${due.id}`,
+        data: { draftId: draft.id, automationId: automation.id, reminderId: due.id, channelTypes: due.channels },
+      });
       await Promise.allSettled(
-        notifyUsers.map((user) => notifyUser(supabase, user.id, { title: notifTitle, body: notifBody, link: notifLink }))
+        notifiedUsers.map((user) => notifyUser(supabase, user.id, { title: notifTitle, body: notifBody, link: notifLink }))
       );
     }
   }
@@ -881,20 +872,17 @@ async function executeEventRecapNotifications(automation: AutomationWithCommunit
       const title = `Récap : ${event.title}`;
       const body = `Hier, c'était votre événement « ${event.title} ». N'oubliez pas de publier quelques photos sur vos réseaux. Voulez-vous créer une publication récap ?`;
       const link = `/dashboard/event-recap-auto?eventId=${event.id}`;
-      await supabase.from("Notification").insert(
-        notifyUsers.map((user) => ({
-          id: crypto.randomUUID(),
-          userId: user.id,
-          communityId: automation.community.id,
-          type: "AI_CONTENT_READY" as const,
-          title,
-          body,
-          link,
-          data: { eventId: event.id, automationId: automation.id, recap: true },
-        }))
-      );
+      const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
+        communityId: automation.community.id,
+        type: "AI_CONTENT_READY",
+        title,
+        body,
+        link,
+        dedupeKey: `event-recap:${automation.id}:${event.id}:${todayISO}`,
+        data: { eventId: event.id, automationId: automation.id, recap: true, notifiedOn: todayISO },
+      });
       await Promise.allSettled(
-        notifyUsers.map((user) => notifyUser(supabase, user.id, { title, body, link }))
+        notifiedUsers.map((user) => notifyUser(supabase, user.id, { title, body, link }))
       );
     }
 
@@ -935,22 +923,54 @@ async function executeWeeklyImagesNotification(automation: AutomationWithCommuni
   const body =
     "Je peux préparer une publication « Cette semaine en images » avec vos photos, prête à publier sur Instagram, Facebook et WhatsApp.";
   const link = "/dashboard/weekly-images-auto";
+  const runAt = automation.nextRunAt ?? new Date().toISOString();
+  const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
+    communityId: automation.community.id,
+    type: "AI_CONTENT_READY",
+    title,
+    body,
+    link,
+    dedupeKey: `weekly-images:${automation.id}:${runAt}`,
+    data: { automationId: automation.id, weeklyImages: true, runAt },
+  });
+  await Promise.allSettled(
+    notifiedUsers.map((user) => notifyUser(supabase, user.id, { title, body, link }))
+  );
+}
 
-  await supabase.from("Notification").insert(
-    notifyUsers.map((user) => ({
-      id: crypto.randomUUID(),
-      userId: user.id,
-      communityId: automation.community.id,
-      type: "AI_CONTENT_READY" as const,
-      title,
-      body,
-      link,
-      data: { automationId: automation.id, weeklyImages: true },
+interface NotifyUserRow {
+  id: string;
+}
+
+interface AutomationNotificationPayload {
+  communityId: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  link: string;
+  dedupeKey: string;
+  data?: Record<string, unknown> | null;
+}
+
+async function insertAutomationNotificationsOnce(
+  supabase: AdminClient,
+  users: NotifyUserRow[] | null | undefined,
+  payload: AutomationNotificationPayload
+): Promise<NotifyUserRow[]> {
+  if (!users || users.length === 0) return [];
+
+  const outcomes = await Promise.all(
+    users.map(async (user) => ({
+      user,
+      created: await createNotificationOnce(supabase, {
+        ...payload,
+        userId: user.id,
+        dedupeKey: `${payload.dedupeKey}:user:${user.id}`,
+      }),
     }))
   );
-  await Promise.allSettled(
-    notifyUsers.map((user) => notifyUser(supabase, user.id, { title, body, link }))
-  );
+
+  return outcomes.filter((outcome) => outcome.created).map((outcome) => outcome.user);
 }
 
 /**
@@ -984,19 +1004,16 @@ async function executeMonthlyProgramRecapNotification(automation: AutomationWith
       ? "Le nouveau mois commence. Voulez-vous préparer le programme des événements à venir ?"
       : "Le mois se termine. Voulez-vous préparer un récap en images des événements du mois ?";
     const link = `/dashboard/monthly-program-recap-auto?type=${due.type}`;
-    await supabase.from("Notification").insert(
-      notifyUsers.map((user) => ({
-        id: crypto.randomUUID(),
-        userId: user.id,
-        communityId: automation.community.id,
-        type: "AI_CONTENT_READY" as const,
-        title,
-        body,
-        link,
-        data: { automationId: automation.id, monthly: true, runType: due.type, monthKey: due.key },
-      }))
-    );
-    await Promise.allSettled(notifyUsers.map((user) => notifyUser(supabase, user.id, { title, body, link })));
+    const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
+      communityId: automation.community.id,
+      type: "AI_CONTENT_READY",
+      title,
+      body,
+      link,
+      dedupeKey: `monthly-program-recap:${automation.id}:${due.type}:${due.key}`,
+      data: { automationId: automation.id, monthly: true, runType: due.type, monthKey: due.key },
+    });
+    await Promise.allSettled(notifiedUsers.map((user) => notifyUser(supabase, user.id, { title, body, link })));
   }
 
   if (due.type === "program") programHistory[due.key] = { status: "NOTIFIED", notifiedOn: todayISO };
@@ -1153,20 +1170,17 @@ export async function executeAutomationActions(
           } else if (socialChannels.length > 0 && notifyUsers && notifyUsers.length > 0) {
             // Aucun canal social actif trouvé — avertir l'admin
             const missingText = socialChannels.join(", ");
-            await supabase.from("Notification").insert(
-              notifyUsers.map((user) => ({
-                id: crypto.randomUUID(),
-                userId: user.id,
-                communityId: automation.community.id,
-                type: "AI_CONTENT_READY",
-                title: "Canaux non configurés",
-                body: `L'affiche Chabbat est prête mais aucun canal actif (${missingText}) n'est trouvé. Configurez-les dans Paramètres > Canaux.`,
-                link: "/dashboard/settings/channels",
-                data: { draftId: draft.id },
-              }))
-            );
+            const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
+              communityId: automation.community.id,
+              type: "AI_CONTENT_READY",
+              title: "Canaux non configurés",
+              body: `L'affiche Chabbat est prête mais aucun canal actif (${missingText}) n'est trouvé. Configurez-les dans Paramètres > Canaux.`,
+              link: "/dashboard/settings/channels",
+              dedupeKey: `missing-channels:${automation.id}:${automation.nextRunAt ?? draft.id}`,
+              data: { draftId: draft.id, automationId: automation.id, channelTypes: socialChannels },
+            });
             await Promise.allSettled(
-              notifyUsers.map((user) =>
+              notifiedUsers.map((user) =>
                 notifyUser(supabase, user.id, {
                   title: "Canaux non configurés",
                   body: `Configurez vos réseaux sociaux dans Paramètres > Canaux pour que l'affiche parte automatiquement.`,
@@ -1189,20 +1203,19 @@ export async function executeAutomationActions(
           const notifLink = isScheduledEvent
             ? `/dashboard/assistant?eventId=${automation.eventId}`
             : `/dashboard/assistant?draftId=${draft.id}`;
-          await supabase.from("Notification").insert(
-            notifyUsers.map((user) => ({
-              id: crypto.randomUUID(),
-              userId: user.id,
-              communityId: automation.community.id,
-              type: isScheduledEvent ? "EVENT_REMINDER" : "AI_CONTENT_READY",
-              title: notifTitle,
-              body: notifBody,
-              link: notifLink,
-              data: isScheduledEvent ? null : { draftId: draft.id, channelTypes: action.channels ?? [] },
-            }))
-          );
+          const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
+            communityId: automation.community.id,
+            type: isScheduledEvent ? "EVENT_REMINDER" : "AI_CONTENT_READY",
+            title: notifTitle,
+            body: notifBody,
+            link: notifLink,
+            dedupeKey: `generated-content:${automation.id}:${automation.nextRunAt ?? draft.id}`,
+            data: isScheduledEvent
+              ? { automationId: automation.id, eventId: automation.eventId }
+              : { draftId: draft.id, automationId: automation.id, channelTypes: action.channels ?? [] },
+          });
           await Promise.allSettled(
-            notifyUsers.map((user) => notifyUser(supabase, user.id, { title: notifTitle, body: notifBody, link: notifLink }))
+            notifiedUsers.map((user) => notifyUser(supabase, user.id, { title: notifTitle, body: notifBody, link: notifLink }))
           );
         }
         break;
@@ -1300,20 +1313,18 @@ export async function executeAutomationActions(
         if (notifyUsers && notifyUsers.length > 0) {
           const notifTitle = action.notificationTitle || "Rappel automatique";
           const notifBody = action.notificationBody || "Une automatisation s'est déclenchée.";
-          await supabase.from("Notification").insert(
-            notifyUsers.map((user) => ({
-              id: crypto.randomUUID(),
-              userId: user.id,
-              communityId: automation.community.id,
-              type: "AUTOMATION_TRIGGERED",
-              title: notifTitle,
-              body: notifBody,
-              link: "/dashboard",
-            }))
-          );
+          const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
+            communityId: automation.community.id,
+            type: "AUTOMATION_TRIGGERED",
+            title: notifTitle,
+            body: notifBody,
+            link: "/dashboard",
+            dedupeKey: `create-notification:${automation.id}:${automation.nextRunAt ?? new Date().toISOString()}:${notifTitle}:${notifBody}`,
+            data: { automationId: automation.id },
+          });
           // Email + push (scénario « app fermée »)
           await Promise.allSettled(
-            notifyUsers.map((user) => notifyUser(supabase, user.id, { title: notifTitle, body: notifBody, link: "/dashboard" }))
+            notifiedUsers.map((user) => notifyUser(supabase, user.id, { title: notifTitle, body: notifBody, link: "/dashboard" }))
           );
         }
         break;

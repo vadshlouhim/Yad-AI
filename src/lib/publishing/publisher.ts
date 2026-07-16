@@ -5,6 +5,7 @@ import { publishToInstagram } from "./adapters/instagram";
 import { publishToTelegram } from "./adapters/telegram";
 import { prepareEmailFallback } from "./adapters/email";
 import { publishToWhatsApp } from "./adapters/whatsapp";
+import { createNotificationOnce } from "@/lib/notifications/create-once";
 
 type Publication = Tables<"Publication">;
 type Channel = Tables<"Channel">;
@@ -152,8 +153,7 @@ async function createPublicationNotification(publication: Publication, result: P
 
   if (!adminUser) return;
 
-  await supabase.from("Notification").insert({
-    id: crypto.randomUUID(),
+  await createNotificationOnce(supabase, {
     userId: adminUser.id,
     communityId: publication.communityId,
     type: result.success ? "PUBLICATION_SUCCESS" : result.fallbackUsed ? "PUBLICATION_SCHEDULED" : "PUBLICATION_FAILED",
@@ -164,6 +164,7 @@ async function createPublicationNotification(publication: Publication, result: P
       ? `Votre contenu est prêt à être copié-collé sur ${publication.channelType}.`
       : `La publication sur ${publication.channelType} a échoué : ${result.error}`,
     link: `/dashboard/publications/${publication.id}`,
+    dedupeKey: `publication:${publication.id}:${result.success ? "success" : result.fallbackUsed ? "fallback" : "failed"}`,
   });
 }
 

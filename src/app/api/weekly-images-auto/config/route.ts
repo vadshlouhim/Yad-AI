@@ -209,7 +209,7 @@ export async function POST(request: Request) {
       const currentCaption = stringOrEmpty(body.caption);
       const base = defaultWeeklyImagesCaption({ communityName: community.name, city: community.city });
       const caption = currentCaption
-        ? `${currentCaption}\n\nUne belle semaine en images, à partager avec toute notre communauté.`
+        ? `${currentCaption}\n\n✨ Une belle semaine en images, à partager avec toute notre communauté !\n\n📸 Merci à toutes les personnes qui ont participé.`
         : base;
       return NextResponse.json({ caption });
     }

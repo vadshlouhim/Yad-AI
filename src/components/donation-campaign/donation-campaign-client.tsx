@@ -64,8 +64,8 @@ const STEP_CARDS = [
     icon: CalendarDays,
     title: "Dates de campagne",
     desc: "Définissez le début et la fin de votre campagne.",
-    color: "from-violet-50 to-purple-50 border-violet-100",
-    iconColor: "bg-orange-100 text-orange-700",
+    color: "from-rose-50 to-pink-50 border-rose-100",
+    iconColor: "bg-rose-100 text-[#8A184D]",
   },
   {
     num: 2,
@@ -416,7 +416,13 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
           title="Centre de pilotage complet de campagne de dons"
           description="Construisez, pilotez et diffusez toute votre campagne de dons depuis un seul espace intelligent, clair et prêt à accompagner chaque étape."
           icon={HandHeart}
-          tone="purple"
+          imageUrl="https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Avi%20campagne%20de%20dons.webp"
+          imageAlt="Avi, agent IA campagne de dons"
+          bubbleTitle="Je suis Avi, l’agent IA responsable de votre campagne de dons"
+          bubbleTitleClassName="text-slate-950"
+          bubbleText="Je vous aide à structurer, préparer et diffuser chaque étape de votre campagne."
+          tone="rose"
+          flat
         />
 
         {/* Hero */}
@@ -438,9 +444,9 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
         {/* 4 étapes */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {STEP_CARDS.map((card) => (
-            <div key={card.num} className="animate-fade-in flex min-w-0 flex-col gap-3 rounded-2xl border border-violet-100 bg-gradient-to-br from-white via-violet-50/50 to-fuchsia-50/40 p-3 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(66,19,136,0.10)] sm:rounded-3xl sm:p-5">
+            <div key={card.num} className="animate-fade-in flex min-w-0 flex-col gap-3 rounded-2xl border border-rose-100 bg-white p-3 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_42px_rgba(138,24,77,0.14)] sm:rounded-3xl sm:p-5">
               <div className="flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-[#421388]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-100 text-[#8A184D]">
                   <card.icon className="size-4.5" />
                 </div>
                 <span className="text-xs font-black text-slate-400">0{card.num}</span>
@@ -454,9 +460,9 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
         {/* Choix du mode */}
         <div className="grid gap-4 sm:grid-cols-2">
           {/* Mode IA */}
-          <div className="flex flex-col rounded-3xl border border-violet-100 bg-white px-6 py-7 shadow-[0_16px_42px_rgba(66,19,136,0.07)]">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100">
-              <Sparkles className="size-5 text-[#421388]" />
+          <div className="flex flex-col rounded-3xl border border-rose-100 bg-white px-6 py-7 shadow-[0_16px_42px_rgba(138,24,77,0.10)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100">
+              <Sparkles className="size-5 animate-pulse text-[#8A184D]" />
             </div>
             <h2 className="mt-4 text-lg font-black text-slate-900">Avec l&apos;Assistant IA</h2>
             <p className="mt-1 text-sm text-slate-500">Répondez à quelques questions et l&apos;IA construit votre plan de campagne.</p>
@@ -466,11 +472,11 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ex : du 15 au 30 mars 2025"
-                className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100"
+                className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-100"
               />
               <button
                 type="submit"
-                className="flex items-center gap-2 rounded-xl bg-[#421388] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#35106f]"
+                className="flex items-center gap-2 rounded-xl bg-[#8A184D] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#70123f]"
               >
                 <ArrowRight className="size-4" />
               </button>
@@ -478,7 +484,7 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
           </div>
 
           {/* Mode manuel */}
-          <div className="flex flex-col rounded-3xl border border-violet-100 bg-white px-6 py-7 shadow-[0_16px_42px_rgba(66,19,136,0.07)]">
+          <div className="flex flex-col rounded-3xl border border-rose-100 bg-white px-6 py-7 shadow-[0_16px_42px_rgba(138,24,77,0.10)]">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-fuchsia-100">
               <FileText className="size-5 text-fuchsia-700" />
             </div>
@@ -487,7 +493,7 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
             <button
               type="button"
               onClick={() => setView("manual")}
-              className="mt-5 flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-bold text-[#421388] hover:border-violet-300 hover:bg-violet-100"
+              className="mt-5 flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-[#8A184D] hover:border-rose-300 hover:bg-rose-100"
             >
               Remplir le formulaire
               <ArrowRight className="size-4" />
@@ -1025,7 +1031,7 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
         </section>
 
         {/* Tableau du plan */}
-        <div className="overflow-hidden rounded-3xl border border-violet-100 bg-white shadow-[0_18px_48px_rgba(66,19,136,0.07)]">
+        <div className="overflow-hidden rounded-3xl border border-rose-100 bg-white shadow-[0_18px_48px_rgba(138,24,77,0.10)]">
           {steps.length === 0 ? (
             <div className="py-12 text-center text-sm text-slate-400">Aucune étape générée</div>
           ) : (
@@ -1067,14 +1073,14 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
                           <button
                             onClick={() => handleStepAction(step.id, "ready")}
                             disabled={step.status === "published"}
-                            className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:border-orange-200 hover:text-orange-600 disabled:opacity-40"
+                            className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 hover:border-rose-200 hover:text-[#8A184D] disabled:opacity-40"
                           >
                             Modifier
                           </button>
                           <button
                             onClick={() => handleStepAction(step.id, "scheduled")}
                             disabled={step.status === "published" || step.status === "scheduled"}
-                            className="flex items-center gap-1 rounded-lg bg-orange-500 px-3 py-1 text-xs font-semibold text-white hover:bg-orange-600 disabled:opacity-40"
+                            className="flex items-center gap-1 rounded-lg bg-[#8A184D] px-3 py-1 text-xs font-semibold text-white hover:bg-[#70123f] disabled:opacity-40"
                           >
                             <Play className="size-3" /> Publier
                           </button>
@@ -1092,14 +1098,14 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
         <div className="flex justify-center">
           <Link
             href="/dashboard/donation-campaign/visuals"
-            className="group flex items-center gap-3 rounded-2xl border border-violet-200 bg-violet-50 px-6 py-4 text-[#421388] shadow-sm transition-all hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-100 hover:shadow-md"
+            className="group flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-6 py-4 text-[#8A184D] shadow-sm transition-all hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-100 hover:shadow-md"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#421388] text-white shadow-sm">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#8A184D] text-white shadow-sm">
               <Share2 className="size-5" />
             </div>
             <div>
               <p className="text-sm font-black">Voir tous les visuels &amp; publications</p>
-              <p className="text-xs text-orange-500">Affiches, WhatsApp, SMS, Email…</p>
+              <p className="text-xs text-rose-500">Affiches, WhatsApp, SMS, Email…</p>
             </div>
             <ChevronRight className="ml-2 size-5 opacity-50 transition-opacity group-hover:opacity-100" />
           </Link>

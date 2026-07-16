@@ -11,9 +11,11 @@ type AgentPageBannerProps = {
   titleIcon?: LucideIcon;
   imageUrl?: string;
   imageAlt?: string;
+  imageClassName?: string;
   bubbleTitle?: string;
+  bubbleTitleClassName?: string;
   bubbleText?: string;
-  tone?: "purple" | "amber" | "teal" | "rose" | "slate";
+  tone?: "purple" | "amber" | "teal" | "teal-dark" | "emerald" | "rose" | "lime" | "slate";
   flat?: boolean;
   stats?: Array<{ label: string; value: string | number }>;
 };
@@ -22,7 +24,10 @@ const toneClasses = {
   purple: "from-[#421388] via-[#5f249f] to-[#8A184D]",
   amber: "from-[#7a3d0f] via-[#a45f18] to-[#d39324]",
   teal: "from-[#0f766e] via-[#0f8f83] to-[#14b8a6]",
+  "teal-dark": "from-[#062f2d] via-[#075c55] to-[#0f766e]",
+  emerald: "from-[#065f46] via-[#047857] to-[#059669]",
   rose: "from-[#8A184D] via-[#a3205d] to-[#c24173]",
+  lime: "from-[#365314] via-[#4d7c0f] to-[#65a30d]",
   slate: "from-slate-900 via-slate-800 to-slate-700",
 };
 
@@ -34,7 +39,9 @@ export function AgentPageBanner({
   titleIcon: TitleIcon,
   imageUrl,
   imageAlt = "",
+  imageClassName,
   bubbleTitle,
+  bubbleTitleClassName,
   bubbleText,
   tone = "purple",
   flat = false,
@@ -44,7 +51,17 @@ export function AgentPageBanner({
     <section
       className={cn(
         "relative overflow-hidden rounded-[1.75rem] p-5 text-white shadow-[0_24px_70px_-34px_rgba(15,23,42,0.55)] sm:p-7",
-        flat ? "bg-[#181827]" : cn("bg-gradient-to-br", toneClasses[tone])
+        flat
+          ? tone === "teal-dark"
+            ? "bg-[#063c37]"
+            : tone === "emerald"
+              ? "bg-[#065f46]"
+            : tone === "rose"
+              ? "bg-[#8A184D]"
+              : tone === "lime"
+                ? "bg-[#365314]"
+              : "bg-[#181827]"
+          : cn("bg-gradient-to-br", toneClasses[tone])
       )}
     >
       <div className="pointer-events-none absolute -right-12 -top-16 size-56 rounded-full bg-white/10 blur-3xl" aria-hidden />
@@ -88,7 +105,7 @@ export function AgentPageBanner({
                   alt={imageAlt}
                   width={260}
                   height={260}
-                  className="-my-5 h-44 w-auto object-contain drop-shadow-[0_24px_34px_rgba(0,0,0,0.28)] sm:h-56 lg:h-64"
+                  className={cn("-my-5 h-44 w-auto object-contain drop-shadow-[0_24px_34px_rgba(0,0,0,0.28)] sm:h-56 lg:h-64", imageClassName)}
                   priority
                 />
               </div>
@@ -96,7 +113,7 @@ export function AgentPageBanner({
 
             {(bubbleTitle || bubbleText) ? (
               <div className="relative max-w-sm rounded-2xl bg-white px-5 py-4 text-sm leading-6 text-slate-700 shadow-xl before:absolute before:-top-2 before:left-10 before:size-4 before:rotate-45 before:bg-white sm:before:-left-2 sm:before:top-10">
-                {bubbleTitle ? <p className="font-black text-[#421388]">{bubbleTitle}</p> : null}
+                {bubbleTitle ? <p className={cn("font-black text-[#421388]", bubbleTitleClassName)}>{bubbleTitle}</p> : null}
                 {bubbleText ? <p className="mt-1 font-semibold text-slate-600">{bubbleText}</p> : null}
               </div>
             ) : null}

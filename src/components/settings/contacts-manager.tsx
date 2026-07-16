@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, ChevronDown, Mail, Pencil, Phone, Plus, Search, Smartphone, Sparkles, Trash2, Upload, Users, X } from "lucide-react";
+import { Bot, BrainCircuit, CheckCircle2, ChevronDown, LoaderCircle, Mail, Pencil, Phone, Plus, Search, Smartphone, Sparkles, Trash2, Upload, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +56,9 @@ export function ContactsManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
+  const [aiSearchIds, setAiSearchIds] = useState<string[] | null>(null);
+  const [aiSearchSummary, setAiSearchSummary] = useState<string | null>(null);
+  const [aiSearchLoading, setAiSearchLoading] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<Sort>("name");
   const [formOpen, setFormOpen] = useState(false);
@@ -68,7 +71,7 @@ export function ContactsManager() {
   async function loadContacts() {
     setLoading(true);
     try {
-      const response = await fetch("/api/community/members");
+      const response = await fetch("/api/community/members", { cache: "no-store" });
       if (!response.ok) throw new Error("Impossible de charger les contacts.");
       setContacts(await response.json());
     } catch (loadError) {
@@ -91,9 +94,12 @@ export function ContactsManager() {
 
   const displayedContacts = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("fr");
-    return contacts
+    const contactsForSearch = aiSearchIds === null
+      ? contacts
+      : contacts.filter((contact) => aiSearchIds.includes(contact.id));
+    return contactsForSearch
       .filter((contact) => {
-        const matchesSearch = !normalizedQuery || [contact.displayName, contact.email, contact.phone, contact.city, contact.profession, contact.notes]
+        const matchesSearch = aiSearchIds !== null || !normalizedQuery || [contact.displayName, contact.email, contact.phone, contact.city, contact.profession, contact.notes]
           .filter(Boolean)
           .some((value) => value!.toLocaleLowerCase("fr").includes(normalizedQuery));
         const matchesFilter = filter === "all"
@@ -110,7 +116,46 @@ export function ContactsManager() {
         }
         return left.displayName.localeCompare(right.displayName, "fr");
       });
-  }, [contacts, filter, query, sort]);
+  }, [aiSearchIds, contacts, filter, query, sort]);
+
+  function handleSearchChange(value: string) {
+    setQuery(value);
+    setAiSearchIds(null);
+    setAiSearchSummary(null);
+  }
+
+  function showAllContacts() {
+    setFilter("all");
+    setQuery("");
+    setAiSearchIds(null);
+    setAiSearchSummary(null);
+  }
+
+  async function runAiSearch() {
+    const searchQuery = query.trim();
+    if (searchQuery.length < 2) {
+      setError("Saisissez au moins deux caractères pour lancer la recherche IA.");
+      return;
+    }
+
+    setAiSearchLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/community/members/ai-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: searchQuery }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error ?? "La recherche IA est indisponible.");
+      setAiSearchIds(Array.isArray(payload.ids) ? payload.ids : []);
+      setAiSearchSummary(typeof payload.summary === "string" ? payload.summary : "Résultats sélectionnés par l'IA.");
+    } catch (searchError) {
+      setError(searchError instanceof Error ? searchError.message : "La recherche IA est indisponible.");
+    } finally {
+      setAiSearchLoading(false);
+    }
+  }
 
   function openCreate() {
     setEditing(null);
@@ -212,7 +257,7 @@ export function ContactsManager() {
 
   return (
     <section className="overflow-hidden rounded-[1.9rem] border border-emerald-100 bg-white shadow-[0_20px_54px_rgba(5,150,105,0.1)]">
-      <div className="border-b border-emerald-100/80 bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/60 p-5 sm:p-7">
+      <div className="border-b border-emerald-100/80 bg-emerald-50/70 p-5 sm:p-7">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
           <div>
             <div className="flex items-center gap-2 text-slate-950"><Users className="size-5 text-emerald-600" /><h2 className="text-lg font-black">Mes contacts</h2></div>
@@ -234,17 +279,42 @@ export function ContactsManager() {
         </div>
       </div>
 
-      <div className="space-y-4 p-5 sm:p-7">
+      <div className="space-y-5 p-5 sm:p-7">
         {message && <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-800"><CheckCircle2 className="size-4" />{message}<button className="ml-auto" onClick={() => setMessage(null)} aria-label="Fermer"><X className="size-4" /></button></div>}
         {error && <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">{error}</div>}
 
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm">
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-800"><Sparkles className="size-4" /></span>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-800">Bientôt disponible</p>
+              <p className="mt-1 text-sm font-semibold leading-6">L&apos;IA pourra classer vos contacts selon leur récurrence et les sommes des dons données, des mots clés, ville, amis....</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 shadow-sm sm:p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-xl bg-emerald-700 text-white shadow-sm"><BrainCircuit className="size-4" /></span>
+            <div>
+              <p className="text-sm font-black text-emerald-950">Recherche intelligente par l&apos;IA</p>
+              <p className="text-xs text-emerald-800">Décrivez simplement le contact ou le profil recherché.</p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <label className="relative min-w-0 flex-1"><Bot className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-emerald-600" /><input value={query} onChange={(event) => handleSearchChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void runAiSearch(); } }} placeholder="Ex. contacts à Paris, enseignants, sans email..." className="h-11 w-full rounded-xl border border-emerald-200 bg-white pl-10 pr-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100" /></label>
+            <Button onClick={() => void runAiSearch()} disabled={aiSearchLoading || query.trim().length < 2} className="bg-emerald-700 text-white hover:bg-emerald-800">{aiSearchLoading ? <><LoaderCircle className="size-4 animate-spin" /> Recherche IA</> : <><Sparkles className="size-4" /> Rechercher avec l&apos;IA</>}</Button>
+          </div>
+          {aiSearchSummary && <p className="mt-3 rounded-xl border border-emerald-100 bg-white/80 px-3 py-2 text-xs font-medium leading-5 text-emerald-900">{aiSearchSummary}</p>}
+        </div>
+
+        <div className="hidden flex-col gap-2 sm:flex-row">
           <label className="relative min-w-0 flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-emerald-500" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un nom, téléphone, email ou ville…" className="h-11 w-full rounded-xl border border-emerald-200 bg-emerald-50/40 pl-10 pr-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" /></label>
           <label className="relative"><select value={sort} onChange={(event) => setSort(event.target.value as Sort)} className="h-11 appearance-none rounded-xl border border-emerald-200 bg-emerald-50/40 py-2 pl-3 pr-9 text-sm font-medium text-slate-600 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"><option value="name">A → Z</option><option value="recent">Plus récents</option><option value="complete">Plus complets</option></select><ChevronDown className="pointer-events-none absolute right-3 top-3.5 size-4 text-emerald-500" /></label>
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {[["all", "Tous"], ["phone", "Téléphone"], ["email", "Email"], ["incomplete", "À enrichir"]].map(([value, label]) => <button key={value} onClick={() => setFilter(value as Filter)} className={cn("shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200", filter === value ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/20" : "border border-emerald-100 bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100")}>{label}</button>)}
+          {[["all", "Tous"], ["phone", "Téléphone"], ["email", "Email"], ["incomplete", "À enrichir"]].map(([value, label]) => <button key={value} onClick={() => value === "all" ? showAllContacts() : setFilter(value as Filter)} className={cn("shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200", filter === value ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/20" : "border border-emerald-100 bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100")}>{label}</button>)}
         </div>
 
         <div className="flex flex-col gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 sm:flex-row sm:items-center sm:justify-between">

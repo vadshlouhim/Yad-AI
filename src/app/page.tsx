@@ -26,29 +26,29 @@ const FEATURES = [
     label: "Agenda IA connecté",
     description: "Vos rappels, événements et automatisations sont centralisés dans un agenda intelligent avec notifications au bon moment.",
     icon: CalendarDays,
-    tone: "border-amber-200 text-amber-700 bg-amber-50",
-    line: "bg-amber-500",
+    tone: "border-cyan-200 text-cyan-700 bg-cyan-50",
+    line: "bg-cyan-500",
   },
   {
     label: "Envoi en un clic",
     description: "Vos messages et publications partent sur les bons canaux en quelques secondes.",
     icon: Send,
-    tone: "border-cyan-200 text-cyan-700 bg-cyan-50",
-    line: "bg-cyan-600",
+    tone: "border-indigo-200 text-indigo-700 bg-indigo-50",
+    line: "bg-indigo-500",
   },
   {
     label: "Automatisations intelligentes",
     description: "Créez des routines de communication pour publier, rappeler, et envoyer au bon moment.",
     icon: BrainCircuit,
-    tone: "border-indigo-200 text-indigo-700 bg-indigo-50",
-    line: "bg-indigo-600",
+    tone: "border-cyan-200 text-cyan-700 bg-cyan-50",
+    line: "bg-cyan-500",
   },
   {
     label: "Communication régulière",
     description: "EasyCom IA vous aide à rester actif, visible et cohérent sur tous vos canaux de communication.",
     icon: Share2,
-    tone: "border-teal-200 text-teal-700 bg-teal-50",
-    line: "bg-teal-600",
+    tone: "border-indigo-200 text-indigo-700 bg-indigo-50",
+    line: "bg-indigo-500",
   },
 ];
 
@@ -58,29 +58,29 @@ const PLATFORM_FEATURES = [
     label: "Affiches & visuels",
     description: "Personnalisez vos affiches et creez des visuels prets a partager pour chaque evenement.",
     icon: ImageIcon,
-    tone: "border-rose-200 text-rose-700 bg-rose-50",
-    line: "bg-rose-600",
+    tone: "border-cyan-200 text-cyan-700 bg-cyan-50",
+    line: "bg-cyan-500",
   },
   {
     label: "Campagnes de dons",
     description: "Planifiez les etapes, preparez les contenus et suivez votre campagne au meme endroit.",
     icon: HeartHandshake,
-    tone: "border-red-200 text-red-700 bg-red-50",
-    line: "bg-red-600",
+    tone: "border-indigo-200 text-indigo-700 bg-indigo-50",
+    line: "bg-indigo-500",
   },
   {
     label: "Newsletter IA",
     description: "Creez une newsletter a partir de vos evenements et programmez son envoi au bon moment.",
     icon: Newspaper,
-    tone: "border-fuchsia-200 text-fuchsia-700 bg-fuchsia-50",
-    line: "bg-fuchsia-600",
+    tone: "border-cyan-200 text-cyan-700 bg-cyan-50",
+    line: "bg-cyan-500",
   },
   {
     label: "Emails & avis Google",
     description: "Classez les messages importants et preparez des reponses qui respectent votre ton.",
     icon: MailCheck,
-    tone: "border-sky-200 text-sky-700 bg-sky-50",
-    line: "bg-sky-600",
+    tone: "border-indigo-200 text-indigo-700 bg-indigo-50",
+    line: "bg-indigo-500",
   },
 ];
 
@@ -111,16 +111,16 @@ const PROCESS_STEPS = [
 ];
 
 const TESTIMONIALS = [
-  { name: "Marc L.", role: "Gérant de restaurant", content: "EasyCom IA m'aide à garder une communication régulière sans y passer mes soirées.", avatar: "ML", color: "bg-blue-100 text-blue-700" },
-  { name: "Sarah J.", role: "Coach sportive", content: "Je prépare mes annonces, mes rappels et mes réponses beaucoup plus vite.", avatar: "SJ", color: "bg-emerald-100 text-emerald-700" },
-  { name: "Thomas D.", role: "Agent immobilier", content: "Les publications et relances sont mieux organisées, et je gagne plusieurs heures par semaine.", avatar: "TD", color: "bg-amber-100 text-amber-700" },
-  { name: "Nadia B.", role: "Responsable association", content: "Tout est centralisé : réseaux sociaux, emails, avis et messages importants.", avatar: "NB", color: "bg-violet-100 text-violet-700" },
-  { name: "Julien R.", role: "Consultant indépendant", content: "L'IA comprend mon ton et me propose des messages qui me ressemblent vraiment.", avatar: "JR", color: "bg-cyan-100 text-cyan-700" },
-  { name: "Camille P.", role: "Boutique locale", content: "Je publie plus souvent, sans devoir repartir de zéro à chaque fois.", avatar: "CP", color: "bg-rose-100 text-rose-700" },
-  { name: "Hugo M.", role: "Organisateur d'événements", content: "L'agenda IA et les notifications m'évitent les oublis avant les temps forts.", avatar: "HM", color: "bg-indigo-100 text-indigo-700" },
-  { name: "Leïla A.", role: "Formatrice", content: "Les réponses préparées aux emails et avis me font gagner un temps énorme.", avatar: "LA", color: "bg-teal-100 text-teal-700" },
-  { name: "Olivier G.", role: "Artisan", content: "Je peux créer une routine de communication simple, visible et cohérente.", avatar: "OG", color: "bg-orange-100 text-orange-700" },
-  { name: "Emma V.", role: "Créatrice de contenu", content: "Les ressources et vidéos IA m'aident à publier rapidement sur les bons canaux.", avatar: "EV", color: "bg-fuchsia-100 text-fuchsia-700" },
+  { name: "Marc L.", role: "Gérant de restaurant", content: "EasyCom IA m'aide à garder une communication régulière sans y passer mes soirées.", avatar: "ML", color: "bg-cyan-100 text-cyan-800" },
+  { name: "Sarah J.", role: "Coach sportive", content: "Je prépare mes annonces, mes rappels et mes réponses beaucoup plus vite.", avatar: "SJ", color: "bg-indigo-100 text-indigo-800" },
+  { name: "Thomas D.", role: "Agent immobilier", content: "Les publications et relances sont mieux organisées, et je gagne plusieurs heures par semaine.", avatar: "TD", color: "bg-cyan-100 text-cyan-800" },
+  { name: "Nadia B.", role: "Responsable association", content: "Tout est centralisé : réseaux sociaux, emails, avis et messages importants.", avatar: "NB", color: "bg-indigo-100 text-indigo-800" },
+  { name: "Julien R.", role: "Consultant indépendant", content: "L'IA comprend mon ton et me propose des messages qui me ressemblent vraiment.", avatar: "JR", color: "bg-cyan-100 text-cyan-800" },
+  { name: "Camille P.", role: "Boutique locale", content: "Je publie plus souvent, sans devoir repartir de zéro à chaque fois.", avatar: "CP", color: "bg-indigo-100 text-indigo-800" },
+  { name: "Hugo M.", role: "Organisateur d'événements", content: "L'agenda IA et les notifications m'évitent les oublis avant les temps forts.", avatar: "HM", color: "bg-cyan-100 text-cyan-800" },
+  { name: "Leïla A.", role: "Formatrice", content: "Les réponses préparées aux emails et avis me font gagner un temps énorme.", avatar: "LA", color: "bg-indigo-100 text-indigo-800" },
+  { name: "Olivier G.", role: "Artisan", content: "Je peux créer une routine de communication simple, visible et cohérente.", avatar: "OG", color: "bg-cyan-100 text-cyan-800" },
+  { name: "Emma V.", role: "Créatrice de contenu", content: "Les ressources et vidéos IA m'aident à publier rapidement sur les bons canaux.", avatar: "EV", color: "bg-indigo-100 text-indigo-800" },
 ];
 
 export const metadata: Metadata = {
@@ -135,20 +135,21 @@ export default function HomePage() {
     <main className="min-h-screen bg-white text-slate-950">
       <PublicNavbar />
 
-      <section id="agents" className="relative overflow-hidden bg-white px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+      <section id="agents" className="relative overflow-hidden bg-[#070b1d] px-4 py-16 text-white sm:px-6 lg:px-8 lg:py-24">
+        <div className="home-ai-grid absolute inset-0" aria-hidden="true" />
+        <div className="home-ai-beam absolute inset-x-0 top-[26%]" aria-hidden="true" />
         <div className="relative mx-auto max-w-7xl">
-          <div className="mx-auto mb-10 max-w-4xl text-center">
-            <p className="bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-700 bg-clip-text text-sm font-black uppercase tracking-[0.16em] text-transparent">La nouvelle façon de communiquer</p>
-            <h1 className="mt-3 text-[clamp(2.1rem,7vw,4.1rem)] font-black leading-[1.02] tracking-tight text-slate-950">
-              Une équipe d&apos;agents IA qui <span className="bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-600 bg-clip-text text-transparent">s&apos;occupe de tout</span>
+          <div className="mx-auto max-w-4xl text-center">
+            <h1 className="mt-3 text-[clamp(2.1rem,7vw,4.1rem)] font-black leading-[1.02] tracking-tight text-white">
+              Une équipe d&apos;agents IA qui <span className="text-cyan-300">s&apos;occupe de tout</span>
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-center text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
+            <p className="mx-auto mt-5 max-w-2xl text-center text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
               Plus besoin de jongler entre les outils ou de repartir d&apos;une page blanche. Choisissez l&apos;activité à gérer : un agent dédié vous accompagne, prépare le travail et vous laisse valider quand c&apos;est nécessaire.
             </p>
           </div>
 
-          <div className="grid items-center gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-7">
-            <div className="relative mx-auto flex w-full max-w-xl flex-col items-center justify-center">
+          <div className="flex flex-col items-center gap-8">
+            <div className="relative mx-auto mt-7 flex w-full max-w-3xl flex-col items-center justify-center lg:mt-8">
               <div className="relative flex w-full items-center justify-center overflow-visible">
                 <Image
                   src={AGENTS_GROUP_IMAGE}
@@ -156,15 +157,15 @@ export default function HomePage() {
                   width={900}
                   height={675}
                   preload
-                  sizes="(max-width: 1024px) 100vw, 42vw"
-                  className="h-auto w-full object-contain"
+                  sizes="(max-width: 1024px) 100vw, 56vw"
+                  className="h-auto w-full object-contain drop-shadow-[0_28px_42px_rgba(0,229,255,0.18)]"
                 />
               </div>
-              <div className="relative mt-3 flex w-full flex-wrap items-center justify-center gap-2 lg:mt-2 lg:gap-2.5">
+              <div className="relative -mt-3 flex w-full flex-wrap items-center justify-center gap-2 sm:-mt-5 lg:gap-2.5">
                 {SOCIAL_CHANNELS.map((channel, index) => (
                   <div
                     key={channel.name}
-                    className="animate-home-float flex h-10 w-10 items-center justify-center rounded-full border border-blue-100 bg-white/90 shadow-lg shadow-blue-950/10 transition duration-300 hover:-translate-y-1 hover:scale-110 hover:border-blue-300 hover:shadow-blue-900/20 lg:h-11 lg:w-11"
+                    className="animate-home-float flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/95 shadow-lg shadow-cyan-950/30 transition duration-300 hover:-translate-y-1 hover:scale-110 hover:border-cyan-300 hover:shadow-cyan-400/20 lg:h-11 lg:w-11"
                     style={{ animationDelay: `${index * 130}ms` }}
                     title={channel.name}
                   >
@@ -174,16 +175,16 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div>
+            <div className="mx-auto w-full max-w-3xl">
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {PROCESS_STEPS.map(({ label, description, icon: Icon }, index) => (
-                  <div key={label} className="group rounded-2xl border border-blue-100 bg-white p-3 text-center shadow-sm transition duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-950/10 sm:p-4">
-                    <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-800 transition duration-300 group-hover:-translate-y-1 group-hover:rotate-3 group-hover:bg-blue-800 group-hover:text-white">
+                  <div key={label} className="group rounded-2xl border border-white/10 bg-white/[0.06] p-3 text-center shadow-lg shadow-black/10 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-cyan-300/50 hover:bg-white/[0.1] sm:p-4">
+                    <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl border border-white/50 text-white shadow-md shadow-cyan-400/20 transition duration-300 group-hover:-translate-y-1 group-hover:rotate-3">
                       <Icon className="size-5" />
                     </span>
-                    <span className="mt-3 block text-[10px] font-black text-blue-800 sm:text-xs">0{index + 1}</span>
-                    <p className="mt-1 text-xs font-black text-slate-950 sm:text-sm">{label}</p>
-                    <p className="mt-1 text-[10px] leading-4 text-slate-500 sm:text-xs sm:leading-5">{description}</p>
+                    <span className="mt-3 block text-[10px] font-black text-white sm:text-xs">0{index + 1}</span>
+                    <p className="mt-1 text-xs font-black text-white sm:text-sm">{label}</p>
+                    <p className="mt-1 text-[10px] leading-4 text-slate-400 sm:text-xs sm:leading-5">{description}</p>
                   </div>
                 ))}
               </div>
@@ -191,11 +192,11 @@ export default function HomePage() {
           </div>
 
           <div className="mx-auto mt-24 max-w-3xl text-center lg:mt-32">
-            <p className="bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-700 bg-clip-text text-sm font-black uppercase tracking-[0.16em] text-transparent">Découvrez vos agents IA</p>
-            <h2 className="mt-4 text-[clamp(2.25rem,6vw,4rem)] font-black leading-none tracking-tight text-slate-950">
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-cyan-300">Découvrez vos agents IA</p>
+            <h2 className="mx-auto mt-4 max-w-4xl text-[clamp(1.65rem,4.5vw,2.8rem)] font-black leading-tight tracking-tight text-white">
               Instagram, Facebook, WhatsApp, Email, Avis Google, Automatisations, Dons et Contenus...
             </h2>
-            <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-600">
+            <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-300">
               Chaque agent a sa mission, pour simplifier toute votre communication communautaire !
             </p>
           </div>
@@ -220,15 +221,15 @@ export default function HomePage() {
                   </div>
                   <div className="px-1 pt-3 text-center">
                     <h3 className="text-base font-black leading-tight text-slate-950 lg:text-xl">{agent.name}</h3>
-                    <p className="mt-1 text-[11px] font-bold leading-4 text-blue-700 lg:text-sm">{agent.role}</p>
-                    <span className="mx-auto mt-3 inline-flex h-10 items-center justify-center rounded-full bg-blue-700 px-5 text-xs font-black text-white shadow-lg shadow-blue-900/20 transition group-hover:-translate-y-0.5 group-hover:bg-blue-800 lg:h-11 lg:px-7 lg:text-sm">
+                    <p className="mt-1 text-[11px] font-bold leading-4 text-cyan-300 lg:text-sm">{agent.role}</p>
+                    <span className="mx-auto mt-3 inline-flex h-10 items-center justify-center rounded-full border border-cyan-300/50 bg-cyan-300 px-5 text-xs font-black text-[#070b1d] shadow-lg shadow-cyan-950/20 transition group-hover:-translate-y-0.5 group-hover:bg-white lg:h-11 lg:px-7 lg:text-sm">
                       Découvrez
                     </span>
                   </div>
                 </summary>
-                <div className="mx-auto mt-4 max-w-xs rounded-2xl border border-blue-100 bg-white px-4 py-4 text-center text-xs leading-5 text-slate-600 shadow-sm lg:text-sm lg:leading-6">
+                <div className="mx-auto mt-4 max-w-xs rounded-2xl border border-cyan-300/20 bg-white/5 px-4 py-4 text-center text-xs leading-5 text-slate-300 shadow-sm lg:text-sm lg:leading-6">
                   <p>{agent.shortDescription}</p>
-                  <p className="mt-3 border-t border-blue-100 pt-3">{agent.details}</p>
+                  <p className="mt-3 border-t border-cyan-300/20 pt-3">{agent.details}</p>
                 </div>
               </details>
             ))}
@@ -238,12 +239,12 @@ export default function HomePage() {
 
       <InstallAppGuide />
 
-      <section id="fonctionnalites" className="bg-slate-50 px-4 py-14 sm:px-6 lg:px-8">
+      <section id="fonctionnalites" className="bg-[#f6f8fc] px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-4xl text-center">
             <h2 className="text-[clamp(1.75rem,6vw,2.5rem)] font-black leading-tight tracking-tight text-slate-950">
-              <span className="bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-700 bg-clip-text text-transparent">Votre temps est précieux</span> EasyCom IA centralise, prépare et{" "}
-              <span className="bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-700 bg-clip-text text-transparent">automatise votre communication</span>
+              <span className="text-indigo-700">Votre temps est précieux</span> EasyCom IA centralise, prépare et{" "}
+              <span className="text-cyan-700">automatise votre communication</span>
             </h2>
           </div>
 
@@ -265,7 +266,7 @@ export default function HomePage() {
       <section className="bg-slate-50 px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="text-center">
-            <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-600">Témoignages</p>
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-cyan-700">Témoignages</p>
             <h2 className="mt-3 text-[clamp(1.75rem,6vw,2.25rem)] font-black tracking-tight text-slate-950">
               EasyCom IA les aide à mieux gérer leur communication au quotidien
             </h2>
@@ -292,16 +293,18 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white px-4 py-16 sm:px-6 lg:px-8">
+      <section className="bg-[#f6f8fc] px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
-          <div className="text-center mb-12">
-            <p className="text-sm font-black uppercase tracking-[0.16em] text-indigo-600">FAQ</p>
-            <h2 className="mt-3 text-[clamp(1.75rem,6vw,2.25rem)] font-black tracking-tight text-slate-950">
-              Questions fréquentes
-            </h2>
-          </div>
+          <details className="group">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-5 text-left shadow-sm transition hover:border-cyan-300 [&::-webkit-details-marker]:hidden sm:px-6">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.16em] text-indigo-700">FAQ</p>
+                <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Questions fréquentes</h2>
+              </div>
+              <ArrowRight className="size-5 shrink-0 text-cyan-700 transition group-open:rotate-90" />
+            </summary>
 
-          <div className="space-y-4">
+            <div className="mt-4 space-y-4">
             {[
               {
                 q: "Est-ce que je peux utiliser EasyCom IA pour n'importe quelle activité ?",
@@ -320,29 +323,30 @@ export default function HomePage() {
                 a: "La sécurité est notre priorité. Vos données et celles de votre communauté sont chiffrées et nous respectons strictement le RGPD.",
               },
             ].map((item) => (
-              <details key={item.q} className="group rounded-2xl border border-slate-200 bg-white p-6 transition open:border-blue-200 open:shadow-sm">
+              <details key={item.q} className="group rounded-2xl border border-slate-200 bg-white p-6 transition open:border-cyan-300 open:shadow-sm">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-black text-slate-950 [&::-webkit-details-marker]:hidden">
                   <span>{item.q}</span>
-                  <ArrowRight className="size-4 shrink-0 text-blue-600 transition group-open:rotate-90" />
+                  <ArrowRight className="size-4 shrink-0 text-cyan-700 transition group-open:rotate-90" />
                 </summary>
                 <p className="mt-3 text-sm leading-6 text-slate-600">{item.a}</p>
               </details>
             ))}
-          </div>
+            </div>
+          </details>
         </div>
       </section>
 
-      <section className="border-t border-slate-200 bg-slate-950 px-4 py-12 text-center text-white sm:px-6 lg:px-8">
+      <section className="border-t border-cyan-400/20 bg-[#070b1d] px-4 py-12 text-center text-white sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-6">
           <div>
-            <p className="text-sm font-bold text-blue-300">EasyCom IA</p>
+            <p className="text-sm font-bold text-cyan-300">EasyCom IA</p>
             <h2 className="mt-2 text-[clamp(1.5rem,5.4vw,1.875rem)] font-black tracking-tight">
               Concentrez-vous sur l&apos;essentiel. EasyCom IA s&apos;occupe du reste !
             </h2>
           </div>
           <Link
             href="/auth/login"
-            className="inline-flex h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-bold text-slate-950 transition hover:bg-blue-50"
+            className="inline-flex h-11 items-center justify-center rounded-full bg-cyan-300 px-5 text-sm font-bold text-[#070b1d] transition hover:bg-cyan-200"
           >
             <LogIn className="mr-2 size-4" />
             Essayer maintenant

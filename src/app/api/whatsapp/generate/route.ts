@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assertPaidFeature } from "@/lib/billing";
+import { SOCIAL_MESSAGE_GUIDELINES } from "@/lib/ai/social-message-guidelines";
 
 const openrouter = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
@@ -47,6 +48,7 @@ Style attendu : message WhatsApp prêt à envoyer, chaleureux et clair, ton ${to
 - Utilise des emojis avec parcimonie et des sauts de ligne pour aérer.
 - Pas de markdown (#, **), pas de titre technique. Tu peux utiliser *gras WhatsApp* si utile.
 - N'invente pas d'informations manquantes (dates, lieux) : reste fidèle à la demande.
+${SOCIAL_MESSAGE_GUIDELINES}
 ${community?.signature ? `- Termine par la signature : ${community.signature}` : ""}
 Réponds UNIQUEMENT avec le texte final du message, sans guillemets ni commentaire.`;
 

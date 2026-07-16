@@ -83,7 +83,7 @@ export default function MethodPage() {
       </section>
 
       <section className="relative overflow-hidden border-y border-slate-200 bg-white">
-        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-blue-50/80 to-white" />
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-blue-50 to-white" />
         <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-14 text-center sm:px-6 lg:grid-cols-[1fr_0.92fr] lg:px-8 lg:py-20">
           <div className="flex flex-col items-center justify-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 px-3 py-1.5 text-xs font-black text-blue-900">
@@ -108,7 +108,7 @@ export default function MethodPage() {
                 </article>
               ))}
             </div>
-            <Link href="/auth/login" className="animate-home-shimmer mt-8 inline-flex h-12 items-center justify-center rounded-full bg-[linear-gradient(110deg,#172554,#1d4ed8,#0891b2,#1d4ed8,#172554)] bg-[length:220%_100%] px-7 text-sm font-bold text-white shadow-lg shadow-blue-950/30">
+            <Link href="/auth/login" className="animate-home-shimmer mt-8 inline-flex h-12 items-center justify-center rounded-full bg-[linear-gradient(110deg,#172554,#1e3a8a,#2563eb,#1e3a8a,#172554)] bg-[length:220%_100%] px-7 text-sm font-bold text-white shadow-lg shadow-blue-950/30">
               <LogIn className="mr-2 size-4" />
               Essayer maintenant
             </Link>

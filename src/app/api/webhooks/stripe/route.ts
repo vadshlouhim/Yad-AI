@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type Stripe from "stripe";
+import { createNotificationOnce } from "@/lib/notifications/create-once";
 
 export const runtime = "nodejs";
 
@@ -120,7 +121,12 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     { onConflict: "stripeSubscriptionId" }
   );
 
-  await notifySubscriptionChange(communityId, "SUBSCRIPTION_RENEWED", `Votre abonnement ${plan} est actif.`);
+  await notifySubscriptionChange(
+    communityId,
+    "SUBSCRIPTION_RENEWED",
+    `Votre abonnement ${plan} est actif.`,
+    `subscription:${subscription.id}:${subscription.status}`
+  );
 }
 
 async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
@@ -142,7 +148,8 @@ async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
   await notifySubscriptionChange(
     communityId,
     "SUBSCRIPTION_EXPIRING",
-    "Votre abonnement a été annulé. Passez à un plan payant pour continuer."
+    "Votre abonnement a été annulé. Passez à un plan payant pour continuer.",
+    `subscription-canceled:${subscription.id}`
   );
 }
 
@@ -163,12 +170,13 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
     await notifySubscriptionChange(
       community.id,
       "PAYMENT_FAILED",
-      "Le paiement de votre abonnement a échoué. Mettez à jour votre moyen de paiement."
+      "Le paiement de votre abonnement a échoué. Mettez à jour votre moyen de paiement.",
+      `payment-failed:${invoice.id}`
     );
   }
 }
 
-async function notifySubscriptionChange(communityId: string, type: string, message: string) {
+async function notifySubscriptionChange(communityId: string, type: string, message: string, dedupeKey: string) {
   const admin = createAdminClient();
   const { data: user } = await admin
     .from("profiles")
@@ -179,14 +187,14 @@ async function notifySubscriptionChange(communityId: string, type: string, messa
 
   if (!user) return;
 
-  await admin.from("Notification").insert({
-    id: crypto.randomUUID(),
+  await createNotificationOnce(admin, {
     userId: user.id,
     communityId,
     type: type as never,
     title: "Abonnement",
     body: message,
     link: "/dashboard/settings/billing",
+    dedupeKey,
   });
 }
 
