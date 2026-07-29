@@ -6,10 +6,12 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export const DAVID_IMAGE_URL =
-  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Shlomi%20agent-orcetra-Itshak.webp";
+  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Presatntaion.webp";
 
 export const DAVID_AUTOMATION_IMAGE_URL =
-  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/David%20responsable%20automatisations.webp";
+  "/images/david-automatisations-transparent-v2.png";
+
+const DAVID_AUTOMATION_CARD_IMAGE_URL = DAVID_IMAGE_URL;
 
 type DavidBannerAgentProps = {
   text: string;
@@ -112,7 +114,7 @@ export function DavidAutomationCard({
         <div className="flex min-w-0 items-center gap-4">
           <div className="relative flex size-24 shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-violet-50 via-white to-amber-50 p-2 shadow-[0_16px_34px_rgba(66,19,136,0.18)] ring-1 ring-[#421388]/10 animate-install-float">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={DAVID_IMAGE_URL} alt="David, agent intelligent" className="h-full w-full object-contain object-bottom" />
+            <img src={DAVID_AUTOMATION_CARD_IMAGE_URL} alt="David, agent intelligent" className="h-full w-full object-contain object-bottom" />
             <span className="absolute -right-1 top-2 flex size-7 items-center justify-center rounded-full bg-[#421388] text-white shadow-lg shadow-[#421388]/25">
               <Bot className="size-4" />
             </span>

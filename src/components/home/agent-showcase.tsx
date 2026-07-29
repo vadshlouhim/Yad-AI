@@ -43,13 +43,14 @@ export function AgentShowcase({ agents }: AgentShowcaseProps) {
             onClick={() => setSelectedAgent(agent)}
             className="group text-center outline-none focus-visible:rounded-[2rem] focus-visible:ring-4 focus-visible:ring-cyan-300"
           >
-            <div className="relative h-44 overflow-hidden sm:h-60 lg:h-80 xl:h-[24rem]">
+            <div className="relative h-48 overflow-hidden sm:h-64 lg:h-88 xl:h-[25rem]">
+              <div className="pointer-events-none absolute bottom-[1%] left-1/2 aspect-square w-[86%] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.66)_0%,rgba(255,255,255,0.28)_43%,transparent_72%)] blur-2xl" aria-hidden />
               <Image
                 src={agent.image}
                 alt={`${agent.name}, agent IA ${agent.role} d'EasyCom IA`}
                 fill
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 25vw"
-                className="object-contain object-bottom drop-shadow-[0_22px_24px_rgba(15,23,42,0.14)] transition duration-500 group-hover:scale-[1.035]"
+                className="z-10 object-contain object-bottom drop-shadow-[0_0_28px_rgba(255,255,255,0.62)] drop-shadow-[0_24px_28px_rgba(15,23,42,0.22)] transition duration-500 group-hover:scale-[1.05]"
               />
             </div>
             <div className="px-1 pt-3 text-center">
@@ -93,12 +94,13 @@ export function AgentShowcase({ agents }: AgentShowcaseProps) {
             <div className="relative px-5 pb-7 pt-8 sm:px-8 sm:pb-8">
               <div className="mx-auto h-44 w-full max-w-xs sm:h-56">
                 <div className="relative h-full">
+                  <div className="pointer-events-none absolute bottom-0 left-1/2 aspect-square w-[88%] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.66)_0%,rgba(255,255,255,0.28)_43%,transparent_72%)] blur-2xl" aria-hidden />
                   <Image
                     src={selectedAgent.image}
                     alt={`${selectedAgent.name}, agent IA ${selectedAgent.role}`}
                     fill
                     sizes="(max-width: 640px) 80vw, 320px"
-                    className="object-contain object-bottom drop-shadow-[0_24px_28px_rgba(15,23,42,0.16)]"
+                    className="z-10 object-contain object-bottom drop-shadow-[0_0_28px_rgba(255,255,255,0.58)] drop-shadow-[0_24px_28px_rgba(15,23,42,0.2)]"
                   />
                 </div>
               </div>

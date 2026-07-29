@@ -873,6 +873,39 @@ export type Database = {
         }
         Relationships: []
       }
+      Task: {
+        Row: {
+          communityId: string
+          createdAt: string
+          id: string
+          recurrenceRule: Json | null
+          scheduledAt: string
+          title: string
+          updatedAt: string
+          userId: string
+        }
+        Insert: {
+          communityId: string
+          createdAt?: string
+          id: string
+          recurrenceRule?: Json | null
+          scheduledAt: string
+          title: string
+          updatedAt: string
+          userId: string
+        }
+        Update: {
+          communityId?: string
+          createdAt?: string
+          id?: string
+          recurrenceRule?: Json | null
+          scheduledAt?: string
+          title?: string
+          updatedAt?: string
+          userId?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatarUrl: string | null
@@ -1081,6 +1114,7 @@ export type Database = {
           isGlobal: boolean
           isPremium: boolean
           name: string
+          originalUrl: string | null
           previewUrl: string | null
           subCategory: string | null
           tags: string[] | null
@@ -1100,6 +1134,7 @@ export type Database = {
           isGlobal?: boolean
           isPremium?: boolean
           name: string
+          originalUrl?: string | null
           previewUrl?: string | null
           subCategory?: string | null
           tags?: string[] | null
@@ -1119,6 +1154,7 @@ export type Database = {
           isGlobal?: boolean
           isPremium?: boolean
           name?: string
+          originalUrl?: string | null
           previewUrl?: string | null
           subCategory?: string | null
           tags?: string[] | null

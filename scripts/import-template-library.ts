@@ -29,6 +29,7 @@ type TemplateRecord = {
   category: TemplateCategory;
   subCategory: string | null;
   channelType: null;
+  originalUrl: string;
   thumbnailUrl: string;
   previewUrl: string;
   design: unknown[];
@@ -282,8 +283,16 @@ async function uploadImageVariants(
     .webp({ quality: 78 })
     .toBuffer();
 
+  const originalExtension = path.extname(inputPath).toLowerCase() || ".img";
+  const originalPath = `imports/2026-06-09/${code}/original${originalExtension}`;
   const previewPath = `imports/2026-06-09/${code}/preview.webp`;
   const thumbPath = `imports/2026-06-09/${code}/thumbnail.webp`;
+
+  const originalUpload = await supabase.storage.from("templates").upload(originalPath, input, {
+    contentType: `image/${originalExtension.replace(".", "").replace("jpg", "jpeg")}`,
+    upsert: true,
+  });
+  if (originalUpload.error) throw new Error(`Upload original ${code}: ${originalUpload.error.message}`);
 
   const previewUpload = await supabase.storage.from("templates").upload(previewPath, previewBuffer, {
     contentType: "image/webp",
@@ -297,10 +306,11 @@ async function uploadImageVariants(
   });
   if (thumbUpload.error) throw new Error(`Upload thumbnail ${code}: ${thumbUpload.error.message}`);
 
+  const originalUrl = supabase.storage.from("templates").getPublicUrl(originalPath).data.publicUrl;
   const previewUrl = supabase.storage.from("templates").getPublicUrl(previewPath).data.publicUrl;
   const thumbnailUrl = supabase.storage.from("templates").getPublicUrl(thumbPath).data.publicUrl;
 
-  return { previewUrl, thumbnailUrl };
+  return { originalUrl, previewUrl, thumbnailUrl };
 }
 
 async function main() {
@@ -326,7 +336,7 @@ async function main() {
       continue;
     }
 
-    const { previewUrl, thumbnailUrl } = await uploadImageVariants(supabase, filePath, code);
+    const { originalUrl, previewUrl, thumbnailUrl } = await uploadImageVariants(supabase, filePath, code);
     const now = new Date().toISOString();
 
     templatesToInsert.push({
@@ -336,6 +346,7 @@ async function main() {
       category: mapSourceCategory(row.sourceCategory),
       subCategory: row.family || null,
       channelType: null,
+      originalUrl,
       thumbnailUrl,
       previewUrl,
       design: [],

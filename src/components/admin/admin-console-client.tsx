@@ -2,6 +2,7 @@
 
 import {
   Activity,
+  AlertTriangle,
   Bot,
   Building2,
   CheckCircle2,
@@ -69,6 +70,7 @@ interface AdminTemplate {
   category: string;
   subCategory: string | null;
   channelType: string | null;
+  originalUrl: string | null;
   thumbnailUrl: string | null;
   previewUrl: string | null;
   design: DynamicTemplateZone[];
@@ -207,6 +209,7 @@ interface Props {
   automationPresets: AdminAutomationPreset[];
   recentConversations: RecentConversation[];
   billingConfig: BillingConfig;
+  initialTemplateError?: string | null;
 }
 
 type AdminSection = "overview" | "templates" | "presets" | "automations" | "pricing" | "communities" | "activity" | "data" | "development" | "users" | "leads";
@@ -446,7 +449,37 @@ function MetricCard({
   );
 }
 
-export function AdminConsoleClient({ metrics, templates, communities, users, contactLeads, automations, automationPresets, recentConversations, billingConfig }: Props) {
+async function readApiPayload(response: Response): Promise<Record<string, unknown>> {
+  const raw = await response.text();
+  if (!raw) return {};
+  try {
+    const value = JSON.parse(raw) as unknown;
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? value as Record<string, unknown>
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function getApiError(payload: Record<string, unknown>, fallback: string) {
+  return typeof payload.error === "string" && payload.error.trim()
+    ? payload.error
+    : fallback;
+}
+
+export function AdminConsoleClient({
+  metrics,
+  templates,
+  communities,
+  users,
+  contactLeads,
+  automations,
+  automationPresets,
+  recentConversations,
+  billingConfig,
+  initialTemplateError = null,
+}: Props) {
   const [selectedId, setSelectedId] = useState(templates[0]?.id ?? "");
   const [selectedPresetId, setSelectedPresetId] = useState(automationPresets[0]?.id ?? "");
   const [query, setQuery] = useState("");
@@ -458,6 +491,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, con
   const [automationCommunityFilter, setAutomationCommunityFilter] = useState("ALL");
   const [theme, setTheme] = useState<ThemeMode>("light");
   const [status, setStatus] = useState<string | null>(null);
+  const [globalError, setGlobalError] = useState<string | null>(initialTemplateError);
   const [billingDraft, setBillingDraft] = useState({
     basePriceEuros: (billingConfig.basePriceCents / 100).toFixed(2),
     launchPriceEuros: (billingConfig.launchPriceCents / 100).toFixed(2),
@@ -475,7 +509,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, con
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [savingUserBillingId, setSavingUserBillingId] = useState<string | null>(null);
   const [userDeleteConfirm, setUserDeleteConfirm] = useState<AdminUser | null>(null);
-  const [uploadingField, setUploadingField] = useState<"thumbnail" | "preview" | null>(null);
+  const [uploadingField, setUploadingField] = useState<"original" | "thumbnail" | "preview" | null>(null);
   const [automationSaving, setAutomationSaving] = useState<string | null>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [selectedZoneIds, setSelectedZoneIds] = useState<string[]>([]);
@@ -750,6 +784,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, con
         category: selectedTemplate.category,
         subCategory: selectedTemplate.subCategory,
         channelType: selectedTemplate.channelType,
+        originalUrl: selectedTemplate.originalUrl,
         thumbnailUrl: selectedTemplate.thumbnailUrl,
         previewUrl: selectedTemplate.previewUrl,
         design: selectedTemplate.design,
@@ -774,6 +809,7 @@ export function AdminConsoleClient({ metrics, templates, communities, users, con
         ...selectedTemplate,
         ...payload,
         tags: payload.tags ?? [],
+        originalUrl: payload.originalUrl ?? null,
         thumbnailUrl: payload.thumbnailUrl ?? null,
         previewUrl: payload.previewUrl ?? null,
         design: normalizeTemplateDesign(payload.design),
@@ -786,42 +822,48 @@ export function AdminConsoleClient({ metrics, templates, communities, users, con
   async function createTemplate() {
     setCreating(true);
     setStatus(null);
+    setGlobalError(null);
 
-    const response = await fetch("/api/admin/templates", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: "Nouvelle affiche",
-        category: "GENERAL",
-        description: "Décrire ici quand l'assistant doit suggérer cette affiche.",
-        isGlobal: true,
-        isActive: true,
-        tags: ["nouvelle-affiche"],
-      }),
-    });
-    const payload = await response.json();
-    setCreating(false);
+    try {
+      const response = await fetch("/api/admin/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Nouvelle affiche",
+          category: "GENERAL",
+          description: "Décrire ici quand l'assistant doit suggérer cette affiche.",
+          isGlobal: true,
+          isActive: true,
+          tags: ["nouvelle-affiche"],
+        }),
+      });
+      const payload = await readApiPayload(response);
+      if (!response.ok) {
+        setGlobalError(getApiError(payload, "Impossible de créer l'affiche."));
+        return;
+      }
 
-    if (!response.ok) {
-      setStatus(payload.error ?? "Impossible de créer l'affiche.");
-      return;
+      const nextTemplate = {
+        ...payload,
+        originalUrl: payload.originalUrl ?? null,
+        thumbnailUrl: payload.thumbnailUrl ?? null,
+        previewUrl: payload.previewUrl ?? null,
+        design: normalizeTemplateDesign(payload.design),
+        tags: Array.isArray(payload.tags) ? payload.tags : [],
+      } as unknown as AdminTemplate;
+      setDrafts((previous) => {
+        const next = new Map(previous);
+        next.set(nextTemplate.id, nextTemplate);
+        return next;
+      });
+      setSelectedId(nextTemplate.id);
+      setActiveSection("templates");
+      setStatus("Nouvelle affiche créée. Téléversez maintenant le fichier original.");
+    } catch {
+      setGlobalError("Le serveur est injoignable. Vérifiez la connexion puis réessayez.");
+    } finally {
+      setCreating(false);
     }
-
-    const nextTemplate: AdminTemplate = {
-      ...payload,
-      thumbnailUrl: payload.thumbnailUrl ?? null,
-      previewUrl: payload.previewUrl ?? null,
-      design: normalizeTemplateDesign(payload.design),
-      tags: payload.tags ?? [],
-    };
-    setDrafts((previous) => {
-      const next = new Map(previous);
-      next.set(nextTemplate.id, nextTemplate);
-      return next;
-    });
-    setSelectedId(nextTemplate.id);
-    setActiveSection("templates");
-    setStatus("Nouvelle affiche créée. Complétez sa fiche puis enregistrez.");
   }
 
   async function deleteTemplateById(template: AdminTemplate) {
@@ -855,27 +897,44 @@ export function AdminConsoleClient({ metrics, templates, communities, users, con
     await deleteTemplateById(selectedTemplate);
   }
 
-  async function uploadTemplateImage(file: File, kind: "thumbnail" | "preview") {
+  async function uploadTemplateImage(file: File, kind: "original" | "thumbnail" | "preview") {
     if (!selectedTemplate) return;
     setUploadingField(kind);
     setStatus(null);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("kind", kind);
-    formData.append("templateId", selectedTemplate.id);
+    setGlobalError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("kind", kind);
+      formData.append("templateId", selectedTemplate.id);
 
-    const response = await fetch("/api/admin/uploads/template-image", {
-      method: "POST",
-      body: formData,
-    });
-    const payload = await response.json();
-    setUploadingField(null);
-    if (!response.ok) {
-      setStatus(payload.error ?? "Upload impossible.");
-      return;
+      const response = await fetch("/api/admin/uploads/template-image", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = await readApiPayload(response);
+      if (!response.ok) {
+        setGlobalError(getApiError(payload, "Upload impossible."));
+        return;
+      }
+      if (kind === "original") {
+        updateSelectedTemplate({
+          originalUrl: typeof payload.originalUrl === "string" ? payload.originalUrl : null,
+          previewUrl: typeof payload.previewUrl === "string" ? payload.previewUrl : null,
+          thumbnailUrl: typeof payload.thumbnailUrl === "string" ? payload.thumbnailUrl : null,
+          design: [],
+        });
+        setStatus("Source originale conservée. Aperçu et miniature générés.");
+        return;
+      }
+      const uploadedUrl = typeof payload.url === "string" ? payload.url : null;
+      updateSelectedTemplate(kind === "thumbnail" ? { thumbnailUrl: uploadedUrl } : { previewUrl: uploadedUrl });
+      setStatus(`${kind === "thumbnail" ? "Miniature" : "Aperçu"} converti en WebP et envoyé.`);
+    } catch {
+      setGlobalError("Le téléversement a échoué avant la réponse du serveur.");
+    } finally {
+      setUploadingField(null);
     }
-    updateSelectedTemplate(kind === "thumbnail" ? { thumbnailUrl: payload.url } : { previewUrl: payload.url });
-    setStatus(`${kind === "thumbnail" ? "Miniature" : "Affiche"} convertie en WebP et envoyée.`);
   }
 
   async function createAutomationPreset() {
@@ -1339,6 +1398,28 @@ export function AdminConsoleClient({ metrics, templates, communities, users, con
             </div>
           </header>
 
+          {globalError && (
+            <div
+              role="alert"
+              className={`mt-6 flex items-start gap-3 rounded-2xl border px-4 py-3 ${
+                isDark
+                  ? "border-red-400/30 bg-red-500/10 text-red-100"
+                  : "border-red-200 bg-red-50 text-red-800"
+              }`}
+            >
+              <AlertTriangle className="mt-0.5 size-5 shrink-0" />
+              <p className="min-w-0 flex-1 text-sm font-semibold leading-6">{globalError}</p>
+              <button
+                type="button"
+                onClick={() => setGlobalError(null)}
+                className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg hover:bg-black/5"
+                aria-label="Fermer l'erreur"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          )}
+
           {(activeSection === "overview" || activeSection === "data") && <div className="mt-6">{overviewCards}</div>}
 
           {(activeSection === "overview" || activeSection === "templates") && (
@@ -1441,7 +1522,9 @@ export function AdminConsoleClient({ metrics, templates, communities, users, con
                             <div className="mt-3 flex flex-wrap gap-1.5">
                               {template.isGlobal && <span className="rounded-full bg-cyan-500/15 px-2 py-0.5 text-[10px] font-semibold text-cyan-600">Global</span>}
                               <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${template.isActive ? "bg-emerald-500/15 text-emerald-600" : "bg-slate-500/15 text-slate-500"}`}>{template.isActive ? "Active" : "Masquee"}</span>
-                              <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600">{template.design.length} zone(s)</span>
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${template.originalUrl ? "bg-blue-500/15 text-blue-600" : "bg-red-500/15 text-red-600"}`}>
+                                {template.originalUrl ? "Source originale prête" : "Source à téléverser"}
+                              </span>
                               {template.isPremium && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-600">Premium</span>}
                             </div>
                           </div>
@@ -1493,31 +1576,34 @@ export function AdminConsoleClient({ metrics, templates, communities, users, con
                         </label>
                       </div>
                     </div>
-                    <label className={`block text-sm font-semibold ${strongText}`}>URL aperçu / image de référence<input value={selectedTemplate.previewUrl ?? ""} onChange={(event) => updateSelectedTemplate({ previewUrl: event.target.value || null })} placeholder="https://..." className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
+                    <label className={`block text-sm font-semibold ${strongText}`}>
+                      URL source originale
+                      <input value={selectedTemplate.originalUrl ?? ""} readOnly placeholder="Téléversez le fichier original" className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} />
+                    </label>
                     <div
                       onDragOver={(event) => event.preventDefault()}
                       onDrop={(event) => {
                         event.preventDefault();
                         const file = event.dataTransfer.files[0];
-                        if (file) uploadTemplateImage(file, "preview");
+                        if (file) uploadTemplateImage(file, "original");
                       }}
                       className={`rounded-2xl border border-dashed p-3 text-sm ${isDark ? "border-white/15 bg-white/5" : "border-slate-300 bg-slate-50"}`}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <span className={mutedText}>Glisser-déposer affiche PNG/JPEG/WebP</span>
+                        <span className={mutedText}>Glisser-déposer le template original. Il restera intact.</span>
                         <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-emerald-500 px-3 py-2 text-xs font-black text-white">
                           <UploadCloud className="size-4" />
-                          {uploadingField === "preview" ? "Upload..." : "Choisir"}
+                          {uploadingField === "original" ? "Upload..." : "Choisir"}
                           <input type="file" accept="image/*" className="hidden" onChange={(event) => {
                             const file = event.target.files?.[0];
-                            if (file) uploadTemplateImage(file, "preview");
+                            if (file) uploadTemplateImage(file, "original");
                             event.target.value = "";
                           }} />
                         </label>
                       </div>
                     </div>
 
-                    <div className={`rounded-3xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-slate-200 bg-slate-50"}`}>
+                    <div className="hidden">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <h4 className={`text-sm font-black ${strongText}`}>Zones dynamiques</h4>

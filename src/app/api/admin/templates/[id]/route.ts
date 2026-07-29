@@ -2,6 +2,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.types";
+import { classifyTemplateAdminError } from "@/lib/templates/admin-errors";
 import { NextResponse } from "next/server";
 
 const TEMPLATE_CATEGORIES = new Set<Database["public"]["Enums"]["TemplateCategory"]>([
@@ -80,11 +81,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+    return NextResponse.json({ error: "Non autorisé", code: "UNAUTHORIZED" }, { status: 401 });
   }
 
   if (!(await isSuperAdmin(user.id))) {
-    return NextResponse.json({ error: "Acces reserve a l'admin global" }, { status: 403 });
+    return NextResponse.json({ error: "Accès réservé à l'admin global", code: "FORBIDDEN" }, { status: 403 });
   }
 
   const { id } = await params;
@@ -94,7 +95,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (body.name !== undefined) {
     const name = String(body.name).trim();
     if (name.length < 2) {
-      return NextResponse.json({ error: "Le nom de l'affiche est trop court" }, { status: 400 });
+      return NextResponse.json({ error: "Le nom de l'affiche est trop court", code: "INVALID_REQUEST" }, { status: 400 });
     }
     updateData.name = name;
   }
@@ -111,16 +112,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   if (body.category !== undefined) {
     if (!TEMPLATE_CATEGORIES.has(body.category)) {
-      return NextResponse.json({ error: "Categorie invalide" }, { status: 400 });
+      return NextResponse.json({ error: "Catégorie invalide", code: "INVALID_REQUEST" }, { status: 400 });
     }
     updateData.category = body.category;
   }
 
   if (body.channelType !== undefined) {
     if (body.channelType && !CHANNEL_TYPES.has(body.channelType)) {
-      return NextResponse.json({ error: "Canal invalide" }, { status: 400 });
+      return NextResponse.json({ error: "Canal invalide", code: "INVALID_REQUEST" }, { status: 400 });
     }
     updateData.channelType = body.channelType || null;
+  }
+
+  if (body.originalUrl !== undefined) {
+    const originalUrl = String(body.originalUrl).trim();
+    updateData.originalUrl = originalUrl.length > 0 ? originalUrl : null;
   }
 
   if (body.thumbnailUrl !== undefined) {
@@ -147,7 +153,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { data: updated, error } = await admin.from("Template").update(updateData).eq("id", id).select().single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    console.error("[Admin Templates] Mise à jour impossible:", error);
+    const apiError = classifyTemplateAdminError(error, "TEMPLATE_UPDATE_FAILED");
+    return NextResponse.json({ error: apiError.error, code: apiError.code }, { status: apiError.status });
   }
 
   return NextResponse.json(updated);
@@ -160,11 +168,11 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+    return NextResponse.json({ error: "Non autorisé", code: "UNAUTHORIZED" }, { status: 401 });
   }
 
   if (!(await isSuperAdmin(user.id))) {
-    return NextResponse.json({ error: "Acces reserve a l'admin global" }, { status: 403 });
+    return NextResponse.json({ error: "Accès réservé à l'admin global", code: "FORBIDDEN" }, { status: 403 });
   }
 
   const { id } = await params;
@@ -172,7 +180,9 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const { error } = await admin.from("Template").delete().eq("id", id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    console.error("[Admin Templates] Suppression impossible:", error);
+    const apiError = classifyTemplateAdminError(error, "TEMPLATE_DELETE_FAILED");
+    return NextResponse.json({ error: apiError.error, code: apiError.code }, { status: apiError.status });
   }
 
   return NextResponse.json({ success: true });

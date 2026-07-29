@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyAgendaItemCreated } from "@/lib/notifications/agenda";
 import { z } from "zod";
 
 const eventSchema = z.object({
@@ -118,6 +119,19 @@ export async function POST(request: Request) {
       newData: { title: event.title, category: event.category },
       updatedAt: new Date().toISOString(),
     });
+
+    try {
+      await notifyAgendaItemCreated(admin, {
+        userId: user.id,
+        communityId: profile.communityId,
+        itemId: event.id,
+        itemType: "event",
+        title: event.title,
+        link: `/dashboard/events/${event.id}`,
+      });
+    } catch (notificationError) {
+      console.error("[Events POST] notification error", notificationError);
+    }
 
     return NextResponse.json(event, { status: 201 });
   } catch (error) {

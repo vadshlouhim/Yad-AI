@@ -4,7 +4,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   buildHolidayItems,
   getNextAnnualHoliday,
-  templateMatchesHoliday,
   type HolidayCalendarRow,
 } from "@/lib/automation/jewish-holidays";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
@@ -40,7 +39,6 @@ export default async function JewishHolidaysAutoPage() {
     admin
       .from("Template")
       .select("*")
-      .eq("category", "HOLIDAY")
       .eq("isActive", true)
       .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
       .order("usageCount", { ascending: false })
@@ -55,7 +53,7 @@ export default async function JewishHolidaysAutoPage() {
       .limit(1),
     admin
       .from("Channel")
-      .select("id, name, type, isActive, isConnected, pageId, handle")
+      .select("id, name, type, isActive, isConnected, settings, pageId, handle")
       .eq("communityId", communityId)
       .in("type", ["FACEBOOK", "INSTAGRAM", "WHATSAPP", "TELEGRAM", "EMAIL"])
       .order("type", { ascending: true }),
@@ -82,7 +80,6 @@ export default async function JewishHolidaysAutoPage() {
       }}
       holidays={holidays}
       nextHoliday={nextHoliday}
-      templates={hydratedTemplates.filter((template) => nextHoliday ? templateMatchesHoliday(template, nextHoliday) : false)}
       allTemplates={hydratedTemplates}
       initialAutomation={automationRows?.[0] ?? null}
       channels={channels ?? []}

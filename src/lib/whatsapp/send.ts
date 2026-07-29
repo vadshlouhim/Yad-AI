@@ -95,6 +95,7 @@ async function sendViaPersonalService(params: {
   communityId: string;
   phones: string[];
   text: string;
+  mediaUrls?: string[];
 }): Promise<WhatsAppSendResult> {
   if (!SERVICE_URL || !SERVICE_SECRET) {
     return {
@@ -118,6 +119,7 @@ async function sendViaPersonalService(params: {
         communityId: params.communityId,
         phones: params.phones,
         text: params.text,
+        mediaUrls: params.mediaUrls ?? [],
       }),
       signal: AbortSignal.timeout(60_000),
     });
@@ -180,9 +182,10 @@ async function sendViaPersonalService(params: {
 async function sendViaCloudApi(params: {
   phones: string[];
   text: string;
+  mediaUrls?: string[];
   creds: WhatsAppCredentials;
 }): Promise<WhatsAppSendResult> {
-  const { phones, text, creds } = params;
+  const { phones, text, mediaUrls = [], creds } = params;
 
   if (!creds.token || !creds.phoneNumberId) {
     return {
@@ -201,12 +204,20 @@ async function sendViaCloudApi(params: {
   const errors: string[] = [];
 
   for (const to of phones) {
+    const mediaUrl = mediaUrls[0];
     const body = creds.templateName
       ? {
           messaging_product: "whatsapp",
           to,
           type: "template",
           template: { name: creds.templateName, language: { code: creds.templateLanguage } },
+        }
+      : mediaUrl
+      ? {
+          messaging_product: "whatsapp",
+          to,
+          type: "image",
+          image: { link: mediaUrl, caption: text || undefined },
         }
       : {
           messaging_product: "whatsapp",
@@ -252,6 +263,7 @@ export async function sendWhatsAppMessages(params: {
   communityId: string;
   phones: string[];
   text: string;
+  mediaUrls?: string[];
   admin?: Admin;
 }): Promise<WhatsAppSendResult> {
   const admin = params.admin ?? createAdminClient();
@@ -266,8 +278,8 @@ export async function sendWhatsAppMessages(params: {
   const creds = await getWhatsAppCredentials(admin, params.communityId);
 
   if (creds.mode === "personal") {
-    return sendViaPersonalService({ communityId: params.communityId, phones, text: params.text });
+    return sendViaPersonalService({ communityId: params.communityId, phones, text: params.text, mediaUrls: params.mediaUrls });
   }
 
-  return sendViaCloudApi({ phones, text: params.text, creds });
+  return sendViaCloudApi({ phones, text: params.text, mediaUrls: params.mediaUrls, creds });
 }

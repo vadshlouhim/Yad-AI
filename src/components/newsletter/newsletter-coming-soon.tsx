@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BellRing, CalendarClock, Mail, Sparkles, X } from "lucide-react";
 import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
 import { Button } from "@/components/ui/button";
+import { AGENT_IMAGE_URLS } from "@/lib/agents";
 
 const features = [
   { icon: Sparkles, label: "Contenu IA", detail: "Vos événements et vos photos deviennent une newsletter prête à relire." },
@@ -11,8 +12,7 @@ const features = [
   { icon: BellRing, label: "Validation avant envoi", detail: "Recevez un rappel pour vérifier l'email avant son départ automatique." },
 ];
 
-const LEVIK_NEWSLETTER_IMAGE =
-  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Levik%20Email.webp";
+const LEVIK_NEWSLETTER_IMAGE = AGENT_IMAGE_URLS.tsemah;
 
 export function NewsletterComingSoon() {
   const [open, setOpen] = useState(true);

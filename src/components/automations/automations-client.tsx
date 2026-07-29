@@ -454,6 +454,21 @@ export function AutomationsClient({ automations, recentRuns, embedded = false, r
     router.replace(params.toString() ? `/dashboard/automations?${params.toString()}` : "/dashboard/automations", { scroll: false });
   }, [requiresValidationDefault, router, searchParams]);
 
+  useEffect(() => {
+    const automationId = searchParams.get("edit");
+    if (!automationId) return;
+    const automation = automations.find((item) => item.id === automationId);
+    if (!automation) return;
+
+    setForm(formFromAutomation(automation));
+    setFormOpen(true);
+    setFeedback(null);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("edit");
+    router.replace(params.toString() ? `/dashboard/automations?${params.toString()}` : "/dashboard/automations", { scroll: false });
+  }, [automations, router, searchParams]);
+
   function IosAutomationSwitch({
     active,
     loading,

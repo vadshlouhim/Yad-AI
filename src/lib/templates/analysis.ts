@@ -9,7 +9,7 @@ const openrouter = new OpenAI({
 export interface TemplateVisualElementSuggestion {
   id: string;
   label: string;
-  kind: "text" | "visual";
+  kind: "text";
   question: string;
   currentValueHint?: string | null;
 }
@@ -37,14 +37,12 @@ function fallbackAnalysis(category: string): TemplateVisualAnalysis {
       { id: "teacher", label: "Intervenant", kind: "text", question: "Qui donne le cours ?" },
       { id: "schedule", label: "Jour et heure", kind: "text", question: "Pour quel jour et quelle heure veux-tu annoncer le cours ?" },
       { id: "location", label: "Lieu", kind: "text", question: "Où le cours a-t-il lieu ?" },
-      { id: "main_visual", label: "Visuel principal", kind: "visual", question: "Souhaites-tu garder le visuel principal ou le remplacer ?" },
     ],
     EVENT: [
       { id: "event_name", label: "Titre principal", kind: "text", question: "Quel est le titre principal à mettre sur l'affiche ?" },
       { id: "date_time", label: "Date et heure", kind: "text", question: "Quelle date et quelle heure veux-tu afficher ?" },
       { id: "location", label: "Lieu", kind: "text", question: "Quel lieu doit apparaître sur l'affiche ?" },
       { id: "cta", label: "Appel à l'action", kind: "text", question: "Quel appel à l'action veux-tu afficher ?" },
-      { id: "main_visual", label: "Visuel principal", kind: "visual", question: "Souhaites-tu garder le visuel principal ou le remplacer ?" },
     ],
   };
 
@@ -54,7 +52,7 @@ function fallbackAnalysis(category: string): TemplateVisualAnalysis {
       { id: "title", label: "Titre principal", kind: "text", question: "Quel titre veux-tu afficher ?" },
       { id: "date", label: "Date", kind: "text", question: "Quelle date faut-il afficher ?" },
       { id: "location", label: "Lieu", kind: "text", question: "Quel lieu faut-il afficher ?" },
-      { id: "main_visual", label: "Visuel principal", kind: "visual", question: "Souhaites-tu garder le visuel principal ou le remplacer ?" },
+      { id: "details", label: "Informations complémentaires", kind: "text", question: "Quel texte complémentaire faut-il afficher ?" },
     ],
   };
 }
@@ -79,9 +77,9 @@ Contexte :
 - Demande utilisateur : ${userRequest ?? "Non précisée"}
 
 Objectif :
-- identifier les éléments visibles qu'un utilisateur voudra probablement personnaliser
-- proposer surtout les textes à remplacer
-- ajouter les éléments visuels remplaçables seulement s'ils sont clairement identifiables (photo intervenant, visuel héros, encart photo, bandeau fort, etc.)
+- identifier uniquement les espaces textuels libres prévus pour recevoir un nouveau texte
+- ne jamais proposer de remplacer un texte, une photo, un logo, une illustration ou un objet déjà intégré au fond
+- formuler des questions qui demandent un texte exact sans le suggérer, le corriger ou le reformuler
 - les questions doivent être courtes, concrètes et directement exploitables par un assistant
 ${POSTER_ANALYSIS_RULES}
 
@@ -132,7 +130,7 @@ Format :
       elements?: Array<{
         id?: string;
         label?: string;
-        kind?: "text" | "visual";
+        kind?: "text";
         question?: string;
         currentValueHint?: string | null;
       }>;
@@ -144,7 +142,7 @@ Format :
       .map((element, index) => ({
         id: sanitizeElementId(element.id ?? element.label ?? "", index),
         label: element.label ?? `Élément ${index + 1}`,
-        kind: element.kind === "visual" ? "visual" : "text",
+        kind: "text",
         question: element.question ?? "Que veux-tu modifier sur cet élément ?",
         currentValueHint: element.currentValueHint ?? null,
       }));

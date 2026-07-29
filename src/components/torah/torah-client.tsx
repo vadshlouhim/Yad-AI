@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { BookOpen, Check, ChevronDown, Clock3, Copy, FileDown, Loader2, ScrollText, Sparkles, X } from "lucide-react";
+import Link from "next/link";
+import { BookOpen, Check, ChevronDown, Clock3, Copy, FileDown, Loader2, ScrollText, Share2, Sparkles, X } from "lucide-react";
 import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { AGENT_IMAGE_URLS } from "@/lib/agents";
 import { downloadTorahCoursePdf } from "@/lib/torah-pdf";
 
 type TorahDuration = "5 minutes" | "10 minutes" | "15 minutes" | "30 minutes" | "Plus de 45 minutes";
@@ -22,8 +24,7 @@ interface TorahGenerationResult {
 }
 
 const DURATIONS: TorahDuration[] = ["5 minutes", "10 minutes", "15 minutes", "30 minutes", "Plus de 45 minutes"];
-const SHMOUEL_TORAH_IMAGE =
-  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Shmouel%20Torah.webp";
+const SHMOUEL_TORAH_IMAGE = AGENT_IMAGE_URLS.shmouel;
 const DEFAULT_AUTHORIZED_SOURCES = ["chabad.org", "loubavitch.fr", "sefaria.org"];
 
 export function TorahClient() {
@@ -327,6 +328,15 @@ export function TorahClient() {
                   )}
                 </div>
               )}
+
+              <section className="mt-8 flex justify-end border-t border-teal-100 pt-6" aria-label="Partager ce cours">
+                <Button asChild className="bg-teal-700 text-white hover:bg-teal-800">
+                  <Link href="/dashboard/social-networks">
+                    <Share2 className="size-4" />
+                    Partager sur les reseaux
+                  </Link>
+                </Button>
+              </section>
             </CardContent>
           </Card>
         </div>,

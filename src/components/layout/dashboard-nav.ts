@@ -359,10 +359,10 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
     {
       key: "social",
       section: "RESEAUX SOCIAUX",
-      subtitle: "Publiez et planifiez vos réseaux avec Dov Ber, Mendy et Israel",
+      subtitle: "Publiez et planifiez vos réseaux depuis un seul espace",
       icon: Share2,
       items: [
-        { href: "/dashboard/social-networks", label: "Tous mes réseaux", icon: Share2, badge: "Bientôt disponible" },
+        { href: "/dashboard/social-networks", label: "Publier sur tous mes réseaux", icon: Share2 },
         { href: "/dashboard/instagram", label: "Instagram", icon: InstagramIcon },
         { href: "/dashboard/facebook", label: "Facebook", icon: FacebookIcon },
         { href: "/dashboard/whatsapp", label: "WhatsApp", icon: WhatsAppIcon },
@@ -371,11 +371,12 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
     },
     {
       key: "automations",
-      section: "PUBLICATIONS AUTOMATIQUES",
-      subtitle: "Automatisez vos publications avec David",
+      section: "CONTENUS AUTOMATIQUES",
+      subtitle: "",
       icon: CalendarRange,
       items: [
         { href: "/dashboard/shabbat-times-auto", label: "Horaires de Chabbat", icon: Clock3 },
+        { href: "/dashboard/hayom-yom-sefer-hamitsvot", label: "Sefer Hamitsvot / Hayom Yom", icon: BookOpen, badge: "Bientôt disponible" },
         { href: "/dashboard/jewish-holidays-auto", label: "Fetes juives et Hassidiques", icon: Gift },
         { href: "/dashboard/event-reminders-auto", label: "Automatisation J-10 / J-5", icon: CalendarClock },
         { href: "/dashboard/event-recap-auto", label: "Recap automatique apres evenement", icon: Camera },
@@ -401,7 +402,7 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       icon: BookOpen,
       items: [
         { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
-        { href: "/dashboard/community-library", label: "Bibliotheque communautaire", icon: Library },
+        { href: "/dashboard/community-library", label: "Bibliothèque partagée", icon: Library },
       ],
     },
     {
@@ -426,7 +427,7 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
     {
       key: "visuals",
       section: "AFFICHES & VISUELS",
-      subtitle: "Personnalisez et creez vos visuels avec Zalman",
+      subtitle: "Personnalisez et creez vos visuels",
       icon: Image,
       items: [
         { href: "/dashboard/templates", label: "Affiches & visuels", icon: Image },
@@ -476,7 +477,7 @@ export const QUICK_ACCESS_ITEMS = [
   { href: "/dashboard/assistant", label: "Agents intelligents", icon: Bot },
   { href: "/dashboard/overview", label: "Tableau de bord", icon: House },
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell, notification: true },
-  { href: "/dashboard/events", label: "Mon agenda", icon: CalendarDays },
+  { href: "/dashboard/events", label: "Mon Agenda", icon: CalendarDays },
 ] as const;
 
 export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
@@ -488,7 +489,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     section: "RESEAUX SOCIAUX",
     items: [
       { href: "/dashboard/automations", label: "Automatisations", icon: Zap },
-      { href: "/dashboard/social-networks", label: "Tous mes réseaux", icon: Share2, badge: "Bientôt disponible" },
+      { href: "/dashboard/social-networks", label: "Publier sur tous mes réseaux", icon: Share2 },
       { href: "/dashboard/whatsapp", label: "WhatsApp", icon: WhatsAppIcon },
       { href: "/dashboard/instagram", label: "Instagram", icon: InstagramIcon },
       { href: "/dashboard/facebook", label: "Facebook", icon: FacebookIcon },
@@ -498,14 +499,14 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "ASSISTANT PERSONNEL",
     items: [
-      { href: "/dashboard/events", label: "Mon agenda", icon: CalendarDays },
+      { href: "/dashboard/events", label: "Mon Agenda", icon: CalendarDays },
     ],
   },
   {
     section: "COURS DE TORAH",
     items: [
       { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
-      { href: "/dashboard/community-library", label: "Bibliothèque communautaire", icon: Library },
+      { href: "/dashboard/community-library", label: "Bibliothèque partagée", icon: Library },
     ],
   },
   {
@@ -565,7 +566,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
 export const MOBILE_PRIMARY_NAV: DashboardNavItem[] = [
   { href: "/dashboard/overview", label: "Accueil", icon: House },
   { href: "/dashboard/assistant", label: "Agents IA", icon: Sparkles },
-  { href: "/dashboard/events", label: "Mon agenda", icon: CalendarDays },
+  { href: "/dashboard/events", label: "Mon Agenda", icon: CalendarDays },
   { href: "/dashboard/settings", label: "Reglages", icon: Settings2 },
 ];
 
@@ -575,7 +576,7 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     icon: Share2,
     items: [
       { href: "/dashboard/automations", label: "Automatisations", icon: Zap },
-      { href: "/dashboard/social-networks", label: "Tous mes réseaux", icon: Share2, badge: "Bientôt disponible" },
+      { href: "/dashboard/social-networks", label: "Publier sur tous mes réseaux", icon: Share2 },
       { href: "/dashboard/whatsapp", label: "WhatsApp", icon: WhatsAppIcon },
       { href: "/dashboard/instagram", label: "Instagram", icon: InstagramIcon },
       { href: "/dashboard/facebook", label: "Facebook", icon: FacebookIcon },
@@ -650,7 +651,7 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     icon: BookOpen,
     items: [
       { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
-      { href: "/dashboard/community-library", label: "Bibliothèque communautaire", icon: Library },
+      { href: "/dashboard/community-library", label: "Bibliothèque partagée", icon: Library },
     ],
   },
   {

@@ -50,7 +50,7 @@ export function AgentPageBanner({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-[1.75rem] p-5 text-white shadow-[0_24px_70px_-34px_rgba(15,23,42,0.55)] sm:p-7",
+        "relative mx-auto w-full max-w-6xl overflow-hidden rounded-[1.75rem] p-5 text-white shadow-[0_24px_70px_-34px_rgba(15,23,42,0.55)] sm:p-7",
         flat
           ? tone === "teal-dark"
             ? "bg-[#063c37]"
@@ -67,14 +67,14 @@ export function AgentPageBanner({
       <div className="pointer-events-none absolute -right-12 -top-16 size-56 rounded-full bg-white/10 blur-3xl" aria-hidden />
       <div className="pointer-events-none absolute -bottom-20 left-10 size-52 rounded-full bg-white/10 blur-3xl" aria-hidden />
 
-      <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+      <div className="relative grid gap-6 text-center lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:text-left">
         <div className="max-w-3xl">
-          <div className="mb-4 h-1.5 w-12 rounded-full bg-white/80" />
+          <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/80 lg:mx-0" />
           <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-white/90">
             <Icon className="size-3.5" />
             {eyebrow}
           </div>
-          <h1 className="mt-3 flex flex-wrap items-center gap-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
+          <h1 className="mt-3 flex flex-wrap items-center justify-center gap-3 text-3xl font-black tracking-tight text-white sm:text-4xl lg:justify-start">
             {title}
             {TitleIcon ? (
               <span className="animate-home-float inline-flex size-11 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-white shadow-lg shadow-rose-950/20 sm:size-12" aria-hidden="true">
@@ -82,7 +82,7 @@ export function AgentPageBanner({
               </span>
             ) : null}
           </h1>
-          <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-white/85 sm:text-base">{description}</p>
+          <p className="mx-auto mt-3 max-w-2xl text-sm font-medium leading-6 text-white/85 sm:text-base lg:mx-0">{description}</p>
 
           {stats && stats.length > 0 ? (
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -97,7 +97,7 @@ export function AgentPageBanner({
         </div>
 
         {imageUrl || bubbleTitle || bubbleText ? (
-          <div className="relative flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:min-w-[25rem]">
+          <div className="relative flex flex-col items-center gap-4 lg:min-w-[25rem] lg:flex-row lg:justify-center">
             {imageUrl ? (
               <div className="relative z-10 shrink-0">
                 <Image
@@ -112,7 +112,7 @@ export function AgentPageBanner({
             ) : null}
 
             {(bubbleTitle || bubbleText) ? (
-              <div className="relative max-w-sm rounded-2xl bg-white px-5 py-4 text-sm leading-6 text-slate-700 shadow-xl before:absolute before:-top-2 before:left-10 before:size-4 before:rotate-45 before:bg-white sm:before:-left-2 sm:before:top-10">
+              <div className="relative max-w-sm rounded-2xl bg-white px-5 py-4 text-sm leading-6 text-slate-700 shadow-xl before:absolute before:-top-2 before:left-1/2 before:size-4 before:-translate-x-1/2 before:rotate-45 before:bg-white lg:before:-left-2 lg:before:top-10 lg:before:translate-x-0">
                 {bubbleTitle ? <p className={cn("font-black text-[#421388]", bubbleTitleClassName)}>{bubbleTitle}</p> : null}
                 {bubbleText ? <p className="mt-1 font-semibold text-slate-600">{bubbleText}</p> : null}
               </div>

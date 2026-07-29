@@ -7,7 +7,12 @@
     "whatsapp": "node whatsapp-service/index.js",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:check-target": "tsx scripts/check-supabase-target.ts",
+    "db:migrate:safe": "npm run db:check-target && prisma migrate deploy",
+    "test:admin-templates": "tsx scripts/test-admin-templates.ts",
+    "test:posters": "tsx scripts/test-poster-composition.ts",
+    "test:posters:vision": "tsx scripts/test-poster-vision.ts"
   },
   "dependencies": {
     "@fal-ai/client": "^1.10.0",

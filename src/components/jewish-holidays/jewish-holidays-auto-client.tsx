@@ -4,11 +4,14 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft,
-  ArrowRight,
   Bell,
+  CheckCircle2,
   ChevronDown,
+  Gift,
   ImageIcon,
   MessageSquare,
+  Paintbrush,
+  AlertTriangle,
   Send,
   Sparkles,
   Wand2,
@@ -27,6 +30,15 @@ import {
   type HolidayItem,
 } from "@/lib/automation/jewish-holidays";
 import type { Json } from "@/types/database.types";
+
+const HOLIDAYS_AGENT_IMAGE_URL =
+  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Presatntaion.webp";
+
+const SOCIAL_NETWORKS = [
+  { type: "FACEBOOK", label: "Facebook", href: "/dashboard/settings/channels", tone: "text-[#2364d2]", surface: "bg-blue-50", border: "border-blue-200" },
+  { type: "INSTAGRAM", label: "Instagram", href: "/dashboard/settings/channels", tone: "text-[#d12d7e]", surface: "bg-pink-50", border: "border-pink-200" },
+  { type: "WHATSAPP", label: "WhatsApp", href: "/dashboard/settings/channels", tone: "text-[#128153]", surface: "bg-emerald-50", border: "border-emerald-200" },
+] as const;
 
 type Template = {
   id: string;
@@ -58,6 +70,7 @@ type Channel = {
   type: string;
   isActive: boolean;
   isConnected: boolean;
+  settings: Json | null;
   pageId: string | null;
   handle: string | null;
 };
@@ -103,7 +116,6 @@ type Props = {
   community: Community;
   holidays: HolidayItem[];
   nextHoliday: HolidayItem | null;
-  templates: Template[];
   allTemplates: Template[];
   initialAutomation: InitialAutomation;
   channels: Channel[];
@@ -120,6 +132,11 @@ const paletteOptions = [
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function isChannelConnected(channel: Channel | undefined) {
+  if (!channel) return false;
+  return channel.isConnected || (channel.type === "WHATSAPP" && isRecord(channel.settings) && channel.settings.mode === "personal");
 }
 
 function getPosterConfig(automation: InitialAutomation): PosterConfig {
@@ -147,6 +164,40 @@ function TemplateImage({ template }: { template: Template }) {
       className="h-full w-full object-cover"
       onError={() => setImageSource(imageSource === template.thumbnailUrl ? null : template.thumbnailUrl)}
     />
+  );
+}
+
+function TemplateOption({
+  template,
+  featured = false,
+  onSelect,
+}: {
+  template: Template;
+  featured?: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "group overflow-hidden rounded-xl border bg-white p-1 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+        featured ? "border-violet-400 ring-2 ring-violet-200/70" : "border-slate-200 hover:border-violet-400"
+      )}
+    >
+      <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-slate-100">
+        <TemplateImage template={template} />
+        {featured ? (
+          <span className="absolute left-2 top-2 rounded-md bg-violet-700 px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-white shadow-sm">
+            A la une
+          </span>
+        ) : null}
+      </div>
+      <div className="space-y-1 px-3 py-3">
+        <p className="line-clamp-2 text-sm font-bold text-slate-950">{template.name}</p>
+        <p className="truncate text-xs font-semibold uppercase tracking-[0.12em] text-violet-600">{template.subCategory ?? "Modèle lié"}</p>
+      </div>
+    </button>
   );
 }
 
@@ -216,7 +267,6 @@ export function JewishHolidaysAutoClient({
   community,
   holidays,
   nextHoliday,
-  templates,
   allTemplates,
   initialAutomation,
   channels,
@@ -258,10 +308,39 @@ export function JewishHolidaysAutoClient({
 
   const isPaid = community.plan !== "FREE_TRIAL";
   const [showWelcome, setShowWelcome] = useState(false);
-  const activeTemplates = selectedHoliday
-    ? allTemplates.filter((template) => templateMatchesHoliday(template, selectedHoliday))
-    : templates;
-  const selectedTemplate = activeTemplates.find((template) => template.id === selectedTemplateId) ?? null;
+  const channelsByType = useMemo(() => new Map(channels.map((channel) => [channel.type, channel])), [channels]);
+  const selectedDisconnectedNetworks = SOCIAL_NETWORKS
+    .filter((network) => selectedChannels.includes(network.type) && !isChannelConnected(channelsByType.get(network.type)))
+    .map((network) => network.label);
+  const orderedTemplates = useMemo(() => {
+    return [...allTemplates].sort((left, right) => {
+      if (left.usageCount !== right.usageCount) return right.usageCount - left.usageCount;
+      return left.name.localeCompare(right.name, "fr");
+    });
+  }, [allTemplates]);
+  const featuredTemplates = useMemo(
+    () => nextHoliday ? orderedTemplates.filter((template) => templateMatchesHoliday(template, nextHoliday)) : [],
+    [nextHoliday, orderedTemplates]
+  );
+  const calendarTemplateSections = useMemo(() => {
+    const displayedTemplateIds = new Set(featuredTemplates.map((template) => template.id));
+    const sections = holidays
+      .filter((holiday) => holiday.id !== nextHoliday?.id)
+      .map((holiday) => {
+        const templates = orderedTemplates.filter((template) =>
+          !displayedTemplateIds.has(template.id) && templateMatchesHoliday(template, holiday)
+        );
+        templates.forEach((template) => displayedTemplateIds.add(template.id));
+        return { holiday, templates };
+      })
+      .filter((section) => section.templates.length > 0);
+
+    return {
+      sections,
+      otherTemplates: orderedTemplates.filter((template) => !displayedTemplateIds.has(template.id)),
+    };
+  }, [featuredTemplates, holidays, nextHoliday, orderedTemplates]);
+  const selectedTemplate = allTemplates.find((template) => template.id === selectedTemplateId) ?? null;
   const nextNotificationDate = selectedHoliday ? getNotificationDate(selectedHoliday.firstEveningDate, daysBefore) : null;
 
   function requirePaid() {
@@ -382,6 +461,14 @@ export function JewishHolidaysAutoClient({
 
   async function activate() {
     if (requirePaid()) return;
+    if (selectedChannels.length === 0) {
+      setError("Sélectionnez au moins un réseau avant d'activer l'automatisation.");
+      return;
+    }
+    if (selectedDisconnectedNetworks.length > 0) {
+      setError(`Connectez d'abord : ${selectedDisconnectedNetworks.join(", ")}.`);
+      return;
+    }
     const saved = await saveToApi({
       mode: "activate",
       palette,
@@ -417,6 +504,10 @@ export function JewishHolidaysAutoClient({
 
   async function publish() {
     if (requirePaid()) return;
+    if (selectedDisconnectedNetworks.length > 0) {
+      setError(`Connectez d'abord : ${selectedDisconnectedNetworks.join(", ")}.`);
+      return;
+    }
     setPublishing(true);
     setError("");
     try {
@@ -462,32 +553,75 @@ export function JewishHolidaysAutoClient({
           </div>
         </div>
 
-        {activeTemplates.length > 0 ? (
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {activeTemplates.map((template) => (
-              <button
-                key={template.id}
-                type="button"
-                onClick={() => void chooseTemplate(template, "template")}
-                className="group overflow-hidden rounded-xl border border-slate-200 bg-white p-1 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-400 hover:shadow-md"
-              >
-                <div className="relative aspect-square overflow-hidden rounded-lg bg-slate-100">
-                  <TemplateImage template={template} />
-                </div>
-                <div className="space-y-1 px-3 py-3">
-                  <p className="line-clamp-2 text-sm font-bold text-slate-950">{template.name}</p>
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-violet-600">{template.subCategory ?? "Modèle lié"}</p>
-                  <span className="mt-2 inline-flex items-center gap-2 text-sm font-bold text-violet-700">
-                    Choisir ce modèle <ArrowRight className="size-4 transition group-hover:translate-x-1" />
+        {orderedTemplates.length > 0 ? (
+          <div className="space-y-10">
+            <section className="border-y border-violet-200 bg-violet-50/70 px-4 py-6 sm:px-6">
+              <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex size-10 items-center justify-center rounded-xl bg-violet-700 text-white shadow-sm">
+                    <Gift className="size-5" />
                   </span>
+                  <div>
+                    <h2 className="text-xl font-black text-slate-950">Affiches pour la fête à venir</h2>
+                    <p className="mt-1 text-sm font-semibold text-violet-800">
+                      {nextHoliday ? `${nextHoliday.officialName} - ${nextHoliday.dateLabel}` : "La prochaine fête sera affichée ici."}
+                    </p>
+                  </div>
                 </div>
-              </button>
-            ))}
-          </section>
+                {featuredTemplates.length > 0 ? (
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-violet-700 shadow-sm">
+                    {featuredTemplates.length} affiche{featuredTemplates.length > 1 ? "s" : ""}
+                  </span>
+                ) : null}
+              </div>
+
+              {featuredTemplates.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {featuredTemplates.map((template) => (
+                    <TemplateOption key={template.id} template={template} featured onSelect={() => void chooseTemplate(template, "template")} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm font-medium text-slate-600">Aucune affiche n&apos;est encore associée à cette fête. Les autres modèles restent disponibles ci-dessous.</p>
+              )}
+            </section>
+
+            <section className="space-y-8">
+              <div>
+                <h2 className="text-xl font-black text-slate-950">Toutes les autres affiches</h2>
+                <p className="mt-1 text-sm text-slate-500">Classées selon les prochaines dates du calendrier juif.</p>
+              </div>
+
+              {calendarTemplateSections.sections.map(({ holiday, templates }) => (
+                <section key={holiday.id} className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0">
+                  <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+                    <h3 className="text-lg font-black text-slate-950">{holiday.officialName}</h3>
+                    <span className="text-sm font-semibold text-slate-500">{holiday.dateLabel}</span>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {templates.map((template) => (
+                      <TemplateOption key={template.id} template={template} onSelect={() => void chooseTemplate(template, "template")} />
+                    ))}
+                  </div>
+                </section>
+              ))}
+
+              {calendarTemplateSections.otherTemplates.length > 0 ? (
+                <section className="border-t border-slate-200 pt-5">
+                  <h3 className="text-lg font-black text-slate-950">Autres affiches</h3>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {calendarTemplateSections.otherTemplates.map((template) => (
+                      <TemplateOption key={template.id} template={template} onSelect={() => void chooseTemplate(template, "template")} />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+            </section>
+          </div>
         ) : (
           <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
             <ImageIcon className="mx-auto size-12 text-slate-300" />
-            <h2 className="mt-4 text-2xl font-bold text-slate-950">Aucun modèle disponible pour cette fête</h2>
+            <h2 className="mt-4 text-2xl font-bold text-slate-950">Aucune affiche disponible pour le moment</h2>
             <Button asChild type="button" size="xl" className="mt-6 bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]">
               <Link href="/dashboard/templates">
                 Voir tous les visuels
@@ -598,30 +732,58 @@ export function JewishHolidaysAutoClient({
 
             <div className="grid gap-4">
               <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <h2 className="text-lg font-bold text-slate-950">Réseaux sociaux</h2>
-                <div className="mt-4 space-y-2">
-                  {channels.map((channel) => (
-                    <label key={channel.id} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
-                      <span className="flex items-center gap-3">
-                        <ChannelLogo type={channel.type} />
-                        <span>
-                        <span className="font-bold text-slate-900">{channel.name || channel.type}</span>
-                        <span className={cn("ml-2 text-xs", channel.isConnected ? "text-emerald-600" : "text-amber-600")}>
-                          {channel.isConnected ? "Connecté" : "Non connecté"}
-                        </span>
-                        </span>
-                      </span>
-                      <input
-                        type="checkbox"
-                        checked={selectedChannels.includes(channel.type)}
-                        onChange={(event) => {
-                          setSelectedChannels((current) => event.target.checked
-                            ? [...new Set([...current, channel.type])]
-                            : current.filter((item) => item !== channel.type));
-                        }}
-                      />
-                    </label>
-                  ))}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-950">Réseaux sociaux</h2>
+                    <p className="mt-1 text-sm text-slate-500">Choisissez les réseaux qui recevront vos visuels de fêtes.</p>
+                  </div>
+                  <Link href="/dashboard/settings/channels" className="text-xs font-black text-violet-700 transition hover:text-violet-900">
+                    Gérer les connexions
+                  </Link>
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  {SOCIAL_NETWORKS.map((network) => {
+                    const channel = channelsByType.get(network.type);
+                    const connected = isChannelConnected(channel);
+                    const selected = selectedChannels.includes(network.type);
+
+                    return (
+                      <article
+                        key={network.type}
+                        className={cn(
+                          "overflow-hidden rounded-xl border bg-white p-4 shadow-sm transition",
+                          selected ? `${network.border} ${network.surface}` : "border-slate-200 hover:border-slate-300"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <span className={cn("flex size-10 items-center justify-center rounded-xl bg-white shadow-sm", network.tone)}>
+                            <ChannelLogo type={network.type} />
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={(event) => {
+                              setSelectedChannels((current) => event.target.checked
+                                ? [...new Set([...current, network.type])]
+                                : current.filter((item) => item !== network.type));
+                            }}
+                            className="mt-1 size-4 cursor-pointer accent-violet-700"
+                            aria-label={`Sélectionner ${network.label}`}
+                          />
+                        </div>
+                        <p className="mt-3 text-sm font-black text-slate-950">{channel?.name || network.label}</p>
+                        <p className={cn("mt-1 inline-flex items-center gap-1 text-xs font-bold", connected ? "text-emerald-700" : "text-amber-700")}>
+                          {connected ? <CheckCircle2 className="size-3.5" /> : <AlertTriangle className="size-3.5" />}
+                          {connected ? "Connecté" : "Connexion requise"}
+                        </p>
+                        <div className="mt-4 border-t border-slate-900/5 pt-3">
+                          <Link href={network.href} className={cn("text-xs font-black transition hover:opacity-70", network.tone)}>
+                            {connected ? "Paramètres" : "Connecter le compte"}
+                          </Link>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -700,7 +862,7 @@ export function JewishHolidaysAutoClient({
             <div className="mt-8 flex flex-col gap-3">
               <Button type="button" size="xl" className="w-full bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" disabled={!nextHoliday} onClick={() => void beginConfiguration()}>
                 <Sparkles className="size-5" />
-                Commencer la configuration →
+                Publiez les Horaires et visuels de fêtes →
               </Button>
               <Button type="button" variant="outline" className="w-full" onClick={() => setShowWelcome(false)}>
                 Découvrir d&apos;abord
@@ -719,8 +881,16 @@ export function JewishHolidaysAutoClient({
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="relative">
             <div className="mb-6 h-1.5 w-12 rounded-full bg-white/80" />
-            <h1 className="text-4xl font-bold tracking-tight">Fêtes juives et Hassidiques</h1>
-            <p className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-violet-100">Visuels automatique</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex h-11 items-end gap-1.5 rounded-xl border border-white/15 bg-white/10 px-2.5 pb-2 pt-1.5 shadow-inner shadow-white/10" role="img" aria-label="Trois bougies de Chabbat et un pinceau">
+                <span className="relative block h-6 w-2.5 rounded-sm bg-amber-100 shadow-[0_0_12px_rgba(255,215,128,0.72)] before:absolute before:-top-2 before:left-1/2 before:size-2 before:-translate-x-1/2 before:rounded-full before:bg-orange-300" />
+                <span className="relative block h-4 w-2 rounded-sm bg-amber-100 shadow-[0_0_10px_rgba(255,215,128,0.66)] before:absolute before:-top-1.5 before:left-1/2 before:size-1.5 before:-translate-x-1/2 before:rounded-full before:bg-orange-300" />
+                <span className="relative block h-6 w-2.5 rounded-sm bg-amber-100 shadow-[0_0_12px_rgba(255,215,128,0.72)] before:absolute before:-top-2 before:left-1/2 before:size-2 before:-translate-x-1/2 before:rounded-full before:bg-orange-300" />
+                <Paintbrush className="mb-0.5 ml-0.5 size-4 text-violet-100" />
+              </div>
+              <h1 className="text-4xl font-bold tracking-tight">Fêtes juives et Hassidiques</h1>
+            </div>
+            <p className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-violet-100">Horaires &amp; visuels de Fêtes</p>
           </div>
           <DavidBannerAgent
             className="lg:max-w-2xl"
@@ -750,11 +920,11 @@ export function JewishHolidaysAutoClient({
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
           <Button type="button" size="xl" className="bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" disabled={!nextHoliday} onClick={() => void beginConfiguration()}>
             <Sparkles className="size-5" />
-            Commencer la configuration →
+            Publiez les Horaires et visuels de fêtes →
           </Button>
           <span className="inline-flex size-16 shrink-0 items-center justify-center rounded-2xl bg-white p-1.5 shadow-[0_14px_30px_rgba(66,19,136,0.18)] ring-1 ring-[#421388]/10 animate-install-float">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={DAVID_IMAGE_URL} alt="" className="h-full w-full object-contain object-bottom" />
+            <img src={HOLIDAYS_AGENT_IMAGE_URL} alt="" className="h-full w-full rounded-[0.85rem] object-cover" />
           </span>
           <p className="max-w-md text-sm font-medium leading-6 text-slate-600">
             nous allons configurer cette automatisation ensemble. <strong className="font-black text-slate-950">Allons-y !</strong>

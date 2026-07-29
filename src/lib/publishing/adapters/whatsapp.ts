@@ -23,11 +23,14 @@ export async function publishToWhatsApp(
 ): Promise<PublishResult> {
   const content = formatWhatsAppContent(payload);
   const recipients = await loadOptInRecipients(communityId, content);
-  const phones = recipients
-    .map((r) => r.phone?.replace(/[^\d]/g, "") ?? "")
-    .filter((p) => p.length >= 8);
+  const selectedPhones = Array.isArray(payload.metadata?.whatsappRecipientPhones)
+    ? payload.metadata.whatsappRecipientPhones.filter((value): value is string => typeof value === "string")
+    : [];
+  const phones = selectedPhones.length > 0
+    ? selectedPhones
+    : recipients.map((r) => r.phone?.replace(/[^\d]/g, "") ?? "").filter((p) => p.length >= 8);
 
-  const result = await sendWhatsAppMessages({ communityId, phones, text: content });
+  const result = await sendWhatsAppMessages({ communityId, phones, text: content, mediaUrls: payload.mediaUrls ?? [] });
 
   if (result.sent > 0) {
     return {
@@ -45,7 +48,9 @@ export async function publishToWhatsApp(
       content,
       instructions: buildFallbackInstructions(result, channel.name, recipients.length > 0),
       channelName: channel.name,
-      recipients,
+      recipients: selectedPhones.length > 0
+        ? recipients.filter((recipient) => recipient.phone && selectedPhones.includes(recipient.phone.replace(/[^\d]/g, "")))
+        : recipients,
       deepLink: `https://wa.me/?text=${encodeURIComponent(content)}`,
     },
     error: result.errors[0] ?? "Envoi WhatsApp indisponible",

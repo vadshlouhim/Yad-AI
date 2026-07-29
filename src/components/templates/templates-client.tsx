@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   Sparkles, ArrowLeft, Download, Check,
   Pencil, Crown, ImageIcon, Loader2, Paintbrush, Search, X, Lock,
-  ExternalLink,
+  Type, ShieldCheck, RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AGENT_IMAGE_URLS } from "@/lib/agents";
 import { UpgradeModal } from "@/components/billing/upgrade-modal";
 import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
 import type { BillingConfig, BillingUsage } from "@/lib/billing";
@@ -17,10 +18,13 @@ import {
   CATEGORY_EMOJI,
   CATEGORY_LABELS,
 } from "@/lib/templates/shared";
+import {
+  buildFreePosterTextBlocks,
+  buildStructuredPosterTextBlocks,
+  type PosterInputPriority,
+} from "@/lib/templates/input-blocks";
 
-const CHATGPT_VISUAL_CREATOR_URL =
-  "https://chatgpt.com/g/g-6a57add3a0d08191b66d9d72eac619a7-createur-d-affiches-visuels-by-easycom-ai";
-const ZALMAN_VISUALS_AGENT_IMAGE_URL = "/agents/zalman-visuals-transparent.png";
+const ZALMAN_VISUALS_AGENT_IMAGE_URL = AGENT_IMAGE_URLS.zalman;
 
 // ============================================================
 // TYPES
@@ -50,6 +54,7 @@ interface Template {
   description: string | null;
   category: string;
   subCategory: string | null;
+  originalUrl: string | null;
   thumbnailUrl: string | null;
   previewUrl: string | null;
   design: DesignZone[];
@@ -278,34 +283,6 @@ function getZoneVariableKey(zone: DesignZone): string {
   return zone.variableKey ?? zone.type ?? zone.id;
 }
 
-function formatShabbatAutoValue(shabbatTimes: TemplateShabbatTimes | null): string {
-  if (!shabbatTimes?.entry) return "Entrée : 20h41\nSortie : 21h53";
-  return [
-    shabbatTimes.parasha ? `Paracha : ${shabbatTimes.parasha}` : null,
-    `Entrée : ${shabbatTimes.entry}`,
-    shabbatTimes.exit ? `Sortie : ${shabbatTimes.exit}` : null,
-  ].filter(Boolean).join("\n");
-}
-
-function buildDefaultZoneValue(zone: DesignZone, community: Community, shabbatTimes: TemplateShabbatTimes | null): string {
-  const key = getZoneVariableKey(zone);
-
-  if (key === "BET_DIN_NAME" || key === "ORGANIZATION_NAME") return community.name;
-  if (key === "LOCATION") return community.city ?? community.address ?? zone.defaultText;
-  if (key === "CONTACT") return community.phone ?? community.email ?? community.website ?? zone.defaultText;
-  if (key === "USER_LOGO") return community.logoUrl ?? zone.defaultText;
-  if (key === "TITLE") return community.name;
-  if (key === "SUBTITLE") return community.city ? `Ã€ ${community.city}` : zone.defaultText;
-  if (key === "MESSAGE") return "Shabbat Shalom Ã  tous.";
-  if (key === "SHABBAT_TIMES") return formatShabbatAutoValue(shabbatTimes);
-
-  return zone.defaultText || `{{${key}}}`;
-}
-
-function looksLikeMediaUrl(value: string): boolean {
-  return /^https?:\/\/\S+/i.test(value) || /^data:image\//i.test(value);
-}
-
 function isImageLikeZone(zone: DesignZone): boolean {
   const key = getZoneVariableKey(zone).toUpperCase();
   const type = (zone.type ?? "").toUpperCase();
@@ -318,20 +295,6 @@ function isImageLikeZone(zone: DesignZone): boolean {
     || type.includes("PHOTO")
     || variableType.includes("IMAGE")
     || variableType.includes("PHOTO");
-}
-
-function getZoneDisplayValue(zone: DesignZone, value: string): string {
-  if (isImageLikeZone(zone) && looksLikeMediaUrl(value)) {
-    return "Photo ajoutée";
-  }
-
-  return value;
-}
-
-function buildInitialGeneratedTexts(template: Template, community: Community, shabbatTimes: TemplateShabbatTimes | null): Record<string, string> {
-  return Object.fromEntries(
-    (template.design ?? []).map((zone) => [zone.id, buildDefaultZoneValue(zone, community, shabbatTimes)])
-  );
 }
 
 function TemplateCard({
@@ -402,20 +365,54 @@ function TemplateCard({
 // ============================================================
 
 type Step = "gallery" | "questions" | "preview";
-type AiChatMessage = {
-  role: "user" | "assistant";
-  content: string;
+type InputMode = "structured" | "free";
+type VisualReport = {
+  passed: boolean;
+  score: number;
+  issues: Array<{ code: string; message: string; blockId?: string }>;
 };
+
+const STRUCTURED_FIELDS: Array<{
+  id: string;
+  label: string;
+  role: string;
+  priority: PosterInputPriority;
+  placeholder: string;
+  rows?: number;
+}> = [
+  { id: "title", label: "Titre principal", role: "title", priority: "main", placeholder: "Titre exact" },
+  { id: "date", label: "Date", role: "date", priority: "important", placeholder: "Date exacte" },
+  { id: "time", label: "Heure", role: "time", priority: "important", placeholder: "Heure exacte" },
+  { id: "location", label: "Lieu", role: "location", priority: "important", placeholder: "Nom exact du lieu" },
+  { id: "address", label: "Adresse", role: "address", priority: "complementary", placeholder: "Adresse exacte" },
+  { id: "program", label: "Programme", role: "program", priority: "complementary", placeholder: "Programme exact", rows: 3 },
+  { id: "speaker", label: "Intervenant", role: "speaker", priority: "important", placeholder: "Nom exact" },
+  { id: "contact", label: "Contact", role: "contact", priority: "complementary", placeholder: "Téléphone ou contact exact" },
+  { id: "details", label: "Texte complémentaire", role: "details", priority: "complementary", placeholder: "Texte exact", rows: 3 },
+];
+
+function buildTextBlocks(
+  mode: InputMode,
+  structuredTexts: Record<string, string>,
+  freeText: string,
+){
+  if (mode === "structured") {
+    return buildStructuredPosterTextBlocks(STRUCTURED_FIELDS, structuredTexts);
+  }
+  return buildFreePosterTextBlocks(freeText);
+}
+
+function isLegacyPosterEditorEnabled() {
+  return false;
+}
 
 export function TemplatesClient({
   templates,
-  community,
-  shabbatTimes,
   plan,
   billingConfig,
   billingUsage,
   galleryTitle = "BANQUE D'AFFICHES",
-  gallerySubtitle = "Choisissez parmi plus de 250 affiches prêtes à personnaliser, ajoutez vos informations, puis laissez l'IA adapter le modèle et le publier en un clic.",
+  gallerySubtitle = "Choisissez une affiche, ajoutez vos textes exacts et conservez le design d'origine intact.",
   showGalleryFilters = true,
   emptyTitle = "Aucune affiche trouvée",
   emptyDescription = "Ajuste la recherche ou change de catégorie pour élargir les résultats.",
@@ -426,14 +423,21 @@ export function TemplatesClient({
   const [activeSubCategory, setActiveSubCategory] = useState<string | null>(null);
   const [activeCollection, setActiveCollection] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [inputMode, setInputMode] = useState<InputMode>("structured");
+  const [structuredTexts, setStructuredTexts] = useState<Record<string, string>>({});
+  const [freeText, setFreeText] = useState("");
   const [generatedTexts, setGeneratedTexts] = useState<Record<string, string>>({});
   const [aiChatPrompt, setAiChatPrompt] = useState("");
-  const [aiChatMessages, setAiChatMessages] = useState<AiChatMessage[]>([]);
-  const [aiChatLoading, setAiChatLoading] = useState(false);
+  const [aiChatMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
+  const [aiChatLoading] = useState(false);
+  const [editingZone, setEditingZone] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [rendering, setRendering] = useState(false);
-  const [editingZone, setEditingZone] = useState<string | null>(null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [compositionPlan, setCompositionPlan] = useState<Record<string, unknown> | null>(null);
+  const [visualReport, setVisualReport] = useState<VisualReport | null>(null);
+  const [textHash, setTextHash] = useState<string | null>(null);
+  const [accepted, setAccepted] = useState(false);
   const [imageError, setImageError] = useState("");
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
@@ -501,10 +505,14 @@ export function TemplatesClient({
       return;
     }
     setSelectedTemplate(template);
-    setGeneratedTexts(buildInitialGeneratedTexts(template, community, shabbatTimes));
-    setAiChatPrompt("");
-    setAiChatMessages([]);
+    setInputMode("structured");
+    setStructuredTexts({});
+    setFreeText("");
     setGeneratedImageUrl(null);
+    setCompositionPlan(null);
+    setVisualReport(null);
+    setTextHash(null);
+    setAccepted(false);
     setImageError("");
     setStep("questions");
   }
@@ -520,74 +528,30 @@ export function TemplatesClient({
     setActiveCollection(null);
   }
 
-  async function applyAiChatToVariables() {
+  async function generateImage(requestAnotherLayout = false) {
     if (!selectedTemplate) return;
-    const prompt = aiChatPrompt.trim();
-    if (!prompt) {
-      setImageError("Expliquez Ã  l'assistant ce que vous voulez modifier sur l'affiche.");
+    const textBlocks = buildTextBlocks(inputMode, structuredTexts, freeText);
+    if (!selectedTemplate.originalUrl) {
+      setImageError("Le fichier original de ce template doit être téléversé avant sa personnalisation.");
       return;
     }
-
-    setImageError("");
-    setAiChatLoading(true);
-    setAiChatMessages((previous) => [...previous, { role: "user", content: prompt }]);
-
-    try {
-      const response = await fetch("/api/templates/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          templateId: selectedTemplate.id,
-          answers: {
-            instruction: prompt,
-            valeurs_actuelles: generatedTexts,
-            contexte: "Remplis et rédige les variables de l'affiche. Garde les informations automatiques cohérentes si elles sont déjà évidentes.",
-          },
-        }),
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Impossible de remplir les variables avec l'IA.");
-      }
-
-      const nextTexts = payload.generatedTexts && typeof payload.generatedTexts === "object"
-        ? payload.generatedTexts as Record<string, string>
-        : {};
-
-      const mergedTexts = { ...generatedTexts, ...nextTexts };
-      setGeneratedTexts(mergedTexts);
-      setAiChatPrompt("");
-      setAiChatMessages((previous) => [
-        ...previous,
-        {
-          role: "assistant",
-          content: "J'ai rempli les variables. Je crée maintenant l'affiche finale.",
-        },
-      ]);
-      await generateImage(mergedTexts);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Impossible de remplir les variables avec l'IA.";
-      setImageError(message);
-      setAiChatMessages((previous) => [...previous, { role: "assistant", content: message }]);
-    } finally {
-      setAiChatLoading(false);
-    }
-  }
-
-  async function generateImage(textsOverride?: Record<string, string>) {
-    if (!selectedTemplate) return;
-    if ((selectedTemplate.design ?? []).length === 0) {
-      setImageError("Ce modèle n'a pas encore de zones dynamiques configurées dans l'administration.");
+    if (textBlocks.length === 0) {
+      setImageError("Renseignez au moins un texte exact avant de composer l'affiche.");
       return;
     }
 
     setImageError("");
     setLoading(true);
+    setAccepted(false);
     try {
       const res = await fetch("/api/templates/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId: selectedTemplate.id, generatedTexts: textsOverride ?? generatedTexts }),
+        body: JSON.stringify({
+          templateId: selectedTemplate.id,
+          textBlocks,
+          previousPlan: requestAnotherLayout ? compositionPlan : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -595,12 +559,15 @@ export function TemplatesClient({
           setUpgradeOpen(true);
           return;
         }
-        throw new Error(data.error ?? "Impossible de gÃ©nÃ©rer l'affiche.");
+        throw new Error(data.error ?? "Impossible de générer l'affiche.");
       }
       setGeneratedImageUrl(data.imageUrl);
+      setCompositionPlan(data.plan ?? null);
+      setVisualReport(data.visualReport ?? null);
+      setTextHash(data.textHash ?? null);
       setStep("preview");
     } catch (error) {
-      setImageError(error instanceof Error ? error.message : "Impossible de gÃ©nÃ©rer l'affiche.");
+      setImageError(error instanceof Error ? error.message : "Impossible de générer l'affiche.");
     } finally {
       setLoading(false);
     }
@@ -617,41 +584,15 @@ export function TemplatesClient({
 
   // â”€â”€ TÃ©lÃ©charger l'affiche gÃ©nÃ©rÃ©e â”€â”€
   async function downloadPoster() {
-    if (!selectedTemplate) return;
-
-    // Si une affiche a déjà été générée par l'IA (image), on l'ouvre directement.
-    if (generatedImageUrl) {
-      window.open(generatedImageUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
-
+    if (!generatedImageUrl) return;
     setRendering(true);
-    try {
-      const res = await fetch("/api/templates/render", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          templateId: selectedTemplate.id,
-          generatedTexts,
-        }),
-      });
+    window.open(generatedImageUrl, "_blank", "noopener,noreferrer");
+    setRendering(false);
+  }
 
-      const data = await res.json();
-      if (!res.ok) {
-        if (data.code === "PAYWALL_REQUIRED") {
-          setUpgradeOpen(true);
-          return;
-        }
-        throw new Error(data.error ?? "Impossible de gÃ©nÃ©rer l'affiche");
-      }
-
-      window.open(data.imageUrl, "_blank", "noopener,noreferrer");
-    } catch (error) {
-      console.error(error);
-      alert("Impossible de gÃ©nÃ©rer l'affiche pour le moment.");
-    } finally {
-      setRendering(false);
-    }
+  async function applyAiChatToVariables() {
+    setImageError("La répartition par zones a été remplacée par la composition visuelle automatique.");
+    setAiChatPrompt("");
   }
 
   // ============================================================
@@ -684,7 +625,7 @@ export function TemplatesClient({
             <div className="relative max-w-2xl rounded-[1.25rem] border border-white/80 bg-white/90 p-4 shadow-sm">
               <div className="absolute -right-2 top-8 hidden h-4 w-4 rotate-45 border-r border-t border-white/80 bg-white/90 md:block" />
               <p className="text-sm font-semibold leading-6 text-slate-700">
-                Je suis Zalman, votre agent IA créatif pour personnaliser et créer vos visuels
+                Je suis Zalman, votre agent de composition typographique sur template fixe
               </p>
             </div>
           </div>
@@ -718,16 +659,6 @@ export function TemplatesClient({
         {showGalleryFilters && (
         <Card className="rounded-[1.5rem] border-rose-100 bg-white/95 shadow-[0_18px_48px_-34px_rgba(190,24,93,0.22)]">
           <CardContent className="space-y-5 p-5">
-            <a
-              href={CHATGPT_VISUAL_CREATOR_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 py-2 text-center text-xs font-bold text-rose-800 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-400 hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-100 sm:w-auto"
-            >
-              <Sparkles className="size-3.5" />
-              <span>Vous ne trouvez pas ? Créez une images avec ChatGPT by EasyCom AI</span>
-              <ExternalLink className="size-3.5" />
-            </a>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="relative w-full lg:max-w-md">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
@@ -920,11 +851,249 @@ export function TemplatesClient({
     );
   }
 
+  if (step === "questions" && selectedTemplate) {
+    const textBlocks = buildTextBlocks(inputMode, structuredTexts, freeText);
+
+    return (
+      <div className="mx-auto max-w-5xl space-y-6">
+        <UpgradeModal
+          open={upgradeOpen}
+          onClose={() => setUpgradeOpen(false)}
+          config={billingConfig}
+          featureLabel="Affiches"
+          title="Débloquez toutes les affiches"
+          description="Le mode gratuit permet de modifier une seule affiche."
+        />
+
+        <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
+          <Button variant="ghost" size="icon" onClick={goBack} aria-label="Retour à la galerie">
+            <ArrowLeft className="size-5" />
+          </Button>
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-slate-900">Personnaliser l&apos;affiche</h1>
+            <p className="truncate text-sm text-slate-500">{selectedTemplate.name}</p>
+          </div>
+        </div>
+
+        <div className="grid gap-7 lg:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.28fr)]">
+          <div className="space-y-3">
+            <div className="aspect-[3/4] overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+              <PosterThumbnail template={selectedTemplate} className="h-full w-full object-contain" />
+            </div>
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
+              <ShieldCheck className="size-4 text-emerald-600" />
+              Fond original verrouillé
+            </div>
+            {!selectedTemplate.originalUrl && (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                La source originale doit être téléversée par l&apos;administrateur avant utilisation.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-5">
+            <div className="inline-flex w-full rounded-lg border border-slate-200 bg-slate-100 p-1 sm:w-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setInputMode("structured");
+                  setGeneratedImageUrl(null);
+                  setImageError("");
+                }}
+                className={cn(
+                  "flex-1 rounded-md px-4 py-2 text-sm font-semibold transition sm:flex-none",
+                  inputMode === "structured" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500",
+                )}
+              >
+                Champs structurés
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInputMode("free");
+                  setGeneratedImageUrl(null);
+                  setImageError("");
+                }}
+                className={cn(
+                  "flex-1 rounded-md px-4 py-2 text-sm font-semibold transition sm:flex-none",
+                  inputMode === "free" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500",
+                )}
+              >
+                Texte libre
+              </button>
+            </div>
+
+            {inputMode === "structured" ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {STRUCTURED_FIELDS.map((field) => (
+                  <label
+                    key={field.id}
+                    className={cn("block space-y-1.5", field.rows && "sm:col-span-2")}
+                  >
+                    <span className="text-xs font-semibold uppercase text-slate-500">{field.label}</span>
+                    <textarea
+                      dir="auto"
+                      rows={field.rows ?? 2}
+                      value={structuredTexts[field.id] ?? ""}
+                      onChange={(event) => {
+                        setStructuredTexts((previous) => ({ ...previous, [field.id]: event.target.value }));
+                        setGeneratedImageUrl(null);
+                        setCompositionPlan(null);
+                        setImageError("");
+                      }}
+                      placeholder={field.placeholder}
+                      className="w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
+                    />
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <label className="block space-y-2">
+                <span className="text-xs font-semibold uppercase text-slate-500">Paragraphes exacts</span>
+                <textarea
+                  dir="auto"
+                  rows={14}
+                  value={freeText}
+                  onChange={(event) => {
+                    setFreeText(event.target.value);
+                    setGeneratedImageUrl(null);
+                    setCompositionPlan(null);
+                    setImageError("");
+                  }}
+                  placeholder={"Titre exact\n\nDate et heure exactes\n\nLieu et informations exactes"}
+                  className="w-full resize-y rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-800 outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
+                />
+              </label>
+            )}
+
+            {imageError && (
+              <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {imageError}
+              </p>
+            )}
+
+            <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={goBack}>
+                <ArrowLeft className="mr-2 size-4" />
+                Retour
+              </Button>
+              <Button
+                onClick={() => void generateImage()}
+                disabled={loading || textBlocks.length === 0 || !selectedTemplate.originalUrl}
+                className="bg-rose-700 text-white hover:bg-rose-800"
+              >
+                {loading ? (
+                  <><Loader2 className="mr-2 size-4 animate-spin" /> Analyse et composition...</>
+                ) : (
+                  <><Sparkles className="mr-2 size-4" /> Composer l&apos;affiche</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === "preview" && selectedTemplate && generatedImageUrl) {
+    return (
+      <div className="mx-auto max-w-6xl space-y-6">
+        <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => setStep("questions")} aria-label="Modifier les textes">
+              <ArrowLeft className="size-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900">Aperçu validé</h1>
+              <p className="text-sm text-slate-500">{selectedTemplate.name}</p>
+            </div>
+          </div>
+          {visualReport?.passed && (
+            <div className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
+              <ShieldCheck className="size-4" />
+              Contrôle visuel {Math.round(visualReport.score)}/100
+            </div>
+          )}
+        </div>
+
+        <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-950">
+            <img
+              src={generatedImageUrl}
+              alt={`Affiche personnalisée - ${selectedTemplate.name}`}
+              className="mx-auto max-h-[78vh] w-full object-contain"
+            />
+          </div>
+
+          <aside className="space-y-4">
+            <div className="border-b border-slate-200 pb-4">
+              <p className="text-sm font-semibold text-slate-900">Textes vérifiés</p>
+              <div className="mt-3 space-y-2">
+                {buildTextBlocks(inputMode, structuredTexts, freeText).map((block) => (
+                  <p key={block.id} dir="auto" className="whitespace-pre-wrap text-sm leading-5 text-slate-600">
+                    {block.text}
+                  </p>
+                ))}
+              </div>
+              {textHash && <p className="mt-3 font-mono text-[11px] text-slate-400">Hash {textHash.slice(0, 16)}</p>}
+            </div>
+
+            {accepted ? (
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm font-semibold text-emerald-800">
+                <Check className="size-4" />
+                Affiche acceptée
+              </div>
+            ) : (
+              <Button onClick={() => setAccepted(true)} className="w-full bg-emerald-600 text-white hover:bg-emerald-700">
+                <Check className="mr-2 size-4" />
+                Accepter
+              </Button>
+            )}
+
+            <Button
+              variant="outline"
+              onClick={() => void generateImage(true)}
+              disabled={loading}
+              className="w-full"
+            >
+              {loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <RefreshCw className="mr-2 size-4" />}
+              Autre disposition
+            </Button>
+
+            <Button
+              onClick={downloadPoster}
+              loading={rendering}
+              className="w-full bg-rose-700 text-white hover:bg-rose-800"
+            >
+              <Download className="mr-2 size-4" />
+              Télécharger le PNG
+            </Button>
+
+            <Button variant="ghost" onClick={() => setStep("questions")} className="w-full">
+              Modifier les textes
+            </Button>
+            {imageError && (
+              <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {imageError}
+              </p>
+            )}
+          </aside>
+        </div>
+      </div>
+    );
+  }
+
+  // Legacy markup retained temporarily for data migration, never rendered.
   // ============================================================
   // RENDER - QUESTIONS DE PERSONNALISATION
   // ============================================================
 
-  if (step === "questions" && selectedTemplate) {
+  if (isLegacyPosterEditorEnabled() && step === "questions" && selectedTemplate) {
+    const textZones = (selectedTemplate.design ?? []).filter((zone) => !isImageLikeZone(zone));
+    const hasExactText = textZones.some(
+      (zone) => (generatedTexts[zone.id] ?? "").trim().length > 0
+    );
+
     return (
       <div className="mx-auto max-w-2xl space-y-6">
         <UpgradeModal
@@ -955,12 +1124,16 @@ export function TemplatesClient({
               <div className="aspect-[3/4] overflow-hidden rounded-lg bg-slate-100">
                 <PosterThumbnail
                   template={selectedTemplate}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-contain"
                 />
               </div>
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-slate-900">{selectedTemplate.name}</h3>
+              <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800">
+                <ShieldCheck className="size-3.5" />
+                Template verrouillé
+              </div>
               <div className="flex gap-1.5 mt-2 flex-wrap">
                 {selectedTemplate.tags.map((tag) => (
                   <Badge key={tag} variant="outline" className="text-[10px]">
@@ -972,46 +1145,69 @@ export function TemplatesClient({
           </div>
         </Card>
 
-        {/* Info communauté pré-remplie */}
+        {/* Textes exacts */}
         <Card className="border-rose-100 shadow-sm">
-          <CardContent className="py-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="size-4 text-rose-600" />
-              <p className="text-sm font-semibold text-slate-700">
-                Informations de {community.name} (pré-remplies)
+          <CardContent className="space-y-4 py-5">
+            <div className="flex items-center gap-2">
+              <Type className="size-4 text-rose-600" />
+              <p className="text-sm font-semibold text-slate-800">Textes à ajouter</p>
+            </div>
+
+            {textZones.length > 0 ? (
+              <div className="space-y-4">
+                {textZones.map((zone) => (
+                  <div key={zone.id} className="space-y-1.5">
+                    <label
+                      htmlFor={`poster-zone-${zone.id}`}
+                      className="block text-xs font-semibold uppercase tracking-[0.12em] text-slate-500"
+                    >
+                      {zone.label}
+                    </label>
+                    <textarea
+                      id={`poster-zone-${zone.id}`}
+                      dir="auto"
+                      value={generatedTexts[zone.id] ?? ""}
+                      onChange={(event) => {
+                        setGeneratedTexts((previous) => ({
+                          ...previous,
+                          [zone.id]: event.target.value,
+                        }));
+                        setGeneratedImageUrl(null);
+                        setImageError("");
+                      }}
+                      placeholder="Texte exact"
+                      rows={2}
+                      className="min-h-16 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                Cet éditeur historique est désactivé.
               </p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
-              {community.city && <p>📍 {community.city}</p>}
-              {community.phone && <p>📞 {community.phone}</p>}
-              {community.email && <p>📧 {community.email}</p>}
-              {community.website && <p>🌐 {community.website}</p>}
-            </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Assistant IA */}
+        {/* Répartition optionnelle */}
+        {textZones.length > 0 && (
         <Card className="border-rose-100 bg-rose-50/70 shadow-sm">
           <CardContent className="space-y-4 py-5">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-rose-800">
-                <Sparkles className="size-3.5" />
-                Assistant IA
-              </div>
-              <p className="text-sm font-semibold text-slate-800">
-                Renseignez les variables détectées sur ce modèle. Le système compose ensuite automatiquement l&apos;image finale.
-              </p>
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4 text-rose-600" />
+              <p className="text-sm font-semibold text-slate-800">Répartir des informations exactes</p>
             </div>
 
-            <div className="rounded-3xl border border-rose-200 bg-white p-4 shadow-sm">
+            <div className="rounded-2xl border border-rose-200 bg-white p-4 shadow-sm">
               <div className="flex items-start gap-3">
-                <div className="mt-0.5 rounded-2xl bg-rose-100 p-2 text-rose-700">
+                <div className="mt-0.5 rounded-xl bg-rose-100 p-2 text-rose-700">
                   <Sparkles className="size-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-slate-900">Chat de personnalisation IA</p>
+                  <p className="text-sm font-bold text-slate-900">Assistant de répartition</p>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
-                    Expliquez ce que vous voulez : l&apos;assistant remplit les variables, rédige le message et adapte les textes du modèle.
+                    Les passages reconnus sont copiés tels quels dans les champs.
                   </p>
                 </div>
               </div>
@@ -1044,39 +1240,36 @@ export function TemplatesClient({
                       void applyAiChatToVariables();
                     }
                   }}
-                  placeholder="Décrivez les ajustements souhaités pour votre affiche..."
+                  dir="auto"
+                  placeholder={"Titre : [texte exact]\nDate : [texte exact]\nLieu : [texte exact]"}
                   className="min-h-[92px] w-full resize-y rounded-2xl border border-rose-100 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
                 />
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs text-slate-500">Astuce : Ctrl/Cmd + Entrée pour créer.</p>
+                  <p className="text-xs text-slate-500">Ctrl/Cmd + Entrée</p>
                   <Button
                     type="button"
                     onClick={applyAiChatToVariables}
-                    disabled={aiChatLoading || loading || aiChatPrompt.trim().length === 0 || (selectedTemplate.design ?? []).length === 0}
+                    disabled={aiChatLoading || loading || aiChatPrompt.trim().length === 0}
                     className="rounded-2xl bg-rose-700 text-white hover:bg-rose-800"
                   >
-                    {aiChatLoading || loading ? (
-                      <><Loader2 className="mr-2 size-4 animate-spin" /> Création de l&apos;affiche...</>
+                    {aiChatLoading ? (
+                      <><Loader2 className="mr-2 size-4 animate-spin" /> Répartition...</>
                     ) : (
-                      <><Sparkles className="mr-2 size-4" /> Créer l&apos;affiche</>
+                      <><Sparkles className="mr-2 size-4" /> Répartir les textes</>
                     )}
                   </Button>
                 </div>
               </div>
             </div>
-
-            {(selectedTemplate.design ?? []).length === 0 && (
-              <div className="rounded-3xl border border-rose-200 bg-white p-4 shadow-inner">
-                <p className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
-                  Ce modèle n&apos;a pas encore de zones dynamiques. Ajoutez-les depuis l&apos;administration avant de générer l&apos;image finale.
-                </p>
-              </div>
-            )}
           </CardContent>
         </Card>
+        )}
 
         {imageError && (
-          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+          <p
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+          >
             {imageError}
           </p>
         )}
@@ -1088,13 +1281,13 @@ export function TemplatesClient({
           </Button>
           <Button
             onClick={() => void generateImage()}
-            disabled={loading || (selectedTemplate.design ?? []).length === 0}
+            disabled={loading || !hasExactText}
             className="flex-1 bg-rose-700 text-white hover:bg-rose-800"
           >
             {loading ? (
-              <><Loader2 className="size-4 mr-2 animate-spin" /> Création de l&apos;image...</>
+              <><Loader2 className="size-4 mr-2 animate-spin" /> Composition...</>
             ) : (
-              <><Sparkles className="size-4 mr-2" /> Créer l&apos;image finale</>
+              <><Type className="size-4 mr-2" /> Composer l&apos;affiche</>
             )}
           </Button>
         </div>
@@ -1106,8 +1299,9 @@ export function TemplatesClient({
   // RENDER â€” PREVIEW & Ã‰DITION
   // ============================================================
 
-  if (step === "preview" && selectedTemplate) {
-    const zones = selectedTemplate.design as DesignZone[];
+  if (isLegacyPosterEditorEnabled() && step === "preview" && selectedTemplate) {
+    const zones = (selectedTemplate.design as DesignZone[])
+      .filter((zone) => !isImageLikeZone(zone));
 
     return (
       <div className="space-y-6">
@@ -1149,7 +1343,7 @@ export function TemplatesClient({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={generatedImageUrl}
-                  alt={`Affiche générée - ${selectedTemplate.name}`}
+                  alt={`Affiche personnalisée - ${selectedTemplate.name}`}
                   className="h-full w-full object-contain"
                 />
               ) : (
@@ -1174,14 +1368,16 @@ export function TemplatesClient({
                   title={`Cliquer pour modifier : ${zone.label}`}
                 >
                   <div
-                    className="w-full h-full flex items-center justify-center p-1 text-center leading-tight"
+                    dir="auto"
+                    className="flex h-full w-full items-center justify-center whitespace-pre-wrap p-1 leading-tight"
                     style={{
                       fontSize: `${zone.fontSize * 0.6}px`,
                       color: zone.color,
                       fontFamily: zone.fontFamily,
+                      textAlign: zone.align ?? "center",
                     }}
                   >
-                    {generatedTexts[zone.id] ?? zone.defaultText}
+                    {generatedTexts[zone.id] ?? ""}
                   </div>
                 </div>
               ))}
@@ -1194,12 +1390,11 @@ export function TemplatesClient({
             <Card className="border-rose-100 bg-rose-50/70">
               <CardContent className="space-y-3 py-4">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="size-4 text-rose-600" />
-                  <p className="text-sm font-semibold text-slate-700">Recomposer l&apos;image finale</p>
+                  <Type className="size-4 text-rose-600" />
+                  <p className="text-sm font-semibold text-slate-700">Mettre à jour l&apos;affiche</p>
                 </div>
                 <p className="text-sm leading-6 text-slate-500">
-                  Modifiez les textes ci-dessous puis recréez l&apos;image. Le rendu applique simplement les zones
-                  configurées par l&apos;administrateur sur le fond graphique.
+                  Le fond reste verrouillé. Seuls les calques de texte ci-dessous sont recomposés.
                 </p>
                 {imageError && <p className="text-sm font-medium text-red-600">{imageError}</p>}
                 <Button
@@ -1208,9 +1403,9 @@ export function TemplatesClient({
                   className="w-full bg-rose-700 text-white hover:bg-rose-800"
                 >
                   {loading ? (
-                    <><Loader2 className="size-4 mr-2 animate-spin" /> Création de l&apos;image...</>
+                    <><Loader2 className="size-4 mr-2 animate-spin" /> Composition...</>
                   ) : (
-                    <><Sparkles className="size-4 mr-2" /> {generatedImageUrl ? "Recréer l'image" : "Créer l'image"}</>
+                    <><Type className="size-4 mr-2" /> {generatedImageUrl ? "Mettre à jour" : "Composer l'affiche"}</>
                   )}
                 </Button>
               </CardContent>
@@ -1221,7 +1416,7 @@ export function TemplatesClient({
               <CardContent className="py-4">
                 <div className="flex items-center gap-2 mb-4">
                   <Pencil className="size-4 text-rose-600" />
-                  <p className="text-sm font-semibold text-slate-700">Variables du modèle</p>
+                  <p className="text-sm font-semibold text-slate-700">Textes ajoutés</p>
                 </div>
 
                 <div className="space-y-3">
@@ -1231,29 +1426,21 @@ export function TemplatesClient({
                         {zone.label}
                       </label>
                       {editingZone === zone.id ? (
-                        isImageLikeZone(zone) ? (
-                          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                            <p className="flex-1 text-sm text-slate-700">Photo ajoutée automatiquement</p>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => setEditingZone(null)}
-                            >
-                              <Check className="size-4 text-emerald-600" />
-                            </Button>
-                          </div>
-                        ) : (
                           <div className="flex gap-2">
-                            <input
-                              value={generatedTexts[zone.id] ?? zone.defaultText}
-                              onChange={(e) =>
+                            <textarea
+                              dir="auto"
+                              rows={2}
+                              value={generatedTexts[zone.id] ?? ""}
+                              onChange={(e) => {
                                 setGeneratedTexts((prev) => ({
                                   ...prev,
                                   [zone.id]: e.target.value,
-                                }))
-                              }
+                                }));
+                                setGeneratedImageUrl(null);
+                                setImageError("");
+                              }}
                               autoFocus
-                              className="flex-1 rounded-lg border border-rose-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20"
+                              className="min-h-16 flex-1 resize-y rounded-lg border border-rose-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20"
                             />
                             <Button
                               size="icon"
@@ -1263,14 +1450,13 @@ export function TemplatesClient({
                               <Check className="size-4 text-emerald-600" />
                             </Button>
                           </div>
-                        )
                       ) : (
                         <div
                           className="group flex items-center gap-2 cursor-pointer rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 hover:border-blue-300 transition-colors"
                           onClick={() => setEditingZone(zone.id)}
                         >
-                          <p className="flex-1 text-sm text-slate-800">
-                            {getZoneDisplayValue(zone, generatedTexts[zone.id] ?? zone.defaultText)}
+                          <p dir="auto" className="flex-1 whitespace-pre-wrap text-sm text-slate-800">
+                            {generatedTexts[zone.id] || "Zone vide"}
                           </p>
                           <Pencil className="size-3.5 text-slate-300 transition-colors group-hover:text-rose-600" />
                         </div>

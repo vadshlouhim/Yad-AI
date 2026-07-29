@@ -33,6 +33,7 @@ export default async function TemplatesPage() {
 
   const hydratedTemplates = (templates ?? []).map((template) => ({
     ...template,
+    originalUrl: resolveTemplateAssetUrl(template.originalUrl),
     thumbnailUrl: resolveTemplateAssetUrl(template.thumbnailUrl),
     previewUrl: resolveTemplateAssetUrl(template.previewUrl),
   }));

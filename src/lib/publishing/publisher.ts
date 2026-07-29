@@ -43,6 +43,9 @@ export async function publishToChannel(
       content: publication.content,
       mediaUrls: publication.mediaUrls ?? undefined,
       hashtags: extractHashtags(publication.metadata),
+      metadata: typeof publication.metadata === "object" && publication.metadata !== null
+        ? (publication.metadata as Record<string, unknown>)
+        : undefined,
     };
 
     let result: PublishResult;
@@ -202,6 +205,7 @@ export async function createPublicationsFromDraft(params: {
     );
     const mediaUrls = resolvePublicationMediaUrls(draft, adaptation);
     const hashtags = resolvePublicationHashtags(draft, adaptation);
+    const metadata = resolvePublicationMetadata(adaptation, hashtags);
 
     const { data: pub } = await supabase
       .from("Publication")
@@ -214,7 +218,7 @@ export async function createPublicationsFromDraft(params: {
         channelType: channel.type,
         content: adaptation?.body ?? draft.body,
         mediaUrls,
-        metadata: hashtags.length > 0 ? { hashtags } : null,
+        metadata,
         status: scheduledAt ? "SCHEDULED" : "PENDING",
         scheduledAt: scheduledAt?.toISOString() ?? null,
         updatedAt: new Date().toISOString(),
@@ -264,6 +268,21 @@ function resolvePublicationHashtags(
   }
 
   return [];
+}
+
+function resolvePublicationMetadata(
+  adaptation: { metadata?: Record<string, unknown> | null } | undefined,
+  hashtags: string[]
+): Record<string, unknown> | null {
+  const metadata = adaptation?.metadata && typeof adaptation.metadata === "object"
+    ? { ...adaptation.metadata }
+    : {};
+
+  if (hashtags.length > 0) {
+    metadata.hashtags = hashtags;
+  }
+
+  return Object.keys(metadata).length > 0 ? metadata : null;
 }
 
 function extractHashtags(metadata: unknown): string[] | undefined {

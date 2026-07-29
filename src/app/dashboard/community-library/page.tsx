@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CommunityLibraryClient } from "@/components/community-library/community-library-client";
 
-export const metadata: Metadata = { title: "Bibliothèque communautaire — EasyCom IA" };
+export const metadata: Metadata = { title: "Bibliothèque partagée — EasyCom IA" };
 
 export default async function CommunityLibraryPage() {
   const { profile } = await requireAuth();

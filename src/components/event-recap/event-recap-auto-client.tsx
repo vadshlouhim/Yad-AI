@@ -4,11 +4,19 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ImagePlus, Loader2 } from "lucide-react";
+import { CalendarDays, ImagePlus, Loader2 } from "lucide-react";
 import type { EventRecapSettings, RecapHistory } from "@/lib/automation/event-recap";
+import { DAVID_AUTOMATION_IMAGE_URL } from "@/components/automations/automation-design-kit";
 
-const DAVID_IMAGE_URL =
-  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/David%20responsable%20automatisations.webp";
+const DAVID_IMAGE_URL = DAVID_AUTOMATION_IMAGE_URL;
+
+function formatEventDate(value: string) {
+  return new Date(value).toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
 
 interface Community {
   id: string;
@@ -90,7 +98,7 @@ const SOCIAL_LINKS: SocialLink[] = [
   },
 ];
 
-export function EventRecapAutoClient({ automation, settings }: Props) {
+export function EventRecapAutoClient({ automation, settings, finishedEvents }: Props) {
   const [saving, setSaving] = useState(false);
   const [isActive, setIsActive] = useState(automation?.status === "ACTIVE");
   const [error, setError] = useState("");
@@ -143,7 +151,7 @@ export function EventRecapAutoClient({ automation, settings }: Props) {
         </div>
 
         <p className="relative mx-auto mt-8 max-w-4xl text-2xl font-black leading-tight text-slate-950 sm:text-4xl">
-          Je suis David, votre assistant IA. Après chaque événement, je vous rappellerai au bon moment de publier un récap en photos et vidéos sur vos réseaux. Souhaitez-vous activer cette automatisation ?
+          Le lendemain de chaque événement, je vous rappellerai de publier un récap photos/vidéos sur vos réseaux. Souhaitez-vous activer cette automatisation ?
         </p>
 
         <div className="relative mt-8 flex flex-col items-center gap-3">
@@ -152,16 +160,16 @@ export function EventRecapAutoClient({ automation, settings }: Props) {
             onClick={() => void setAutomationState(!isActive)}
             disabled={saving}
             aria-pressed={isActive}
-            className={`relative flex h-16 w-48 items-center rounded-full px-2 text-sm font-black uppercase text-white shadow-xl transition-all duration-300 disabled:opacity-70 ${
-              isActive ? "justify-start bg-emerald-500 shadow-emerald-200" : "justify-end bg-red-500 shadow-red-200"
+            className={`relative h-14 w-56 rounded-full p-1 text-sm font-black uppercase text-white shadow-xl transition-all duration-300 disabled:opacity-70 ${
+              isActive ? "bg-emerald-500 shadow-emerald-200" : "bg-red-500 shadow-red-200"
             }`}
           >
-            <span className={`px-5 transition-opacity duration-200 ${saving ? "opacity-0" : "opacity-100"}`}>
+            <span className={`absolute inset-y-0 flex items-center transition-opacity duration-200 ${isActive ? "left-5 pr-14" : "right-5 pl-14"} ${saving ? "opacity-0" : "opacity-100"}`}>
               {isActive ? "Activé" : "Désactivé"}
             </span>
             <span
-              className={`absolute top-2 flex size-12 items-center justify-center rounded-full bg-white text-xs font-black text-slate-700 shadow-lg transition-transform duration-300 ${
-                isActive ? "translate-x-[7.75rem]" : "translate-x-0"
+              className={`absolute top-1 flex size-12 items-center justify-center rounded-full bg-white text-xs font-black text-slate-700 shadow-lg transition-[left,right] duration-300 ${
+                isActive ? "right-1" : "left-1"
               }`}
             >
               {saving ? <Loader2 className="size-5 animate-spin" /> : isActive ? "ON" : "OFF"}
@@ -171,7 +179,7 @@ export function EventRecapAutoClient({ automation, settings }: Props) {
           {error && <p className="max-w-2xl rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700">{error}</p>}
         </div>
 
-        <h2 className="relative mt-10 text-lg font-black text-slate-950">Publier maintenant</h2>
+        <h2 className="relative mt-10 text-lg font-black text-slate-950">Publier maintenant un récap</h2>
         <div className="relative mx-auto mt-4 grid max-w-3xl gap-3 sm:grid-cols-3">
           {SOCIAL_LINKS.map((item) => (
             <Link
@@ -185,6 +193,35 @@ export function EventRecapAutoClient({ automation, settings }: Props) {
           ))}
         </div>
       </main>
+
+      <section className="rounded-2xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
+              <CalendarDays className="size-5" />
+            </span>
+            <div>
+              <h2 className="text-lg font-black text-slate-950">Vos événements à venir</h2>
+              <p className="mt-0.5 text-sm text-slate-500">Connecté à votre agenda</p>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-slate-500">{finishedEvents.length} à venir</span>
+        </div>
+
+        {finishedEvents.length > 0 ? (
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            {finishedEvents.map((event) => (
+              <article key={event.id} className="border-t border-slate-200 pt-3 first:border-t-0 first:pt-0 md:border-l md:border-t-0 md:px-4 md:first:pl-0">
+                <p className="text-xs font-black uppercase tracking-[0.1em] text-violet-700">{formatEventDate(event.startDate)}</p>
+                <h3 className="mt-2 line-clamp-2 text-sm font-black leading-5 text-slate-950">{event.title}</h3>
+                {event.endDate ? <p className="mt-1 text-xs text-slate-500">Jusqu&apos;au {formatEventDate(event.endDate)}</p> : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-5 text-sm text-slate-500">Aucun événement à venir dans votre agenda.</p>
+        )}
+      </section>
     </div>
   );
 }

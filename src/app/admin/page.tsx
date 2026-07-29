@@ -55,7 +55,7 @@ export default async function AdminPage() {
     automationCount,
     eventCount,
     publicationCount,
-    { data: templates },
+    { data: templates, error: templatesError },
     { data: communities },
     { data: users },
     { data: contactLeads },
@@ -83,7 +83,7 @@ export default async function AdminPage() {
     admin
       .from("Template")
       .select(
-        "id, communityId, name, description, category, subCategory, channelType, thumbnailUrl, previewUrl, design, isGlobal, isPremium, isActive, tags, usageCount, createdAt, updatedAt"
+        "id, communityId, name, description, category, subCategory, channelType, originalUrl, thumbnailUrl, previewUrl, design, isGlobal, isPremium, isActive, tags, usageCount, createdAt, updatedAt"
       )
       .order("usageCount", { ascending: false })
       .order("updatedAt", { ascending: false }),
@@ -128,6 +128,7 @@ export default async function AdminPage() {
 
   const hydratedTemplates = (templates ?? []).map((template) => ({
     ...template,
+    originalUrl: resolveTemplateAssetUrl(template.originalUrl),
     thumbnailUrl: resolveTemplateAssetUrl(template.thumbnailUrl),
     previewUrl: resolveTemplateAssetUrl(template.previewUrl),
     tags: template.tags ?? [],
@@ -161,6 +162,13 @@ export default async function AdminPage() {
           draftCount + mediaCount + templateCount + articleCount + leadCount + automationCount + eventCount + publicationCount,
       }}
       templates={hydratedTemplates}
+      initialTemplateError={
+        templatesError
+          ? templatesError.message.includes("originalUrl")
+            ? "La base Supabase doit être mise à jour avant de gérer les affiches."
+            : "Impossible de charger les affiches depuis Supabase."
+          : null
+      }
       communities={communities ?? []}
       users={(users ?? []).map((user) => {
         const community = (communities ?? []).find((item) => item.id === user.communityId) ?? null;

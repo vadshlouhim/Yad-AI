@@ -473,37 +473,24 @@ export function ShabbatTimesAutoClient({
     setPreviewError("");
     setPreviewImageUrl(null);
     try {
-      // Étape 1 : confirm ? g?n?re les textes pour chaque zone du template
-const syntheticMessage = `Prépare l'affiche avec ces informations :
-Nom de l'organisation : ${fields.structureName || community.name}
-Ville : ${fields.city || community.city || "Paris"}
-Paracha : ${fields.parasha || ""}
-Heure d'entrée de Chabbat : ${fields.entry || shabbat?.entry || ""}
-Heure de sortie de Chabbat : ${fields.exit || shabbat?.exit || ""}
-${templateMode === "detailed" && fields.kiddouch ? `Kiddouch offert par : ${fields.kiddouch}` : ""}
-${templateMode === "detailed" && officeTimes ? `Horaires des offices : ${officeTimes}` : ""}
-${fields.logoUrl ? `Logo utilisateur : ${fields.logoUrl}` : ""}
+      const textBlocks = [
+        { id: "structure", text: fields.structureName || community.name, role: "organization", priority: "main" },
+        { id: "city", text: fields.city || community.city || "Paris", role: "location", priority: "complementary" },
+        { id: "parasha", text: fields.parasha || "", role: "parasha", priority: "main" },
+        { id: "entry", text: fields.entry || shabbat?.entry || "", role: "entry time", priority: "important" },
+        { id: "exit", text: fields.exit || shabbat?.exit || "", role: "exit time", priority: "important" },
+        ...(templateMode === "detailed" && fields.kiddouch
+          ? [{ id: "kiddouch", text: fields.kiddouch, role: "kiddouch", priority: "complementary" }]
+          : []),
+        ...(templateMode === "detailed" && officeTimes
+          ? [{ id: "offices", text: officeTimes, role: "office times", priority: "complementary" }]
+          : []),
+      ].filter((block) => block.text.trim().length > 0);
 
-Place exactement le logo utilisateur à l'emplacement prévu pour {logo utilisateur}.
-Place exactement le nom de l'organisation à l'emplacement prévu pour [nom de l'organisation].`;
-
-      const confirmRes = await fetch("/api/templates/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          templateId: selectedTemplateId,
-          messages: [{ role: "user", content: syntheticMessage }],
-        }),
-      });
-      if (!confirmRes.ok) throw new Error("Impossible de préparer les textes de l'affiche.");
-      const confirmData = await confirmRes.json() as { generatedTexts?: Record<string, string> };
-      const generatedTexts = confirmData.generatedTexts ?? {};
-
-      // Étape 2 : render ? g?n?re l'image
       const renderRes = await fetch("/api/templates/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId: selectedTemplateId, generatedTexts }),
+        body: JSON.stringify({ templateId: selectedTemplateId, textBlocks }),
       });
       if (!renderRes.ok) {
         const err = await renderRes.json().catch(() => ({})) as { error?: string };
@@ -1475,7 +1462,7 @@ Place exactement le nom de l'organisation à l'emplacement prévu pour [nom de l
                 }}
               >
                 <Sparkles className="size-5" />
-                Commencer la configuration →
+                Publiez les Horaires de Chabbat →
               </Button>
               <Button type="button" variant="outline" className="w-full" onClick={() => setShowWelcomePopup(false)}>
                 Découvrir d&apos;abord le tableau de bord
@@ -1495,7 +1482,14 @@ Place exactement le nom de l'organisation à l'emplacement prévu pour [nom de l
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="relative">
             <div className="mb-4 h-1.5 w-12 rounded-full bg-white/80" />
-            <h1 className="text-4xl font-bold tracking-tight">Horaires de Chabbat</h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex h-11 items-end gap-1.5 rounded-xl border border-white/15 bg-white/10 px-2.5 pb-2 pt-1.5 shadow-inner shadow-white/10" role="img" aria-label="Trois bougies de Chabbat">
+                <span className="relative block h-6 w-2.5 rounded-sm bg-amber-100 shadow-[0_0_12px_rgba(255,215,128,0.72)] before:absolute before:-top-2 before:left-1/2 before:size-2 before:-translate-x-1/2 before:rounded-full before:bg-orange-300" />
+                <span className="relative block h-4 w-2 rounded-sm bg-amber-100 shadow-[0_0_10px_rgba(255,215,128,0.66)] before:absolute before:-top-1.5 before:left-1/2 before:size-1.5 before:-translate-x-1/2 before:rounded-full before:bg-orange-300" />
+                <span className="relative block h-6 w-2.5 rounded-sm bg-amber-100 shadow-[0_0_12px_rgba(255,215,128,0.72)] before:absolute before:-top-2 before:left-1/2 before:size-2 before:-translate-x-1/2 before:rounded-full before:bg-orange-300" />
+              </div>
+              <h1 className="text-4xl font-bold tracking-tight">Horaires de Chabbat</h1>
+            </div>
           </div>
           <div className="flex flex-col items-start gap-3 lg:items-end">
             <DavidBannerAgent

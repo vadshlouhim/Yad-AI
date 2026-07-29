@@ -19,7 +19,8 @@ export type ReminderStatus =
   | "CANCELLED"
   | "ERROR";
 
-export type ScheduleMode = "direct" | "notification";
+// Les rappels J-10/J-5 demandent toujours une validation humaine avant publication.
+export type ScheduleMode = "notification";
 
 export type EventReminder = {
   id: string;

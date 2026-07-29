@@ -11,6 +11,7 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    "whatsapp-service/sessions/**",
     "next-env.d.ts",
   ]),
 ]);

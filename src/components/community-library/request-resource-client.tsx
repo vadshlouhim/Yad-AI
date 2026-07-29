@@ -109,7 +109,7 @@ export function RequestResourceClient() {
           </button>
           <div className="flex size-10 items-center justify-center rounded-xl bg-white/10 text-teal-100"><MessageCircle className="size-5 animate-pulse" /></div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-teal-200">Bibliothèque communautaire</p>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-teal-200">Bibliothèque partagée</p>
             <h1 className="mt-1 text-xl font-black">Faire une demande</h1>
             <p className="mt-1 text-sm text-white/75">Décrivez la ressource dont votre communauté a besoin</p>
           </div>

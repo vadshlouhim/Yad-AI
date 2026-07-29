@@ -2,9 +2,10 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { EventsClient } from "@/components/events/events-client";
 import { getJewishHolidays, getUpcomingShabbatTimes } from "@/lib/automation/hebcal";
+import { getAutomationConfigurationHref, getDedicatedAutomationConfigurationHref } from "@/lib/automation/navigation";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Mon Agenda IA - EasyCom IA" };
+export const metadata: Metadata = { title: "Mon Agenda - EasyCom IA" };
 
 const EVENT_STATUSES = ["DRAFT", "READY", "SCHEDULED", "PUBLISHED", "COMPLETED", "ARCHIVED"];
 
@@ -51,6 +52,7 @@ function normalizeAutomation(row: {
     dayOfMonth: typeof config.dayOfMonth === "number" ? config.dayOfMonth : null,
     endDate: typeof config.endDate === "string" ? config.endDate : null,
     channels: Array.isArray(generateAction?.channels) ? generateAction!.channels : [],
+    triggerConfig: config,
   };
 }
 
@@ -59,7 +61,7 @@ export default async function EventsPage({
 }: {
   searchParams: Promise<{ status?: string; category?: string; q?: string; view?: string; period?: string }>;
 }) {
-  const { profile } = await requireAuth();
+  const { profile, supabaseUser } = await requireAuth();
   const communityId = profile.communityId!;
   const params = await searchParams;
   const admin = createAdminClient();
@@ -68,7 +70,7 @@ export default async function EventsPage({
   // Requête événements
   let query = admin
     .from("Event")
-    .select("id, title, startDate, endDate, location, category, status, isRecurring, coverImageUrl, contentDrafts:ContentDraft(id), publications:Publication(id)")
+    .select("id, title, startDate, endDate, location, category, status, isRecurring, coverImageUrl, contentDrafts:ContentDraft(id), publications:Publication(id), automations:Automation(id, name, trigger, triggerConfig)")
     .eq("communityId", communityId)
     .order("startDate", { ascending: true })
     .limit(500);
@@ -79,9 +81,16 @@ export default async function EventsPage({
   if (params.q) query = query.ilike("title", `%${params.q}%`);
 
   // Récupérer communauté + events + Chabbat (BDD ou API)
-  const [{ data: community }, { data: events }, statusCounts] = await Promise.all([
+  const [{ data: community }, { data: events }, { data: tasks }, statusCounts] = await Promise.all([
     admin.from("Community").select("name, city, timezone, communityType, religiousStream").eq("id", communityId).single(),
     query,
+    admin
+      .from("Task")
+      .select("id, title, scheduledAt, recurrenceRule")
+      .eq("communityId", communityId)
+      .eq("userId", supabaseUser.id)
+      .order("scheduledAt", { ascending: true })
+      .limit(500),
     Promise.all(
       EVENT_STATUSES.map(async (status) => {
         const { count } = await admin
@@ -175,6 +184,14 @@ export default async function EventsPage({
     status: event.status,
     isRecurring: event.isRecurring,
     coverImageUrl: event.coverImageUrl,
+    automationHref: Array.isArray(event.automations) && event.automations[0]
+      ? getAutomationConfigurationHref({
+          id: event.automations[0].id,
+          name: event.automations[0].name,
+          trigger: event.automations[0].trigger,
+          triggerConfig: event.automations[0].triggerConfig as Record<string, unknown> | null,
+        })
+      : getDedicatedAutomationConfigurationHref({ name: event.title, trigger: "MANUAL" }),
     _count: {
       contentDrafts: Array.isArray(event.contentDrafts) ? event.contentDrafts.length : 0,
       publications: Array.isArray(event.publications) ? event.publications.length : 0,
@@ -185,6 +202,12 @@ export default async function EventsPage({
     <div className="container mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-0">
       <EventsClient
         events={normalizedEvents}
+        tasks={(tasks ?? []).map((task) => ({
+          id: task.id,
+          title: task.title,
+          scheduledAt: task.scheduledAt,
+          recurrenceRule: task.recurrenceRule,
+        }))}
         statusCounts={statusCounts2}
         shabbatItems={isBethHabad ? shabbatItems : []}
         holidayItems={isBethHabad ? holidayItems : []}

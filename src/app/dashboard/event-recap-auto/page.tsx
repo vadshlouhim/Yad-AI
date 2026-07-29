@@ -28,9 +28,9 @@ export default async function EventRecapAutoPage({
       .select("id, title, startDate, endDate, coverImageUrl, status")
       .eq("communityId", communityId)
       .neq("status", "ARCHIVED")
-      .lte("startDate", nowIso)
-      .order("startDate", { ascending: false })
-      .limit(30),
+      .gte("startDate", nowIso)
+      .order("startDate", { ascending: true })
+      .limit(3),
     admin
       .from("Automation")
       .select("id, name, isActive, status, nextRunAt, triggerConfig, updatedAt")

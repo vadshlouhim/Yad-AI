@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   CalendarClock,
   Check,
@@ -60,6 +61,7 @@ interface SendResult {
 
 interface ScheduledSend {
   id: string;
+  publicationId?: string;
   content: string;
   attachments: UploadedAttachment[];
   contactIds: string[];
@@ -95,12 +97,13 @@ function formatPreviewText(value: string) {
   return <span dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
-function buildOutgoingText(message: string, attachments: UploadedAttachment[]) {
+function buildOutgoingText(message: string) {
   const cleanMessage = message.trim();
-  if (attachments.length === 0) return cleanMessage;
+  return cleanMessage;
+}
 
-  const attachmentLines = attachments.map((attachment) => `${attachment.name}: ${attachment.url}`);
-  return [cleanMessage, "Pièces jointes:", ...attachmentLines].filter(Boolean).join("\n\n");
+function buildOutgoingMediaUrls(attachments: UploadedAttachment[]) {
+  return attachments.map((attachment) => attachment.url).filter(Boolean);
 }
 
 function uniqueValues(values: string[]) {
@@ -789,7 +792,7 @@ function ScheduleDialog({
   initialAttachments: UploadedAttachment[];
   members: Member[];
   membersLoading: boolean;
-  onCreate: (send: ScheduledSend) => void;
+  onCreate: (send: ScheduledSend) => Promise<void>;
 }) {
   const scheduleFileInputRef = useRef<HTMLInputElement | null>(null);
   const [content, setContent] = useState(initialMessage);
@@ -806,6 +809,7 @@ function ScheduleDialog({
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   if (!open) return null;
 
@@ -860,10 +864,10 @@ function ScheduleDialog({
     });
   }
 
-  function createSchedule() {
+  async function createSchedule() {
     const manual = uniqueValues(manualNumbers.split(/[\n,;]/));
     const groupValues = uniqueValues(groups.split(/[\n,;]/));
-    const hasRecipients = selectedContactIds.size > 0 || selectedListTags.size > 0 || manual.length > 0 || groupValues.length > 0;
+    const hasRecipients = selectedContactIds.size > 0 || selectedListTags.size > 0 || manual.length > 0;
 
     if (!content.trim() && attachments.length === 0) {
       setError("Ajoutez un message ou une pièce jointe.");
@@ -878,7 +882,10 @@ function ScheduleDialog({
       return;
     }
 
-    onCreate({
+    setSaving(true);
+    setError("");
+    try {
+      await onCreate({
       id: crypto.randomUUID(),
       content,
       attachments,
@@ -896,13 +903,20 @@ function ScheduleDialog({
       },
       status: "Programmée",
       createdAt: new Date().toISOString(),
-    });
-    onClose();
+      });
+      onClose();
+    } catch (scheduleError) {
+      setError(scheduleError instanceof Error ? scheduleError.message : "Planification impossible.");
+    } finally {
+      setSaving(false);
+    }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[1100] flex items-start justify-center overflow-y-auto bg-slate-950/55 px-4 py-6 backdrop-blur-sm sm:py-8">
+      <div className="w-full max-w-4xl rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold text-slate-950">Planifier des envois automatiques</h2>
@@ -1068,16 +1082,18 @@ function ScheduleDialog({
 
             <Button
               type="button"
-              onClick={createSchedule}
+              onClick={() => void createSchedule()}
+              disabled={saving}
               className="h-11 w-full rounded-2xl bg-emerald-700 text-white hover:bg-emerald-800"
             >
-              <CalendarClock className="size-4" />
-              Enregistrer la planification
+              {saving ? <Loader2 className="size-4 animate-spin" /> : <CalendarClock className="size-4" />}
+              {saving ? "Enregistrement..." : "Enregistrer la planification"}
             </Button>
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -1251,12 +1267,13 @@ export function WhatsAppClient({
       return;
     }
 
-    const text = buildOutgoingText(previewMessage, attachments);
+    const text = buildOutgoingText(previewMessage);
+    const mediaUrls = buildOutgoingMediaUrls(attachments);
     const contactIds = resolveSelectedContactIds();
     const phones = uniqueValues(manualNumbers.split(/[\n,;]/));
     const groupValues = uniqueValues(groups.split(/[\n,;]/));
 
-    if (!text && attachments.length === 0) {
+    if (!text && mediaUrls.length === 0) {
       setError("Ajoutez un message ou une pièce jointe avant l'envoi.");
       return;
     }
@@ -1278,6 +1295,7 @@ export function WhatsAppClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text,
+          mediaUrls,
           target: "contacts",
           contactIds,
           phones,
@@ -1301,6 +1319,32 @@ export function WhatsAppClient({
 
   function removeSchedule(id: string) {
     setScheduledSends((current) => current.filter((send) => send.id !== id));
+  }
+
+  async function createScheduledSend(send: ScheduledSend) {
+    const scheduledAt = new Date(`${send.scheduledDate}T${send.scheduledTime}:00`);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      throw new Error("Date de planification invalide.");
+    }
+
+    const response = await fetch("/api/whatsapp/scheduled", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: send.content.trim(),
+        mediaUrls: buildOutgoingMediaUrls(send.attachments),
+        contactIds: send.contactIds,
+        listTags: send.listTags,
+        phones: send.manualNumbers,
+        scheduledAt: scheduledAt.toISOString(),
+      }),
+    });
+    const data = await response.json().catch(() => null) as { error?: string; publication?: { id?: string } } | null;
+    if (!response.ok) {
+      throw new Error(data?.error ?? "Planification impossible.");
+    }
+
+    setScheduledSends((current) => [{ ...send, publicationId: data?.publication?.id }, ...current]);
   }
 
   return (
@@ -1650,7 +1694,7 @@ export function WhatsAppClient({
           initialAttachments={attachments}
           members={members}
           membersLoading={membersLoading}
-          onCreate={(send) => setScheduledSends((current) => [send, ...current])}
+          onCreate={createScheduledSend}
         />
       )}
     </div>

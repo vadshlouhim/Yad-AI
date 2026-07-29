@@ -20,6 +20,7 @@ import {
   Video,
 } from "lucide-react";
 import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
+import { AGENT_IMAGE_URLS } from "@/lib/agents";
 import type { DonationCampaign, CampaignStep, CampaignAsset, StepStatus } from "@/lib/donation-campaign";
 import { ASSET_TYPE_LABELS, STEP_TYPE_LABELS } from "@/lib/donation-campaign";
 import { FacebookIcon, InstagramIcon } from "@/components/layout/dashboard-nav";
@@ -392,7 +393,7 @@ export function DonationCampaignVisualsClient({ community, campaign, steps, asse
         title="Visuels & Publications"
         description="Retrouvez tous les supports créés pour votre campagne de dons : affiches, messages, publications et contenus prêts à valider."
         icon={Share2}
-        imageUrl="https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Avi%20campagne%20de%20dons.webp"
+        imageUrl={AGENT_IMAGE_URLS.avi}
         imageAlt="Avi, agent IA campagne de dons"
         bubbleTitle="Je suis Avi, votre agent IA Campagne de dons"
         bubbleTitleClassName="text-slate-950"

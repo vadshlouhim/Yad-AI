@@ -8,6 +8,7 @@ import { PublicNavbar } from "@/components/layout/public-navbar";
 import { AGENTS_GROUP_IMAGE, HOME_EASYCOM_AGENTS } from "@/lib/agents";
 import {
   ArrowRight,
+  BookOpen,
   BrainCircuit,
   CalendarDays,
   ClipboardCheck,
@@ -16,8 +17,10 @@ import {
   LogIn,
   MailCheck,
   Newspaper,
+  Palette,
   Send,
   Share2,
+  Star,
   WandSparkles,
 } from "lucide-react";
 
@@ -92,6 +95,18 @@ const SOCIAL_CHANNELS = [
   { name: "Gmail", src: "/logo/gmail-svgrepo-com.svg", color: "text-red-600" },
 ];
 
+const HOME_AGENT_LABELS = [
+  { name: "Dov Ber", logoSrc: "/logo/instagram-2-1-logo-svgrepo-com%20(1).svg", Icon: null, iconClassName: "" },
+  { name: "Mendy", logoSrc: "/logo/facebook-3-logo-svgrepo-com.svg", Icon: null, iconClassName: "" },
+  { name: "Israel", logoSrc: "/logo/whatsapp-svgrepo-com.svg", Icon: null, iconClassName: "" },
+  { name: "Levik", logoSrc: "/logo/gmail-svgrepo-com.svg", Icon: null, iconClassName: "" },
+  { name: "David", logoSrc: "/easycom-ai-logo.png", Icon: null, iconClassName: "" },
+  { name: "Shmouel", logoSrc: null, Icon: BookOpen, iconClassName: "text-amber-700" },
+  { name: "Tsemah", logoSrc: null, Icon: Newspaper, iconClassName: "text-slate-700" },
+  { name: "Barouh", logoSrc: null, Icon: Star, iconClassName: "fill-amber-400 text-amber-500" },
+  { name: "Zalman", logoSrc: null, Icon: Palette, iconClassName: "text-fuchsia-700" },
+] as const;
+
 const PROCESS_STEPS = [
   {
     label: "Préparer",
@@ -137,40 +152,46 @@ export default function HomePage() {
 
       <section id="agents" className="relative overflow-hidden bg-[#070b1d] px-4 py-16 text-white sm:px-6 lg:px-8 lg:py-24">
         <div className="home-ai-grid absolute inset-0" aria-hidden="true" />
+        <div className="home-starfield absolute inset-0" aria-hidden="true">
+          <span className="home-stars home-stars-far" />
+          <span className="home-stars home-stars-mid" />
+          <span className="home-stars home-stars-near" />
+        </div>
         <div className="home-ai-beam absolute inset-x-0 top-[26%]" aria-hidden="true" />
-        <div className="relative mx-auto max-w-7xl">
+        <div className="relative z-20 mx-auto max-w-7xl">
           <div className="mx-auto max-w-4xl text-center">
             <h1 className="mt-3 text-[clamp(2.1rem,7vw,4.1rem)] font-black leading-[1.02] tracking-tight text-white">
-              Une équipe d&apos;agents IA qui <span className="text-cyan-300">s&apos;occupe de tout</span>
+              Des agents IA au service de <span className="text-cyan-300">votre communauté</span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-center text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
-              Plus besoin de jongler entre les outils ou de repartir d&apos;une page blanche. Choisissez l&apos;activité à gérer : un agent dédié vous accompagne, prépare le travail et vous laisse valider quand c&apos;est nécessaire.
+              EasyCom AI prépare vos publications, emails, avis Google, newsletters, affiches, campagnes de dons, cours de Torah et actions communautaires.
             </p>
           </div>
 
           <div className="flex flex-col items-center gap-8">
-            <div className="relative mx-auto mt-7 flex w-full max-w-3xl flex-col items-center justify-center lg:mt-8">
+            <div className="relative mx-auto mt-7 flex w-full max-w-6xl flex-col items-center justify-center lg:mt-8">
               <div className="relative flex w-full items-center justify-center overflow-visible">
+                <div className="pointer-events-none absolute left-1/2 top-[3%] aspect-square w-[72%] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.76)_0%,rgba(255,255,255,0.38)_38%,transparent_72%)] blur-3xl" aria-hidden />
                 <Image
                   src={AGENTS_GROUP_IMAGE}
                   alt="L'équipe des agents IA EasyCom IA"
-                  width={900}
-                  height={675}
+                  width={1672}
+                  height={810}
                   preload
-                  sizes="(max-width: 1024px) 100vw, 56vw"
-                  className="h-auto w-full object-contain drop-shadow-[0_28px_42px_rgba(0,229,255,0.18)]"
+                  sizes="(max-width: 1024px) 100vw, 86vw"
+                  className="relative h-auto w-full object-contain drop-shadow-[0_0_44px_rgba(255,255,255,0.68)] drop-shadow-[0_36px_54px_rgba(0,229,255,0.3)]"
                 />
               </div>
-              <div className="relative -mt-3 flex w-full flex-wrap items-center justify-center gap-2 sm:-mt-5 lg:gap-2.5">
-                {SOCIAL_CHANNELS.map((channel, index) => (
-                  <div
-                    key={channel.name}
-                    className="animate-home-float flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/95 shadow-lg shadow-cyan-950/30 transition duration-300 hover:-translate-y-1 hover:scale-110 hover:border-cyan-300 hover:shadow-cyan-400/20 lg:h-11 lg:w-11"
-                    style={{ animationDelay: `${index * 130}ms` }}
-                    title={channel.name}
-                  >
-                    <Image src={channel.src} alt={`Logo ${channel.name}`} width={24} height={24} sizes="24px" className="h-6 w-6 object-contain" />
-                  </div>
+              <div className="mt-2 flex w-full max-w-5xl flex-wrap justify-center gap-1.5 px-2 sm:mt-3 sm:gap-2">
+                {HOME_AGENT_LABELS.map((agent) => (
+                  <span key={agent.name} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/45 bg-white/78 px-2.5 text-xs font-bold text-slate-800 shadow-[0_7px_16px_rgba(2,6,23,0.18)] backdrop-blur-sm sm:h-9 sm:px-3 sm:text-sm">
+                    {agent.logoSrc ? (
+                      <Image src={agent.logoSrc} alt="" width={18} height={18} sizes="18px" className="size-4 object-contain sm:size-[18px]" />
+                    ) : agent.Icon ? (
+                      <agent.Icon className={`size-4 sm:size-[18px] ${agent.iconClassName}`} aria-hidden />
+                    ) : null}
+                    {agent.name}
+                  </span>
                 ))}
               </div>
             </div>
@@ -242,6 +263,18 @@ export default function HomePage() {
       <section id="fonctionnalites" className="bg-[#f6f8fc] px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-4xl text-center">
+            <div className="mb-6 flex w-full flex-wrap items-center justify-center gap-2 lg:gap-2.5">
+              {SOCIAL_CHANNELS.map((channel, index) => (
+                <div
+                  key={channel.name}
+                  className="animate-home-float flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white shadow-lg shadow-slate-300/40 transition duration-300 hover:-translate-y-1 hover:scale-110 hover:border-cyan-300 hover:shadow-cyan-400/20 lg:h-11 lg:w-11"
+                  style={{ animationDelay: `${index * 130}ms` }}
+                  title={channel.name}
+                >
+                  <Image src={channel.src} alt={`Logo ${channel.name}`} width={24} height={24} sizes="24px" className="h-6 w-6 object-contain" />
+                </div>
+              ))}
+            </div>
             <h2 className="text-[clamp(1.75rem,6vw,2.5rem)] font-black leading-tight tracking-tight text-slate-950">
               <span className="text-indigo-700">Votre temps est précieux</span> EasyCom IA centralise, prépare et{" "}
               <span className="text-cyan-700">automatise votre communication</span>

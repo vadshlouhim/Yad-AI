@@ -9,6 +9,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
+function isChannelConnected(channel: { type: string; isConnected: boolean; settings: unknown } | undefined) {
+  if (!channel) return false;
+  return channel.isConnected || (channel.type === "WHATSAPP" && isRecord(channel.settings) && channel.settings.mode === "personal");
+}
+
 function latestUserText(messages: unknown) {
   if (!Array.isArray(messages)) return "";
   return messages
@@ -82,10 +87,19 @@ export async function POST() {
 
     const { data: channels } = await auth.admin
       .from("Channel")
-      .select("id, type, isActive, isConnected")
+      .select("id, type, isActive, isConnected, settings")
       .eq("communityId", auth.communityId)
       .in("type", selectedChannels as never[])
       .eq("isActive", true);
+
+    const channelsByType = new Map((channels ?? []).map((channel) => [channel.type, channel]));
+    const disconnectedTypes = selectedChannels.filter((type) => !isChannelConnected(channelsByType.get(type)));
+    if (disconnectedTypes.length > 0) {
+      return NextResponse.json(
+        { error: `Connectez les réseaux sélectionnés avant de publier : ${disconnectedTypes.join(", ")}.` },
+        { status: 400 }
+      );
+    }
 
     if (!channels?.length) {
       return NextResponse.json({ error: "Aucun canal actif trouvé." }, { status: 400 });

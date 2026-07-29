@@ -26,6 +26,7 @@ import { AssistantDataPanel, type PanelActionPayload } from "./assistant-data-pa
 import type { DataPanel } from "@/lib/ai/assistant/panels";
 import type { RoutineItem } from "./daily-routine-wizard";
 import type { BillingConfig } from "@/lib/billing";
+import { AGENTS_GROUP_IMAGE } from "@/lib/agents";
 
 // ============================================================
 // TYPES
@@ -224,8 +225,7 @@ const QUICK_PROMPT_STYLES = [
 ];
 
 const ASSISTANT_PLACEHOLDER = "En quoi puis-je vous aider ?";
-const AGENTS_IMAGE_URL =
-  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Tous%20les%20agnets.webp";
+const AGENTS_IMAGE_URL = AGENTS_GROUP_IMAGE;
 
 const EASYCOM_FULL_MESSAGE =
   "Les agents intelligents vous aident à gérer toute votre communication depuis un seul espace intelligent.\n\n" +
@@ -1403,7 +1403,14 @@ export function AssistantClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           templateId: message.posterDraft.template.id,
-          generatedTexts: message.posterDraft.generatedTexts,
+          textBlocks: Object.entries(message.posterDraft.generatedTexts)
+            .filter(([, text]) => text && text !== "À confirmer")
+            .map(([id, text], index) => ({
+              id: id.replace(/[^a-zA-Z0-9_-]+/g, "_"),
+              text,
+              role: id,
+              priority: index === 0 ? "main" : index < 3 ? "important" : "complementary",
+            })),
         }),
       });
 
@@ -2533,8 +2540,8 @@ export function AssistantClient({
               <div className="mb-6 w-full max-w-4xl px-5 py-2 text-center sm:px-8">
                 <div className="relative mx-auto mb-4 flex w-fit items-center justify-center">
                   <AssistantAvatar
-                    className="flex h-56 w-72 items-center justify-center sm:h-72 sm:w-[28rem]"
-                    imageClassName="h-full w-full object-contain drop-shadow-[0_28px_42px_rgba(15,23,42,0.30)] saturate-110"
+                    className="flex h-64 w-80 items-center justify-center sm:h-80 sm:w-[32rem]"
+                    imageClassName="h-full w-full object-contain drop-shadow-[0_0_20px_rgba(255,255,255,0.34)] drop-shadow-[0_28px_42px_rgba(15,23,42,0.30)] saturate-110"
                     iconClassName="size-7 text-slate-700"
                   />
                 </div>

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown, LogOut, Settings, User, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { AGENT_IMAGE_URLS } from "@/lib/agents";
 import {
   getOfficialDashboardMenuSections,
   OFFICIAL_MENU_SECTION_STYLES,
@@ -43,28 +44,25 @@ const PLAN_LABELS: Record<string, string> = {
 
 const SOCIAL_AGENT_IMAGES = [
   {
-    src: "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Dov%20ber%20insta.webp",
+    src: AGENT_IMAGE_URLS.dovBer,
     className: "left-0 -top-2 h-[4.7rem] w-[3.35rem] -rotate-6",
   },
   {
-    src: "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/MENDY%20FAC.webp",
+    src: AGENT_IMAGE_URLS.mendy,
     className: "left-1/2 -top-3 h-20 w-16 -translate-x-1/2 z-10",
   },
   {
-    src: "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Israel%20Whatssap.webp",
+    src: AGENT_IMAGE_URLS.israel,
     className: "right-0 -top-2 h-[4.7rem] w-[3.35rem] rotate-6",
   },
 ];
 
-const DAVID_AUTOMATION_IMAGE_URL =
-  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/David%20responsable%20automatisations.webp";
-const LEVIK_EMAIL_IMAGE_URL =
-  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Levik%20Email.webp";
-const SHMOUEL_TORAH_IMAGE_URL =
-  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Shmouel%20Torah.webp";
-const AVI_DONATION_IMAGE_URL = "/agents/avi-donation-transparent.png";
-const ZALMAN_VISUALS_IMAGE_URL = "/agents/zalman-visuals-transparent.png";
-const TSEMAH_NEWSLETTER_IMAGE_URL = "/agents/tsemah-newsletter-transparent.png";
+const DAVID_AUTOMATION_IMAGE_URL = AGENT_IMAGE_URLS.david;
+const LEVIK_EMAIL_IMAGE_URL = AGENT_IMAGE_URLS.levik;
+const SHMOUEL_TORAH_IMAGE_URL = AGENT_IMAGE_URLS.shmouel;
+const AVI_DONATION_IMAGE_URL = AGENT_IMAGE_URLS.avi;
+const ZALMAN_VISUALS_IMAGE_URL = AGENT_IMAGE_URLS.zalman;
+const TSEMAH_NEWSLETTER_IMAGE_URL = AGENT_IMAGE_URLS.tsemah;
 
 function SocialAgentBubble() {
   return (
@@ -160,66 +158,29 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
 
   function renderSectionSubtitle(section: OfficialDashboardMenuSection, className: string) {
     if (section.key === "social") {
-      return (
-        <p className={className}>
-          Publiez et planifiez vos réseaux avec{" "}
-          <em className="font-semibold italic">Dov Ber, Mendy et Israel</em>
-        </p>
-      );
+      return <p className={className}>Publiez et planifiez vos réseaux depuis un seul espace.</p>;
     }
 
-    if (section.key === "automations") {
-      return (
-        <p className={className}>
-          Automatisez vos publications avec{" "}
-          <em className="font-semibold italic">David</em>
-        </p>
-      );
-    }
+    if (section.key === "automations") return null;
 
     if (section.key === "email") {
-      return (
-        <p className={className}>
-          Vos emails et avis Google, classés automatiquement avec{" "}
-          <em className="font-semibold italic">Levik</em>
-        </p>
-      );
+      return <p className={className}>Vos emails et avis Google, classés automatiquement.</p>;
     }
 
     if (section.key === "torah") {
-      return (
-        <p className={className}>
-          Un agent IA pour vos cours et contenus de Torah avec{" "}
-          <em className="font-semibold italic">Shmouel</em>
-        </p>
-      );
+      return <p className={className}>Un agent IA pour vos cours et contenus de Torah.</p>;
     }
 
     if (section.key === "donation") {
-      return (
-        <p className={className}>
-          {section.subtitle} avec{" "}
-          <em className="font-semibold italic">Avi</em>
-        </p>
-      );
+      return <p className={className}>{section.subtitle}</p>;
     }
 
     if (section.key === "newsletter") {
-      return (
-        <p className={className}>
-          Créez et programmez vos newsletters{" "}
-          <em className="font-semibold italic">Avec Tsemah</em>
-        </p>
-      );
+      return <p className={className}>Créez et programmez vos newsletters.</p>;
     }
 
     if (section.key === "visuals") {
-      return (
-        <p className={className}>
-          Personnalisez et créez vos visuels{" "}
-          <em className="font-semibold italic">avec Zalman</em>
-        </p>
-      );
+      return <p className={className}>Personnalisez et créez vos visuels.</p>;
     }
 
     return <p className={className}>{section.subtitle}</p>;
@@ -231,8 +192,13 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
     return section.items.map((item) => {
       const active = !item.disabled && isActive(item.href);
       const isExternal = item.external || item.href.startsWith("mailto");
+      const isSocialPublisher = item.href === "/dashboard/social-networks";
       const itemClass = item.disabled
         ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400 opacity-80"
+        : isSocialPublisher
+          ? active
+            ? "border border-fuchsia-700 bg-fuchsia-700 text-white shadow-md shadow-fuchsia-200"
+            : "border border-fuchsia-200 bg-gradient-to-r from-fuchsia-600 to-rose-500 text-white shadow-sm shadow-fuchsia-100 hover:from-fuchsia-700 hover:to-rose-600"
         : active
           ? style.itemActive
           : cn("text-slate-700", style.itemHover);
@@ -243,12 +209,12 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
             <item.icon
               className={cn(
                 compact ? "size-[18px]" : "size-4",
-                item.disabled ? "text-slate-400" : active ? "text-current" : style.itemIcon
+                item.disabled ? "text-slate-400" : active || isSocialPublisher ? "text-current" : style.itemIcon
               )}
             />
           )}
           <span className="min-w-0 flex flex-1 flex-col">
-            <span className="truncate font-medium">{item.label}</span>
+            <span className={cn(isSocialPublisher ? "font-black leading-5" : "truncate font-medium")}>{item.label}</span>
           </span>
           {item.badge && (
             <span
@@ -297,7 +263,8 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
               ? "flex items-center gap-3 rounded-2xl border p-3 transition"
               : "flex min-w-0 items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-all duration-200",
             compact && (active ? "border-slate-300 bg-slate-50" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"),
-            !compact && itemClass
+            !compact && itemClass,
+            compact && isSocialPublisher && "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-800"
           )}
         >
           {content}
@@ -578,6 +545,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
           </div>
         );
       })()}
+
     </aside>
   );
 }

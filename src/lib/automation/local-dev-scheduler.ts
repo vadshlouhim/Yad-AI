@@ -1,4 +1,5 @@
 import { runAutomationEngine } from "@/lib/automation/engine";
+import { processScheduledPublications } from "@/lib/publishing/scheduled";
 
 const globalForAutomation = globalThis as typeof globalThis & {
   __easycomAutomationScheduler?: {
@@ -15,6 +16,7 @@ if (!globalForAutomation.__easycomAutomationScheduler) {
       state.running = true;
       try {
         await runAutomationEngine();
+        await processScheduledPublications();
       } catch (error) {
         console.error("[Automation Local Scheduler] Erreur:", error);
       } finally {

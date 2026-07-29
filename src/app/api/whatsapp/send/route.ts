@@ -25,8 +25,11 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const text = String(body.text ?? "").trim();
+  const mediaUrls = Array.isArray(body.mediaUrls)
+    ? body.mediaUrls.filter((value: unknown): value is string => typeof value === "string" && /^https?:\/\//i.test(value))
+    : [];
   const target = String(body.target ?? "community"); // "community" | "phone" | "contacts"
-  if (!text) return NextResponse.json({ error: "Message vide." }, { status: 400 });
+  if (!text && mediaUrls.length === 0) return NextResponse.json({ error: "Message ou media vide." }, { status: 400 });
 
   const admin = createAdminClient();
   const paid = await assertPaidFeature(
@@ -69,7 +72,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const result = await sendWhatsAppMessages({ communityId, phones, text, admin });
+  const result = await sendWhatsAppMessages({ communityId, phones, text, mediaUrls, admin });
 
   if (!result.configured) {
     return NextResponse.json(

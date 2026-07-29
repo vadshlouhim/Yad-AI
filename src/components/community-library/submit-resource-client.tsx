@@ -173,7 +173,7 @@ export function SubmitResourceClient({ communityName }: { communityName: string 
           </button>
           <div className="flex size-10 items-center justify-center rounded-xl bg-white/10 text-teal-100"><Upload className="size-5 animate-pulse" /></div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-teal-200">Bibliothèque communautaire</p>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-teal-200">Bibliothèque partagée</p>
             <h1 className="mt-1 text-xl font-black">Soumettre une ressource</h1>
             <p className="mt-1 text-sm text-white/75">Partagez un document utile avec votre communauté</p>
           </div>

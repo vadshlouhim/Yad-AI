@@ -17,6 +17,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AGENT_IMAGE_URLS } from "@/lib/agents";
 
 interface GoogleReview {
   id: string;
@@ -51,8 +52,7 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   gmb_error: "Erreur pendant la finalisation Google Business.",
 };
 
-const BAROUH_REVIEWS_IMAGE =
-  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Barouh%20Avis%20Google.webp";
+const BAROUH_REVIEWS_IMAGE = AGENT_IMAGE_URLS.barouh;
 
 function getAiAnalysis(review: GoogleReview, now: number) {
   if (review.answered) {

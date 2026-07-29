@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
+import { AGENT_IMAGE_URLS } from "@/lib/agents";
 import {
   RESOURCE_CATEGORIES,
   RESOURCE_THEMES,
@@ -46,8 +47,7 @@ interface Props {
 }
 
 type Tab = "explorer" | "demandes";
-const SHMOUEL_TORAH_IMAGE =
-  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Shmouel%20Torah.webp";
+const SHMOUEL_TORAH_IMAGE = AGENT_IMAGE_URLS.shmouel;
 
 const FILE_ICONS: Record<string, React.ReactNode> = {
   pdf: <FileText className="size-5 text-red-500" />,
@@ -339,13 +339,13 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 overflow-x-hidden px-4 py-6 sm:px-6">
       <AgentPageBanner
-        eyebrow="Bibliothèque communautaire"
+        eyebrow="Bibliothèque partagée"
         title="Vos ressources, enrichies par l’intelligence collective"
         description="Partagez et découvrez des cours, affiches, lettres et textes WhatsApp créés par et pour votre communauté. Shmouel vous aide à adapter chaque ressource au bon moment."
         icon={Library}
         imageUrl={SHMOUEL_TORAH_IMAGE}
-        imageAlt="Shmouel, agent IA Bibliothèque communautaire"
-        bubbleTitle="Je suis Shmouel, votre agent IA Bibliothèque communautaire"
+        imageAlt="Shmouel, agent IA Bibliothèque partagée"
+        bubbleTitle="Je suis Shmouel, votre agent IA Bibliothèque partagée"
         bubbleText="Je classe vos ressources Torah et vous aide à les partager au bon moment"
         bubbleTitleClassName="text-slate-950"
         tone="teal-dark"
@@ -384,7 +384,7 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-violet-100">
               <Library className="size-3.5" />
-              Bibliothèque communautaire
+              Bibliothèque partagée
             </div>
             <h1 className="mt-4 text-3xl font-black tracking-tight">
               Vos ressources, enrichies par l&apos;intelligence collective

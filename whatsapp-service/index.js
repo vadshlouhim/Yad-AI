@@ -1,6 +1,7 @@
 import express from "express";
 import wwebjs from "whatsapp-web.js";
 const { Client, LocalAuth } = wwebjs;
+const { MessageMedia } = wwebjs;
 import qrcode from "qrcode";
 import fs from "node:fs";
 import path from "node:path";
@@ -130,6 +131,20 @@ function cleanupChromiumLockFiles(communityId) {
       fs.rmSync(path.join(sessionDir, file), { force: true });
     } catch {}
   }
+}
+
+function hasStoredSession(communityId) {
+  return fs.existsSync(path.join(SESSIONS_PATH, `session-${communityId}`));
+}
+
+async function waitForConnected(entry, timeoutMs = 20_000) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    if (entry.status === "connected") return true;
+    if (["qr_pending", "auth_failure", "disconnected", "error"].includes(entry.status)) return false;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  return entry.status === "connected";
 }
 
 function auth(req, res, next) {
@@ -315,7 +330,15 @@ app.get("/session/:id/qr", auth, async (req, res) => {
 // ── GET /session/:id/status ─────────────────────────────────────────────────
 app.get("/session/:id/status", auth, (req, res) => {
   const entry = sessions.get(req.params.id);
-  if (!entry) return res.json({ status: "disconnected" });
+  if (!entry) {
+    if (hasStoredSession(req.params.id)) {
+      getOrCreateSession(req.params.id).catch((error) => {
+        console.error(`[${req.params.id}] Rechargement session impossible :`, error instanceof Error ? error.message : error);
+      });
+      return res.json({ status: "initializing" });
+    }
+    return res.json({ status: "disconnected" });
+  }
   return res.json({ status: entry.status });
 });
 
@@ -358,11 +381,18 @@ async function killSession(communityId, entry) {
 // ── POST /send ──────────────────────────────────────────────────────────────
 app.post("/send", auth, async (req, res) => {
   const { communityId, phones, text } = req.body;
-  if (!communityId || !Array.isArray(phones) || !text) {
+  const mediaUrls = Array.isArray(req.body?.mediaUrls)
+    ? req.body.mediaUrls.filter((value) => typeof value === "string" && /^https?:\/\//i.test(value))
+    : [];
+  const messageText = String(text ?? "").trim();
+  if (!communityId || !Array.isArray(phones) || (!messageText && mediaUrls.length === 0)) {
     return res.status(400).json({ error: "Paramètres invalides (communityId, phones[], text)." });
   }
 
-  const entry = sessions.get(communityId);
+  const entry = sessions.get(communityId) ?? await getOrCreateSession(communityId);
+  if (entry.status !== "connected") {
+    await waitForConnected(entry);
+  }
   if (!entry || entry.status !== "connected") {
     return res.status(409).json({
       error: "WhatsApp non connecté. Scannez le QR code d'abord.",
@@ -406,7 +436,15 @@ app.post("/send", auth, async (req, res) => {
     }
     try {
       const chatId = `${digits}@c.us`;
-      await entry.client.sendMessage(chatId, text);
+      if (mediaUrls.length > 0) {
+        for (let index = 0; index < mediaUrls.length; index++) {
+          const media = await MessageMedia.fromUrl(mediaUrls[index], { unsafeMime: true });
+          await entry.client.sendMessage(chatId, media, index === 0 && messageText ? { caption: messageText } : undefined);
+          await new Promise((r) => setTimeout(r, 600));
+        }
+      } else {
+        await entry.client.sendMessage(chatId, messageText);
+      }
       sent++;
       // Pause légère entre envois pour éviter le spam-détect
       await new Promise((r) => setTimeout(r, 600));

@@ -25,6 +25,7 @@ import {
   Zap,
 } from "lucide-react";
 import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
+import { AGENT_IMAGE_URLS } from "@/lib/agents";
 import type {
   DonationCampaign,
   CampaignStep,
@@ -416,7 +417,7 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
           title="Centre de pilotage complet de campagne de dons"
           description="Construisez, pilotez et diffusez toute votre campagne de dons depuis un seul espace intelligent, clair et prêt à accompagner chaque étape."
           icon={HandHeart}
-          imageUrl="https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Avi%20campagne%20de%20dons.webp"
+          imageUrl={AGENT_IMAGE_URLS.avi}
           imageAlt="Avi, agent IA campagne de dons"
           bubbleTitle="Je suis Avi, l’agent IA responsable de votre campagne de dons"
           bubbleTitleClassName="text-slate-950"

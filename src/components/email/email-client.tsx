@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AGENT_IMAGE_URLS } from "@/lib/agents";
 import { ensurePushRegistered, enablePushNotifications, getPushPermission } from "@/lib/push/client";
 import type {
   EmailAiClassification,
@@ -31,8 +32,7 @@ import type {
 } from "@/lib/email/ai-settings";
 import { describeRule } from "@/lib/email/notification-rules";
 
-const LEVIK_EMAIL_IMAGE =
-  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Levik%20Email.webp";
+const LEVIK_EMAIL_IMAGE = AGENT_IMAGE_URLS.levik;
 
 const CATEGORY_META: Record<
   EmailCategory,

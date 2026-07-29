@@ -49,12 +49,12 @@ function normalizeChannels(value: unknown): ReminderChannel[] {
   return valid.length > 0 ? valid : ["INSTAGRAM", "FACEBOOK", "WHATSAPP"];
 }
 
-function normalizeScheduleMode(value: unknown): ScheduleMode {
-  return value === "direct" ? "direct" : "notification";
+function notificationScheduleMode(): ScheduleMode {
+  return "notification";
 }
 
-function buildActions(channels: ReminderChannel[], scheduleMode: ScheduleMode): Json {
-  const requiresValidation = scheduleMode !== "direct";
+function buildActions(channels: ReminderChannel[]): Json {
+  const requiresValidation = true;
   return [
     { type: "GENERATE_CONTENT", contentType: "EVENT_REMINDER", channels, requiresValidation },
     { type: "CREATE_PUBLICATION", requiresValidation },
@@ -100,7 +100,7 @@ function sanitizeCampaign(value: unknown, now: Date): EventReminderCampaign | nu
   const eventDate = normalizeDate(value.eventDate);
   if (!eventDate) return null;
   const channels = normalizeChannels(value.channels);
-  const scheduleMode = normalizeScheduleMode(value.scheduleMode);
+  const scheduleMode = notificationScheduleMode();
 
   const remindersInput = Array.isArray(value.reminders) ? value.reminders : [];
   let reminders = remindersInput
@@ -230,7 +230,7 @@ async function upsertCampaignAutomation(
     description: "Programme automatiquement les rappels J-10, J-5, J-3, Demain et Jour J avant un événement.",
     trigger: "CUSTOM_SCHEDULE" as const,
     triggerConfig,
-    actions: buildActions(campaign.channels, campaign.scheduleMode),
+    actions: buildActions(campaign.channels),
     eventId: campaign.eventId,
     isActive: state.isActive,
     status: state.status,

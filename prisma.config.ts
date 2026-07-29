@@ -2,9 +2,16 @@
 // npm install --save-dev prisma dotenv
 import { config } from "dotenv";
 import { defineConfig } from "prisma/config";
+import { assertSupabaseDatabaseTarget } from "./src/lib/supabase/project-target";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
+
+const databaseUrl = process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"];
+assertSupabaseDatabaseTarget({
+  supabaseUrl: process.env["NEXT_PUBLIC_SUPABASE_URL"],
+  databaseUrl,
+});
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -12,6 +19,6 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
+    url: databaseUrl,
   },
 });
