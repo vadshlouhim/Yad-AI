@@ -2,6 +2,9 @@
   "name": "easycom-ai",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "next dev",
     "whatsapp": "node whatsapp-service/index.js",
