@@ -66,6 +66,7 @@ export default function DemoPage() {
   return (
     <div className="pt-10">
       <DashboardClient
+        basePath="/demo"
         userName="Rabbi Lévi Cohen"
         community={community}
         upcomingEvents={upcomingEvents}

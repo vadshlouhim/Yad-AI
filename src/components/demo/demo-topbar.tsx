@@ -3,6 +3,7 @@
 import { Bell, Search, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { DemoResetButton } from "@/components/demo/demo-reset-button";
 
 interface Props {
   communityName: string;
@@ -25,6 +26,7 @@ export function DemoTopBar({ unreadNotifications }: Props) {
       </div>
 
       <div className="flex items-center gap-2 ml-auto">
+        <DemoResetButton />
         {/* Badge "Mode Démo" */}
         <span className="hidden sm:flex items-center gap-1.5 bg-amber-100 text-amber-700 text-xs font-semibold px-3 py-1.5 rounded-full border border-amber-200">
           <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />

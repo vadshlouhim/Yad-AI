@@ -2,6 +2,14 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { DemoTopBar } from "@/components/demo/demo-topbar";
 import { DemoBanner } from "@/components/demo/demo-banner";
 import { DEMO_COMMUNITY } from "@/lib/demo/data";
+import { DemoStateProvider } from "@/components/demo/demo-state";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: { default: "Démo privée — EasyCom IA", template: "%s — Démo EasyCom IA" },
+  robots: { index: false, follow: false, noarchive: true, nocache: true },
+  referrer: "no-referrer",
+};
 
 export default function DemoLayout({ children }: { children: React.ReactNode }) {
   const community = {
@@ -12,6 +20,7 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
   };
 
   return (
+    <DemoStateProvider>
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
       {/* Bannière démo — en haut, en dehors du layout flex principal */}
       <DemoBanner />
@@ -38,5 +47,6 @@ export default function DemoLayout({ children }: { children: React.ReactNode }) 
         </div>
       </div>
     </div>
+    </DemoStateProvider>
   );
 }

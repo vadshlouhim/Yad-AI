@@ -8,7 +8,6 @@ import {
   CalendarClock,
   CheckCircle,
   Copy,
-  ExternalLink,
   FileText,
   Eye,
   Heart,
@@ -28,9 +27,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { DAVID_AGENT_IMAGE, DOV_BER_INSTAGRAM_IMAGE, MENDY_FACEBOOK_IMAGE, SocialPageBanner } from "@/components/publish/social-page-banner";
-
-const CHATGPT_VISUAL_CREATOR_URL =
-  "https://chatgpt.com/g/g-6a57add3a0d08191b66d9d72eac619a7-createur-d-affiches-visuels-by-easycom-ai";
 
 const SOCIAL_LABELS: Record<string, string> = {
   WHATSAPP: "WhatsApp",
@@ -94,19 +90,16 @@ function ChatGptVisualCreatorButton({ tone = "pink" }: { tone?: "pink" | "blue" 
   };
 
   return (
-    <a
-      href={CHATGPT_VISUAL_CREATOR_URL}
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      href="/dashboard/templates"
       className={cn(
         "flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-center text-sm font-black shadow-sm transition",
         toneClasses[tone],
       )}
     >
       <Sparkles className="size-4" />
-      <span>Créez une image avec ChatGPT By EasyCom-AI</span>
-      <ExternalLink className="size-4" />
-    </a>
+      <span>Créer un visuel IA...</span>
+    </Link>
   );
 }
 

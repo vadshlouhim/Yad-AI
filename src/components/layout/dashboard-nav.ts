@@ -406,6 +406,15 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       ],
     },
     {
+      key: "visuals",
+      section: "AFFICHES & VISUELS",
+      subtitle: "Personnalisez et creez vos visuels",
+      icon: Image,
+      items: [
+        { href: "/dashboard/templates", label: "Affiches & visuels", icon: Image },
+      ],
+    },
+    {
       key: "donation",
       section: "CAMPAGNE DE DONS",
       subtitle: "Pilotez vos campagnes de collecte de A a Z",
@@ -422,15 +431,6 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       icon: Mail,
       items: [
         { href: "/dashboard/newsletter", label: "Création de newsletter", icon: Mail, badge: "Bientôt disponible" },
-      ],
-    },
-    {
-      key: "visuals",
-      section: "AFFICHES & VISUELS",
-      subtitle: "Personnalisez et creez vos visuels",
-      icon: Image,
-      items: [
-        { href: "/dashboard/templates", label: "Affiches & visuels", icon: Image },
       ],
     },
     {

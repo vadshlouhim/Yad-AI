@@ -8,7 +8,6 @@ import {
   CalendarClock,
   CheckCircle2,
   Edit3,
-  ExternalLink,
   ImagePlus,
   RefreshCw,
   Search,
@@ -25,9 +24,6 @@ import { Card } from "@/components/ui/card";
 import { FacebookIcon, InstagramIcon, WhatsAppIcon } from "@/components/layout/dashboard-nav";
 import { cn } from "@/lib/utils";
 import { AGENT_IMAGE_URLS } from "@/lib/agents";
-
-const CHATGPT_VISUAL_CREATOR_URL =
-  "https://chatgpt.com/g/g-6a57add3a0d08191b66d9d72eac619a7-createur-d-affiches-visuels-by-easycom-ai";
 
 const AGENTS = [
   {
@@ -499,16 +495,13 @@ export function SocialNetworksClient() {
                   </h2>
                   <p className="mt-1 text-sm text-slate-600">Décrivez votre annonce : l&apos;IA prépare un texte unique, prêt à diffuser.</p>
                 </div>
-                <a
-                  href={CHATGPT_VISUAL_CREATOR_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href="/dashboard/templates"
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm font-bold text-[#bd276f] shadow-sm transition hover:bg-rose-50"
                 >
                   <ImagePlus className="size-4" />
-                  Créer un visuel IA
-                  <ExternalLink className="size-4" />
-                </a>
+                  Créer un visuel IA...
+                </Link>
               </div>
             </div>
 

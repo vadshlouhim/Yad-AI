@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Lock } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2, Lock } from "lucide-react";
+import { useState } from "react";
+import { useDemoState } from "./demo-state";
 
 type DemoFeaturePageProps = {
   title: string;
@@ -18,6 +22,19 @@ export function DemoFeaturePage({
   secondaryCta,
   children,
 }: DemoFeaturePageProps) {
+  const { completeAction, state } = useDemoState();
+  const actionId = `feature:${title}`;
+  const completed = state.completedActions.includes(actionId);
+  const [loading, setLoading] = useState(false);
+
+  function simulateAction() {
+    setLoading(true);
+    window.setTimeout(() => {
+      completeAction(actionId);
+      setLoading(false);
+    }, 700);
+  }
+
   return (
     <div className="pt-8 space-y-6">
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -43,9 +60,12 @@ export function DemoFeaturePage({
               ) : (
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white opacity-80"
+                  onClick={simulateAction}
+                  disabled={loading}
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-70"
                 >
-                  {primaryCta.label}
+                  {loading && <Loader2 className="size-4 animate-spin" />}
+                  {completed ? "Action simulée avec succès" : primaryCta.label}
                 </button>
               )
             )}
@@ -82,6 +102,12 @@ export function DemoFeaturePage({
           </div>
         )}
       </div>
+      {completed && (
+        <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800" role="status">
+          <CheckCircle2 className="size-4" />
+          Résultat prêt dans la démo. Aucune action réelle n’a été envoyée.
+        </div>
+      )}
       {children}
     </div>
   );

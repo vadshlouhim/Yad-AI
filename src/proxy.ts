@@ -1,6 +1,7 @@
 ﻿import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { updateSession } from "@/lib/supabase/session";
+import { DEMO_ACCESS_COOKIE, isValidDemoAccessCookie } from "@/lib/demo/access";
 
 const PUBLIC_ROUTES = [
   "/",
@@ -36,9 +37,32 @@ function isApiRoute(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Mode démo — entièrement public, pas d'auth Supabase requise
+  // Entrée privée : le Route Handler valide le secret puis pose le cookie démo.
+  if (pathname.startsWith("/demo-access/")) {
+    const response = NextResponse.next();
+    response.headers.set("Cache-Control", "no-store, private");
+    response.headers.set("Referrer-Policy", "no-referrer");
+    response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+    return response;
+  }
+
+  // Mode démo — isolé de Supabase et protégé par un cookie dérivé du secret.
   if (pathname.startsWith("/demo")) {
-    return NextResponse.next();
+    const cookie = request.cookies.get(DEMO_ACCESS_COOKIE)?.value;
+    if (!isValidDemoAccessCookie(cookie)) {
+      return new NextResponse("Not Found", {
+        status: 404,
+        headers: {
+          "Cache-Control": "no-store, private",
+          "X-Robots-Tag": "noindex, nofollow, noarchive",
+        },
+      });
+    }
+
+    const response = NextResponse.next();
+    response.headers.set("Cache-Control", "no-store, private");
+    response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+    return response;
   }
 
   // Routes API publiques (webhooks Stripe, cron, auth callback)

@@ -26,6 +26,7 @@ import {
 import { getCommunityProfileLabel } from "@/lib/community/profile-labels";
 
 interface Props {
+  basePath?: "/dashboard" | "/demo";
   userName: string;
   community: {
     name: string;
@@ -117,6 +118,7 @@ const CHANNEL_BUTTONS: ChannelButton[] = [
 ];
 
 export function DashboardClient({
+  basePath = "/dashboard",
   userName,
   community,
   upcomingEvents,
@@ -124,6 +126,7 @@ export function DashboardClient({
   stats,
   notifications,
 }: Props) {
+  const resolveHref = (href: string) => href.startsWith("/dashboard") ? href.replace("/dashboard", basePath) : href;
   const firstName = userName.split(" ")[0] || "vous";
   const structureLabel = getCommunityProfileLabel(community.communityType, "plural");
   const connectedTypes = new Set((community.channels ?? []).filter((channel) => channel.isConnected).map((channel) => channel.type));
@@ -154,7 +157,7 @@ export function DashboardClient({
           </div>
 
           <Button asChild className="h-12 rounded-2xl bg-blue-950 px-5 text-white shadow-sm shadow-blue-950/20 hover:bg-blue-900">
-            <Link href="/dashboard/assistant">
+            <Link href={resolveHref("/dashboard/assistant")}>
               <Zap className="size-4" />
               Ouvrir l&apos;assistant IA
             </Link>
@@ -164,7 +167,7 @@ export function DashboardClient({
 
       {failedCount > 0 && (
         <Link
-          href="/dashboard/publications?status=FAILED"
+          href={resolveHref("/dashboard/publications?status=FAILED")}
           className="flex items-start gap-3 rounded-3xl border border-red-100 bg-red-50 p-4 text-red-800 transition hover:border-red-200 hover:bg-red-100/70"
         >
           <AlertCircle className="mt-0.5 size-5 shrink-0 text-red-500" />
@@ -189,7 +192,7 @@ export function DashboardClient({
                 </p>
               </div>
               <Link
-                href="/dashboard/settings/channels"
+                href={resolveHref("/dashboard/settings/channels")}
                 className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
               >
                 <Settings2 className="size-3.5" />
@@ -206,7 +209,7 @@ export function DashboardClient({
                 return (
                   <Link
                     key={channel.type}
-                    href={href}
+                    href={resolveHref(href)}
                     className={cn(
                       "group flex min-h-[74px] flex-col items-center justify-center gap-1.5 rounded-2xl border p-2 text-center transition hover:-translate-y-0.5 sm:min-h-[92px] sm:gap-2 sm:p-3",
                       isConnected
@@ -237,7 +240,7 @@ export function DashboardClient({
           title="Publications"
           value={reviewCount}
           description={reviewCount > 0 ? "Publications a valider ou suivre." : "Rien en attente."}
-          href="/dashboard/publications"
+          href={resolveHref("/dashboard/publications")}
           icon={Clock3}
           tone={reviewCount > 0 ? "amber" : "slate"}
         />
@@ -246,7 +249,7 @@ export function DashboardClient({
           title="Notifications"
           value={notifications.length}
           description={notifications.length > 0 ? "Alertes non lues." : "Tout est a jour."}
-          href="/dashboard/notifications"
+          href={resolveHref("/dashboard/notifications")}
           icon={Bell}
           tone={notifications.length > 0 ? "blue" : "slate"}
         />
@@ -270,13 +273,13 @@ export function DashboardClient({
         <MiniPanel
           title="Mon agenda"
           description={nextEvent ? `Prochain element : ${nextEvent.title}` : "Ajouter ou verifier les prochains evenements."}
-          href="/dashboard/events"
+          href={resolveHref("/dashboard/events")}
           icon={CheckCircle2}
         />
         <MiniPanel
           title="Automatisations"
           description={`${stats.automations} automatisation${stats.automations > 1 ? "s" : ""} active${stats.automations > 1 ? "s" : ""}.`}
-          href="/dashboard/automations"
+          href={resolveHref("/dashboard/automations")}
           icon={Settings2}
         />
       </section>

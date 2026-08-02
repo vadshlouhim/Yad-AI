@@ -1,0 +1,176 @@
+export type DemoModuleConfig = {
+  title: string;
+  subtitle: string;
+  action: string;
+  highlights: [string, string, string];
+  items: [string, string, string];
+  future?: boolean;
+};
+
+export const DEMO_MODULES: Record<string, DemoModuleConfig> = {
+  automations: {
+    title: "Toutes les automatisations",
+    subtitle: "Activez des scénarios récurrents pour préparer votre communication sans effort.",
+    action: "Exécuter une automatisation",
+    highlights: ["2 scénarios actifs", "Historique détaillé", "Déclenchement manuel"],
+    items: ["Publication Chabbat — active", "Rappel événement — actif", "Cours hebdomadaire — en pause"],
+  },
+  "social-networks": {
+    title: "Publier sur tous mes réseaux",
+    subtitle: "Préparez un message unique, adaptez-le et planifiez-le sur chaque canal.",
+    action: "Générer les adaptations",
+    highlights: ["5 canaux centralisés", "Aperçus par réseau", "Planification unifiée"],
+    items: ["Instagram — prêt", "Facebook — prêt", "WhatsApp — à valider"],
+  },
+  instagram: {
+    title: "Instagram",
+    subtitle: "Créez un visuel et une légende adaptés à votre audience Instagram.",
+    action: "Préparer le post Instagram",
+    highlights: ["Format carré", "Hashtags suggérés", "Aperçu mobile"],
+    items: ["Post Chabbat", "Carrousel Hanoukka", "Story cours de Torah"],
+  },
+  facebook: {
+    title: "Facebook",
+    subtitle: "Rédigez, prévisualisez et programmez les publications de votre page.",
+    action: "Préparer la publication",
+    highlights: ["Page connectée", "Texte longue durée", "Programmation"],
+    items: ["Annonce communautaire", "Événement public", "Album de la semaine"],
+  },
+  whatsapp: {
+    title: "WhatsApp",
+    subtitle: "Préparez des messages clairs pour vos listes et groupes communautaires.",
+    action: "Simuler l’envoi WhatsApp",
+    highlights: ["Message personnalisé", "Sélection des contacts", "Aperçu téléphone"],
+    items: ["Liste Membres — 248", "Groupe Jeunesse — 86", "Parents — 112"],
+  },
+  "publish/telegram": {
+    title: "Telegram",
+    subtitle: "Préparez et programmez vos annonces sur le canal Telegram.",
+    action: "Programmer sur Telegram",
+    highlights: ["Canal connecté", "Média inclus", "Publication simulée"],
+    items: ["Annonce hebdomadaire", "Rappel événement", "Cours du jour"],
+  },
+  "shabbat-times-auto": {
+    title: "Horaires de Chabbat",
+    subtitle: "Générez automatiquement les horaires et le contenu hebdomadaire.",
+    action: "Générer cette semaine",
+    highlights: ["Horaires locaux", "Paracha intégrée", "Diffusion jeudi"],
+    items: ["Allumage — 17h42", "Havdala — 18h58", "Publication — jeudi 18h"],
+  },
+  "hayom-yom-sefer-hamitsvot": {
+    title: "Sefer Hamitsvot / Hayom Yom",
+    subtitle: "Prévisualisation du futur agent de contenu quotidien.",
+    action: "Voir un exemple",
+    highlights: ["Contenu quotidien", "Formats courts", "Calendrier hébraïque"],
+    items: ["Hayom Yom du jour", "Sefer Hamitsvot", "Citation partageable"],
+    future: true,
+  },
+  "jewish-holidays-auto": {
+    title: "Fêtes juives et hassidiques",
+    subtitle: "Anticipez les fêtes avec des contenus et rappels préparés automatiquement.",
+    action: "Préparer la prochaine fête",
+    highlights: ["Calendrier hébraïque", "Rappels anticipés", "Visuels thématiques"],
+    items: ["Tou Bichvat", "Pourim", "Pessa’h"],
+  },
+  "event-reminders-auto": {
+    title: "Automatisation J-10 / J-5",
+    subtitle: "Programmez plusieurs vagues de rappel avant chaque événement.",
+    action: "Créer les rappels",
+    highlights: ["J-10 sensibilisation", "J-5 confirmation", "Jour J rappel"],
+    items: ["Allumage de Hanoukka", "Dîner communautaire", "Cours jeunesse"],
+  },
+  "event-recap-auto": {
+    title: "Récap après événement",
+    subtitle: "Transformez vos photos et temps forts en publication récapitulative.",
+    action: "Créer le récap",
+    highlights: ["Sélection intelligente", "Texte de remerciement", "Multi-réseaux"],
+    items: ["Photos sélectionnées — 12", "Séquences — 4", "Canaux — 3"],
+  },
+  "weekly-images-auto": {
+    title: "Cette semaine en images",
+    subtitle: "Composez automatiquement un carrousel avec les moments de la semaine.",
+    action: "Composer le carrousel",
+    highlights: ["6 photos", "Ordre automatique", "Légende générée"],
+    items: ["Cours du mercredi", "Office de Chabbat", "Activité jeunesse"],
+  },
+  "monthly-program-recap-auto": {
+    title: "Programme du mois",
+    subtitle: "Regroupez les événements à venir dans une communication mensuelle claire.",
+    action: "Générer le programme",
+    highlights: ["Agenda consolidé", "Affiche mensuelle", "Newsletter prête"],
+    items: ["8 événements", "3 publics", "5 réservés aux membres"],
+  },
+  email: {
+    title: "Email intelligent",
+    subtitle: "Classez les messages et préparez des réponses dans le ton de la communauté.",
+    action: "Générer une réponse",
+    highlights: ["Priorités détectées", "Réponses suggérées", "Gmail simulé"],
+    items: ["Demande d’inscription", "Question horaires", "Proposition de partenariat"],
+  },
+  "google-reviews": {
+    title: "Avis Google",
+    subtitle: "Centralisez les avis et répondez rapidement avec une suggestion personnalisée.",
+    action: "Répondre à l’avis",
+    highlights: ["Note moyenne 4,8", "Réponse IA", "Ton chaleureux"],
+    items: ["5★ — accueil formidable", "5★ — très belle communauté", "4★ — merci"],
+  },
+  "community-library": {
+    title: "Bibliothèque partagée",
+    subtitle: "Découvrez et partagez des ressources utiles entre communautés.",
+    action: "Ajouter aux favoris",
+    highlights: ["Ressources vérifiées", "Recherche rapide", "Partage communautaire"],
+    items: ["Guide Pourim", "Plan de cours", "Kit nouveaux membres"],
+  },
+  "donation-campaign": {
+    title: "Campagne de dons",
+    subtitle: "Prévisualisation du pilotage des collectes, objectifs et relances.",
+    action: "Voir la campagne exemple",
+    highlights: ["Objectif de collecte", "Relances segmentées", "Progression en direct"],
+    items: ["Objectif — 50 000 €", "Collecté — 31 850 €", "Donateurs — 126"],
+    future: true,
+  },
+  "donation-campaign/visuals": {
+    title: "Visuels de campagne",
+    subtitle: "Prévisualisation des affiches et publications dédiées à une collecte.",
+    action: "Générer un exemple",
+    highlights: ["Identité de campagne", "Thermomètre de dons", "Déclinaisons sociales"],
+    items: ["Affiche lancement", "Palier 50 %", "Remerciement donateurs"],
+    future: true,
+  },
+  newsletter: {
+    title: "Newsletter IA",
+    subtitle: "Prévisualisation de la création et programmation de newsletters.",
+    action: "Composer un aperçu",
+    highlights: ["Blocs automatiques", "Agenda intégré", "Responsive email"],
+    items: ["Édito du rabbin", "Agenda du mois", "Retour en images"],
+    future: true,
+  },
+  boutique: {
+    title: "Boutique",
+    subtitle: "Découvrez les services créatifs disponibles pour votre communauté.",
+    action: "Simuler une demande",
+    highlights: ["Création visuelle", "Accompagnement", "Devis simplifié"],
+    items: ["Pack affiches", "Identité visuelle", "Vidéo événement"],
+  },
+  referencement: {
+    title: "Référencement Google et IA",
+    subtitle: "Suivez la visibilité locale et les améliorations recommandées.",
+    action: "Lancer l’analyse simulée",
+    highlights: ["SEO local", "Fiche Google", "Recommandations IA"],
+    items: ["Profil complété — 92 %", "7 mots-clés suivis", "4 actions recommandées"],
+  },
+  "assistance-indemnisation-aerienne": {
+    title: "Assistance indemnisations",
+    subtitle: "Évaluez rapidement l’éligibilité d’un vol retardé ou annulé.",
+    action: "Tester un dossier fictif",
+    highlights: ["Diagnostic guidé", "Dossier sécurisé", "Suivi simplifié"],
+    items: ["Vol Paris–Tel Aviv", "Retard — 4h15", "Éligibilité probable"],
+  },
+  contacts: {
+    title: "CRM intelligent IA",
+    subtitle: "Centralisez vos contacts et préparez des communications ciblées.",
+    action: "Créer un segment",
+    highlights: ["446 contacts", "Segments intelligents", "Historique unifié"],
+    items: ["Membres actifs — 248", "Jeunesse — 86", "Donateurs — 112"],
+  },
+};
