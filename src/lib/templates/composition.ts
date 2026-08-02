@@ -153,6 +153,32 @@ const PRIORITY_MINIMUMS: Record<PosterTextPriority, number> = {
 const MAX_ATTEMPTS = 3;
 const TEXT_TOO_LONG_MESSAGE =
   "Ces informations sont trop longues pour être intégrées lisiblement dans ce template. Réduisez le texte ou choisissez un autre modèle.";
+const LAYOUT_VALIDATION_FAILED_MESSAGE =
+  "La mise en page automatique n’a pas trouvé assez d’espace libre pour tous les textes. Raccourcissez-les et répartissez les informations sur plusieurs lignes avec la touche Entrée, ou choisissez un modèle plus aéré.";
+
+export type PosterLayoutIssueCode =
+  | "PLAN_NOT_DIFFERENT"
+  | "INVALID_BLOCK_REFERENCE"
+  | "OUT_OF_BOUNDS"
+  | "FONT_BELOW_MINIMUM"
+  | "EXCESSIVE_LETTER_SPACING"
+  | "EXCESSIVE_OUTLINE"
+  | "EXCESSIVE_SHADOW"
+  | "BOX_TOO_SMALL"
+  | "PROTECTED_REGION_OVERLAP"
+  | "TEXT_OVERLAP"
+  | "MISSING_BLOCKS";
+
+export class PosterLayoutValidationError extends Error {
+  constructor(
+    readonly code: PosterLayoutIssueCode,
+    message: string,
+    readonly blockId?: string,
+  ) {
+    super(message);
+    this.name = "PosterLayoutValidationError";
+  }
+}
 
 export class PosterCompositionError extends Error {
   constructor(
@@ -290,23 +316,34 @@ function buildPlannerPrompt(params: {
   previousIssues?: VisualQualityIssue[];
 }) {
   const { width, height, blocks, attempt, previousPlan, previousIssues } = params;
+  const blockRequirements = getBlockPlacementRequirements(blocks, width, height);
   return `Tu es un directeur artistique chargé de placer uniquement des textes sur un fond verrouillé.
 
 Dimensions originales: ${width} x ${height}px. Format: ${formatHint(width, height)}.
 Tentative: ${attempt}/${MAX_ATTEMPTS}.
 Blocs exacts (tu peux les lire pour calculer leur encombrement, mais elements doit référencer uniquement blockId):
 ${JSON.stringify(blocks)}
+Contraintes calculées par bloc:
+${JSON.stringify(blockRequirements)}
 
 Contraintes absolues:
 - Le fond, les images, logos, cadres, couleurs et textes existants sont intouchables.
 - Détecte tous les textes fixes et toutes les régions à protéger.
 - Les rectangles protégés doivent épouser la matière occupée. Un cadre creux doit être décrit comme frame, sans interdire son intérieur vide.
 - Place chaque bloc fourni, sauf s'il est déjà présent avec une égalité textuelle stricte.
+- La liste des blockId obligatoires est exactement: ${blocks.map((block) => block.id).join(", ")}.
+- Avant de répondre, vérifie qu'aucun blockId obligatoire n'est oublié ou dupliqué.
 - Aucune reformulation, traduction, correction, suppression ou invention.
 - Les coordonnées sont en pixels dans les dimensions originales.
 - Respecte des marges propres, une hiérarchie claire et un contraste élevé.
+- Cherche les espaces libres sur toute la surface avant de choisir les coordonnées.
+- Si un plan précédent chevauche un élément protégé, déplace entièrement le bloc concerné vers une autre zone libre; ne l'agrandis pas au même endroit.
+- Si deux textes se chevauchent, répartis-les dans des zones distinctes avec une marge visible entre leurs rectangles.
+- Adapte la largeur des boîtes pour provoquer des retours à la ligne lisibles sans créer de collision verticale.
 - fontFamily doit être noto-sans, dejavu-sans ou arial.
 - Les tailles minimales sont: main ${minimumFontSize("main", width, height)}px, important ${minimumFontSize("important", width, height)}px, complementary ${minimumFontSize("complementary", width, height)}px.
+- Chaque boîte doit être assez haute pour toutes les lignes du texte exact à la taille choisie.
+- Si un problème BOX_TOO_SMALL est signalé, reprends la hauteur minimale indiquée et ajoute au moins 12% de marge verticale.
 - outline.width <= 4% de fontSize.
 - shadow.opacity <= 0.35, décalages <= 6% et blur <= 12% de fontSize.
 - Le plan ne contient jamais de propriété text, lines, content ou value dans elements.
@@ -435,6 +472,129 @@ export function wrapExactText(text: string, width: number, fontSize: number, let
   return lines;
 }
 
+export function getBlockPlacementRequirements(
+  blocks: PosterTextBlock[],
+  width: number,
+  height: number,
+) {
+  const margin = Math.max(8, Math.round(Math.min(width, height) * 0.012));
+  const availableWidth = Math.max(1, width - margin * 2);
+
+  return blocks.map((block) => {
+    const minimum = minimumFontSize(block.priority, width, height);
+    const linesAtFullWidth = wrapExactText(block.text, availableWidth, minimum, 0).length;
+    return {
+      blockId: block.id,
+      priority: block.priority,
+      minimumFontSize: minimum,
+      linesAtFullWidth,
+      minimumHeightAtFullWidth: Math.ceil(linesAtFullWidth * minimum * 0.9),
+    };
+  });
+}
+
+export function findDefinitelyOverflowingBlockIds(
+  blocks: PosterTextBlock[],
+  width: number,
+  height: number,
+) {
+  const margin = Math.max(8, Math.round(Math.min(width, height) * 0.012));
+  const availableHeight = Math.max(1, height - margin * 2);
+  return getBlockPlacementRequirements(blocks, width, height)
+    .filter((requirement) => requirement.minimumHeightAtFullWidth > availableHeight)
+    .map((requirement) => requirement.blockId);
+}
+
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+export function repairPosterCompositionPlan(params: {
+  plan: PosterCompositionPlan;
+  blocks: PosterTextBlock[];
+  width: number;
+  height: number;
+}): PosterCompositionPlan {
+  const { plan, blocks, width, height } = params;
+  const blockMap = new Map(blocks.map((block) => [block.id, block]));
+  const margin = Math.max(8, Math.round(Math.min(width, height) * 0.012));
+  const maximumBoxHeight = Math.max(1, height - margin * 2);
+
+  return {
+    ...plan,
+    elements: plan.elements.map((element) => {
+      const block = blockMap.get(element.blockId);
+      if (!block) return element;
+
+      const minimum = minimumFontSize(block.priority, width, height);
+      let fontSize = Math.max(element.fontSize, minimum);
+      let letterSpacing = clamp(
+        element.letterSpacing,
+        -fontSize * 0.12,
+        fontSize * 0.12,
+      );
+      const calculateRequiredHeight = () => Math.ceil(
+        wrapExactText(block.text, element.width, fontSize, letterSpacing).length
+          * fontSize
+          * element.lineHeight,
+      );
+      let requiredHeight = calculateRequiredHeight();
+
+      // Conserver autant que possible la boîte proposée par l'analyse visuelle.
+      // Une réduction progressive évite de l'agrandir immédiatement et de créer
+      // des chevauchements avec les autres textes ou les zones protégées.
+      while (requiredHeight > element.height && fontSize > minimum) {
+        fontSize -= 1;
+        letterSpacing = clamp(element.letterSpacing, -fontSize * 0.12, fontSize * 0.12);
+        requiredHeight = calculateRequiredHeight();
+      }
+
+      if (requiredHeight > maximumBoxHeight) {
+        fontSize = minimum;
+        letterSpacing = clamp(element.letterSpacing, -fontSize * 0.12, fontSize * 0.12);
+        requiredHeight = calculateRequiredHeight();
+      }
+
+      const boxHeight = Math.min(maximumBoxHeight, Math.max(element.height, requiredHeight));
+      const centeredY = element.y - (boxHeight - element.height) / 2;
+      const y = clamp(centeredY, margin, height - margin - boxHeight);
+      const outline = element.outline
+        ? {
+            ...element.outline,
+            width: Math.min(element.outline.width, fontSize * 0.04),
+          }
+        : undefined;
+      const shadow = element.shadow
+        ? {
+            ...element.shadow,
+            opacity: Math.min(element.shadow.opacity, 0.35),
+            offsetX: clamp(element.shadow.offsetX, -fontSize * 0.06, fontSize * 0.06),
+            offsetY: clamp(element.shadow.offsetY, -fontSize * 0.06, fontSize * 0.06),
+            blur: Math.min(element.shadow.blur, fontSize * 0.12),
+          }
+        : undefined;
+
+      return {
+        ...element,
+        y,
+        height: boxHeight,
+        fontSize,
+        letterSpacing,
+        outline,
+        shadow,
+      };
+    }),
+  };
+}
+
+function layoutValidationError(
+  code: PosterLayoutIssueCode,
+  message: string,
+  blockId?: string,
+): never {
+  throw new PosterLayoutValidationError(code, message, blockId);
+}
+
 export function validatePosterCompositionPlan(params: {
   plan: PosterCompositionPlan;
   blocks: PosterTextBlock[];
@@ -457,13 +617,20 @@ export function validatePosterCompositionPlan(params: {
   const margin = Math.max(8, Math.round(Math.min(width, height) * 0.012));
 
   if (!materiallyDifferent(plan, previousPlan)) {
-    throw new Error("La nouvelle disposition est trop proche du plan précédent.");
+    layoutValidationError(
+      "PLAN_NOT_DIFFERENT",
+      "La nouvelle disposition est trop proche du plan précédent; déplace ou redimensionne matériellement les blocs.",
+    );
   }
 
   for (const element of plan.elements) {
     const block = blockMap.get(element.blockId);
     if (!block || plannedIds.has(element.blockId) || !requiredIds.has(element.blockId)) {
-      throw new Error(`Référence de bloc invalide ou dupliquée: ${element.blockId}`);
+      layoutValidationError(
+        "INVALID_BLOCK_REFERENCE",
+        `La référence ${element.blockId} est invalide, déjà utilisée ou correspond à un texte fixe.`,
+        element.blockId,
+      );
     }
     if (
       element.x < margin
@@ -471,21 +638,34 @@ export function validatePosterCompositionPlan(params: {
       || element.x + element.width > width - margin
       || element.y + element.height > height - margin
     ) {
-      throw new Error(`Le bloc ${element.blockId} dépasse les marges du template.`);
+      layoutValidationError(
+        "OUT_OF_BOUNDS",
+        `Le bloc ${element.blockId} dépasse les marges de ${margin}px du template.`,
+        element.blockId,
+      );
     }
 
     const minimum = minimumFontSize(block.priority, width, height);
     if (element.fontSize < minimum) {
-      throw new PosterCompositionError(
-        "TEXT_TOO_LONG",
+      layoutValidationError(
+        "FONT_BELOW_MINIMUM",
         `Le bloc ${element.blockId} utilise ${element.fontSize}px, sous le minimum de ${minimum}px.`,
+        element.blockId,
       );
     }
     if (Math.abs(element.letterSpacing) > element.fontSize * 0.12) {
-      throw new Error(`L'espacement du bloc ${element.blockId} est excessif.`);
+      layoutValidationError(
+        "EXCESSIVE_LETTER_SPACING",
+        `L'espacement du bloc ${element.blockId} dépasse 12% de la taille de police.`,
+        element.blockId,
+      );
     }
     if (element.outline && element.outline.width > element.fontSize * 0.04) {
-      throw new Error(`Le contour du bloc ${element.blockId} est excessif.`);
+      layoutValidationError(
+        "EXCESSIVE_OUTLINE",
+        `Le contour du bloc ${element.blockId} dépasse 4% de la taille de police.`,
+        element.blockId,
+      );
     }
     if (element.shadow && (
       element.shadow.opacity > 0.35
@@ -493,33 +673,47 @@ export function validatePosterCompositionPlan(params: {
       || Math.abs(element.shadow.offsetY) > element.fontSize * 0.06
       || element.shadow.blur > element.fontSize * 0.12
     )) {
-      throw new Error(`L'ombre du bloc ${element.blockId} est excessive.`);
+      layoutValidationError(
+        "EXCESSIVE_SHADOW",
+        `L'ombre du bloc ${element.blockId} dépasse les limites autorisées.`,
+        element.blockId,
+      );
     }
 
     const lines = wrapExactText(block.text, element.width, element.fontSize, element.letterSpacing);
     const requiredHeight = Math.ceil(lines.length * element.fontSize * element.lineHeight);
     if (requiredHeight > element.height) {
-      throw new PosterCompositionError(
-        "TEXT_TOO_LONG",
+      layoutValidationError(
+        "BOX_TOO_SMALL",
         `Le bloc ${element.blockId} produit ${lines.length} ligne(s) et demande au moins ${requiredHeight}px de hauteur; la boîte en fournit ${element.height}px.`,
+        element.blockId,
       );
     }
     if (plan.protectedRegions.some(
       (region) => isSolidProtectedRegion(region, width, height) && rectanglesOverlap(element, region, 2),
     )) {
-      throw new Error(`Le bloc ${element.blockId} recouvre une région protégée.`);
+      layoutValidationError(
+        "PROTECTED_REGION_OVERLAP",
+        `Le bloc ${element.blockId} recouvre une région protégée; déplace-le dans un espace libre.`,
+        element.blockId,
+      );
     }
     if (plan.elements.some((other) => other !== element && rectanglesOverlap(element, other, 2))) {
-      throw new Error(`Le bloc ${element.blockId} recouvre un autre texte.`);
+      layoutValidationError(
+        "TEXT_OVERLAP",
+        `Le bloc ${element.blockId} recouvre un autre texte; sépare les boîtes.`,
+        element.blockId,
+      );
     }
     plannedIds.add(element.blockId);
   }
 
   const missingIds = [...requiredIds].filter((id) => !plannedIds.has(id));
   if (missingIds.length > 0) {
-    throw new PosterCompositionError(
-      "TEXT_TOO_LONG",
-      `Les blocs suivants doivent tous être placés: ${missingIds.join(", ")}.`,
+    layoutValidationError(
+      "MISSING_BLOCKS",
+      `Ajoute un élément distinct pour chacun de ces blockId obligatoires: ${missingIds.join(", ")}.`,
+      missingIds[0],
     );
   }
 
@@ -701,6 +895,86 @@ passed doit être false dès qu'une correction est nécessaire.`;
   return visualReportSchema.parse(extractJson(response.choices[0]?.message?.content ?? ""));
 }
 
+function issueFromCompositionFailure(error: unknown): VisualQualityIssue {
+  if (error instanceof PosterLayoutValidationError) {
+    return {
+      code: error.code,
+      message: error.message,
+      blockId: error.blockId,
+    };
+  }
+  if (error instanceof PosterCompositionError) {
+    return { code: error.code, message: error.message };
+  }
+  return {
+    code: "INVALID_LAYOUT",
+    message: error instanceof Error ? error.message : "Plan invalide",
+  };
+}
+
+function actionableLayoutMessage(issue?: VisualQualityIssue) {
+  if (!issue) return LAYOUT_VALIDATION_FAILED_MESSAGE;
+  if (issue.code === "BOX_TOO_SMALL" || issue.code === "OUT_OF_BOUNDS" || issue.code === "FONT_BELOW_MINIMUM") {
+    return "Un ou plusieurs textes ne tiennent pas lisiblement dans l’espace disponible. Raccourcissez-les et écrivez chaque information sur une ligne séparée avec la touche Entrée.";
+  }
+  if (issue.code === "PROTECTED_REGION_OVERLAP" || issue.code === "TEXT_OVERLAP") {
+    return "Les textes se chevauchent ou recouvrent un élément important du modèle. Répartissez les informations sur plusieurs lignes, réduisez leur longueur ou choisissez un modèle plus aéré.";
+  }
+  if (issue.code === "LOW_CONTRAST") {
+    return "Le contraste du texte est insuffisant sur ce modèle. Réessayez pour obtenir une autre disposition ou choisissez un modèle avec une zone de texte plus claire.";
+  }
+  return LAYOUT_VALIDATION_FAILED_MESSAGE;
+}
+
+function debugPlanSummary(attempt: number, plan: PosterCompositionPlan) {
+  return {
+    attempt,
+    detectedFixedTextCount: plan.detectedFixedTexts.length,
+    protectedRegionCount: plan.protectedRegions.length,
+    elements: plan.elements.map((element) => ({
+      blockId: element.blockId,
+      x: element.x,
+      y: element.y,
+      width: element.width,
+      height: element.height,
+      fontSize: element.fontSize,
+    })),
+  };
+}
+
+function debugReportSummary(attempt: number, report: VisualQualityReport) {
+  return {
+    attempt,
+    passed: report.passed,
+    score: report.score,
+    issues: report.issues.map(({ code, blockId }) => ({ code, blockId })),
+  };
+}
+
+function debugFailureDetails(error: unknown) {
+  if (error instanceof z.ZodError) {
+    return {
+      name: error.name,
+      issues: error.issues.map((issue) => ({
+        code: issue.code,
+        path: issue.path.join("."),
+        expected: "expected" in issue ? issue.expected : undefined,
+      })),
+    };
+  }
+  if (error instanceof OpenAI.APIError) {
+    return {
+      name: error.name,
+      status: error.status,
+      code: error.code,
+      type: error.type,
+    };
+  }
+  return {
+    name: error instanceof Error ? error.name : "UnknownError",
+  };
+}
+
 export async function composePosterWithVisualValidation(params: {
   originalUrl: string;
   sourceBuffer: Buffer;
@@ -720,18 +994,34 @@ export async function composePosterWithVisualValidation(params: {
   }
   const blocks = validateTextBlocks(params.blocks);
   const textHash = hashTextBlocks(blocks);
+  const definitelyOverflowingBlockIds = findDefinitelyOverflowingBlockIds(
+    blocks,
+    metadata.width,
+    metadata.height,
+  );
+  if (definitelyOverflowingBlockIds.length > 0) {
+    if (process.env.POSTER_COMPOSITION_DEBUG === "1") {
+      console.warn("[Poster Composition] Definite overflow", JSON.stringify({
+        blockIds: definitelyOverflowingBlockIds,
+        width: metadata.width,
+        height: metadata.height,
+      }));
+    }
+    throw new PosterCompositionError("TEXT_TOO_LONG", TEXT_TOO_LONG_MESSAGE);
+  }
   const openrouter = new OpenAI({
     baseURL: "https://openrouter.ai/api/v1",
     apiKey: process.env.OPENROUTER_API_KEY,
   });
   let previousPlan = params.previousPlan;
   let previousIssues: VisualQualityIssue[] | undefined;
-  let sawTextOverflow = false;
-  let hadTechnicallyValidPlan = false;
+  let lastFailure: unknown;
+  let lastVisualIssues: VisualQualityIssue[] | undefined;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    let attemptedPlan: PosterCompositionPlan | undefined;
     try {
-      const plan = await requestCompositionPlan({
+      const requestedPlan = await requestCompositionPlan({
         openrouter,
         imageUrl: params.originalUrl,
         width: metadata.width,
@@ -741,8 +1031,15 @@ export async function composePosterWithVisualValidation(params: {
         previousPlan,
         previousIssues,
       });
+      const plan = repairPosterCompositionPlan({
+        plan: requestedPlan,
+        blocks,
+        width: metadata.width,
+        height: metadata.height,
+      });
+      attemptedPlan = plan;
       if (process.env.POSTER_COMPOSITION_DEBUG === "1") {
-        console.warn("[Poster Composition] Plan", JSON.stringify({ attempt, plan }));
+        console.warn("[Poster Composition] Plan", JSON.stringify(debugPlanSummary(attempt, plan)));
       }
       if (hashTextBlocks(blocks) !== textHash) {
         throw new Error("Le hash des textes a changé pendant la planification.");
@@ -754,7 +1051,6 @@ export async function composePosterWithVisualValidation(params: {
         height: metadata.height,
         previousPlan,
       });
-      hadTechnicallyValidPlan = true;
       const outputBuffer = await renderPosterPlanDeterministically({
         sourceBuffer: params.sourceBuffer,
         plan,
@@ -773,7 +1069,10 @@ export async function composePosterWithVisualValidation(params: {
         blocks,
       });
       if (process.env.POSTER_COMPOSITION_DEBUG === "1") {
-        console.warn("[Poster Composition] Visual report", JSON.stringify({ attempt, visualReport }));
+        console.warn(
+          "[Poster Composition] Visual report",
+          JSON.stringify(debugReportSummary(attempt, visualReport)),
+        );
       }
       if (hashTextBlocks(blocks) !== textHash) {
         throw new Error("Le hash des textes a changé pendant le contrôle visuel.");
@@ -789,27 +1088,49 @@ export async function composePosterWithVisualValidation(params: {
           height: metadata.height,
         };
       }
+      lastFailure = undefined;
+      lastVisualIssues = visualReport.issues;
       previousPlan = plan;
       previousIssues = visualReport.issues;
     } catch (error) {
-      if (error instanceof PosterCompositionError && error.code === "TEXT_TOO_LONG") {
-        sawTextOverflow = true;
+      lastFailure = error;
+      lastVisualIssues = undefined;
+      if (attemptedPlan) {
+        previousPlan = attemptedPlan;
       }
-      previousIssues = [{
-        code: error instanceof PosterCompositionError ? error.code : "INVALID_LAYOUT",
-        message: error instanceof Error ? error.message : "Plan invalide",
-      }];
+      previousIssues = [issueFromCompositionFailure(error)];
       if (process.env.POSTER_COMPOSITION_DEBUG === "1") {
-        console.warn("[Poster Composition] Attempt failed", JSON.stringify({ attempt, previousIssues }));
+        console.warn("[Poster Composition] Attempt failed", JSON.stringify({
+          attempt,
+          issues: previousIssues.map(({ code, blockId }) => ({ code, blockId })),
+          failure: debugFailureDetails(error),
+        }));
       }
     }
   }
 
-  if (sawTextOverflow && !hadTechnicallyValidPlan) {
-    throw new PosterCompositionError("TEXT_TOO_LONG", TEXT_TOO_LONG_MESSAGE);
+  if (lastFailure instanceof PosterCompositionError) throw lastFailure;
+  if (lastFailure instanceof PosterLayoutValidationError) {
+    throw new PosterCompositionError(
+      "LAYOUT_VALIDATION_FAILED",
+      actionableLayoutMessage(issueFromCompositionFailure(lastFailure)),
+    );
   }
+  if (lastFailure instanceof OpenAI.APIError || lastFailure instanceof z.ZodError) {
+    throw new PosterCompositionError(
+      "VISION_UNAVAILABLE",
+      "Le service de composition visuelle n’a pas répondu correctement. Réessayez dans quelques instants.",
+    );
+  }
+  if (lastVisualIssues?.length) {
+    throw new PosterCompositionError(
+      "LAYOUT_VALIDATION_FAILED",
+      actionableLayoutMessage(lastVisualIssues[0]),
+    );
+  }
+
   throw new PosterCompositionError(
     "LAYOUT_VALIDATION_FAILED",
-    "Aucune disposition n'a passé le contrôle visuel. Réessayez ou choisissez un autre modèle.",
+    LAYOUT_VALIDATION_FAILED_MESSAGE,
   );
 }

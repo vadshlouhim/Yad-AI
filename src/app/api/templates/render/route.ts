@@ -12,6 +12,10 @@ import {
   validateTextBlocks,
   type PosterCompositionPlan,
 } from "@/lib/templates/render";
+import {
+  buildAdaptivePosterTextVariants,
+  curatePosterTextBlocks,
+} from "@/lib/templates/curation";
 import { FREE_POSTER_LIMIT, getBillingGate, getBillingUsage, paywallResponse } from "@/lib/billing";
 
 export async function POST(request: Request) {
@@ -30,8 +34,13 @@ export async function POST(request: Request) {
     const templateId = typeof body.templateId === "string" ? body.templateId : "";
     if (!templateId) return NextResponse.json({ error: "Requête invalide" }, { status: 400 });
     const textBlocks = validateTextBlocks(body.textBlocks);
+    const curatedTextBlocks = await curatePosterTextBlocks(textBlocks);
+    const textVariants = buildAdaptivePosterTextVariants(curatedTextBlocks);
     const previousPlan = body.previousPlan ? validateCompositionPlanInput(body.previousPlan) : undefined;
-    const requestedTextHash = hashTextBlocks(textBlocks);
+    const requestedTextHashes = [...new Set([
+      hashTextBlocks(curatedTextBlocks),
+      ...textVariants.map((variant) => hashTextBlocks(variant)),
+    ])];
 
     const admin = createAdminClient();
     const { data: profile } = await admin
@@ -55,7 +64,7 @@ export async function POST(request: Request) {
           .eq("userId", user.id)
           .eq("templateId", templateId)
           .eq("source", "TEMPLATE_GENERATION")
-          .contains("tags", [`text-hash:${requestedTextHash}`])
+          .overlaps("tags", requestedTextHashes.map((hash) => `text-hash:${hash}`))
           .gte("createdAt", recentThreshold)
           .limit(1)
           .maybeSingle();
@@ -78,13 +87,32 @@ export async function POST(request: Request) {
       .single();
     if (!template) return NextResponse.json({ error: "Template introuvable" }, { status: 404 });
 
-    const rendered = await renderTemplatePoster({
-      admin,
-      template,
-      communityId: profile.communityId,
-      textBlocks,
-      previousPlan,
-    });
+    let rendered: Awaited<ReturnType<typeof renderTemplatePoster>> | undefined;
+    let usedTextBlocks = textVariants[0];
+    let lastLayoutError: PosterCompositionError | undefined;
+    for (const variant of textVariants) {
+      try {
+        rendered = await renderTemplatePoster({
+          admin,
+          template,
+          communityId: profile.communityId,
+          textBlocks: variant,
+          previousPlan,
+        });
+        usedTextBlocks = variant;
+        break;
+      } catch (error) {
+        if (!(error instanceof PosterCompositionError)
+          || (error.code !== "LAYOUT_VALIDATION_FAILED" && error.code !== "TEXT_TOO_LONG")) {
+          throw error;
+        }
+        lastLayoutError = error;
+      }
+    }
+    if (!rendered) throw lastLayoutError ?? new PosterCompositionError(
+      "LAYOUT_VALIDATION_FAILED",
+      "La composition automatique n’a pas pu finaliser cette affiche.",
+    );
 
     await admin
       .from("Template")
@@ -119,6 +147,7 @@ export async function POST(request: Request) {
       visualReport: rendered.visualReport,
       textHash: rendered.textHash,
       alreadyPresentBlockIds: rendered.alreadyPresentBlockIds,
+      usedTextBlocks,
     });
   } catch (error) {
     if (error instanceof PosterCompositionError) {

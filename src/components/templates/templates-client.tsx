@@ -22,6 +22,7 @@ import {
   buildFreePosterTextBlocks,
   buildStructuredPosterTextBlocks,
   type PosterInputPriority,
+  type PosterInputTextBlock,
 } from "@/lib/templates/input-blocks";
 
 const ZALMAN_VISUALS_AGENT_IMAGE_URL = AGENT_IMAGE_URLS.zalman;
@@ -437,6 +438,7 @@ export function TemplatesClient({
   const [compositionPlan, setCompositionPlan] = useState<Record<string, unknown> | null>(null);
   const [visualReport, setVisualReport] = useState<VisualReport | null>(null);
   const [textHash, setTextHash] = useState<string | null>(null);
+  const [usedTextBlocks, setUsedTextBlocks] = useState<PosterInputTextBlock[]>([]);
   const [accepted, setAccepted] = useState(false);
   const [imageError, setImageError] = useState("");
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -512,6 +514,7 @@ export function TemplatesClient({
     setCompositionPlan(null);
     setVisualReport(null);
     setTextHash(null);
+    setUsedTextBlocks([]);
     setAccepted(false);
     setImageError("");
     setStep("questions");
@@ -565,6 +568,7 @@ export function TemplatesClient({
       setCompositionPlan(data.plan ?? null);
       setVisualReport(data.visualReport ?? null);
       setTextHash(data.textHash ?? null);
+      setUsedTextBlocks(Array.isArray(data.usedTextBlocks) ? data.usedTextBlocks : textBlocks);
       setStep("preview");
     } catch (error) {
       setImageError(error instanceof Error ? error.message : "Impossible de générer l'affiche.");
@@ -853,6 +857,9 @@ export function TemplatesClient({
 
   if (step === "questions" && selectedTemplate) {
     const textBlocks = buildTextBlocks(inputMode, structuredTexts, freeText);
+    const hasLongUnbrokenLine = textBlocks.some((block) =>
+      block.text.split(/\r?\n/).some((line) => line.trim().length > 55)
+    );
 
     return (
       <div className="mx-auto max-w-5xl space-y-6">
@@ -939,6 +946,7 @@ export function TemplatesClient({
                         setStructuredTexts((previous) => ({ ...previous, [field.id]: event.target.value }));
                         setGeneratedImageUrl(null);
                         setCompositionPlan(null);
+                        setUsedTextBlocks([]);
                         setImageError("");
                       }}
                       placeholder={field.placeholder}
@@ -949,7 +957,7 @@ export function TemplatesClient({
               </div>
             ) : (
               <label className="block space-y-2">
-                <span className="text-xs font-semibold uppercase text-slate-500">Paragraphes exacts</span>
+                <span className="text-xs font-semibold uppercase text-slate-500">Informations de l’affiche</span>
                 <textarea
                   dir="auto"
                   rows={14}
@@ -958,13 +966,27 @@ export function TemplatesClient({
                     setFreeText(event.target.value);
                     setGeneratedImageUrl(null);
                     setCompositionPlan(null);
+                    setUsedTextBlocks([]);
                     setImageError("");
                   }}
-                  placeholder={"Titre exact\n\nDate et heure exactes\n\nLieu et informations exactes"}
+                  placeholder={"Décrivez l’événement : titre, date, heure, lieu et informations utiles"}
                   className="w-full resize-y rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-800 outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
                 />
               </label>
             )}
+
+            <div className={cn(
+              "rounded-lg border px-4 py-3 text-sm leading-6",
+              hasLongUnbrokenLine
+                ? "border-amber-300 bg-amber-50 text-amber-900"
+                : "border-blue-200 bg-blue-50 text-blue-800",
+            )}>
+              <p className="font-semibold">Sélection intelligente des informations</p>
+              <p className="mt-1 text-xs leading-5">
+                L’IA conservera uniquement les informations essentielles pour l’affiche, sans inventer de contenu.
+                {hasLongUnbrokenLine && " Vous pouvez aussi séparer les informations avec la touche Entrée."}
+              </p>
+            </div>
 
             {imageError && (
               <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
@@ -1027,9 +1049,9 @@ export function TemplatesClient({
 
           <aside className="space-y-4">
             <div className="border-b border-slate-200 pb-4">
-              <p className="text-sm font-semibold text-slate-900">Textes vérifiés</p>
+              <p className="text-sm font-semibold text-slate-900">Informations retenues par l’IA</p>
               <div className="mt-3 space-y-2">
-                {buildTextBlocks(inputMode, structuredTexts, freeText).map((block) => (
+                {(usedTextBlocks.length > 0 ? usedTextBlocks : buildTextBlocks(inputMode, structuredTexts, freeText)).map((block) => (
                   <p key={block.id} dir="auto" className="whitespace-pre-wrap text-sm leading-5 text-slate-600">
                     {block.text}
                   </p>
