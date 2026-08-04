@@ -30,6 +30,7 @@ export async function POST(request: Request) {
       templateId?: unknown;
       textBlocks?: unknown;
       previousPlan?: PosterCompositionPlan;
+      zoneTexts?: unknown;
     };
     const templateId = typeof body.templateId === "string" ? body.templateId : "";
     if (!templateId) return NextResponse.json({ error: "Requête invalide" }, { status: 400 });
@@ -37,6 +38,10 @@ export async function POST(request: Request) {
     const curatedTextBlocks = await curatePosterTextBlocks(textBlocks);
     const textVariants = buildAdaptivePosterTextVariants(curatedTextBlocks);
     const previousPlan = body.previousPlan ? validateCompositionPlanInput(body.previousPlan) : undefined;
+    const correctedZoneTexts = body.zoneTexts && typeof body.zoneTexts === "object" && !Array.isArray(body.zoneTexts)
+      ? Object.fromEntries(Object.entries(body.zoneTexts as Record<string, unknown>)
+        .filter((entry): entry is [string, string] => typeof entry[1] === "string"))
+      : undefined;
     const requestedTextHashes = [...new Set([
       hashTextBlocks(curatedTextBlocks),
       ...textVariants.map((variant) => hashTextBlocks(variant)),
@@ -88,7 +93,6 @@ export async function POST(request: Request) {
     if (!template) return NextResponse.json({ error: "Template introuvable" }, { status: 404 });
 
     let rendered: Awaited<ReturnType<typeof renderTemplatePoster>> | undefined;
-    let usedTextBlocks = textVariants[0];
     let lastLayoutError: PosterCompositionError | undefined;
     for (const variant of textVariants) {
       try {
@@ -98,12 +102,12 @@ export async function POST(request: Request) {
           communityId: profile.communityId,
           textBlocks: variant,
           previousPlan,
+          zoneTexts: correctedZoneTexts,
         });
-        usedTextBlocks = variant;
         break;
       } catch (error) {
         if (!(error instanceof PosterCompositionError)
-          || (error.code !== "LAYOUT_VALIDATION_FAILED" && error.code !== "TEXT_TOO_LONG")) {
+          || !["LAYOUT_VALIDATION_FAILED", "TEXT_TOO_LONG", "INVALID_TEXT_BLOCKS"].includes(error.code)) {
           throw error;
         }
         lastLayoutError = error;
@@ -147,7 +151,10 @@ export async function POST(request: Request) {
       visualReport: rendered.visualReport,
       textHash: rendered.textHash,
       alreadyPresentBlockIds: rendered.alreadyPresentBlockIds,
-      usedTextBlocks,
+      usedTextBlocks: rendered.usedTextBlocks,
+      zoneTexts: rendered.zoneTexts,
+      omittedBlockIds: rendered.omittedBlockIds,
+      warnings: rendered.warnings,
     });
   } catch (error) {
     if (error instanceof PosterCompositionError) {

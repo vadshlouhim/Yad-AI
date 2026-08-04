@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Bot,
   Building2,
+  Check,
   CheckCircle2,
   CreditCard,
   Database,
@@ -13,6 +14,7 @@ import {
   ImageIcon,
   LayoutDashboard,
   Lock,
+  Loader2,
   Maximize2,
   MessageSquare,
   Moon,
@@ -74,6 +76,10 @@ interface AdminTemplate {
   thumbnailUrl: string | null;
   previewUrl: string | null;
   design: DynamicTemplateZone[];
+  layoutStatus: "PENDING" | "ANALYZING" | "REVIEW" | "READY" | "FAILED";
+  layoutConfidence: number | null;
+  layoutAnalyzedAt: string | null;
+  layoutAnalysisVersion: number;
   isGlobal: boolean;
   isPremium: boolean;
   isActive: boolean;
@@ -95,9 +101,12 @@ type DynamicTemplateZone = {
   height: number;
   align: "left" | "center" | "right";
   fontSize: number;
+  minFontSize: number;
   color: string;
   fontFamily: string;
   overflow: "shrink" | "wrap" | "truncate" | "hide";
+  priority: "main" | "important" | "complementary";
+  maxCharacters: number;
   locked: boolean;
 };
 
@@ -280,6 +289,13 @@ const AUTOMATION_DAY_TYPES = [
 ];
 const VISIBILITY_FILTERS = ["ALL", "GLOBAL", "LOCAL"] as const;
 const STATUS_FILTERS = ["ALL", "ACTIVE", "INACTIVE", "PREMIUM"] as const;
+const LAYOUT_STATUS_LABELS: Record<AdminTemplate["layoutStatus"], string> = {
+  PENDING: "À analyser",
+  ANALYZING: "Analyse en cours",
+  REVIEW: "À valider",
+  READY: "Prête",
+  FAILED: "Échec analyse",
+};
 const COMMUNITY_PROFILE_OPTIONS = [
   { value: "SYNAGOGUE", label: "Synagogue" },
   { value: "RESTAURANT", label: "Restaurateur" },
@@ -374,9 +390,12 @@ function createTemplateZone(index: number): DynamicTemplateZone {
     height: variable.type === "IMAGE" ? 16 : 12,
     align: "center",
     fontSize: variable.type === "IMAGE" ? 28 : 42,
+    minFontSize: variable.type === "IMAGE" ? 16 : 20,
     color: "#111827",
     fontFamily: "Arial, Helvetica, sans-serif",
     overflow: "shrink",
+    priority: variable.key === "TITLE" ? "main" : ["DATE", "TIME", "LOCATION", "SHABBAT_TIMES", "HOLIDAY_TIMES"].includes(variable.key) ? "important" : "complementary",
+    maxCharacters: variable.key === "TITLE" ? 72 : 140,
     locked: false,
   };
 }
@@ -397,6 +416,15 @@ function normalizeTemplateDesign(value: unknown): DynamicTemplateZone[] {
       variableType: String(item.variableType ?? variable.type),
       align: TEMPLATE_ALIGNMENTS.includes(item.align as (typeof TEMPLATE_ALIGNMENTS)[number]) ? item.align as DynamicTemplateZone["align"] : "center",
       overflow: TEMPLATE_OVERFLOWS.some((overflow) => overflow.value === item.overflow) ? item.overflow as DynamicTemplateZone["overflow"] : "shrink",
+      priority: item.priority === "main" || item.priority === "important" || item.priority === "complementary"
+        ? item.priority
+        : variable.key === "TITLE"
+          ? "main"
+          : ["DATE", "TIME", "LOCATION", "SHABBAT_TIMES", "HOLIDAY_TIMES"].includes(variable.key)
+            ? "important"
+            : "complementary",
+      minFontSize: Math.max(10, Math.min(Number(item.fontSize ?? 42), Number(item.minFontSize ?? 20))),
+      maxCharacters: Math.max(12, Math.min(500, Number(item.maxCharacters ?? (variable.key === "TITLE" ? 72 : 140)))),
       locked: Boolean(item.locked),
     };
   });
@@ -510,6 +538,8 @@ export function AdminConsoleClient({
   const [savingUserBillingId, setSavingUserBillingId] = useState<string | null>(null);
   const [userDeleteConfirm, setUserDeleteConfirm] = useState<AdminUser | null>(null);
   const [uploadingField, setUploadingField] = useState<"original" | "thumbnail" | "preview" | null>(null);
+  const [analyzingTemplateId, setAnalyzingTemplateId] = useState<string | null>(null);
+  const [validatingTemplateId, setValidatingTemplateId] = useState<string | null>(null);
   const [automationSaving, setAutomationSaving] = useState<string | null>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [selectedZoneIds, setSelectedZoneIds] = useState<string[]>([]);
@@ -602,7 +632,76 @@ export function AdminConsoleClient({
   }
 
   function updateSelectedTemplateDesign(design: DynamicTemplateZone[]) {
-    updateSelectedTemplate({ design });
+    updateSelectedTemplate({
+      design,
+      layoutStatus: selectedTemplate?.layoutStatus === "ANALYZING" ? "ANALYZING" : "REVIEW",
+    });
+  }
+
+  function mergeTemplatePayload(templateId: string, payload: Record<string, unknown>) {
+    setDrafts((previous) => {
+      const current = previous.get(templateId);
+      if (!current) return previous;
+      const next = new Map(previous);
+      next.set(templateId, {
+        ...current,
+        ...payload,
+        design: normalizeTemplateDesign(payload.design ?? current.design),
+        tags: Array.isArray(payload.tags) ? payload.tags as string[] : current.tags,
+      } as AdminTemplate);
+      return next;
+    });
+  }
+
+  async function analyzeTemplateLayout(templateId = selectedTemplate?.id) {
+    if (!templateId) return;
+    setAnalyzingTemplateId(templateId);
+    mergeTemplatePayload(templateId, { layoutStatus: "ANALYZING" });
+    setStatus("L’IA analyse les espaces vides et prépare les zones…");
+    try {
+      const response = await fetch(`/api/admin/templates/${templateId}/analyze-layout`, { method: "POST" });
+      const payload = await readApiPayload(response);
+      if (!response.ok) {
+        mergeTemplatePayload(templateId, { layoutStatus: "FAILED" });
+        setStatus(getApiError(payload, "Analyse des zones impossible."));
+        return;
+      }
+      mergeTemplatePayload(templateId, payload);
+      const zones = normalizeTemplateDesign(payload.design);
+      setSelectedZoneId(zones[0]?.id ?? null);
+      setSelectedZoneIds(zones[0]?.id ? [zones[0].id] : []);
+      setShowFakePreview(true);
+      setStatus(`Analyse terminée : ${zones.length} zone(s) proposée(s). Vérifiez puis validez.`);
+    } catch {
+      mergeTemplatePayload(templateId, { layoutStatus: "FAILED" });
+      setStatus("Le serveur n’a pas répondu pendant l’analyse des zones.");
+    } finally {
+      setAnalyzingTemplateId(null);
+    }
+  }
+
+  async function validateTemplateLayout() {
+    if (!selectedTemplate) return;
+    setValidatingTemplateId(selectedTemplate.id);
+    setStatus(null);
+    try {
+      const response = await fetch(`/api/admin/templates/${selectedTemplate.id}/validate-layout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ design: selectedTemplate.design }),
+      });
+      const payload = await readApiPayload(response);
+      if (!response.ok) {
+        setStatus(getApiError(payload, "Validation impossible."));
+        return;
+      }
+      mergeTemplatePayload(selectedTemplate.id, payload);
+      setStatus("Mise en page validée. Cette affiche est maintenant disponible pour les utilisateurs.");
+    } catch {
+      setStatus("Le serveur n’a pas répondu pendant la validation.");
+    } finally {
+      setValidatingTemplateId(null);
+    }
   }
 
   function selectTemplateZone(zoneId: string, additive = false) {
@@ -637,6 +736,8 @@ export function AdminConsoleClient({
           x: Math.min(100 - width, Math.max(0, Number(next.x) || 0)),
           y: Math.min(100 - height, Math.max(0, Number(next.y) || 0)),
           fontSize: Math.max(8, Math.min(180, Number(next.fontSize) || zone.fontSize)),
+          minFontSize: Math.max(10, Math.min(Number(next.fontSize) || zone.fontSize, Number(next.minFontSize) || zone.minFontSize)),
+          maxCharacters: Math.max(12, Math.min(500, Number(next.maxCharacters) || zone.maxCharacters)),
         };
       })
     );
@@ -792,6 +893,7 @@ export function AdminConsoleClient({
         isGlobal: selectedTemplate.isGlobal,
         isActive: selectedTemplate.isActive,
         isPremium: selectedTemplate.isPremium,
+        layoutStatus: selectedTemplate.layoutStatus,
       }),
     });
 
@@ -849,6 +951,10 @@ export function AdminConsoleClient({
         thumbnailUrl: payload.thumbnailUrl ?? null,
         previewUrl: payload.previewUrl ?? null,
         design: normalizeTemplateDesign(payload.design),
+        layoutStatus: payload.layoutStatus ?? "PENDING",
+        layoutConfidence: payload.layoutConfidence ?? null,
+        layoutAnalyzedAt: payload.layoutAnalyzedAt ?? null,
+        layoutAnalysisVersion: payload.layoutAnalysisVersion ?? 0,
         tags: Array.isArray(payload.tags) ? payload.tags : [],
       } as unknown as AdminTemplate;
       setDrafts((previous) => {
@@ -923,8 +1029,13 @@ export function AdminConsoleClient({
           previewUrl: typeof payload.previewUrl === "string" ? payload.previewUrl : null,
           thumbnailUrl: typeof payload.thumbnailUrl === "string" ? payload.thumbnailUrl : null,
           design: [],
+          layoutStatus: "PENDING",
+          layoutConfidence: null,
+          layoutAnalyzedAt: null,
+          layoutAnalysisVersion: 0,
         });
-        setStatus("Source originale conservée. Aperçu et miniature générés.");
+        setStatus("Source originale conservée. Analyse automatique des zones en cours…");
+        await analyzeTemplateLayout(selectedTemplate.id);
         return;
       }
       const uploadedUrl = typeof payload.url === "string" ? payload.url : null;
@@ -1526,6 +1637,15 @@ export function AdminConsoleClient({
                                 {template.originalUrl ? "Source originale prête" : "Source à téléverser"}
                               </span>
                               {template.isPremium && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-600">Premium</span>}
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                template.layoutStatus === "READY"
+                                  ? "bg-emerald-500/15 text-emerald-700"
+                                  : template.layoutStatus === "FAILED"
+                                    ? "bg-red-500/15 text-red-700"
+                                    : "bg-amber-500/15 text-amber-700"
+                              }`}>
+                                {LAYOUT_STATUS_LABELS[template.layoutStatus]}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1603,15 +1723,47 @@ export function AdminConsoleClient({
                       </div>
                     </div>
 
-                    <div className="hidden">
+                    <div className={`rounded-3xl border p-4 ${isDark ? "border-white/10 bg-white/[0.04]" : "border-slate-200 bg-slate-50/70"}`}>
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <h4 className={`text-sm font-black ${strongText}`}>Zones dynamiques</h4>
                           <p className={`mt-1 text-xs leading-5 ${mutedText}`}>
-                            Placez les variables sur l&apos;image. Les coordonnées sont en pourcentage pour rester compatibles Instagram, Facebook, WhatsApp ou A4.
+                            L’IA propose les espaces éditables une seule fois. Validez-les ou ajustez-les avant de publier le modèle.
                           </p>
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] ${
+                              selectedTemplate.layoutStatus === "READY"
+                                ? "bg-emerald-500/15 text-emerald-700"
+                                : selectedTemplate.layoutStatus === "FAILED"
+                                  ? "bg-red-500/15 text-red-700"
+                                  : "bg-amber-500/15 text-amber-700"
+                            }`}>
+                              {LAYOUT_STATUS_LABELS[selectedTemplate.layoutStatus]}
+                            </span>
+                            {selectedTemplate.layoutConfidence !== null && (
+                              <span className={`text-xs font-semibold ${mutedText}`}>Confiance IA {selectedTemplate.layoutConfidence}%</span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void analyzeTemplateLayout()}
+                            disabled={!selectedTemplate.originalUrl || analyzingTemplateId === selectedTemplate.id}
+                            className="inline-flex items-center gap-1 rounded-xl bg-violet-600 px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {analyzingTemplateId === selectedTemplate.id ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+                            {selectedTemplate.design.length > 0 ? "Réanalyser" : "Analyser par IA"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void validateTemplateLayout()}
+                            disabled={selectedTemplate.design.length === 0 || validatingTemplateId === selectedTemplate.id || analyzingTemplateId === selectedTemplate.id}
+                            className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {validatingTemplateId === selectedTemplate.id ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                            Valider
+                          </button>
                           <button
                             type="button"
                             onClick={() => setShowFakePreview((value) => !value)}
@@ -1670,7 +1822,7 @@ export function AdminConsoleClient({
                             alt={selectedTemplate.name}
                             fill
                             sizes="420px"
-                            className="object-cover"
+                            className="object-fill"
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center">
@@ -1909,6 +2061,25 @@ export function AdminConsoleClient({
                               <select value={selectedZone.overflow} onChange={(event) => updateTemplateZone(selectedZone.id, { overflow: event.target.value as DynamicTemplateZone["overflow"] })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm font-semibold normal-case tracking-normal outline-none ${inputClass}`}>
                                 {TEMPLATE_OVERFLOWS.map((overflow) => <option key={overflow.value} value={overflow.value}>{overflow.label}</option>)}
                               </select>
+                            </label>
+                          </div>
+
+                          <div className="grid gap-3 sm:grid-cols-3">
+                            <label className={`block text-xs font-black uppercase tracking-[0.12em] ${mutedText}`}>
+                              Priorité
+                              <select value={selectedZone.priority} onChange={(event) => updateTemplateZone(selectedZone.id, { priority: event.target.value as DynamicTemplateZone["priority"] })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm font-semibold normal-case tracking-normal outline-none ${inputClass}`}>
+                                <option value="main">Principale</option>
+                                <option value="important">Importante</option>
+                                <option value="complementary">Secondaire</option>
+                              </select>
+                            </label>
+                            <label className={`block text-xs font-black uppercase tracking-[0.12em] ${mutedText}`}>
+                              Taille minimale
+                              <input type="number" min={10} max={selectedZone.fontSize} value={selectedZone.minFontSize} onChange={(event) => updateTemplateZone(selectedZone.id, { minFontSize: Number(event.target.value) })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm font-semibold normal-case tracking-normal outline-none ${inputClass}`} />
+                            </label>
+                            <label className={`block text-xs font-black uppercase tracking-[0.12em] ${mutedText}`}>
+                              Caractères max.
+                              <input type="number" min={12} max={500} value={selectedZone.maxCharacters} onChange={(event) => updateTemplateZone(selectedZone.id, { maxCharacters: Number(event.target.value) })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm font-semibold normal-case tracking-normal outline-none ${inputClass}`} />
                             </label>
                           </div>
 

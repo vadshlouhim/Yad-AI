@@ -41,6 +41,13 @@ assert.equal(
   }),
   true,
 );
+assert.equal(
+  isTemplateSchemaOutdated({
+    code: "PGRST204",
+    message: "Could not find the layoutStatus column in the schema cache",
+  }),
+  true,
+);
 assert.deepEqual(
   classifyTemplateAdminError(
     { code: "PGRST204", message: "Could not find the originalUrl column in the schema cache" },

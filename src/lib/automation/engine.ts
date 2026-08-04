@@ -112,6 +112,7 @@ async function renderShabbatPosterImage(params: {
     .from("Template")
     .select("*")
     .eq("id", selectedTemplateId)
+    .eq("layoutStatus", "READY")
     .or(`isGlobal.eq.true,communityId.eq.${params.communityId}`)
     .maybeSingle();
 

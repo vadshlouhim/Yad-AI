@@ -1113,6 +1113,10 @@ export type Database = {
           isActive: boolean
           isGlobal: boolean
           isPremium: boolean
+          layoutAnalysisVersion: number
+          layoutAnalyzedAt: string | null
+          layoutConfidence: number | null
+          layoutStatus: Database["public"]["Enums"]["TemplateLayoutStatus"]
           name: string
           originalUrl: string | null
           previewUrl: string | null
@@ -1133,6 +1137,10 @@ export type Database = {
           isActive?: boolean
           isGlobal?: boolean
           isPremium?: boolean
+          layoutAnalysisVersion?: number
+          layoutAnalyzedAt?: string | null
+          layoutConfidence?: number | null
+          layoutStatus?: Database["public"]["Enums"]["TemplateLayoutStatus"]
           name: string
           originalUrl?: string | null
           previewUrl?: string | null
@@ -1153,6 +1161,10 @@ export type Database = {
           isActive?: boolean
           isGlobal?: boolean
           isPremium?: boolean
+          layoutAnalysisVersion?: number
+          layoutAnalyzedAt?: string | null
+          layoutConfidence?: number | null
+          layoutStatus?: Database["public"]["Enums"]["TemplateLayoutStatus"]
           name?: string
           originalUrl?: string | null
           previewUrl?: string | null
@@ -1187,6 +1199,7 @@ export type Database = {
       SubscriptionPlan: "FREE_TRIAL" | "STARTER" | "PROFESSIONAL" | "ENTERPRISE"
       SubscriptionStatus: "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "UNPAID" | "INCOMPLETE" | "PAUSED"
       TemplateCategory: "SHABBAT" | "HOLIDAY" | "EVENT" | "COURSE" | "ANNOUNCEMENT" | "RECAP" | "GREETING" | "GENERAL"
+      TemplateLayoutStatus: "PENDING" | "ANALYZING" | "REVIEW" | "READY" | "FAILED"
       UserRole: "SUPER_ADMIN" | "ADMIN" | "EDITOR" | "VIEWER"
     }
     CompositeTypes: { [_ in never]: never }

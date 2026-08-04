@@ -395,8 +395,11 @@ model Template {
   originalUrl  String?
   thumbnailUrl String?          // URL Supabase Storage (bucket templates)
   previewUrl   String?
-  // design remains for optional metadata and is not used for text placement.
   design       Json             @default("[]")
+  layoutStatus TemplateLayoutStatus @default(PENDING)
+  layoutConfidence Int?
+  layoutAnalyzedAt DateTime?
+  layoutAnalysisVersion Int     @default(0)
   isGlobal     Boolean          @default(false)
   isPremium    Boolean          @default(false)
   isActive     Boolean          @default(true)
@@ -411,6 +414,7 @@ model Template {
   @@index([communityId])
   @@index([category])
   @@index([channelType])
+  @@index([layoutStatus])
 }
 
 model Article {
@@ -511,6 +515,14 @@ enum TemplateCategory {
   RECAP
   GREETING
   GENERAL
+}
+
+enum TemplateLayoutStatus {
+  PENDING
+  ANALYZING
+  REVIEW
+  READY
+  FAILED
 }
 
 // ============================================================

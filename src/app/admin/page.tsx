@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getBillingConfig } from "@/lib/billing";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
+import { isTemplateSchemaOutdated } from "@/lib/templates/admin-errors";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
@@ -83,7 +84,7 @@ export default async function AdminPage() {
     admin
       .from("Template")
       .select(
-        "id, communityId, name, description, category, subCategory, channelType, originalUrl, thumbnailUrl, previewUrl, design, isGlobal, isPremium, isActive, tags, usageCount, createdAt, updatedAt"
+        "id, communityId, name, description, category, subCategory, channelType, originalUrl, thumbnailUrl, previewUrl, design, layoutStatus, layoutConfidence, layoutAnalyzedAt, layoutAnalysisVersion, isGlobal, isPremium, isActive, tags, usageCount, createdAt, updatedAt"
       )
       .order("usageCount", { ascending: false })
       .order("updatedAt", { ascending: false }),
@@ -164,7 +165,7 @@ export default async function AdminPage() {
       templates={hydratedTemplates}
       initialTemplateError={
         templatesError
-          ? templatesError.message.includes("originalUrl")
+          ? isTemplateSchemaOutdated(templatesError)
             ? "La base Supabase doit être mise à jour avant de gérer les affiches."
             : "Impossible de charger les affiches depuis Supabase."
           : null

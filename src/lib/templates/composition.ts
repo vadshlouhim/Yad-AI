@@ -185,6 +185,7 @@ export class PosterCompositionError extends Error {
     readonly code:
       | "INVALID_TEXT_BLOCKS"
       | "TEMPLATE_SOURCE_REQUIRED"
+      | "TEMPLATE_LAYOUT_REQUIRED"
       | "TEXT_TOO_LONG"
       | "LAYOUT_VALIDATION_FAILED"
       | "VISION_UNAVAILABLE",

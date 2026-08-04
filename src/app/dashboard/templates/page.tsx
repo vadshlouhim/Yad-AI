@@ -18,6 +18,7 @@ export default async function TemplatesPage() {
       .from("Template")
       .select("*")
       .eq("isActive", true)
+      .eq("layoutStatus", "READY")
       .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
       .order("category", { ascending: true })
       .order("subCategory", { ascending: true })

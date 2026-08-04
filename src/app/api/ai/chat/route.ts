@@ -241,8 +241,9 @@ export async function POST(request: Request) {
     const fetchTemplates = () =>
       admin
         .from("Template")
-        .select("id, communityId, name, description, category, channelType, thumbnailUrl, previewUrl, tags, subCategory, isPremium, design, usageCount")
+        .select("id, communityId, name, description, category, channelType, thumbnailUrl, previewUrl, tags, subCategory, isPremium, design, usageCount, layoutStatus")
         .eq("isActive", true)
+        .eq("layoutStatus", "READY")
         .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
         .limit(250);
 
@@ -368,6 +369,7 @@ export async function POST(request: Request) {
         .from("Template")
         .select("id, name, category, thumbnailUrl, previewUrl, design")
         .eq("id", selectedTemplateId)
+        .eq("layoutStatus", "READY")
         .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
         .single();
 

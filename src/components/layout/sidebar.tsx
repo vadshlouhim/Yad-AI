@@ -149,6 +149,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
   function isActive(href: string) {
     if (href.startsWith("http") || href.startsWith("mailto")) return false;
     const resolved = resolveHref(href.split("?")[0]);
+    if (resolved === resolveHref("/dashboard/boutique")) return pathname === resolved;
     return pathname.startsWith(resolved) && resolved !== basePath;
   }
 
@@ -157,11 +158,11 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
   }
 
   function renderSectionSubtitle(section: OfficialDashboardMenuSection, className: string) {
+    if (!section.subtitle) return null;
+
     if (section.key === "social") {
       return <p className={className}>Publiez et planifiez vos réseaux depuis un seul espace.</p>;
     }
-
-    if (section.key === "automations") return null;
 
     if (section.key === "email") {
       return <p className={className}>Vos emails et avis Google, classés automatiquement.</p>;

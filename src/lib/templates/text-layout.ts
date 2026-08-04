@@ -11,8 +11,12 @@ export interface PosterTextZone {
   height: number;
   align?: "left" | "center" | "right";
   fontSize: number;
+  minFontSize?: number;
   color: string;
   fontFamily: string;
+  overflow?: "shrink" | "wrap" | "truncate" | "hide";
+  priority?: "main" | "important" | "complementary";
+  maxCharacters?: number;
 }
 
 type FittedText = {
@@ -92,9 +96,13 @@ function fitText(
   const zoneWidth = (zone.width / 100) * canvasWidth;
   const zoneHeight = (zone.height / 100) * canvasHeight;
   const preferredFontSize = Math.max(18, Math.round(zone.fontSize));
-  const minimumFontSize = Math.min(
+  const computedMinimumFontSize = Math.min(
     preferredFontSize,
     Math.max(18, Math.round(preferredFontSize * 0.58), Math.round(canvasWidth * 0.012))
+  );
+  const minimumFontSize = Math.min(
+    preferredFontSize,
+    Math.max(8, Math.round(zone.minFontSize ?? computedMinimumFontSize)),
   );
   const paragraphs = text.replace(/\r\n?/g, "\n").split("\n");
 
@@ -202,4 +210,120 @@ export function buildTextOverlaySvg(
     `<svg width="${canvasWidth}" height="${canvasHeight}" viewBox="0 0 ${canvasWidth} ${canvasHeight}" xmlns="http://www.w3.org/2000/svg">${zoneMarkup}</svg>`,
     "utf8"
   );
+}
+
+export interface AdaptiveTextOverlayResult {
+  buffer: Buffer;
+  renderedTexts: Record<string, string>;
+  omittedZoneIds: string[];
+  warnings: string[];
+}
+
+function shortenAtWordBoundary(value: string, maximum: number) {
+  if (value.length <= maximum) return value;
+  const excerpt = value.slice(0, Math.max(1, maximum - 1));
+  const boundary = excerpt.lastIndexOf(" ");
+  return `${excerpt.slice(0, boundary >= Math.round(maximum * 0.55) ? boundary : excerpt.length).trimEnd()}…`;
+}
+
+function fitWithProgressiveShortening(
+  text: string,
+  zone: PosterTextZone,
+  canvasWidth: number,
+  canvasHeight: number,
+) {
+  const direct = fitText(text, zone, canvasWidth, canvasHeight);
+  if (direct) return { fitted: direct, text };
+  const preserveExact = ["DATE", "TIME", "LOCATION", "CONTACT", "BET_DIN_NAME", "SHABBAT_TIMES", "HOLIDAY_TIMES"]
+    .includes(String(zone.variableKey ?? zone.type ?? "").toUpperCase());
+  if (preserveExact) {
+    const compactFit = fitText(text, { ...zone, minFontSize: 8 }, canvasWidth, canvasHeight);
+    return compactFit ? { fitted: compactFit, text } : null;
+  }
+  if (zone.priority !== "main" || zone.overflow === "hide") return null;
+
+  const minimumLength = zone.priority === "main" ? 18 : 12;
+  let maximum = Math.min(text.length - 1, zone.maxCharacters ?? text.length - 1);
+  while (maximum >= minimumLength) {
+    const shortened = shortenAtWordBoundary(text, maximum);
+    const fitted = fitText(shortened, zone, canvasWidth, canvasHeight);
+    if (fitted) return { fitted, text: shortened };
+    maximum = Math.floor(maximum * 0.84);
+  }
+  return null;
+}
+
+export function buildAdaptiveTextOverlaySvg(
+  zones: PosterTextZone[],
+  exactTexts: Record<string, string>,
+  canvasWidth: number,
+  canvasHeight: number,
+): AdaptiveTextOverlayResult {
+  const renderedTexts: Record<string, string> = {};
+  const omittedZoneIds: string[] = [];
+  const warnings: string[] = [];
+
+  const zoneMarkup = zones.map((zone) => {
+    const exactText = exactTexts[zone.id];
+    if (typeof exactText !== "string" || exactText.trim().length === 0 || isImageZone(zone)) return "";
+    const normalizedText = exactText.replace(/\r\n?/g, "\n").trim();
+    const result = fitWithProgressiveShortening(normalizedText, zone, canvasWidth, canvasHeight);
+    if (!result) {
+      omittedZoneIds.push(zone.id);
+      warnings.push(`Le contenu de « ${zone.label} » a été masqué pour préserver la lisibilité.`);
+      return "";
+    }
+
+    if (result.text !== normalizedText) {
+      warnings.push(`Le contenu de « ${zone.label} » a été raccourci automatiquement.`);
+    }
+    renderedTexts[zone.id] = result.text;
+
+    const zoneLeft = (zone.x / 100) * canvasWidth;
+    const zoneTop = (zone.y / 100) * canvasHeight;
+    const zoneWidth = (zone.width / 100) * canvasWidth;
+    const zoneHeight = (zone.height / 100) * canvasHeight;
+    const containsHebrew = HEBREW_PATTERN.test(result.text);
+    const configuredAlign = zone.align ?? "center";
+    const align = containsHebrew && configuredAlign === "left" ? "right" : configuredAlign;
+    const textAnchor = align === "left" ? "start" : align === "right" ? "end" : "middle";
+    const horizontalPadding = Math.max(2, result.fitted.fontSize * 0.18);
+    const startX = zoneLeft + (align === "left"
+      ? horizontalPadding
+      : align === "right"
+        ? zoneWidth - horizontalPadding
+        : zoneWidth / 2);
+    const totalTextHeight = result.fitted.lines.length * result.fitted.lineHeight;
+    const startY = zoneTop + Math.max(0, (zoneHeight - totalTextHeight) / 2) + result.fitted.fontSize;
+    const fontFamily = escapeXml(zone.fontFamily || "Arial, Helvetica, sans-serif");
+    const fill = escapeXml(zone.color || "#111827");
+
+    return `
+      <text
+        x="${startX}"
+        y="${startY}"
+        text-anchor="${textAnchor}"
+        font-family="${fontFamily}"
+        font-size="${result.fitted.fontSize}"
+        fill="${fill}"
+        font-weight="700"
+        direction="${containsHebrew ? "rtl" : "ltr"}"
+        unicode-bidi="plaintext"
+      >
+        ${result.fitted.lines.map((line, index) =>
+          `<tspan x="${startX}" dy="${index === 0 ? 0 : result.fitted.lineHeight}">${escapeXml(line)}</tspan>`
+        ).join("")}
+      </text>
+    `;
+  }).join("");
+
+  return {
+    buffer: Buffer.from(
+      `<svg width="${canvasWidth}" height="${canvasHeight}" viewBox="0 0 ${canvasWidth} ${canvasHeight}" xmlns="http://www.w3.org/2000/svg">${zoneMarkup}</svg>`,
+      "utf8",
+    ),
+    renderedTexts,
+    omittedZoneIds,
+    warnings,
+  };
 }

@@ -1,8 +1,8 @@
 export const POSTER_GENERATION_RULES = `
 Règles absolues de personnalisation d'affiches :
 - Le template original est un arrière-plan fixe, verrouillé et immuable.
-- Analyse visuellement le template et calcule dynamiquement les emplacements des textes.
-- N'utilise jamais Template.design ni des coordonnées configurées à l'avance.
+- Utilise exclusivement les zones validées dans Template.design.
+- Ne recalcule jamais les coordonnées pendant une génération utilisateur.
 - Ajoute uniquement une couche typographique composée des textes exacts fournis par l'utilisateur.
 - Ne modifie, ne régénère, ne nettoie, ne recadre, ne redimensionne et ne filtre jamais le fond.
 - Ne change aucun élément graphique, logo, illustration, photo, cadre ou texte déjà intégré.
@@ -20,7 +20,7 @@ export const POSTER_ANALYSIS_RULES = `
 Règles d'analyse du template fixe :
 - Détecte les textes fixes, logos, photos, illustrations, cadres, zones chargées et espaces libres.
 - Considère tout élément déjà visible comme intouchable.
-- Calcule les emplacements pour le contenu courant, sans zone manuelle préconfigurée.
+- Détecte les espaces éditables une seule fois lors de la préparation Super Admin.
 - Détecte un texte déjà présent uniquement par égalité textuelle après normalisation légère.
 - N'utilise jamais de ressemblance sémantique, traduction, phonétique ou correspondance partielle.
 - N'invente aucun texte et ne propose jamais de remplacer un élément du fond.

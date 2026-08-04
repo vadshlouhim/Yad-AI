@@ -3,6 +3,7 @@ import {
   Bell,
   BookOpen,
   Bot,
+  Cake,
   CalendarClock,
   CalendarDays,
   CalendarRange,
@@ -325,6 +326,15 @@ export const OFFICIAL_MENU_SECTION_STYLES: Record<
     itemHover: "hover:bg-slate-50 hover:text-slate-900",
     itemActive: "bg-rose-50 text-slate-950 ring-1 ring-rose-100",
   },
+  shop_articles: {
+    accentBar: "bg-orange-500",
+    iconSurface: "bg-orange-50",
+    titleClass: "text-orange-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-orange-600",
+    itemHover: "hover:bg-orange-50/70 hover:text-orange-950",
+    itemActive: "bg-orange-50 text-orange-950 ring-1 ring-orange-100",
+  },
   contacts: {
     accentBar: "bg-emerald-500",
     iconSurface: "bg-emerald-50",
@@ -415,6 +425,20 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       ],
     },
     {
+      key: "shop_articles",
+      section: "BOUTIQUES ET ARTICLES",
+      subtitle: "",
+      icon: ShoppingBag,
+      items: [
+        { href: "/dashboard/boutique/calendrier-horaires-tichri", label: "Calendrier de Tichri", icon: CalendarDays },
+        { href: "/dashboard/boutique/magnets-chabbat", label: "Magnets de Chabbat", icon: Gift },
+        { href: "/dashboard/boutique/birkat-hachana", label: "Birkat Hachana", icon: Camera },
+        { href: "/dashboard/boutique/box-tehilim", label: "Box de Tehilim", icon: BookOpen },
+        { href: "/dashboard/boutique/anniversaire-juif", label: "Anniversaire juif", icon: Cake },
+        { href: "/dashboard/boutique/plaquette-teffilin", label: "Plaquette Teffilin en 6 étapes", icon: BookOpen },
+      ],
+    },
+    {
       key: "donation",
       section: "CAMPAGNE DE DONS",
       subtitle: "Pilotez vos campagnes de collecte de A a Z",
@@ -439,7 +463,6 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       subtitle: resourcesSubtitle,
       icon: Library,
       items: [
-        { href: "/dashboard/boutique", label: "Boutique", icon: ShoppingBag },
         { href: "/dashboard/website", label: "Creation site web", icon: Globe },
         { href: "/dashboard/referencement", label: "Referencement Google et IA", icon: Search },
         { href: "/dashboard/assistance-indemnisation-aerienne", label: "Assistance indemnisations", icon: Plane },
@@ -516,6 +539,17 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     ],
   },
   {
+    section: "BOUTIQUES ET ARTICLES",
+    items: [
+      { href: "/dashboard/boutique/calendrier-horaires-tichri", label: "Calendrier de Tichri", icon: CalendarDays },
+      { href: "/dashboard/boutique/magnets-chabbat", label: "Magnets de Chabbat", icon: Gift },
+      { href: "/dashboard/boutique/birkat-hachana", label: "Birkat Hachana", icon: Camera },
+      { href: "/dashboard/boutique/box-tehilim", label: "Box de Tehilim", icon: BookOpen },
+      { href: "/dashboard/boutique/anniversaire-juif", label: "Anniversaire juif", icon: Cake },
+      { href: "/dashboard/boutique/plaquette-teffilin", label: "Plaquette Teffilin en 6 étapes", icon: BookOpen },
+    ],
+  },
+  {
     section: "BANQUE VISUELLE",
     items: [
       { href: "/dashboard/shabbat-times-auto", label: "Horaires de Chabbat", icon: Clock3 },
@@ -544,7 +578,6 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "SERVICES",
     items: [
-      { href: "/dashboard/boutique", label: "Boutique", icon: ShoppingBag },
       { href: "/dashboard/website", label: "Creation site web", icon: Globe },
       { href: "/dashboard/referencement", label: "Referencement Google et IA", icon: Search },
       {
@@ -611,10 +644,21 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     ],
   },
   {
+    section: "BOUTIQUES ET ARTICLES",
+    icon: ShoppingBag,
+    items: [
+      { href: "/dashboard/boutique/calendrier-horaires-tichri", label: "Calendrier de Tichri", icon: CalendarDays },
+      { href: "/dashboard/boutique/magnets-chabbat", label: "Magnets de Chabbat", icon: Gift },
+      { href: "/dashboard/boutique/birkat-hachana", label: "Birkat Hachana", icon: Camera },
+      { href: "/dashboard/boutique/box-tehilim", label: "Box de Tehilim", icon: BookOpen },
+      { href: "/dashboard/boutique/anniversaire-juif", label: "Anniversaire juif", icon: Cake },
+      { href: "/dashboard/boutique/plaquette-teffilin", label: "Plaquette Teffilin en 6 étapes", icon: BookOpen },
+    ],
+  },
+  {
     section: "RESSOURCES & SERVICES",
     icon: Library,
     items: [
-      { href: "/dashboard/boutique", label: "Boutique", icon: ShoppingBag },
       { href: "/dashboard/website", label: "Creation site web", icon: Globe },
       { href: "/dashboard/referencement", label: "Referencement Google et IA", icon: Search },
       {

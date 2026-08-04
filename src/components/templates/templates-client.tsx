@@ -435,10 +435,12 @@ export function TemplatesClient({
   const [loading, setLoading] = useState(false);
   const [rendering, setRendering] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
-  const [compositionPlan, setCompositionPlan] = useState<Record<string, unknown> | null>(null);
+  const [, setCompositionPlan] = useState<Record<string, unknown> | null>(null);
   const [visualReport, setVisualReport] = useState<VisualReport | null>(null);
   const [textHash, setTextHash] = useState<string | null>(null);
-  const [usedTextBlocks, setUsedTextBlocks] = useState<PosterInputTextBlock[]>([]);
+  const [, setUsedTextBlocks] = useState<PosterInputTextBlock[]>([]);
+  const [zoneTexts, setZoneTexts] = useState<Record<string, string>>({});
+  const [renderWarnings, setRenderWarnings] = useState<string[]>([]);
   const [accepted, setAccepted] = useState(false);
   const [imageError, setImageError] = useState("");
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -515,6 +517,8 @@ export function TemplatesClient({
     setVisualReport(null);
     setTextHash(null);
     setUsedTextBlocks([]);
+    setZoneTexts({});
+    setRenderWarnings([]);
     setAccepted(false);
     setImageError("");
     setStep("questions");
@@ -531,7 +535,7 @@ export function TemplatesClient({
     setActiveCollection(null);
   }
 
-  async function generateImage(requestAnotherLayout = false) {
+  async function generateImage(applyCorrections = false) {
     if (!selectedTemplate) return;
     const textBlocks = buildTextBlocks(inputMode, structuredTexts, freeText);
     if (!selectedTemplate.originalUrl) {
@@ -553,7 +557,7 @@ export function TemplatesClient({
         body: JSON.stringify({
           templateId: selectedTemplate.id,
           textBlocks,
-          previousPlan: requestAnotherLayout ? compositionPlan : undefined,
+          zoneTexts: applyCorrections ? zoneTexts : undefined,
         }),
       });
       const data = await res.json();
@@ -569,6 +573,8 @@ export function TemplatesClient({
       setVisualReport(data.visualReport ?? null);
       setTextHash(data.textHash ?? null);
       setUsedTextBlocks(Array.isArray(data.usedTextBlocks) ? data.usedTextBlocks : textBlocks);
+      setZoneTexts(data.zoneTexts && typeof data.zoneTexts === "object" ? data.zoneTexts : {});
+      setRenderWarnings(Array.isArray(data.warnings) ? data.warnings.filter((warning: unknown): warning is string => typeof warning === "string") : []);
       setStep("preview");
     } catch (error) {
       setImageError(error instanceof Error ? error.message : "Impossible de générer l'affiche.");
@@ -905,6 +911,8 @@ export function TemplatesClient({
                 onClick={() => {
                   setInputMode("structured");
                   setGeneratedImageUrl(null);
+                  setZoneTexts({});
+                  setRenderWarnings([]);
                   setImageError("");
                 }}
                 className={cn(
@@ -919,6 +927,8 @@ export function TemplatesClient({
                 onClick={() => {
                   setInputMode("free");
                   setGeneratedImageUrl(null);
+                  setZoneTexts({});
+                  setRenderWarnings([]);
                   setImageError("");
                 }}
                 className={cn(
@@ -947,6 +957,8 @@ export function TemplatesClient({
                         setGeneratedImageUrl(null);
                         setCompositionPlan(null);
                         setUsedTextBlocks([]);
+                        setZoneTexts({});
+                        setRenderWarnings([]);
                         setImageError("");
                       }}
                       placeholder={field.placeholder}
@@ -967,6 +979,8 @@ export function TemplatesClient({
                     setGeneratedImageUrl(null);
                     setCompositionPlan(null);
                     setUsedTextBlocks([]);
+                    setZoneTexts({});
+                    setRenderWarnings([]);
                     setImageError("");
                   }}
                   placeholder={"Décrivez l’événement : titre, date, heure, lieu et informations utiles"}
@@ -984,7 +998,7 @@ export function TemplatesClient({
               <p className="font-semibold">Sélection intelligente des informations</p>
               <p className="mt-1 text-xs leading-5">
                 L’IA conservera uniquement les informations essentielles pour l’affiche, sans inventer de contenu.
-                {hasLongUnbrokenLine && " Vous pouvez aussi séparer les informations avec la touche Entrée."}
+                {hasLongUnbrokenLine && " Les retours à la ligne et la réduction du texte seront gérés automatiquement."}
               </p>
             </div>
 
@@ -1018,6 +1032,7 @@ export function TemplatesClient({
   }
 
   if (step === "preview" && selectedTemplate && generatedImageUrl) {
+    const editableTextZones = selectedTemplate.design.filter((zone) => !isImageLikeZone(zone));
     return (
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
@@ -1049,14 +1064,29 @@ export function TemplatesClient({
 
           <aside className="space-y-4">
             <div className="border-b border-slate-200 pb-4">
-              <p className="text-sm font-semibold text-slate-900">Informations retenues par l’IA</p>
+              <p className="text-sm font-semibold text-slate-900">Textes retenus par zone</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                Vous pouvez corriger ces textes puis appliquer vos modifications sans changer leur position.
+              </p>
               <div className="mt-3 space-y-2">
-                {(usedTextBlocks.length > 0 ? usedTextBlocks : buildTextBlocks(inputMode, structuredTexts, freeText)).map((block) => (
-                  <p key={block.id} dir="auto" className="whitespace-pre-wrap text-sm leading-5 text-slate-600">
-                    {block.text}
-                  </p>
+                {editableTextZones.filter((zone) => zoneTexts[zone.id] !== undefined).map((zone) => (
+                  <label key={zone.id} className="block space-y-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{zone.label}</span>
+                    <textarea
+                      dir="auto"
+                      rows={Math.max(2, zoneTexts[zone.id]?.split(/\r?\n/).length ?? 2)}
+                      value={zoneTexts[zone.id] ?? ""}
+                      onChange={(event) => setZoneTexts((previous) => ({ ...previous, [zone.id]: event.target.value }))}
+                      className="w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm leading-5 text-slate-700 outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-100"
+                    />
+                  </label>
                 ))}
               </div>
+              {renderWarnings.length > 0 && (
+                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+                  {renderWarnings.map((warning) => <p key={warning}>{warning}</p>)}
+                </div>
+              )}
               {textHash && <p className="mt-3 font-mono text-[11px] text-slate-400">Hash {textHash.slice(0, 16)}</p>}
             </div>
 
@@ -1075,11 +1105,11 @@ export function TemplatesClient({
             <Button
               variant="outline"
               onClick={() => void generateImage(true)}
-              disabled={loading}
+              disabled={loading || Object.values(zoneTexts).every((text) => !text.trim())}
               className="w-full"
             >
               {loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <RefreshCw className="mr-2 size-4" />}
-              Autre disposition
+              Appliquer mes corrections
             </Button>
 
             <Button

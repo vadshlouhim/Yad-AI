@@ -107,7 +107,17 @@ export async function POST(request: Request) {
       if (templateId) {
         const { error } = await admin
           .from("Template")
-          .update({ originalUrl, previewUrl, thumbnailUrl, updatedAt: new Date().toISOString() })
+          .update({
+            originalUrl,
+            previewUrl,
+            thumbnailUrl,
+            design: [],
+            layoutStatus: "PENDING",
+            layoutConfidence: null,
+            layoutAnalyzedAt: null,
+            layoutAnalysisVersion: 0,
+            updatedAt: new Date().toISOString(),
+          })
           .eq("id", templateId);
         if (error) throw error;
       }
@@ -118,6 +128,7 @@ export async function POST(request: Request) {
         thumbnailUrl,
         path: originalPath,
         contentType: file.type,
+        layoutStatus: "PENDING",
       });
     }
 

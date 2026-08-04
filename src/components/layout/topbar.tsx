@@ -94,12 +94,10 @@ function AviAgentBubble() {
 }
 
 function renderSectionSubtitle(section: OfficialDashboardMenuSection, className: string) {
+  if (!section.subtitle) return null;
+
   if (section.key === "social") {
     return <p className={className}>Publiez et planifiez vos réseaux depuis un seul espace.</p>;
-  }
-
-  if (section.key === "automations") {
-    return null;
   }
 
   if (section.key === "email") {
@@ -162,7 +160,14 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
     if (pathname.startsWith("/dashboard/google-reviews")) return "Avis Google";
     if (pathname.startsWith("/dashboard/daily-assistant")) return "Assistant du quotidien";
     if (pathname.startsWith("/dashboard/events")) return "Mon Agenda";
+    if (pathname.startsWith("/dashboard/boutique/calendrier-horaires-tichri")) return "Calendrier de Tichri";
+    if (pathname.startsWith("/dashboard/boutique/magnets-chabbat")) return "Magnets de Chabbat";
+    if (pathname.startsWith("/dashboard/boutique/birkat-hachana")) return "Birkat Hachana";
+    if (pathname.startsWith("/dashboard/boutique/box-tehilim")) return "Box de Tehilim";
+    if (pathname.startsWith("/dashboard/boutique/anniversaire-juif")) return "Anniversaire juif";
+    if (pathname.startsWith("/dashboard/boutique/plaquette-teffilin")) return "Plaquette Teffilin en 6 étapes";
     if (pathname.startsWith("/dashboard/boutique")) return "Boutique";
+    if (pathname.startsWith("/dashboard/articles")) return "Articles";
     if (pathname.startsWith("/dashboard/referencement")) return "Referencement";
     if (pathname.startsWith("/dashboard/shabbat-times-auto")) return "Horaire de Chabbat";
     if (pathname.startsWith("/dashboard/templates")) return "Affiches";
@@ -179,6 +184,7 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
   function isActive(href: string) {
     if (href.startsWith("http") || href.startsWith("mailto")) return false;
     const pathOnly = href.split("?")[0];
+    if (pathOnly === "/dashboard/boutique") return pathname === pathOnly;
     return pathname === pathOnly || pathname.startsWith(`${pathOnly}/`);
   }
 

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.types";
 import { classifyTemplateAdminError } from "@/lib/templates/admin-errors";
 import { NextResponse } from "next/server";
+import { normalizeTemplateZones } from "@/lib/templates/zones";
 
 const TEMPLATE_CATEGORIES = new Set<Database["public"]["Enums"]["TemplateCategory"]>([
   "SHABBAT",
@@ -39,39 +40,9 @@ function normalizeTags(value: unknown) {
     .slice(0, 30);
 }
 
-function normalizePercent(value: unknown, fallback: number) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return fallback;
-  return Math.min(100, Math.max(0, numeric));
-}
-
 function normalizeDesign(value: unknown) {
   if (!Array.isArray(value)) return undefined;
-
-  return value.slice(0, 80).map((zone, index) => {
-    const item = zone && typeof zone === "object" ? zone as Record<string, unknown> : {};
-    const id = String(item.id ?? `zone_${crypto.randomUUID()}`);
-    const width = Math.max(1, normalizePercent(item.width, 40));
-    const height = Math.max(1, normalizePercent(item.height, 10));
-
-    return {
-      id,
-      label: String(item.label ?? `Zone ${index + 1}`).trim() || `Zone ${index + 1}`,
-      variableKey: String(item.variableKey ?? item.type ?? "MESSAGE").trim() || "MESSAGE",
-      variableType: String(item.variableType ?? "TEXT").trim() || "TEXT",
-      defaultText: String(item.defaultText ?? "").trim(),
-      x: Math.min(100 - width, normalizePercent(item.x, 10)),
-      y: Math.min(100 - height, normalizePercent(item.y, 10)),
-      width,
-      height,
-      align: ["left", "center", "right"].includes(String(item.align)) ? String(item.align) : "center",
-      fontSize: Math.min(180, Math.max(8, Number(item.fontSize ?? 42))),
-      color: String(item.color ?? "#111827"),
-      fontFamily: String(item.fontFamily ?? "Arial, Helvetica, sans-serif"),
-      overflow: ["shrink", "wrap", "truncate", "hide"].includes(String(item.overflow)) ? String(item.overflow) : "shrink",
-      locked: Boolean(item.locked),
-    };
-  });
+  return normalizeTemplateZones(value);
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -144,6 +115,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const design = normalizeDesign(body.design);
   if (design) updateData.design = design;
+
+  if (["PENDING", "REVIEW", "FAILED"].includes(String(body.layoutStatus))) {
+    updateData.layoutStatus = body.layoutStatus;
+  }
 
   for (const field of ["isGlobal", "isActive", "isPremium"] as const) {
     if (body[field] !== undefined) updateData[field] = Boolean(body[field]);

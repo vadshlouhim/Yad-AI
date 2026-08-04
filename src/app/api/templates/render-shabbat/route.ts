@@ -87,6 +87,7 @@ export async function POST(request: Request) {
       .from("Template")
       .select("*")
       .eq("id", body.templateId)
+      .eq("layoutStatus", "READY")
       .or(`isGlobal.eq.true,communityId.eq.${profile.communityId}`)
       .single();
     if (!template) return NextResponse.json({ error: "Template introuvable" }, { status: 404 });

@@ -32,7 +32,7 @@ export function isTemplateSchemaOutdated(error: unknown) {
     .toLowerCase();
 
   return (
-    searchable.includes("originalurl")
+    (searchable.includes("originalurl") || searchable.includes("layoutstatus") || searchable.includes("layoutconfidence") || searchable.includes("layoutanalysis"))
     && (
       searchable.includes("does not exist")
       || searchable.includes("schema cache")

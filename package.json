@@ -15,6 +15,7 @@
     "db:migrate:safe": "npm run db:check-target && prisma migrate deploy",
     "test:admin-templates": "tsx scripts/test-admin-templates.ts",
     "test:posters": "tsx scripts/test-poster-composition.ts",
+    "test:template-zones": "tsx scripts/test-template-zones.ts",
     "test:posters:vision": "tsx scripts/test-poster-vision.ts"
   },
   "dependencies": {

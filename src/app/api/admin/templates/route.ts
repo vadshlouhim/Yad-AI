@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.types";
 import { classifyTemplateAdminError } from "@/lib/templates/admin-errors";
 import { NextResponse } from "next/server";
+import { normalizeTemplateZones } from "@/lib/templates/zones";
 
 const TEMPLATE_CATEGORIES = new Set<Database["public"]["Enums"]["TemplateCategory"]>([
   "SHABBAT",
@@ -31,30 +32,7 @@ function normalizeTags(value: unknown) {
 }
 
 function normalizeDesign(value: unknown) {
-  if (!Array.isArray(value)) return [];
-
-  return value.slice(0, 80).map((zone, index) => {
-    const item = zone && typeof zone === "object" ? zone as Record<string, unknown> : {};
-    const id = String(item.id ?? `zone_${crypto.randomUUID()}`);
-
-    return {
-      id,
-      label: String(item.label ?? `Zone ${index + 1}`).trim() || `Zone ${index + 1}`,
-      variableKey: String(item.variableKey ?? item.type ?? "MESSAGE").trim() || "MESSAGE",
-      variableType: String(item.variableType ?? "TEXT").trim() || "TEXT",
-      defaultText: String(item.defaultText ?? "").trim(),
-      x: Number(item.x ?? 10),
-      y: Number(item.y ?? 10),
-      width: Number(item.width ?? 50),
-      height: Number(item.height ?? 12),
-      align: String(item.align ?? "center"),
-      fontSize: Number(item.fontSize ?? 42),
-      color: String(item.color ?? "#111827"),
-      fontFamily: String(item.fontFamily ?? "Arial, Helvetica, sans-serif"),
-      overflow: String(item.overflow ?? "shrink"),
-      locked: Boolean(item.locked),
-    };
-  });
+  return normalizeTemplateZones(value);
 }
 
 export async function POST(request: Request) {
@@ -103,6 +81,10 @@ export async function POST(request: Request) {
       thumbnailUrl: body.thumbnailUrl ? String(body.thumbnailUrl).trim() : null,
       previewUrl: body.previewUrl ? String(body.previewUrl).trim() : null,
       design: normalizeDesign(body.design),
+      layoutStatus: "PENDING",
+      layoutConfidence: null,
+      layoutAnalyzedAt: null,
+      layoutAnalysisVersion: 0,
       isGlobal: body.isGlobal === undefined ? true : Boolean(body.isGlobal),
       isPremium: Boolean(body.isPremium),
       isActive: body.isActive === undefined ? true : Boolean(body.isActive),
