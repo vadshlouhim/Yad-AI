@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useMemo, useState } from "react";
-import { ArrowLeft, Check, Download, ImageIcon, Loader2, Paintbrush, Search, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Download, ImageIcon, Library, Loader2, Paintbrush, Search, Share2, Sparkles } from "lucide-react";
 import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
 import { UpgradeModal } from "@/components/billing/upgrade-modal";
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,14 @@ interface PosterBrief {
   missingInformation: string[];
 }
 
+interface GeneratedAsset {
+  imageUrl: string;
+  storagePath: string;
+  size: number;
+  width: number | null;
+  height: number | null;
+}
+
 type Step = "gallery" | "request" | "confirm" | "preview";
 
 function templateImage(template: Template) {
@@ -94,6 +102,10 @@ export function TemplatesClient({
   const [requestText, setRequestText] = useState("");
   const [brief, setBrief] = useState<PosterBrief | null>(null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [generatedAsset, setGeneratedAsset] = useState<GeneratedAsset | null>(null);
+  const [savingLibrary, setSavingLibrary] = useState(false);
+  const [librarySaved, setLibrarySaved] = useState(false);
+  const [actionMessage, setActionMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -122,6 +134,9 @@ export function TemplatesClient({
     setRequestText("");
     setBrief(null);
     setGeneratedImageUrl(null);
+    setGeneratedAsset(null);
+    setLibrarySaved(false);
+    setActionMessage("");
     setError("");
     setStep("request");
   }
@@ -175,21 +190,90 @@ export function TemplatesClient({
           resolution: "1k",
         }),
       });
-      const data = await response.json() as { imageUrl?: string; error?: string; code?: string };
+      const data = await response.json() as {
+        imageUrl?: string;
+        storagePath?: string;
+        size?: number;
+        width?: number | null;
+        height?: number | null;
+        error?: string;
+        code?: string;
+      };
       if (!response.ok) {
         if (data.code === "PAYWALL_REQUIRED") {
           setUpgradeOpen(true);
           return;
         }
-        throw new Error(data.error ?? "fal.ai n’a pas pu modifier l’affiche.");
+        throw new Error(data.error ?? "Le moteur d’image n’a pas pu personnaliser l’affiche.");
       }
-      if (!data.imageUrl) throw new Error("Aucune image modifiée n’a été renvoyée.");
+      if (!data.imageUrl || !data.storagePath) throw new Error("Aucune image personnalisée n’a été renvoyée.");
       setGeneratedImageUrl(data.imageUrl);
+      setGeneratedAsset({
+        imageUrl: data.imageUrl,
+        storagePath: data.storagePath,
+        size: data.size ?? 0,
+        width: data.width ?? null,
+        height: data.height ?? null,
+      });
+      setLibrarySaved(false);
+      setActionMessage("");
       setStep("preview");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Modification impossible.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function saveToLibrary() {
+    if (!selectedTemplate || !brief || !generatedAsset || librarySaved) return;
+    setSavingLibrary(true);
+    setError("");
+    setActionMessage("");
+    try {
+      const response = await fetch("/api/templates/save-to-library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId: selectedTemplate.id,
+          storagePath: generatedAsset.storagePath,
+          size: generatedAsset.size,
+          width: generatedAsset.width,
+          height: generatedAsset.height,
+          changes: brief.changes,
+        }),
+      });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(data.error ?? "Enregistrement impossible.");
+      setLibrarySaved(true);
+      setActionMessage("L’affiche est enregistrée dans votre bibliothèque personnelle.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Enregistrement impossible.");
+    } finally {
+      setSavingLibrary(false);
+    }
+  }
+
+  async function shareGeneratedImage() {
+    if (!generatedAsset) return;
+    setActionMessage("");
+    try {
+      const response = await fetch(generatedAsset.imageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `${selectedTemplate?.name ?? "affiche"}.png`, { type: blob.type || "image/png" });
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ title: selectedTemplate?.name ?? "Mon affiche", files: [file] });
+        return;
+      }
+      if (navigator.share) {
+        await navigator.share({ title: selectedTemplate?.name ?? "Mon affiche", url: generatedAsset.imageUrl });
+        return;
+      }
+      await navigator.clipboard.writeText(generatedAsset.imageUrl);
+      setActionMessage("Lien copié : collez-le dans votre email ou votre réseau social.");
+    } catch (cause) {
+      if (cause instanceof DOMException && cause.name === "AbortError") return;
+      setError("Le partage direct n’est pas disponible sur ce navigateur. Téléchargez l’image pour la joindre manuellement.");
     }
   }
 
@@ -213,7 +297,7 @@ export function TemplatesClient({
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-700">Un parcours simple</p>
             <h2 className="mt-2 text-xl font-black text-slate-900">Choisissez, expliquez, confirmez</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Gemini comprend votre demande et vous la présente clairement. Après votre confirmation, fal.ai modifie uniquement les textes du template.</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Gemini comprend votre demande et vous la présente clairement. Après votre confirmation, l’affiche est personnalisée en conservant son identité visuelle.</p>
           </div>
           <img src={AGENT_IMAGE_URLS.zalman} alt="" className="mx-auto h-36 w-32 object-contain" />
         </section>
@@ -293,7 +377,7 @@ export function TemplatesClient({
           </div>
           <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-950">
             <p className="font-bold">Anciens textes à nettoyer pour éviter les doublons</p>
-            <p className="mt-1">{brief.textsToRemove.length > 0 ? brief.textsToRemove.join(" · ") : "Aucun texte précis détecté : fal.ai vérifiera tout de même les anciennes informations événementielles avant l’ajout."}</p>
+            <p className="mt-1">{brief.textsToRemove.length > 0 ? brief.textsToRemove.join(" · ") : "Aucun texte précis détecté : les anciennes informations événementielles seront tout de même vérifiées avant l’ajout."}</p>
           </div>
           <div>
             <p className="mb-2 text-sm font-bold text-slate-800">Plan d’édition préparé par Gemini</p>
@@ -302,7 +386,7 @@ export function TemplatesClient({
           {brief.missingInformation.length > 0 && <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"><p className="font-bold">Informations encore nécessaires</p>{brief.missingInformation.map((item) => <p key={item} className="mt-1">• {item}</p>)}<Button variant="outline" className="mt-3" onClick={() => setStep("request")}>Compléter ma demande</Button></div>}
           <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"><p className="font-bold">Ce qui restera inchangé</p><p className="mt-1">{brief.unchangedElements.join(", ") || "Le fond, les couleurs, les logos, les personnes, les illustrations et la composition générale."}</p></div>
           {error && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-          <Button onClick={() => void generatePoster()} disabled={loading || blocked} className="w-full bg-emerald-600 text-white hover:bg-emerald-700">{loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Check className="mr-2 size-4" />}{loading ? "fal.ai modifie l’affiche…" : "Je confirme et je génère"}</Button>
+          <Button onClick={() => void generatePoster()} disabled={loading || blocked} className="w-full bg-emerald-600 text-white hover:bg-emerald-700">{loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Check className="mr-2 size-4" />}{loading ? "Création de l’affiche…" : "Je confirme et je génère"}</Button>
         </CardContent></Card>
       </div>
     );
@@ -311,11 +395,13 @@ export function TemplatesClient({
   if (step === "preview" && generatedImageUrl) {
     return (
       <div className="mx-auto max-w-6xl space-y-6">
-        <div className="flex items-center justify-between"><Button variant="ghost" onClick={() => setStep("confirm")}><ArrowLeft className="mr-2 size-4" />Retour</Button><Button onClick={() => window.open(generatedImageUrl, "_blank", "noopener,noreferrer")}><Download className="mr-2 size-4" />Télécharger le PNG</Button></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><Button variant="ghost" onClick={() => setStep("confirm")}><ArrowLeft className="mr-2 size-4" />Retour</Button><div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => window.open(generatedImageUrl, "_blank", "noopener,noreferrer")}><Download className="mr-2 size-4" />Télécharger</Button><Button variant="outline" onClick={() => void shareGeneratedImage()}><Share2 className="mr-2 size-4" />Partager</Button></div></div>
         <div className="grid gap-6 md:grid-cols-2">
           <Card className="overflow-hidden"><CardContent className="p-3"><p className="mb-2 text-sm font-bold text-slate-500">Template original</p>{sourceImage && <img src={sourceImage} alt="Template original" className="w-full rounded-xl object-contain" />}</CardContent></Card>
-          <Card className="overflow-hidden border-emerald-200"><CardContent className="p-3"><p className="mb-2 text-sm font-bold text-emerald-700">Affiche modifiée par fal.ai</p><img src={generatedImageUrl} alt="Affiche modifiée" className="w-full rounded-xl object-contain" /></CardContent></Card>
+          <Card className="overflow-hidden border-emerald-200"><CardContent className="p-3"><p className="mb-2 text-sm font-bold text-emerald-700">Votre affiche personnalisée</p><img src={generatedImageUrl} alt="Affiche personnalisée" className="w-full rounded-xl object-contain" /></CardContent></Card>
         </div>
+        <Card className="border-violet-200 bg-violet-50"><CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-violet-950">Souhaitez-vous conserver cette création ?</p><p className="mt-1 text-sm text-violet-800">Enregistrez-la dans votre bibliothèque personnelle pour la retrouver, la télécharger ou la partager plus tard.</p></div><div className="flex flex-wrap gap-2"><Button onClick={() => void saveToLibrary()} disabled={savingLibrary || librarySaved} className="bg-violet-700 text-white hover:bg-violet-800">{savingLibrary ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Library className="mr-2 size-4" />}{librarySaved ? "Enregistrée" : "Enregistrer"}</Button>{librarySaved && <Button variant="outline" onClick={() => { window.location.href = "/dashboard/media-library"; }}>Voir mes créations</Button>}</div></CardContent></Card>
+        {actionMessage && <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{actionMessage}</p>}
         {error && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       </div>
     );

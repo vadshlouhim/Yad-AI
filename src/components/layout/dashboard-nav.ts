@@ -422,6 +422,7 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       icon: Image,
       items: [
         { href: "/dashboard/templates", label: "Affiches & visuels", icon: Image },
+        { href: "/dashboard/media-library", label: "Mes créations", icon: Library },
       ],
     },
     {
@@ -536,6 +537,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     section: "AFFICHES & VISUELS",
     items: [
       { href: "/dashboard/templates", label: "Affiches & visuels", icon: Image },
+      { href: "/dashboard/media-library", label: "Mes créations", icon: Library },
     ],
   },
   {
@@ -641,6 +643,7 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     icon: Image,
     items: [
       { href: "/dashboard/templates", label: "Affiches & visuels", icon: Image },
+      { href: "/dashboard/media-library", label: "Mes créations", icon: Library },
     ],
   },
   {

@@ -104,6 +104,7 @@ export async function editTemplatePosterWithFal(params: {
   changes: PosterChange[];
   textsToRemove?: string[];
   editInstructions?: string;
+  recordMedia?: boolean;
   resolution?: "1k" | "2k";
 }) {
   const falKey = process.env.FAL_KEY?.trim();
@@ -141,27 +142,29 @@ export async function editTemplatePosterWithFal(params: {
   if (upload.error) throw new Error(upload.error.message);
   const { data: publicData } = params.admin.storage.from("templates").getPublicUrl(storagePath);
   const imageUrl = publicData.publicUrl;
-  const mediaId = crypto.randomUUID();
+  const mediaId = params.recordMedia === false ? null : crypto.randomUUID();
 
-  await params.admin.from("MediaFile").insert({
-    id: mediaId,
-    communityId: params.communityId,
-    userId: params.userId ?? null,
-    templateId: params.template.id,
-    name: `Affiche modifiée - ${params.template.name}`,
-    originalName: `${params.template.name}.png`,
-    url: imageUrl,
-    publicId: storagePath,
-    source: "TEMPLATE_GENERATION",
-    type: "IMAGE",
-    mimeType: "image/png",
-    size: buffer.length,
-    width: output.images?.[0]?.width ?? null,
-    height: output.images?.[0]?.height ?? null,
-    tags: ["generated", "fal-ai", "grok-imagine-edit"],
-    altText: params.changes.map((change) => `${change.label}: ${change.newText}`).join("; ").slice(0, 500),
-    updatedAt: new Date().toISOString(),
-  } as never);
+  if (mediaId) {
+    await params.admin.from("MediaFile").insert({
+      id: mediaId,
+      communityId: params.communityId,
+      userId: params.userId ?? null,
+      templateId: params.template.id,
+      name: `Affiche personnalisée - ${params.template.name}`,
+      originalName: `${params.template.name}.png`,
+      url: imageUrl,
+      publicId: storagePath,
+      source: "TEMPLATE_GENERATION",
+      type: "IMAGE",
+      mimeType: "image/png",
+      size: buffer.length,
+      width: output.images?.[0]?.width ?? null,
+      height: output.images?.[0]?.height ?? null,
+      tags: ["generated", "personal-library"],
+      altText: params.changes.map((change) => `${change.label}: ${change.newText}`).join("; ").slice(0, 500),
+      updatedAt: new Date().toISOString(),
+    } as never);
+  }
 
   return {
     imageUrl,

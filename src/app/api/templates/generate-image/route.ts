@@ -66,6 +66,7 @@ export async function POST(request: Request) {
       changes,
       textsToRemove,
       editInstructions,
+      recordMedia: false,
       resolution,
     });
     await admin.from("Template").update({
@@ -76,6 +77,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       imageUrl: edited.imageUrl,
       mediaId: edited.mediaId,
+      storagePath: edited.storagePath,
+      size: edited.size,
       model: FAL_POSTER_EDIT_MODEL,
       width: edited.width,
       height: edited.height,
