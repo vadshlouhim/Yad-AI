@@ -93,7 +93,7 @@ Réponds UNIQUEMENT avec un objet JSON valide avec ces champs :
 
   try {
     const completion = await openrouter.chat.completions.create({
-      model: "deepseek/deepseek-chat",
+      model: "google/gemini-2.5-flash",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 400,
       temperature: 0.4,

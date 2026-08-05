@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.types";
 import { classifyTemplateAdminError } from "@/lib/templates/admin-errors";
 import { NextResponse } from "next/server";
-import { normalizeTemplateZones } from "@/lib/templates/zones";
 
 const TEMPLATE_CATEGORIES = new Set<Database["public"]["Enums"]["TemplateCategory"]>([
   "SHABBAT",
@@ -38,11 +37,6 @@ function normalizeTags(value: unknown) {
     .map((tag) => String(tag).trim())
     .filter(Boolean)
     .slice(0, 30);
-}
-
-function normalizeDesign(value: unknown) {
-  if (!Array.isArray(value)) return undefined;
-  return normalizeTemplateZones(value);
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -112,13 +106,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const tags = normalizeTags(body.tags);
   if (tags) updateData.tags = tags;
-
-  const design = normalizeDesign(body.design);
-  if (design) updateData.design = design;
-
-  if (["PENDING", "REVIEW", "FAILED"].includes(String(body.layoutStatus))) {
-    updateData.layoutStatus = body.layoutStatus;
-  }
 
   for (const field of ["isGlobal", "isActive", "isPremium"] as const) {
     if (body[field] !== undefined) updateData[field] = Boolean(body[field]);

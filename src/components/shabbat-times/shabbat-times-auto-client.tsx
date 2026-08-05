@@ -37,13 +37,6 @@ import {
 } from "@/lib/automation/shabbat-times";
 import type { Json } from "@/types/database.types";
 
-type DesignZone = {
-  id: string;
-  label: string;
-  type: string;
-  defaultText: string;
-};
-
 type Template = {
   id: string;
   name: string;
@@ -52,7 +45,6 @@ type Template = {
   subCategory: string | null;
   thumbnailUrl: string | null;
   previewUrl: string | null;
-  design: DesignZone[];
   isGlobal: boolean;
   isPremium: boolean;
   tags: string[];
@@ -1621,7 +1613,6 @@ export function ShabbatTimesAutoClient({
     </div>
   );
 }
-
 
 
 

@@ -120,7 +120,7 @@ Choisis la catégorie et le thème les plus pertinents. Les keywords doivent êt
 
   try {
     const completion = await openrouter.chat.completions.create({
-      model: "deepseek/deepseek-chat",
+      model: "google/gemini-2.5-flash",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 512,
       temperature: 0.3,

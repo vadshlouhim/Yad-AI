@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { recordToPosterTextBlocks, type PosterTextBlock } from "@/lib/templates/render";
+
+type PosterTextBlock = { id: string; text: string; role: string; priority: "main" | "important" | "complementary" };
 
 function normalizeTextRecord(value: unknown): Record<string, string> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -22,6 +23,15 @@ function blocksFromExactParagraphs(instruction: string): PosterTextBlock[] {
       role: index === 0 ? "title" : "paragraph",
       priority: index === 0 ? "main" : index === 1 ? "important" : "complementary",
     }));
+}
+
+function recordToPosterTextBlocks(values: Record<string, string>): PosterTextBlock[] {
+  return Object.entries(values).filter(([, text]) => text.trim()).map(([id, text], index) => ({
+    id,
+    text: text.trim(),
+    role: id,
+    priority: index === 0 ? "main" : "important",
+  }));
 }
 
 export async function POST(request: Request) {
@@ -53,7 +63,6 @@ export async function POST(request: Request) {
       .from("Template")
       .select("id")
       .eq("id", templateId)
-      .eq("layoutStatus", "READY")
       .or(`isGlobal.eq.true,communityId.eq.${profile.communityId}`)
       .single();
     if (!template) return NextResponse.json({ error: "Template introuvable" }, { status: 404 });

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import sharp from "sharp";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -41,19 +40,9 @@ export async function POST(request: Request) {
   const ownerId = profile?.communityId ?? user.id;
   const input = Buffer.from(await file.arrayBuffer());
 
-  let body: Buffer = input;
-  let contentType = file.type || "application/octet-stream";
-  let extension = file.name.includes(".") ? file.name.split(".").pop() : "bin";
-
-  if (isImage) {
-    body = await sharp(input)
-      .rotate()
-      .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 85 })
-      .toBuffer();
-    contentType = "image/webp";
-    extension = "webp";
-  }
+  const body = input;
+  const contentType = file.type || "application/octet-stream";
+  const extension = file.name.includes(".") ? file.name.split(".").pop() : "bin";
 
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 60) || "fichier";
   const storagePath = `chat-attachments/${ownerId}/${crypto.randomUUID()}-${safeName}.${extension}`;

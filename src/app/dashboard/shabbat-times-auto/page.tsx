@@ -28,7 +28,6 @@ export default async function ShabbatTimesAutoPage() {
         .from("Template")
         .select("*")
         .eq("isActive", true)
-        .eq("layoutStatus", "READY")
         .eq("category", "SHABBAT")
         .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
         .order("usageCount", { ascending: false }),

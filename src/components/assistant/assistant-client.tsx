@@ -87,7 +87,6 @@ interface TemplateSuggestion {
   tags: string[];
   isPremium: boolean;
   usageCount: number;
-  editableZoneCount: number;
   reason: string;
 }
 

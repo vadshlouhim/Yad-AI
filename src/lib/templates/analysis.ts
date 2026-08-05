@@ -77,8 +77,8 @@ Contexte :
 - Demande utilisateur : ${userRequest ?? "Non précisée"}
 
 Objectif :
-- identifier uniquement les espaces textuels libres prévus pour recevoir un nouveau texte
-- ne jamais proposer de remplacer un texte, une photo, un logo, une illustration ou un objet déjà intégré au fond
+- identifier les textes visibles que la demande utilisateur veut actualiser
+- ne jamais proposer de modifier une photo, un logo, une illustration, la composition ou le style de l'affiche
 - formuler des questions qui demandent un texte exact sans le suggérer, le corriger ou le reformuler
 - les questions doivent être courtes, concrètes et directement exploitables par un assistant
 ${POSTER_ANALYSIS_RULES}
@@ -86,7 +86,7 @@ ${POSTER_ANALYSIS_RULES}
 Règles :
 - 4 à 7 éléments maximum
 - privilégie ce qui est réellement visible sur l'affiche
-- n'invente pas des zones qui n'existent probablement pas
+- n'invente pas de texte ou d'information absente de la demande
 - si un texte visible semble lisible, résume-le brièvement dans currentValueHint
 - réponds uniquement en JSON valide
 

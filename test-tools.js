@@ -6,7 +6,7 @@ const openrouter = new OpenAI({
 async function main() {
   try {
     const res = await openrouter.chat.completions.create({
-      model: "deepseek/deepseek-chat",
+      model: "google/gemini-2.5-flash",
       stream: true,
       messages: [
         { role: "user", content: "Bonjour" },

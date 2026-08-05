@@ -40,7 +40,6 @@ export default async function JewishHolidaysAutoPage() {
       .from("Template")
       .select("*")
       .eq("isActive", true)
-      .eq("layoutStatus", "READY")
       .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
       .order("usageCount", { ascending: false })
       .limit(120),

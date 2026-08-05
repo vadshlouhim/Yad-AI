@@ -3,7 +3,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { classifyTemplateAdminError } from "@/lib/templates/admin-errors";
 import { NextResponse } from "next/server";
-import sharp from "sharp";
 
 const MAX_FILE_SIZE = 24 * 1024 * 1024;
 
@@ -83,26 +82,16 @@ export async function POST(request: Request) {
   const uploadId = crypto.randomUUID();
 
   try {
-    await sharp(input, { failOn: "error" }).metadata();
-
     if (kind === "original") {
       const originalPath = `admin/${safeTemplateId}/original-${uploadId}.${extensionForFile(file)}`;
-      const previewPath = `admin/${safeTemplateId}/preview-${uploadId}.webp`;
-      const thumbnailPath = `admin/${safeTemplateId}/thumbnail-${uploadId}.webp`;
-      const [preview, thumbnail] = await Promise.all([
-        sharp(input).rotate().resize({ width: 1600, withoutEnlargement: true }).webp({ quality: 86 }).toBuffer(),
-        sharp(input).rotate().resize({ width: 640, withoutEnlargement: true }).webp({ quality: 78 }).toBuffer(),
-      ]);
       const originalUrl = await uploadBuffer({
         admin,
         storagePath: originalPath,
         buffer: input,
         contentType: file.type,
       });
-      const [previewUrl, thumbnailUrl] = await Promise.all([
-        uploadBuffer({ admin, storagePath: previewPath, buffer: preview, contentType: "image/webp" }),
-        uploadBuffer({ admin, storagePath: thumbnailPath, buffer: thumbnail, contentType: "image/webp" }),
-      ]);
+      const previewUrl = originalUrl;
+      const thumbnailUrl = originalUrl;
 
       if (templateId) {
         const { error } = await admin
@@ -111,11 +100,6 @@ export async function POST(request: Request) {
             originalUrl,
             previewUrl,
             thumbnailUrl,
-            design: [],
-            layoutStatus: "PENDING",
-            layoutConfidence: null,
-            layoutAnalyzedAt: null,
-            layoutAnalysisVersion: 0,
             updatedAt: new Date().toISOString(),
           })
           .eq("id", templateId);
@@ -128,7 +112,6 @@ export async function POST(request: Request) {
         thumbnailUrl,
         path: originalPath,
         contentType: file.type,
-        layoutStatus: "PENDING",
       });
     }
 
@@ -136,18 +119,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Type d'image invalide" }, { status: 400 });
     }
 
-    const width = kind === "thumbnail" ? 640 : 1600;
-    const output = await sharp(input)
-      .rotate()
-      .resize({ width, withoutEnlargement: true })
-      .webp({ quality: kind === "thumbnail" ? 78 : 86 })
-      .toBuffer();
-    const storagePath = `admin/${safeTemplateId}/${kind}-${uploadId}.webp`;
+    const storagePath = `admin/${safeTemplateId}/${kind}-${uploadId}.${extensionForFile(file)}`;
     const publicUrl = await uploadBuffer({
       admin,
       storagePath,
-      buffer: output,
-      contentType: "image/webp",
+      buffer: input,
+      contentType: file.type,
     });
 
     if (templateId) {
@@ -161,7 +138,7 @@ export async function POST(request: Request) {
       if (error) throw error;
     }
 
-    return NextResponse.json({ url: publicUrl, path: storagePath, contentType: "image/webp" });
+    return NextResponse.json({ url: publicUrl, path: storagePath, contentType: file.type });
   } catch (error) {
     console.error("[Admin Templates] Upload impossible:", error);
     const apiError = classifyTemplateAdminError(

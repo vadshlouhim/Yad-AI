@@ -19,7 +19,7 @@ const openrouter = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY!,
 });
 
-const MODEL = "deepseek/deepseek-chat";
+const MODEL = "google/gemini-2.5-flash";
 const MAX_TOKENS = 2048;
 
 function getUpcomingHolidays(holidays: JewishHoliday[], now: Date, limit = 8) {

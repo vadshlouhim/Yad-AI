@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import sharp from "sharp";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -15,6 +14,13 @@ function slugifyLogoName(value: string | null | undefined) {
     .replace(/(^-|-$)+/g, "");
 
   return normalized || "structure";
+}
+
+function extensionForFile(file: File) {
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  return extension && ["png", "jpg", "jpeg", "webp", "gif", "avif"].includes(extension)
+    ? extension
+    : file.type.split("/")[1]?.replace("jpeg", "jpg") || "img";
 }
 
 export async function POST(request: Request) {
@@ -58,25 +64,20 @@ export async function POST(request: Request) {
     : { data: null };
 
   const input = Buffer.from(await file.arrayBuffer());
-  const output = await sharp(input)
-    .rotate()
-    .resize({ width: 512, height: 512, fit: "inside", withoutEnlargement: true })
-    .webp({ quality: 88 })
-    .toBuffer();
 
   const ownerId = profile?.communityId ?? user.id;
   const structureName = community?.slug ?? community?.name ?? user.email ?? ownerId;
-  const storagePath = `${ownerId}/${slugifyLogoName(structureName)}-logo.webp`;
-  let { error: uploadError } = await admin.storage.from(BUCKET).upload(storagePath, output, {
-    contentType: "image/webp",
+  const storagePath = `${ownerId}/${slugifyLogoName(structureName)}-logo.${extensionForFile(file)}`;
+  let { error: uploadError } = await admin.storage.from(BUCKET).upload(storagePath, input, {
+    contentType: file.type,
     cacheControl: "3600",
     upsert: true,
   });
 
   if (uploadError?.message.toLowerCase().includes("bucket")) {
     await admin.storage.createBucket(BUCKET, { public: true });
-    const retry = await admin.storage.from(BUCKET).upload(storagePath, output, {
-      contentType: "image/webp",
+    const retry = await admin.storage.from(BUCKET).upload(storagePath, input, {
+      contentType: file.type,
       cacheControl: "3600",
       upsert: true,
     });
@@ -97,5 +98,5 @@ export async function POST(request: Request) {
       .eq("id", profile.communityId);
   }
 
-  return NextResponse.json({ logoUrl, path: storagePath, contentType: "image/webp" });
+  return NextResponse.json({ logoUrl, path: storagePath, contentType: file.type });
 }

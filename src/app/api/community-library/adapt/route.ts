@@ -83,7 +83,7 @@ Réponds UNIQUEMENT avec le texte du message WhatsApp, sans guillemets ni format
 
   try {
     const completion = await openrouter.chat.completions.create({
-      model: "deepseek/deepseek-chat",
+      model: "google/gemini-2.5-flash",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 300,
       temperature: 0.7,
@@ -122,7 +122,7 @@ Réponds UNIQUEMENT avec un objet JSON :
 
   try {
     const completion = await openrouter.chat.completions.create({
-      model: "deepseek/deepseek-chat",
+      model: "google/gemini-2.5-flash",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 400,
       temperature: 0.5,

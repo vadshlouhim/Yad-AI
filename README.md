@@ -33,8 +33,10 @@ flowchart TB
 
   Auth --> DB[(Supabase PostgreSQL)]
   Context --> DB
-  Templates --> Storage[(Supabase Storage)]
-  Templates --> Image[Sharp / WebP]
+  Templates --> Gemini[Gemini 2.5 Flash / compréhension]
+  Gemini --> Confirmation[Confirmation utilisateur]
+  Confirmation --> Fal[fal.ai / Grok Imagine edit]
+  Fal --> Storage[(Supabase Storage)]
   Automations --> Cron[Vercel Cron toutes les 30 min]
   Automations --> Hebcal[Hebcal]
   Publications --> Channels[Instagram / Facebook / WhatsApp / Telegram / Email]
@@ -117,18 +119,23 @@ Fichiers principaux :
 | Fichier | Role |
 | --- | --- |
 | `src/lib/templates/shared.ts` | Selection et scoring des affiches pertinentes. |
-| `src/lib/templates/analysis.ts` | Analyse des templates. |
-| `src/lib/templates/render.ts` | Preparation/rendu des visuels. |
+| `src/lib/templates/analysis.ts` | Analyse visuelle utilisée dans le parcours assistant. |
+| `src/lib/templates/fal-edit.ts` | Construction de la consigne et modification du template via fal.ai. |
+| `src/app/api/templates/analyze-request/route.ts` | Compréhension et reformulation de la demande avec Gemini 2.5 Flash. |
+| `src/app/api/templates/generate-image/route.ts` | Modification de l'affiche confirmée avec fal.ai. |
 | `src/app/api/templates/confirm/route.ts` | Confirmation d'une affiche et pre-remplissage avec contexte communaute/calendrier. |
 | `src/components/templates/templates-client.tsx` | Interface detaillee des templates. |
-| `src/app/api/admin/uploads/template-image/route.ts` | Upload admin, conversion WebP avec Sharp, stockage Supabase Storage. |
+| `src/app/api/admin/uploads/template-image/route.ts` | Upload admin du fichier original dans Supabase Storage. |
 
 Regles de fonctionnement :
 
 - Les affiches doivent etre suggerees selon le theme demande, la categorie, les tags, la sous-categorie et la description.
 - En mode assistant, les suggestions d'affiches sont affichees en grille 3 colonnes sur bureau.
-- Apres selection d'une affiche, l'application pre-remplit les champs avec les informations connues : Beth Habad, ville, horaires, calendrier, evenement, etc.
-- Les images uploadees depuis l'admin sont converties en WebP quand elles sont en PNG/JPEG.
+- Apres selection, l'utilisateur décrit librement les textes à modifier.
+- Gemini 2.5 Flash reformule la demande, liste les changements et signale les informations manquantes.
+- L'utilisateur confirme ou corrige cette synthèse avant tout appel de génération d'image.
+- fal.ai modifie uniquement les textes confirmés en conservant la composition, les photos, les logos et le style général du template.
+- Les images uploadees depuis l'admin conservent leur format original.
 - Le bucket Supabase utilise pour les images de templates est `templates`.
 
 ### Automatisations
@@ -175,7 +182,6 @@ Capacites admin :
 - Ajouter, renommer, modifier et supprimer des affiches.
 - Ajouter des consignes IA sur les affiches pour guider les suggestions futures.
 - Uploader des affiches par URL ou glisser-deposer.
-- Creer des automatisations predefinies avec nom, logo et description.
 - Voir et filtrer les automatisations par communaute/utilisateur/statut.
 - Intervenir sur le compte d'une communaute si besoin.
 
@@ -270,7 +276,7 @@ supabase/
 | `/api/cron/automations` | Execution periodique. |
 | `/api/admin/templates` | Creation admin de templates. |
 | `/api/admin/templates/[id]` | Modification/suppression admin de templates. |
-| `/api/admin/uploads/template-image` | Upload et conversion WebP. |
+| `/api/admin/uploads/template-image` | Upload du template original. |
 | `/api/admin/automations` | Creation admin d'automatisations. |
 | `/api/admin/automations/[id]` | Modification/suppression admin d'automatisations. |
 | `/api/auth/oauth/[provider]` | Connexion reseaux sociaux. |
@@ -311,6 +317,11 @@ STRIPE_WEBHOOK_SECRET=...
 FAL_KEY=...
 ```
 
+La modification des affiches utilise fal.ai côté serveur avec le modèle
+`xai/grok-imagine-image/quality/edit`. L'image du template est transmise comme
+référence et seuls les changements textuels confirmés sont demandés. La clé `FAL_KEY` ne doit jamais
+être exposée dans une variable préfixée par `NEXT_PUBLIC_`.
+
 Adapter les noms exacts aux usages presents dans le code et dans `.env.local`.
 
 ## Lancement Local
@@ -346,9 +357,8 @@ Notes :
 - Toute action proposee par l'assistant doit idealement etre executable par bouton, pas seulement par texte.
 - Toute reponse IA dependante du temps doit utiliser le contexte date/heure/fuseau/calendrier hebraique.
 - Les templates doivent etre renseignes avec des tags, descriptions et consignes IA clairs pour ameliorer la pertinence des suggestions.
-- Les automatisations reutilisables doivent etre ajoutees dans `src/lib/automation/presets.ts` pour rester coherentes entre admin, assistant et dashboard.
 - Les actions admin doivent verifier `canAccessAdmin` ou un controle equivalent cote serveur.
-- Les uploads d'affiches doivent rester centralises via Supabase Storage et conversion WebP.
+- Les uploads d'affiches doivent rester centralises via Supabase Storage et conserver le fichier original.
 
 ## Flux Metier a Connaitre
 

@@ -118,7 +118,7 @@ async function parseWithAI(message: string, timezone: string): Promise<ParsedDai
   }).format(now);
 
   const response = await openrouter.chat.completions.create({
-    model: "deepseek/deepseek-chat",
+    model: "google/gemini-2.5-flash",
     temperature: 0.1,
     max_tokens: 500,
     messages: [

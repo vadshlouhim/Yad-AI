@@ -820,7 +820,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                 </div>
                 <div>
                   <p className="font-semibold text-slate-700">Aucune automatisation active</p>
-                  <p className="mt-1 text-sm text-slate-400">Créez une automatisation ou activez une publication IA ci-dessus.</p>
+                  <p className="mt-1 text-sm text-slate-400">Créez une automatisation ou activez une proposition ci-dessus.</p>
                 </div>
               </CardContent>
             </Card>
@@ -1070,5 +1070,4 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
     </div>
   );
 }
-
 

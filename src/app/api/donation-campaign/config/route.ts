@@ -112,7 +112,7 @@ Réponds UNIQUEMENT avec un objet JSON valide :
 
   try {
     const completion = await openrouter.chat.completions.create({
-      model: "deepseek/deepseek-chat",
+      model: "google/gemini-2.5-flash",
       messages: [{ role: "user", content: extractPrompt }],
       max_tokens: 600,
       temperature: 0.1,
@@ -182,7 +182,7 @@ export async function POST(request: Request) {
     const communityName = community?.name ?? "votre communauté";
 
     const completion = await openrouter.chat.completions.create({
-      model: "deepseek/deepseek-chat",
+      model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: buildSystemPrompt(communityName, community?.tone ?? null) },
         ...messages.map((m) => ({ role: m.role, content: m.content })),
@@ -361,7 +361,7 @@ Règles absolues :
 Réponds UNIQUEMENT avec le texte du message, sans guillemets.`;
 
     const completion = await openrouter.chat.completions.create({
-      model: "deepseek/deepseek-chat",
+      model: "google/gemini-2.5-flash",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 300,
       temperature: 0.7,
@@ -385,7 +385,7 @@ Règles absolues :
 - Un seul message, sans guillemets ni commentaires`;
 
     const completion = await openrouter.chat.completions.create({
-      model: "deepseek/deepseek-chat",
+      model: "google/gemini-2.5-flash",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 120,
       temperature: 0.6,
@@ -416,7 +416,7 @@ Règles absolues :
 Réponds UNIQUEMENT avec le texte de la publication, sans guillemets ni commentaires.`;
 
     const completion = await openrouter.chat.completions.create({
-      model: "deepseek/deepseek-chat",
+      model: "google/gemini-2.5-flash",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 350,
       temperature: 0.7,

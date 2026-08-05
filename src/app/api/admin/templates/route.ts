@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.types";
 import { classifyTemplateAdminError } from "@/lib/templates/admin-errors";
 import { NextResponse } from "next/server";
-import { normalizeTemplateZones } from "@/lib/templates/zones";
 
 const TEMPLATE_CATEGORIES = new Set<Database["public"]["Enums"]["TemplateCategory"]>([
   "SHABBAT",
@@ -29,10 +28,6 @@ function normalizeTags(value: unknown) {
     .map((tag) => String(tag).trim())
     .filter(Boolean)
     .slice(0, 30);
-}
-
-function normalizeDesign(value: unknown) {
-  return normalizeTemplateZones(value);
 }
 
 export async function POST(request: Request) {
@@ -80,11 +75,6 @@ export async function POST(request: Request) {
       originalUrl: body.originalUrl ? String(body.originalUrl).trim() : null,
       thumbnailUrl: body.thumbnailUrl ? String(body.thumbnailUrl).trim() : null,
       previewUrl: body.previewUrl ? String(body.previewUrl).trim() : null,
-      design: normalizeDesign(body.design),
-      layoutStatus: "PENDING",
-      layoutConfidence: null,
-      layoutAnalyzedAt: null,
-      layoutAnalysisVersion: 0,
       isGlobal: body.isGlobal === undefined ? true : Boolean(body.isGlobal),
       isPremium: Boolean(body.isPremium),
       isActive: body.isActive === undefined ? true : Boolean(body.isActive),

@@ -18,7 +18,6 @@ type CountableTable =
   | "ContentDraft"
   | "MediaFile"
   | "Template"
-  | "AutomationPreset"
   | "Article"
   | "ContactLead"
   | "Automation"
@@ -62,8 +61,6 @@ export default async function AdminPage() {
     { data: contactLeads },
     { data: subscriptions },
     { data: automations },
-    { data: automationPresets },
-    { data: presetUsages },
     { data: recentConversations },
     { count: aiGeneratedDraftCount },
     { count: draftsWithImagesCount },
@@ -84,7 +81,7 @@ export default async function AdminPage() {
     admin
       .from("Template")
       .select(
-        "id, communityId, name, description, category, subCategory, channelType, originalUrl, thumbnailUrl, previewUrl, design, layoutStatus, layoutConfidence, layoutAnalyzedAt, layoutAnalysisVersion, isGlobal, isPremium, isActive, tags, usageCount, createdAt, updatedAt"
+        "id, communityId, name, description, category, subCategory, channelType, originalUrl, thumbnailUrl, previewUrl, isGlobal, isPremium, isActive, tags, usageCount, createdAt, updatedAt"
       )
       .order("usageCount", { ascending: false })
       .order("updatedAt", { ascending: false }),
@@ -111,12 +108,6 @@ export default async function AdminPage() {
       .select("id, communityId, name, description, trigger, triggerConfig, actions, isActive, status, lastRunAt, nextRunAt, createdAt, updatedAt, community:Community(id, name, city)")
       .order("updatedAt", { ascending: false })
       .limit(200),
-    admin
-      .from("AutomationPreset")
-      .select("*")
-      .order("sortOrder", { ascending: true })
-      .order("title", { ascending: true }),
-    admin.from("Automation").select("id, presetId").not("presetId", "is", null),
     admin
       .from("Conversation")
       .select("id, title, communityId, createdAt, updatedAt, community:Community(name, city)")
@@ -202,10 +193,6 @@ export default async function AdminPage() {
       automations={(automations ?? []).map((automation) => ({
         ...automation,
         community: firstRelation(automation.community),
-      }))}
-      automationPresets={(automationPresets ?? []).map((preset) => ({
-        ...preset,
-        usageCount: (presetUsages ?? []).filter((automation) => automation.presetId === preset.id).length,
       }))}
       recentConversations={(recentConversations ?? []).map((conversation) => ({
         ...conversation,

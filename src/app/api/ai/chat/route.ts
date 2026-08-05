@@ -241,9 +241,8 @@ export async function POST(request: Request) {
     const fetchTemplates = () =>
       admin
         .from("Template")
-        .select("id, communityId, name, description, category, channelType, thumbnailUrl, previewUrl, tags, subCategory, isPremium, design, usageCount, layoutStatus")
+        .select("id, communityId, name, description, category, channelType, thumbnailUrl, previewUrl, tags, subCategory, isPremium, usageCount")
         .eq("isActive", true)
-        .eq("layoutStatus", "READY")
         .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
         .limit(250);
 
@@ -361,15 +360,14 @@ export async function POST(request: Request) {
 
     let selectedTemplateContext = "";
     let selectedTemplate:
-      | { id: string; name: string; category: string; thumbnailUrl: string | null; previewUrl: string | null; design: unknown; editableZoneCount: number }
+      | { id: string; name: string; category: string; thumbnailUrl: string | null; previewUrl: string | null }
       | null = null;
 
     if (selectedTemplateId) {
       const { data: template } = await admin
         .from("Template")
-        .select("id, name, category, thumbnailUrl, previewUrl, design")
+        .select("id, name, category, thumbnailUrl, previewUrl")
         .eq("id", selectedTemplateId)
-        .eq("layoutStatus", "READY")
         .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
         .single();
 
@@ -378,7 +376,6 @@ export async function POST(request: Request) {
           ...template,
           thumbnailUrl: resolveTemplateAssetUrl(template.thumbnailUrl),
           previewUrl: resolveTemplateAssetUrl(template.previewUrl),
-          editableZoneCount: Array.isArray(template.design) ? template.design.length : 0,
         };
         selectedTemplateContext = `\n\nTEMPLATE EN COURS :
 - Nom : ${template.name}

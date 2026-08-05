@@ -1,6 +1,5 @@
 import { canAccessAdmin } from "@/lib/admin-access";
 import { AUTOMATION_PRESETS, buildAutomationActions } from "@/lib/automation/presets";
-import { presetAppliesToCommunity, type PresetWithClientTypes } from "@/lib/automation/preset-utils";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
@@ -19,45 +18,6 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const communityId = typeof body.communityId === "string" ? body.communityId : "";
   if (!communityId) return NextResponse.json({ error: "Communauté cible manquante" }, { status: 400 });
-
-  if (typeof body.presetId === "string" && body.presetId) {
-    const [{ data: community }, { data: preset }] = await Promise.all([
-      admin.from("Community").select("id, communityType").eq("id", communityId).single(),
-      admin
-        .from("AutomationPreset")
-        .select("*")
-        .eq("id", body.presetId)
-        .eq("isActive", true)
-        .single(),
-    ]);
-
-    const typedPreset = preset as PresetWithClientTypes | null;
-    if (!community || !typedPreset || !presetAppliesToCommunity(typedPreset, community)) {
-      return NextResponse.json({ error: "Publication IA non disponible pour cette communauté" }, { status: 403 });
-    }
-
-    const { data, error } = await admin
-      .from("Automation")
-      .insert({
-        id: crypto.randomUUID(),
-        communityId,
-        presetId: typedPreset.id,
-        name: String(body.name ?? typedPreset.title),
-        description: body.description === undefined ? typedPreset.description ?? null : String(body.description).trim() || null,
-        trigger: typedPreset.trigger,
-        triggerConfig: (body.triggerConfig ?? typedPreset.triggerConfig ?? {}) as never,
-        actions: (typedPreset.actions ?? []) as never,
-        isActive: body.isActive === undefined ? true : Boolean(body.isActive),
-        status: body.isActive === false ? "PAUSED" : "ACTIVE",
-        nextRunAt: typeof body.nextRunAt === "string" && body.nextRunAt ? body.nextRunAt : null,
-        updatedAt: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-    return NextResponse.json(data, { status: 201 });
-  }
 
   const preset = typeof body.preset === "string" ? AUTOMATION_PRESETS[body.preset as keyof typeof AUTOMATION_PRESETS] : null;
   const contentType = String(body.contentType ?? preset?.contentType ?? "GENERAL");

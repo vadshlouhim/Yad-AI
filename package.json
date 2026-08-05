@@ -14,9 +14,7 @@
     "db:check-target": "tsx scripts/check-supabase-target.ts",
     "db:migrate:safe": "npm run db:check-target && prisma migrate deploy",
     "test:admin-templates": "tsx scripts/test-admin-templates.ts",
-    "test:posters": "tsx scripts/test-poster-composition.ts",
-    "test:template-zones": "tsx scripts/test-template-zones.ts",
-    "test:posters:vision": "tsx scripts/test-poster-vision.ts"
+    "test:posters": "eslint src/lib/templates/fal-edit.ts src/app/api/templates"
   },
   "dependencies": {
     "@fal-ai/client": "^1.10.0",
@@ -78,7 +76,6 @@
     "react-dom": "19.2.4",
     "react-hook-form": "^7.72.1",
     "resend": "^6.12.0",
-    "sharp": "^0.34.5",
     "sonner": "^2.0.7",
     "stripe": "^22.0.1",
     "tailwind-merge": "^3.5.0",

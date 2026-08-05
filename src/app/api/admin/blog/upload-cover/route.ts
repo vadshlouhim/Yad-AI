@@ -3,7 +3,6 @@ import { slugifySeo } from "@/lib/blog/articles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import sharp from "sharp";
 
 const MAX_FILE_SIZE = 12 * 1024 * 1024;
 
@@ -30,22 +29,17 @@ export async function POST(request: Request) {
 
   const safeName = slugifySeo(title) || "article-blog";
   const input = Buffer.from(await file.arrayBuffer());
-  const output = await sharp(input)
-    .rotate()
-    .resize({ width: 1600, height: 900, fit: "cover", withoutEnlargement: true })
-    .webp({ quality: 84 })
-    .toBuffer();
-
-  const storagePath = `blog/${articleId || "new"}/${safeName}-${crypto.randomUUID()}.webp`;
-  let { error: uploadError } = await admin.storage.from("articles").upload(storagePath, output, {
-    contentType: "image/webp",
+  const extension = file.name.split(".").pop()?.toLowerCase() || file.type.split("/")[1]?.replace("jpeg", "jpg") || "img";
+  const storagePath = `blog/${articleId || "new"}/${safeName}-${crypto.randomUUID()}.${extension}`;
+  let { error: uploadError } = await admin.storage.from("articles").upload(storagePath, input, {
+    contentType: file.type,
     upsert: true,
   });
 
   if (uploadError?.message.toLowerCase().includes("bucket")) {
     await admin.storage.createBucket("articles", { public: true });
-    const retry = await admin.storage.from("articles").upload(storagePath, output, {
-      contentType: "image/webp",
+    const retry = await admin.storage.from("articles").upload(storagePath, input, {
+      contentType: file.type,
       upsert: true,
     });
     uploadError = retry.error;
@@ -67,5 +61,5 @@ export async function POST(request: Request) {
       .eq("id", articleId);
   }
 
-  return NextResponse.json({ url: publicUrl, path: storagePath, contentType: "image/webp", alt: title });
+  return NextResponse.json({ url: publicUrl, path: storagePath, contentType: file.type, alt: title });
 }

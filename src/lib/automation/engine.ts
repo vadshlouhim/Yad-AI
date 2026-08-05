@@ -1,7 +1,7 @@
 ﻿import { createAdminClient } from "@/lib/supabase/admin";
 import { generateContent } from "@/lib/ai/engine";
 import { createPublicationsFromDraft, publishToAllChannels, publishToChannel } from "@/lib/publishing/publisher";
-import { renderTemplatePoster, type PosterTextBlock } from "@/lib/templates/render";
+import { editTemplatePosterWithFal, type PosterChange } from "@/lib/templates/fal-edit";
 import { getShabbatTimes, getNextHoliday } from "./hebcal";
 import {
   getCampaignFromTriggerConfig,
@@ -78,24 +78,24 @@ function getShabbatPosterConfig(triggerConfig: Record<string, unknown>) {
   return isRecord(value) ? value : {};
 }
 
-function buildShabbatTextBlocks(
+function buildShabbatPosterChanges(
   fields: Record<string, string>,
   shabbatTimes: { entry: string; exit: string; date?: string; parasha?: string } | null
-): PosterTextBlock[] {
+): PosterChange[] {
   const formatDate = (d: string) => {
     try {
       return new Date(`${d}T12:00:00`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
     } catch { return d; }
   };
   return [
-    { id: "structure", text: fields.structureName ?? "", role: "organization", priority: "main" },
-    { id: "parasha", text: shabbatTimes?.parasha ?? fields.parasha ?? "", role: "parasha", priority: "main" },
-    { id: "date", text: shabbatTimes?.date ? formatDate(shabbatTimes.date) : "", role: "date", priority: "important" },
-    { id: "entry", text: shabbatTimes?.entry ?? "", role: "entry time", priority: "important" },
-    { id: "exit", text: shabbatTimes?.exit ?? "", role: "exit time", priority: "important" },
-    { id: "city", text: fields.city ?? "", role: "location", priority: "complementary" },
-    { id: "kiddouch", text: fields.kiddouch ?? "", role: "kiddouch", priority: "complementary" },
-  ].filter((block) => block.text.trim().length > 0) as PosterTextBlock[];
+    { label: "Organisation", currentText: "", newText: fields.structureName ?? "" },
+    { label: "Paracha", currentText: "", newText: shabbatTimes?.parasha ?? fields.parasha ?? "" },
+    { label: "Date", currentText: "", newText: shabbatTimes?.date ? formatDate(shabbatTimes.date) : "" },
+    { label: "Heure d'entrée", currentText: "", newText: shabbatTimes?.entry ?? "" },
+    { label: "Heure de sortie", currentText: "", newText: shabbatTimes?.exit ?? "" },
+    { label: "Ville", currentText: "", newText: fields.city ?? "" },
+    { label: "Kiddouch", currentText: "", newText: fields.kiddouch ?? "" },
+  ].filter((change) => change.newText.trim().length > 0) as PosterChange[];
 }
 
 async function renderShabbatPosterImage(params: {
@@ -112,7 +112,6 @@ async function renderShabbatPosterImage(params: {
     .from("Template")
     .select("*")
     .eq("id", selectedTemplateId)
-    .eq("layoutStatus", "READY")
     .or(`isGlobal.eq.true,communityId.eq.${params.communityId}`)
     .maybeSingle();
 
@@ -121,13 +120,13 @@ async function renderShabbatPosterImage(params: {
   const savedFields = (isRecord(posterConfig.fields) ? posterConfig.fields : {}) as Record<string, string>;
 
   try {
-    const textBlocks = buildShabbatTextBlocks(savedFields, params.shabbatTimes);
-    if (textBlocks.length === 0) return null;
-    const rendered = await renderTemplatePoster({
+    const changes = buildShabbatPosterChanges(savedFields, params.shabbatTimes);
+    if (changes.length === 0) return null;
+    const rendered = await editTemplatePosterWithFal({
       admin: params.supabase,
       template,
       communityId: params.communityId,
-      textBlocks,
+      changes,
     });
     return rendered.imageUrl;
   } catch (err) {

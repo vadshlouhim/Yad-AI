@@ -18,7 +18,6 @@ export interface TemplateSuggestion {
   tags: string[];
   isPremium: boolean;
   usageCount: number;
-  editableZoneCount: number;
   reason: string;
 }
 
@@ -574,7 +573,6 @@ export function buildTemplateSuggestions(
       | "tags"
       | "subCategory"
       | "isPremium"
-      | "design"
       | "usageCount"
     >
   >,
@@ -653,7 +651,6 @@ export function buildTemplateSuggestions(
       tags: template.tags ?? [],
       isPremium: template.isPremium,
       usageCount: template.usageCount,
-      editableZoneCount: Array.isArray(template.design) ? template.design.length : 0,
       reason: buildTemplateReason(template, text),
     }));
   }
@@ -736,7 +733,6 @@ export function buildTemplateSuggestions(
       tags: template.tags ?? [],
       isPremium: template.isPremium,
       usageCount: template.usageCount,
-      editableZoneCount: Array.isArray(template.design) ? template.design.length : 0,
       reason: buildTemplateReason(template, text),
     }));
 }
