@@ -1,5 +1,3 @@
-import "server-only";
-
 import { createFalClient } from "@fal-ai/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables } from "@/types/database.types";
