@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { formatDateTime } from "@/lib/utils";
-import { planToTier, type BillingConfig, type PlanTier } from "@/lib/billing";
+import { isLaunchOfferActive, planToTier, type BillingConfig, type PlanTier } from "@/lib/billing";
+import { createBillingPortal, createSubscriptionCheckout } from "@/lib/billing/checkout-client";
 import { PlanCard } from "@/components/billing/plan-card";
 
 interface Community {
@@ -89,20 +90,15 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
   async function goToCheckout(tier: "PRO" | "BUSINESS") {
     setLoading(tier);
     try {
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tier: tier === "BUSINESS" ? "ENTERPRISE" : "PROFESSIONAL",
-          applyLaunchOffer: tier === "PRO",
-          successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
-          cancelUrl: `${window.location.origin}/dashboard/settings/billing`,
-        }),
+      const checkoutUrl = await createSubscriptionCheckout({
+        tier: tier === "BUSINESS" ? "ENTERPRISE" : "PROFESSIONAL",
+        applyLaunchOffer: tier === "PRO" && isLaunchOfferActive(billingConfig),
+        successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
+        cancelUrl: `${window.location.origin}/dashboard/settings/billing`,
       });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch {
-      alert("Erreur lors de la redirection vers la page de paiement.");
+      if (checkoutUrl) window.location.assign(checkoutUrl);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Erreur lors de la redirection vers la page de paiement.");
     } finally {
       setLoading(null);
     }
@@ -111,15 +107,10 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
   async function openPortal() {
     setLoading("portal");
     try {
-      const res = await fetch("/api/billing/portal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ returnUrl: window.location.href }),
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch {
-      alert("Erreur lors de l'accès au portail de facturation.");
+      const portalUrl = await createBillingPortal(window.location.href);
+      window.location.assign(portalUrl);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Erreur lors de l'accès au portail de facturation.");
     } finally {
       setLoading(null);
     }
@@ -224,7 +215,9 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
           <PlanCard
             tier="PRO"
             title="Pro"
-            priceLabel={tier === "FREE" ? formatPrice(billingConfig.launchPriceCents) : formatPrice(billingConfig.basePriceCents)}
+            priceLabel={tier === "FREE" && isLaunchOfferActive(billingConfig)
+              ? formatPrice(billingConfig.launchPriceCents)
+              : formatPrice(billingConfig.basePriceCents)}
             features={PRO_FEATURES}
             badge={tier === "PRO" ? "Plan actuel" : "Populaire"}
             highlighted={tier === "PRO"}
@@ -232,6 +225,10 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
               tier === "PRO" ? (
                 <Button variant="outline" className="w-full rounded-2xl" disabled>
                   Plan actuel
+                </Button>
+              ) : tier === "BUSINESS" ? (
+                <Button variant="outline" className="w-full rounded-2xl" disabled>
+                  Inclus dans Business
                 </Button>
               ) : (
                 <Button
@@ -257,6 +254,16 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
                 <Button variant="outline" className="w-full rounded-2xl" disabled>
                   Plan actuel
                 </Button>
+              ) : tier === "PRO" ? (
+                <Button
+                  variant="outline"
+                  className="w-full rounded-2xl"
+                  onClick={openPortal}
+                  loading={loading === "portal"}
+                  disabled={!community.stripeCustomerId}
+                >
+                  {community.stripeCustomerId ? "Changer d'offre dans Stripe" : "Contactez le support"}
+                </Button>
               ) : (
                 <Button
                   className="w-full rounded-2xl bg-violet-600 text-white shadow-lg shadow-violet-600/20 hover:bg-violet-700"
@@ -269,7 +276,7 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
             }
           />
         </div>
-        {tier === "FREE" && (
+        {tier === "FREE" && isLaunchOfferActive(billingConfig) && (
           <p className="mt-3 text-center text-xs font-semibold text-blue-700">{billingConfig.launchMessage}</p>
         )}
       </div>

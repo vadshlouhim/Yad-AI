@@ -4,7 +4,8 @@ import { useState } from "react";
 import { ArrowRight, CheckCircle2, Lock, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { BillingConfig } from "@/lib/billing";
+import { isLaunchOfferActive, type BillingConfig } from "@/lib/billing";
+import { createSubscriptionCheckout } from "@/lib/billing/checkout-client";
 
 interface Props {
   open: boolean;
@@ -55,27 +56,22 @@ export function UpgradeModal({
   if (!open) return null;
 
   const isBusiness = requiredTier === "BUSINESS";
+  const launchOfferActive = !isBusiness && isLaunchOfferActive(config);
   const resolvedTitle = title ?? (isBusiness ? "Fonctionnalité réservée à l'offre Business" : "Fonctionnalité réservée au mode payant");
   const features = isBusiness ? BUSINESS_FEATURES : PRO_FEATURES;
 
   async function goToCheckout() {
     setLoading(true);
     try {
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tier: isBusiness ? "ENTERPRISE" : "PROFESSIONAL",
-          applyLaunchOffer: !isBusiness,
-          successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
-          cancelUrl: window.location.href,
-        }),
+      const checkoutUrl = await createSubscriptionCheckout({
+        tier: isBusiness ? "ENTERPRISE" : "PROFESSIONAL",
+        applyLaunchOffer: launchOfferActive,
+        successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
+        cancelUrl: window.location.href,
       });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-      else throw new Error(data.error ?? "Redirection impossible");
-    } catch {
-      alert("Impossible d'ouvrir le paiement pour le moment.");
+      if (checkoutUrl) window.location.assign(checkoutUrl);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Impossible d'ouvrir le paiement pour le moment.");
       setLoading(false);
     }
   }
@@ -108,12 +104,12 @@ export function UpgradeModal({
                   <Sparkles className="size-5 text-blue-700" />
                   <p className="font-black text-slate-950">{isBusiness ? "Offre Business" : "Offre Pro"}</p>
                 </div>
-                {!isBusiness && <p className="mt-1 text-xs font-semibold text-blue-700">{config.launchMessage}</p>}
+                {launchOfferActive && <p className="mt-1 text-xs font-semibold text-blue-700">{config.launchMessage}</p>}
               </div>
               <div className="text-right">
                 {isBusiness ? (
                   <p className="text-3xl font-black text-blue-700">59,99 €</p>
-                ) : (
+                ) : launchOfferActive ? (
                   <>
                     <p className="text-sm font-bold text-slate-400 line-through">
                       {formatPrice(config.basePriceCents)} {config.taxLabel}
@@ -122,11 +118,13 @@ export function UpgradeModal({
                       {formatPrice(config.launchPriceCents)}
                     </p>
                   </>
+                ) : (
+                  <p className="text-3xl font-black text-blue-700">{formatPrice(config.basePriceCents)}</p>
                 )}
                 <p className="text-xs font-semibold text-slate-500">{config.taxLabel} / mois</p>
               </div>
             </div>
-            {!isBusiness && (
+            {launchOfferActive && (
               <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-600">
                 Tarif réduit valable jusqu&apos;au {new Date(`${config.launchEndsAt}T12:00:00`).toLocaleDateString("fr-FR", {
                   day: "numeric",

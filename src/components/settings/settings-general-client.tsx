@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Save, Building2, User, Palette, ChevronRight, ShieldCheck, Users, Smartphone, Trash2, Share2, Bot, SlidersHorizontal, Image as ImageIcon, Loader2, Upload } from "lucide-react";
+import { Save, Building2, User, Palette, ChevronRight, ShieldCheck, Users, Smartphone, Trash2, Share2, Bot, SlidersHorizontal, Image as ImageIcon, Loader2, Upload, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels";
@@ -494,6 +494,20 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
               {item.label}
             </button>
           ))}
+          <Link
+            href="/dashboard/settings/billing"
+            aria-label={`Facturation - offre ${PLAN_LABELS[community.plan]?.label ?? community.plan}`}
+            className="flex min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-center text-xs font-medium text-slate-600 transition-colors hover:bg-emerald-50 hover:text-emerald-800 sm:text-sm lg:w-full lg:justify-start lg:px-3 lg:text-left"
+          >
+            <CreditCard className="size-4 shrink-0" />
+            <span>Facturation</span>
+            <span className={cn(
+              "ml-auto hidden rounded-full px-2 py-0.5 text-[10px] font-semibold lg:inline-flex",
+              PLAN_LABELS[community.plan]?.color
+            )}>
+              {PLAN_LABELS[community.plan]?.label ?? community.plan}
+            </span>
+          </Link>
           <Link
             href="/dashboard/settings/channels"
             className="flex min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-center text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 sm:text-sm lg:w-full lg:justify-start lg:px-3 lg:text-left"

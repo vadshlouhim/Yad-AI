@@ -53,6 +53,7 @@ export function tierLabel(tier: PlanTier): string {
 
 /** Limite du poster/affiche gratuit (binaire, indépendante des paliers) */
 export const FREE_POSTER_LIMIT = 1;
+export const BUSINESS_PRICE_CENTS = 5999;
 
 export const LIMITED_SOCIAL_CHANNELS = ["INSTAGRAM", "FACEBOOK", "TELEGRAM"] as const;
 
@@ -82,7 +83,7 @@ export interface BillingUsage {
 }
 
 export const DEFAULT_BILLING_CONFIG: BillingConfig = {
-  basePriceCents: 1999,
+  basePriceCents: 2999,
   launchPriceCents: 999,
   currency: "EUR",
   taxLabel: "HT",
@@ -308,14 +309,18 @@ export async function assertTierFeature(
   return { ok: true as const, gate };
 }
 
-export function getActivePaidPriceId(
+export function getCheckoutPrice(
   config: BillingConfig,
   tier: "PROFESSIONAL" | "ENTERPRISE" = "PROFESSIONAL",
   applyLaunchOffer = true
 ) {
-  if (applyLaunchOffer && tier === "PROFESSIONAL" && isLaunchOfferActive(config) && process.env.STRIPE_LAUNCH_PRICE_ID) {
-    return process.env.STRIPE_LAUNCH_PRICE_ID;
+  if (tier === "ENTERPRISE") {
+    return { unitAmount: BUSINESS_PRICE_CENTS, planName: "EasyCom Biz" };
   }
-  if (tier === "ENTERPRISE") return process.env.STRIPE_ENTERPRISE_PRICE_ID;
-  return process.env.STRIPE_PAID_PRICE_ID ?? process.env.STRIPE_PRO_PRICE_ID;
+
+  const launchOfferApplied = applyLaunchOffer && isLaunchOfferActive(config);
+  return {
+    unitAmount: launchOfferApplied ? config.launchPriceCents : config.basePriceCents,
+    planName: "EasyCom Pro",
+  };
 }

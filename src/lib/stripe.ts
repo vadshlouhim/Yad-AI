@@ -48,28 +48,72 @@ export const PLANS = {
 
 export async function createCheckoutSession(params: {
   communityId: string;
-  priceId: string;
+  tier: "PROFESSIONAL" | "ENTERPRISE";
+  unitAmount: number;
+  planName: string;
   stripeCustomerId?: string;
+  customerEmail?: string;
   successUrl: string;
   cancelUrl: string;
 }) {
-  const { communityId, priceId, stripeCustomerId, successUrl, cancelUrl } = params;
+  const {
+    communityId,
+    tier,
+    unitAmount,
+    planName,
+    stripeCustomerId,
+    customerEmail,
+    successUrl,
+    cancelUrl,
+  } = params;
 
-  const session = await stripe.checkout.sessions.create({
+  const checkoutParams: Stripe.Checkout.SessionCreateParams = {
     mode: "subscription",
-    customer: stripeCustomerId,
-    line_items: [{ price: priceId, quantity: 1 }],
+    ...(stripeCustomerId
+      ? { customer: stripeCustomerId }
+      : customerEmail
+        ? { customer_email: customerEmail }
+        : {}),
+    line_items: [
+      {
+        price_data: {
+          currency: "eur",
+          unit_amount: unitAmount,
+          recurring: { interval: "month" },
+          product_data: { name: planName },
+          tax_behavior: "exclusive",
+        },
+        quantity: 1,
+      },
+    ],
     success_url: successUrl,
     cancel_url: cancelUrl,
-    metadata: { communityId },
+    client_reference_id: communityId,
+    metadata: { communityId, planTier: tier },
     subscription_data: {
-      metadata: { communityId },
+      metadata: { communityId, planTier: tier },
     },
     allow_promotion_codes: true,
     billing_address_collection: "required",
-  });
+  };
 
-  return session;
+  try {
+    return await stripe.checkout.sessions.create(checkoutParams);
+  } catch (error) {
+    // Un ancien Customer Stripe (supprimé ou provenant d'un autre mode
+    // test/live) ne doit pas empêcher la communauté de se réabonner.
+    if (stripeCustomerId && isMissingStripeCustomer(error)) {
+      delete checkoutParams.customer;
+      if (customerEmail) checkoutParams.customer_email = customerEmail;
+      return stripe.checkout.sessions.create(checkoutParams);
+    }
+    throw error;
+  }
+}
+
+function isMissingStripeCustomer(error: unknown) {
+  if (!(error instanceof Stripe.errors.StripeError)) return false;
+  return error.code === "resource_missing" && error.param === "customer";
 }
 
 export async function createArticleCheckoutSession(params: {

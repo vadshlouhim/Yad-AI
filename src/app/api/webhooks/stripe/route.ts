@@ -87,7 +87,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   if (!communityId) return;
 
   const priceId = subscription.items.data[0]?.price.id;
-  const plan = getPlanFromPriceId(priceId);
+  const plan = getPlanFromSubscription(subscription, priceId);
   const sub = subscription as unknown as {
     current_period_start: number;
     current_period_end: number;
@@ -205,6 +205,16 @@ function getPlanFromPriceId(priceId: string): "FREE_TRIAL" | "STARTER" | "PROFES
   if (priceId === process.env.STRIPE_PRO_PRICE_ID) return "PROFESSIONAL";
   if (priceId === process.env.STRIPE_ENTERPRISE_PRICE_ID) return "ENTERPRISE";
   return "PROFESSIONAL";
+}
+
+function getPlanFromSubscription(
+  subscription: Stripe.Subscription,
+  priceId: string
+): "FREE_TRIAL" | "STARTER" | "PROFESSIONAL" | "ENTERPRISE" {
+  const metadataTier = subscription.metadata?.planTier;
+  if (metadataTier === "ENTERPRISE") return "ENTERPRISE";
+  if (metadataTier === "PROFESSIONAL") return "PROFESSIONAL";
+  return getPlanFromPriceId(priceId);
 }
 
 function mapStripeStatus(status: string): "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "UNPAID" | "INCOMPLETE" | "PAUSED" {

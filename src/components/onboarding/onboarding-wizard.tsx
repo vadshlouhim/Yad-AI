@@ -8,6 +8,7 @@ import { StepPlan } from "./steps/step-plan";
 import { WelcomeAnimation } from "./welcome-animation";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
+import { createSubscriptionCheckout } from "@/lib/billing/checkout-client";
 
 const STEPS = [
   { id: 0, label: "Identité", description: "Votre structure" },
@@ -185,19 +186,14 @@ export function OnboardingWizard({
 
       if (data.billingChoice !== "free") {
         const tier = data.billingChoice === "business" ? "ENTERPRISE" : "PROFESSIONAL";
-        const checkout = await fetch("/api/billing/checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tier,
-            applyLaunchOffer: false,
-            successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
-            cancelUrl: `${window.location.origin}/dashboard`,
-          }),
+        const checkoutUrl = await createSubscriptionCheckout({
+          tier,
+          applyLaunchOffer: tier === "PROFESSIONAL",
+          successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
+          cancelUrl: `${window.location.origin}/dashboard`,
         });
-        const checkoutData = await checkout.json().catch(() => ({}));
-        if (checkoutData.url) {
-          window.location.href = checkoutData.url;
+        if (checkoutUrl) {
+          window.location.assign(checkoutUrl);
           return;
         }
       }
@@ -205,6 +201,7 @@ export function OnboardingWizard({
       setShowWelcome(true);
     } catch (err) {
       console.error(err);
+      alert(err instanceof Error ? err.message : "Impossible de finaliser votre inscription.");
       setSaving(false);
     }
   }
