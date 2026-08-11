@@ -94,9 +94,19 @@ export function templateMatchesShabbatMode(template: TemplateLike, mode: Shabbat
     ...(template.tags ?? []),
   ].join(" "));
 
-  return SHABBAT_TEMPLATE_SOURCE_CONFIG[mode].technicalCategoryNames.some((name) =>
+  const matchesMode = SHABBAT_TEMPLATE_SOURCE_CONFIG[mode].technicalCategoryNames.some((name) =>
     haystack.includes(normalizeShabbatText(name))
   );
+
+  if (mode === "detailed") return matchesMode;
+
+  const isExplicitlyDetailed = SHABBAT_TEMPLATE_SOURCE_CONFIG.detailed.technicalCategoryNames.some((name) =>
+    haystack.includes(normalizeShabbatText(name))
+  );
+
+  // Generic active SHABBAT templates are simple by default. This keeps models
+  // named only "Horaires de Chabbat" visible without exposing office layouts.
+  return matchesMode || !isExplicitlyDetailed;
 }
 
 export function filterShabbatTemplatesByMode<T extends TemplateLike>(templates: T[], mode: ShabbatTemplateMode) {

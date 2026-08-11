@@ -123,6 +123,9 @@ model CommunityMember {
   profession  String?
   age         Int?
   birthDate   DateTime?
+  hebrewBirthDay Int?
+  hebrewBirthMonth Int?
+  hebrewBirthYear Int?
   address     String?
   city        String?
   familyStatus String?

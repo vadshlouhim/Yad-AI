@@ -13,6 +13,7 @@ import {
 import { formatRelative, cn } from "@/lib/utils";
 import { UpgradeModal } from "@/components/billing/upgrade-modal";
 import { DAVID_AUTOMATION_IMAGE_URL } from "@/components/automations/automation-design-kit";
+import { COMMUNITY_AUTOMATION_MODULES, type CommunityAutomationModuleDefinition } from "@/components/automations/community-automation-registry";
 import type { BillingConfig } from "@/lib/billing";
 
 interface AutomationRun {
@@ -409,6 +410,16 @@ function isEventReminderCampaign(automation: Automation) {
   return Boolean(cfg && typeof cfg === "object" && (cfg as Record<string, unknown>).eventReminderCampaign);
 }
 
+function isHayomYomAutomation(automation: Automation) {
+  const cfg = automation.triggerConfig;
+  return Boolean(cfg && typeof cfg === "object" && (cfg as Record<string, unknown>).hayomYomSettings);
+}
+
+function isJewishHolidayAutomation(automation: Automation) {
+  const cfg = automation.triggerConfig;
+  return Boolean(cfg && typeof cfg === "object" && (cfg as Record<string, unknown>).holidayPoster);
+}
+
 // Une automatisation porte-t-elle un récap automatique après événement ?
 function isEventRecap(automation: Automation) {
   const cfg = automation.triggerConfig;
@@ -425,6 +436,25 @@ function isWeeklyImages(automation: Automation) {
 function isMonthlyProgramRecap(automation: Automation) {
   const cfg = automation.triggerConfig;
   return Boolean(cfg && typeof cfg === "object" && (cfg as Record<string, unknown>).monthlyProgramRecapSettings);
+}
+
+function getSpecializedAutomationHref(automation: Automation) {
+  if (automation.trigger === "WEEKLY_SHABBAT") return "/dashboard/shabbat-times-auto";
+  if (isHayomYomAutomation(automation)) return "/dashboard/hayom-yom-sefer-hamitsvot";
+  if (isEventReminderCampaign(automation)) return "/dashboard/event-reminders-auto";
+  if (isEventRecap(automation)) return "/dashboard/recap-auto";
+  if (isWeeklyImages(automation)) return "/dashboard/weekly-images-auto";
+  if (isMonthlyProgramRecap(automation)) return "/dashboard/recap-auto";
+  if (isJewishHolidayAutomation(automation)) return "/dashboard/jewish-holidays-auto";
+  return null;
+}
+
+function getAutomationsForModule(module: CommunityAutomationModuleDefinition, automations: Automation[]) {
+  if (module.kind === "tool") return [];
+  return automations.filter((automation) => {
+    if (module.trigger && automation.trigger === module.trigger) return true;
+    return Boolean(module.configKeys?.some((configKey) => automation.triggerConfig?.[configKey]));
+  });
 }
 
 export function AutomationsClient({ automations, recentRuns, embedded = false, requiresValidationDefault = true, profileLabel, billingConfig }: Props) {
@@ -459,6 +489,12 @@ export function AutomationsClient({ automations, recentRuns, embedded = false, r
     if (!automationId) return;
     const automation = automations.find((item) => item.id === automationId);
     if (!automation) return;
+
+    const specializedHref = getSpecializedAutomationHref(automation);
+    if (specializedHref) {
+      router.replace(specializedHref);
+      return;
+    }
 
     setForm(formFromAutomation(automation));
     setFormOpen(true);
@@ -509,6 +545,11 @@ export function AutomationsClient({ automations, recentRuns, embedded = false, r
   }
 
   function openEditForm(automation: Automation) {
+    const specializedHref = getSpecializedAutomationHref(automation);
+    if (specializedHref) {
+      router.push(specializedHref);
+      return;
+    }
     setForm(formFromAutomation(automation));
     setFormOpen(true);
     setFeedback(null);
@@ -670,6 +711,7 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
   }
 
   function renderAutomationCard(automation: Automation) {
+    const specializedHref = getSpecializedAutomationHref(automation);
     return (
       <Card
         key={automation.id}
@@ -689,36 +731,8 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
           <div className="min-w-0">
             <p className="truncate text-sm font-black uppercase tracking-wide text-slate-900">{automation.name}</p>
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              {automation.trigger === "WEEKLY_SHABBAT" ? (
-                <Link href="/dashboard/shabbat-times-auto">
-                  <Button size="sm" className="h-8 rounded-full bg-violet-600 px-3 text-xs text-white hover:bg-violet-700">
-                    <Settings className="size-3.5" />
-                    Configurer
-                  </Button>
-                </Link>
-              ) : isEventReminderCampaign(automation) ? (
-                <Link href="/dashboard/event-reminders-auto">
-                  <Button size="sm" className="h-8 rounded-full bg-violet-600 px-3 text-xs text-white hover:bg-violet-700">
-                    <Settings className="size-3.5" />
-                    Configurer
-                  </Button>
-                </Link>
-              ) : isEventRecap(automation) ? (
-                <Link href="/dashboard/event-recap-auto">
-                  <Button size="sm" className="h-8 rounded-full bg-violet-600 px-3 text-xs text-white hover:bg-violet-700">
-                    <Settings className="size-3.5" />
-                    Configurer
-                  </Button>
-                </Link>
-              ) : isWeeklyImages(automation) ? (
-                <Link href="/dashboard/weekly-images-auto">
-                  <Button size="sm" className="h-8 rounded-full bg-violet-600 px-3 text-xs text-white hover:bg-violet-700">
-                    <Settings className="size-3.5" />
-                    Configurer
-                  </Button>
-                </Link>
-              ) : isMonthlyProgramRecap(automation) ? (
-                <Link href="/dashboard/monthly-program-recap-auto">
+              {specializedHref ? (
+                <Link href={specializedHref}>
                   <Button size="sm" className="h-8 rounded-full bg-violet-600 px-3 text-xs text-white hover:bg-violet-700">
                     <Settings className="size-3.5" />
                     Configurer
@@ -804,11 +818,70 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
       )}
 
       {!embedded && (
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm shadow-violet-100/30">
+          <div className="mb-5">
+            <div className="mb-3 h-1 w-8 rounded-full bg-[#421388]" />
+            <h2 className="text-lg font-black text-slate-900">Communication communautaire</h2>
+            <p className="mt-1 text-sm text-slate-500">Retrouvez tous vos modules, même avant leur première configuration.</p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {COMMUNITY_AUTOMATION_MODULES.map((module) => {
+              const moduleAutomations = getAutomationsForModule(module, automations);
+              const activeModuleAutomations = moduleAutomations.filter((automation) => automation.isActive && automation.status !== "PAUSED");
+              const isAvailableTool = module.kind === "tool";
+              const stateLabel = isAvailableTool
+                ? "Disponible"
+                : activeModuleAutomations.length > 0
+                  ? "Active"
+                  : moduleAutomations.length > 0
+                    ? "En pause"
+                    : "À configurer";
+              const stateClass = isAvailableTool
+                ? "border-rose-200 bg-rose-50 text-rose-700"
+                : activeModuleAutomations.length > 0
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : moduleAutomations.length > 0
+                    ? "border-amber-200 bg-amber-50 text-amber-700"
+                    : "border-slate-200 bg-slate-50 text-slate-600";
+              const campaignLabel = module.supportsMultipleCampaigns && activeModuleAutomations.length > 0
+                ? `${activeModuleAutomations.length} campagne${activeModuleAutomations.length > 1 ? "s" : ""} active${activeModuleAutomations.length > 1 ? "s" : ""}`
+                : null;
+              const ModuleIcon = module.icon;
+
+              return (
+                <article key={module.key} className="flex min-h-56 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-2xl", module.iconSurfaceClass)}>
+                      <ModuleIcon className={cn("size-5", module.iconClass)} />
+                    </span>
+                    <span className={cn("rounded-full border px-2.5 py-1 text-[11px] font-black", stateClass)}>{stateLabel}</span>
+                  </div>
+                  <div className="mt-4 flex-1">
+                    <h3 className="text-base font-black leading-6 text-slate-900">{module.shortLabel}</h3>
+                    <p className="mt-1.5 text-sm leading-5 text-slate-500">{module.description}</p>
+                    {campaignLabel && <p className="mt-2 text-xs font-bold text-blue-700">{campaignLabel}</p>}
+                  </div>
+                  <Link
+                    href={module.href}
+                    className="mt-4 inline-flex min-h-10 items-center justify-center rounded-xl border border-[#421388] px-3 text-sm font-black text-[#421388] transition-colors hover:bg-violet-50"
+                  >
+                    {isAvailableTool ? "Ouvrir" : moduleAutomations.length > 0 ? "Gérer" : "Configurer"}
+                  </Link>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {!embedded && (
         <section className="rounded-3xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5 shadow-violet-100/30">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="mb-3 h-1 w-8 rounded-full bg-violet-500" />
-              <h2 className="text-lg font-black text-slate-900">Listes des automatisations</h2>
+              <h2 className="text-lg font-black text-slate-900">Automatisations enregistrées</h2>
+              <p className="mt-1 text-sm text-slate-500">Automatisations actives, personnalisées et anciennes configurations compatibles.</p>
             </div>
           </div>
 
@@ -1033,11 +1106,11 @@ function updateRepeat(value: AutomationFormState["repeat"]) {
                         ) : isEventReminderCampaign(automation) ? (
                           <Link href="/dashboard/event-reminders-auto"><Button size="sm" className="h-7 bg-violet-600 text-xs text-white hover:bg-violet-700"><Settings className="size-3" />Configurer</Button></Link>
                         ) : isEventRecap(automation) ? (
-                          <Link href="/dashboard/event-recap-auto"><Button size="sm" className="h-7 bg-violet-600 text-xs text-white hover:bg-violet-700"><Settings className="size-3" />Configurer</Button></Link>
+                          <Link href="/dashboard/recap-auto"><Button size="sm" className="h-7 bg-violet-600 text-xs text-white hover:bg-violet-700"><Settings className="size-3" />Configurer</Button></Link>
                         ) : isWeeklyImages(automation) ? (
                           <Link href="/dashboard/weekly-images-auto"><Button size="sm" className="h-7 bg-violet-600 text-xs text-white hover:bg-violet-700"><Settings className="size-3" />Configurer</Button></Link>
                         ) : isMonthlyProgramRecap(automation) ? (
-                          <Link href="/dashboard/monthly-program-recap-auto"><Button size="sm" className="h-7 bg-violet-600 text-xs text-white hover:bg-violet-700"><Settings className="size-3" />Configurer</Button></Link>
+                          <Link href="/dashboard/recap-auto"><Button size="sm" className="h-7 bg-violet-600 text-xs text-white hover:bg-violet-700"><Settings className="size-3" />Configurer</Button></Link>
                         ) : (
                           <Button size="sm" className="h-7 bg-violet-600 text-xs text-white hover:bg-violet-700" onClick={() => openEditForm(automation)}><Settings className="size-3" />Configurer</Button>
                         )}

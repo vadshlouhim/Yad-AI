@@ -84,7 +84,16 @@ function SocialAgentBubble() {
 }
 
 function AutomationAgentBubble() {
-  return <SingleAgentBubble src={DAVID_AUTOMATION_IMAGE_URL} />;
+  return (
+    <span className="relative z-20 flex h-16 w-[4.9rem] shrink-0 items-center justify-center self-center overflow-visible">
+      <img
+        src={DAVID_AUTOMATION_IMAGE_URL}
+        alt=""
+        aria-hidden="true"
+        className="absolute -top-3 z-20 h-20 w-16 object-contain object-top drop-shadow-[0_10px_14px_rgba(15,23,42,0.18)]"
+      />
+    </span>
+  );
 }
 
 function SingleAgentBubble({ src }: { src: string }) {
@@ -196,6 +205,10 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
       const isSocialPublisher = item.href === "/dashboard/social-networks";
       const itemClass = item.disabled
         ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400 opacity-80"
+        : item.featured
+          ? active
+            ? "border border-[#35106f] bg-[#35106f] font-black text-white"
+            : "border border-[#421388] bg-[#421388] font-black text-white hover:bg-[#35106f]"
         : isSocialPublisher
           ? active
             ? "border border-fuchsia-700 bg-fuchsia-700 text-white shadow-md shadow-fuchsia-200"
@@ -207,15 +220,26 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
       const content = (
         <>
           {item.icon && (
-            <item.icon
-              className={cn(
-                compact ? "size-[18px]" : "size-4",
-                item.disabled ? "text-slate-400" : active || isSocialPublisher ? "text-current" : style.itemIcon
-              )}
-            />
+            item.iconSurfaceClass ? (
+              <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-xl", item.iconSurfaceClass)}>
+                <item.icon
+                  className={cn(
+                    compact ? "size-[18px]" : "size-4",
+                    item.disabled ? "text-slate-400" : item.iconClass ?? (active || isSocialPublisher ? "text-current" : style.itemIcon)
+                  )}
+                />
+              </span>
+            ) : (
+              <item.icon
+                className={cn(
+                  compact ? "size-[18px]" : "size-4",
+                  item.disabled ? "text-slate-400" : item.iconClass ?? (active || isSocialPublisher ? "text-current" : style.itemIcon)
+                )}
+              />
+            )
           )}
           <span className="min-w-0 flex flex-1 flex-col">
-            <span className={cn(isSocialPublisher ? "font-black leading-5" : "truncate font-medium")}>{item.label}</span>
+            <span className={cn(isSocialPublisher || item.featured ? "font-black leading-5" : "truncate font-medium")}>{item.label}</span>
           </span>
           {item.badge && (
             <span
@@ -254,22 +278,27 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
       }
 
       return (
-        <Link
+        <div
           key={`${section.section}-${item.href}`}
-          href={resolveHref(item.href)}
-          target={isExternal ? "_blank" : undefined}
-          rel={isExternal ? "noopener noreferrer" : undefined}
-          className={cn(
-            compact
-              ? "flex items-center gap-3 rounded-2xl border p-3 transition"
-              : "flex min-w-0 items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-all duration-200",
-            compact && (active ? "border-slate-300 bg-slate-50" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"),
-            !compact && itemClass,
-            compact && isSocialPublisher && "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-800"
-          )}
+          className={cn(item.featured ? "mt-3 border-t border-slate-200 pt-3" : "contents", compact && item.featured && "sm:col-span-2")}
         >
-          {content}
-        </Link>
+          <Link
+            href={resolveHref(item.href)}
+            target={isExternal ? "_blank" : undefined}
+            rel={isExternal ? "noopener noreferrer" : undefined}
+            className={cn(
+              compact
+                ? "flex items-center gap-3 rounded-2xl border p-3 transition"
+                : "flex min-w-0 items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-all duration-200",
+              compact && !item.featured && (active ? "border-slate-300 bg-slate-50" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"),
+              !compact && itemClass,
+              compact && isSocialPublisher && "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-800",
+              compact && item.featured && "border-[#421388] bg-[#421388] text-white hover:bg-[#35106f]"
+            )}
+          >
+            {content}
+          </Link>
+        </div>
       );
     });
   }

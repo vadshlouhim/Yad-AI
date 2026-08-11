@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, BrainCircuit, CheckCircle2, ChevronDown, LoaderCircle, Mail, Pencil, Phone, Plus, Search, Smartphone, Sparkles, Trash2, Upload, Users, X } from "lucide-react";
+import { Bot, BrainCircuit, Cake, CheckCircle2, ChevronDown, LoaderCircle, Mail, Pencil, Phone, Plus, Search, Smartphone, Sparkles, Trash2, Upload, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getCurrentHebrewDate, getHebrewMonthLabel, getHebrewMonthsForYear } from "@/lib/contacts/hebrew-birthday";
 
 interface CommunityMember {
   id: string;
+  firstName: string | null;
   displayName: string;
   email: string | null;
   phone: string | null;
@@ -15,6 +17,9 @@ interface CommunityMember {
   notes: string | null;
   source: string;
   createdAt?: string;
+  hebrewBirthDay: number | null;
+  hebrewBirthMonth: number | null;
+  hebrewBirthYear: number | null;
 }
 
 interface ContactPickerContact {
@@ -32,7 +37,7 @@ interface NavigatorWithContacts extends Navigator {
 type Filter = "all" | "phone" | "email" | "incomplete";
 type Sort = "name" | "recent" | "complete";
 
-const emptyContact = { displayName: "", email: "", phone: "", city: "", profession: "", notes: "" };
+const emptyContact = { firstName: "", displayName: "", email: "", phone: "", city: "", profession: "", notes: "", hebrewBirthDay: "", hebrewBirthMonth: "", hebrewBirthYear: "" };
 
 function parseVCard(content: string) {
   return content
@@ -167,19 +172,23 @@ export function ContactsManager() {
   function openEdit(contact: CommunityMember) {
     setEditing(contact);
     setForm({
+      firstName: contact.firstName ?? "",
       displayName: contact.displayName,
       email: contact.email ?? "",
       phone: contact.phone ?? "",
       city: contact.city ?? "",
       profession: contact.profession ?? "",
       notes: contact.notes ?? "",
+      hebrewBirthDay: contact.hebrewBirthDay ? String(contact.hebrewBirthDay) : "",
+      hebrewBirthMonth: contact.hebrewBirthMonth ? String(contact.hebrewBirthMonth) : "",
+      hebrewBirthYear: contact.hebrewBirthYear ? String(contact.hebrewBirthYear) : "",
     });
     setError(null);
     setFormOpen(true);
   }
 
   async function saveContact() {
-    if (!form.displayName.trim() && !form.email.trim() && !form.phone.trim()) {
+    if (!form.firstName.trim() && !form.displayName.trim() && !form.email.trim() && !form.phone.trim()) {
       setError("Indiquez au moins un nom, un email ou un téléphone.");
       return;
     }
@@ -255,6 +264,10 @@ export function ContactsManager() {
     }
   }
 
+  const formHebrewYear = Number(form.hebrewBirthYear) || getCurrentHebrewDate("Europe/Paris").getFullYear();
+  const formHebrewMonths = getHebrewMonthsForYear(formHebrewYear);
+  const selectedHebrewMonth = Number(form.hebrewBirthMonth);
+
   return (
     <section className="overflow-hidden rounded-[1.9rem] border border-emerald-100 bg-white shadow-[0_20px_54px_rgba(5,150,105,0.1)]">
       <div className="border-b border-emerald-100/80 bg-emerald-50/70 p-5 sm:p-7">
@@ -327,7 +340,36 @@ export function ContactsManager() {
         </div>
       </div>
 
-      {formOpen && <div className="fixed inset-0 z-50 flex items-end bg-emerald-950/30 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-5"><div className="w-full rounded-t-[2rem] border border-emerald-100 bg-white p-5 shadow-2xl sm:max-w-lg sm:rounded-[2rem] sm:p-7"><div className="flex items-center justify-between"><div><h3 className="text-lg font-black text-slate-950">{editing ? "Modifier le contact" : "Nouveau contact"}</h3><p className="text-xs text-slate-500">Les informations utiles pour mieux communiquer.</p></div><Button variant="ghost" size="icon-sm" className="text-emerald-700 hover:bg-emerald-50" onClick={() => setFormOpen(false)}><X className="size-4" /></Button></div><div className="mt-5 grid gap-3 sm:grid-cols-2"><input value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} placeholder="Nom complet" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 sm:col-span-2" /><input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} placeholder="Téléphone" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" /><input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="Email" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" /><input value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} placeholder="Ville" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" /><input value={form.profession} onChange={(event) => setForm({ ...form, profession: event.target.value })} placeholder="Profession" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" /><textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Notes ou préférences" rows={3} className="rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 sm:col-span-2" /></div>{error && <p className="mt-3 text-sm text-red-600">{error}</p>}<div className="mt-5 flex gap-2"><Button variant="outline" className="flex-1 border-emerald-200 text-emerald-800 hover:bg-emerald-50" onClick={() => setFormOpen(false)}>Annuler</Button><Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={() => void saveContact()} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer"}</Button></div></div></div>}
+      {formOpen && (
+        <div className="fixed inset-0 z-50 flex items-end bg-emerald-950/30 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-5">
+          <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-[2rem] border border-emerald-100 bg-white p-5 shadow-2xl sm:max-w-lg sm:rounded-[2rem] sm:p-7">
+            <div className="flex items-center justify-between">
+              <div><h3 className="text-lg font-black text-slate-950">{editing ? "Modifier le contact" : "Nouveau contact"}</h3><p className="text-xs text-slate-500">Les informations utiles pour mieux communiquer.</p></div>
+              <Button variant="ghost" size="icon-sm" className="text-emerald-700 hover:bg-emerald-50" onClick={() => setFormOpen(false)}><X className="size-4" /></Button>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <input value={form.firstName} onChange={(event) => setForm({ ...form, firstName: event.target.value })} placeholder="Prénom" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" />
+              <input value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} placeholder="Nom complet" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" />
+              <input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} placeholder="Téléphone" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" />
+              <input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="Email" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" />
+              <input value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} placeholder="Ville" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" />
+              <input value={form.profession} onChange={(event) => setForm({ ...form, profession: event.target.value })} placeholder="Profession" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" />
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:col-span-2">
+                <div className="flex items-center gap-2"><Cake className="size-5 text-amber-700" /><p className="text-sm font-black text-amber-950">Anniversaire hébraïque</p></div>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <input type="number" min={1} max={30} value={form.hebrewBirthDay} onChange={(event) => setForm({ ...form, hebrewBirthDay: event.target.value })} placeholder="Jour" aria-label="Jour hébraïque" className="h-11 rounded-xl border border-amber-200 bg-white px-3 text-sm outline-none focus:border-amber-500" />
+                  <select value={form.hebrewBirthMonth} onChange={(event) => setForm({ ...form, hebrewBirthMonth: event.target.value })} aria-label="Mois hébraïque" className="h-11 rounded-xl border border-amber-200 bg-white px-2 text-sm outline-none focus:border-amber-500"><option value="">Mois</option>{formHebrewMonths.map((month) => <option key={month.value} value={month.value}>{month.label}</option>)}</select>
+                  <input type="number" min={3761} max={9999} value={form.hebrewBirthYear} onChange={(event) => setForm({ ...form, hebrewBirthYear: event.target.value })} placeholder="Année" aria-label="Année hébraïque" className="h-11 rounded-xl border border-amber-200 bg-white px-3 text-sm outline-none focus:border-amber-500" />
+                </div>
+                {form.hebrewBirthDay && selectedHebrewMonth && form.hebrewBirthYear && <p className="mt-2 text-xs font-bold text-amber-800">{form.hebrewBirthDay} {getHebrewMonthLabel(selectedHebrewMonth, formHebrewYear)} {form.hebrewBirthYear}</p>}
+              </div>
+              <textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Notes ou préférences" rows={3} className="rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 sm:col-span-2" />
+            </div>
+            {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+            <div className="mt-5 flex gap-2"><Button variant="outline" className="flex-1 border-emerald-200 text-emerald-800 hover:bg-emerald-50" onClick={() => setFormOpen(false)}>Annuler</Button><Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={() => void saveContact()} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer"}</Button></div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -150,6 +150,13 @@ export async function PATCH(
         ...incoming,
         shabbatPoster: existingConfig.shabbatPoster ?? incoming.shabbatPoster,
       };
+    } else if (existingConfig.hayomYomSettings) {
+      // Hayom Yom et Sefer Hamitsvot : la configuration hebdomadaire reste
+      // exclusivement gérée par sa page dédiée.
+      updateData.triggerConfig = {
+        ...incoming,
+        hayomYomSettings: existingConfig.hayomYomSettings,
+      };
     } else if (existingConfig.eventReminderCampaign) {
       // Campagne J-10/J-5 : le formulaire générique ne doit jamais écraser
       // la configuration dédiée gérée par /dashboard/event-reminders-auto.
@@ -181,6 +188,13 @@ export async function PATCH(
         monthlyProgramRecapSettings: existingConfig.monthlyProgramRecapSettings,
         programHistory: existingConfig.programHistory,
         recapHistory: existingConfig.recapHistory,
+      };
+    } else if (existingConfig.holidayPoster) {
+      // Ancienne configuration Fêtes juives : elle reste compatible et ne
+      // peut pas être remplacée par le formulaire générique.
+      updateData.triggerConfig = {
+        ...incoming,
+        holidayPoster: existingConfig.holidayPoster,
       };
     } else {
       updateData.triggerConfig = incoming;

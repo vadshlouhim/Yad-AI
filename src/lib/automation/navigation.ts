@@ -23,13 +23,13 @@ export function getDedicatedAutomationConfigurationHref(automation: Omit<Automat
     return "/dashboard/event-reminders-auto";
   }
   if (config.eventRecapSettings || /recap.*evenement|evenement.*recap/.test(name)) {
-    return "/dashboard/event-recap-auto";
+    return "/dashboard/recap-auto";
   }
   if (config.weeklyImagesSettings || /semaine.*images|images.*semaine/.test(name)) {
     return "/dashboard/weekly-images-auto";
   }
   if (config.monthlyProgramRecapSettings || /programme.*mois|recap.*mois/.test(name)) {
-    return "/dashboard/monthly-program-recap-auto";
+    return "/dashboard/recap-auto";
   }
   if (automation.trigger === "JEWISH_HOLIDAY") return "/dashboard/jewish-holidays-auto";
 

@@ -19,8 +19,8 @@ export type ReminderStatus =
   | "CANCELLED"
   | "ERROR";
 
-// Les rappels J-10/J-5 demandent toujours une validation humaine avant publication.
-export type ScheduleMode = "notification";
+// Les anciennes campagnes restent en validation humaine par défaut.
+export type ScheduleMode = "notification" | "automatic";
 
 export type EventReminder = {
   id: string;

@@ -100,6 +100,9 @@ CREATE TABLE IF NOT EXISTS public."CommunityMember" (
   profession text,
   age integer,
   "birthDate" date,
+  "hebrewBirthDay" integer,
+  "hebrewBirthMonth" integer,
+  "hebrewBirthYear" integer,
   address text,
   city text,
   "familyStatus" text,
@@ -111,6 +114,16 @@ CREATE TABLE IF NOT EXISTS public."CommunityMember" (
   "createdAt" timestamptz NOT NULL DEFAULT now(),
   "updatedAt" timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public."CommunityMember"
+  DROP CONSTRAINT IF EXISTS "CommunityMember_hebrew_birth_date_check";
+ALTER TABLE public."CommunityMember"
+  ADD CONSTRAINT "CommunityMember_hebrew_birth_date_check" CHECK (
+    ("hebrewBirthDay" IS NULL AND "hebrewBirthMonth" IS NULL AND "hebrewBirthYear" IS NULL)
+    OR
+    ("hebrewBirthDay" BETWEEN 1 AND 30 AND "hebrewBirthMonth" BETWEEN 1 AND 13 AND "hebrewBirthYear" BETWEEN 3761 AND 9999)
+  );
+
 
 CREATE INDEX IF NOT EXISTS "CommunityMember_communityId_idx" ON public."CommunityMember" ("communityId");
 CREATE INDEX IF NOT EXISTS "CommunityMember_email_idx" ON public."CommunityMember" (email);

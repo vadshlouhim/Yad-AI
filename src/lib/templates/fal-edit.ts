@@ -104,6 +104,7 @@ export async function editTemplatePosterWithFal(params: {
   changes: PosterChange[];
   textsToRemove?: string[];
   editInstructions?: string;
+  referenceImageUrls?: string[];
   recordMedia?: boolean;
   resolution?: "1k" | "2k";
 }) {
@@ -122,7 +123,7 @@ export async function editTemplatePosterWithFal(params: {
   const result = await fal.subscribe(FAL_POSTER_EDIT_MODEL, {
     input: {
       prompt,
-      image_urls: [sourceUrl],
+      image_urls: [sourceUrl, ...(params.referenceImageUrls ?? []).slice(0, 2)],
       num_images: 1,
       resolution: params.resolution ?? "1k",
       output_format: "png",

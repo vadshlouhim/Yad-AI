@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ShabbatTimesAutoClient } from "@/components/shabbat-times/shabbat-times-auto-client";
+import { ShabbatTimesSimpleClient } from "@/components/shabbat-times/shabbat-times-simple-client";
 import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getShabbatTimes } from "@/lib/automation/hebcal";
@@ -70,18 +70,13 @@ export default async function ShabbatTimesAutoPage() {
   }));
 
   const simpleTemplates = filterShabbatTemplatesByMode(hydratedTemplates, "simple");
-  const detailedTemplates = filterShabbatTemplatesByMode(hydratedTemplates, "detailed");
-
   return (
-    <ShabbatTimesAutoClient
-      templates={{
-        simple: simpleTemplates as Parameters<typeof ShabbatTimesAutoClient>[0]["templates"]["simple"],
-        detailed: detailedTemplates as Parameters<typeof ShabbatTimesAutoClient>[0]["templates"]["detailed"],
-      }}
+    <ShabbatTimesSimpleClient
+      templates={simpleTemplates as Parameters<typeof ShabbatTimesSimpleClient>[0]["templates"]}
       community={community!}
       shabbat={shabbat}
       initialAutomation={automationRows?.[0] ?? null}
-      socialChannels={(socialChannels ?? []) as Parameters<typeof ShabbatTimesAutoClient>[0]["socialChannels"]}
+      socialChannels={(socialChannels ?? []) as Parameters<typeof ShabbatTimesSimpleClient>[0]["socialChannels"]}
     />
   );
 }

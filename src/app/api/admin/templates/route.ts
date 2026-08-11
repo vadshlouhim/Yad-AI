@@ -75,6 +75,10 @@ export async function POST(request: Request) {
       originalUrl: body.originalUrl ? String(body.originalUrl).trim() : null,
       thumbnailUrl: body.thumbnailUrl ? String(body.thumbnailUrl).trim() : null,
       previewUrl: body.previewUrl ? String(body.previewUrl).trim() : null,
+      // The production database requires this JSON column even though older
+      // installations relied on Prisma's default. A new template starts with
+      // no validated text zones; they can be prepared after the image upload.
+      design: [],
       isGlobal: body.isGlobal === undefined ? true : Boolean(body.isGlobal),
       isPremium: Boolean(body.isPremium),
       isActive: body.isActive === undefined ? true : Boolean(body.isActive),

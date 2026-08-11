@@ -30,6 +30,17 @@ function changesFromLegacyBody(body: Record<string, unknown>): PosterChange[] {
   return [];
 }
 
+function trustedLogoUrl(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const logoUrl = new URL(value.trim());
+    const supabaseUrl = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "");
+    return logoUrl.protocol === "https:" && logoUrl.host === supabaseUrl.host ? logoUrl.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -38,6 +49,8 @@ export async function POST(request: Request) {
     const body = await request.json() as Record<string, unknown>;
     const templateId = typeof body.templateId === "string" ? body.templateId : "";
     const changes = changesFromLegacyBody(body);
+    const logoUrl = trustedLogoUrl(body.logoUrl);
+    const structureName = changes.find((change) => change.label === "organization")?.newText;
     if (!templateId || changes.length === 0) return NextResponse.json({ error: "Données invalides" }, { status: 400 });
 
     const admin = createAdminClient();
@@ -52,7 +65,23 @@ export async function POST(request: Request) {
     const { data: template } = await admin.from("Template").select("*").eq("id", templateId)
       .or(`isGlobal.eq.true,communityId.eq.${gate.communityId}`).single();
     if (!template) return NextResponse.json({ error: "Template introuvable" }, { status: 404 });
-    const edited = await editTemplatePosterWithFal({ admin, template, communityId: gate.communityId, userId: user.id, changes });
+    const edited = await editTemplatePosterWithFal({
+      admin,
+      template,
+      communityId: gate.communityId,
+      userId: user.id,
+      changes,
+      referenceImageUrls: logoUrl ? [logoUrl] : undefined,
+      editInstructions: [
+        "NON-NEGOTIABLE BRANDING REQUIREMENTS:",
+        structureName
+          ? `The official organization name is "${structureName}". It is mandatory: reproduce it exactly, clearly and legibly once on the final poster. Never omit, abbreviate, translate or alter it.`
+          : "The organization name provided in the confirmed content is mandatory and must never be omitted or altered.",
+        logoUrl
+          ? "The second reference image is the community's official logo. Its presence is mandatory: add that exact logo once, fully visible, in a discreet existing branding area. Never ignore, redraw, crop, distort, recolor or replace it, and never write its URL as text."
+          : "No separate official logo reference was supplied; do not invent one.",
+      ].join("\n"),
+    });
     await admin.from("Template").update({ usageCount: (template.usageCount ?? 0) + 1, updatedAt: new Date().toISOString() }).eq("id", template.id);
     return NextResponse.json({ imageUrl: edited.imageUrl, usedTextBlocks: body.textBlocks ?? [], generatedTexts: body.generatedTexts ?? {}, warnings: [] });
   } catch (error) {

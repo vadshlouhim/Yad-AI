@@ -12,7 +12,7 @@ export default async function EventRemindersAutoPage() {
   const admin = createAdminClient();
   const nowIso = new Date().toISOString();
 
-  const [{ data: community }, { data: events }, { data: automationRows }] = await Promise.all([
+  const [{ data: community }, { data: events }, { data: automationRows }, { data: channels }] = await Promise.all([
     admin
       .from("Community")
       .select("id, name, logoUrl, city, timezone, tone, plan")
@@ -20,7 +20,7 @@ export default async function EventRemindersAutoPage() {
       .single(),
     admin
       .from("Event")
-      .select("id, title, startDate, endDate, coverImageUrl, status")
+      .select("id, title, startDate, endDate, coverImageUrl, status, notes")
       .eq("communityId", communityId)
       .neq("status", "ARCHIVED")
       .gte("startDate", nowIso)
@@ -33,6 +33,11 @@ export default async function EventRemindersAutoPage() {
       .eq("trigger", "CUSTOM_SCHEDULE")
       .order("updatedAt", { ascending: false })
       .limit(50),
+    admin
+      .from("Channel")
+      .select("type, name, handle, isConnected, isActive")
+      .eq("communityId", communityId)
+      .in("type", ["FACEBOOK", "INSTAGRAM"] as never[]),
   ]);
 
   // Ne garde que les automatisations qui portent une campagne J-10/J-5.
@@ -43,8 +48,9 @@ export default async function EventRemindersAutoPage() {
   return (
     <EventRemindersAutoClient
       community={community!}
-      upcomingEvents={(events ?? []) as Parameters<typeof EventRemindersAutoClient>[0]["upcomingEvents"]}
+      upcomingEvents={(events ?? []).filter((event) => !event.notes?.startsWith("Rappel automatique")) as Parameters<typeof EventRemindersAutoClient>[0]["upcomingEvents"]}
       campaigns={campaigns as Parameters<typeof EventRemindersAutoClient>[0]["campaigns"]}
+      channels={(channels ?? []) as Parameters<typeof EventRemindersAutoClient>[0]["channels"]}
     />
   );
 }

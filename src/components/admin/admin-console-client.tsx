@@ -34,6 +34,7 @@ import { useMemo, useState } from "react";
 import { OnboardingWizard, demoOnboardingData } from "@/components/onboarding/onboarding-wizard";
 import type { BillingConfig, PlanTier } from "@/lib/billing";
 import { planToTier, tierLabel } from "@/lib/billing";
+import { createClient as createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 interface AdminMetrics {
   userCount: number;
@@ -571,24 +572,65 @@ export function AdminConsoleClient({
 
   async function uploadTemplateImage(file: File, kind: "original" | "thumbnail" | "preview") {
     if (!selectedTemplate) return;
+    if (!file.type.startsWith("image/")) {
+      setGlobalError("Choisissez un fichier image PNG, JPG, WEBP, AVIF, GIF ou TIFF.");
+      return;
+    }
+    if (file.size > 24 * 1024 * 1024) {
+      setGlobalError("L'image dépasse la taille maximale de 24 Mo.");
+      return;
+    }
     setUploadingField(kind);
     setStatus(null);
     setGlobalError(null);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("kind", kind);
-      formData.append("templateId", selectedTemplate.id);
-
-      const response = await fetch("/api/admin/uploads/template-image", {
-        method: "POST",
-        body: formData,
+      const prepareResponse = await fetch("/api/admin/uploads/template-image", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId: selectedTemplate.id,
+          kind,
+          fileName: file.name,
+          contentType: file.type,
+          fileSize: file.size,
+        }),
       });
-      const payload = await readApiPayload(response);
-      if (!response.ok) {
-        setGlobalError(getApiError(payload, "Upload impossible."));
+      const preparePayload = await readApiPayload(prepareResponse);
+      if (!prepareResponse.ok) {
+        setGlobalError(getApiError(preparePayload, "Impossible de préparer le téléversement."));
         return;
       }
+
+      const storagePath = typeof preparePayload.path === "string" ? preparePayload.path : "";
+      const uploadToken = typeof preparePayload.token === "string" ? preparePayload.token : "";
+      if (!storagePath || !uploadToken) {
+        setGlobalError("Le serveur n'a pas fourni les informations nécessaires au téléversement.");
+        return;
+      }
+
+      const supabase = createSupabaseBrowserClient();
+      const { error: uploadError } = await supabase.storage
+        .from("templates")
+        .uploadToSignedUrl(storagePath, uploadToken, file, {
+          contentType: file.type,
+          cacheControl: "3600",
+        });
+      if (uploadError) {
+        setGlobalError(`Téléversement Supabase impossible : ${uploadError.message}`);
+        return;
+      }
+
+      const finalizeResponse = await fetch("/api/admin/uploads/template-image", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId: selectedTemplate.id, kind, path: storagePath }),
+      });
+      const payload = await readApiPayload(finalizeResponse);
+      if (!finalizeResponse.ok) {
+        setGlobalError(getApiError(payload, "L'image a été envoyée, mais son enregistrement a échoué."));
+        return;
+      }
+
       if (kind === "original") {
         updateSelectedTemplate({
           originalUrl: typeof payload.originalUrl === "string" ? payload.originalUrl : null,

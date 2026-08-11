@@ -6,7 +6,7 @@ import {
   DEFAULT_TIMEZONE,
 } from "./event-recap";
 
-export const MONTHLY_PROGRAM_RECAP_AUTOMATION_NAME = "Programme du mois";
+export const MONTHLY_PROGRAM_RECAP_AUTOMATION_NAME = "Récap automatique du mois";
 
 export const DEFAULT_MONTHLY_TIME = "10:00";
 export const MAX_PROGRAM_EVENTS = 10;
@@ -92,7 +92,10 @@ function occurrence(settings: MonthlySettings, type: MonthlyRunType, year: numbe
   };
 }
 
-/** Toutes les occurrences sur 3 mois (mois précédent → mois suivant), triées. */
+/**
+ * Occurrences mensuelles de récap uniquement. Le type `program` reste lisible
+ * pour préserver les anciens historiques, mais il n'est plus planifié.
+ */
 function occurrencesAround(settings: MonthlySettings, from: Date, timezone: string): MonthlyOccurrence[] {
   const todayISO = dateISOInTz(from, timezone);
   const [y, m] = todayISO.split("-").map(Number);
@@ -103,7 +106,6 @@ function occurrencesAround(settings: MonthlySettings, from: Date, timezone: stri
     d.setUTCMonth(d.getUTCMonth() + offset);
     const year = d.getUTCFullYear();
     const monthIndex = d.getUTCMonth();
-    result.push(occurrence(settings, "program", year, monthIndex, timezone));
     result.push(occurrence(settings, "recap", year, monthIndex, timezone));
   }
   return result.sort((a, b) => a.runAt.getTime() - b.runAt.getTime());
@@ -143,7 +145,11 @@ export function getMonthlySettings(triggerConfig: unknown): MonthlySettings | nu
   if (!isRecord(triggerConfig)) return null;
   const value = triggerConfig.monthlyProgramRecapSettings;
   if (!isRecord(value)) return null;
-  return value as unknown as MonthlySettings;
+  return {
+    ...(value as unknown as MonthlySettings),
+    recapNotificationDay: 0,
+    recapNotificationTime: DEFAULT_MONTHLY_TIME,
+  };
 }
 export function getProgramHistory(triggerConfig: unknown): MonthlyHistory {
   if (!isRecord(triggerConfig)) return {};

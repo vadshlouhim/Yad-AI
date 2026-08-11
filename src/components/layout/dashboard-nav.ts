@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import React from "react";
 import { getCommunityProfileLabel } from "@/lib/community/profile-labels";
+import { COMMUNITY_AUTOMATION_MODULES } from "@/components/automations/community-automation-registry";
 
 // Official colored brand icons for the sidebar
 export const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => {
@@ -158,6 +159,9 @@ export interface DashboardNavItem {
   action?: { label: string; href: string };
   external?: boolean;
   isQuickAction?: boolean;
+  iconClass?: string;
+  iconSurfaceClass?: string;
+  featured?: boolean;
 }
 
 export interface DashboardNavSection {
@@ -381,28 +385,17 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
     },
     {
       key: "automations",
-      section: "CONTENUS AUTOMATIQUES",
+      section: "COMMUNICATION COMMUNAUTAIRE",
       subtitle: "",
       icon: CalendarRange,
       items: [
-        { href: "/dashboard/shabbat-times-auto", label: "Horaires de Chabbat", icon: Clock3 },
-        { href: "/dashboard/hayom-yom-sefer-hamitsvot", label: "Sefer Hamitsvot / Hayom Yom", icon: BookOpen, badge: "Bientôt disponible" },
-        { href: "/dashboard/jewish-holidays-auto", label: "Fetes juives et Hassidiques", icon: Gift },
-        { href: "/dashboard/event-reminders-auto", label: "Automatisation J-10 / J-5", icon: CalendarClock },
-        { href: "/dashboard/event-recap-auto", label: "Recap automatique apres evenement", icon: Camera },
-        { href: "/dashboard/weekly-images-auto", label: "Cette semaine en images", icon: Image },
-        { href: "/dashboard/monthly-program-recap-auto", label: "Programme du mois", icon: CalendarRange },
-        { href: "/dashboard/automations", label: "Toutes les automatisations", icon: Zap },
-      ],
-    },
-    {
-      key: "email",
-      section: "EMAIL & AVIS GOOGLE",
-      subtitle: "Vos emails et avis Google, classés et suivis automatiquement",
-      icon: Mail,
-      items: [
-        { href: "/dashboard/email", label: "Email", icon: Mail },
-        { href: "/dashboard/google-reviews", label: "Avis Google", icon: Star },
+        ...COMMUNITY_AUTOMATION_MODULES.map((module) => ({
+          href: module.href,
+          label: module.label,
+          icon: module.icon,
+          iconClass: module.iconClass,
+          iconSurfaceClass: module.iconSurfaceClass,
+        })),
       ],
     },
     {
@@ -413,6 +406,16 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       items: [
         { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
         { href: "/dashboard/community-library", label: "Bibliothèque partagée", icon: Library },
+      ],
+    },
+    {
+      key: "email",
+      section: "EMAIL & AVIS GOOGLE",
+      subtitle: "Vos emails et avis Google, classés et suivis automatiquement",
+      icon: Mail,
+      items: [
+        { href: "/dashboard/email", label: "Email", icon: Mail },
+        { href: "/dashboard/google-reviews", label: "Avis Google", icon: Star },
       ],
     },
     {
@@ -497,12 +500,12 @@ export const DASHBOARD_TOP_ITEM: DashboardNavItem = {
   icon: Bell,
 };
 
-export const QUICK_ACCESS_ITEMS = [
+export const QUICK_ACCESS_ITEMS: ReadonlyArray<Omit<DashboardNavItem, "icon"> & { icon: LucideIcon; notification?: boolean }> = [
   { href: "/dashboard/assistant", label: "Agents intelligents", icon: Bot },
   { href: "/dashboard/overview", label: "Tableau de bord", icon: House },
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell, notification: true },
   { href: "/dashboard/events", label: "Mon Agenda", icon: CalendarDays },
-] as const;
+];
 
 export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
@@ -555,7 +558,6 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     section: "BANQUE VISUELLE",
     items: [
       { href: "/dashboard/shabbat-times-auto", label: "Horaires de Chabbat", icon: Clock3 },
-      { href: "/dashboard/jewish-holidays-auto", label: "Fetes juives et Hassidiques", icon: Gift },
     ],
   },
   {
@@ -623,11 +625,8 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     icon: CalendarDays,
     items: [
       { href: "/dashboard/shabbat-times-auto", label: "Horaires de Chabbat", icon: Clock3 },
-      { href: "/dashboard/jewish-holidays-auto", label: "Fetes juives et Hassidiques", icon: Gift },
       { href: "/dashboard/event-reminders-auto", label: "Automatisation J-10 / J-5", icon: CalendarClock },
-      { href: "/dashboard/event-recap-auto", label: "Récap automatique après événement", icon: Camera },
-      { href: "/dashboard/weekly-images-auto", label: "Cette semaine en images", icon: Image },
-      { href: "/dashboard/monthly-program-recap-auto", label: "Programme du mois", icon: CalendarRange },
+      { href: "/dashboard/recap-auto", label: "Récap automatique", icon: Camera },
     ],
   },
   {

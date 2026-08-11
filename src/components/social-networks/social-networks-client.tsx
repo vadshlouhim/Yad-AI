@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
   AlertTriangle,
   CalendarClock,
   CheckCircle2,
+  ChevronDown,
   Edit3,
+  History,
   ImagePlus,
+  Mail,
   RefreshCw,
   Search,
   Send,
@@ -53,11 +56,9 @@ const NETWORKS = [
     href: "/dashboard/facebook",
     icon: FacebookIcon,
     color: "text-[#2364d2]",
-    bg: "bg-blue-50",
-    border: "border-[#5f8ff2]",
-    accent: "from-[#2b65d9] to-[#6e9cff]",
-    iconBg: "bg-[#eaf2ff]",
-    selectedShadow: "shadow-[0_16px_36px_-24px_rgba(35,100,210,0.52)]",
+    surface: "bg-gradient-to-r from-[#315ecb] to-[#4b7fe8]",
+    border: "border-blue-400",
+    selectedShadow: "shadow-md shadow-blue-200",
   },
   {
     type: "INSTAGRAM",
@@ -65,11 +66,9 @@ const NETWORKS = [
     href: "/dashboard/instagram",
     icon: InstagramIcon,
     color: "text-[#d12d7e]",
-    bg: "bg-pink-50",
-    border: "border-[#e0579a]",
-    accent: "from-[#e43c8c] via-[#ad3eb8] to-[#ff9a62]",
-    iconBg: "bg-[#fff0f7]",
-    selectedShadow: "shadow-[0_16px_36px_-24px_rgba(209,45,126,0.48)]",
+    surface: "bg-gradient-to-r from-[#d92d7c] to-[#f06b45]",
+    border: "border-pink-400",
+    selectedShadow: "shadow-md shadow-rose-200",
   },
   {
     type: "WHATSAPP",
@@ -77,11 +76,9 @@ const NETWORKS = [
     href: "/dashboard/whatsapp",
     icon: WhatsAppIcon,
     color: "text-[#128153]",
-    bg: "bg-emerald-50",
-    border: "border-[#26b77b]",
-    accent: "from-[#169c67] to-[#72df9f]",
-    iconBg: "bg-[#eafbf3]",
-    selectedShadow: "shadow-[0_16px_36px_-24px_rgba(18,129,83,0.5)]",
+    surface: "bg-gradient-to-r from-[#15966a] to-[#2bbf87]",
+    border: "border-emerald-400",
+    selectedShadow: "shadow-md shadow-emerald-200",
   },
 ] as const;
 
@@ -198,10 +195,7 @@ function formatDate(value: string | null) {
 
 function SocialNetworksBanner() {
   return (
-    <section className="relative overflow-hidden rounded-[1.75rem] border border-white/20 bg-gradient-to-br from-[#631b75] via-[#b92870] to-[#ed6a45] p-5 text-white shadow-[0_28px_80px_-34px_rgba(154,33,111,0.62)] sm:p-8">
-      <div className="pointer-events-none absolute -right-20 -top-20 size-72 rounded-full border-[20px] border-white/10" aria-hidden />
-      <div className="pointer-events-none absolute -bottom-28 left-[38%] size-64 rounded-full bg-[#7de4b5]/25 blur-3xl" aria-hidden />
-      <div className="pointer-events-none absolute right-[8%] top-[5%] size-56 rounded-full bg-white/25 blur-3xl" aria-hidden />
+    <section className="relative overflow-hidden rounded-[1.75rem] border border-white/20 bg-[#d92d7c] p-5 text-white shadow-[0_28px_80px_-34px_rgba(217,45,124,0.58)] sm:p-8">
       <div className="relative grid gap-8 text-center lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:text-left">
         <div className="max-w-3xl">
           <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/80 lg:mx-0" />
@@ -245,7 +239,6 @@ export function SocialNetworksClient() {
   const [aiLoading, setAiLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const [prompt, setPrompt] = useState("");
   const [message, setMessage] = useState("");
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [mediaNames, setMediaNames] = useState<string[]>([]);
@@ -257,6 +250,8 @@ export function SocialNetworksClient() {
   const [editing, setEditing] = useState<HistoryItem | null>(null);
   const [editText, setEditText] = useState("");
   const [editScheduledAt, setEditScheduledAt] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const contactsSelectionInitialized = useRef(false);
 
   const channelsByType = useMemo(() => new Map(data.channels.map((channel) => [channel.type, channel])), [data.channels]);
   const history = useMemo(() => groupPublications(data.publications), [data.publications]);
@@ -297,9 +292,17 @@ export function SocialNetworksClient() {
     setLoading(true);
     try {
       const response = await fetch("/api/social-networks");
-      const payload = await response.json();
+      const payload = (await response.json()) as SocialNetworksData & { error?: string };
       if (!response.ok) throw new Error(payload.error ?? "Chargement impossible.");
       setData(payload);
+      const availableContactIds = new Set((payload.whatsappContacts ?? []).map((contact) => contact.id));
+      setSelectedContacts((current) => {
+        if (!contactsSelectionInitialized.current && availableContactIds.size > 0) {
+          contactsSelectionInitialized.current = true;
+          return Array.from(availableContactIds);
+        }
+        return current.filter((id) => availableContactIds.has(id));
+      });
     } catch (error) {
       alert(error instanceof Error ? error.message : "Chargement impossible.");
     } finally {
@@ -311,14 +314,8 @@ export function SocialNetworksClient() {
     loadData();
   }, []);
 
-  useEffect(() => {
-    if (data.whatsappContacts.length > 0 && selectedContacts.length === 0) {
-      setSelectedContacts(data.whatsappContacts.map((contact) => contact.id));
-    }
-  }, [data.whatsappContacts, selectedContacts.length]);
-
   async function adaptMessage() {
-    const source = prompt.trim() || message.trim();
+    const source = message.trim();
     if (!source) return;
 
     setAiLoading(true);
@@ -333,7 +330,6 @@ export function SocialNetworksClient() {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Adaptation IA impossible.");
       setMessage(payload.body ?? "");
-      setPrompt("");
     } catch (error) {
       alert(error instanceof Error ? error.message : "Adaptation IA impossible.");
     } finally {
@@ -415,8 +411,27 @@ export function SocialNetworksClient() {
           whatsappRecipientIds: selectedContacts,
         }),
       });
-      const payload = await response.json();
+      const payload = (await response.json()) as {
+        error?: string;
+        publishResults?: Record<string, { success?: boolean; error?: string; fallbackUsed?: boolean }>;
+      };
       if (!response.ok) throw new Error(payload.error ?? "Publication impossible.");
+
+      if (publishNow) {
+        const unconfirmedNetworks = selectedNetworks.filter(
+          (network) => payload.publishResults?.[network]?.success !== true
+        );
+        if (unconfirmedNetworks.length > 0) {
+          const details = unconfirmedNetworks
+            .map((network) => {
+              const result = payload.publishResults?.[network];
+              return `${network}: ${result?.error ?? (result?.fallbackUsed ? "envoi manuel requis" : "envoi non confirmé")}`;
+            })
+            .join(" · ");
+          await loadData();
+          throw new Error(`La diffusion réelle n'a pas été confirmée sur tous les réseaux. ${details}`);
+        }
+      }
 
       setSuccessMessage(publishNow ? "Publication envoyee sur les reseaux selectionnes." : "Publication programmee.");
       setScheduledAt("");
@@ -486,35 +501,9 @@ export function SocialNetworksClient() {
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
         <div className="space-y-4">
           <Card className="overflow-hidden rounded-2xl border border-rose-100 bg-white shadow-[0_20px_48px_-32px_rgba(154,33,111,0.22)]">
-            <div className="border-b border-rose-100 bg-gradient-to-r from-rose-50 via-fuchsia-50 to-orange-50 px-5 py-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="flex items-center gap-2 text-base font-black text-slate-950">
-                    <Sparkles className="size-4 text-[#d12d7e]" />
-                    Votre assistant de publication
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-600">Décrivez votre annonce : l&apos;IA prépare un texte unique, prêt à diffuser.</p>
-                </div>
-                <Link
-                  href="/dashboard/templates"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm font-bold text-[#bd276f] shadow-sm transition hover:bg-rose-50"
-                >
-                  <ImagePlus className="size-4" />
-                  Créer un visuel IA...
-                </Link>
-              </div>
-            </div>
-
             <div className="space-y-4 p-5">
               <div className="flex gap-2">
-                <input
-                  value={prompt}
-                  onChange={(event) => setPrompt(event.target.value)}
-                  onKeyDown={(event) => event.key === "Enter" && adaptMessage()}
-                  placeholder="Ex. Annonce le cours de dimanche soir avec un ton chaleureux..."
-                  className="h-12 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 shadow-inner shadow-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400"
-                />
-                <Button onClick={adaptMessage} disabled={aiLoading || (!prompt.trim() && !message.trim())} className="h-12 rounded-xl bg-gradient-to-r from-[#d92d7c] to-[#f06b45] text-white shadow-lg shadow-pink-950/30 hover:from-[#c5236e] hover:to-[#df5938]">
+                <Button onClick={adaptMessage} disabled={aiLoading || !message.trim()} className="ml-auto h-12 w-full rounded-xl bg-[#d92d7c] text-white shadow-lg shadow-pink-950/25 hover:bg-[#c5236e] sm:w-auto">
                   {aiLoading ? <RefreshCw className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
                   Transformer avec l&apos;IA
                 </Button>
@@ -529,11 +518,32 @@ export function SocialNetworksClient() {
               />
 
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
-                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-rose-300 bg-rose-50/60 px-4 py-4 text-sm font-bold text-slate-700 transition hover:bg-rose-100">
-                  <Upload className="size-4" />
-                  {uploading ? "Importation..." : "Ajouter une image"}
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={uploadImage} />
-                </label>
+                <div className="space-y-2.5">
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-rose-300 bg-rose-50/60 px-4 py-4 text-sm font-bold text-slate-700 transition hover:bg-rose-100">
+                    <Upload className="size-4" />
+                    {uploading ? "Importation..." : "Ajouter une image"}
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={uploadImage} />
+                  </label>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <Link
+                      href="/dashboard/templates"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4a1e91] to-[#6530bd] px-3 text-center text-xs font-black text-white shadow-md shadow-violet-200 transition hover:brightness-110"
+                    >
+                      <ImagePlus className="size-4 shrink-0" />
+                      Banque d&apos;images
+                    </Link>
+                    <Link
+                      href={{
+                        pathname: "/dashboard/assistant",
+                        query: { prefill: "Aide-moi à créer un visuel pour cette publication sur les réseaux sociaux." },
+                      }}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#d92d7c] to-[#f06b45] px-3 text-center text-xs font-black text-white shadow-md shadow-rose-200 transition hover:brightness-110"
+                    >
+                      <Sparkles className="size-4 shrink-0" />
+                      Créer avec l&apos;IA
+                    </Link>
+                  </div>
+                </div>
                 <input
                   type="datetime-local"
                   value={scheduledAt}
@@ -586,57 +596,62 @@ export function SocialNetworksClient() {
                 const Icon = network.icon;
 
                 return (
-                  <article
+                  <button
+                    type="button"
                     key={network.type}
+                    onClick={() => toggleNetwork(network.type)}
+                    aria-pressed={selected}
                     className={cn(
-                      "group relative overflow-hidden rounded-xl border bg-white transition duration-200 hover:-translate-y-0.5",
+                      "group relative w-full overflow-hidden rounded-xl border text-left text-white transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d92d7c] focus-visible:ring-offset-2",
+                      network.surface,
                       selected
                         ? `${network.border} ${network.selectedShadow}`
-                        : "border-slate-200 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.32)] hover:border-slate-300"
+                        : "border-transparent opacity-70 shadow-sm"
                     )}
                   >
-                    <div className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r transition", network.accent, selected ? "opacity-100" : "opacity-60 group-hover:opacity-100")} aria-hidden="true" />
-                    <div className={cn("p-4 pt-5", selected && network.bg)}>
+                    <div className="p-4 pt-5">
                     <div className="flex items-start justify-between gap-3">
-                      <button
-                        type="button"
-                        onClick={() => toggleNetwork(network.type)}
-                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                        aria-pressed={selected}
-                      >
-                        <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl border border-white/80 shadow-sm", network.iconBg, network.color)}>
+                      <span className="flex min-w-0 flex-1 items-center gap-3">
+                        <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl border bg-white shadow-sm", selected ? `border-white ${network.color} shadow-black/15` : `border-white/80 ${network.color}`)}>
                           <Icon className="size-5" />
                         </span>
                         <span className="min-w-0">
-                          <span className="block text-sm font-black text-slate-950">{network.label}</span>
-                          <span className={cn("mt-1 inline-flex items-center gap-1 text-xs font-bold", connected ? "text-emerald-700" : "text-amber-700")}>
+                          <span className="block text-sm font-black text-white">{network.label}</span>
+                          <span className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-white/85">
                             {connected ? <CheckCircle2 className="size-3.5" /> : <AlertTriangle className="size-3.5" />}
                             {connected ? "Connecte" : "Non connecte"}
                           </span>
                         </span>
-                      </button>
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() => toggleNetwork(network.type)}
-                        className="mt-1 size-4 shrink-0 cursor-pointer accent-pink-500"
-                        aria-label={`Selectionner ${network.label}`}
-                      />
+                      </span>
+                      <span className={cn("mt-1 flex size-5 shrink-0 items-center justify-center rounded-full border-2", selected ? "border-white bg-white text-[#d92d7c]" : "border-white/70 bg-transparent text-transparent")} aria-hidden>
+                        <CheckCircle2 className="size-4" />
+                      </span>
                     </div>
-                    <div className="mt-4 flex items-center justify-between gap-2 border-t border-slate-900/5 pt-3">
-                      <span className={cn("text-xs font-bold", selected ? network.color : "text-slate-500")}>
+                    <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/20 pt-3">
+                      <span className="text-xs font-bold text-white/90">
                         {selected ? "Selectionne pour l'envoi" : "Ajouter a l'envoi"}
                       </span>
                       {!connected ? (
-                        <Link href={network.href} className={cn("text-xs font-black transition hover:opacity-75", network.color)}>
-                          Connecter
-                        </Link>
+                        <span className="text-xs font-black text-white">Connexion requise</span>
                       ) : null}
                     </div>
                     </div>
-                  </article>
+                  </button>
                 );
               })}
+              <article className="rounded-xl border border-slate-400 bg-gradient-to-r from-[#64748b] to-[#94a3b8] p-4 text-white shadow-md shadow-slate-200 md:col-start-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-white bg-white text-slate-700 shadow-sm">
+                    <Mail className="size-5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-black">Email</span>
+                    <span className="mt-1 inline-flex rounded-full bg-white/20 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-white">
+                      Bientôt disponible
+                    </span>
+                  </span>
+                </div>
+              </article>
             </div>
 
           </Card>
@@ -662,7 +677,7 @@ export function SocialNetworksClient() {
               </div>
 
               <div className="mb-3 flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={() => setSelectedContacts(filteredContacts.map((contact) => contact.id))}>
+                <Button size="sm" variant="outline" onClick={() => setSelectedContacts(data.whatsappContacts.map((contact) => contact.id))}>
                   Tout cocher
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setSelectedContacts([])}>
@@ -699,7 +714,14 @@ export function SocialNetworksClient() {
 
               <div className="max-h-72 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
                 {filteredContacts.length === 0 ? (
-                  <p className="p-3 text-sm text-slate-500">Aucun contact WhatsApp disponible.</p>
+                  <div className="p-3 text-sm text-slate-500">
+                    <p>{contactSearch.trim() ? "Aucun contact ne correspond à votre recherche." : "Aucun contact WhatsApp disponible."}</p>
+                    {!contactSearch.trim() ? (
+                      <Link href="/dashboard/contacts" className="mt-2 inline-flex font-black text-emerald-700 hover:text-emerald-800">
+                        Ajouter ou autoriser des contacts WhatsApp
+                      </Link>
+                    ) : null}
+                  </div>
                 ) : (
                   filteredContacts.map((contact) => (
                     <label key={contact.id} className="flex cursor-pointer items-start gap-3 rounded-lg bg-white p-3 text-sm shadow-sm hover:bg-emerald-50">
@@ -759,25 +781,44 @@ export function SocialNetworksClient() {
         </aside>
       </section>
 
-      <Card className="rounded-2xl border-slate-200 p-5">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-base font-black text-slate-950">Historique</h2>
-            <p className="mt-1 text-sm text-slate-500">Date, reseaux utilises et texte de vos dernieres publications.</p>
-          </div>
-          <Button variant="outline" onClick={loadData} disabled={loading} className="rounded-xl">
-            <RefreshCw className={cn("size-4", loading && "animate-spin")} />
-            Actualiser
-          </Button>
-        </div>
+      <Card className="overflow-hidden rounded-2xl border-slate-200 p-0">
+        <button
+          type="button"
+          onClick={() => setHistoryOpen((open) => !open)}
+          className="flex w-full items-center justify-between gap-4 p-5 text-left transition hover:bg-slate-50"
+          aria-expanded={historyOpen}
+          aria-controls="social-publication-history"
+        >
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-300">
+              <History className="size-5" />
+            </span>
+            <span className="min-w-0">
+              <span className="flex items-center gap-2 text-base font-black text-slate-950">
+                Historique
+                {!loading && history.length > 0 ? <Badge variant="secondary">{history.length}</Badge> : null}
+              </span>
+              <span className="mt-1 block text-sm text-slate-500">Date, reseaux utilises et texte de vos dernieres publications.</span>
+            </span>
+          </span>
+          <ChevronDown className={cn("size-5 shrink-0 text-slate-500 transition-transform duration-200", historyOpen && "rotate-180")} />
+        </button>
 
-        {loading ? (
-          <p className="text-sm text-slate-500">Chargement de l&apos;historique...</p>
-        ) : history.length === 0 ? (
-          <p className="text-sm text-slate-500">Aucune publication pour le moment.</p>
-        ) : (
-          <div className="space-y-3">
-            {history.map((item) => (
+        {historyOpen ? (
+          <div id="social-publication-history" className="border-t border-slate-200 p-5">
+            <div className="mb-4 flex justify-end">
+              <Button variant="outline" onClick={loadData} disabled={loading} className="rounded-xl">
+                <RefreshCw className={cn("size-4", loading && "animate-spin")} />
+                Actualiser
+              </Button>
+            </div>
+            {loading ? (
+              <p className="text-sm text-slate-500">Chargement de l&apos;historique...</p>
+            ) : history.length === 0 ? (
+              <p className="text-sm text-slate-500">Aucune publication pour le moment.</p>
+            ) : (
+              <div className="space-y-3">
+                {history.map((item) => (
               <article key={item.key} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0 flex-1">
@@ -806,9 +847,11 @@ export function SocialNetworksClient() {
                   ) : null}
                 </div>
               </article>
-            ))}
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        ) : null}
       </Card>
 
       {editing ? (

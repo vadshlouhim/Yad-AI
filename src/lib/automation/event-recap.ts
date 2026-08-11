@@ -116,7 +116,10 @@ export function getRecapSettingsFromTriggerConfig(triggerConfig: unknown): Event
   if (!isRecord(triggerConfig)) return null;
   const value = triggerConfig.eventRecapSettings;
   if (!isRecord(value)) return null;
-  return value as unknown as EventRecapSettings;
+  return {
+    ...(value as unknown as EventRecapSettings),
+    notificationTime: DEFAULT_RECAP_TIME,
+  };
 }
 
 export function getRecapHistory(triggerConfig: unknown): RecapHistory {

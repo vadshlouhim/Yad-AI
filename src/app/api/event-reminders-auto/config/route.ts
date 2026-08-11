@@ -12,6 +12,7 @@ import {
   reminderLabel,
   computeReminderRunAt,
   getNextPendingReminder,
+  getCampaignFromTriggerConfig,
   type EventReminder,
   type EventReminderCampaign,
   type ReminderChannel,
@@ -49,12 +50,12 @@ function normalizeChannels(value: unknown): ReminderChannel[] {
   return valid.length > 0 ? valid : ["INSTAGRAM", "FACEBOOK", "WHATSAPP"];
 }
 
-function notificationScheduleMode(): ScheduleMode {
-  return "notification";
+function normalizeScheduleMode(value: unknown): ScheduleMode {
+  return value === "automatic" ? "automatic" : "notification";
 }
 
-function buildActions(channels: ReminderChannel[]): Json {
-  const requiresValidation = true;
+function buildActions(channels: ReminderChannel[], scheduleMode: ScheduleMode = "notification"): Json {
+  const requiresValidation = scheduleMode !== "automatic";
   return [
     { type: "GENERATE_CONTENT", contentType: "EVENT_REMINDER", channels, requiresValidation },
     { type: "CREATE_PUBLICATION", requiresValidation },
@@ -100,7 +101,7 @@ function sanitizeCampaign(value: unknown, now: Date): EventReminderCampaign | nu
   const eventDate = normalizeDate(value.eventDate);
   if (!eventDate) return null;
   const channels = normalizeChannels(value.channels);
-  const scheduleMode = notificationScheduleMode();
+  const scheduleMode = normalizeScheduleMode(value.scheduleMode);
 
   const remindersInput = Array.isArray(value.reminders) ? value.reminders : [];
   let reminders = remindersInput
@@ -172,6 +173,15 @@ async function getTimezone(admin: Admin, communityId: string) {
   return data?.timezone ?? "Europe/Paris";
 }
 
+function dateInTimezone(value: string, timezone: string) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(value));
+}
+
 /** Crée/maj une entrée Agenda IA (Event) par rappel et renvoie les rappels enrichis. */
 async function syncAgendaEntries(
   admin: Admin,
@@ -230,7 +240,7 @@ async function upsertCampaignAutomation(
     description: "Programme automatiquement les rappels J-10, J-5, J-3, Demain et Jour J avant un événement.",
     trigger: "CUSTOM_SCHEDULE" as const,
     triggerConfig,
-    actions: buildActions(campaign.channels),
+    actions: buildActions(campaign.channels, campaign.scheduleMode),
     eventId: campaign.eventId,
     isActive: state.isActive,
     status: state.status,
@@ -349,6 +359,152 @@ export async function POST(request: Request) {
 
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const mode = stringOrEmpty(body.mode);
+
+    if (mode === "configure") {
+      const eventInput = isRecord(body.event) ? body.event : {};
+      const eventIdInput = stringOrEmpty(eventInput.id) || null;
+      const requestedOffsets = Array.isArray(body.offsets)
+        ? [...new Set(body.offsets.map(Number).filter((value) => [10, 5, 3, 1, 0].includes(value)))]
+        : [];
+      if (requestedOffsets.length === 0) {
+        return NextResponse.json({ error: "Sélectionnez au moins un rappel." }, { status: 400 });
+      }
+
+      const requestedChannels = Array.isArray(body.channels)
+        ? [...new Set(body.channels.filter((value): value is "FACEBOOK" | "INSTAGRAM" => value === "FACEBOOK" || value === "INSTAGRAM"))]
+        : [];
+      if (requestedChannels.length === 0) {
+        return NextResponse.json({ error: "Sélectionnez au moins un réseau." }, { status: 400 });
+      }
+
+      const timezone = await getTimezone(admin, communityId);
+      let eventRecord: {
+        id: string;
+        title: string;
+        startDate: string;
+        location: string | null;
+        coverImageUrl: string | null;
+        registrationUrl: string | null;
+      } | null = null;
+
+      if (eventIdInput) {
+        const { data } = await admin
+          .from("Event")
+          .select("id,title,startDate,location,coverImageUrl,registrationUrl")
+          .eq("id", eventIdInput)
+          .eq("communityId", communityId)
+          .maybeSingle();
+        eventRecord = data;
+        if (!eventRecord) return NextResponse.json({ error: "Événement introuvable." }, { status: 404 });
+      }
+
+      const eventDate = eventRecord ? dateInTimezone(eventRecord.startDate, timezone) : normalizeDate(eventInput.date);
+      const eventTitle = eventRecord?.title ?? stringOrEmpty(eventInput.title);
+      const eventTime = eventRecord
+        ? new Intl.DateTimeFormat("fr-FR", { timeZone: timezone, hour: "2-digit", minute: "2-digit", hour12: false })
+            .format(new Date(eventRecord.startDate))
+            .replace("h", ":")
+        : normalizeTime(eventInput.time);
+      const eventLocation = (eventRecord?.location ?? stringOrEmpty(eventInput.location)) || null;
+      const eventPosterUrl = (eventRecord?.coverImageUrl ?? stringOrEmpty(eventInput.coverImageUrl)) || null;
+      if (!eventDate || !eventTitle) {
+        return NextResponse.json({ error: "Renseignez le nom et la date de l’événement." }, { status: 400 });
+      }
+
+      const { data: connectedRows } = await admin
+        .from("Channel")
+        .select("type")
+        .eq("communityId", communityId)
+        .in("type", ["FACEBOOK", "INSTAGRAM"] as never[])
+        .eq("isActive", true)
+        .eq("isConnected", true);
+      const connected = new Set((connectedRows ?? []).map((row) => row.type));
+      const disconnected = requestedChannels.filter((channel) => !connected.has(channel));
+      if (disconnected.length > 0) {
+        return NextResponse.json({ error: `Connectez d’abord ${disconnected.join(" et ")}.` }, { status: 409 });
+      }
+
+      let instagramSkipped = false;
+      let effectiveChannels: ReminderChannel[] = [...requestedChannels];
+      if (effectiveChannels.includes("INSTAGRAM") && !eventPosterUrl) {
+        instagramSkipped = true;
+        effectiveChannels = effectiveChannels.filter((channel) => channel !== "INSTAGRAM");
+        if (!effectiveChannels.includes("FACEBOOK") && connected.has("FACEBOOK")) effectiveChannels.push("FACEBOOK");
+      }
+      if (effectiveChannels.length === 0) {
+        return NextResponse.json({ error: "Ajoutez une affiche pour Instagram ou connectez Facebook." }, { status: 409 });
+      }
+
+      const reminders = buildDefaultReminders({ eventDate, channels: effectiveChannels, now, timezone })
+        .filter((reminder) => reminder.offsetDays !== null && requestedOffsets.includes(reminder.offsetDays));
+      if (reminders.length === 0) {
+        return NextResponse.json({ error: "Tous les rappels sélectionnés sont déjà passés." }, { status: 400 });
+      }
+
+      if (!eventRecord) {
+        const startDate = computeReminderRunAt({ date: eventDate, time: eventTime, timezone }).toISOString();
+        const { data, error } = await admin
+          .from("Event")
+          .insert({
+            id: crypto.randomUUID(),
+            communityId,
+            title: eventTitle,
+            startDate,
+            location: eventLocation,
+            coverImageUrl: eventPosterUrl,
+            category: "OTHER",
+            status: "SCHEDULED",
+            isPublic: true,
+            updatedAt: new Date().toISOString(),
+          })
+          .select("id,title,startDate,location,coverImageUrl,registrationUrl")
+          .single();
+        if (error) throw error;
+        eventRecord = data;
+      }
+
+      const campaign: EventReminderCampaign = {
+        eventId: eventRecord.id,
+        eventName: eventTitle,
+        eventDate,
+        eventTime,
+        eventLocation,
+        eventContact: null,
+        eventRegistrationUrl: eventRecord.registrationUrl,
+        mainVisualUrl: eventPosterUrl,
+        sourceType: eventIdInput ? "existing_event" : "new_event",
+        scheduleMode: normalizeScheduleMode(body.scheduleMode),
+        channels: effectiveChannels,
+        reminders,
+        validated: true,
+      };
+      const existing = await findCampaignAutomation(admin, communityId, campaign.eventId);
+      const previousCampaign = existing ? getCampaignFromTriggerConfig(existing.triggerConfig) : null;
+      if (previousCampaign) {
+        const selectedOffsetKeys = new Set(campaign.reminders.map((reminder) => reminder.offsetDays));
+        const removedAgendaIds = previousCampaign.reminders
+          .filter((reminder) => !selectedOffsetKeys.has(reminder.offsetDays))
+          .map((reminder) => reminder.agendaItemId)
+          .filter((id): id is string => Boolean(id));
+        if (removedAgendaIds.length > 0) {
+          await admin.from("Event").update({ status: "ARCHIVED", updatedAt: new Date().toISOString() }).in("id", removedAgendaIds).eq("communityId", communityId);
+        }
+        campaign.reminders = campaign.reminders.map((reminder) => {
+          const previous = previousCampaign.reminders.find((item) => item.offsetDays === reminder.offsetDays);
+          return previous
+            ? { ...reminder, agendaItemId: previous.agendaItemId, publishedDraftId: previous.publishedDraftId, status: previous.status }
+            : reminder;
+        });
+      }
+      campaign.reminders = await syncAgendaEntries(admin, communityId, campaign, timezone);
+      const next = getNextPendingReminder(campaign, timezone);
+      const automation = await upsertCampaignAutomation(admin, communityId, existing, campaign, {
+        isActive: Boolean(next),
+        status: next ? "ACTIVE" : "DRAFT",
+        nextRunAt: next?.runAt.toISOString() ?? null,
+      });
+      return NextResponse.json({ automation, instagramSkipped });
+    }
 
     // ── check-duplicate : une campagne existe-t-elle déjà pour cet événement ? ──
     if (mode === "check-duplicate") {

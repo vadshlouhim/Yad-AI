@@ -26,6 +26,12 @@ import {
   nextWeeklyImagesRunAt,
 } from "./weekly-images";
 import {
+  fetchDailyStudy,
+  getHayomYomAccess,
+  getHayomYomSettings,
+  nextHayomYomRunAt,
+} from "./hayom-yom";
+import {
   getMonthlySettings,
   getProgramHistory as getMonthlyProgramHistory,
   getRecapHistory as getMonthlyRecapHistory,
@@ -268,21 +274,34 @@ async function processAutomation(
 
   console.log(`[Automation] Déclenchement: ${automation.name} (${automation.trigger})`);
 
-  const { data: run } = await supabase
+  const hayomSettings = getHayomYomSettings(automation.triggerConfig);
+  const runId = hayomSettings
+    ? `hayom-yom:${automation.id}:${dateISOInTz(now, hayomSettings.timezone)}`
+    : crypto.randomUUID();
+  const { data: run, error: runError } = await supabase
     .from("AutomationRun")
-    .insert({ id: crypto.randomUUID(), automationId: automation.id, status: "RUNNING" })
+    .insert({ id: runId, automationId: automation.id, status: "RUNNING" })
     .select()
     .single();
 
+  if (runError?.code === "23505") return;
+  if (runError) throw runError;
   if (!run) return;
 
   try {
-    await executeAutomationActions(automation);
+    const outcome = await executeAutomationActions(automation);
 
     await supabase
       .from("AutomationRun")
       .update({ status: "SUCCESS", completedAt: new Date().toISOString() })
       .eq("id", run.id);
+
+    if (outcome === "paused") {
+      await supabase.from("Automation").update({
+        lastRunAt: now.toISOString(), nextRunAt: null, isActive: false, status: "PAUSED", updatedAt: new Date().toISOString(),
+      }).eq("id", automation.id);
+      return;
+    }
 
     const nextRun = computeNextRunAt(automation, now);
     await supabase
@@ -333,6 +352,7 @@ async function prepareAutomationNotification(automation: AutomationWithCommunity
   if (getRecapSettingsFromTriggerConfig(automation.triggerConfig)) return;
   if (getWeeklyImagesSettings(automation.triggerConfig)) return;
   if (getMonthlySettings(automation.triggerConfig)) return;
+  if (getHayomYomSettings(automation.triggerConfig)) return;
 
   const leadHours = getNotificationLeadHours(automation);
   if (leadHours === 0) return; // 0h = pas de pré-notification, exécution directe à l'heure exacte
@@ -528,6 +548,10 @@ async function shouldTrigger(automation: Automation, now: Date): Promise<boolean
     return hasPreciseNextRun ? now >= nextRunAt : false;
   }
 
+  if (getHayomYomSettings(config)) {
+    return hasPreciseNextRun ? now >= nextRunAt : false;
+  }
+
   switch (automation.trigger as AutomationTrigger) {
     case "WEEKLY_SHABBAT": {
       // Si nextRunAt est défini et atteint (déjà vérifié avant le switch), on déclenche
@@ -634,7 +658,7 @@ async function shouldTrigger(automation: Automation, now: Date): Promise<boolean
 
 /**
  * Déclenche le prochain rappel dû d'une campagne J-10/J-5 : génère le contenu,
- * demande toujours une validation humaine, met à jour le statut du rappel et
+ * respecte le mode de publication choisi, met à jour le statut du rappel et
  * recalcule l'état de la campagne dans triggerConfig.
  */
 async function executeEventReminderCampaign(
@@ -650,8 +674,7 @@ async function executeEventReminderCampaign(
     getDueReminder(campaign, now, timezone) ?? getNextPendingReminder(campaign, timezone)?.reminder ?? null;
   if (!due) return;
 
-  // Les campagnes événementielles ne publient jamais sans validation explicite.
-  const requiresValidation = true;
+  const requiresValidation = campaign.scheduleMode !== "automatic";
   const labelText = due.label || reminderLabel(due.offsetDays, due.exactDate);
   const imageUrl = due.visualUrl ?? campaign.mainVisualUrl ?? null;
 
@@ -659,6 +682,14 @@ async function executeEventReminderCampaign(
     communityId: automation.community.id,
     contentType: "EVENT_REMINDER" as never,
     eventId: campaign.eventId ?? undefined,
+    customInstructions: [
+      `Événement : ${campaign.eventName}`,
+      `Date : ${campaign.eventDate}`,
+      campaign.eventTime ? `Heure : ${campaign.eventTime}` : null,
+      campaign.eventLocation ? `Lieu : ${campaign.eventLocation}` : null,
+      `Rappel : ${labelText}`,
+      "Rédige un rappel fidèle à ces informations, sans inventer de détail.",
+    ].filter(Boolean).join("\n"),
   });
 
   const { data: draft } = await supabase
@@ -707,12 +738,32 @@ async function executeEventReminderCampaign(
         .select("id")
         .eq("communityId", automation.community.id)
         .in("type", socialChannels as never[])
-        .eq("isActive", true);
+        .eq("isActive", true)
+        .eq("isConnected", true);
 
       if (channels && channels.length > 0) {
         const channelIds = channels.map((c) => c.id);
         await createPublicationsFromDraft({ draftId: draft.id, communityId: automation.community.id, channelIds });
-        await publishToAllChannels(draft.id, channelIds);
+        const results = await publishToAllChannels(draft.id, channelIds);
+        const failures = channelIds.filter((channelId) => results[channelId]?.success !== true);
+        if (failures.length > 0) newStatus = "ERROR";
+        if (notifyUsers && notifyUsers.length > 0) {
+          const successfulCount = channelIds.length - failures.length;
+          const title = failures.length === 0 ? `${labelText} publié` : `${labelText} : publication incomplète`;
+          const body = failures.length === 0
+            ? `Le rappel pour « ${campaign.eventName} » a été publié automatiquement.`
+            : `${successfulCount} publication(s) réussie(s), ${failures.length} en échec. Consultez l’historique des publications.`;
+          const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
+            communityId: automation.community.id,
+            type: failures.length === 0 ? "PUBLICATION_SUCCESS" : "PUBLICATION_FAILED",
+            title,
+            body,
+            link: "/dashboard/publications",
+            dedupeKey: `event-reminder-auto-result:${automation.id}:${due.id}`,
+            data: { draftId: draft.id, automationId: automation.id, reminderId: due.id },
+          });
+          await Promise.allSettled(notifiedUsers.map((user) => notifyUser(supabase, user.id, { title, body, link: "/dashboard/publications" })));
+        }
       } else if (notifyUsers && notifyUsers.length > 0) {
         newStatus = "ERROR";
         await insertAutomationNotificationsOnce(supabase, notifyUsers, {
@@ -815,7 +866,7 @@ async function executeEventRecapNotifications(automation: AutomationWithCommunit
     if (notifyUsers && notifyUsers.length > 0) {
       const title = `Récap : ${event.title}`;
       const body = `Hier, c'était votre événement « ${event.title} ». N'oubliez pas de publier quelques photos sur vos réseaux. Voulez-vous créer une publication récap ?`;
-      const link = `/dashboard/event-recap-auto?eventId=${event.id}`;
+      const link = `/dashboard/recap-auto?scope=event&eventId=${event.id}`;
       const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
         communityId: automation.community.id,
         type: "AI_CONTENT_READY",
@@ -918,8 +969,8 @@ async function insertAutomationNotificationsOnce(
 }
 
 /**
- * Programme & récap du mois : notifie au bon jour (1er / dernier jour, reporté
- * hors Chabbat/Yom Tov) selon l'occurrence due. Aucune génération auto.
+ * Récap du mois : notifie le dernier jour, reporté hors Chabbat/Yom Tov.
+ * Aucune génération ni publication n'est lancée sans validation humaine.
  */
 async function executeMonthlyProgramRecapNotification(automation: AutomationWithCommunity, now: Date): Promise<void> {
   const supabase = createAdminClient();
@@ -942,26 +993,22 @@ async function executeMonthlyProgramRecapNotification(automation: AutomationWith
   const todayISO = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
 
   if (notifyUsers && notifyUsers.length > 0) {
-    const isProgram = due.type === "program";
-    const title = isProgram ? "Programme du mois" : "Récap du mois";
-    const body = isProgram
-      ? "Le nouveau mois commence. Voulez-vous préparer le programme des événements à venir ?"
-      : "Le mois se termine. Voulez-vous préparer un récap en images des événements du mois ?";
-    const link = `/dashboard/monthly-program-recap-auto?type=${due.type}`;
+    const title = "Récap du mois";
+    const body = "Le mois se termine. Voulez-vous préparer un récap en images des événements du mois ?";
+    const link = `/dashboard/recap-auto?scope=monthly&month=${due.key}`;
     const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
       communityId: automation.community.id,
       type: "AI_CONTENT_READY",
       title,
       body,
       link,
-      dedupeKey: `monthly-program-recap:${automation.id}:${due.type}:${due.key}`,
-      data: { automationId: automation.id, monthly: true, runType: due.type, monthKey: due.key },
+      dedupeKey: `monthly-recap:${automation.id}:${due.key}`,
+      data: { automationId: automation.id, monthly: true, runType: "recap", monthKey: due.key },
     });
     await Promise.allSettled(notifiedUsers.map((user) => notifyUser(supabase, user.id, { title, body, link })));
   }
 
-  if (due.type === "program") programHistory[due.key] = { status: "NOTIFIED", notifiedOn: todayISO };
-  else recapHistory[due.key] = { status: "NOTIFIED", notifiedOn: todayISO };
+  recapHistory[due.key] = { status: "NOTIFIED", notifiedOn: todayISO };
 
   const config = (automation.triggerConfig ?? {}) as Record<string, unknown>;
   const newTriggerConfig = { ...config, programHistory, recapHistory };
@@ -972,10 +1019,155 @@ async function executeMonthlyProgramRecapNotification(automation: AutomationWith
     .eq("id", automation.id);
 }
 
+async function notifyHayomYomOutcome(params: {
+  automation: AutomationWithCommunity;
+  dateISO: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  data?: Record<string, unknown>;
+}) {
+  const supabase = createAdminClient();
+  const { data: users } = await supabase.from("profiles").select("id")
+    .eq("communityId", params.automation.community.id)
+    .in("role", ["SUPER_ADMIN", "ADMIN"]);
+  if (!users?.length) return;
+  const link = "/dashboard/hayom-yom-sefer-hamitsvot";
+  const notifiedUsers = await insertAutomationNotificationsOnce(supabase, users, {
+    communityId: params.automation.community.id,
+    type: params.type,
+    title: params.title,
+    body: params.body,
+    link,
+    dedupeKey: `hayom-yom:${params.automation.id}:${params.dateISO}:${params.type}`,
+    data: { automationId: params.automation.id, date: params.dateISO, ...params.data },
+  });
+  await Promise.allSettled(notifiedUsers.map((user) => notifyUser(supabase, user.id, {
+    title: params.title, body: params.body, link,
+  })));
+}
+
+async function executeHayomYomPublication(
+  automation: AutomationWithCommunity,
+): Promise<"paused" | void> {
+  const settings = getHayomYomSettings(automation.triggerConfig);
+  if (!settings || settings.status !== "active") return;
+  const supabase = createAdminClient();
+  const dateISO = dateISOInTz(new Date(), settings.timezone);
+
+  const access = await getHayomYomAccess({ admin: supabase, communityId: automation.community.id });
+  if (!access.allowed) {
+    const config = (automation.triggerConfig ?? {}) as Record<string, unknown>;
+    const pausedConfig = { ...config, hayomYomSettings: { ...settings, status: "paused" } };
+    automation.triggerConfig = pausedConfig as never;
+    await supabase.from("Automation").update({ triggerConfig: pausedConfig as never, updatedAt: new Date().toISOString() }).eq("id", automation.id);
+    await notifyHayomYomOutcome({
+      automation, dateISO, type: "SUBSCRIPTION_EXPIRING",
+      title: "Automatisation mise en pause",
+      body: "Votre abonnement ne permet plus la publication automatique du Hayom Yom et du Sefer Hamitsvot.",
+    });
+    return "paused";
+  }
+
+  if (!isAllowedRecapDay(dateISO, settings.timezone)) {
+    await notifyHayomYomOutcome({
+      automation, dateISO, type: "AUTOMATION_TRIGGERED",
+      title: "Publication annulée aujourd’hui",
+      body: "Aucune publication Hayom Yom et Sefer Hamitsvot n’a été envoyée, car aujourd’hui est Chabbat ou Yom Tov.",
+      data: { outcome: "SKIPPED_RELIGIOUS_DAY" },
+    });
+    return;
+  }
+
+  let study;
+  try {
+    study = await fetchDailyStudy(dateISO);
+  } catch (error) {
+    await notifyHayomYomOutcome({
+      automation, dateISO, type: "AUTOMATION_FAILED",
+      title: "Publication automatique annulée",
+      body: `Les textes du jour n’ont pas pu être récupérés : ${error instanceof Error ? error.message : "source indisponible"}`,
+      data: { outcome: "SOURCE_FAILED" },
+    });
+    return;
+  }
+
+  const { data: channel } = await supabase.from("Channel").select("*")
+    .eq("communityId", automation.community.id)
+    .eq("type", "FACEBOOK")
+    .eq("isConnected", true)
+    .eq("isActive", true)
+    .maybeSingle();
+  if (!channel) {
+    await notifyHayomYomOutcome({
+      automation, dateISO, type: "CHANNEL_DISCONNECTED",
+      title: "Facebook doit être reconnecté",
+      body: "La publication automatique n’a pas été envoyée, car aucune page Facebook active n’est connectée.",
+      data: { outcome: "CHANNEL_MISSING" },
+    });
+    return;
+  }
+
+  const { data: draft, error: draftError } = await supabase.from("ContentDraft").insert({
+    id: crypto.randomUUID(),
+    communityId: automation.community.id,
+    eventId: null,
+    title: `Hayom Yom et Sefer Hamitsvot — ${study.dateLabel}`,
+    body: study.facebookText,
+    bodyHebrew: null,
+    hashtags: [],
+    cta: null,
+    imageUrl: null,
+    contentType: "DAILY_CONTENT",
+    status: "READY_TO_PUBLISH",
+    aiGenerated: false,
+    aiModel: null,
+    updatedAt: new Date().toISOString(),
+  }).select().single();
+  if (draftError || !draft) throw draftError ?? new Error("Brouillon introuvable");
+
+  const { data: publication, error: publicationError } = await supabase.from("Publication").insert({
+    id: crypto.randomUUID(),
+    communityId: automation.community.id,
+    eventId: null,
+    draftId: draft.id,
+    channelId: channel.id,
+    channelType: "FACEBOOK",
+    status: "PENDING",
+    content: study.facebookText,
+    mediaUrls: [],
+    metadata: {
+      automationId: automation.id,
+      date: dateISO,
+      hayomYomUrl: study.hayomYomUrl,
+      seferHamitsvotUrl: study.seferHamitsvotUrl,
+      source: "Beth Loubavitch",
+    },
+    updatedAt: new Date().toISOString(),
+  }).select("*, channel:Channel(*)").single();
+  if (publicationError || !publication) throw publicationError ?? new Error("Publication introuvable");
+
+  const result = await publishToChannel(publication as Publication & { channel: Channel }, { createNotification: false });
+  await notifyHayomYomOutcome({
+    automation,
+    dateISO,
+    type: result.success ? "PUBLICATION_SUCCESS" : "PUBLICATION_FAILED",
+    title: result.success ? "Études quotidiennes publiées" : "Échec de la publication Facebook",
+    body: result.success
+      ? "Le Hayom Yom et le Sefer Hamitsvot ont été publiés automatiquement sur Facebook."
+      : `La publication Facebook a échoué : ${result.error ?? "erreur inconnue"}`,
+    data: { publicationId: publication.id, externalUrl: result.externalUrl ?? null, outcome: result.success ? "PUBLISHED" : "FAILED" },
+  });
+}
+
 export async function executeAutomationActions(
   automation: AutomationWithCommunity
-): Promise<void> {
+): Promise<"paused" | void> {
   const supabase = createAdminClient();
+
+  if (getHayomYomSettings(automation.triggerConfig)) {
+    return executeHayomYomPublication(automation);
+  }
 
   // Campagne J-10/J-5 : logique dédiée (un rappel par déclenchement).
   const campaign = getCampaignFromTriggerConfig(automation.triggerConfig);
@@ -1296,6 +1488,11 @@ function computeNextRunAt(automation: Automation, now: Date): Date | null {
   const weeklyImagesSettings = getWeeklyImagesSettings(config);
   if (weeklyImagesSettings) {
     return weeklyImagesSettings.status === "active" ? nextWeeklyImagesRunAt(weeklyImagesSettings, now) : null;
+  }
+
+  const hayomYomSettings = getHayomYomSettings(config);
+  if (hayomYomSettings) {
+    return hayomYomSettings.status === "active" ? nextHayomYomRunAt(hayomYomSettings, now) : null;
   }
 
   // Programme & récap du mois : prochaine occurrence (programme ou récap).

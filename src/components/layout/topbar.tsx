@@ -64,7 +64,16 @@ function SocialAgentBubble() {
 }
 
 function AutomationAgentBubble() {
-  return <SingleAgentBubble src={DAVID_AUTOMATION_IMAGE_URL} />;
+  return (
+    <span className="relative z-20 flex h-16 w-[4.9rem] shrink-0 items-center justify-center self-center overflow-visible">
+      <img
+        src={DAVID_AUTOMATION_IMAGE_URL}
+        alt=""
+        aria-hidden="true"
+        className="absolute -top-3 z-20 h-20 w-16 object-contain object-top drop-shadow-[0_10px_14px_rgba(15,23,42,0.18)]"
+      />
+    </span>
+  );
 }
 
 function SingleAgentBubble({ src }: { src: string }) {
@@ -194,8 +203,13 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
     return section.items.map((item) => {
       const active = !item.disabled && isActive(item.href);
       const isExternal = item.external || item.href.startsWith("mailto");
+      const isSocialPublisher = item.href === "/dashboard/social-networks";
       const itemClass = item.disabled
         ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400 opacity-80"
+        : item.featured
+          ? active
+            ? "border border-[#35106f] bg-[#35106f] font-black text-white"
+            : "border border-[#421388] bg-[#421388] font-black text-white hover:bg-[#35106f]"
         : active
           ? style.itemActive
           : cn("text-slate-700", style.itemHover);
@@ -203,12 +217,26 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
       const content = (
         <>
           {item.icon && (
-            <item.icon
-              className={cn("size-4 shrink-0", item.disabled ? "text-slate-400" : active ? "text-current" : style.itemIcon)}
-            />
+            item.iconSurfaceClass ? (
+              <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-xl", item.iconSurfaceClass)}>
+                <item.icon
+                  className={cn(
+                    "size-4",
+                    item.disabled ? "text-slate-400" : item.iconClass ?? (active ? "text-current" : isSocialPublisher ? "text-fuchsia-700" : style.itemIcon)
+                  )}
+                />
+              </span>
+            ) : (
+              <item.icon
+                className={cn(
+                  "size-4 shrink-0",
+                  item.disabled ? "text-slate-400" : item.iconClass ?? (active ? "text-current" : isSocialPublisher ? "text-fuchsia-700" : style.itemIcon)
+                )}
+              />
+            )
           )}
           <span className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate font-medium">{item.label}</span>
+            <span className={cn("truncate", item.featured ? "font-black" : "font-medium")}>{item.label}</span>
           </span>
           {item.badge && (
             <span
@@ -242,16 +270,23 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
       }
 
       return (
-        <Link
-          key={`${section.section}-${item.href}`}
-          href={item.href}
-          target={isExternal ? "_blank" : undefined}
-          rel={isExternal ? "noopener noreferrer" : undefined}
-          onClick={() => setMobileNavOpen(false)}
-          className={cn("flex min-w-0 items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all duration-200", itemClass)}
-        >
-          {content}
-        </Link>
+        <div key={`${section.section}-${item.href}`} className={item.featured ? "mt-3 border-t border-slate-200 pt-3" : "contents"}>
+          <Link
+            href={item.href}
+            target={isExternal ? "_blank" : undefined}
+            rel={isExternal ? "noopener noreferrer" : undefined}
+            onClick={() => setMobileNavOpen(false)}
+            className={cn(
+              "flex min-w-0 items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all duration-200",
+              itemClass,
+              isSocialPublisher && !active && "border border-fuchsia-200 bg-fuchsia-50 font-bold text-fuchsia-900 shadow-sm",
+              isSocialPublisher && active && "border border-fuchsia-600 bg-[#6f174f] font-bold text-white shadow-md shadow-fuchsia-200"
+            )}
+            data-featured={isSocialPublisher || item.featured || undefined}
+          >
+            {content}
+          </Link>
+        </div>
       );
     });
   }

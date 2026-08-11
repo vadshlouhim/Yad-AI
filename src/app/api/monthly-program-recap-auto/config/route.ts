@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { generateContent } from "@/lib/ai/engine";
 import { createPublicationsFromDraft, publishToAllChannels } from "@/lib/publishing/publisher";
 import {
   MONTHLY_PROGRAM_RECAP_AUTOMATION_NAME,
@@ -12,7 +13,6 @@ import {
   getMonthlySettings,
   getProgramHistory,
   getRecapHistory,
-  defaultProgramCaption,
   defaultRecapCaption,
   type MonthlySettings,
   type MonthlyChannel,
@@ -52,8 +52,8 @@ function sanitizeSettings(value: unknown, existing: MonthlySettings): MonthlySet
     timezone: stringOrEmpty(value.timezone) || existing.timezone,
     programNotificationDay: normalizeDay(value.programNotificationDay ?? existing.programNotificationDay, 1) || 1,
     programNotificationTime: normalizeTime(value.programNotificationTime ?? existing.programNotificationTime),
-    recapNotificationDay: normalizeDay(value.recapNotificationDay ?? existing.recapNotificationDay, 0),
-    recapNotificationTime: normalizeTime(value.recapNotificationTime ?? existing.recapNotificationTime),
+    recapNotificationDay: 0,
+    recapNotificationTime: DEFAULT_MONTHLY_TIME,
     selectedProgramBackgroundId: stringOrEmpty(value.selectedProgramBackgroundId) || existing.selectedProgramBackgroundId || null,
     selectedRecapBackgroundId: stringOrEmpty(value.selectedRecapBackgroundId) || existing.selectedRecapBackgroundId || null,
     channels: normalizeChannels(value.channels ?? existing.channels),
@@ -117,10 +117,10 @@ async function upsertMonthlyAutomation(
 
   const payload = {
     name: MONTHLY_PROGRAM_RECAP_AUTOMATION_NAME,
-    description: "Prépare le programme du mois sur Instagram et Facebook, après validation.",
+    description: "Prépare le récap des événements du mois sur Instagram et Facebook, après validation.",
     trigger: "CUSTOM_SCHEDULE" as const,
     triggerConfig,
-    actions: buildActions(settings.channels, "MONTHLY_EVENT_PROGRAM"),
+    actions: buildActions(settings.channels, "EVENT_RECAP"),
     isActive: state.isActive,
     status: state.status,
     nextRunAt: state.nextRunAt,
@@ -146,10 +146,14 @@ function currentMonthKey(timezone: string): string {
   return iso.slice(0, 7);
 }
 
+function requestedMonthKey(value: unknown, timezone: string) {
+  const monthKey = stringOrEmpty(value);
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(monthKey) ? monthKey : currentMonthKey(timezone);
+}
+
 async function publishMonthly(
   admin: Admin,
   communityId: string,
-  runType: "program" | "recap",
   body: Record<string, unknown>,
   community: { name: string | null; city: string | null; timezone: string | null },
   existing: AutomationRow | null,
@@ -159,11 +163,23 @@ async function publishMonthly(
 ) {
   const caption = stringOrEmpty(body.caption);
   const channels = normalizeChannels(body.channels);
+  const eventIds = Array.isArray(body.eventIds)
+    ? Array.from(new Set(body.eventIds.map(String).filter(Boolean))).slice(0, 50)
+    : [];
   const visualUrls = Array.isArray(body.visualUrls)
     ? (body.visualUrls as unknown[]).map(String).filter(Boolean).slice(0, MAX_RECAP_PHOTOS)
     : [];
   if (!caption) return NextResponse.json({ error: "Le texte de la publication est vide." }, { status: 400 });
   if (visualUrls.length === 0) return NextResponse.json({ error: "Ajoutez au moins un visuel." }, { status: 400 });
+  if (eventIds.length === 0) return NextResponse.json({ error: "Sélectionnez au moins un événement terminé." }, { status: 400 });
+
+  const { data: selectedEvents } = await admin
+    .from("Event")
+    .select("id,startDate,endDate")
+    .eq("communityId", communityId)
+    .in("id", eventIds);
+  const hasFinishedEvent = (selectedEvents ?? []).some((event) => new Date(event.endDate ?? event.startDate) <= new Date());
+  if (!hasFinishedEvent) return NextResponse.json({ error: "Aucun événement sélectionné n'est encore terminé." }, { status: 400 });
 
   const { data: socialChannels } = await admin
     .from("Channel")
@@ -182,10 +198,10 @@ async function publishMonthly(
   await admin.from("ContentDraft").insert({
     id: draftId,
     communityId,
-    title: runType === "program" ? "Programme du mois" : "Récap du mois",
+    title: "Récap du mois",
     body: caption,
     imageUrl: visualUrls[0],
-    contentType: "GENERAL" as never,
+    contentType: "EVENT_RECAP" as never,
     status: "APPROVED",
     aiGenerated: true,
     createdAt: nowIso,
@@ -205,9 +221,8 @@ async function publishMonthly(
     };
   });
 
-  const key = currentMonthKey(community.timezone ?? "Europe/Paris");
-  if (runType === "program") programHistory[key] = { status: "PUBLISHED", publishedAt: nowIso, draftId };
-  else recapHistory[key] = { status: "PUBLISHED", publishedAt: nowIso, draftId };
+  const key = requestedMonthKey(body.monthKey, community.timezone ?? "Europe/Paris");
+  recapHistory[key] = { status: "PUBLISHED", publishedAt: nowIso, draftId };
 
   await upsertMonthlyAutomation(admin, communityId, existing, settings, programHistory, recapHistory, {
     isActive: existing?.isActive ?? true,
@@ -248,12 +263,11 @@ export async function POST(request: Request) {
     }
 
     if (mode === "save-selection") {
-      const runType = stringOrEmpty(body.runType);
       const templateId = stringOrEmpty(body.templateId);
       if (!templateId) return NextResponse.json({ error: "Fond manquant." }, { status: 400 });
       const settings: MonthlySettings = {
         ...currentSettings,
-        ...(runType === "recap" ? { selectedRecapBackgroundId: templateId } : { selectedProgramBackgroundId: templateId }),
+        selectedRecapBackgroundId: templateId,
       };
       const automation = await upsertMonthlyAutomation(admin, communityId, existing, settings, programHistory, recapHistory, {
         isActive: existing?.isActive ?? false,
@@ -288,18 +302,49 @@ export async function POST(request: Request) {
       return NextResponse.json(automation);
     }
 
-    if (mode === "prepare-program") {
-      return NextResponse.json({ caption: defaultProgramCaption({ city: community.city, communityName: community.name }) });
-    }
     if (mode === "prepare-recap") {
-      return NextResponse.json({ caption: defaultRecapCaption({ city: community.city, communityName: community.name }) });
+      const eventIds = Array.isArray(body.eventIds)
+        ? Array.from(new Set(body.eventIds.map(String).filter(Boolean))).slice(0, 50)
+        : [];
+      const { data: events } = eventIds.length
+        ? await admin
+            .from("Event")
+            .select("id,title,startDate,endDate,location")
+            .eq("communityId", communityId)
+            .in("id", eventIds)
+            .order("startDate", { ascending: true })
+        : { data: [] };
+      const finishedEvents = (events ?? []).filter((event) => new Date(event.endDate ?? event.startDate) <= now);
+      if (!finishedEvents.length) return NextResponse.json({ error: "Sélectionnez au moins un événement terminé." }, { status: 400 });
+
+      const eventDetails = finishedEvents.map((event) => {
+        const date = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: timezone }).format(new Date(event.startDate));
+        return `- ${event.title} — ${date}${event.location ? ` — ${event.location}` : ""}`;
+      }).join("\n");
+      const fallback = `${defaultRecapCaption({ city: community.city, communityName: community.name })}\n\n${finishedEvents.map((event) => event.title).join(" · ")}`;
+      try {
+        const generated = await generateContent({
+          communityId,
+          contentType: "EVENT_RECAP",
+          customInstructions: [
+            "Rédige un seul récap chaleureux et concis des événements communautaires ci-dessous.",
+            "Conserve exactement les noms, dates et lieux. N'invente aucune information.",
+            `Mois concerné : ${requestedMonthKey(body.monthKey, timezone)}.`,
+            eventDetails,
+          ].join("\n"),
+        });
+        return NextResponse.json({ caption: generated.body || fallback });
+      } catch {
+        return NextResponse.json({ caption: fallback });
+      }
     }
 
-    if (mode === "publish-program") {
-      return publishMonthly(admin, communityId, "program", body, community, existing, currentSettings, programHistory, recapHistory);
-    }
     if (mode === "publish-recap") {
-      return publishMonthly(admin, communityId, "recap", body, community, existing, currentSettings, programHistory, recapHistory);
+      return publishMonthly(admin, communityId, body, community, existing, currentSettings, programHistory, recapHistory);
+    }
+
+    if (mode === "prepare-program" || mode === "publish-program") {
+      return NextResponse.json({ error: "Le programme du mois a été remplacé par le récap automatique." }, { status: 410 });
     }
 
     return NextResponse.json({ error: "Action invalide" }, { status: 400 });

@@ -31,11 +31,6 @@ function stringOrEmpty(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function normalizeTime(value: unknown) {
-  const time = typeof value === "string" ? value.trim() : DEFAULT_RECAP_TIME;
-  return /^\d{2}:\d{2}$/.test(time) ? time : DEFAULT_RECAP_TIME;
-}
-
 function normalizeChannels(value: unknown): RecapChannel[] {
   if (!Array.isArray(value)) return [...DEFAULT_RECAP_SETTINGS.channels];
   const valid = value.filter((c): c is RecapChannel => (RECAP_CHANNELS as readonly string[]).includes(c as string));
@@ -46,7 +41,7 @@ function sanitizeSettings(value: unknown, existing: EventRecapSettings): EventRe
   if (!isRecord(value)) return existing;
   return {
     status: value.status === "paused" ? "paused" : "active",
-    notificationTime: normalizeTime(value.notificationTime ?? existing.notificationTime),
+    notificationTime: DEFAULT_RECAP_TIME,
     timezone: stringOrEmpty(value.timezone) || existing.timezone,
     channels: normalizeChannels(value.channels ?? existing.channels),
   };
@@ -215,8 +210,9 @@ export async function POST(request: Request) {
     if (mode === "prepare-recap") {
       const eventId = stringOrEmpty(body.eventId);
       if (!eventId) return NextResponse.json({ error: "Événement manquant." }, { status: 400 });
-      const { data: event } = await admin.from("Event").select("id, title").eq("id", eventId).eq("communityId", communityId).maybeSingle();
+      const { data: event } = await admin.from("Event").select("id, title, startDate, endDate").eq("id", eventId).eq("communityId", communityId).maybeSingle();
       if (!event) return NextResponse.json({ error: "Événement introuvable." }, { status: 404 });
+      if (new Date(event.endDate ?? event.startDate) > now) return NextResponse.json({ error: "Cet événement n'est pas encore terminé." }, { status: 400 });
       const generated = await generateContent({
         communityId,
         contentType: "EVENT_RECAP" as never,
@@ -235,12 +231,17 @@ export async function POST(request: Request) {
       if (!caption) return NextResponse.json({ error: "Le texte de la publication est vide." }, { status: 400 });
       if (photoUrls.length === 0) return NextResponse.json({ error: "Ajoutez au moins une photo." }, { status: 400 });
 
+      const { data: event } = await admin.from("Event").select("id,startDate,endDate").eq("id", eventId).eq("communityId", communityId).maybeSingle();
+      if (!event) return NextResponse.json({ error: "Événement introuvable." }, { status: 404 });
+      if (new Date(event.endDate ?? event.startDate) > now) return NextResponse.json({ error: "Cet événement n'est pas encore terminé." }, { status: 400 });
+
       const { data: socialChannels } = await admin
         .from("Channel")
         .select("id")
         .eq("communityId", communityId)
         .in("type", channels as never[])
-        .eq("isActive", true);
+        .eq("isActive", true)
+        .eq("isConnected", true);
 
       if (!socialChannels || socialChannels.length === 0) {
         return NextResponse.json(

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildDisplayName, normalizeAge, normalizeEmail, normalizePhone, type MemberInput } from "@/lib/contacts/normalize";
+import { hebrewBirthdayToGregorianISO, validateHebrewBirthday } from "@/lib/contacts/hebrew-birthday";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -57,7 +58,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   const { data: existing } = await admin
     .from("CommunityMember")
-    .select("id, source, tags, optInEmail, optInWhatsapp")
+    .select("id, source, tags, optInEmail, optInWhatsapp, birthDate, hebrewBirthDay, hebrewBirthMonth, hebrewBirthYear")
     .eq("id", id)
     .eq("communityId", communityId)
     .maybeSingle();
@@ -65,6 +66,16 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   const email = normalizeEmail(input.email);
   const phone = normalizePhone(input.phone);
+  const birthdayTouched = input.hebrewBirthDay !== undefined || input.hebrewBirthMonth !== undefined || input.hebrewBirthYear !== undefined;
+  const birthdayCleared = birthdayTouched && !input.hebrewBirthDay && !input.hebrewBirthMonth && !input.hebrewBirthYear;
+  const birthday = birthdayTouched && !birthdayCleared ? validateHebrewBirthday({
+    hebrewBirthDay: Number(input.hebrewBirthDay),
+    hebrewBirthMonth: Number(input.hebrewBirthMonth),
+    hebrewBirthYear: Number(input.hebrewBirthYear),
+  }) : null;
+  if (birthdayTouched && !birthdayCleared && !birthday) {
+    return NextResponse.json({ error: "Date d’anniversaire hébraïque invalide." }, { status: 400 });
+  }
   const update = {
     firstName: input.firstName?.trim() || null,
     lastName: input.lastName?.trim() || null,
@@ -73,7 +84,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     phone,
     profession: input.profession?.trim() || null,
     age: normalizeAge(input.age),
-    birthDate: input.birthDate || null,
+    birthDate: birthday ? hebrewBirthdayToGregorianISO(birthday) : birthdayCleared ? null : input.birthDate || existing.birthDate,
+    hebrewBirthDay: birthday?.hebrewBirthDay ?? (birthdayCleared ? null : existing.hebrewBirthDay),
+    hebrewBirthMonth: birthday?.hebrewBirthMonth ?? (birthdayCleared ? null : existing.hebrewBirthMonth),
+    hebrewBirthYear: birthday?.hebrewBirthYear ?? (birthdayCleared ? null : existing.hebrewBirthYear),
     address: input.address?.trim() || null,
     city: input.city?.trim() || null,
     familyStatus: input.familyStatus?.trim() || null,

@@ -28,7 +28,8 @@ export interface PublishPayload {
 }
 
 export async function publishToChannel(
-  publication: Publication & { channel: Channel }
+  publication: Publication & { channel: Channel },
+  options?: { createNotification?: boolean },
 ): Promise<PublishResult> {
   const supabase = createAdminClient();
   const { channel } = publication;
@@ -85,7 +86,9 @@ export async function publishToChannel(
       })
       .eq("id", publication.id);
 
-    await createPublicationNotification(publication, result);
+    if (options?.createNotification !== false) {
+      await createPublicationNotification(publication, result);
+    }
     return result;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Erreur inconnue";
