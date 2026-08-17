@@ -45,7 +45,6 @@ export default async function JewishBirthdaysPage() {
       birthdays={birthdays}
       currentHebrewDay={current.getDate()}
       currentMonth={`${getHebrewMonthLabel(current.getMonth(), current.getFullYear())} ${current.getFullYear()}`}
-      databaseReady={!error}
     />
   );
 }

@@ -9,6 +9,23 @@ async function getAuthorizedCommunity(userId: string) {
   return profile?.communityId ?? null;
 }
 
+function getSearchTerms(value: string) {
+  const ignoredWords = new Set([
+    "je", "tu", "il", "elle", "nous", "vous", "ils", "elles",
+    "un", "une", "des", "le", "la", "les", "de", "du", "au", "aux",
+    "et", "ou", "sur", "pour", "avec", "dans", "en", "que", "qui",
+    "cherche", "recherche", "besoin",
+  ]);
+
+  return value
+    .normalize("NFC")
+    .replace(/[^\p{L}\p{N}\s-]/gu, " ")
+    .split(/\s+/)
+    .map((term) => term.trim().toLocaleLowerCase("fr"))
+    .filter((term) => term.length >= 2 && !ignoredWords.has(term))
+    .slice(0, 6);
+}
+
 export async function GET(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -35,8 +52,9 @@ export async function GET(request: Request) {
     .order("createdAt", { ascending: false })
     .range(offset, offset + limit - 1);
 
-  if (q) {
-    query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+  const searchTerms = getSearchTerms(q);
+  for (const term of searchTerms) {
+    query = query.or(`title.ilike.%${term}%,description.ilike.%${term}%,keywords.cs.{${term}}`);
   }
   if (category && RESOURCE_CATEGORIES.includes(category as ResourceCategory)) {
     query = query.eq("category", category);

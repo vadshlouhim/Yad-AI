@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Check,
   CheckCircle2,
@@ -8,6 +9,7 @@ import {
   Crown,
   Download,
   Edit3,
+  ExternalLink,
   ImageIcon,
   Loader2,
   MapPin,
@@ -62,6 +64,13 @@ type FormState = {
   entry: string;
   exit: string;
   logoUrl: string;
+};
+
+type PublishResult = {
+  channelType: "FACEBOOK" | "INSTAGRAM";
+  success: boolean;
+  externalUrl: string | null;
+  error?: string | null;
 };
 
 type Props = {
@@ -149,6 +158,102 @@ function IphonePosterPreview({ template, imageUrl }: { template: Template; image
   );
 }
 
+function ShabbatPublishSuccessDialog({
+  results,
+  onClose,
+}: {
+  results: PublishResult[];
+  onClose: () => void;
+}) {
+  const successfulResults = results.filter((result) => result.success);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm"
+      onMouseDown={(event) => {
+        if (event.currentTarget === event.target) onClose();
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="shabbat-publish-success-title"
+        className="relative w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/80 bg-white text-center shadow-[0_30px_100px_rgba(15,23,42,0.4)]"
+      >
+        <div className="h-2 bg-gradient-to-r from-[#315ecb] via-[#d92d7c] to-[#f06b45]" />
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-5 flex size-10 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#421388]"
+          aria-label="Fermer"
+        >
+          <X className="size-5" />
+        </button>
+
+        <div className="p-6 sm:p-8">
+          <span className="mx-auto flex size-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shadow-sm shadow-emerald-200">
+            <CheckCircle2 className="size-9" />
+          </span>
+          <p className="mt-5 text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
+            Publication réussie
+          </p>
+          <h2 id="shabbat-publish-success-title" className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">
+            Votre affiche a été publiée
+          </h2>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500">
+            Retrouvez maintenant votre affiche des horaires de Chabbat sur {successfulResults.length === 1 ? "le réseau sélectionné" : "les réseaux sélectionnés"}.
+          </p>
+
+          <div className="mt-6 grid gap-3">
+            {successfulResults.map((result) => {
+              const isFacebook = result.channelType === "FACEBOOK";
+              const Icon = isFacebook ? FacebookMark : InstagramMark;
+              const fallbackUrl = isFacebook ? "https://www.facebook.com/" : "https://www.instagram.com/";
+
+              return (
+                <a
+                  key={result.channelType}
+                  href={result.externalUrl ?? fallbackUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "inline-flex min-h-13 w-full items-center justify-center gap-3 rounded-2xl px-4 text-sm font-black text-white shadow-md transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-4",
+                    isFacebook
+                      ? "bg-[#315ecb] shadow-blue-200 focus-visible:ring-blue-200"
+                      : "bg-gradient-to-r from-[#d92d7c] to-[#f06b45] shadow-rose-200 focus-visible:ring-rose-200"
+                  )}
+                >
+                  <span className={cn("flex size-9 items-center justify-center rounded-xl bg-white", isFacebook ? "text-[#315ecb]" : "text-[#d12d7e]")}>
+                    <Icon className="size-5" />
+                  </span>
+                  Voir sur {isFacebook ? "Facebook" : "Instagram"}
+                  <ExternalLink className="size-4 opacity-80" />
+                </a>
+              );
+            })}
+          </div>
+
+          <Button type="button" variant="outline" onClick={onClose} className="mt-4 h-11 w-full rounded-2xl border-slate-200 bg-white font-bold text-slate-700 hover:bg-slate-50">
+            Fermer
+          </Button>
+        </div>
+      </section>
+    </div>,
+    document.body
+  );
+}
+
 function TemplateImage({ template, className }: { template: Template; className?: string }) {
   const [source, setSource] = useState(template.previewUrl ?? template.thumbnailUrl);
 
@@ -228,6 +333,7 @@ export function ShabbatTimesSimpleClient({
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [publishSuccessResults, setPublishSuccessResults] = useState<PublishResult[] | null>(null);
   const [automationOpen, setAutomationOpen] = useState(false);
   const [automationTime, setAutomationTime] = useState("10:00");
   const [automationActive, setAutomationActive] = useState(Boolean(initialAutomation?.isActive));
@@ -252,14 +358,14 @@ export function ShabbatTimesSimpleClient({
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !generating && !publishing) setSelectedTemplate(null);
+      if (event.key === "Escape" && !generating && !publishing && !publishSuccessResults) setSelectedTemplate(null);
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", closeOnEscape);
     };
-  }, [generating, publishing, selectedTemplate]);
+  }, [generating, publishSuccessResults, publishing, selectedTemplate]);
 
   function updateForm(field: keyof FormState, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -277,6 +383,7 @@ export function ShabbatTimesSimpleClient({
     setAutomationOpen(false);
     setError("");
     setNotice("");
+    setPublishSuccessResults(null);
   }
 
   async function uploadLogo(file: File | null | undefined) {
@@ -405,10 +512,16 @@ export function ShabbatTimesSimpleClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: buildCaption(form), imageUrl: resultImageUrl, channels: publishChannels }),
       });
-      const data = await response.json().catch(() => ({})) as { successfulChannels?: string[]; error?: string };
+      const data = await response.json().catch(() => ({})) as {
+        successfulChannels?: string[];
+        results?: PublishResult[];
+        error?: string;
+      };
       if (!response.ok) throw new Error(data.error ?? "Publication impossible.");
       const names = (data.successfulChannels ?? []).map((channel) => channel === "FACEBOOK" ? "Facebook" : "Instagram");
       setNotice(names.length ? `Affiche publiée sur ${names.join(" et ")}.` : "Publication lancée.");
+      const successfulResults = (data.results ?? []).filter((result) => result.success);
+      if (successfulResults.length > 0) setPublishSuccessResults(successfulResults);
     } catch (publishError) {
       setError(publishError instanceof Error ? publishError.message : "Publication impossible.");
     } finally {
@@ -417,7 +530,7 @@ export function ShabbatTimesSimpleClient({
   }
 
   async function activateAutomation() {
-    if (!selectedTemplate || !resultImageUrl || savingAutomation) return;
+    if (!selectedTemplate || savingAutomation) return;
     setSavingAutomation(true);
     setError("");
     try {
@@ -564,9 +677,6 @@ export function ShabbatTimesSimpleClient({
 
             <div className="grid gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_360px]">
               <div className="space-y-5">
-                <div className="lg:hidden">
-                  <IphonePosterPreview template={selectedTemplate} imageUrl={resultImageUrl} />
-                </div>
                 {!resultImageUrl ? (
                   <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="flex items-start gap-3">
@@ -627,15 +737,38 @@ export function ShabbatTimesSimpleClient({
                   </div>
                 )}
 
+                <div className="rounded-[1.6rem] border border-amber-200 bg-amber-50 p-4 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white text-amber-600 shadow-sm"><Clock3 className="size-5" /></span>
+                    <div>
+                      <h3 className="font-black text-slate-950">Chaque semaine avec David</h3>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">Recevez l’affiche préparée le vendredi et validez-la avant publication.</p>
+                    </div>
+                  </div>
+                  {automationActive ? (
+                    <p className="mt-3 flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-black text-emerald-700"><CheckCircle2 className="size-4" />Rappel hebdomadaire actif</p>
+                  ) : automationOpen ? (
+                    <div className="mt-3 rounded-2xl bg-white p-3">
+                      <label className="text-xs font-black uppercase tracking-wide text-slate-500">
+                        Heure du rappel le vendredi
+                        <input type="time" value={automationTime} onChange={(event) => setAutomationTime(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-900 outline-none focus:border-amber-400" />
+                      </label>
+                      <Button type="button" className="mt-3 w-full rounded-xl bg-amber-500 font-black text-white hover:bg-amber-600" loading={savingAutomation} onClick={() => void activateAutomation()}>
+                        Activer avec validation
+                      </Button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => setAutomationOpen(true)} className="mt-3 w-full rounded-xl border border-amber-300 bg-white px-3 py-2.5 text-sm font-black text-amber-700 transition hover:bg-amber-100">
+                      Activer le rappel hebdomadaire
+                    </button>
+                  )}
+                </div>
+
                 {error && <p role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</p>}
                 {notice && <p className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800"><CheckCircle2 className="size-5 shrink-0" />{notice}</p>}
               </div>
 
               <aside className="space-y-4">
-                <div className="hidden lg:block">
-                  <IphonePosterPreview template={selectedTemplate} imageUrl={resultImageUrl} />
-                </div>
-
                 {resultImageUrl && (
                   <>
                     <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
@@ -681,35 +814,15 @@ export function ShabbatTimesSimpleClient({
                       </Button>
                     </div>
 
-                    <div className="rounded-[1.6rem] border border-amber-200 bg-amber-50 p-4">
-                      <div className="flex items-start gap-3">
-                        <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white text-amber-600 shadow-sm"><Clock3 className="size-5" /></span>
-                        <div>
-                          <h3 className="font-black text-slate-950">Chaque semaine avec David</h3>
-                          <p className="mt-1 text-xs leading-5 text-slate-600">Recevez l’affiche préparée le vendredi et validez-la avant publication.</p>
-                        </div>
-                      </div>
-                      {automationActive ? (
-                        <p className="mt-3 flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-black text-emerald-700"><CheckCircle2 className="size-4" />Rappel hebdomadaire actif</p>
-                      ) : automationOpen ? (
-                        <div className="mt-3 rounded-2xl bg-white p-3">
-                          <label className="text-xs font-black uppercase tracking-wide text-slate-500">
-                            Heure du rappel le vendredi
-                            <input type="time" value={automationTime} onChange={(event) => setAutomationTime(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-900 outline-none focus:border-amber-400" />
-                          </label>
-                          <Button type="button" className="mt-3 w-full rounded-xl bg-amber-500 font-black text-white hover:bg-amber-600" loading={savingAutomation} onClick={() => void activateAutomation()}>
-                            Activer avec validation
-                          </Button>
-                        </div>
-                      ) : (
-                        <button type="button" onClick={() => setAutomationOpen(true)} className="mt-3 w-full rounded-xl border border-amber-300 bg-white px-3 py-2.5 text-sm font-black text-amber-700 transition hover:bg-amber-100">
-                          Activer le rappel hebdomadaire
-                        </button>
-                      )}
-                    </div>
                   </>
                 )}
               </aside>
+            </div>
+
+            <div className="border-t border-violet-100 bg-white/55 px-4 pb-7 pt-6 sm:px-6 sm:pb-8">
+              <div className="mx-auto max-w-sm">
+                <IphonePosterPreview template={selectedTemplate} imageUrl={resultImageUrl} />
+              </div>
             </div>
           </section>
         </div>
@@ -729,6 +842,13 @@ export function ShabbatTimesSimpleClient({
           </div>
         </div>
       )}
+
+      {publishSuccessResults ? (
+        <ShabbatPublishSuccessDialog
+          results={publishSuccessResults}
+          onClose={() => setPublishSuccessResults(null)}
+        />
+      ) : null}
     </div>
   );
 }

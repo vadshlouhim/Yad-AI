@@ -65,11 +65,11 @@ export function FlightCompensationReviewsCarousel() {
   };
 
   return (
-    <section className="rounded-[2rem] border border-slate-200/90 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] px-5 py-8 shadow-[0_24px_60px_-38px_rgba(15,23,42,0.28)] sm:px-8 sm:py-10">
+    <section className="rounded-[2rem] border border-blue-100 bg-white px-5 py-8 shadow-[0_24px_60px_-38px_rgba(7,92,229,0.32)] sm:px-8 sm:py-10">
       <div className="mx-auto max-w-5xl">
         <div className="flex flex-col gap-4 border-b border-slate-100 pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-sky-50/80 px-3 py-1 text-xs font-semibold text-sky-700">
+            <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#075ce5]">
               <BadgeCheck className="size-3.5" />
               Avis vérifiés
             </div>
@@ -88,7 +88,7 @@ export function FlightCompensationReviewsCarousel() {
               size="icon"
               onClick={goToPrevious}
               aria-label="Voir l'avis précédent"
-              className="size-10 rounded-full border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
+              className="size-11 rounded-2xl border-blue-100 bg-blue-50 text-[#075ce5] shadow-sm hover:bg-blue-100"
             >
               <ChevronLeft className="size-4" />
             </Button>
@@ -98,7 +98,7 @@ export function FlightCompensationReviewsCarousel() {
               size="icon"
               onClick={goToNext}
               aria-label="Voir l'avis suivant"
-              className="size-10 rounded-full border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
+              className="size-11 rounded-2xl border-blue-100 bg-blue-50 text-[#075ce5] shadow-sm hover:bg-blue-100"
             >
               <ChevronRight className="size-4" />
             </Button>
@@ -112,10 +112,10 @@ export function FlightCompensationReviewsCarousel() {
           >
             {reviews.map((review, index) => (
               <article key={`${review.author}-${index}`} className="w-full shrink-0 px-1">
-                <div className="mx-auto flex min-h-[320px] max-w-3xl flex-col rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-[0_22px_45px_-34px_rgba(15,23,42,0.3)] sm:p-8">
+                <div className="mx-auto flex min-h-[320px] max-w-3xl flex-col rounded-[1.75rem] border border-blue-100 bg-blue-50/50 p-6 shadow-[0_22px_45px_-34px_rgba(7,92,229,0.35)] sm:p-8">
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 via-white to-slate-100 text-lg font-bold text-sky-800 shadow-inner ring-1 ring-sky-100">
+                      <div className="flex size-14 items-center justify-center rounded-2xl bg-[#075ce5] text-lg font-black text-white shadow-lg">
                         {review.author.charAt(0)}
                       </div>
                       <div>
@@ -162,7 +162,7 @@ export function FlightCompensationReviewsCarousel() {
               aria-label={`Afficher l'avis ${index + 1}`}
               className={cn(
                 "h-2.5 rounded-full transition-all duration-300",
-                index === activeIndex ? "w-8 bg-sky-700" : "w-2.5 bg-slate-300 hover:bg-slate-400",
+                index === activeIndex ? "w-8 bg-[#075ce5]" : "w-2.5 bg-blue-200 hover:bg-blue-300",
               )}
             />
           ))}

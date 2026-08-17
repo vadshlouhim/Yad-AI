@@ -21,6 +21,7 @@ const PUBLIC_ROUTES = [
   "/data-deletion",
   "/help",
   "/legal",
+  "/communication",
 ];
 
 function isPublicRoute(pathname: string): boolean {

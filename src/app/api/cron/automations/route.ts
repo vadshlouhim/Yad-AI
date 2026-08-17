@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { runAutomationEngine } from "@/lib/automation/engine";
 import { runDailyEmailAiClassification } from "@/lib/email/daily-ai";
 import { processScheduledPublications } from "@/lib/publishing/scheduled";
+import { runTargetedCommunication } from "@/lib/targeted-communication/runner";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -15,6 +16,7 @@ export async function GET(request: Request) {
 
     const startTime = Date.now();
     await runAutomationEngine();
+    const targeted = await runTargetedCommunication();
     const scheduled = await processScheduledPublications();
     await runDailyEmailAiClassification();
 
@@ -25,6 +27,7 @@ export async function GET(request: Request) {
       success: true,
       duration,
       scheduled,
+      targeted,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

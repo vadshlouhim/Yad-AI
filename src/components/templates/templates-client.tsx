@@ -3,13 +3,12 @@
 
 import { useMemo, useState } from "react";
 import { ArrowLeft, Check, Download, ImageIcon, Library, Loader2, Paintbrush, Search, Share2, Sparkles } from "lucide-react";
-import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
 import { UpgradeModal } from "@/components/billing/upgrade-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { BillingConfig, BillingUsage } from "@/lib/billing";
-import { AGENT_IMAGE_URLS } from "@/lib/agents";
 import { CATEGORY_EMOJI, CATEGORY_LABELS } from "@/lib/templates/shared";
+import { cn } from "@/lib/utils";
 
 interface Template {
   id: string;
@@ -79,6 +78,15 @@ interface GeneratedAsset {
 }
 
 type Step = "gallery" | "request" | "confirm" | "preview";
+
+const CATEGORY_TONES = [
+  "border-blue-300 bg-blue-50 text-blue-700",
+  "border-teal-300 bg-teal-50 text-teal-700",
+  "border-amber-300 bg-amber-50 text-amber-800",
+  "border-fuchsia-300 bg-fuchsia-50 text-fuchsia-700",
+  "border-violet-300 bg-violet-50 text-violet-700",
+  "border-rose-300 bg-rose-50 text-rose-700",
+];
 
 function templateImage(template: Template) {
   return template.previewUrl ?? template.thumbnailUrl ?? template.originalUrl;
@@ -292,25 +300,33 @@ export function TemplatesClient({
     return (
       <div className="space-y-7">
         {modal}
-        <AgentPageBanner eyebrow="Banque visuelle" title={galleryTitle} description={gallerySubtitle} icon={ImageIcon} titleIcon={Paintbrush} tone="rose" flat />
-        <section className="grid items-center gap-5 overflow-hidden rounded-[1.6rem] border border-rose-100 bg-gradient-to-br from-rose-50 via-white to-orange-50 p-5 md:grid-cols-[minmax(0,1fr)_auto]">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-700">Un parcours simple</p>
-            <h2 className="mt-2 text-xl font-black text-slate-900">Choisissez, expliquez, confirmez</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Gemini comprend votre demande et vous la présente clairement. Après votre confirmation, l’affiche est personnalisée en conservant son identité visuelle.</p>
+        <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_78%_8%,#8037ce_0%,#421388_48%,#210763_100%)] px-5 py-6 text-white shadow-[0_24px_58px_rgba(49,13,108,0.26)] sm:px-8 sm:py-8">
+          <div className="pointer-events-none absolute -right-10 -top-16 size-52 rounded-full bg-fuchsia-300/15 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-20 left-1/4 size-48 rounded-full bg-amber-300/10 blur-3xl" />
+          <div className="relative z-10 flex items-start gap-4">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-white shadow-lg ring-1 ring-white/20"><Paintbrush className="size-6" /></span>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-white/70">Banque visuelle</p>
+              <h1 className="mt-1 text-[clamp(1.8rem,8vw,2.6rem)] font-black leading-none tracking-[-0.04em]">{galleryTitle}</h1>
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-white/80">{gallerySubtitle}</p>
+              <span className="mt-4 inline-flex rounded-full bg-white/15 px-3 py-1.5 text-xs font-black ring-1 ring-white/20">{templates.length} affiches disponibles</span>
+            </div>
           </div>
-          <img src={AGENT_IMAGE_URLS.zalman} alt="" className="mx-auto h-36 w-32 object-contain" />
         </section>
 
         {showGalleryFilters && (
-          <Card><CardContent className="space-y-4 p-5">
-            <div className="relative max-w-xl">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher une affiche…" className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-4 text-sm outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-100" />
+          <Card className="overflow-hidden rounded-[2rem] border-violet-100 bg-[#fffaf4] shadow-[0_16px_42px_rgba(66,19,136,0.08)]"><CardContent className="space-y-5 p-4 sm:p-6">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#d92d7c]">Explorez les thèmes</p>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">Trouvez l’affiche idéale</h2>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant={category === null ? "default" : "outline"} onClick={() => setCategory(null)}>Toutes</Button>
-              {categories.map((item) => <Button key={item} size="sm" variant={category === item ? "default" : "outline"} onClick={() => setCategory(item)}>{CATEGORY_EMOJI[item] ?? "🖼️"} {CATEGORY_LABELS[item] ?? item}</Button>)}
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher une affiche…" className="w-full rounded-2xl border border-violet-100 bg-white py-3.5 pl-10 pr-4 text-sm shadow-sm outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100" />
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+              <button type="button" onClick={() => setCategory(null)} className={cn("min-h-12 rounded-2xl border px-3 text-sm font-black transition", category === null ? "border-[#421388] bg-gradient-to-r from-[#7130d8] to-[#421388] text-white shadow-lg shadow-violet-200" : "border-violet-200 bg-white text-violet-700 hover:bg-violet-50")}>Toutes <span className="ml-1 opacity-70">{templates.length}</span></button>
+              {categories.map((item, index) => <button key={item} type="button" onClick={() => setCategory(item)} className={cn("min-h-12 rounded-2xl border px-3 text-sm font-black transition hover:-translate-y-0.5", category === item ? "border-[#421388] bg-gradient-to-r from-[#7130d8] to-[#421388] text-white shadow-lg shadow-violet-200" : CATEGORY_TONES[index % CATEGORY_TONES.length])}>{CATEGORY_EMOJI[item] ?? "🖼️"} {CATEGORY_LABELS[item] ?? item} <span className="ml-1 opacity-70">{templates.filter((template) => template.category === item).length}</span></button>)}
             </div>
           </CardContent></Card>
         )}
@@ -318,16 +334,16 @@ export function TemplatesClient({
         {filteredTemplates.length === 0 ? (
           <Card><CardContent className="py-16 text-center text-slate-500"><ImageIcon className="mx-auto size-12" /><p className="mt-3 font-semibold">{emptyTitle}</p><p className="mt-1 text-sm">{emptyDescription}</p></CardContent></Card>
         ) : (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 xl:grid-cols-4">
             {filteredTemplates.map((template) => {
               const image = templateImage(template);
               const locked = freePosterAlreadyUsed || (plan === "FREE_TRIAL" && template.isPremium);
               return (
-                <button key={template.id} type="button" onClick={() => selectTemplate(template)} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-rose-300 hover:shadow-lg">
-                  <div className="aspect-[3/4] overflow-hidden bg-slate-100">
-                    {image ? <img src={image} alt={template.name} className="h-full w-full object-cover transition group-hover:scale-[1.02]" /> : <div className="flex h-full items-center justify-center"><ImageIcon className="size-10 text-slate-300" /></div>}
+                <button key={template.id} type="button" onClick={() => selectTemplate(template)} className="group overflow-hidden rounded-[1.4rem] border border-violet-100 bg-white text-left shadow-[0_10px_28px_rgba(66,19,136,0.08)] transition hover:-translate-y-1 hover:border-violet-300 hover:shadow-[0_18px_38px_rgba(66,19,136,0.14)] sm:rounded-[1.6rem]">
+                  <div className="aspect-[3/4] overflow-hidden bg-[#f7f3ee] p-1.5 sm:p-2">
+                    {image ? <img src={image} alt={template.name} className="h-full w-full rounded-[1rem] object-contain transition duration-300 group-hover:scale-[1.015]" /> : <div className="flex h-full items-center justify-center"><ImageIcon className="size-10 text-slate-300" /></div>}
                   </div>
-                  <div className="p-3"><p className="line-clamp-2 text-sm font-bold text-slate-900">{template.name}</p><p className="mt-1 text-xs text-slate-500">{locked ? "Réservée" : "Modifier cette affiche"}</p></div>
+                  <div className="p-3 sm:p-4"><span className="inline-flex rounded-full bg-violet-50 px-2 py-1 text-[10px] font-black uppercase text-violet-700">{CATEGORY_LABELS[template.category] ?? template.category}</span><p className="mt-2 line-clamp-2 text-sm font-black text-slate-900">{template.name}</p><p className={cn("mt-1 text-xs font-semibold", locked ? "text-amber-700" : "text-[#d92d7c]")}>{locked ? "Réservée" : "Personnaliser"}</p></div>
                 </button>
               );
             })}
@@ -344,14 +360,14 @@ export function TemplatesClient({
     return (
       <div className="mx-auto max-w-5xl space-y-6">
         {modal}
-        <Button variant="ghost" onClick={() => setStep("gallery")}><ArrowLeft className="mr-2 size-4" />Retour aux affiches</Button>
+        <Button variant="ghost" onClick={() => setStep("gallery")} className="rounded-xl font-black text-violet-700 hover:bg-violet-50"><ArrowLeft className="mr-2 size-4" />Retour aux affiches</Button>
         <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-          <Card className="overflow-hidden">{sourceImage && <img src={sourceImage} alt={selectedTemplate.name} className="w-full object-contain" />}</Card>
-          <Card><CardContent className="space-y-5 p-6">
-            <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-rose-700">{selectedTemplate.name}</p><h1 className="mt-2 text-2xl font-black text-slate-900">Que souhaitez-vous afficher ?</h1><p className="mt-2 text-sm leading-6 text-slate-600">Écrivez naturellement toutes les nouvelles informations. Gemini repérera les anciens textes à retirer ; si le template est vierge, il préparera leur ajout sans modifier le visuel.</p></div>
-            <textarea value={requestText} onChange={(event) => setRequestText(event.target.value)} rows={8} maxLength={4000} placeholder="Exemple : remplace la date par dimanche 18 septembre, mets 19h30 et indique que les familles et les étudiants sont invités. Tout le reste doit rester identique." className="w-full resize-y rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-6 outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-100" />
+          <Card className="overflow-hidden rounded-[2rem] border-violet-100 bg-[#f7f3ee] p-2 shadow-[0_16px_40px_rgba(66,19,136,0.1)]">{sourceImage && <img src={sourceImage} alt={selectedTemplate.name} className="w-full rounded-[1.5rem] object-contain" />}</Card>
+          <Card className="overflow-hidden rounded-[2rem] border-violet-100 bg-white shadow-[0_16px_40px_rgba(66,19,136,0.09)]"><CardContent className="space-y-5 p-5 sm:p-6">
+            <div className="flex items-start gap-3"><span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7130d8] to-[#d92d7c] text-white shadow-lg shadow-violet-200"><Sparkles className="size-5" /></span><div><p className="text-xs font-black uppercase tracking-[0.14em] text-[#d92d7c]">{selectedTemplate.name}</p><h1 className="mt-1 text-2xl font-black text-slate-900">Que souhaitez-vous afficher ?</h1><p className="mt-2 text-sm leading-6 text-slate-600">Écrivez naturellement toutes les nouvelles informations. Gemini repérera les anciens textes à retirer ; si le template est vierge, il préparera leur ajout sans modifier le visuel.</p></div></div>
+            <textarea value={requestText} onChange={(event) => setRequestText(event.target.value)} rows={8} maxLength={4000} placeholder="Exemple : remplace la date par dimanche 18 septembre, mets 19h30 et indique que les familles et les étudiants sont invités. Tout le reste doit rester identique." className="w-full resize-y rounded-2xl border border-violet-100 bg-[#fffaf4] px-4 py-3 text-sm leading-6 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100" />
             {error && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-            <Button onClick={() => void analyzeRequest()} disabled={loading || !requestText.trim()} className="w-full bg-rose-700 text-white hover:bg-rose-800">{loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Sparkles className="mr-2 size-4" />}{loading ? "Gemini analyse…" : "Comprendre ma demande"}</Button>
+            <Button onClick={() => void analyzeRequest()} disabled={loading || !requestText.trim()} className="min-h-12 w-full rounded-2xl bg-gradient-to-r from-[#7130d8] via-[#5c24ad] to-[#d92d7c] font-black text-white shadow-lg shadow-violet-200 hover:brightness-105">{loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Sparkles className="mr-2 size-4" />}{loading ? "Gemini analyse…" : "Comprendre ma demande"}</Button>
           </CardContent></Card>
         </div>
       </div>
@@ -363,12 +379,12 @@ export function TemplatesClient({
     return (
       <div className="mx-auto max-w-4xl space-y-6">
         {modal}
-        <Button variant="ghost" onClick={() => setStep("request")}><ArrowLeft className="mr-2 size-4" />Modifier ma demande</Button>
-        <Card><CardContent className="space-y-6 p-6">
-          <div><div className="flex items-center gap-2 text-emerald-700"><Check className="size-5" /><p className="text-xs font-bold uppercase tracking-[0.14em]">Compréhension de Gemini</p></div><h1 className="mt-2 text-2xl font-black text-slate-900">Confirmez les modifications</h1><p className="mt-2 text-sm leading-6 text-slate-600">{brief.summary}</p></div>
+        <Button variant="ghost" onClick={() => setStep("request")} className="rounded-xl font-black text-violet-700 hover:bg-violet-50"><ArrowLeft className="mr-2 size-4" />Modifier ma demande</Button>
+        <Card className="overflow-hidden rounded-[2rem] border-violet-100 bg-white shadow-[0_18px_46px_rgba(66,19,136,0.09)]"><CardContent className="space-y-6 p-5 sm:p-6">
+          <div className="flex items-start gap-3"><span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#16b86b] to-[#078e50] text-white shadow-lg shadow-emerald-200"><Check className="size-5" /></span><div><p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">Compréhension de Gemini</p><h1 className="mt-1 text-2xl font-black text-slate-900">Confirmez les modifications</h1><p className="mt-2 text-sm leading-6 text-slate-600">{brief.summary}</p></div></div>
           <div className="space-y-3">
             {brief.changes.map((change, index) => (
-              <div key={`${change.label}-${index}`} className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[160px_1fr_1fr]">
+              <div key={`${change.label}-${index}`} className="grid gap-3 rounded-2xl border border-violet-100 bg-[#fffaf4] p-4 md:grid-cols-[160px_1fr_1fr]">
                 <input value={change.label} onChange={(event) => updateChange(index, { label: event.target.value })} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold" aria-label="Type de modification" />
                 <div><p className="mb-1 text-xs font-semibold text-slate-500">Ancien texte détecté (facultatif)</p><input value={change.currentText} onChange={(event) => updateChange(index, { currentText: event.target.value })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" /></div>
                 <div><p className="mb-1 text-xs font-semibold text-emerald-700">Nouveau texte exact</p><input value={change.newText} onChange={(event) => updateChange(index, { newText: event.target.value })} className="w-full rounded-xl border border-emerald-300 bg-white px-3 py-2 text-sm font-semibold" /></div>
@@ -381,12 +397,12 @@ export function TemplatesClient({
           </div>
           <div>
             <p className="mb-2 text-sm font-bold text-slate-800">Plan d’édition préparé par Gemini</p>
-            <textarea value={brief.editPrompt} onChange={(event) => setBrief((current) => current ? { ...current, editPrompt: event.target.value } : current)} rows={5} maxLength={4000} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 outline-none focus:border-emerald-400" />
+            <textarea value={brief.editPrompt} onChange={(event) => setBrief((current) => current ? { ...current, editPrompt: event.target.value } : current)} rows={5} maxLength={4000} className="w-full rounded-2xl border border-violet-100 bg-[#fffaf4] px-4 py-3 text-sm leading-6 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100" />
           </div>
           {brief.missingInformation.length > 0 && <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"><p className="font-bold">Informations encore nécessaires</p>{brief.missingInformation.map((item) => <p key={item} className="mt-1">• {item}</p>)}<Button variant="outline" className="mt-3" onClick={() => setStep("request")}>Compléter ma demande</Button></div>}
           <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"><p className="font-bold">Ce qui restera inchangé</p><p className="mt-1">{brief.unchangedElements.join(", ") || "Le fond, les couleurs, les logos, les personnes, les illustrations et la composition générale."}</p></div>
           {error && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-          <Button onClick={() => void generatePoster()} disabled={loading || blocked} className="w-full bg-emerald-600 text-white hover:bg-emerald-700">{loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Check className="mr-2 size-4" />}{loading ? "Création de l’affiche…" : "Je confirme et je génère"}</Button>
+          <Button onClick={() => void generatePoster()} disabled={loading || blocked} className="min-h-12 w-full rounded-2xl bg-gradient-to-r from-[#16b86b] to-[#078e50] font-black text-white shadow-lg shadow-emerald-200 hover:brightness-105">{loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Check className="mr-2 size-4" />}{loading ? "Création de l’affiche…" : "Je confirme et je génère"}</Button>
         </CardContent></Card>
       </div>
     );
@@ -395,12 +411,12 @@ export function TemplatesClient({
   if (step === "preview" && generatedImageUrl) {
     return (
       <div className="mx-auto max-w-6xl space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3"><Button variant="ghost" onClick={() => setStep("confirm")}><ArrowLeft className="mr-2 size-4" />Retour</Button><div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => window.open(generatedImageUrl, "_blank", "noopener,noreferrer")}><Download className="mr-2 size-4" />Télécharger</Button><Button variant="outline" onClick={() => void shareGeneratedImage()}><Share2 className="mr-2 size-4" />Partager</Button></div></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><Button variant="ghost" onClick={() => setStep("confirm")} className="rounded-xl font-black text-violet-700 hover:bg-violet-50"><ArrowLeft className="mr-2 size-4" />Retour</Button><div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => window.open(generatedImageUrl, "_blank", "noopener,noreferrer")} className="rounded-xl border-blue-200 bg-blue-50 font-black text-blue-700 hover:bg-blue-100"><Download className="mr-2 size-4" />Télécharger</Button><Button variant="outline" onClick={() => void shareGeneratedImage()} className="rounded-xl border-fuchsia-200 bg-fuchsia-50 font-black text-fuchsia-700 hover:bg-fuchsia-100"><Share2 className="mr-2 size-4" />Partager</Button></div></div>
         <div className="grid gap-6 md:grid-cols-2">
-          <Card className="overflow-hidden"><CardContent className="p-3"><p className="mb-2 text-sm font-bold text-slate-500">Template original</p>{sourceImage && <img src={sourceImage} alt="Template original" className="w-full rounded-xl object-contain" />}</CardContent></Card>
-          <Card className="overflow-hidden border-emerald-200"><CardContent className="p-3"><p className="mb-2 text-sm font-bold text-emerald-700">Votre affiche personnalisée</p><img src={generatedImageUrl} alt="Affiche personnalisée" className="w-full rounded-xl object-contain" /></CardContent></Card>
+          <Card className="overflow-hidden rounded-[2rem] border-violet-100 bg-[#fffaf4] shadow-[0_14px_36px_rgba(66,19,136,0.08)]"><CardContent className="p-3"><p className="mb-2 text-sm font-black text-slate-500">Template original</p>{sourceImage && <img src={sourceImage} alt="Template original" className="w-full rounded-[1.5rem] object-contain" />}</CardContent></Card>
+          <Card className="overflow-hidden rounded-[2rem] border-emerald-200 bg-emerald-50/40 shadow-[0_18px_42px_rgba(16,185,129,0.14)]"><CardContent className="p-3"><p className="mb-2 flex items-center gap-2 text-sm font-black text-emerald-700"><Check className="size-4" />Votre affiche personnalisée</p><img src={generatedImageUrl} alt="Affiche personnalisée" className="w-full rounded-[1.5rem] object-contain" /></CardContent></Card>
         </div>
-        <Card className="border-violet-200 bg-violet-50"><CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-violet-950">Souhaitez-vous conserver cette création ?</p><p className="mt-1 text-sm text-violet-800">Enregistrez-la dans votre bibliothèque personnelle pour la retrouver, la télécharger ou la partager plus tard.</p></div><div className="flex flex-wrap gap-2"><Button onClick={() => void saveToLibrary()} disabled={savingLibrary || librarySaved} className="bg-violet-700 text-white hover:bg-violet-800">{savingLibrary ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Library className="mr-2 size-4" />}{librarySaved ? "Enregistrée" : "Enregistrer"}</Button>{librarySaved && <Button variant="outline" onClick={() => { window.location.href = "/dashboard/media-library"; }}>Voir mes créations</Button>}</div></CardContent></Card>
+        <Card className="overflow-hidden rounded-[2rem] border-violet-200 bg-gradient-to-br from-violet-50 to-fuchsia-50 shadow-[0_14px_36px_rgba(66,19,136,0.08)]"><CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-black text-violet-950">Souhaitez-vous conserver cette création ?</p><p className="mt-1 text-sm text-violet-800">Enregistrez-la dans votre bibliothèque personnelle pour la retrouver, la télécharger ou la partager plus tard.</p></div><div className="flex flex-wrap gap-2"><Button onClick={() => void saveToLibrary()} disabled={savingLibrary || librarySaved} className="rounded-xl bg-gradient-to-r from-[#7130d8] to-[#d92d7c] font-black text-white shadow-lg shadow-violet-200 hover:brightness-105">{savingLibrary ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Library className="mr-2 size-4" />}{librarySaved ? "Enregistrée" : "Enregistrer"}</Button>{librarySaved && <Button variant="outline" onClick={() => { window.location.href = "/dashboard/media-library"; }} className="rounded-xl border-violet-200 bg-white font-black text-violet-700">Voir mes créations</Button>}</div></CardContent></Card>
         {actionMessage && <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{actionMessage}</p>}
         {error && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       </div>

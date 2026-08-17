@@ -497,6 +497,7 @@ function InstagramPublishClient({ channelId, isConnected, communityName }: Props
         agentImageUrl={DOV_BER_INSTAGRAM_IMAGE}
         statusLabel={isConnected ? "Compte connecté" : "Connexion requise"}
         backHref="/dashboard/publications"
+        compactOnMobile
       />
 
       {!isConnected && (
@@ -928,6 +929,7 @@ function FacebookPublishClient({ channelId, isConnected, communityName }: Props)
         agentImageUrl={MENDY_FACEBOOK_IMAGE}
         statusLabel={isConnected ? "Facebook connecté" : "Connexion requise"}
         backHref="/dashboard/publications"
+        compactOnMobile
       />
 
       {!isConnected && (

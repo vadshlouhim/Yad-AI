@@ -1,0 +1,2093 @@
+
+> easycom-ai@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.3 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://172.20.136.161:3000
+- Environments: .env.local, .env
+✓ Ready in 6.0s
+Creating turbopack project {
+  dir: 'C:\\Users\\chlom\\Desktop\\projet EASYCOM-AI\\Yad-AI',
+  testMode: true
+}
+○ Compiling instrumentation Node.js ...
+[Automation Local Scheduler] Actif en developpement toutes les 30 secondes.
+
+ GET / 200 in 2.4s (next.js: 499ms, proxy.ts: 360ms, application-code: 1555ms)
+ GET / 200 in 2.4s (next.js: 34ms, proxy.ts: 2.0s, application-code: 367ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Automation] Déclenchement: Récap automatique après événement (DAILY)
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard 200 in 2.5s (next.js: 666ms, proxy.ts: 189ms, application-code: 1694ms)
+ GET /api/gmb/unread-count 200 in 3.6s (next.js: 2.7s, proxy.ts: 18ms, application-code: 945ms)
+ GET /api/gmb/unread-count 200 in 3.7s (next.js: 2.6s, proxy.ts: 41ms, application-code: 1017ms)
+ GET /dashboard/assistant 200 in 3.7s (next.js: 102ms, proxy.ts: 2.7s, application-code: 917ms)
+ GET /dashboard/assistant 200 in 969ms (next.js: 9ms, proxy.ts: 503ms, application-code: 458ms)
+ GET /api/conversations 200 in 484ms (next.js: 104ms, proxy.ts: 21ms, application-code: 359ms)
+ GET /api/conversations 200 in 306ms (next.js: 10ms, proxy.ts: 10ms, application-code: 286ms)
+ GET /api/community/daily-routine 200 in 805ms (next.js: 218ms, proxy.ts: 21ms, application-code: 566ms)
+ GET /api/community/daily-routine 200 in 394ms (next.js: 7ms, proxy.ts: 7ms, application-code: 380ms)
+ GET /dashboard/overview 200 in 1255ms (next.js: 134ms, proxy.ts: 106ms, application-code: 1014ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1946ms (next.js: 12ms, proxy.ts: 304ms, application-code: 1631ms)
+ GET /api/gmb/unread-count 200 in 738ms (next.js: 14ms, proxy.ts: 10ms, application-code: 714ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=social 200 in 1183ms (next.js: 9ms, proxy.ts: 326ms, application-code: 848ms)
+ GET /dashboard/overview 200 in 9.1s (next.js: 8.8s, proxy.ts: 275ms, application-code: 40ms)
+ GET /dashboard/overview 200 in 668ms (next.js: 26ms, proxy.ts: 590ms, application-code: 51ms)
+[Automation] Démarrage du moteur…
+ GET /dashboard/overview 200 in 3.9s (next.js: 19ms, proxy.ts: 405ms, application-code: 3.5s)
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1163ms (next.js: 219ms, proxy.ts: 361ms, application-code: 583ms)
+ GET /dashboard/overview 200 in 5.2s (next.js: 1554ms, proxy.ts: 572ms, application-code: 3.1s)
+ GET /dashboard/overview 200 in 1132ms (next.js: 14ms, proxy.ts: 231ms, application-code: 888ms)
+ GET /dashboard/overview 200 in 1111ms (next.js: 13ms, proxy.ts: 440ms, application-code: 657ms)
+ GET /dashboard/overview 200 in 1129ms (next.js: 16ms, proxy.ts: 670ms, application-code: 444ms)
+ GET /dashboard/overview 200 in 1296ms (next.js: 67ms, proxy.ts: 655ms, application-code: 573ms)
+ GET /dashboard/overview?module=automations 200 in 988ms (next.js: 9ms, proxy.ts: 165ms, application-code: 814ms)
+ GET /dashboard/overview 200 in 411ms (next.js: 10ms, proxy.ts: 388ms, application-code: 13ms)
+ GET /dashboard/overview 200 in 1077ms (next.js: 7ms, proxy.ts: 137ms, application-code: 934ms)
+ GET /dashboard/overview?module=targeted 200 in 1108ms (next.js: 9ms, proxy.ts: 344ms, application-code: 755ms)
+ GET /dashboard/overview 200 in 358ms (next.js: 10ms, proxy.ts: 320ms, application-code: 28ms)
+ GET /dashboard/overview 200 in 1064ms (next.js: 9ms, proxy.ts: 119ms, application-code: 936ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=email 200 in 1647ms (next.js: 9ms, proxy.ts: 828ms, application-code: 810ms)
+ GET /dashboard/overview 200 in 300ms (next.js: 8ms, proxy.ts: 279ms, application-code: 13ms)
+ GET /dashboard/overview 200 in 994ms (next.js: 10ms, proxy.ts: 127ms, application-code: 857ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/gmb/unread-count 200 in 3.3s (next.js: 2.4s, proxy.ts: 7ms, application-code: 818ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1469ms (next.js: 310ms, proxy.ts: 735ms, application-code: 424ms)
+ GET /dashboard/overview 200 in 547ms (next.js: 12ms, proxy.ts: 256ms, application-code: 278ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+✓ Finished filesystem cache database compaction in 15.2s
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=torah 200 in 50s (next.js: 6.9s, proxy.ts: 1798ms, application-code: 42s)
+ GET /dashboard/overview?module=torah 200 in 75s (next.js: 31.6s, proxy.ts: 1508ms, application-code: 42s)
+ GET /dashboard/torah 200 in 673ms (next.js: 157ms, proxy.ts: 146ms, application-code: 370ms)
+ GET /dashboard/overview 200 in 5.6s (next.js: 439ms, proxy.ts: 1302ms, application-code: 3.9s)
+ GET /api/gmb/unread-count 200 in 3.9s (next.js: 3.1s, proxy.ts: 14ms, application-code: 819ms)
+ GET /dashboard/overview 200 in 1161ms (next.js: 362ms, proxy.ts: 483ms, application-code: 316ms)
+ GET /dashboard/overview 200 in 578ms (next.js: 22ms, proxy.ts: 273ms, application-code: 283ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+✓ Finished filesystem cache database compaction in 19.6s
+ GET /dashboard/overview 200 in 1098ms (next.js: 300ms, proxy.ts: 393ms, application-code: 405ms)
+ GET /dashboard/overview 200 in 689ms (next.js: 16ms, proxy.ts: 341ms, application-code: 333ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=social 200 in 1368ms (next.js: 24ms, proxy.ts: 461ms, application-code: 882ms)
+ GET /dashboard/social-networks 200 in 1294ms (next.js: 501ms, proxy.ts: 325ms, application-code: 467ms)
+ GET /api/social-networks 200 in 1396ms (next.js: 419ms, proxy.ts: 8ms, application-code: 969ms)
+ GET /api/social-networks 200 in 362ms (next.js: 7ms, proxy.ts: 12ms, application-code: 342ms)
+ GET /dashboard/overview 200 in 980ms (next.js: 15ms, proxy.ts: 144ms, application-code: 820ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/gmb/unread-count 200 in 3.5s (next.js: 2.5s, proxy.ts: 29ms, application-code: 965ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=social 200 in 1387ms (next.js: 33ms, proxy.ts: 438ms, application-code: 915ms)
+ GET /dashboard/overview 200 in 332ms (next.js: 28ms, proxy.ts: 280ms, application-code: 25ms)
+ GET /dashboard/overview 200 in 876ms (next.js: 14ms, proxy.ts: 107ms, application-code: 755ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=social 500 in 4.8s (next.js: 3.1s, proxy.ts: 960ms, application-code: 779ms)
+ GET /dashboard/overview?module=automations 500 in 4.8s (next.js: 3.8s, proxy.ts: 891ms, application-code: 122ms)
+ GET /dashboard/overview 500 in 4.9s (next.js: 3.8s, proxy.ts: 970ms, application-code: 91ms)
+ GET /dashboard/overview 500 in 4.8s (next.js: 3.8s, proxy.ts: 943ms, application-code: 57ms)
+ GET /dashboard/overview 500 in 5.0s (next.js: 3.8s, proxy.ts: 1075ms, application-code: 146ms)
+ GET /dashboard/overview 500 in 5.0s (next.js: 3.8s, proxy.ts: 1074ms, application-code: 120ms)
+ GET /dashboard/overview 500 in 304ms (next.js: 44ms, proxy.ts: 227ms, application-code: 33ms)
+ GET /dashboard/overview 500 in 502ms (next.js: 45ms, proxy.ts: 398ms, application-code: 60ms)
+ GET /dashboard/overview 500 in 766ms (next.js: 179ms, proxy.ts: 492ms, application-code: 95ms)
+ GET /dashboard/overview 500 in 969ms (next.js: 253ms, proxy.ts: 516ms, application-code: 200ms)
+ GET /dashboard/overview 500 in 657ms (next.js: 311ms, proxy.ts: 207ms, application-code: 139ms)
+ GET /dashboard/overview 500 in 919ms (next.js: 355ms, proxy.ts: 470ms, application-code: 94ms)
+ GET /dashboard/overview 500 in 866ms (next.js: 396ms, proxy.ts: 419ms, application-code: 50ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+✓ Finished filesystem cache database compaction in 13.2s
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+ GET /dashboard/overview 200 in 49s (next.js: 2.9s, proxy.ts: 648ms, application-code: 45s)
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 10.3s (next.js: 2.4s, proxy.ts: 4.1s, application-code: 3.8s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/gmb/unread-count 200 in 10.4s (next.js: 8.0s, proxy.ts: 15ms, application-code: 2.3s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+✓ Finished filesystem cache database compaction in 10.1s
+ GET /dashboard/overview?module=social 200 in 1189ms (next.js: 39ms, proxy.ts: 288ms, application-code: 862ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 499ms (next.js: 32ms, proxy.ts: 407ms, application-code: 60ms)
+ GET /dashboard/overview 200 in 1871ms (next.js: 24ms, proxy.ts: 127ms, application-code: 1720ms)
+ GET /dashboard/overview?module=social 200 in 1912ms (next.js: 19ms, proxy.ts: 786ms, application-code: 1106ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=social 200 in 2.4s (next.js: 440ms, proxy.ts: 847ms, application-code: 1128ms)
+ GET /dashboard/overview?module=social 200 in 797ms (next.js: 37ms, proxy.ts: 308ms, application-code: 452ms)
+ GET /dashboard/overview?module=social 200 in 708ms (next.js: 27ms, proxy.ts: 300ms, application-code: 381ms)
+ GET /dashboard/overview?module=social 200 in 488ms (next.js: 23ms, proxy.ts: 121ms, application-code: 345ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+ GET /dashboard/overview?module=social 200 in 1419ms (next.js: 359ms, proxy.ts: 523ms, application-code: 537ms)
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=social 200 in 726ms (next.js: 22ms, proxy.ts: 355ms, application-code: 349ms)
+ GET /dashboard/overview?module=social 200 in 575ms (next.js: 26ms, proxy.ts: 164ms, application-code: 384ms)
+ GET /dashboard/overview?module=social 200 in 559ms (next.js: 25ms, proxy.ts: 138ms, application-code: 395ms)
+ GET /dashboard/overview?module=social 200 in 478ms (next.js: 16ms, proxy.ts: 152ms, application-code: 310ms)
+ GET /dashboard/overview 200 in 139ms (next.js: 13ms, proxy.ts: 110ms, application-code: 16ms)
+ GET /dashboard/overview 200 in 2.3s (next.js: 11ms, proxy.ts: 127ms, application-code: 2.2s)
+ GET /dashboard/overview?module=automations 200 in 1226ms (next.js: 15ms, proxy.ts: 294ms, application-code: 917ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1529ms (next.js: 12ms, proxy.ts: 336ms, application-code: 1181ms)
+ GET /dashboard/overview 200 in 1297ms (next.js: 18ms, proxy.ts: 359ms, application-code: 919ms)
+ GET /dashboard/overview?module=targeted 200 in 1020ms (next.js: 10ms, proxy.ts: 261ms, application-code: 749ms)
+ GET /api/gmb/unread-count 200 in 3.6s (next.js: 2.8s, proxy.ts: 13ms, application-code: 749ms)
+ GET /dashboard/overview 200 in 4.3s (next.js: 16ms, proxy.ts: 293ms, application-code: 4.0s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1581ms (next.js: 565ms, proxy.ts: 539ms, application-code: 477ms)
+ GET /dashboard/overview 200 in 513ms (next.js: 14ms, proxy.ts: 239ms, application-code: 259ms)
+ GET /dashboard/overview 200 in 444ms (next.js: 34ms, proxy.ts: 125ms, application-code: 285ms)
+ GET /dashboard/overview 200 in 489ms (next.js: 19ms, proxy.ts: 172ms, application-code: 298ms)
+ GET /dashboard/overview 200 in 1118ms (next.js: 291ms, proxy.ts: 459ms, application-code: 368ms)
+ GET /dashboard/overview 200 in 633ms (next.js: 23ms, proxy.ts: 323ms, application-code: 286ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=automations 200 in 888ms (next.js: 9ms, proxy.ts: 239ms, application-code: 640ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1107ms (next.js: 14ms, proxy.ts: 298ms, application-code: 795ms)
+ GET /dashboard/overview?module=social 200 in 1178ms (next.js: 10ms, proxy.ts: 236ms, application-code: 933ms)
+ GET /dashboard/overview 200 in 1138ms (next.js: 12ms, proxy.ts: 294ms, application-code: 832ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=social 200 in 942ms (next.js: 9ms, proxy.ts: 259ms, application-code: 674ms)
+ GET /dashboard/overview 200 in 981ms (next.js: 12ms, proxy.ts: 272ms, application-code: 697ms)
+ GET /dashboard/overview?module=automations 200 in 2.1s (next.js: 17ms, proxy.ts: 230ms, application-code: 1895ms)
+ GET /dashboard/overview?module=automations 200 in 1965ms (next.js: 15ms, proxy.ts: 283ms, application-code: 1668ms)
+ GET /dashboard/overview 200 in 1032ms (next.js: 14ms, proxy.ts: 278ms, application-code: 740ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=torah 200 in 934ms (next.js: 8ms, proxy.ts: 255ms, application-code: 671ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1249ms (next.js: 10ms, proxy.ts: 248ms, application-code: 991ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 2.0s (next.js: 790ms, proxy.ts: 706ms, application-code: 543ms)
+ GET /dashboard/overview 200 in 670ms (next.js: 23ms, proxy.ts: 290ms, application-code: 357ms)
+ GET /dashboard/overview 200 in 510ms (next.js: 33ms, proxy.ts: 141ms, application-code: 336ms)
+ GET /dashboard/overview 200 in 471ms (next.js: 34ms, proxy.ts: 131ms, application-code: 307ms)
+ GET /dashboard/overview?module=targeted 200 in 1120ms (next.js: 21ms, proxy.ts: 281ms, application-code: 819ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 166ms (next.js: 21ms, proxy.ts: 116ms, application-code: 29ms)
+ GET /dashboard/overview 200 in 881ms (next.js: 13ms, proxy.ts: 116ms, application-code: 751ms)
+ GET /dashboard/overview?module=torah 200 in 1104ms (next.js: 12ms, proxy.ts: 336ms, application-code: 756ms)
+ GET /dashboard/overview 200 in 301ms (next.js: 16ms, proxy.ts: 264ms, application-code: 21ms)
+ GET /dashboard/overview 200 in 910ms (next.js: 9ms, proxy.ts: 147ms, application-code: 753ms)
+ GET /dashboard/overview?module=visuals 200 in 934ms (next.js: 11ms, proxy.ts: 255ms, application-code: 669ms)
+ GET /dashboard/overview 200 in 277ms (next.js: 23ms, proxy.ts: 230ms, application-code: 24ms)
+ GET /dashboard/overview 200 in 939ms (next.js: 13ms, proxy.ts: 116ms, application-code: 810ms)
+ GET /dashboard/overview?module=contacts 200 in 1010ms (next.js: 18ms, proxy.ts: 254ms, application-code: 738ms)
+ GET /dashboard/overview 200 in 304ms (next.js: 19ms, proxy.ts: 265ms, application-code: 20ms)
+ GET /api/gmb/unread-count 200 in 3.7s (next.js: 2.9s, proxy.ts: 15ms, application-code: 808ms)
+ GET /dashboard/overview 200 in 958ms (next.js: 17ms, proxy.ts: 124ms, application-code: 818ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1565ms (next.js: 493ms, proxy.ts: 659ms, application-code: 414ms)
+ GET /dashboard/overview 200 in 655ms (next.js: 19ms, proxy.ts: 262ms, application-code: 374ms)
+ GET /dashboard/overview 200 in 543ms (next.js: 13ms, proxy.ts: 214ms, application-code: 316ms)
+ GET /dashboard/overview 200 in 507ms (next.js: 25ms, proxy.ts: 144ms, application-code: 338ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1545ms (next.js: 471ms, proxy.ts: 559ms, application-code: 515ms)
+ GET /dashboard/overview 200 in 688ms (next.js: 29ms, proxy.ts: 317ms, application-code: 343ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=social 200 in 986ms (next.js: 11ms, proxy.ts: 226ms, application-code: 748ms)
+ GET /dashboard/overview 200 in 267ms (next.js: 14ms, proxy.ts: 239ms, application-code: 14ms)
+ GET /dashboard/overview 200 in 923ms (next.js: 15ms, proxy.ts: 104ms, application-code: 803ms)
+ GET /dashboard/overview?module=automations 200 in 1217ms (next.js: 22ms, proxy.ts: 257ms, application-code: 938ms)
+[Automation] Démarrage du moteur…
+ GET /dashboard/overview 200 in 459ms (next.js: 21ms, proxy.ts: 412ms, application-code: 27ms)
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1071ms (next.js: 8ms, proxy.ts: 168ms, application-code: 895ms)
+ GET /dashboard/overview?module=automations 200 in 1310ms (next.js: 22ms, proxy.ts: 350ms, application-code: 938ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+✓ Finished filesystem cache database compaction in 15.2s
+ GET /dashboard/overview 200 in 3.6s (next.js: 1397ms, proxy.ts: 1196ms, application-code: 1034ms)
+ GET /dashboard/overview 200 in 3.6s (next.js: 1628ms, proxy.ts: 1237ms, application-code: 761ms)
+ GET /dashboard/overview 200 in 3.6s (next.js: 1940ms, proxy.ts: 1248ms, application-code: 454ms)
+ GET /dashboard/overview 200 in 3.7s (next.js: 1970ms, proxy.ts: 1265ms, application-code: 416ms)
+ GET /dashboard/overview 200 in 2.5s (next.js: 52ms, proxy.ts: 2.3s, application-code: 111ms)
+ GET /dashboard/overview 200 in 475ms (next.js: 27ms, proxy.ts: 243ms, application-code: 205ms)
+ GET /dashboard/overview 200 in 1640ms (next.js: 512ms, proxy.ts: 595ms, application-code: 532ms)
+ GET /dashboard/overview 200 in 2.2s (next.js: 496ms, proxy.ts: 866ms, application-code: 837ms)
+ GET /dashboard/overview 200 in 2.3s (next.js: 56ms, proxy.ts: 1580ms, application-code: 646ms)
+ GET /dashboard/overview 200 in 3.6s (next.js: 1124ms, proxy.ts: 1304ms, application-code: 1210ms)
+ GET /dashboard/overview 200 in 4.2s (next.js: 71ms, proxy.ts: 246ms, application-code: 3.8s)
+ GET /dashboard/overview 200 in 1090ms (next.js: 87ms, proxy.ts: 745ms, application-code: 258ms)
+ GET /dashboard/overview?module=automations 200 in 8.0s (next.js: 1619ms, proxy.ts: 1247ms, application-code: 5.1s)
+ GET /dashboard/overview 200 in 442ms (next.js: 9ms, proxy.ts: 417ms, application-code: 17ms)
+ GET /api/gmb/unread-count 200 in 4.6s (next.js: 3.9s, proxy.ts: 17ms, application-code: 627ms)
+ GET /dashboard/overview 200 in 1240ms (next.js: 17ms, proxy.ts: 139ms, application-code: 1084ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=social 200 in 1022ms (next.js: 14ms, proxy.ts: 271ms, application-code: 736ms)
+ GET /dashboard/overview 200 in 305ms (next.js: 20ms, proxy.ts: 258ms, application-code: 28ms)
+[Automation] Démarrage du moteur…
+ GET /dashboard/overview 200 in 927ms (next.js: 19ms, proxy.ts: 120ms, application-code: 788ms)
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=automations 200 in 932ms (next.js: 15ms, proxy.ts: 122ms, application-code: 795ms)
+ GET /dashboard/overview 200 in 313ms (next.js: 18ms, proxy.ts: 273ms, application-code: 22ms)
+ GET /dashboard/overview 200 in 773ms (next.js: 11ms, proxy.ts: 111ms, application-code: 651ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=torah 200 in 1397ms (next.js: 14ms, proxy.ts: 416ms, application-code: 966ms)
+ GET /dashboard/overview 200 in 474ms (next.js: 10ms, proxy.ts: 449ms, application-code: 15ms)
+ GET /dashboard/overview 200 in 1198ms (next.js: 14ms, proxy.ts: 113ms, application-code: 1072ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=visuals 200 in 989ms (next.js: 5ms, proxy.ts: 318ms, application-code: 666ms)
+ GET /dashboard/overview 200 in 272ms (next.js: 8ms, proxy.ts: 256ms, application-code: 7ms)
+ GET /dashboard/overview 200 in 730ms (next.js: 5ms, proxy.ts: 134ms, application-code: 590ms)
+ GET /dashboard/contacts 200 in 689ms (next.js: 163ms, proxy.ts: 262ms, application-code: 263ms)
+ GET /api/community/members 200 in 628ms (next.js: 166ms, proxy.ts: 11ms, application-code: 452ms)
+ GET /api/community/members 200 in 646ms (next.js: 158ms, proxy.ts: 9ms, application-code: 479ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/gmb/unread-count 200 in 768ms (next.js: 21ms, proxy.ts: 10ms, application-code: 736ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/contacts 200 in 1326ms (next.js: 414ms, proxy.ts: 601ms, application-code: 311ms)
+ GET /dashboard/contacts 200 in 295ms (next.js: 11ms, proxy.ts: 123ms, application-code: 161ms)
+ GET /dashboard/contacts 200 in 229ms (next.js: 10ms, proxy.ts: 113ms, application-code: 106ms)
+ GET /dashboard/contacts 200 in 285ms (next.js: 10ms, proxy.ts: 113ms, application-code: 162ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+ GET /dashboard/contacts 200 in 461ms (next.js: 15ms, proxy.ts: 132ms, application-code: 314ms)
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/contacts 200 in 977ms (next.js: 218ms, proxy.ts: 546ms, application-code: 214ms)
+ GET /dashboard/contacts 200 in 251ms (next.js: 10ms, proxy.ts: 141ms, application-code: 100ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1299ms (next.js: 250ms, proxy.ts: 273ms, application-code: 775ms)
+ GET /dashboard/communication-ciblee 200 in 357ms (next.js: 87ms, proxy.ts: 216ms, application-code: 54ms)
+ GET /api/communication-ciblee 503 in 677ms (next.js: 170ms, proxy.ts: 13ms, application-code: 494ms)
+ GET /api/communication-ciblee 503 in 352ms (next.js: 4ms, proxy.ts: 6ms, application-code: 343ms)
+ GET /dashboard/overview 200 in 670ms (next.js: 9ms, proxy.ts: 123ms, application-code: 538ms)
+ GET /dashboard/overview?module=torah 200 in 850ms (next.js: 11ms, proxy.ts: 246ms, application-code: 593ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 751ms (next.js: 11ms, proxy.ts: 136ms, application-code: 605ms)
+ GET /dashboard/overview?module=visuals 200 in 761ms (next.js: 6ms, proxy.ts: 254ms, application-code: 501ms)
+ GET /dashboard/overview 200 in 880ms (next.js: 12ms, proxy.ts: 249ms, application-code: 620ms)
+ GET /dashboard/overview?module=email 200 in 1278ms (next.js: 5ms, proxy.ts: 763ms, application-code: 510ms)
+ GET /dashboard/email 200 in 948ms (next.js: 88ms, proxy.ts: 241ms, application-code: 619ms)
+ GET /api/email/notification-rules 200 in 2.8s (next.js: 105ms, proxy.ts: 10ms, application-code: 2.7s)
+ GET /api/email/notification-rules 200 in 490ms (next.js: 5ms, proxy.ts: 4ms, application-code: 481ms)
+ GET /dashboard/overview 200 in 831ms (next.js: 7ms, proxy.ts: 231ms, application-code: 593ms)
+ POST /api/email/classify 200 in 10.3s (next.js: 2.3s, proxy.ts: 12ms, application-code: 8.0s)
+ POST /api/email/classify 200 in 10.8s (next.js: 2.3s, proxy.ts: 12ms, application-code: 8.5s)
+ GET /dashboard/overview?module=social 200 in 928ms (next.js: 7ms, proxy.ts: 136ms, application-code: 785ms)
+ GET /dashboard/social-networks 200 in 889ms (next.js: 291ms, proxy.ts: 259ms, application-code: 338ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/social-networks 200 in 743ms (next.js: 185ms, proxy.ts: 8ms, application-code: 550ms)
+ GET /api/social-networks 200 in 346ms (next.js: 4ms, proxy.ts: 5ms, application-code: 338ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/social-networks 200 in 1949ms (next.js: 276ms, proxy.ts: 1329ms, application-code: 343ms)
+ GET /dashboard/social-networks 200 in 388ms (next.js: 5ms, proxy.ts: 285ms, application-code: 98ms)
+ GET /dashboard/social-networks 200 in 233ms (next.js: 5ms, proxy.ts: 149ms, application-code: 78ms)
+ GET /dashboard/social-networks 200 in 212ms (next.js: 9ms, proxy.ts: 122ms, application-code: 82ms)
+ GET /dashboard/social-networks 200 in 178ms (next.js: 6ms, proxy.ts: 110ms, application-code: 62ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1939ms (next.js: 173ms, proxy.ts: 535ms, application-code: 1231ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/boutique/calendrier-horaires-tichri 200 in 653ms (next.js: 409ms, proxy.ts: 173ms, application-code: 71ms)
+ GET /api/gmb/unread-count 200 in 3.6s (next.js: 2.4s, proxy.ts: 5ms, application-code: 1157ms)
+ GET /dashboard/assistant 200 in 1308ms (next.js: 417ms, proxy.ts: 261ms, application-code: 630ms)
+ GET /api/conversations 200 in 566ms (next.js: 226ms, proxy.ts: 14ms, application-code: 326ms)
+ GET /api/community/daily-routine 200 in 594ms (next.js: 162ms, proxy.ts: 13ms, application-code: 418ms)
+ GET /api/conversations 200 in 216ms (next.js: 5ms, proxy.ts: 6ms, application-code: 205ms)
+ GET /api/community/daily-routine 200 in 283ms (next.js: 6ms, proxy.ts: 4ms, application-code: 273ms)
+ GET /dashboard/overview 200 in 1059ms (next.js: 9ms, proxy.ts: 294ms, application-code: 757ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=social 200 in 3.6s (next.js: 1331ms, proxy.ts: 174ms, application-code: 2.1s)
+ GET /dashboard/overview?module=social 200 in 1190ms (next.js: 190ms, proxy.ts: 598ms, application-code: 403ms)
+ GET /dashboard/overview?module=social 200 in 454ms (next.js: 8ms, proxy.ts: 275ms, application-code: 172ms)
+ GET /dashboard/overview?module=social 200 in 312ms (next.js: 6ms, proxy.ts: 109ms, application-code: 196ms)
+ GET /dashboard/social-networks 200 in 572ms (next.js: 187ms, proxy.ts: 111ms, application-code: 274ms)
+ GET /api/social-networks 200 in 685ms (next.js: 183ms, proxy.ts: 9ms, application-code: 493ms)
+ GET /api/social-networks 200 in 335ms (next.js: 4ms, proxy.ts: 4ms, application-code: 328ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1258ms (next.js: 19ms, proxy.ts: 402ms, application-code: 837ms)
+ GET /dashboard/overview?module=social 200 in 886ms (next.js: 7ms, proxy.ts: 239ms, application-code: 641ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/publications 200 in 1114ms (next.js: 89ms, proxy.ts: 204ms, application-code: 820ms)
+ GET /dashboard/overview 200 in 927ms (next.js: 8ms, proxy.ts: 280ms, application-code: 638ms)
+ GET /dashboard/overview?module=social 200 in 917ms (next.js: 9ms, proxy.ts: 242ms, application-code: 666ms)
+ GET /dashboard/instagram 200 in 733ms (next.js: 428ms, proxy.ts: 265ms, application-code: 40ms)
+ GET /dashboard/publish/instagram 200 in 2.4s (next.js: 1825ms, proxy.ts: 115ms, application-code: 484ms)
+ GET /dashboard/publish/instagram 200 in 812ms (next.js: 27ms, proxy.ts: 319ms, application-code: 466ms)
+ GET /api/publishing/instagram/posts 200 in 452ms (next.js: 128ms, proxy.ts: 6ms, application-code: 318ms)
+ GET /api/publishing/instagram/posts 200 in 308ms (next.js: 7ms, proxy.ts: 6ms, application-code: 295ms)
+ GET /dashboard/overview 200 in 870ms (next.js: 6ms, proxy.ts: 258ms, application-code: 605ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=automations 200 in 849ms (next.js: 6ms, proxy.ts: 246ms, application-code: 597ms)
+ GET /dashboard/shabbat-times-auto 200 in 994ms (next.js: 87ms, proxy.ts: 267ms, application-code: 640ms)
+ GET /dashboard/overview 200 in 957ms (next.js: 6ms, proxy.ts: 336ms, application-code: 616ms)
+[Automation] Démarrage du moteur…
+ GET /dashboard/overview?module=automations 200 in 789ms (next.js: 7ms, proxy.ts: 244ms, application-code: 539ms)
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/hayom-yom-sefer-hamitsvot 200 in 1754ms (next.js: 195ms, proxy.ts: 120ms, application-code: 1439ms)
+ GET /dashboard/overview 200 in 862ms (next.js: 7ms, proxy.ts: 258ms, application-code: 597ms)
+ GET /dashboard/overview?module=social 200 in 843ms (next.js: 6ms, proxy.ts: 240ms, application-code: 597ms)
+ GET /dashboard/instagram 200 in 264ms (next.js: 7ms, proxy.ts: 236ms, application-code: 21ms)
+ GET /dashboard/publish/instagram 200 in 571ms (next.js: 15ms, proxy.ts: 103ms, application-code: 453ms)
+ GET /dashboard/publish/instagram 200 in 695ms (next.js: 11ms, proxy.ts: 244ms, application-code: 440ms)
+ GET /api/publishing/instagram/posts 200 in 321ms (next.js: 8ms, proxy.ts: 7ms, application-code: 305ms)
+ GET /api/publishing/instagram/posts 200 in 318ms (next.js: 6ms, proxy.ts: 5ms, application-code: 307ms)
+ GET /dashboard/publish/instagram 200 in 884ms (next.js: 316ms, proxy.ts: 417ms, application-code: 151ms)
+ GET /dashboard/publish/instagram 200 in 225ms (next.js: 12ms, proxy.ts: 102ms, application-code: 111ms)
+ GET /dashboard/publish/instagram 200 in 207ms (next.js: 10ms, proxy.ts: 112ms, application-code: 85ms)
+ GET /dashboard/publish/instagram 200 in 206ms (next.js: 10ms, proxy.ts: 101ms, application-code: 95ms)
+ GET /dashboard/publish/instagram 200 in 252ms (next.js: 18ms, proxy.ts: 106ms, application-code: 128ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/publications 200 in 1116ms (next.js: 248ms, proxy.ts: 113ms, application-code: 755ms)
+ GET /dashboard/overview 200 in 1632ms (next.js: 30ms, proxy.ts: 336ms, application-code: 1266ms)
+ GET /dashboard/overview?module=social 200 in 947ms (next.js: 8ms, proxy.ts: 263ms, application-code: 676ms)
+ GET /dashboard/facebook 200 in 330ms (next.js: 66ms, proxy.ts: 238ms, application-code: 25ms)
+ GET /dashboard/publish/facebook 200 in 615ms (next.js: 16ms, proxy.ts: 144ms, application-code: 456ms)
+ GET /dashboard/publish/facebook 200 in 623ms (next.js: 10ms, proxy.ts: 227ms, application-code: 387ms)
+ GET /api/publishing/facebook/posts 200 in 760ms (next.js: 438ms, proxy.ts: 10ms, application-code: 312ms)
+ GET /api/publishing/facebook/posts 200 in 331ms (next.js: 7ms, proxy.ts: 9ms, application-code: 315ms)
+ GET /dashboard/publications 200 in 695ms (next.js: 7ms, proxy.ts: 136ms, application-code: 551ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 914ms (next.js: 9ms, proxy.ts: 262ms, application-code: 643ms)
+ GET /dashboard/overview?module=social 200 in 812ms (next.js: 9ms, proxy.ts: 215ms, application-code: 588ms)
+ GET /dashboard/social-networks 200 in 576ms (next.js: 39ms, proxy.ts: 257ms, application-code: 280ms)
+ GET /api/social-networks 200 in 522ms (next.js: 97ms, proxy.ts: 6ms, application-code: 419ms)
+ GET /api/social-networks 200 in 322ms (next.js: 4ms, proxy.ts: 4ms, application-code: 314ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/contacts 200 in 793ms (next.js: 235ms, proxy.ts: 285ms, application-code: 273ms)
+ GET /api/community/members 200 in 590ms (next.js: 114ms, proxy.ts: 8ms, application-code: 468ms)
+ GET /api/community/members 200 in 609ms (next.js: 129ms, proxy.ts: 12ms, application-code: 468ms)
+ GET /dashboard/contacts 200 in 895ms (next.js: 181ms, proxy.ts: 415ms, application-code: 300ms)
+ GET /dashboard/contacts 200 in 338ms (next.js: 18ms, proxy.ts: 247ms, application-code: 73ms)
+ GET /dashboard/overview 200 in 672ms (next.js: 30ms, proxy.ts: 94ms, application-code: 548ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=automations 200 in 763ms (next.js: 10ms, proxy.ts: 217ms, application-code: 536ms)
+ GET /dashboard/shabbat-times-auto 200 in 847ms (next.js: 92ms, proxy.ts: 204ms, application-code: 551ms)
+ GET /api/gmb/unread-count 200 in 2.7s (next.js: 2.1s, proxy.ts: 4ms, application-code: 603ms)
+ GET /dashboard/overview 200 in 797ms (next.js: 9ms, proxy.ts: 242ms, application-code: 547ms)
+ GET /dashboard/overview?module=automations 200 in 884ms (next.js: 7ms, proxy.ts: 269ms, application-code: 607ms)
+ GET /dashboard/hayom-yom-sefer-hamitsvot 200 in 1725ms (next.js: 121ms, proxy.ts: 216ms, application-code: 1388ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1005ms (next.js: 12ms, proxy.ts: 257ms, application-code: 736ms)
+ GET /dashboard/overview?module=automations 200 in 940ms (next.js: 7ms, proxy.ts: 276ms, application-code: 658ms)
+ GET /dashboard/jewish-birthdays 200 in 1136ms (next.js: 146ms, proxy.ts: 293ms, application-code: 696ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 772ms (next.js: 8ms, proxy.ts: 115ms, application-code: 649ms)
+ GET /dashboard/overview?module=automations 200 in 818ms (next.js: 7ms, proxy.ts: 267ms, application-code: 544ms)
+ GET /dashboard/event-reminders-auto 200 in 1002ms (next.js: 84ms, proxy.ts: 284ms, application-code: 634ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/event-reminders-auto 200 in 3.0s (next.js: 615ms, proxy.ts: 665ms, application-code: 1759ms)
+ GET /dashboard/event-reminders-auto 200 in 660ms (next.js: 168ms, proxy.ts: 292ms, application-code: 199ms)
+ GET /dashboard/event-reminders-auto 200 in 312ms (next.js: 10ms, proxy.ts: 120ms, application-code: 182ms)
+ GET /dashboard/event-reminders-auto 200 in 678ms (next.js: 10ms, proxy.ts: 370ms, application-code: 297ms)
+ GET /dashboard/event-reminders-auto 200 in 692ms (next.js: 11ms, proxy.ts: 469ms, application-code: 213ms)
+ GET /dashboard/event-reminders-auto 200 in 731ms (next.js: 44ms, proxy.ts: 470ms, application-code: 217ms)
+ GET /dashboard/overview 200 in 913ms (next.js: 33ms, proxy.ts: 269ms, application-code: 611ms)
+ GET /dashboard/overview?module=automations 200 in 835ms (next.js: 8ms, proxy.ts: 270ms, application-code: 558ms)
+ GET /dashboard/hayom-yom-sefer-hamitsvot 200 in 1994ms (next.js: 265ms, proxy.ts: 233ms, application-code: 1496ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/hayom-yom-sefer-hamitsvot 200 in 1149ms (next.js: 354ms, proxy.ts: 526ms, application-code: 270ms)
+ GET /dashboard/hayom-yom-sefer-hamitsvot 200 in 552ms (next.js: 10ms, proxy.ts: 290ms, application-code: 251ms)
+ GET /dashboard/hayom-yom-sefer-hamitsvot 200 in 277ms (next.js: 8ms, proxy.ts: 130ms, application-code: 139ms)
+ GET /dashboard/hayom-yom-sefer-hamitsvot 200 in 257ms (next.js: 7ms, proxy.ts: 94ms, application-code: 155ms)
+ GET /dashboard/overview 200 in 970ms (next.js: 28ms, proxy.ts: 274ms, application-code: 667ms)
+ GET /dashboard/overview?module=automations 200 in 873ms (next.js: 7ms, proxy.ts: 242ms, application-code: 624ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/recap-auto 200 in 1402ms (next.js: 487ms, proxy.ts: 110ms, application-code: 804ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 871ms (next.js: 7ms, proxy.ts: 260ms, application-code: 605ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=torah 200 in 1245ms (next.js: 25ms, proxy.ts: 302ms, application-code: 918ms)
+ GET /dashboard/torah 200 in 836ms (next.js: 477ms, proxy.ts: 244ms, application-code: 115ms)
+[Automation] Démarrage du moteur…
+ GET /dashboard/torah 200 in 865ms (next.js: 188ms, proxy.ts: 548ms, application-code: 129ms)
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/torah 200 in 389ms (next.js: 10ms, proxy.ts: 105ms, application-code: 274ms)
+ GET /dashboard/torah 200 in 497ms (next.js: 35ms, proxy.ts: 224ms, application-code: 239ms)
+ GET /api/gmb/unread-count 200 in 2.7s (next.js: 2.2s, proxy.ts: 4ms, application-code: 559ms)
+ GET /dashboard/torah 200 in 637ms (next.js: 228ms, proxy.ts: 238ms, application-code: 171ms)
+ GET /dashboard/torah 200 in 199ms (next.js: 10ms, proxy.ts: 109ms, application-code: 80ms)
+ GET /dashboard/torah 200 in 182ms (next.js: 9ms, proxy.ts: 105ms, application-code: 68ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/torah 200 in 648ms (next.js: 188ms, proxy.ts: 350ms, application-code: 110ms)
+ GET /dashboard/torah 200 in 298ms (next.js: 8ms, proxy.ts: 213ms, application-code: 77ms)
+ GET /dashboard/torah 200 in 205ms (next.js: 12ms, proxy.ts: 126ms, application-code: 67ms)
+ GET /dashboard/torah 200 in 168ms (next.js: 7ms, proxy.ts: 110ms, application-code: 52ms)
+ GET /dashboard/overview 200 in 973ms (next.js: 39ms, proxy.ts: 260ms, application-code: 674ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=torah 200 in 882ms (next.js: 6ms, proxy.ts: 282ms, application-code: 593ms)
+ GET /dashboard/community-library 200 in 909ms (next.js: 91ms, proxy.ts: 322ms, application-code: 496ms)
+ GET /dashboard/community-library 200 in 676ms (next.js: 166ms, proxy.ts: 383ms, application-code: 127ms)
+ GET /dashboard/overview 200 in 946ms (next.js: 60ms, proxy.ts: 223ms, application-code: 662ms)
+ GET /dashboard/overview?module=visuals 200 in 1163ms (next.js: 8ms, proxy.ts: 266ms, application-code: 889ms)
+ GET /dashboard/templates 200 in 2.1s (next.js: 397ms, proxy.ts: 304ms, application-code: 1378ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1979ms (next.js: 124ms, proxy.ts: 871ms, application-code: 984ms)
+ GET /dashboard/contacts 200 in 968ms (next.js: 194ms, proxy.ts: 259ms, application-code: 515ms)
+ GET /api/community/members 200 in 911ms (next.js: 390ms, proxy.ts: 28ms, application-code: 493ms)
+ GET /api/community/members 200 in 969ms (next.js: 415ms, proxy.ts: 30ms, application-code: 524ms)
+[Automation] Démarrage du moteur…
+ GET /dashboard/overview 200 in 4.9s (next.js: 13ms, proxy.ts: 1606ms, application-code: 3.3s)
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=email 200 in 676ms (next.js: 9ms, proxy.ts: 115ms, application-code: 551ms)
+ GET /dashboard/email 200 in 1145ms (next.js: 61ms, proxy.ts: 226ms, application-code: 859ms)
+ POST /api/email/classify 200 in 3.4s (next.js: 2.2s, proxy.ts: 24ms, application-code: 1105ms)
+ POST /api/email/classify 200 in 3.5s (next.js: 2.2s, proxy.ts: 20ms, application-code: 1251ms)
+ GET /api/email/notification-rules 200 in 3.5s (next.js: 2.3s, proxy.ts: 14ms, application-code: 1146ms)
+ GET /api/email/notification-rules 200 in 587ms (next.js: 14ms, proxy.ts: 4ms, application-code: 570ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1552ms (next.js: 481ms, proxy.ts: 647ms, application-code: 424ms)
+ GET /dashboard/email 200 in 1577ms (next.js: 103ms, proxy.ts: 1324ms, application-code: 150ms)
+ GET /dashboard/email 200 in 282ms (next.js: 9ms, proxy.ts: 170ms, application-code: 104ms)
+ GET /dashboard/overview 200 in 2.0s (next.js: 17ms, proxy.ts: 1320ms, application-code: 701ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 948ms (next.js: 237ms, proxy.ts: 465ms, application-code: 246ms)
+ GET /dashboard/overview 200 in 402ms (next.js: 10ms, proxy.ts: 221ms, application-code: 171ms)
+ GET /dashboard/overview 200 in 460ms (next.js: 9ms, proxy.ts: 100ms, application-code: 350ms)
+ GET /dashboard/overview 200 in 334ms (next.js: 9ms, proxy.ts: 108ms, application-code: 217ms)
+ GET /help 200 in 759ms (next.js: 193ms, proxy.ts: 474ms, application-code: 92ms)
+ GET /dashboard/assistant 200 in 1139ms (next.js: 112ms, proxy.ts: 101ms, application-code: 927ms)
+ GET /api/conversations 200 in 2.2s (next.js: 80ms, proxy.ts: 1835ms, application-code: 252ms)
+ GET /api/gmb/unread-count 200 in 513ms (next.js: 89ms, proxy.ts: 18ms, application-code: 406ms)
+ GET /api/community/daily-routine 200 in 516ms (next.js: 180ms, proxy.ts: 18ms, application-code: 318ms)
+ GET /api/gmb/unread-count 200 in 2.4s (next.js: 1816ms, proxy.ts: 10ms, application-code: 599ms)
+ GET /api/conversations 200 in 244ms (next.js: 6ms, proxy.ts: 5ms, application-code: 233ms)
+ GET /api/community/daily-routine 200 in 486ms (next.js: 4ms, proxy.ts: 4ms, application-code: 478ms)
+ GET /dashboard/overview 200 in 1011ms (next.js: 7ms, proxy.ts: 420ms, application-code: 583ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1312ms (next.js: 467ms, proxy.ts: 532ms, application-code: 314ms)
+ GET /dashboard/overview 200 in 515ms (next.js: 8ms, proxy.ts: 293ms, application-code: 213ms)
+ GET /dashboard/overview 200 in 354ms (next.js: 6ms, proxy.ts: 109ms, application-code: 240ms)
+ GET /dashboard/overview 200 in 347ms (next.js: 9ms, proxy.ts: 138ms, application-code: 200ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 853ms (next.js: 200ms, proxy.ts: 411ms, application-code: 242ms)
+ GET /dashboard/overview 200 in 528ms (next.js: 10ms, proxy.ts: 301ms, application-code: 217ms)
+ GET /dashboard/overview 200 in 346ms (next.js: 7ms, proxy.ts: 130ms, application-code: 208ms)
+ GET /dashboard/overview 200 in 306ms (next.js: 7ms, proxy.ts: 114ms, application-code: 184ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1775ms (next.js: 731ms, proxy.ts: 676ms, application-code: 368ms)
+ GET /dashboard/overview 200 in 481ms (next.js: 24ms, proxy.ts: 273ms, application-code: 184ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1718ms (next.js: 717ms, proxy.ts: 470ms, application-code: 530ms)
+ GET /dashboard/overview 200 in 420ms (next.js: 9ms, proxy.ts: 188ms, application-code: 223ms)
+ GET /dashboard/overview 200 in 1299ms (next.js: 9ms, proxy.ts: 169ms, application-code: 1121ms)
+ GET /dashboard/overview?module=social 200 in 3.2s (next.js: 21ms, proxy.ts: 1137ms, application-code: 2.0s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/instagram 200 in 198ms (next.js: 51ms, proxy.ts: 112ms, application-code: 35ms)
+ GET /dashboard/publish/instagram 200 in 935ms (next.js: 244ms, proxy.ts: 127ms, application-code: 564ms)
+ GET /dashboard/publish/instagram 200 in 724ms (next.js: 14ms, proxy.ts: 248ms, application-code: 461ms)
+ GET /api/publishing/instagram/posts 200 in 689ms (next.js: 229ms, proxy.ts: 5ms, application-code: 454ms)
+ GET /api/publishing/instagram/posts 200 in 379ms (next.js: 5ms, proxy.ts: 3ms, application-code: 371ms)
+ GET /dashboard/overview 200 in 674ms (next.js: 9ms, proxy.ts: 113ms, application-code: 552ms)
+ GET /dashboard/overview?module=social 200 in 907ms (next.js: 9ms, proxy.ts: 218ms, application-code: 680ms)
+ GET /dashboard/facebook 200 in 1286ms (next.js: 473ms, proxy.ts: 744ms, application-code: 70ms)
+ GET /dashboard/facebook 200 in 427ms (next.js: 19ms, proxy.ts: 285ms, application-code: 123ms)
+ GET /dashboard/facebook 200 in 194ms (next.js: 6ms, proxy.ts: 97ms, application-code: 91ms)
+ GET /dashboard/facebook 200 in 187ms (next.js: 6ms, proxy.ts: 115ms, application-code: 66ms)
+ GET /dashboard/publish/facebook 200 in 737ms (next.js: 60ms, proxy.ts: 156ms, application-code: 522ms)
+ GET /dashboard/publish/facebook 200 in 712ms (next.js: 10ms, proxy.ts: 221ms, application-code: 481ms)
+ GET /api/publishing/facebook/posts 200 in 485ms (next.js: 165ms, proxy.ts: 8ms, application-code: 312ms)
+ GET /api/publishing/facebook/posts 200 in 360ms (next.js: 4ms, proxy.ts: 3ms, application-code: 353ms)
+ GET /dashboard/overview 200 in 686ms (next.js: 33ms, proxy.ts: 123ms, application-code: 530ms)
+ GET /dashboard/overview?module=automations 200 in 954ms (next.js: 6ms, proxy.ts: 281ms, application-code: 666ms)
+ GET /dashboard/shabbat-times-auto 200 in 453ms (next.js: 11ms, proxy.ts: 289ms, application-code: 153ms)
+ GET /dashboard/shabbat-times-auto 200 in 1355ms (next.js: 160ms, proxy.ts: 334ms, application-code: 862ms)
+ GET /dashboard/shabbat-times-auto 200 in 367ms (next.js: 5ms, proxy.ts: 255ms, application-code: 106ms)
+ GET /dashboard/overview 200 in 815ms (next.js: 32ms, proxy.ts: 121ms, application-code: 662ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=automations 200 in 810ms (next.js: 6ms, proxy.ts: 224ms, application-code: 580ms)
+ GET /dashboard/shabbat-times-auto 200 in 913ms (next.js: 7ms, proxy.ts: 273ms, application-code: 633ms)
+ GET /dashboard/overview 200 in 2.1s (next.js: 364ms, proxy.ts: 1197ms, application-code: 572ms)
+ GET /dashboard/overview 200 in 2.6s (next.js: 265ms, proxy.ts: 1211ms, application-code: 1174ms)
+ GET /dashboard/overview 200 in 1037ms (next.js: 16ms, proxy.ts: 546ms, application-code: 474ms)
+ GET /dashboard/overview 200 in 552ms (next.js: 10ms, proxy.ts: 280ms, application-code: 261ms)
+ GET /dashboard/overview?module=automations 200 in 820ms (next.js: 6ms, proxy.ts: 102ms, application-code: 712ms)
+ GET /dashboard/jewish-birthdays 200 in 808ms (next.js: 72ms, proxy.ts: 232ms, application-code: 503ms)
+ GET /dashboard/overview 200 in 761ms (next.js: 6ms, proxy.ts: 120ms, application-code: 635ms)
+ GET /dashboard/overview?module=automations 200 in 1105ms (next.js: 7ms, proxy.ts: 242ms, application-code: 856ms)
+ GET /dashboard/overview?module=automations 200 in 1121ms (next.js: 312ms, proxy.ts: 476ms, application-code: 332ms)
+ GET /dashboard/overview?module=automations 200 in 718ms (next.js: 12ms, proxy.ts: 485ms, application-code: 221ms)
+ GET /dashboard/event-reminders-auto 200 in 1960ms (next.js: 288ms, proxy.ts: 783ms, application-code: 890ms)
+ GET /dashboard/overview?module=automations 200 in 645ms (next.js: 11ms, proxy.ts: 243ms, application-code: 392ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/event-reminders-auto 200 in 700ms (next.js: 130ms, proxy.ts: 355ms, application-code: 214ms)
+ GET /dashboard/event-reminders-auto 200 in 478ms (next.js: 7ms, proxy.ts: 250ms, application-code: 221ms)
+ GET /dashboard/overview 200 in 864ms (next.js: 24ms, proxy.ts: 114ms, application-code: 726ms)
+ GET /dashboard/overview?module=automations 200 in 976ms (next.js: 8ms, proxy.ts: 266ms, application-code: 702ms)
+ GET /dashboard/recap-auto 200 in 1171ms (next.js: 188ms, proxy.ts: 264ms, application-code: 719ms)
+ GET /dashboard/overview 200 in 676ms (next.js: 11ms, proxy.ts: 110ms, application-code: 555ms)
+ GET /dashboard/overview?module=torah 200 in 873ms (next.js: 8ms, proxy.ts: 254ms, application-code: 611ms)
+ GET /dashboard/torah 200 in 473ms (next.js: 67ms, proxy.ts: 347ms, application-code: 59ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/gmb/unread-count 200 in 6.8s (next.js: 5.2s, proxy.ts: 11ms, application-code: 1574ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+✓ Finished filesystem cache database compaction in 10.2s
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/torah 200 in 2.6s (next.js: 830ms, proxy.ts: 1130ms, application-code: 676ms)
+ GET /dashboard/torah 200 in 366ms (next.js: 11ms, proxy.ts: 199ms, application-code: 156ms)
+ GET /dashboard/torah 200 in 1332ms (next.js: 17ms, proxy.ts: 123ms, application-code: 1193ms)
+ GET /dashboard/torah 200 in 1384ms (next.js: 14ms, proxy.ts: 1219ms, application-code: 151ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 2.4s (next.js: 551ms, proxy.ts: 398ms, application-code: 1486ms)
+ GET /dashboard/overview?module=targeted 200 in 4.0s (next.js: 498ms, proxy.ts: 1632ms, application-code: 1914ms)
+ GET /dashboard/overview?module=targeted 200 in 4.2s (next.js: 307ms, proxy.ts: 1634ms, application-code: 2.3s)
+ GET /dashboard/overview?module=targeted 200 in 1686ms (next.js: 12ms, proxy.ts: 515ms, application-code: 1159ms)
+ GET /dashboard/overview?module=targeted 200 in 3.3s (next.js: 14ms, proxy.ts: 262ms, application-code: 3.0s)
+ GET /dashboard/overview?module=targeted 200 in 3.3s (next.js: 729ms, proxy.ts: 442ms, application-code: 2.1s)
+ GET /dashboard/overview?module=targeted 200 in 3.3s (next.js: 347ms, proxy.ts: 437ms, application-code: 2.5s)
+ GET /dashboard/overview?module=targeted 200 in 3.2s (next.js: 19ms, proxy.ts: 3.0s, application-code: 239ms)
+ GET /dashboard/overview?module=targeted 200 in 3.0s (next.js: 132ms, proxy.ts: 2.7s, application-code: 164ms)
+ GET /dashboard/overview?module=targeted 200 in 828ms (next.js: 6ms, proxy.ts: 245ms, application-code: 577ms)
+ GET /dashboard/overview?module=targeted 200 in 785ms (next.js: 5ms, proxy.ts: 234ms, application-code: 546ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=targeted 200 in 1880ms (next.js: 15ms, proxy.ts: 346ms, application-code: 1519ms)
+ GET /dashboard/overview?module=targeted 200 in 2.4s (next.js: 200ms, proxy.ts: 1868ms, application-code: 316ms)
+ GET /dashboard/overview?module=targeted 200 in 599ms (next.js: 7ms, proxy.ts: 402ms, application-code: 190ms)
+ GET /dashboard/overview?module=targeted 200 in 378ms (next.js: 8ms, proxy.ts: 149ms, application-code: 221ms)
+ GET /dashboard/overview?module=targeted 200 in 295ms (next.js: 12ms, proxy.ts: 117ms, application-code: 166ms)
+ GET /dashboard/overview?module=targeted 200 in 421ms (next.js: 11ms, proxy.ts: 136ms, application-code: 275ms)
+ GET /dashboard/overview?module=targeted 200 in 319ms (next.js: 8ms, proxy.ts: 119ms, application-code: 192ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=torah 200 in 746ms (next.js: 10ms, proxy.ts: 115ms, application-code: 620ms)
+ GET /dashboard/overview 200 in 864ms (next.js: 6ms, proxy.ts: 251ms, application-code: 608ms)
+ GET /dashboard/overview?module=targeted 200 in 870ms (next.js: 6ms, proxy.ts: 256ms, application-code: 607ms)
+ GET /dashboard/overview?module=automations 200 in 935ms (next.js: 8ms, proxy.ts: 294ms, application-code: 633ms)
+ GET /dashboard/shabbat-times-auto 200 in 1236ms (next.js: 164ms, proxy.ts: 250ms, application-code: 822ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/shabbat-times-auto 200 in 1353ms (next.js: 367ms, proxy.ts: 810ms, application-code: 177ms)
+ GET /dashboard/shabbat-times-auto 200 in 258ms (next.js: 7ms, proxy.ts: 115ms, application-code: 137ms)
+ GET /dashboard/shabbat-times-auto 200 in 263ms (next.js: 11ms, proxy.ts: 114ms, application-code: 138ms)
+ GET /dashboard/shabbat-times-auto 200 in 297ms (next.js: 9ms, proxy.ts: 174ms, application-code: 113ms)
+ GET /api/gmb/unread-count 200 in 4.2s (next.js: 3.1s, proxy.ts: 6ms, application-code: 1103ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/shabbat-times-auto 200 in 1446ms (next.js: 701ms, proxy.ts: 551ms, application-code: 194ms)
+ GET /dashboard/shabbat-times-auto 200 in 233ms (next.js: 10ms, proxy.ts: 114ms, application-code: 110ms)
+ GET /dashboard/shabbat-times-auto 200 in 227ms (next.js: 7ms, proxy.ts: 101ms, application-code: 120ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/templates/render 200 in 22.0s (next.js: 1119ms, proxy.ts: 73ms, application-code: 20.9s)
+ POST /api/shabbat-times-auto/config 200 in 1148ms (next.js: 175ms, proxy.ts: 15ms, application-code: 958ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/shabbat-times-auto 200 in 1537ms (next.js: 511ms, proxy.ts: 588ms, application-code: 438ms)
+ GET /dashboard/shabbat-times-auto 200 in 394ms (next.js: 13ms, proxy.ts: 134ms, application-code: 247ms)
+ GET /dashboard/shabbat-times-auto 200 in 939ms (next.js: 5ms, proxy.ts: 122ms, application-code: 812ms)
+ GET /dashboard/shabbat-times-auto 200 in 3.4s (next.js: 60ms, proxy.ts: 272ms, application-code: 3.0s)
+ GET /dashboard/shabbat-times-auto 200 in 1147ms (next.js: 39ms, proxy.ts: 256ms, application-code: 852ms)
+ GET /dashboard/shabbat-times-auto 200 in 194ms (next.js: 6ms, proxy.ts: 102ms, application-code: 86ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/shabbat-times-auto 200 in 1120ms (next.js: 205ms, proxy.ts: 750ms, application-code: 165ms)
+ GET /dashboard/shabbat-times-auto 200 in 282ms (next.js: 7ms, proxy.ts: 110ms, application-code: 165ms)
+ GET /dashboard/shabbat-times-auto 200 in 259ms (next.js: 10ms, proxy.ts: 125ms, application-code: 124ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/shabbat-times-auto 200 in 745ms (next.js: 175ms, proxy.ts: 379ms, application-code: 191ms)
+ GET /dashboard/shabbat-times-auto 200 in 241ms (next.js: 8ms, proxy.ts: 119ms, application-code: 114ms)
+ GET /dashboard/shabbat-times-auto 200 in 238ms (next.js: 6ms, proxy.ts: 132ms, application-code: 100ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/shabbat-times-auto 200 in 920ms (next.js: 249ms, proxy.ts: 473ms, application-code: 198ms)
+ GET /api/gmb/unread-count 200 in 5.2s (next.js: 4.3s, proxy.ts: 5ms, application-code: 962ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/shabbat-times-auto 200 in 1386ms (next.js: 592ms, proxy.ts: 539ms, application-code: 256ms)
+ GET /dashboard/shabbat-times-auto 200 in 256ms (next.js: 9ms, proxy.ts: 129ms, application-code: 118ms)
+ GET /dashboard/shabbat-times-auto 200 in 243ms (next.js: 6ms, proxy.ts: 126ms, application-code: 110ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/gmb/unread-count 200 in 11.4s (next.js: 9.5s, proxy.ts: 291ms, application-code: 1611ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+ GET /dashboard/shabbat-times-auto 200 in 4.7s (next.js: 2.0s, proxy.ts: 1257ms, application-code: 1373ms)
+ GET /dashboard/shabbat-times-auto 200 in 511ms (next.js: 17ms, proxy.ts: 184ms, application-code: 310ms)
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/shabbat-times-auto 200 in 1413ms (next.js: 14ms, proxy.ts: 144ms, application-code: 1255ms)
+ GET /dashboard/shabbat-times-auto 200 in 488ms (next.js: 17ms, proxy.ts: 153ms, application-code: 317ms)
+ GET /dashboard/shabbat-times-auto 200 in 450ms (next.js: 14ms, proxy.ts: 243ms, application-code: 193ms)
+ GET /dashboard/shabbat-times-auto 200 in 333ms (next.js: 45ms, proxy.ts: 129ms, application-code: 159ms)
+ GET /dashboard/shabbat-times-auto 200 in 309ms (next.js: 12ms, proxy.ts: 126ms, application-code: 170ms)
+ GET /dashboard/shabbat-times-auto 200 in 401ms (next.js: 10ms, proxy.ts: 144ms, application-code: 247ms)
+ GET /dashboard/shabbat-times-auto 200 in 308ms (next.js: 11ms, proxy.ts: 122ms, application-code: 175ms)
+ GET /dashboard/shabbat-times-auto 200 in 1205ms (next.js: 336ms, proxy.ts: 586ms, application-code: 284ms)
+ GET /dashboard/shabbat-times-auto 200 in 425ms (next.js: 11ms, proxy.ts: 92ms, application-code: 322ms)
+ GET /dashboard/shabbat-times-auto 200 in 607ms (next.js: 40ms, proxy.ts: 162ms, application-code: 406ms)
+ GET /dashboard/shabbat-times-auto 200 in 896ms (next.js: 12ms, proxy.ts: 141ms, application-code: 743ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/shabbat-times-auto 200 in 3.8s (next.js: 979ms, proxy.ts: 1861ms, application-code: 993ms)
+ GET /dashboard/shabbat-times-auto 200 in 475ms (next.js: 16ms, proxy.ts: 143ms, application-code: 315ms)
+ GET /dashboard/shabbat-times-auto 200 in 1083ms (next.js: 64ms, proxy.ts: 517ms, application-code: 502ms)
+ GET /dashboard/shabbat-times-auto 200 in 439ms (next.js: 17ms, proxy.ts: 175ms, application-code: 246ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1694ms (next.js: 146ms, proxy.ts: 512ms, application-code: 1036ms)
+ GET /dashboard/overview?module=automations 200 in 978ms (next.js: 11ms, proxy.ts: 309ms, application-code: 658ms)
+ GET /dashboard/hayom-yom-sefer-hamitsvot 200 in 2.5s (next.js: 573ms, proxy.ts: 276ms, application-code: 1672ms)
+ GET /dashboard/hayom-yom-sefer-hamitsvot 200 in 1665ms (next.js: 503ms, proxy.ts: 497ms, application-code: 666ms)
+ GET /dashboard/hayom-yom-sefer-hamitsvot 200 in 508ms (next.js: 15ms, proxy.ts: 270ms, application-code: 222ms)
+ GET /dashboard/hayom-yom-sefer-hamitsvot 200 in 432ms (next.js: 9ms, proxy.ts: 123ms, application-code: 299ms)
+ GET /dashboard/hayom-yom-sefer-hamitsvot 200 in 494ms (next.js: 15ms, proxy.ts: 221ms, application-code: 259ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/hayom-yom-sefer-hamitsvot 200 in 1891ms (next.js: 488ms, proxy.ts: 413ms, application-code: 991ms)
+ GET /dashboard/hayom-yom-sefer-hamitsvot 200 in 1432ms (next.js: 25ms, proxy.ts: 255ms, application-code: 1152ms)
+ GET /dashboard/overview 200 in 1417ms (next.js: 389ms, proxy.ts: 244ms, application-code: 784ms)
+ GET /api/gmb/unread-count 200 in 10.9s (next.js: 10.1s, proxy.ts: 9ms, application-code: 828ms)
+ GET /dashboard/overview?module=automations 200 in 1118ms (next.js: 12ms, proxy.ts: 360ms, application-code: 746ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/jewish-birthdays 200 in 1415ms (next.js: 613ms, proxy.ts: 119ms, application-code: 682ms)
+ GET /dashboard/jewish-birthdays 200 in 3.9s (next.js: 2.1s, proxy.ts: 1159ms, application-code: 639ms)
+ GET /dashboard/jewish-birthdays 200 in 802ms (next.js: 9ms, proxy.ts: 164ms, application-code: 629ms)
+ GET /dashboard/jewish-birthdays 200 in 369ms (next.js: 15ms, proxy.ts: 165ms, application-code: 189ms)
+ GET /dashboard/jewish-birthdays 200 in 502ms (next.js: 110ms, proxy.ts: 129ms, application-code: 262ms)
+ GET /dashboard/overview 200 in 4.4s (next.js: 94ms, proxy.ts: 3.3s, application-code: 1002ms)
+ GET /dashboard/overview?module=automations 200 in 1307ms (next.js: 10ms, proxy.ts: 281ms, application-code: 1017ms)
+ GET /dashboard/event-reminders-auto 200 in 1154ms (next.js: 212ms, proxy.ts: 236ms, application-code: 706ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/event-reminders-auto 200 in 1385ms (next.js: 415ms, proxy.ts: 596ms, application-code: 374ms)
+ GET /dashboard/event-reminders-auto 200 in 464ms (next.js: 17ms, proxy.ts: 153ms, application-code: 293ms)
+ GET /dashboard/event-reminders-auto 200 in 412ms (next.js: 15ms, proxy.ts: 123ms, application-code: 274ms)
+ GET /dashboard/event-reminders-auto 200 in 353ms (next.js: 12ms, proxy.ts: 120ms, application-code: 222ms)
+ GET /dashboard/event-reminders-auto 200 in 1366ms (next.js: 227ms, proxy.ts: 482ms, application-code: 657ms)
+[Automation] Démarrage du moteur…
+ GET /dashboard/event-reminders-auto 200 in 1042ms (next.js: 9ms, proxy.ts: 262ms, application-code: 771ms)
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 3.7s (next.js: 123ms, proxy.ts: 328ms, application-code: 3.3s)
+ GET /dashboard/overview?module=automations 200 in 3.4s (next.js: 176ms, proxy.ts: 627ms, application-code: 2.6s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/recap-auto 200 in 1959ms (next.js: 695ms, proxy.ts: 146ms, application-code: 1117ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 3.6s (next.js: 224ms, proxy.ts: 775ms, application-code: 2.6s)
+ GET /dashboard/overview?module=targeted 200 in 1238ms (next.js: 16ms, proxy.ts: 260ms, application-code: 961ms)
+ GET /api/gmb/unread-count 200 in 8.8s (next.js: 6.1s, proxy.ts: 13ms, application-code: 2.7s)
+ GET /dashboard/overview?module=targeted 200 in 9.2s (next.js: 16ms, proxy.ts: 268ms, application-code: 8.9s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=torah 200 in 1055ms (next.js: 10ms, proxy.ts: 349ms, application-code: 697ms)
+ GET /dashboard/torah 200 in 1848ms (next.js: 1389ms, proxy.ts: 285ms, application-code: 174ms)
+ GET /dashboard/torah 200 in 885ms (next.js: 213ms, proxy.ts: 529ms, application-code: 143ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/torah 200 in 929ms (next.js: 188ms, proxy.ts: 453ms, application-code: 288ms)
+ GET /dashboard/torah 200 in 302ms (next.js: 16ms, proxy.ts: 163ms, application-code: 124ms)
+ GET /dashboard/torah 200 in 856ms (next.js: 191ms, proxy.ts: 436ms, application-code: 229ms)
+ GET /dashboard/torah 200 in 303ms (next.js: 11ms, proxy.ts: 126ms, application-code: 166ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/torah 200 in 833ms (next.js: 236ms, proxy.ts: 372ms, application-code: 225ms)
+ GET /dashboard/torah 200 in 380ms (next.js: 15ms, proxy.ts: 169ms, application-code: 197ms)
+ GET /dashboard/torah 200 in 296ms (next.js: 16ms, proxy.ts: 137ms, application-code: 143ms)
+ GET /dashboard/torah 200 in 819ms (next.js: 238ms, proxy.ts: 321ms, application-code: 259ms)
+ GET /dashboard/torah 200 in 306ms (next.js: 51ms, proxy.ts: 132ms, application-code: 123ms)
+ GET /dashboard/torah 200 in 1330ms (next.js: 404ms, proxy.ts: 569ms, application-code: 357ms)
+ GET /dashboard/torah 200 in 487ms (next.js: 22ms, proxy.ts: 172ms, application-code: 293ms)
+ GET /dashboard/torah 200 in 478ms (next.js: 10ms, proxy.ts: 131ms, application-code: 337ms)
+ GET /dashboard/torah 200 in 417ms (next.js: 20ms, proxy.ts: 163ms, application-code: 234ms)
+✓ Finished filesystem cache database compaction in 11.4s
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1544ms (next.js: 196ms, proxy.ts: 267ms, application-code: 1081ms)
+ GET /dashboard/overview?module=torah 200 in 1327ms (next.js: 18ms, proxy.ts: 145ms, application-code: 1165ms)
+ GET /dashboard/community-library 200 in 1735ms (next.js: 335ms, proxy.ts: 284ms, application-code: 1116ms)
+ GET /dashboard/community-library 200 in 4.4s (next.js: 1824ms, proxy.ts: 1325ms, application-code: 1205ms)
+ GET /dashboard/community-library 200 in 329ms (next.js: 12ms, proxy.ts: 122ms, application-code: 194ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/community-library 200 in 877ms (next.js: 207ms, proxy.ts: 502ms, application-code: 168ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1377ms (next.js: 116ms, proxy.ts: 261ms, application-code: 1000ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+ GET /dashboard/overview?module=visuals 200 in 1957ms (next.js: 40ms, proxy.ts: 319ms, application-code: 1599ms)
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/templates 200 in 11.7s (next.js: 5.8s, proxy.ts: 250ms, application-code: 5.7s)
+✓ Finished writing to filesystem cache in 10.7s
+ GET /dashboard/templates 200 in 4.5s (next.js: 2.3s, proxy.ts: 299ms, application-code: 1932ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 2.8s (next.js: 31ms, proxy.ts: 511ms, application-code: 2.2s)
+ GET /dashboard/overview?module=visuals 200 in 1427ms (next.js: 17ms, proxy.ts: 362ms, application-code: 1049ms)
+ GET /dashboard/overview 200 in 1270ms (next.js: 18ms, proxy.ts: 289ms, application-code: 963ms)
+ GET /dashboard/contacts 200 in 1688ms (next.js: 1065ms, proxy.ts: 249ms, application-code: 374ms)
+ GET /api/community/members 200 in 1420ms (next.js: 883ms, proxy.ts: 18ms, application-code: 518ms)
+ GET /api/community/members 200 in 1453ms (next.js: 769ms, proxy.ts: 19ms, application-code: 665ms)
+ GET /dashboard/overview 200 in 1093ms (next.js: 11ms, proxy.ts: 321ms, application-code: 761ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=email 200 in 1981ms (next.js: 12ms, proxy.ts: 124ms, application-code: 1845ms)
+ GET /dashboard/email 200 in 1850ms (next.js: 523ms, proxy.ts: 398ms, application-code: 929ms)
+ GET /api/email/notification-rules 200 in 4.2s (next.js: 478ms, proxy.ts: 3.2s, application-code: 506ms)
+ POST /api/email/classify 200 in 4.4s (next.js: 3.3s, proxy.ts: 17ms, application-code: 1151ms)
+ POST /api/email/classify 200 in 4.4s (next.js: 3.3s, proxy.ts: 17ms, application-code: 1139ms)
+ GET /api/email/notification-rules 200 in 551ms (next.js: 8ms, proxy.ts: 8ms, application-code: 534ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/gmb/unread-count 200 in 974ms (next.js: 169ms, proxy.ts: 8ms, application-code: 796ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/email 200 in 932ms (next.js: 261ms, proxy.ts: 488ms, application-code: 183ms)
+ GET /dashboard/email 200 in 5.2s (next.js: 1836ms, proxy.ts: 378ms, application-code: 3.0s)
+ GET /dashboard/email 200 in 357ms (next.js: 11ms, proxy.ts: 123ms, application-code: 222ms)
+ GET /dashboard/email 200 in 361ms (next.js: 105ms, proxy.ts: 128ms, application-code: 128ms)
+ GET /dashboard/email 200 in 963ms (next.js: 348ms, proxy.ts: 429ms, application-code: 185ms)
+ GET /dashboard/email 200 in 352ms (next.js: 16ms, proxy.ts: 131ms, application-code: 204ms)
+ GET /dashboard/email 200 in 237ms (next.js: 10ms, proxy.ts: 113ms, application-code: 114ms)
+ GET /dashboard/email 200 in 1074ms (next.js: 306ms, proxy.ts: 452ms, application-code: 316ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/email 200 in 4.2s (next.js: 1376ms, proxy.ts: 1157ms, application-code: 1673ms)
+ GET /dashboard/email 200 in 1319ms (next.js: 70ms, proxy.ts: 863ms, application-code: 385ms)
+ GET /dashboard/email 200 in 416ms (next.js: 14ms, proxy.ts: 112ms, application-code: 290ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/email 200 in 1773ms (next.js: 994ms, proxy.ts: 490ms, application-code: 290ms)
+ GET /dashboard/email 200 in 344ms (next.js: 21ms, proxy.ts: 137ms, application-code: 185ms)
+ GET /dashboard/email 200 in 279ms (next.js: 8ms, proxy.ts: 131ms, application-code: 139ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 3.3s (next.js: 767ms, proxy.ts: 797ms, application-code: 1716ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 2.2s (next.js: 407ms, proxy.ts: 203ms, application-code: 1577ms)
+ GET /api/conversations 200 in 1325ms (next.js: 685ms, proxy.ts: 21ms, application-code: 619ms)
+ GET /api/community/daily-routine 200 in 1510ms (next.js: 1147ms, proxy.ts: 33ms, application-code: 330ms)
+ GET /api/conversations 200 in 279ms (next.js: 6ms, proxy.ts: 5ms, application-code: 268ms)
+ GET /api/community/daily-routine 200 in 334ms (next.js: 6ms, proxy.ts: 8ms, application-code: 320ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 3.6s (next.js: 1512ms, proxy.ts: 839ms, application-code: 1282ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 713ms (next.js: 12ms, proxy.ts: 133ms, application-code: 569ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 471ms (next.js: 14ms, proxy.ts: 127ms, application-code: 331ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 8.7s (next.js: 2.3s, proxy.ts: 2.4s, application-code: 4.0s)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 2.5s (next.js: 226ms, proxy.ts: 681ms, application-code: 1643ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 524ms (next.js: 14ms, proxy.ts: 207ms, application-code: 302ms)
+[Automation] Démarrage du moteur…
+✓ Finished filesystem cache database compaction in 15.2s
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 4.0s (next.js: 2.0s, proxy.ts: 1189ms, application-code: 790ms)
+ GET /api/gmb/unread-count 200 in 4.0s (next.js: 3.2s, proxy.ts: 12ms, application-code: 800ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 1299ms (next.js: 296ms, proxy.ts: 389ms, application-code: 615ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 3.2s (next.js: 576ms, proxy.ts: 726ms, application-code: 1944ms)
+ GET /dashboard/overview?module=email 200 in 1329ms (next.js: 16ms, proxy.ts: 302ms, application-code: 1011ms)
+ GET /dashboard/google-reviews 200 in 4.2s (next.js: 1438ms, proxy.ts: 302ms, application-code: 2.5s)
+ GET /dashboard/overview 200 in 914ms (next.js: 15ms, proxy.ts: 250ms, application-code: 649ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 4.8s (next.js: 2.9s, proxy.ts: 1253ms, application-code: 604ms)
+ GET /dashboard/boutique/calendrier-horaires-tichri 200 in 1280ms (next.js: 666ms, proxy.ts: 313ms, application-code: 301ms)
+ GET /dashboard/overview 200 in 1281ms (next.js: 15ms, proxy.ts: 324ms, application-code: 942ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1056ms (next.js: 12ms, proxy.ts: 321ms, application-code: 722ms)
+ GET /dashboard/settings 200 in 2.1s (next.js: 1308ms, proxy.ts: 232ms, application-code: 537ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1019ms (next.js: 12ms, proxy.ts: 153ms, application-code: 854ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 9.6s (next.js: 477ms, proxy.ts: 327ms, application-code: 8.8s)
+ GET /dashboard/overview 200 in 2.7s (next.js: 1377ms, proxy.ts: 713ms, application-code: 616ms)
+ GET /dashboard/overview 200 in 1545ms (next.js: 68ms, proxy.ts: 262ms, application-code: 1215ms)
+ GET /dashboard/overview 200 in 1574ms (next.js: 116ms, proxy.ts: 531ms, application-code: 927ms)
+ GET /dashboard/overview 200 in 1347ms (next.js: 13ms, proxy.ts: 300ms, application-code: 1034ms)
+ GET /dashboard/overview 200 in 1598ms (next.js: 236ms, proxy.ts: 869ms, application-code: 493ms)
+ GET /dashboard/overview 200 in 1597ms (next.js: 19ms, proxy.ts: 861ms, application-code: 717ms)
+ GET /dashboard/overview 200 in 1295ms (next.js: 69ms, proxy.ts: 558ms, application-code: 669ms)
+ GET /dashboard/overview 200 in 1618ms (next.js: 13ms, proxy.ts: 133ms, application-code: 1472ms)
+ GET /dashboard/overview 200 in 1607ms (next.js: 35ms, proxy.ts: 327ms, application-code: 1245ms)
+ GET /dashboard/overview 200 in 1581ms (next.js: 604ms, proxy.ts: 311ms, application-code: 665ms)
+ GET /dashboard/overview 200 in 1581ms (next.js: 416ms, proxy.ts: 308ms, application-code: 857ms)
+ GET /dashboard/overview 200 in 1615ms (next.js: 106ms, proxy.ts: 329ms, application-code: 1179ms)
+ GET /dashboard/overview 200 in 10.2s (next.js: 20ms, proxy.ts: 1379ms, application-code: 8.8s)
+ GET /dashboard/overview 200 in 9.0s (next.js: 26ms, proxy.ts: 8.7s, application-code: 306ms)
+ GET /api/gmb/unread-count 200 in 9.1s (next.js: 8.1s, proxy.ts: 7ms, application-code: 997ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/boutique/calendrier-horaires-tichri 200 in 2.0s (next.js: 1553ms, proxy.ts: 336ms, application-code: 114ms)
+ GET /dashboard/assistant 200 in 1288ms (next.js: 165ms, proxy.ts: 267ms, application-code: 855ms)
+ GET /api/conversations 200 in 526ms (next.js: 175ms, proxy.ts: 16ms, application-code: 335ms)
+ GET /api/community/daily-routine 200 in 657ms (next.js: 319ms, proxy.ts: 16ms, application-code: 322ms)
+ GET /api/conversations 200 in 229ms (next.js: 8ms, proxy.ts: 5ms, application-code: 217ms)
+ GET /api/community/daily-routine 200 in 352ms (next.js: 8ms, proxy.ts: 5ms, application-code: 338ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/assistant 200 in 4.8s (next.js: 2.9s, proxy.ts: 887ms, application-code: 972ms)
+ GET /dashboard/assistant 200 in 498ms (next.js: 11ms, proxy.ts: 124ms, application-code: 362ms)
+ GET /dashboard/assistant 200 in 1397ms (next.js: 26ms, proxy.ts: 184ms, application-code: 1187ms)
+ GET /dashboard/assistant 200 in 1408ms (next.js: 185ms, proxy.ts: 250ms, application-code: 973ms)
+ GET /dashboard/assistant 200 in 1410ms (next.js: 184ms, proxy.ts: 419ms, application-code: 808ms)
+ GET /dashboard/assistant 200 in 1238ms (next.js: 245ms, proxy.ts: 366ms, application-code: 627ms)
+ GET /dashboard/assistant 200 in 1586ms (next.js: 242ms, proxy.ts: 773ms, application-code: 571ms)
+ GET /dashboard/assistant 200 in 1462ms (next.js: 201ms, proxy.ts: 845ms, application-code: 415ms)
+ GET /dashboard/assistant 200 in 716ms (next.js: 14ms, proxy.ts: 219ms, application-code: 483ms)
+ GET /dashboard/assistant 200 in 691ms (next.js: 187ms, proxy.ts: 195ms, application-code: 309ms)
+ GET /dashboard/assistant 200 in 2.9s (next.js: 243ms, proxy.ts: 423ms, application-code: 2.2s)
+ GET /dashboard/assistant 200 in 2.1s (next.js: 117ms, proxy.ts: 368ms, application-code: 1573ms)
+ GET /dashboard/assistant 200 in 1607ms (next.js: 72ms, proxy.ts: 455ms, application-code: 1080ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1370ms (next.js: 350ms, proxy.ts: 255ms, application-code: 766ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+○ Compiling /dashboard/boutique/magnets-chabbat ...
+ GET /dashboard/boutique/magnets-chabbat 200 in 8.7s (next.js: 3.9s, proxy.ts: 631ms, application-code: 4.2s)
+ GET /dashboard/overview 200 in 8.8s (next.js: 3.0s, proxy.ts: 640ms, application-code: 5.2s)
+ GET /dashboard/overview 200 in 548ms (next.js: 20ms, proxy.ts: 159ms, application-code: 369ms)
+ GET /dashboard/boutique/magnets-chabbat 200 in 694ms (next.js: 16ms, proxy.ts: 457ms, application-code: 221ms)
+ GET /dashboard/overview 200 in 1779ms (next.js: 16ms, proxy.ts: 341ms, application-code: 1421ms)
+ GET /dashboard/boutique/magnets-chabbat 200 in 1546ms (next.js: 19ms, proxy.ts: 912ms, application-code: 616ms)
+ GET /dashboard/overview 200 in 671ms (next.js: 18ms, proxy.ts: 151ms, application-code: 502ms)
+ GET /dashboard/boutique/magnets-chabbat 200 in 554ms (next.js: 13ms, proxy.ts: 259ms, application-code: 282ms)
+ GET /dashboard/boutique/magnets-chabbat 200 in 1982ms (next.js: 25ms, proxy.ts: 142ms, application-code: 1815ms)
+ GET /dashboard/boutique/magnets-chabbat 200 in 1994ms (next.js: 140ms, proxy.ts: 349ms, application-code: 1506ms)
+ GET /dashboard/boutique/magnets-chabbat 200 in 1975ms (next.js: 50ms, proxy.ts: 324ms, application-code: 1601ms)
+ GET /dashboard/boutique/magnets-chabbat 200 in 1915ms (next.js: 109ms, proxy.ts: 744ms, application-code: 1062ms)
+ GET /dashboard/boutique/magnets-chabbat 200 in 1940ms (next.js: 24ms, proxy.ts: 766ms, application-code: 1150ms)
+ GET /dashboard/boutique/magnets-chabbat 200 in 1901ms (next.js: 467ms, proxy.ts: 730ms, application-code: 704ms)
+✓ Finished filesystem cache database compaction in 12.4s
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 8.2s (next.js: 25ms, proxy.ts: 6.5s, application-code: 1646ms)
+ GET /dashboard/overview 200 in 9.2s (next.js: 1919ms, proxy.ts: 4.1s, application-code: 3.2s)
+ GET /dashboard/overview 200 in 1129ms (next.js: 25ms, proxy.ts: 455ms, application-code: 648ms)
+ GET /dashboard/overview 200 in 743ms (next.js: 10ms, proxy.ts: 304ms, application-code: 429ms)
+ GET /dashboard/overview 200 in 688ms (next.js: 17ms, proxy.ts: 138ms, application-code: 533ms)
+ GET /dashboard/overview 200 in 1313ms (next.js: 26ms, proxy.ts: 254ms, application-code: 1032ms)
+ GET /dashboard/overview 200 in 2.2s (next.js: 16ms, proxy.ts: 182ms, application-code: 1965ms)
+ GET /dashboard/overview 200 in 3.4s (next.js: 53ms, proxy.ts: 1175ms, application-code: 2.2s)
+ GET /dashboard/overview 200 in 3.2s (next.js: 49ms, proxy.ts: 876ms, application-code: 2.3s)
+ GET /dashboard/overview 200 in 2.3s (next.js: 75ms, proxy.ts: 298ms, application-code: 1949ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 3.9s (next.js: 1986ms, proxy.ts: 1008ms, application-code: 903ms)
+[Automation] Démarrage du moteur…
+ GET /dashboard/overview 200 in 980ms (next.js: 26ms, proxy.ts: 196ms, application-code: 758ms)
+[Automation] 3 automatisations actives
+ GET /dashboard/overview 200 in 1241ms (next.js: 56ms, proxy.ts: 212ms, application-code: 973ms)
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/settings 200 in 1245ms (next.js: 269ms, proxy.ts: 130ms, application-code: 846ms)
+ GET /dashboard/settings/billing 200 in 2.7s (next.js: 1309ms, proxy.ts: 144ms, application-code: 1236ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/gmb/unread-count 200 in 11.4s (next.js: 9.1s, proxy.ts: 1107ms, application-code: 1156ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/settings 200 in 1656ms (next.js: 84ms, proxy.ts: 327ms, application-code: 1245ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+ GET /dashboard/overview 200 in 3.1s (next.js: 61ms, proxy.ts: 162ms, application-code: 2.8s)
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/boutique/anniversaire-juif 200 in 1368ms (next.js: 895ms, proxy.ts: 318ms, application-code: 155ms)
+ GET /dashboard/overview 200 in 1354ms (next.js: 49ms, proxy.ts: 237ms, application-code: 1068ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/website 200 in 643ms (next.js: 390ms, proxy.ts: 132ms, application-code: 122ms)
+ GET /dashboard/overview 200 in 1157ms (next.js: 13ms, proxy.ts: 321ms, application-code: 822ms)
+ GET /dashboard/referencement 200 in 684ms (next.js: 237ms, proxy.ts: 293ms, application-code: 153ms)
+ GET /dashboard/overview 200 in 1024ms (next.js: 18ms, proxy.ts: 130ms, application-code: 877ms)
+ GET /dashboard/assistance-indemnisation-aerienne 200 in 636ms (next.js: 288ms, proxy.ts: 246ms, application-code: 102ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1045ms (next.js: 25ms, proxy.ts: 140ms, application-code: 880ms)
+○ Compiling /dashboard/donation-campaign ...
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/donation-campaign 200 in 48s (next.js: 16.5s, proxy.ts: 373ms, application-code: 30.9s)
+ GET /dashboard/overview?module=targeted 200 in 12.3s (next.js: 4.4s, proxy.ts: 1884ms, application-code: 6.0s)
+ GET /dashboard/overview?module=targeted 200 in 3.1s (next.js: 268ms, proxy.ts: 326ms, application-code: 2.5s)
+ GET /dashboard/overview?module=targeted 200 in 13.4s (next.js: 5.2s, proxy.ts: 1855ms, application-code: 6.4s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=targeted 200 in 17.4s (next.js: 5.5s, proxy.ts: 789ms, application-code: 11.1s)
+ GET /dashboard/overview?module=targeted 200 in 20.7s (next.js: 6.7s, proxy.ts: 750ms, application-code: 13.2s)
+ GET /dashboard/overview?module=targeted 200 in 20.8s (next.js: 6.6s, proxy.ts: 778ms, application-code: 13.4s)
+ GET /dashboard/overview?module=targeted 200 in 19.4s (next.js: 6.4s, proxy.ts: 115ms, application-code: 12.9s)
+ GET /dashboard/overview?module=targeted 200 in 20.0s (next.js: 6.6s, proxy.ts: 282ms, application-code: 13.1s)
+ GET /dashboard/overview?module=targeted 200 in 19.9s (next.js: 6.7s, proxy.ts: 253ms, application-code: 13.0s)
+ GET /dashboard/overview?module=targeted 200 in 11.6s (next.js: 5.8s, proxy.ts: 4.1s, application-code: 1641ms)
+ GET /dashboard/overview?module=targeted 200 in 8.4s (next.js: 5.6s, proxy.ts: 904ms, application-code: 1852ms)
+ GET /dashboard/overview?module=targeted 200 in 8.4s (next.js: 5.9s, proxy.ts: 891ms, application-code: 1590ms)
+ GET /dashboard/overview?module=targeted 200 in 8.4s (next.js: 462ms, proxy.ts: 7.4s, application-code: 535ms)
+ GET /dashboard/overview?module=targeted 200 in 8.4s (next.js: 124ms, proxy.ts: 7.4s, application-code: 875ms)
+ GET /dashboard/overview?module=targeted 200 in 8.4s (next.js: 29ms, proxy.ts: 7.4s, application-code: 982ms)
+ GET /dashboard/overview?module=targeted 200 in 1931ms (next.js: 18ms, proxy.ts: 226ms, application-code: 1688ms)
+ GET /dashboard/overview?module=targeted 200 in 1944ms (next.js: 422ms, proxy.ts: 508ms, application-code: 1014ms)
+ GET /dashboard/overview?module=targeted 200 in 1897ms (next.js: 77ms, proxy.ts: 458ms, application-code: 1363ms)
+ GET /dashboard/overview?module=targeted 200 in 1891ms (next.js: 20ms, proxy.ts: 446ms, application-code: 1424ms)
+ GET /dashboard/overview?module=targeted 200 in 1913ms (next.js: 21ms, proxy.ts: 1306ms, application-code: 586ms)
+ GET /dashboard/overview?module=targeted 200 in 2.0s (next.js: 93ms, proxy.ts: 1374ms, application-code: 541ms)
+ GET /dashboard/overview?module=targeted 200 in 1806ms (next.js: 90ms, proxy.ts: 321ms, application-code: 1395ms)
+ GET /dashboard/overview?module=targeted 200 in 1838ms (next.js: 26ms, proxy.ts: 321ms, application-code: 1491ms)
+ GET /dashboard/overview?module=targeted 200 in 1795ms (next.js: 781ms, proxy.ts: 267ms, application-code: 746ms)
+ GET /dashboard/overview?module=targeted 200 in 1908ms (next.js: 11ms, proxy.ts: 135ms, application-code: 1762ms)
+ GET /dashboard/overview?module=targeted 200 in 1894ms (next.js: 216ms, proxy.ts: 288ms, application-code: 1390ms)
+ GET /dashboard/overview?module=targeted 200 in 1945ms (next.js: 144ms, proxy.ts: 321ms, application-code: 1480ms)
+ GET /dashboard/overview?module=targeted 200 in 1782ms (next.js: 17ms, proxy.ts: 230ms, application-code: 1534ms)
+ GET /dashboard/overview?module=targeted 200 in 1788ms (next.js: 37ms, proxy.ts: 518ms, application-code: 1233ms)
+ GET /dashboard/overview?module=targeted 200 in 1703ms (next.js: 412ms, proxy.ts: 433ms, application-code: 857ms)
+ GET /dashboard/overview?module=targeted 200 in 1675ms (next.js: 135ms, proxy.ts: 402ms, application-code: 1139ms)
+ GET /dashboard/overview?module=targeted 200 in 1653ms (next.js: 906ms, proxy.ts: 382ms, application-code: 365ms)
+ GET /dashboard/overview?module=targeted 200 in 1813ms (next.js: 483ms, proxy.ts: 521ms, application-code: 809ms)
+ GET /dashboard/overview?module=targeted 200 in 1819ms (next.js: 12ms, proxy.ts: 109ms, application-code: 1698ms)
+ GET /dashboard/overview?module=targeted 200 in 1792ms (next.js: 364ms, proxy.ts: 317ms, application-code: 1111ms)
+ GET /dashboard/overview?module=targeted 200 in 1815ms (next.js: 24ms, proxy.ts: 331ms, application-code: 1460ms)
+ GET /dashboard/overview?module=targeted 200 in 1804ms (next.js: 431ms, proxy.ts: 325ms, application-code: 1048ms)
+ GET /dashboard/overview?module=targeted 200 in 1813ms (next.js: 83ms, proxy.ts: 327ms, application-code: 1404ms)
+ GET /dashboard/overview?module=targeted 200 in 1797ms (next.js: 494ms, proxy.ts: 313ms, application-code: 989ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+✓ Finished filesystem cache database compaction in 21.0s
+✓ Finished filesystem cache database compaction in 13.3s
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=targeted 200 in 2.2min (next.js: 50s, proxy.ts: 115ms, application-code: 82s)
+ GET /dashboard/overview?module=targeted 200 in 2.2min (next.js: 54s, proxy.ts: 156ms, application-code: 77s)
+ GET /dashboard/overview?module=targeted 200 in 2.2min (next.js: 55s, proxy.ts: 199ms, application-code: 76s)
+ GET /dashboard/overview?module=targeted 200 in 2.2min (next.js: 56s, proxy.ts: 189ms, application-code: 76s)
+ GET /dashboard/overview?module=targeted 200 in 2.2min (next.js: 55s, proxy.ts: 182ms, application-code: 77s)
+ GET /dashboard/overview?module=targeted 200 in 2.2min (next.js: 57s, proxy.ts: 175ms, application-code: 75s)
+ GET /dashboard/overview?module=targeted 200 in 11.8s (next.js: 4.9s, proxy.ts: 3.2s, application-code: 3.7s)
+ GET /dashboard/overview?module=targeted 200 in 11.8s (next.js: 4.3s, proxy.ts: 3.5s, application-code: 4.1s)
+ GET /dashboard/overview?module=targeted 200 in 11.9s (next.js: 5.1s, proxy.ts: 3.2s, application-code: 3.6s)
+ GET /dashboard/overview?module=targeted 200 in 9.0s (next.js: 6.0s, proxy.ts: 326ms, application-code: 2.7s)
+ GET /dashboard/overview?module=targeted 200 in 12.0s (next.js: 5.5s, proxy.ts: 3.6s, application-code: 2.9s)
+ GET /dashboard/overview?module=targeted 200 in 4.8s (next.js: 545ms, proxy.ts: 547ms, application-code: 3.7s)
+ GET /dashboard/overview?module=targeted 200 in 4.8s (next.js: 91ms, proxy.ts: 572ms, application-code: 4.1s)
+ GET /dashboard/overview?module=targeted 200 in 4.8s (next.js: 723ms, proxy.ts: 553ms, application-code: 3.5s)
+ GET /dashboard/overview?module=targeted 200 in 4.7s (next.js: 1682ms, proxy.ts: 2.3s, application-code: 698ms)
+ GET /dashboard/overview 200 in 17.0s (next.js: 5.7s, proxy.ts: 3.8s, application-code: 7.5s)
+ GET /dashboard/overview?module=targeted 200 in 4.8s (next.js: 1771ms, proxy.ts: 2.4s, application-code: 695ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/gmb/unread-count 200 in 9.4s (next.js: 6.8s, proxy.ts: 14ms, application-code: 2.6s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=social 200 in 12.9s (next.js: 3.6s, proxy.ts: 2.8s, application-code: 6.6s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+ GET /dashboard/social-networks 200 in 15.0s (next.js: 9.8s, proxy.ts: 533ms, application-code: 4.6s)
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/social-networks 200 in 8.4s (next.js: 5.2s, proxy.ts: 54ms, application-code: 3.2s)
+ GET /api/social-networks 200 in 537ms (next.js: 24ms, proxy.ts: 18ms, application-code: 495ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+○ Compiling /api/support-suggestions ...
+ POST /api/support-suggestions 401 in 10.0s (next.js: 9.9s, proxy.ts: 25ms, application-code: 70ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/publishing/instagram/generate 200 in 6.8s (next.js: 2.7s, proxy.ts: 15ms, application-code: 4.0s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 3.6s (next.js: 112ms, proxy.ts: 163ms, application-code: 3.3s)
+ GET /api/gmb/unread-count 200 in 538ms (next.js: 33ms, proxy.ts: 21ms, application-code: 484ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+ GET /dashboard/overview 200 in 5.2s (next.js: 3.6s, proxy.ts: 917ms, application-code: 682ms)
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1017ms (next.js: 26ms, proxy.ts: 387ms, application-code: 604ms)
+ GET /dashboard/overview 200 in 1277ms (next.js: 33ms, proxy.ts: 152ms, application-code: 1092ms)
+ GET /dashboard/overview 200 in 652ms (next.js: 24ms, proxy.ts: 165ms, application-code: 464ms)
+ GET /dashboard/overview 200 in 2.4s (next.js: 386ms, proxy.ts: 737ms, application-code: 1236ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=social 200 in 1977ms (next.js: 31ms, proxy.ts: 477ms, application-code: 1469ms)
+ GET /dashboard/social-networks 200 in 983ms (next.js: 171ms, proxy.ts: 299ms, application-code: 513ms)
+ GET /api/social-networks 200 in 1941ms (next.js: 778ms, proxy.ts: 18ms, application-code: 1145ms)
+ GET /api/social-networks 200 in 692ms (next.js: 38ms, proxy.ts: 50ms, application-code: 604ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/publishing/instagram/generate 200 in 2.5s (next.js: 419ms, proxy.ts: 7ms, application-code: 2.0s)
+ GET /dashboard/social-networks 200 in 2.1s (next.js: 701ms, proxy.ts: 905ms, application-code: 509ms)
+ GET /dashboard/social-networks 200 in 474ms (next.js: 27ms, proxy.ts: 131ms, application-code: 316ms)
+ GET /api/social-networks 200 in 1654ms (next.js: 408ms, proxy.ts: 12ms, application-code: 1234ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/templates 200 in 2.8s (next.js: 24ms, proxy.ts: 299ms, application-code: 2.5s)
+ GET /dashboard/templates 200 in 10.3s (next.js: 4.5s, proxy.ts: 1314ms, application-code: 4.4s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/gmb/unread-count 200 in 22.0s (next.js: 9.1s, proxy.ts: 15ms, application-code: 12.9s)
+ GET /dashboard/overview 200 in 6.0s (next.js: 3.0s, proxy.ts: 1590ms, application-code: 1406ms)
+ GET /dashboard/overview 200 in 1466ms (next.js: 22ms, proxy.ts: 157ms, application-code: 1287ms)
+ GET /dashboard/overview 200 in 1047ms (next.js: 16ms, proxy.ts: 142ms, application-code: 889ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1609ms (next.js: 534ms, proxy.ts: 595ms, application-code: 480ms)
+ GET /dashboard/overview 200 in 724ms (next.js: 18ms, proxy.ts: 299ms, application-code: 406ms)
+ GET /dashboard/overview 200 in 593ms (next.js: 18ms, proxy.ts: 214ms, application-code: 361ms)
+ GET /dashboard/overview 200 in 534ms (next.js: 17ms, proxy.ts: 173ms, application-code: 344ms)
+ GET /dashboard/overview 200 in 1284ms (next.js: 280ms, proxy.ts: 577ms, application-code: 427ms)
+ GET /dashboard/overview?module=social 200 in 1053ms (next.js: 15ms, proxy.ts: 117ms, application-code: 920ms)
+ GET /dashboard/social-networks 200 in 724ms (next.js: 98ms, proxy.ts: 265ms, application-code: 361ms)
+ GET /api/social-networks 200 in 1232ms (next.js: 594ms, proxy.ts: 10ms, application-code: 627ms)
+ GET /api/social-networks 200 in 351ms (next.js: 7ms, proxy.ts: 11ms, application-code: 333ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/uploads/attachment 200 in 9.7s (next.js: 1947ms, proxy.ts: 115ms, application-code: 7.6s)
+✓ Finished filesystem cache database compaction in 16.3s
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/social-networks 200 in 27.5s (next.js: 11ms, proxy.ts: 14ms, application-code: 27.5s)
+ GET /api/social-networks 200 in 560ms (next.js: 17ms, proxy.ts: 18ms, application-code: 526ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+ GET /dashboard/social-networks 200 in 1671ms (next.js: 655ms, proxy.ts: 578ms, application-code: 438ms)
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/social-networks 200 in 870ms (next.js: 13ms, proxy.ts: 156ms, application-code: 700ms)
+ GET /dashboard/social-networks 200 in 1655ms (next.js: 35ms, proxy.ts: 191ms, application-code: 1429ms)
+ GET /dashboard/social-networks 200 in 3.1s (next.js: 49ms, proxy.ts: 1078ms, application-code: 1971ms)
+ GET /dashboard/social-networks 200 in 1744ms (next.js: 49ms, proxy.ts: 280ms, application-code: 1415ms)
+ GET /dashboard/social-networks 200 in 1835ms (next.js: 121ms, proxy.ts: 334ms, application-code: 1380ms)
+ GET /dashboard/social-networks 200 in 1721ms (next.js: 48ms, proxy.ts: 321ms, application-code: 1352ms)
+ GET /dashboard/social-networks 200 in 1350ms (next.js: 50ms, proxy.ts: 294ms, application-code: 1005ms)
+ GET /dashboard/social-networks 200 in 1020ms (next.js: 17ms, proxy.ts: 622ms, application-code: 381ms)
+ GET /dashboard/social-networks 200 in 375ms (next.js: 22ms, proxy.ts: 155ms, application-code: 198ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/publishing/instagram/generate 200 in 3.2s (next.js: 831ms, proxy.ts: 16ms, application-code: 2.3s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/social-networks 201 in 8.0s (next.js: 670ms, proxy.ts: 18ms, application-code: 7.3s)
+ GET /api/social-networks 200 in 636ms (next.js: 16ms, proxy.ts: 15ms, application-code: 606ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/social-networks 200 in 5.6s (next.js: 2.5s, proxy.ts: 924ms, application-code: 2.1s)
+[Automation] Démarrage du moteur…
+ GET /dashboard/social-networks 200 in 2.2s (next.js: 370ms, proxy.ts: 761ms, application-code: 1055ms)
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/social-networks 200 in 323ms (next.js: 9ms, proxy.ts: 155ms, application-code: 159ms)
+ GET /dashboard/social-networks 200 in 363ms (next.js: 8ms, proxy.ts: 118ms, application-code: 236ms)
+ GET /dashboard/social-networks 200 in 443ms (next.js: 163ms, proxy.ts: 126ms, application-code: 154ms)
+ GET /dashboard/social-networks 200 in 255ms (next.js: 8ms, proxy.ts: 126ms, application-code: 121ms)
+ GET /dashboard/social-networks 200 in 214ms (next.js: 6ms, proxy.ts: 92ms, application-code: 116ms)
+ GET /dashboard/social-networks 200 in 578ms (next.js: 7ms, proxy.ts: 109ms, application-code: 463ms)
+ GET /dashboard/overview 200 in 1468ms (next.js: 420ms, proxy.ts: 130ms, application-code: 918ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 1387ms (next.js: 324ms, proxy.ts: 236ms, application-code: 827ms)
+ GET /api/conversations 200 in 745ms (next.js: 223ms, proxy.ts: 17ms, application-code: 504ms)
+ GET /api/community/daily-routine 200 in 826ms (next.js: 461ms, proxy.ts: 17ms, application-code: 349ms)
+ GET /api/conversations 200 in 251ms (next.js: 9ms, proxy.ts: 11ms, application-code: 230ms)
+ GET /api/community/daily-routine 200 in 385ms (next.js: 10ms, proxy.ts: 13ms, application-code: 362ms)
+ GET /api/gmb/unread-count 200 in 4.6s (next.js: 4.0s, proxy.ts: 20ms, application-code: 577ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 4.3s (next.js: 2.5s, proxy.ts: 719ms, application-code: 1050ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 1049ms (next.js: 13ms, proxy.ts: 135ms, application-code: 901ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 985ms (next.js: 8ms, proxy.ts: 176ms, application-code: 801ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 984ms (next.js: 19ms, proxy.ts: 467ms, application-code: 497ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 981ms (next.js: 202ms, proxy.ts: 477ms, application-code: 302ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 2.1s (next.js: 683ms, proxy.ts: 571ms, application-code: 825ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 1686ms (next.js: 9ms, proxy.ts: 131ms, application-code: 1546ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 2.3s (next.js: 98ms, proxy.ts: 413ms, application-code: 1818ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 2.4s (next.js: 17ms, proxy.ts: 179ms, application-code: 2.2s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 3.2s (next.js: 1814ms, proxy.ts: 656ms, application-code: 780ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 496ms (next.js: 8ms, proxy.ts: 257ms, application-code: 230ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 1180ms (next.js: 9ms, proxy.ts: 139ms, application-code: 1032ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 1106ms (next.js: 11ms, proxy.ts: 166ms, application-code: 929ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 1097ms (next.js: 184ms, proxy.ts: 157ms, application-code: 757ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 1201ms (next.js: 70ms, proxy.ts: 576ms, application-code: 554ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 1204ms (next.js: 27ms, proxy.ts: 577ms, application-code: 600ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 1447ms (next.js: 123ms, proxy.ts: 576ms, application-code: 748ms)
+ GET /dashboard/assistant?agent=dov&prefill=Je+souhaite+travailler+avec+Dov%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+r%C3%A9seaux+sociaux.+Aide-moi+%C3%A0+commencer. 200 in 376ms (next.js: 13ms, proxy.ts: 139ms, application-code: 224ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 3.5s (next.js: 2.0s, proxy.ts: 482ms, application-code: 957ms)
+ GET /dashboard/assistant?agent=david&prefill=Je+souhaite+travailler+avec+David%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+automatisations.+Aide-moi+%C3%A0+commencer. 200 in 839ms (next.js: 9ms, proxy.ts: 239ms, application-code: 591ms)
+ GET /api/conversations 200 in 599ms (next.js: 339ms, proxy.ts: 9ms, application-code: 251ms)
+ GET /api/community/daily-routine 200 in 672ms (next.js: 238ms, proxy.ts: 10ms, application-code: 423ms)
+ GET /api/conversations 200 in 226ms (next.js: 5ms, proxy.ts: 6ms, application-code: 215ms)
+ GET /api/community/daily-routine 200 in 317ms (next.js: 5ms, proxy.ts: 5ms, application-code: 306ms)
+ GET /dashboard/overview 200 in 729ms (next.js: 8ms, proxy.ts: 141ms, application-code: 579ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+ GET /dashboard/overview 200 in 2.5s (next.js: 1354ms, proxy.ts: 736ms, application-code: 403ms)
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 498ms (next.js: 8ms, proxy.ts: 242ms, application-code: 247ms)
+ GET /dashboard/overview 200 in 368ms (next.js: 6ms, proxy.ts: 118ms, application-code: 245ms)
+ GET /dashboard/overview 200 in 412ms (next.js: 8ms, proxy.ts: 167ms, application-code: 238ms)
+ GET /dashboard/overview?module=social 200 in 1297ms (next.js: 14ms, proxy.ts: 219ms, application-code: 1064ms)
+ GET /dashboard/overview 200 in 1414ms (next.js: 12ms, proxy.ts: 307ms, application-code: 1095ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/settings/billing 200 in 1951ms (next.js: 314ms, proxy.ts: 664ms, application-code: 974ms)
+ GET /api/gmb/unread-count 200 in 8.8s (next.js: 7.5s, proxy.ts: 12ms, application-code: 1371ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1014ms (next.js: 39ms, proxy.ts: 344ms, application-code: 631ms)
+ GET /dashboard/settings?section=profile 200 in 2.4s (next.js: 1632ms, proxy.ts: 301ms, application-code: 466ms)
+ GET /api/community/members 200 in 654ms (next.js: 142ms, proxy.ts: 9ms, application-code: 503ms)
+ GET /api/community/members 200 in 878ms (next.js: 157ms, proxy.ts: 12ms, application-code: 709ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/settings/channels 200 in 1627ms (next.js: 636ms, proxy.ts: 495ms, application-code: 496ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+ GET /dashboard/overview 200 in 1528ms (next.js: 228ms, proxy.ts: 515ms, application-code: 785ms)
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 814ms (next.js: 11ms, proxy.ts: 137ms, application-code: 666ms)
+ GET /dashboard/overview 200 in 10.1s (next.js: 4.9s, proxy.ts: 153ms, application-code: 5.0s)
+ GET /dashboard/overview 200 in 1110ms (next.js: 12ms, proxy.ts: 554ms, application-code: 544ms)
+ GET /dashboard/overview 200 in 803ms (next.js: 19ms, proxy.ts: 327ms, application-code: 457ms)
+ GET /dashboard/overview 200 in 3.7s (next.js: 323ms, proxy.ts: 1856ms, application-code: 1507ms)
+ GET /dashboard/overview 200 in 580ms (next.js: 12ms, proxy.ts: 265ms, application-code: 304ms)
+ GET /dashboard/overview?module=social 200 in 1133ms (next.js: 11ms, proxy.ts: 139ms, application-code: 983ms)
+ GET /dashboard/overview 200 in 957ms (next.js: 10ms, proxy.ts: 269ms, application-code: 678ms)
+ GET /dashboard/assistant?agent=david&prefill=Je+souhaite+travailler+avec+David%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+automatisations.+Aide-moi+%C3%A0+commencer. 200 in 1266ms (next.js: 340ms, proxy.ts: 260ms, application-code: 666ms)
+ GET /api/conversations 200 in 521ms (next.js: 205ms, proxy.ts: 17ms, application-code: 299ms)
+ GET /api/community/daily-routine 200 in 708ms (next.js: 357ms, proxy.ts: 18ms, application-code: 333ms)
+ GET /api/conversations 200 in 292ms (next.js: 11ms, proxy.ts: 3ms, application-code: 277ms)
+ GET /api/community/daily-routine 200 in 364ms (next.js: 6ms, proxy.ts: 7ms, application-code: 350ms)
+ GET /dashboard/overview 200 in 905ms (next.js: 9ms, proxy.ts: 246ms, application-code: 650ms)
+ GET /dashboard/assistant?agent=shmouel&prefill=Je+souhaite+travailler+avec+Shmouel%2C+mon+agent+sp%C3%A9cialis%C3%A9+en+cours+de+torah.+Aide-moi+%C3%A0+commencer. 200 in 760ms (next.js: 6ms, proxy.ts: 225ms, application-code: 529ms)
+ GET /api/conversations 200 in 234ms (next.js: 13ms, proxy.ts: 13ms, application-code: 208ms)
+ GET /api/community/daily-routine 200 in 390ms (next.js: 35ms, proxy.ts: 13ms, application-code: 342ms)
+ GET /api/conversations 200 in 195ms (next.js: 5ms, proxy.ts: 4ms, application-code: 186ms)
+ GET /api/community/daily-routine 200 in 320ms (next.js: 4ms, proxy.ts: 3ms, application-code: 313ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/conversations 200 in 995ms (next.js: 4ms, proxy.ts: 12ms, application-code: 980ms)
+ POST /api/ai/chat 200 in 8.7s (next.js: 3.7s, proxy.ts: 5ms, application-code: 5.0s)
+ GET /api/conversations 200 in 250ms (next.js: 35ms, proxy.ts: 6ms, application-code: 209ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/ai/chat 401 in 28ms (next.js: 8ms, proxy.ts: 4ms, application-code: 17ms)
+ GET /dashboard/overview 200 in 971ms (next.js: 40ms, proxy.ts: 287ms, application-code: 644ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 3.5s (next.js: 2.3s, proxy.ts: 681ms, application-code: 574ms)
+ GET /dashboard/overview 200 in 529ms (next.js: 9ms, proxy.ts: 275ms, application-code: 245ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/notifications 200 in 1759ms (next.js: 764ms, proxy.ts: 227ms, application-code: 769ms)
+ GET /dashboard/overview 200 in 850ms (next.js: 10ms, proxy.ts: 216ms, application-code: 625ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/gmb/unread-count 200 in 6.6s (next.js: 4.5s, proxy.ts: 9ms, application-code: 2.1s)
+ GET /dashboard/overview?module=social 200 in 3.2s (next.js: 62ms, proxy.ts: 1015ms, application-code: 2.1s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/social-networks 200 in 3.0s (next.js: 2.2s, proxy.ts: 309ms, application-code: 492ms)
+ GET /api/social-networks 200 in 934ms (next.js: 315ms, proxy.ts: 9ms, application-code: 610ms)
+ GET /api/social-networks 200 in 679ms (next.js: 236ms, proxy.ts: 71ms, application-code: 372ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/publishing/instagram/generate 200 in 2.4s (next.js: 230ms, proxy.ts: 14ms, application-code: 2.2s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/uploads/attachment 200 in 9.4s (next.js: 91ms, proxy.ts: 55ms, application-code: 9.3s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/social-networks 200 in 21.4s (next.js: 8ms, proxy.ts: 4ms, application-code: 21.4s)
+ GET /api/social-networks 200 in 534ms (next.js: 7ms, proxy.ts: 5ms, application-code: 521ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1181ms (next.js: 39ms, proxy.ts: 231ms, application-code: 910ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=automations 200 in 1360ms (next.js: 13ms, proxy.ts: 469ms, application-code: 878ms)
+ GET /dashboard/shabbat-times-auto 200 in 3.2s (next.js: 1790ms, proxy.ts: 292ms, application-code: 1130ms)
+ GET /api/gmb/unread-count 200 in 1014ms (next.js: -4229µs, proxy.ts: 212ms, application-code: 806ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/shabbat-times-auto 200 in 4.8s (next.js: 1694ms, proxy.ts: 1287ms, application-code: 1775ms)
+ GET /dashboard/shabbat-times-auto 200 in 671ms (next.js: 17ms, proxy.ts: 237ms, application-code: 416ms)
+ GET /dashboard/shabbat-times-auto 200 in 1430ms (next.js: 13ms, proxy.ts: 174ms, application-code: 1243ms)
+ GET /dashboard/shabbat-times-auto 200 in 1283ms (next.js: 17ms, proxy.ts: 201ms, application-code: 1065ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/templates/render 200 in 17.5s (next.js: 549ms, proxy.ts: 22ms, application-code: 17.0s)
+ POST /api/shabbat-times-auto/config 200 in 1054ms (next.js: 365ms, proxy.ts: 16ms, application-code: 672ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/shabbat-times-auto/publish 200 in 28.3s (next.js: 1428ms, proxy.ts: 19ms, application-code: 26.9s)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/shabbat-times-auto 200 in 2.6s (next.js: 80ms, proxy.ts: 359ms, application-code: 2.2s)
+ GET /api/gmb/unread-count 200 in 4.5s (next.js: 3.9s, proxy.ts: 14ms, application-code: 602ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+ GET /dashboard/shabbat-times-auto 200 in 3.8s (next.js: 2.4s, proxy.ts: 626ms, application-code: 786ms)
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/shabbat-times-auto 200 in 10.2s (next.js: 4.0s, proxy.ts: 1573ms, application-code: 4.6s)
+ GET /dashboard/shabbat-times-auto 200 in 14.8s (next.js: 510ms, proxy.ts: 525ms, application-code: 13.8s)
+ GET /dashboard/shabbat-times-auto 200 in 2.3s (next.js: 583ms, proxy.ts: 564ms, application-code: 1200ms)
+ GET /dashboard/shabbat-times-auto 200 in 2.2s (next.js: 785ms, proxy.ts: 200ms, application-code: 1232ms)
+ GET /dashboard/shabbat-times-auto 200 in 4.5s (next.js: 1193ms, proxy.ts: 1985ms, application-code: 1288ms)
+ GET /dashboard/shabbat-times-auto 200 in 4.5s (next.js: 1319ms, proxy.ts: 1987ms, application-code: 1158ms)
+ GET /dashboard/shabbat-times-auto 200 in 4.5s (next.js: 1285ms, proxy.ts: 1990ms, application-code: 1197ms)
+ GET /dashboard/shabbat-times-auto 200 in 763ms (next.js: 160ms, proxy.ts: 204ms, application-code: 399ms)
+ GET /dashboard/shabbat-times-auto 200 in 595ms (next.js: 155ms, proxy.ts: 263ms, application-code: 177ms)
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 3 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/shabbat-times-auto 200 in 5.0s (next.js: 1981ms, proxy.ts: 789ms, application-code: 2.3s)
+ POST /api/shabbat-times-auto/config 200 in 1712ms (next.js: 267ms, proxy.ts: 27ms, application-code: 1417ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 6.0s (next.js: 392ms, proxy.ts: 566ms, application-code: 5.0s)
+ GET /dashboard/overview?module=automations 200 in 1726ms (next.js: 10ms, proxy.ts: 753ms, application-code: 963ms)
+ GET /dashboard/hayom-yom-sefer-hamitsvot 200 in 3.6s (next.js: 942ms, proxy.ts: 775ms, application-code: 1882ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/gmb/unread-count 200 in 9.0s (next.js: 7.5s, proxy.ts: 8ms, application-code: 1473ms)
+✓ Finished filesystem cache database compaction in 12.0s
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1054ms (next.js: 39ms, proxy.ts: 155ms, application-code: 860ms)
+ GET /dashboard/overview?module=automations 200 in 1041ms (next.js: 8ms, proxy.ts: 403ms, application-code: 630ms)
+ GET /dashboard/hayom-yom-sefer-hamitsvot 200 in 1819ms (next.js: 17ms, proxy.ts: 321ms, application-code: 1481ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/hayom-yom-sefer-hamitsvot/config 200 in 2.1s (next.js: 1354ms, proxy.ts: 5ms, application-code: 736ms)
+ POST /api/hayom-yom-sefer-hamitsvot/config 200 in 898ms (next.js: 7ms, proxy.ts: 6ms, application-code: 885ms)
+ GET /dashboard/overview 200 in 944ms (next.js: 7ms, proxy.ts: 302ms, application-code: 635ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=automations 200 in 856ms (next.js: 7ms, proxy.ts: 257ms, application-code: 593ms)
+ GET /dashboard/jewish-birthdays 200 in 2.8s (next.js: 1811ms, proxy.ts: 471ms, application-code: 554ms)
+ GET /dashboard/contacts 200 in 1735ms (next.js: 1284ms, proxy.ts: 120ms, application-code: 331ms)
+ GET /api/community/members 200 in 1478ms (next.js: 953ms, proxy.ts: 16ms, application-code: 510ms)
+ GET /api/community/members 200 in 1495ms (next.js: 968ms, proxy.ts: 5ms, application-code: 522ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/community/members 201 in 826ms (next.js: 7ms, proxy.ts: 4ms, application-code: 815ms)
+ GET /api/community/members 200 in 310ms (next.js: 7ms, proxy.ts: 4ms, application-code: 299ms)
+ GET /dashboard/overview 200 in 670ms (next.js: 8ms, proxy.ts: 103ms, application-code: 559ms)
+ GET /dashboard/overview?module=automations 200 in 910ms (next.js: 11ms, proxy.ts: 232ms, application-code: 667ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/jewish-birthdays 200 in 1105ms (next.js: 10ms, proxy.ts: 403ms, application-code: 693ms)
+ POST /api/jewish-birthdays/message 200 in 2.4s (next.js: 414ms, proxy.ts: 7ms, application-code: 2000ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1166ms (next.js: 8ms, proxy.ts: 270ms, application-code: 888ms)
+ GET /dashboard/overview?module=automations 200 in 992ms (next.js: 7ms, proxy.ts: 268ms, application-code: 717ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/event-reminders-auto 200 in 1136ms (next.js: 312ms, proxy.ts: 230ms, application-code: 594ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/event-reminders-auto/config 200 in 2.4s (next.js: 514ms, proxy.ts: 6ms, application-code: 1880ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1635ms (next.js: 10ms, proxy.ts: 439ms, application-code: 1187ms)
+ GET /dashboard/overview?module=automations 200 in 888ms (next.js: 7ms, proxy.ts: 240ms, application-code: 640ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/gmb/unread-count 200 in 636ms (next.js: 22ms, proxy.ts: 6ms, application-code: 608ms)
+ GET /dashboard/recap-auto 200 in 1356ms (next.js: 331ms, proxy.ts: 243ms, application-code: 782ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/recap-auto 200 in 8.0s (next.js: 749ms, proxy.ts: 873ms, application-code: 6.4s)
+[Automation] Démarrage du moteur…
+ GET /dashboard/recap-auto 200 in 8.6s (next.js: 1663ms, proxy.ts: 331ms, application-code: 6.6s)
+ GET /dashboard/recap-auto 200 in 4.2s (next.js: 82ms, proxy.ts: 772ms, application-code: 3.3s)
+ GET /dashboard/recap-auto 200 in 4.2s (next.js: 187ms, proxy.ts: 2.3s, application-code: 1729ms)
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/monthly-program-recap-auto/config 200 in 4.8s (next.js: 1595ms, proxy.ts: 23ms, application-code: 3.2s)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/uploads/attachment 200 in 1957ms (next.js: 147ms, proxy.ts: 16ms, application-code: 1793ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/monthly-program-recap-auto/config 200 in 12.9s (next.js: 11ms, proxy.ts: 12ms, application-code: 12.8s)
+ GET /dashboard/recap-auto 200 in 1732ms (next.js: 31ms, proxy.ts: 149ms, application-code: 1552ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/gmb/unread-count 200 in 4.8s (next.js: 4.0s, proxy.ts: 18ms, application-code: 799ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 7.8s (next.js: 777ms, proxy.ts: 445ms, application-code: 6.6s)
+ GET /dashboard/overview 200 in 5.7s (next.js: 3.1s, proxy.ts: 1156ms, application-code: 1401ms)
+ GET /dashboard/overview 200 in 3.7s (next.js: 2.0s, proxy.ts: 508ms, application-code: 1153ms)
+ GET /dashboard/overview 200 in 2.2s (next.js: 17ms, proxy.ts: 385ms, application-code: 1798ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=targeted 200 in 1253ms (next.js: 261ms, proxy.ts: 368ms, application-code: 624ms)
+ GET /dashboard/overview 200 in 8.4s (next.js: 2.7s, proxy.ts: 642ms, application-code: 5.0s)
+ GET /dashboard/overview 200 in 1290ms (next.js: 10ms, proxy.ts: 959ms, application-code: 321ms)
+ GET /dashboard/overview?module=targeted 200 in 3.1s (next.js: 133ms, proxy.ts: 1074ms, application-code: 1845ms)
+ GET /dashboard/overview?module=targeted 200 in 2.7s (next.js: 147ms, proxy.ts: 556ms, application-code: 1972ms)
+ GET /dashboard/overview?module=targeted 200 in 1102ms (next.js: 183ms, proxy.ts: 546ms, application-code: 374ms)
+ GET /dashboard/overview?module=targeted 200 in 2.7s (next.js: 201ms, proxy.ts: 171ms, application-code: 2.3s)
+ GET /dashboard/overview?module=targeted 200 in 763ms (next.js: 7ms, proxy.ts: 173ms, application-code: 583ms)
+ GET /dashboard/overview?module=targeted 200 in 761ms (next.js: 7ms, proxy.ts: 335ms, application-code: 419ms)
+ GET /dashboard/overview?module=targeted 200 in 760ms (next.js: 16ms, proxy.ts: 492ms, application-code: 252ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=targeted 200 in 1530ms (next.js: 299ms, proxy.ts: 796ms, application-code: 436ms)
+ GET /dashboard/overview?module=targeted 200 in 586ms (next.js: 13ms, proxy.ts: 303ms, application-code: 271ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 1115ms (next.js: 36ms, proxy.ts: 284ms, application-code: 795ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=targeted 200 in 1011ms (next.js: 9ms, proxy.ts: 301ms, application-code: 700ms)
+ GET /dashboard/overview?module=targeted 200 in 954ms (next.js: 291ms, proxy.ts: 390ms, application-code: 273ms)
+ GET /dashboard/overview?module=targeted 200 in 444ms (next.js: 9ms, proxy.ts: 238ms, application-code: 198ms)
+ GET /dashboard/overview?module=targeted 200 in 343ms (next.js: 9ms, proxy.ts: 116ms, application-code: 218ms)
+ GET /dashboard/overview?module=targeted 200 in 412ms (next.js: 12ms, proxy.ts: 120ms, application-code: 280ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 2.4s (next.js: 20ms, proxy.ts: 435ms, application-code: 1941ms)
+ GET /dashboard/overview 200 in 1555ms (next.js: 21ms, proxy.ts: 329ms, application-code: 1205ms)
+ GET /dashboard/overview 200 in 6.3s (next.js: 13ms, proxy.ts: 519ms, application-code: 5.7s)
+ GET /dashboard/overview 200 in 10.7s (next.js: 20ms, proxy.ts: 359ms, application-code: 10.3s)
+ GET /dashboard/overview 200 in 12.7s (next.js: 81ms, proxy.ts: 3.9s, application-code: 8.7s)
+ GET /dashboard/overview 200 in 11.6s (next.js: 1851ms, proxy.ts: 2.8s, application-code: 6.9s)
+ GET /dashboard/overview 200 in 13.0s (next.js: 414ms, proxy.ts: 3.9s, application-code: 8.6s)
+ GET /dashboard/overview?module=targeted 200 in 12.5s (next.js: 829ms, proxy.ts: 5.3s, application-code: 6.4s)
+ GET /dashboard/overview 200 in 311ms (next.js: 16ms, proxy.ts: 270ms, application-code: 25ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+ GET /dashboard/overview 200 in 152ms (next.js: 7ms, proxy.ts: 134ms, application-code: 11ms)
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 116ms (next.js: 8ms, proxy.ts: 101ms, application-code: 7ms)
+ GET /api/gmb/unread-count 200 in 4.9s (next.js: 3.8s, proxy.ts: 21ms, application-code: 1063ms)
+ GET /dashboard/overview 200 in 1325ms (next.js: 7ms, proxy.ts: 279ms, application-code: 1040ms)
+ GET /dashboard/overview 200 in 1274ms (next.js: 8ms, proxy.ts: 104ms, application-code: 1162ms)
+ GET /dashboard/overview 200 in 1198ms (next.js: 13ms, proxy.ts: 174ms, application-code: 1011ms)
+ GET /dashboard/overview?module=torah 200 in 1272ms (next.js: 17ms, proxy.ts: 412ms, application-code: 843ms)
+[Automation] Démarrage du moteur…
+ GET /dashboard/torah 200 in 4.6s (next.js: 4.0s, proxy.ts: 278ms, application-code: 271ms)
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/torah 200 in 6.6s (next.js: 4.5s, proxy.ts: 1102ms, application-code: 1016ms)
+ GET /dashboard/torah 200 in 3.2s (next.js: 698ms, proxy.ts: 398ms, application-code: 2.1s)
+ GET /dashboard/torah 200 in 2.9s (next.js: 52ms, proxy.ts: 2.1s, application-code: 818ms)
+ GET /dashboard/torah 200 in 2.3s (next.js: 30ms, proxy.ts: 1646ms, application-code: 608ms)
+ GET /dashboard/torah 200 in 2.3s (next.js: 43ms, proxy.ts: 1028ms, application-code: 1208ms)
+ GET /dashboard/torah 200 in 1696ms (next.js: 13ms, proxy.ts: 1391ms, application-code: 292ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+ GET /dashboard/torah 200 in 7.3s (next.js: 2.7s, proxy.ts: 1092ms, application-code: 3.6s)
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/torah 200 in 2.2s (next.js: 76ms, proxy.ts: 619ms, application-code: 1495ms)
+ GET /dashboard/torah 200 in 1535ms (next.js: 67ms, proxy.ts: 391ms, application-code: 1077ms)
+ GET /dashboard/torah 200 in 1417ms (next.js: 52ms, proxy.ts: 362ms, application-code: 1004ms)
+ GET /dashboard/torah 200 in 5.3s (next.js: 3.7s, proxy.ts: 874ms, application-code: 667ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/gmb/unread-count 200 in 6.1s (next.js: 5.1s, proxy.ts: 42ms, application-code: 1047ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/torah 200 in 2.1s (next.js: 385ms, proxy.ts: 566ms, application-code: 1172ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/torah 200 in 7.0s (next.js: 4.9s, proxy.ts: 977ms, application-code: 1157ms)
+ GET /dashboard/torah 200 in 1162ms (next.js: 348ms, proxy.ts: 526ms, application-code: 288ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/torah/generate 200 in 10.9s (next.js: 2.3s, proxy.ts: 67ms, application-code: 8.5s)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview 200 in 2.3s (next.js: 764ms, proxy.ts: 320ms, application-code: 1192ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=torah 200 in 6.0s (next.js: 23ms, proxy.ts: 1183ms, application-code: 4.8s)
+ GET /dashboard/overview 200 in 3.1s (next.js: 81ms, proxy.ts: 551ms, application-code: 2.5s)
+ GET /dashboard/overview 200 in 3.7s (next.js: 64ms, proxy.ts: 913ms, application-code: 2.8s)
+ GET /dashboard/overview 200 in 7.5s (next.js: 268ms, proxy.ts: 1480ms, application-code: 5.7s)
+ GET /dashboard/overview 200 in 5.6s (next.js: 83ms, proxy.ts: 3.2s, application-code: 2.2s)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /api/gmb/unread-count 200 in 4.3s (next.js: 3.5s, proxy.ts: 16ms, application-code: 846ms)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ GET /dashboard/overview?module=torah 200 in 11.0s (next.js: 5.6s, proxy.ts: 824ms, application-code: 4.5s)
+ GET /dashboard/overview 200 in 11.0s (next.js: 7.1s, proxy.ts: 811ms, application-code: 3.1s)
+ GET /dashboard/overview 200 in 1900ms (next.js: 115ms, proxy.ts: 568ms, application-code: 1217ms)
+ GET /dashboard/overview?module=torah 200 in 12.7s (next.js: 7.0s, proxy.ts: 796ms, application-code: 4.9s)
+ GET /dashboard/overview 200 in 5.6s (next.js: 39ms, proxy.ts: 684ms, application-code: 4.9s)
+[Automation] Démarrage du moteur…
+ GET /dashboard/torah 200 in 10.6s (next.js: 9.6s, proxy.ts: 328ms, application-code: 683ms)
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer
+ POST /api/torah/generate 500 in 7.8s (next.js: 610ms, proxy.ts: 28ms, application-code: 7.2s)
+[Automation] Démarrage du moteur…
+[Automation] 4 automatisations actives
+[Scheduled Publications] 0 publication(s) a envoyer

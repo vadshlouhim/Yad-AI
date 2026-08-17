@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BookOpen, CalendarDays, Check, Crown, ExternalLink, Pause, Pencil, ScrollText, ShieldCheck, Sparkles, X } from "lucide-react";
+import Image from "next/image";
+import { BookOpen, CalendarDays, Check, ChevronDown, Crown, ExternalLink, Pause, Pencil, ScrollText, ShieldCheck, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FacebookIcon } from "@/components/layout/dashboard-nav";
+import { AGENT_IMAGE_URLS } from "@/lib/agents";
 import { cn } from "@/lib/utils";
 
 const DAYS = [
@@ -50,6 +52,8 @@ export function HayomYomSeferHamitsvotClient({ communityName, timezone, eligible
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [paywallOpen, setPaywallOpen] = useState(false);
+  const [hayomYomOpen, setHayomYomOpen] = useState(false);
+  const [seferHamitsvotOpen, setSeferHamitsvotOpen] = useState(false);
   const selectedDaysLabel = useMemo(() => dayNames(days), [days]);
 
   function toggleDay(day: number) {
@@ -95,43 +99,65 @@ export function HayomYomSeferHamitsvotClient({ communityName, timezone, eligible
 
   return (
     <div className="container mx-auto max-w-6xl space-y-6 px-4 py-5 sm:px-6 sm:py-7">
-      <section className="relative overflow-hidden rounded-[1.8rem] border border-teal-800 bg-[#075c58] p-6 text-white shadow-[0_22px_52px_rgba(7,92,88,0.22)] sm:p-8">
-        <div className="pointer-events-none absolute -right-8 -top-12 size-48 rounded-full bg-white/10" />
-        <div className="pointer-events-none absolute -bottom-20 right-24 size-52 rounded-full bg-cyan-300/10" />
-        <div className="relative max-w-3xl">
-          <span className="flex size-12 items-center justify-center rounded-2xl bg-white text-[#075c58] shadow-lg"><BookOpen className="size-6" /></span>
-          <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Hayom Yom et Sefer Hamitsvot</h1>
-          <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-teal-50 sm:text-base">Les études quotidiennes publiées automatiquement et fidèlement sur votre page Facebook.</p>
+      <section className="relative min-h-[11rem] overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_72%_12%,#7028bd_0%,#421388_45%,#210763_100%)] px-5 py-5 text-white shadow-[0_24px_58px_rgba(49,13,108,0.26)] sm:min-h-[17rem] sm:px-8 sm:py-8">
+        <div className="pointer-events-none absolute -right-8 -top-12 size-48 rounded-full bg-white/10 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-20 left-1/3 size-52 rounded-full bg-fuchsia-400/10 blur-3xl" />
+        <div className="relative z-10 max-w-[72%] sm:max-w-3xl">
+          <span className="flex size-11 items-center justify-center rounded-2xl bg-white/15 text-white shadow-lg ring-1 ring-white/20 sm:size-12"><BookOpen className="size-6" /></span>
+          <h1 className="mt-4 text-[clamp(1.75rem,8vw,2.6rem)] font-black leading-[1.03] tracking-[-0.04em] sm:mt-5 sm:text-4xl">Hayom Yom et Sefer Hamitsvot</h1>
+          <p className="mt-3 hidden max-w-2xl text-sm font-semibold leading-6 text-white/78 sm:block sm:text-base">Les études quotidiennes publiées automatiquement et fidèlement sur votre page Facebook.</p>
         </div>
+        <Image src={AGENT_IMAGE_URLS.david} alt="David, agent des automatisations" width={240} height={280} className="absolute -bottom-3 -right-5 z-10 h-[10.5rem] w-auto object-contain object-bottom drop-shadow-[0_18px_24px_rgba(12,2,35,0.34)] sm:-right-2 sm:h-[16rem]" priority />
       </section>
 
-      <section className="overflow-hidden rounded-[1.8rem] border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-100 bg-gradient-to-r from-amber-50 via-white to-teal-50 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-          <div className="flex items-center gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white text-amber-700 shadow-sm"><Sparkles className="size-5" /></span>
-            <div><p className="text-xs font-black uppercase tracking-[0.14em] text-amber-700">Les études d’aujourd’hui</p><h2 className="mt-1 text-xl font-black text-slate-950">{todayStudy?.dateLabel ?? "Contenu en cours de récupération"}</h2></div>
+      <section className="overflow-hidden rounded-[2rem] border border-violet-100 bg-[#fffaf4] shadow-[0_18px_46px_rgba(66,19,136,0.09)]">
+        <div className="relative overflow-hidden border-b border-violet-100 bg-white p-5 sm:p-6">
+          <div className="pointer-events-none absolute -right-10 -top-16 size-40 rounded-full bg-cyan-300/20 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-20 left-1/3 size-40 rounded-full bg-fuchsia-300/20 blur-2xl" />
+          <div className="relative flex items-center gap-4">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7130d8] to-[#d92d7c] text-white shadow-lg shadow-violet-200"><Sparkles className="size-5" /></span>
+            <div>
+              <p className="bg-gradient-to-r from-[#d92d7c] to-[#087c76] bg-clip-text text-xs font-black uppercase tracking-[0.16em] text-transparent">Les études d’aujourd’hui</p>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">{todayStudy?.dateLabel ?? "Contenu en cours de récupération"}</h2>
+            </div>
           </div>
-          <span className="rounded-full border border-teal-200 bg-white px-3 py-1.5 text-xs font-black text-teal-700">Source Beth Loubavitch</span>
         </div>
         {todayStudy ? (
           <div className="grid gap-4 p-4 sm:p-6 lg:grid-cols-2">
-            <article className="rounded-[1.5rem] border border-violet-200 bg-violet-50/70 p-5">
-              <div className="flex items-center justify-between gap-3"><h3 className="flex items-center gap-2 text-lg font-black text-violet-950"><BookOpen className="size-5 text-violet-700" />Hayom Yom</h3><a href={todayStudy.hayomYomUrl} target="_blank" rel="noreferrer" aria-label="Lire le Hayom Yom sur Beth Loubavitch" className="flex size-9 items-center justify-center rounded-xl bg-white text-violet-700 shadow-sm"><ExternalLink className="size-4" /></a></div>
-              <p className="mt-4 whitespace-pre-line text-sm font-medium leading-7 text-slate-700">{todayStudy.hayomYom}</p>
+            <article className="overflow-hidden rounded-[1.6rem] border border-violet-400/30 bg-gradient-to-br from-[#7130d8] to-[#5420ad] p-4 text-white shadow-[0_13px_28px_rgba(84,32,173,0.2)] sm:p-5">
+              <button type="button" onClick={() => setHayomYomOpen((open) => !open)} aria-expanded={hayomYomOpen} aria-controls="today-hayom-yom" className="flex w-full items-center justify-between gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-4">
+                <span className="flex items-center gap-2 text-lg font-black text-white"><span className="flex size-10 items-center justify-center rounded-xl bg-white text-[#6428bd]"><BookOpen className="size-5" /></span>Hayom Yom</span>
+                <span className="flex items-center gap-1 text-xs font-black text-white/85"><span className="hidden sm:inline">{hayomYomOpen ? "Masquer" : "Afficher"}</span><ChevronDown className={cn("size-5 transition-transform duration-200", hayomYomOpen && "rotate-180")} /></span>
+              </button>
+              {hayomYomOpen ? (
+                <div id="today-hayom-yom" className="mt-4 rounded-[1.25rem] bg-white p-4 text-slate-700 shadow-inner">
+                  <p className="whitespace-pre-line text-sm font-medium leading-7 text-slate-700">{todayStudy.hayomYom}</p>
+                  <a href={todayStudy.hayomYomUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 transition hover:bg-violet-100"><ExternalLink className="size-4" />Lire sur Beth Loubavitch</a>
+                </div>
+              ) : null}
             </article>
-            <article className="rounded-[1.5rem] border border-teal-200 bg-teal-50/70 p-5">
-              <div className="flex items-center justify-between gap-3"><h3 className="flex items-center gap-2 text-lg font-black text-teal-950"><ScrollText className="size-5 text-teal-700" />Sefer Hamitsvot</h3><a href={todayStudy.seferHamitsvotUrl} target="_blank" rel="noreferrer" aria-label="Lire le Sefer Hamitsvot sur Beth Loubavitch" className="flex size-9 items-center justify-center rounded-xl bg-white text-teal-700 shadow-sm"><ExternalLink className="size-4" /></a></div>
-              <p className="mt-4 whitespace-pre-line text-sm font-medium leading-7 text-slate-700">{todayStudy.seferHamitsvot}</p>
+            <article className="overflow-hidden rounded-[1.6rem] border border-teal-400/30 bg-gradient-to-br from-[#0faeb3] to-[#078e9b] p-4 text-white shadow-[0_13px_28px_rgba(7,142,155,0.2)] sm:p-5">
+              <button type="button" onClick={() => setSeferHamitsvotOpen((open) => !open)} aria-expanded={seferHamitsvotOpen} aria-controls="today-sefer-hamitsvot" className="flex w-full items-center justify-between gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-4">
+                <span className="flex items-center gap-2 text-lg font-black text-white"><span className="flex size-10 items-center justify-center rounded-xl bg-white text-[#078e9b]"><ScrollText className="size-5" /></span>Sefer Hamitsvot</span>
+                <span className="flex items-center gap-1 text-xs font-black text-white/85"><span className="hidden sm:inline">{seferHamitsvotOpen ? "Masquer" : "Afficher"}</span><ChevronDown className={cn("size-5 transition-transform duration-200", seferHamitsvotOpen && "rotate-180")} /></span>
+              </button>
+              {seferHamitsvotOpen ? (
+                <div id="today-sefer-hamitsvot" className="mt-4 rounded-[1.25rem] bg-white p-4 text-slate-700 shadow-inner">
+                  <p className="whitespace-pre-line text-sm font-medium leading-7 text-slate-700">{todayStudy.seferHamitsvot}</p>
+                  <a href={todayStudy.seferHamitsvotUrl} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-teal-50 px-3 py-2 text-xs font-black text-teal-700 transition hover:bg-teal-100"><ExternalLink className="size-4" />Lire sur Beth Loubavitch</a>
+                </div>
+              ) : null}
             </article>
           </div>
         ) : <p className="p-6 text-sm font-semibold text-slate-500">Le contenu du jour est momentanément indisponible. Il sera recherché à nouveau lors de la prochaine ouverture.</p>}
       </section>
 
       {active && !editing ? (
-        <section className="rounded-[1.8rem] border border-emerald-200 bg-white p-5 shadow-sm sm:p-7">
+        <section className="relative overflow-hidden rounded-[2rem] border border-emerald-100 bg-[#fffaf4] p-5 shadow-[0_18px_46px_rgba(16,185,129,0.1)] sm:p-7">
+          <div className="pointer-events-none absolute -right-12 -top-16 size-44 rounded-full bg-emerald-300/20 blur-2xl" />
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-4">
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700"><ShieldCheck className="size-6" /></span>
+            <div className="relative flex items-start gap-4">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#16b86b] to-[#078e50] text-white shadow-lg shadow-emerald-200"><ShieldCheck className="size-6" /></span>
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">Automatisation active</p>
                 <h2 className="mt-1 text-xl font-black text-slate-950">{selectedDaysLabel} à 10:00</h2>
@@ -139,40 +165,49 @@ export function HayomYomSeferHamitsvotClient({ communityName, timezone, eligible
                 <p className="mt-1 text-sm text-slate-500">Facebook · {facebook.name ?? communityName}</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <button type="button" onClick={() => eligible ? setEditing(true) : setPaywallOpen(true)} className="flex min-h-20 items-center justify-center gap-2 rounded-2xl border border-blue-300 bg-[#315ecb] px-5 font-black text-white shadow-md shadow-blue-100"><Pencil className="size-5" />Modifier</button>
-              <button type="button" disabled={saving} onClick={() => void save("pause")} className="flex min-h-20 items-center justify-center gap-2 rounded-2xl border border-amber-300 bg-[#f59e0b] px-5 font-black text-white shadow-md shadow-amber-100 disabled:opacity-60"><Pause className="size-5" />Mettre en pause</button>
+            <div className="relative grid grid-cols-2 gap-3">
+              <button type="button" onClick={() => eligible ? setEditing(true) : setPaywallOpen(true)} className="flex min-h-20 items-center justify-center gap-2 rounded-2xl border border-blue-400 bg-gradient-to-br from-[#2878ef] to-[#175acb] px-4 font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:brightness-105"><Pencil className="size-5" />Modifier</button>
+              <button type="button" disabled={saving} onClick={() => void save("pause")} className="flex min-h-20 items-center justify-center gap-2 rounded-2xl border border-amber-400 bg-gradient-to-br from-[#ffbd17] to-[#ee9100] px-4 font-black text-white shadow-lg shadow-amber-200 transition hover:-translate-y-0.5 hover:brightness-105 disabled:opacity-60"><Pause className="size-5" />Mettre en pause</button>
             </div>
           </div>
         </section>
       ) : (
-        <section className="rounded-[1.8rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+        <section className="relative overflow-hidden rounded-[2rem] border border-violet-100 bg-white p-5 shadow-[0_18px_46px_rgba(66,19,136,0.09)] sm:p-7">
+          <div className="pointer-events-none absolute -right-16 -top-20 size-48 rounded-full bg-violet-300/15 blur-3xl" />
           <div className="flex items-start gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-teal-50 text-[#087c76]"><CalendarDays className="size-5" /></span>
+            <span className="relative flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7130d8] to-[#5420ad] text-white shadow-lg shadow-violet-200"><CalendarDays className="size-5" /></span>
             <div><h2 className="text-xl font-black text-slate-950">Publiez automatiquement sur Facebook</h2><p className="mt-1 text-sm leading-6 text-slate-500">Sélectionnez un ou plusieurs jours, le Hayom Yom et le Sefer Hamitsvot seront automatiquement publiés !</p></div>
           </div>
 
           <div className="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-6">
             {DAYS.map((day) => {
               const selected = days.includes(day.value);
-              return <button key={day.value} type="button" aria-pressed={selected} onClick={() => toggleDay(day.value)} className={cn("relative min-h-20 rounded-2xl border px-2 py-3 text-sm font-black transition", selected ? "border-teal-500 bg-[#087c76] text-white shadow-md shadow-teal-100" : "border-slate-200 bg-slate-50 text-slate-600 hover:border-teal-300 hover:bg-teal-50")}>
-                {selected && <span className="absolute right-2 top-2 flex size-5 items-center justify-center rounded-full bg-white text-[#087c76]"><Check className="size-3" /></span>}
+              return <button key={day.value} type="button" aria-pressed={selected} onClick={() => toggleDay(day.value)} className={cn("relative min-h-20 rounded-2xl border px-2 py-3 text-sm font-black transition hover:-translate-y-0.5", selected ? "border-[#421388] bg-gradient-to-br from-[#7130d8] to-[#421388] text-white shadow-lg shadow-violet-200" : "border-violet-100 bg-[#fffaf4] text-slate-600 hover:border-violet-300 hover:bg-violet-50")}>
+                {selected && <span className="absolute right-2 top-2 flex size-5 items-center justify-center rounded-full bg-white text-[#5c24ad]"><Check className="size-3" /></span>}
                 <span className="sm:hidden">{day.short}</span><span className="hidden sm:inline">{day.label}</span>
               </button>;
             })}
           </div>
 
           <div className="mt-5">
-            <div className={cn("flex min-h-24 items-center gap-4 rounded-2xl border p-4", facebook.connected ? "border-blue-200 bg-blue-50" : "border-rose-200 bg-rose-50")}>
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[#1877f2] shadow-sm"><FacebookIcon className="size-6" /></span>
-              <div><p className="text-xs font-black uppercase tracking-wide text-blue-600">Facebook</p><p className="mt-1 font-black text-slate-950">{facebook.connected ? facebook.name ?? "Page connectée" : "Non connecté"}</p><p className="text-xs text-slate-500">Publication textuelle automatique à 10:00</p></div>
+            <div className={cn("relative flex min-h-24 items-center gap-4 overflow-hidden rounded-[1.5rem] border p-4 transition", facebook.connected ? "border-blue-400 bg-gradient-to-br from-[#2878ef] to-[#175acb] text-white shadow-lg shadow-blue-200" : "border-rose-200 bg-[#fff7f3] text-slate-900")}>
+              {facebook.connected ? <span className="pointer-events-none absolute -right-8 -top-12 size-32 rounded-full bg-white/15" /> : null}
+              <span className={cn("relative flex size-12 shrink-0 items-center justify-center rounded-2xl border bg-white shadow-md", facebook.connected ? "border-white text-[#2364d2] shadow-blue-950/15" : "border-rose-100 text-[#1877f2] shadow-rose-100")}><FacebookIcon className="size-6" /></span>
+              <div className="relative min-w-0 flex-1">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className={cn("text-xs font-black uppercase tracking-[0.14em]", facebook.connected ? "text-white/85" : "text-blue-600")}>Facebook</p>
+                  <span className={cn("rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide", facebook.connected ? "bg-white/20 text-white" : "bg-rose-100 text-rose-700")}>{facebook.connected ? "Connecté" : "Connexion requise"}</span>
+                </div>
+                <p className={cn("mt-1 truncate font-black", facebook.connected ? "text-white" : "text-slate-950")}>{facebook.connected ? facebook.name ?? "Page connectée" : "Non connecté"}</p>
+                <p className={cn("mt-0.5 text-xs font-semibold", facebook.connected ? "text-white/75" : "text-slate-500")}>Publication textuelle automatique à 10:00</p>
+              </div>
             </div>
           </div>
 
           {!facebook.connected && <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">Connectez d’abord votre page Facebook dans les paramètres des canaux.</p>}
           {error && <p role="alert" className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</p>}
           {notice && <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{notice}</p>}
-          <Button type="button" size="xl" loading={saving} disabled={eligible && (!facebook.connected || days.length === 0)} onClick={() => void save("activate")} className="mt-5 w-full rounded-2xl bg-[#d92d7c] font-black shadow-lg shadow-pink-100 hover:bg-[#c5236e]">
+          <Button type="button" size="xl" loading={saving} disabled={eligible && (!facebook.connected || days.length === 0)} onClick={() => void save("activate")} className="mt-5 w-full rounded-2xl bg-gradient-to-r from-[#7130d8] via-[#5c24ad] to-[#d92d7c] font-black shadow-lg shadow-violet-200 transition hover:brightness-105">
             {!saving && <Sparkles className="size-5" />}Activer les publications automatiques
           </Button>
           <div className="mt-4 flex items-center justify-center gap-2 text-center text-xs font-semibold text-slate-500"><ScrollText className="size-4" />Textes intégraux, sans reformulation et sans génération d’image.</div>
@@ -183,12 +218,13 @@ export function HayomYomSeferHamitsvotClient({ communityName, timezone, eligible
 
       {paywallOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" onClick={() => setPaywallOpen(false)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="hayom-premium-title" className="w-full max-w-md rounded-[2rem] bg-white p-6 text-center shadow-2xl" onClick={(event) => event.stopPropagation()}>
-            <button type="button" aria-label="Fermer" onClick={() => setPaywallOpen(false)} className="ml-auto flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-500"><X className="size-5" /></button>
-            <span className="mx-auto mt-2 flex size-16 items-center justify-center rounded-3xl bg-amber-100 text-amber-700"><Crown className="size-8" /></span>
+          <div role="dialog" aria-modal="true" aria-labelledby="hayom-premium-title" className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-violet-100 bg-[#fffaf4] p-6 text-center shadow-[0_28px_80px_rgba(33,7,99,0.35)]" onClick={(event) => event.stopPropagation()}>
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-2 bg-gradient-to-r from-[#7130d8] via-[#d92d7c] to-[#ffbd17]" />
+            <button type="button" aria-label="Fermer" onClick={() => setPaywallOpen(false)} className="relative ml-auto flex size-10 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-violet-100 transition hover:text-[#421388]"><X className="size-5" /></button>
+            <span className="relative mx-auto mt-2 flex size-16 items-center justify-center rounded-3xl bg-gradient-to-br from-[#ffca37] to-[#f59e0b] text-white shadow-lg shadow-amber-200"><Crown className="size-8" /></span>
             <h2 id="hayom-premium-title" className="mt-5 text-2xl font-black text-slate-950">Activez cette automatisation</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">La lecture du contenu est gratuite. La publication automatique est incluse avec l’offre Pro à 29,99 € et l’offre Business.</p>
-            <Button asChild size="xl" className="mt-6 w-full rounded-2xl bg-[#d92d7c] font-black hover:bg-[#c5236e]"><a href="/dashboard/settings/billing">Découvrir l’abonnement</a></Button>
+            <Button asChild size="xl" className="mt-6 w-full rounded-2xl bg-gradient-to-r from-[#7130d8] to-[#d92d7c] font-black shadow-lg shadow-violet-200 hover:brightness-105"><a href="/dashboard/settings/billing">Découvrir l’abonnement</a></Button>
           </div>
         </div>
       )}

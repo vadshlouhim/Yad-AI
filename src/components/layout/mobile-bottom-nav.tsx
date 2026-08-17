@@ -1,75 +1,38 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { MOBILE_PRIMARY_NAV } from "./dashboard-nav";
-
-function isNavActive(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
+import { Grid2X2 } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const isOverviewPage = pathname === "/dashboard/overview";
+
+  function handleClick() {
+    if (isOverviewPage) {
+      window.dispatchEvent(new CustomEvent("dashboard:open-main-menu"));
+      return;
+    }
+
+    router.push("/dashboard/overview");
+  }
 
   return (
     <nav
-      className={cn(
-        "fixed inset-x-0 bottom-0 z-30 hidden max-md:block",
-        "border-t border-[#421388]/10 bg-white/95 shadow-[0_-16px_38px_rgba(66,19,136,0.14)] backdrop-blur-2xl",
-        "px-3 pt-2.5",
-        "pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-      )}
+      className="fixed inset-x-0 bottom-0 z-30 hidden rounded-t-[2rem] border-t border-[#421388]/10 bg-white/95 px-4 pt-2.5 shadow-[0_-18px_42px_rgba(66,19,136,0.13)] backdrop-blur-2xl max-md:block pb-[max(0.6rem,env(safe-area-inset-bottom))]"
       aria-label="Navigation principale"
     >
-      <div className="mx-auto flex min-h-[5rem] max-w-md items-stretch overflow-hidden border border-[#421388]/10 bg-white/90 shadow-sm shadow-[#421388]/10 backdrop-blur">
-        {MOBILE_PRIMARY_NAV.map((item, index) => {
-          const active = isNavActive(pathname, item.href);
-          const Icon = item.icon;
-
-          return (
-            <div key={item.href} className="relative flex min-w-0 flex-1">
-              {index > 0 && (
-                <span
-                  className="absolute left-0 top-3 h-[calc(100%-1.5rem)] w-px bg-gradient-to-b from-transparent via-[#421388]/18 to-transparent"
-                  aria-hidden
-                />
-              )}
-              <Link
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "group flex min-w-0 flex-1 flex-col items-center justify-center gap-1.5 px-1 py-2.5",
-                  "touch-manipulation outline-none transition-[opacity,transform] active:scale-[0.98] active:opacity-95",
-                  "focus-visible:ring-2 focus-visible:ring-[#421388]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-                )}
-              >
-                <span
-                  className={cn(
-                    "relative flex h-10 w-10 shrink-0 items-center justify-center transition-all duration-200",
-                    active
-                      ? "text-[#421388]"
-                      : "text-slate-600 group-hover:-translate-y-0.5 group-hover:text-[#421388]"
-                  )}
-                  aria-hidden
-                >
-                  {Icon ? <Icon className={cn("size-6 stroke-[2.25] transition-transform duration-200", active && "scale-110")} /> : null}
-                  {active && (
-                    <span className="absolute -bottom-0.5 h-1 w-5 rounded-full bg-[#421388]/25 shadow-[0_0_12px_rgba(66,19,136,0.22)]" />
-                  )}
-                </span>
-                <span
-                  className={cn(
-                    "w-full max-w-[5.3rem] truncate text-center text-[12px] font-bold leading-snug max-[380px]:text-[10.5px]",
-                    active ? "text-[#421388]" : "text-slate-500 group-hover:text-[#421388]"
-                  )}
-                >
-                  {item.label}
-                </span>
-              </Link>
-            </div>
-          );
-        })}
+      <div className="mx-auto flex min-h-[4.7rem] max-w-md items-center px-2">
+        <button
+          type="button"
+          onClick={handleClick}
+          className="flex min-h-14 w-full items-center justify-center gap-3 rounded-[1.35rem] bg-[#421388] px-5 text-base font-black text-white shadow-[0_12px_28px_rgba(66,19,136,0.3)] outline-none transition hover:bg-[#371071] active:scale-[0.985] focus-visible:ring-4 focus-visible:ring-[#421388]/25"
+        >
+          <span className="flex size-9 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/15">
+            <Grid2X2 className="size-5 stroke-[2.25]" aria-hidden="true" />
+          </span>
+          {isOverviewPage ? "Autres outils" : "Menu principal"}
+        </button>
       </div>
     </nav>
   );

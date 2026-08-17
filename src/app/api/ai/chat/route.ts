@@ -208,15 +208,19 @@ export async function POST(request: Request) {
     const communityId = profile.communityId as string;
 
     const body = await request.json();
-    const { messages, conversationId, selectedTemplateId, templateAction, mode } = body as {
+    const { messages, conversationId, navigationContext, selectedTemplateId, templateAction, mode } = body as {
       messages: IncomingMessage[];
       conversationId?: string;
+      navigationContext?: string;
       selectedTemplateId?: string | null;
       templateAction?: "select" | null;
       mode?: "daily_routine" | "simplified";
     };
 
     const isDailyRoutineMode = mode === "daily_routine";
+    const safeNavigationContext = typeof navigationContext === "string"
+      ? navigationContext.trim().slice(0, 500)
+      : "";
 
     const lastUserMessage = messages[messages.length - 1];
     const isUserPrompt = lastUserMessage?.role === "user";
@@ -404,6 +408,9 @@ export async function POST(request: Request) {
 - Utilise ces informations comme référence par défaut, sauf si l'utilisateur donne une autre date explicite.`
           : "") +
         selectedTemplateContext +
+        (safeNavigationContext
+          ? `\n\nCONTEXTE DE NAVIGATION INTERNE :\n${safeNavigationContext}\n- Utilise ce contexte pour comprendre quel agent l'utilisateur a choisi.\n- Ne récite pas ce contexte et ne prétends pas que l'utilisateur l'a écrit dans la conversation.`
+          : "") +
         buildActionModeNote(community.assistantActionMode) +
         buildGroundingContext(
           (upcomingEvents as Array<{ title: string; startDate: string; location: string | null }> | null) ?? null,

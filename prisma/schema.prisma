@@ -15,15 +15,15 @@ datasource db {
 // ============================================================
 
 model User {
-  id          String   @id @db.Uuid          // = auth.users.id (Supabase)
+  id          String   @id @db.Uuid // = auth.users.id (Supabase)
   email       String   @unique
   name        String?
   avatarUrl   String?
   role        UserRole @default(ADMIN)
   communityId String?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   community         Community?         @relation(fields: [communityId], references: [id])
   auditLogs         AuditLog[]
@@ -36,7 +36,7 @@ model User {
 
   @@index([email])
   @@index([communityId])
-  @@map("profiles")   // table publique synchronisée avec auth.users
+  @@map("profiles") // table publique synchronisée avec auth.users
 }
 
 enum UserRole {
@@ -51,97 +51,221 @@ enum UserRole {
 // ============================================================
 
 model Community {
-  id              String           @id @default(cuid())
-  name            String
-  slug            String           @unique
-  description     String?          @db.Text
-  logoUrl         String?
-  coverUrl        String?
-  city            String?
-  country         String           @default("France")
-  timezone        String           @default("Europe/Paris")
-  phone           String?
-  email           String?
-  website         String?
-  address         String?
-  postalCode      String?
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String? @db.Text
+  logoUrl     String?
+  coverUrl    String?
+  city        String?
+  country     String  @default("France")
+  timezone    String  @default("Europe/Paris")
+  phone       String?
+  email       String?
+  website     String?
+  address     String?
+  postalCode  String?
 
   // Identité éditoriale
-  tone            CommunityTone    @default(MODERN)
-  language        String           @default("fr")
-  signature       String?          @db.Text
-  hashtags        String[]
-  mentions        String[]
-  editorialRules  String?          @db.Text
-  vocabulary      Json?            // Termes spécifiques
+  tone           CommunityTone @default(MODERN)
+  language       String        @default("fr")
+  signature      String?       @db.Text
+  hashtags       String[]
+  mentions       String[]
+  editorialRules String?       @db.Text
+  vocabulary     Json? // Termes spécifiques
 
   // Contexte communautaire
-  communityType   CommunityType    @default(SYNAGOGUE)
-  religiousStream String?          // Ashkénaze, Séfarade…
+  communityType   CommunityType @default(SYNAGOGUE)
+  religiousStream String? // Ashkénaze, Séfarade…
 
   // Abonnement Stripe
-  plan              SubscriptionPlan @default(FREE_TRIAL)
-  planExpiresAt     DateTime?
-  stripeCustomerId  String?          @unique
+  plan             SubscriptionPlan @default(FREE_TRIAL)
+  planExpiresAt    DateTime?
+  stripeCustomerId String?          @unique
 
   // Onboarding
-  onboardingDone  Boolean          @default(false)
-  onboardingStep  Int              @default(0)
+  onboardingDone Boolean @default(false)
+  onboardingStep Int     @default(0)
 
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  users           User[]
-  channels        Channel[]
-  events          Event[]
-  templates       Template[]
-  articles        Article[]
-  members         CommunityMember[]
-  publications    Publication[]
-  automations     Automation[]
-  mediaFiles      MediaFile[]
-  contentDrafts   ContentDraft[]
-  notifications   Notification[]
-  subscriptions   Subscription[]
-  aiMemory        AIMemory[]
-  auditLogs       AuditLog[]
-  pendingActions  PendingAction[]
-  tasks           Task[]
+  users               User[]
+  channels            Channel[]
+  events              Event[]
+  templates           Template[]
+  articles            Article[]
+  members             CommunityMember[]
+  publications        Publication[]
+  automations         Automation[]
+  mediaFiles          MediaFile[]
+  contentDrafts       ContentDraft[]
+  notifications       Notification[]
+  subscriptions       Subscription[]
+  aiMemory            AIMemory[]
+  auditLogs           AuditLog[]
+  pendingActions      PendingAction[]
+  tasks               Task[]
+  targetedCategories  TargetedCategory[]
+  targetedPage        TargetedPageSettings?
+  targetedAutomations TargetedAutomation[]
+  preferenceTokens    TargetedPreferenceToken[]
 
   @@index([slug])
   @@index([plan])
 }
 
 model CommunityMember {
-  id          String    @id @default(cuid())
-  communityId String
-  firstName   String?
-  lastName    String?
-  displayName String
-  email       String?
-  phone       String?
-  profession  String?
-  age         Int?
-  birthDate   DateTime?
-  hebrewBirthDay Int?
+  id               String    @id @default(cuid())
+  communityId      String
+  firstName        String?
+  lastName         String?
+  displayName      String
+  email            String?
+  phone            String?
+  profession       String?
+  age              Int?
+  birthDate        DateTime?
+  hebrewBirthDay   Int?
   hebrewBirthMonth Int?
-  hebrewBirthYear Int?
-  address     String?
-  city        String?
-  familyStatus String?
-  notes       String?   @db.Text
-  source      String    @default("manual")
-  tags        String[]
-  optInEmail  Boolean   @default(true)
-  optInWhatsapp Boolean @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  hebrewBirthYear  Int?
+  address          String?
+  city             String?
+  familyStatus     String?
+  notes            String?   @db.Text
+  source           String    @default("manual")
+  tags             String[]
+  optInEmail       Boolean   @default(true)
+  optInWhatsapp    Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  community               Community                @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  targetedSubscriptions   TargetedSubscription[]
+  targetedPreferenceToken TargetedPreferenceToken?
 
+  @@unique([communityId, phone])
   @@index([communityId])
   @@index([email])
   @@index([phone])
+}
+
+// ============================================================
+// COMMUNICATION CIBLEE — categories et preferences membres
+// ============================================================
+
+model TargetedCategory {
+  id          String   @id @default(cuid())
+  communityId String
+  name        String
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  community     Community              @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  subscriptions TargetedSubscription[]
+  automations   TargetedAutomation[]
+
+  @@unique([communityId, name])
+  @@index([communityId, sortOrder])
+}
+
+model TargetedSubscription {
+  id         String   @id @default(cuid())
+  categoryId String
+  memberId   String
+  createdAt  DateTime @default(now())
+
+  category TargetedCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  member   CommunityMember  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, memberId])
+  @@index([memberId])
+}
+
+model TargetedPageSettings {
+  id           String   @id @default(cuid())
+  communityId  String   @unique
+  isActive     Boolean  @default(true)
+  displayName  String?
+  logoUrl      String?
+  title        String   @default("Choisissez les informations qui vous interessent")
+  introduction String   @default("Recevez uniquement les messages utiles, directement sur WhatsApp.") @db.Text
+  primaryColor String   @default("#421388")
+  accentColor  String   @default("#14b8a6")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+}
+
+model TargetedPreferenceToken {
+  id          String    @id @default(cuid())
+  communityId String
+  memberId    String    @unique
+  tokenHash   String    @unique
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  community Community       @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  member    CommunityMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([communityId])
+  @@index([expiresAt])
+}
+
+model TargetedAutomation {
+  id                 String    @id @default(cuid())
+  communityId        String
+  categoryId         String
+  name               String
+  weekday            Int
+  sendTime           String
+  eventTime          String?
+  eventName          String?
+  address            String?
+  link               String?
+  message            String    @db.Text
+  mode               String    @default("AUTO")
+  skipYomTov         Boolean   @default(true)
+  skipHolHamoed      Boolean   @default(true)
+  skipSchoolHolidays Boolean   @default(true)
+  schoolZone         String    @default("C")
+  isActive           Boolean   @default(true)
+  nextRunAt          DateTime?
+  lastRunAt          DateTime?
+  lastError          String?   @db.Text
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  community   Community            @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  category    TargetedCategory     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  occurrences TargetedOccurrence[]
+
+  @@index([communityId])
+  @@index([categoryId])
+  @@index([isActive, nextRunAt])
+}
+
+model TargetedOccurrence {
+  id                String    @id @default(cuid())
+  automationId      String
+  scheduledFor      DateTime
+  status            String    @default("PENDING")
+  messageOverride   String?   @db.Text
+  eventTimeOverride String?
+  error             String?   @db.Text
+  processedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  automation TargetedAutomation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@unique([automationId, scheduledFor])
+  @@index([status, scheduledFor])
 }
 
 enum CommunityTone {
@@ -194,7 +318,7 @@ model Channel {
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
-  community    Community      @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  community    Community     @relation(fields: [communityId], references: [id], onDelete: Cascade)
   publications Publication[]
 
   @@unique([communityId, type])
@@ -228,7 +352,7 @@ model Event {
   audience        String?
   status          EventStatus   @default(DRAFT)
   isRecurring     Boolean       @default(false)
-  recurrenceRule  Json?         // RRULE JSON
+  recurrenceRule  Json? // RRULE JSON
   parentEventId   String?
   coverImageUrl   String?
   isPublic        Boolean       @default(true)
@@ -388,30 +512,30 @@ model ChannelAdaptation {
 // ============================================================
 
 model Template {
-  id           String           @id @default(cuid())
-  communityId  String?
-  name         String
-  description  String?
-  category     TemplateCategory
-  subCategory  String?
-  channelType  ChannelType?
-  originalUrl  String?
-  thumbnailUrl String?          // URL Supabase Storage (bucket templates)
-  previewUrl   String?
-  design       Json             @default("[]")
-  layoutStatus TemplateLayoutStatus @default(PENDING)
-  layoutConfidence Int?
-  layoutAnalyzedAt DateTime?
-  layoutAnalysisVersion Int     @default(0)
-  isGlobal     Boolean          @default(false)
-  isPremium    Boolean          @default(false)
-  isActive     Boolean          @default(true)
-  tags         String[]
-  usageCount   Int              @default(0)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  id                    String               @id @default(cuid())
+  communityId           String?
+  name                  String
+  description           String?
+  category              TemplateCategory
+  subCategory           String?
+  channelType           ChannelType?
+  originalUrl           String?
+  thumbnailUrl          String? // URL Supabase Storage (bucket templates)
+  previewUrl            String?
+  design                Json                 @default("[]")
+  layoutStatus          TemplateLayoutStatus @default(PENDING)
+  layoutConfidence      Int?
+  layoutAnalyzedAt      DateTime?
+  layoutAnalysisVersion Int                  @default(0)
+  isGlobal              Boolean              @default(false)
+  isPremium             Boolean              @default(false)
+  isActive              Boolean              @default(true)
+  tags                  String[]
+  usageCount            Int                  @default(0)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
-  community Community? @relation(fields: [communityId], references: [id])
+  community  Community?  @relation(fields: [communityId], references: [id])
   mediaFiles MediaFile[]
 
   @@index([communityId])
@@ -421,21 +545,21 @@ model Template {
 }
 
 model Article {
-  id           String    @id @default(cuid())
-  communityId  String?
-  name         String
-  slug         String    @unique
-  description  String?
-  content      String?   @db.Text
-  priceCents   Int
-  currency     String    @default("EUR")
+  id            String   @id @default(cuid())
+  communityId   String?
+  name          String
+  slug          String   @unique
+  description   String?
+  content       String?  @db.Text
+  priceCents    Int
+  currency      String   @default("EUR")
   stripePriceId String
-  imageUrl     String?
-  tags         String[]
-  isGlobal     Boolean   @default(false)
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  imageUrl      String?
+  tags          String[]
+  isGlobal      Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   community Community? @relation(fields: [communityId], references: [id])
 
@@ -445,26 +569,26 @@ model Article {
 }
 
 model BlogArticle {
-  id             String            @id @default(cuid())
-  slug           String            @unique
-  title          String
-  excerpt        String            @db.Text
-  content        String            @db.Text
-  category       String            @default("Communication IA")
-  tags           String[]
-  coverImageUrl  String?
-  coverImageAlt  String
-  metaTitle      String
-  metaDescription String           @db.Text
-  canonicalUrl   String?
-  authorName     String            @default("Équipe EasyCom IA")
-  readingMinutes Int               @default(3)
-  status         BlogArticleStatus @default(DRAFT)
-  isFeatured     Boolean           @default(false)
-  isIndexable    Boolean           @default(true)
-  publishedAt    DateTime?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  id              String            @id @default(cuid())
+  slug            String            @unique
+  title           String
+  excerpt         String            @db.Text
+  content         String            @db.Text
+  category        String            @default("Communication IA")
+  tags            String[]
+  coverImageUrl   String?
+  coverImageAlt   String
+  metaTitle       String
+  metaDescription String            @db.Text
+  canonicalUrl    String?
+  authorName      String            @default("Équipe EasyCom IA")
+  readingMinutes  Int               @default(3)
+  status          BlogArticleStatus @default(DRAFT)
+  isFeatured      Boolean           @default(false)
+  isIndexable     Boolean           @default(true)
+  publishedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   @@index([slug])
   @@index([status])
@@ -555,9 +679,9 @@ model Publication {
   updatedAt    DateTime          @updatedAt
 
   community Community     @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  event     Event?         @relation(fields: [eventId], references: [id])
-  draft     ContentDraft?  @relation(fields: [draftId], references: [id])
-  channel   Channel        @relation(fields: [channelId], references: [id])
+  event     Event?        @relation(fields: [eventId], references: [id])
+  draft     ContentDraft? @relation(fields: [draftId], references: [id])
+  channel   Channel       @relation(fields: [channelId], references: [id])
 
   @@index([communityId])
   @@index([status])
@@ -693,7 +817,7 @@ model MediaFile {
   name         String
   originalName String
   url          String
-  publicId     String    // Cloudinary public_id
+  publicId     String // Cloudinary public_id
   source       String    @default("UPLOAD")
   type         MediaType
   mimeType     String
@@ -840,11 +964,11 @@ model PendingAction {
   id          String              @id @default(cuid())
   communityId String
   userId      String?             @db.Uuid
-  kind        String              // ex: "create_automation", "send_email", "publish_content"
-  summary     String              @db.Text   // résumé lisible présenté à l'utilisateur
-  payload     Json                // arguments exacts de l'action à exécuter
+  kind        String // ex: "create_automation", "send_email", "publish_content"
+  summary     String              @db.Text // résumé lisible présenté à l'utilisateur
+  payload     Json // arguments exacts de l'action à exécuter
   status      PendingActionStatus @default(PENDING)
-  token       String              @unique     // jeton pour lien profond / sécurité
+  token       String              @unique // jeton pour lien profond / sécurité
   source      String              @default("chat") // "chat" | "automation"
   resolvedAt  DateTime?
   expiresAt   DateTime?
@@ -974,7 +1098,7 @@ model Conversation {
 model ConversationMessage {
   id             String   @id @default(cuid())
   conversationId String
-  role           String   // "user" | "assistant"
+  role           String // "user" | "assistant"
   content        String   @db.Text
   createdAt      DateTime @default(now())
 

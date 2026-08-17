@@ -9,9 +9,29 @@ const openrouter = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY!,
 });
 
+const DEFAULT_AUTHORIZED_SOURCES = ["chabad.org", "loubavitch.fr", "sefaria.org"];
+const THEME_LABELS = {
+  general: "tout public",
+  youth: "adapté aux jeunes",
+  children: "adapté aux enfants",
+  event: "adapté à un événement spécifique",
+} as const;
+
 const requestSchema = z.object({
   duration: z.string().min(1),
   prompt: z.string().min(10),
+  theme: z.enum(["general", "youth", "children", "event"]).default("general"),
+  eventContext: z.string().trim().max(300).optional().default(""),
+  authorizedSources: z.array(
+    z.string().trim().min(1).max(200).refine(
+      (source) => /^(?:https?:\/\/)?(?:www\.)?[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s]*)?$/i.test(source),
+      "Source invalide",
+    ),
+  ).min(1).max(10).default(DEFAULT_AUTHORIZED_SOURCES),
+}).superRefine((value, context) => {
+  if (value.theme === "event" && !value.eventContext) {
+    context.addIssue({ code: "custom", path: ["eventContext"], message: "Précisez l’événement du cours." });
+  }
 });
 
 const MAX_TOKENS_BY_DURATION: Record<string, number> = {
@@ -48,7 +68,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Parametres invalides" }, { status: 400 });
     }
 
-    const { duration, prompt } = parsed.data;
+    const { duration, prompt, theme, eventContext } = parsed.data;
+    const authorizedSources = Array.from(new Set(parsed.data.authorizedSources.map((source) => source.replace(/^https?:\/\//i, "").replace(/\/$/, ""))));
+    const sourcesList = authorizedSources.map((source, index) => `  ${index + 1}. https://${source}`).join("\n");
 
     const systemPrompt = `Tu es un assistant specialise dans la preparation de cours de Torah.
 
@@ -58,10 +80,9 @@ Regles absolues :
 - N'invente jamais de reference.
 - N'attribue jamais une idee a un Rav, un texte ou une source si ce n'est pas verifie.
 - Tu dois t'appuyer uniquement sur les sources autorisees suivantes :
-  1. https://www.chabad.org
-  2. https://www.loubavitch.fr
-  3. https://www.sefaria.org
+${sourcesList}
 - Si tu n'es pas certain qu'un point provient de ces sources, indique-le clairement au lieu d'inventer.
+- Le ton, le vocabulaire et les exemples doivent être ${THEME_LABELS[theme]}.
 - Le cours doit etre adapte a la duree choisie.
 - 5 minutes = tres concis
 - 10 a 15 minutes = structure courte mais developpee
@@ -84,13 +105,15 @@ Reponds UNIQUEMENT en JSON valide avec cette structure :
     const userPrompt = `Prepare un cours de Torah.
 
 Duree choisie : ${duration}
+Public ou contexte choisi : ${THEME_LABELS[theme]}
+${theme === "event" ? `Événement à prendre en compte : ${eventContext}` : ""}
 
 Demande utilisateur :
 ${prompt}
 
 Important :
 - Adapte reellement le niveau de detail a la duree choisie.
-- Si certaines informations ne peuvent pas etre verifiees a partir de chabad.org, loubavitch.fr ou sefaria.org, dis-le clairement dans "note".
+- Si certaines informations ne peuvent pas etre verifiees dans les sources autorisées, dis-le clairement dans "note".
 - Reste structure, clair, fidele aux sources et respectueux.`;
 
     const response = await openrouter.chat.completions.create({

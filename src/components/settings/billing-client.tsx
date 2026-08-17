@@ -9,7 +9,7 @@ import {
   ExternalLink, AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { isLaunchOfferActive, planToTier, type BillingConfig, type PlanTier } from "@/lib/billing";
 import { createBillingPortal, createSubscriptionCheckout } from "@/lib/billing/checkout-client";
 import { PlanCard } from "@/components/billing/plan-card";
@@ -85,7 +85,9 @@ function formatPrice(cents: number) {
 }
 
 export function BillingClient({ community, subscription, billingConfig }: Props) {
+  const tier = planToTier(community.plan);
   const [loading, setLoading] = useState<PlanTier | "portal" | null>(null);
+  const [mobileTier, setMobileTier] = useState<PlanTier>(tier === "FREE" ? "PRO" : tier);
 
   async function goToCheckout(tier: "PRO" | "BUSINESS") {
     setLoading(tier);
@@ -116,13 +118,37 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
     }
   }
 
-  const tier = planToTier(community.plan);
   const currentPlanLabel = tier === "FREE" ? "Gratuit" : tier === "PRO" ? "Pro" : "Business";
+  const mobilePlans = [
+    { tier: "FREE" as const, title: "Gratuit", price: "0 €", color: "bg-slate-900", features: FREE_FEATURES },
+    {
+      tier: "PRO" as const,
+      title: "Pro",
+      price: tier === "FREE" && isLaunchOfferActive(billingConfig) ? formatPrice(billingConfig.launchPriceCents) : formatPrice(billingConfig.basePriceCents),
+      color: "bg-[#075ce5]",
+      features: PRO_FEATURES,
+    },
+    { tier: "BUSINESS" as const, title: "Business", price: "59,99 €", color: "bg-[#421388]", features: BUSINESS_FEATURES },
+  ];
+  const selectedMobilePlan = mobilePlans.find((plan) => plan.tier === mobileTier) ?? mobilePlans[1];
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6">
+    <div className="mx-auto w-full max-w-4xl space-y-5 px-3 pb-10 pt-3 sm:px-6 md:space-y-6 md:px-0 md:py-0">
+      <section className="relative overflow-hidden rounded-[2rem] bg-[#421388] px-5 py-6 text-white shadow-[0_24px_58px_-32px_rgba(66,19,136,0.7)] md:hidden">
+        <div className="absolute -right-12 -top-14 size-40 rounded-full bg-fuchsia-400/25 blur-3xl" />
+        <div className="absolute -bottom-16 left-1/3 size-36 rounded-full bg-blue-400/20 blur-3xl" />
+        <div className="relative flex items-center gap-4">
+          <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white text-[#421388] shadow-lg"><CreditCard className="size-7" /></span>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-violet-100">Mon compte</p>
+            <h1 className="mt-1 text-3xl font-black tracking-tight">Abonnement</h1>
+            <p className="mt-1 text-sm font-bold text-violet-100">Offre actuelle : {currentPlanLabel}</p>
+          </div>
+        </div>
+      </section>
+
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="hidden items-center gap-3 md:flex">
         <Link href="/dashboard/settings">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="size-4" />
@@ -137,7 +163,7 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
 
       {/* Abonnement actuel */}
       {subscription && (
-        <Card className="border-blue-200 bg-blue-50/50">
+        <Card className="hidden border-blue-200 bg-blue-50/50 md:block">
           <CardContent className="p-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-4">
@@ -194,8 +220,73 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
         </Card>
       )}
 
+      {subscription && (
+        <section className="rounded-[1.6rem] border border-blue-100 bg-blue-50 p-4 shadow-sm md:hidden">
+          <div className="flex items-center gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#075ce5] text-white"><CreditCard className="size-5" /></span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2"><p className="font-black text-slate-950">Plan {currentPlanLabel}</p><Badge variant={STATUS_VARIANT[subscription.status] ?? "draft"} className="text-[10px]">{STATUS_LABELS[subscription.status] ?? subscription.status}</Badge></div>
+              <p className="mt-1 text-xs font-medium text-slate-500">{subscription.cancelAtPeriodEnd ? `Se termine le ${formatDateTime(subscription.currentPeriodEnd)}` : `Renouvellement le ${formatDateTime(subscription.currentPeriodEnd)}`}</p>
+            </div>
+          </div>
+          {community.stripeCustomerId && (
+            <Button variant="outline" onClick={openPortal} loading={loading === "portal"} className="mt-4 min-h-11 w-full rounded-2xl border-blue-200 bg-white font-black text-blue-700">Gérer mon abonnement</Button>
+          )}
+        </section>
+      )}
+
+      <section className="space-y-4 md:hidden">
+        <h2 className="text-xl font-black tracking-tight text-slate-950">Choisissez votre offre</h2>
+        <div className="grid grid-cols-3 gap-2">
+          {mobilePlans.map((plan) => (
+            <button
+              key={plan.tier}
+              type="button"
+              onClick={() => setMobileTier(plan.tier)}
+              className={cn(
+                "min-w-0 rounded-[1.3rem] border-2 bg-white px-2 py-3 text-center transition",
+                mobileTier === plan.tier ? "border-[#421388] shadow-[0_10px_24px_-16px_rgba(66,19,136,0.7)]" : "border-slate-100"
+              )}
+            >
+              <span className="block truncate text-sm font-black text-slate-950">{plan.title}</span>
+              <span className="mt-1 block truncate text-xs font-bold text-slate-500">{plan.price}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className={cn("overflow-hidden rounded-[1.8rem] text-white shadow-[0_22px_48px_-30px_rgba(15,23,42,0.65)]", selectedMobilePlan.color)}>
+          <div className="p-5">
+            <div className="flex items-end justify-between gap-3">
+              <div><p className="text-2xl font-black">{selectedMobilePlan.title}</p><p className="mt-1 text-sm font-semibold text-white/70">Sans engagement</p></div>
+              <p className="text-xl font-black">{selectedMobilePlan.price}<span className="text-xs font-bold text-white/70">/mois</span></p>
+            </div>
+            <ul className="mt-5 space-y-2.5">
+              {selectedMobilePlan.features.map((feature) => (
+                <li key={feature} className="flex items-start gap-2 text-sm font-semibold leading-5 text-white/90"><span className="mt-1 size-2 shrink-0 rounded-full bg-white" />{feature}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="bg-white p-3">
+            {selectedMobilePlan.tier === "FREE" ? (
+              <Button variant="outline" disabled className="min-h-12 w-full rounded-2xl font-black">{tier === "FREE" ? "Offre actuelle" : "Offre gratuite"}</Button>
+            ) : selectedMobilePlan.tier === "PRO" ? (
+              tier === "PRO" ? <Button variant="outline" disabled className="min-h-12 w-full rounded-2xl font-black">Offre actuelle</Button>
+                : tier === "BUSINESS" ? <Button variant="outline" disabled className="min-h-12 w-full rounded-2xl font-black">Inclus dans Business</Button>
+                  : <Button onClick={() => goToCheckout("PRO")} loading={loading === "PRO"} className="min-h-12 w-full rounded-2xl bg-[#075ce5] font-black text-white">Choisir Pro</Button>
+            ) : tier === "BUSINESS" ? (
+              <Button variant="outline" disabled className="min-h-12 w-full rounded-2xl font-black">Offre actuelle</Button>
+            ) : tier === "PRO" ? (
+              <Button variant="outline" onClick={openPortal} loading={loading === "portal"} disabled={!community.stripeCustomerId} className="min-h-12 w-full rounded-2xl border-violet-200 font-black text-[#421388]">Passer à Business</Button>
+            ) : (
+              <Button onClick={() => goToCheckout("BUSINESS")} loading={loading === "BUSINESS"} className="min-h-12 w-full rounded-2xl bg-[#421388] font-black text-white">Choisir Business</Button>
+            )}
+          </div>
+        </div>
+        {tier === "FREE" && isLaunchOfferActive(billingConfig) && <p className="px-2 text-center text-xs font-bold text-blue-700">{billingConfig.launchMessage}</p>}
+      </section>
+
       {/* Grille des plans */}
-      <div>
+      <div className="hidden md:block">
         <h2 className="mb-4 text-center text-lg font-semibold text-slate-900">Choisir un mode</h2>
         <div className="grid gap-4 lg:grid-cols-3">
           <PlanCard
@@ -283,7 +374,7 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
 
       {/* Découverte info */}
       {community.plan === "FREE_TRIAL" && !subscription && (
-        <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
+        <Card className="hidden border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 md:block">
           <CardContent className="p-5 flex items-start gap-4">
             <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
               <Sparkles className="size-5 text-amber-600" />
@@ -299,7 +390,7 @@ export function BillingClient({ community, subscription, billingConfig }: Props)
       )}
 
       {/* Sécurité */}
-      <div className="flex items-center gap-2 text-xs text-slate-400">
+      <div className="flex items-center justify-center gap-2 px-3 text-center text-xs text-slate-400 md:justify-start md:px-0 md:text-left">
         <Shield className="size-3.5" />
         <span>Paiements sécurisés par Stripe. Annulez à tout moment.</span>
       </div>

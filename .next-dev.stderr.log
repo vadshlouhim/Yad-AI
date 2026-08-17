@@ -1,0 +1,1213 @@
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+  [90m 7 |[0m [36mimport[0m { [33mBell[0m, [33mChevronDown[0m, [33mLogOut[0m, [33mSettings[0m, [33mUser[0m } [36mfrom[0m [32m"lucide-react"[0m;
+  [90m 8 |[0m [36mimport[0m { cn } [36mfrom[0m [32m"@/lib/utils"[0m;
+[31m[1m>[0m [90m 9 |[0m [36mimport[0m { [33mMobileMainMenuDialog[0m } [36mfrom[0m [32m"./mobile-main-menu-dialog"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mimport[0m {
+  [90m11 |[0m   getOfficialDashboardMenuSections,
+  [90m12 |[0m } [36mfrom[0m [32m"./dashboard-nav"[0m;
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[browser] Uncaught Error: ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+   7 | import { Bell, ChevronDown, LogOut, Settings, User } from "lucide-react";
+   8 | import { cn } from "@/lib/utils";
+>  9 | import { MobileMainMenuDialog } from "./mobile-main-menu-dialog";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  10 | import {
+  11 |   getOfficialDashboardMenuSections,
+  12 | } from "./dashboard-nav";
+
+
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./src/components/layout/topbar.tsx:9:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (Error: (./src/components/layout/topbar.tsx:9:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+   7 | import { Bell, ChevronDown, LogOut, Settings, User } from "lucide-react";
+   8 | import { cn } from "@/lib/utils";
+>  9 | import { MobileMainMenuDialog } from "./mobile-main-menu-dialog";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  10 | import {
+  11 |   getOfficialDashboardMenuSections,
+  12 | } from "./dashboard-nav";
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+   7 | import { Bell, ChevronDown, LogOut, Settings, User } from "lucide-react";
+   8 | import { cn } from "@/lib/utils";
+>  9 | import { MobileMainMenuDialog } from "./mobile-main-menu-dialog";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  10 | import {
+  11 |   getOfficialDashboardMenuSections,
+  12 | } from "./dashboard-nav";
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+   7 | import { Bell, ChevronDown, LogOut, Settings, User } from "lucide-react";
+   8 | import { cn } from "@/lib/utils";
+>  9 | import { MobileMainMenuDialog } from "./mobile-main-menu-dialog";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  10 | import {
+  11 |   getOfficialDashboardMenuSections,
+  12 | } from "./dashboard-nav";
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+   7 | import { Bell, ChevronDown, LogOut, Settings, User } from "lucide-react";
+   8 | import { cn } from "@/lib/utils";
+>  9 | import { MobileMainMenuDialog } from "./mobile-main-menu-dialog";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  10 | import {
+  11 |   getOfficialDashboardMenuSections,
+  12 | } from "./dashboard-nav";
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/components/layout/topbar.tsx:9:1
+Module not found: Can't resolve './mobile-main-menu-dialog'
+   7 | import { Bell, ChevronDown, LogOut, Settings, User } from "lucide-react";
+   8 | import { cn } from "@/lib/utils";
+>  9 | import { MobileMainMenuDialog } from "./mobile-main-menu-dialog";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  10 | import {
+  11 |   getOfficialDashboardMenuSections,
+  12 | } from "./dashboard-nav";
+
+Import trace:
+  Server Component:
+    ./src/components/layout/topbar.tsx
+    ./src/app/dashboard/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/chlom/Desktop/projet EASYCOM-AI/Yad-AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: Error: read ECONNRESET
+      at ignore-listed frames {
+    errno: -4077,
+    code: 'ECONNRESET',
+    syscall: 'read'
+  }
+}

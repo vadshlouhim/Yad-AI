@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FileCheck2, MessageCircle, Plane, ShieldCheck } from "lucide-react";
-import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
+import { BadgeEuro, FileCheck2, MessageCircle, Plane, ShieldCheck } from "lucide-react";
 import { FlightCompensationReviewsCarousel } from "@/components/services/flight-compensation-reviews-carousel";
 import { Button } from "@/components/ui/button";
 
@@ -12,38 +11,45 @@ const whatsappUrl =
 
 export default function AssistanceIndemnisationAeriennePage() {
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 sm:px-6">
-      <AgentPageBanner
-        eyebrow="Service pratique"
-        title="Vol retardé ou annulé ? Soyez indemnisé jusqu’à 600 €"
-        description="Nous vous accompagnons dans les demandes d’indemnisation liées aux vols retardés ou annulés : collecte des informations, préparation du dossier et suivi des démarches."
-        icon={Plane}
-        tone="amber"
-      />
+    <div className="mx-auto w-full max-w-6xl space-y-5 px-4 pb-10 pt-4 sm:px-6 sm:pt-6">
+      <section className="relative overflow-hidden rounded-[2rem] bg-[#075ce5] px-5 py-7 text-white shadow-[0_24px_60px_-34px_rgba(7,92,229,0.6)] sm:px-9 sm:py-10">
+        <div className="absolute -right-16 -top-20 size-56 rounded-full bg-cyan-300/25 blur-3xl" />
+        <div className="absolute -bottom-20 left-1/3 size-48 rounded-full bg-violet-400/20 blur-3xl" />
+        <div className="relative grid gap-6 md:grid-cols-[1fr_auto] md:items-end">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.14em] ring-1 ring-white/25"><Plane className="size-4" /> Assistance indemnisation</div>
+            <h1 className="mt-5 text-3xl font-black leading-tight tracking-tight sm:text-5xl">Vol retardé ou annulé ?</h1>
+            <div className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-lg font-black text-[#075ce5] shadow-lg"><BadgeEuro className="size-6" /> Jusqu’à 600 € d’indemnisation</div>
+            <p className="mt-4 max-w-2xl text-sm font-medium leading-6 text-blue-50 sm:text-base">Nous vous accompagnons dans la collecte des informations, la préparation du dossier et le suivi des démarches.</p>
+          </div>
+          <div className="flex size-20 items-center justify-center rounded-[1.75rem] bg-white text-[#075ce5] shadow-xl sm:size-24"><Plane className="size-10 sm:size-12" /></div>
+        </div>
+      </section>
 
-      <div className="rounded-3xl border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
-        <div className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-2">
+      <section className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-[0_18px_50px_-35px_rgba(15,23,42,0.35)] sm:p-7">
+        <div className="grid gap-4 sm:grid-cols-2">
           {[
-            { icon: FileCheck2, title: "Dossier préparé", text: "Vous transmettez les informations utiles, nous organisons la demande." },
-            { icon: ShieldCheck, title: "Suivi clair", text: "Votre démarche est accompagnée pour éviter les oublis et gagner du temps." },
+            { icon: FileCheck2, title: "Dossier préparé", text: "Vous transmettez les informations utiles, nous organisons la demande.", className: "bg-[#07989c]" },
+            { icon: ShieldCheck, title: "Suivi clair", text: "Votre démarche est accompagnée pour éviter les oublis et gagner du temps.", className: "bg-[#421388]" },
           ].map((item) => (
-            <div key={item.title} className="rounded-3xl border border-amber-100 bg-amber-50/40 p-5">
-              <item.icon className="mx-auto size-7 text-amber-700" />
-              <h2 className="mt-3 text-base font-black text-slate-950">{item.title}</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{item.text}</p>
+            <div key={item.title} className={`${item.className} rounded-[1.6rem] p-5 text-white shadow-lg`}>
+              <div className="flex size-11 items-center justify-center rounded-2xl bg-white text-slate-900"><item.icon className="size-6" /></div>
+              <h2 className="mt-4 text-lg font-black">{item.title}</h2>
+              <p className="mt-2 text-sm font-medium leading-6 text-white/85">{item.text}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-8 flex w-full flex-col items-center gap-4">
+        <div className="mt-6 flex w-full flex-col items-center gap-3 rounded-[1.6rem] bg-blue-50 p-5 text-center">
+          <p className="text-sm font-bold text-blue-950">Un doute sur votre vol ? Envoyez-nous votre demande.</p>
           <Link href={whatsappUrl} target="_blank" rel="noreferrer" className="w-full sm:w-auto">
-            <Button className="h-12 w-full rounded-2xl bg-amber-700 px-6 text-white shadow-[0_14px_30px_rgba(180,83,9,0.20)] transition hover:-translate-y-0.5 hover:bg-amber-800 sm:w-auto">
+            <Button className="h-12 w-full rounded-2xl bg-[#075ce5] px-6 font-bold text-white shadow-lg hover:bg-blue-700 sm:w-auto">
               <MessageCircle className="size-4" />
               Envoyer ma demande
             </Button>
           </Link>
         </div>
-      </div>
+      </section>
 
       <FlightCompensationReviewsCarousel />
     </div>

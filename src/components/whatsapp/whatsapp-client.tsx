@@ -1364,6 +1364,7 @@ export function WhatsAppClient({
         agentName="Israel"
         agentImageUrl={ISRAEL_WHATSAPP_IMAGE}
         statusLabel={isPersonalMode ? "Mode personnel" : isCloudConfigured ? "Canal configuré" : "Connexion requise"}
+        compactOnMobile
       />
 
       <WhatsAppConnectionPanel

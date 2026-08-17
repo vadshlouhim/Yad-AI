@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -251,95 +252,22 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
   return (
     <div className="mx-auto w-full min-w-0 max-w-6xl space-y-4 overflow-x-clip px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6">
       {/* Header */}
-      <div className="relative overflow-visible rounded-[1.4rem] border border-[#8A184D]/10 bg-[#8A184D] p-5 text-white shadow-[0_22px_55px_rgba(138,24,77,0.24)] sm:p-6">
-        <div className="pointer-events-none absolute inset-y-0 right-6 hidden items-center sm:flex" aria-hidden="true">
-          <div className="rounded-full bg-white/[0.045] p-5">
-            <div className="size-28 rounded-full border border-white/[0.04] bg-white/[0.035]" />
-          </div>
-        </div>
-        <div className="absolute -bottom-8 left-8 size-20 rounded-full bg-amber-300/20 blur-2xl" aria-hidden />
-
-        <div className="relative flex flex-col items-center gap-5 text-center lg:flex-row lg:items-start lg:justify-between lg:text-left">
-          <div className="w-full max-w-3xl">
-            <div className="mb-4 h-1.5 w-12 rounded-full bg-white/80" />
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-rose-50">
-              <Star className="size-3.5 fill-amber-300 text-amber-300" />
-              Agent Avis Google
-            </div>
-            <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">Avis Google</h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-rose-50/90">
-              Centralisez vos avis, classez les priorités et préparez des réponses professionnelles.
-            </p>
-            <div className="mt-4 flex items-center gap-0.5 text-amber-300" aria-label="Note 5 étoiles">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <svg key={i} viewBox="0 0 24 24" className="size-4 fill-current">
-                  <path d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.787 1.401 8.168L12 18.896l-7.335 3.869 1.401-8.168L.132 9.21l8.2-1.192z" />
-                </svg>
-              ))}
-            </div>
-            {isConnected && locationName && (
-              <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5 text-cyan-200/70 lg:justify-start">
-                <MapPin className="size-3.5" />
-                <span className="text-sm">{locationName}</span>
-                {counts.avgRating && (
-                  <span className="ml-2 flex items-center gap-1 text-amber-300 text-sm font-semibold">
-                    <Star className="size-3.5 fill-amber-300" />{counts.avgRating} / 5
-                  </span>
-                )}
-              </div>
-            )}
-            {!isConnected && (
-              <p className="mt-2 text-sm text-rose-50/80">
-                Connectez votre fiche Google My Business pour voir et répondre à vos avis.
-              </p>
-            )}
-          </div>
-
-          <div className="relative z-20 flex w-full flex-col items-center gap-4 text-center lg:w-auto lg:flex-row lg:items-center lg:text-left lg:max-w-2xl">
-            <div className="pointer-events-none relative z-30 shrink-0" aria-hidden="true">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={BAROUH_REVIEWS_IMAGE}
-                alt=""
-                className="-my-8 h-48 w-auto object-contain drop-shadow-[0_24px_34px_rgba(0,0,0,0.30)] sm:-my-10 lg:-my-14 lg:h-72"
-              />
-            </div>
-            <div className="relative w-full max-w-md rounded-2xl bg-white px-5 py-4 text-center text-base leading-6 text-[#8A184D] shadow-xl before:hidden lg:w-auto lg:text-left lg:before:block lg:before:absolute lg:before:-left-2 lg:before:top-10 lg:before:size-4 lg:before:rotate-45 lg:before:bg-white">
-              <p className="font-black">Je suis Barouh, l’agent IA responsable de vos avis Google</p>
-              <p className="mt-1 font-semibold text-slate-600">
-                Je réceptionne vos avis Google, je les classe par importance et je vous notifie quand un avis mérite votre attention
-              </p>
-            </div>
-          </div>
-
-          <div className="flex w-full flex-col items-center gap-2 lg:absolute lg:bottom-5 lg:left-5 lg:w-auto lg:items-start">
-            {isConnected && (
-              <button
-                onClick={() => fetchReviews()}
-                disabled={isLoading}
-                className="flex items-center justify-center gap-1.5 text-xs text-rose-50/80 transition-colors hover:text-white sm:justify-end"
-              >
-                <RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />
-                Actualiser
-              </button>
-            )}
-            <Button
-              variant={isConnected ? "destructive" : "outline"}
-              onClick={handleConnect}
-              disabled={isConnecting}
-              className={cn(
-                "w-full max-w-sm rounded-full px-5 py-5 text-sm font-semibold transition-all hover:scale-[1.02] sm:w-auto",
-                isConnected
-                  ? "bg-rose-600 hover:bg-rose-700 text-white border-none"
-                  : "bg-white text-[#8A184D] border-white hover:bg-rose-50"
-              )}
-            >
-              {isConnecting ? (
-                <span className="flex items-center gap-2"><RefreshCw className="size-4 animate-spin" />Connexion...</span>
-              ) : isConnected ? "Déconnecter" : "Connecter Google My Business"}
+      <div className="relative min-h-[12rem] overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_72%_12%,#7028bd_0%,#421388_45%,#210763_100%)] px-5 py-5 text-white shadow-[0_24px_58px_rgba(49,13,108,0.26)] sm:min-h-[17rem] sm:px-8 sm:py-8">
+        <div className="pointer-events-none absolute -right-8 -top-12 size-48 rounded-full bg-white/10 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-20 left-1/3 size-52 rounded-full bg-amber-300/10 blur-3xl" />
+        <div className="relative z-10 max-w-[68%] sm:max-w-3xl">
+          <span className="flex size-11 items-center justify-center rounded-2xl bg-white/15 text-white shadow-lg ring-1 ring-white/20 sm:size-12"><Star className="size-6 fill-amber-300 text-amber-300" /></span>
+          <h1 className="mt-4 text-[clamp(1.75rem,8vw,2.6rem)] font-black leading-[1.03] tracking-[-0.04em] sm:mt-5 sm:text-4xl">Avis Google</h1>
+          <p className="mt-3 hidden max-w-2xl text-sm font-semibold leading-6 text-white/80 sm:block sm:text-base">Centralisez vos avis, classez les priorités et préparez des réponses professionnelles.</p>
+          {isConnected && locationName && <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs font-semibold text-white/75"><MapPin className="size-3.5" /><span>{locationName}</span>{counts.avgRating && <span className="ml-1 flex items-center gap-1 text-amber-300"><Star className="size-3.5 fill-current" />{counts.avgRating} / 5</span>}</div>}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {isConnected && <button onClick={() => fetchReviews()} disabled={isLoading} className="flex min-h-10 items-center gap-1.5 rounded-xl bg-white/15 px-3 text-xs font-black ring-1 ring-white/20 transition hover:bg-white/20"><RefreshCw className={cn("size-3.5", isLoading && "animate-spin")} />Actualiser</button>}
+            <Button variant="outline" onClick={handleConnect} disabled={isConnecting} className={cn("min-h-10 rounded-xl border-white bg-white px-3 text-xs font-black text-[#421388] hover:bg-violet-50", isConnected && "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100")}>
+              {isConnecting ? <span className="flex items-center gap-2"><RefreshCw className="size-4 animate-spin" />Connexion...</span> : isConnected ? "Déconnecter" : "Connecter Google"}
             </Button>
           </div>
         </div>
+        <Image src={BAROUH_REVIEWS_IMAGE} alt="Barouh, agent IA Avis Google" width={240} height={280} className="pointer-events-none absolute -bottom-3 -right-5 z-10 h-[10.5rem] w-auto object-contain object-bottom drop-shadow-[0_18px_24px_rgba(12,2,35,0.34)] sm:-right-2 sm:h-[16rem]" priority />
       </div>
 
       {/* Notice */}
@@ -354,10 +282,10 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
       )}
 
       {!isConnected ? (
-        <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 text-center shadow-[0_18px_45px_-30px_rgba(8,31,54,0.28)] sm:rounded-[28px] sm:p-12">
+        <Card className="rounded-[2rem] border border-violet-100 bg-[#fffaf4] p-5 text-center shadow-[0_18px_46px_rgba(66,19,136,0.09)] sm:p-12">
           <CardContent className="space-y-4 max-w-md mx-auto pt-6">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-50">
-              <Star className="size-8 fill-amber-400 text-amber-400" />
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-[#ffbd17] to-[#ee9100] text-white shadow-lg shadow-amber-200">
+              <Star className="size-8 fill-white text-white" />
             </div>
             <h2 className="text-xl font-bold text-slate-900">Google My Business non connecté</h2>
             <p className="text-sm text-slate-500 leading-relaxed">
@@ -366,7 +294,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
             <Button
               onClick={handleConnect}
               disabled={isConnecting}
-              className="w-full rounded-full bg-cyan-700 text-white hover:bg-cyan-800 px-6 py-5 text-sm font-semibold"
+              className="w-full rounded-2xl bg-gradient-to-r from-[#7130d8] to-[#d92d7c] px-6 py-5 text-sm font-black text-white shadow-lg shadow-violet-200 hover:brightness-105"
             >
               {isConnecting ? <><RefreshCw className="size-4 animate-spin mr-2" />Connexion...</> : "Connecter ma fiche Google"}
             </Button>
@@ -393,13 +321,13 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
           {reviews.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { label: "Total avis", value: counts.total, color: "text-slate-800", bg: "bg-slate-50 border-slate-200" },
-                { label: "Sans réponse", value: counts.unanswered, color: "text-cyan-700", bg: "bg-cyan-50 border-cyan-200" },
+                { label: "Total avis", value: counts.total, color: "text-violet-800", bg: "bg-violet-50 border-violet-200" },
+                { label: "Sans réponse", value: counts.unanswered, color: "text-blue-700", bg: "bg-blue-50 border-blue-200" },
                 { label: "Urgents IA", value: counts.urgent, color: "text-rose-700", bg: "bg-rose-50 border-rose-200" },
                 { label: "Note moyenne", value: counts.avgRating ? `${counts.avgRating}?` : "-", color: "text-amber-700", bg: "bg-amber-50 border-amber-200" },
               ].map((stat) => (
-                <div key={stat.label} className={cn("rounded-2xl border p-4 text-center", stat.bg)}>
-                  <p className={cn("text-2xl font-bold", stat.color)}>{stat.value}</p>
+                <div key={stat.label} className={cn("rounded-2xl border p-4 text-center shadow-sm", stat.bg)}>
+                  <p className={cn("text-2xl font-black", stat.color)}>{stat.value}</p>
                   <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
                 </div>
               ))}
@@ -408,8 +336,8 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
 
           <div className="grid grid-cols-1 gap-4 lg:min-h-[600px] lg:grid-cols-12 lg:gap-6">
             {/* Liste */}
-            <Card className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-[28px] lg:col-span-5">
-              <CardHeader className="border-b border-slate-100 bg-slate-50/50 p-4 space-y-3">
+            <Card className="flex flex-col overflow-hidden rounded-[2rem] border border-violet-100 bg-white shadow-[0_14px_36px_rgba(66,19,136,0.08)] lg:col-span-5">
+              <CardHeader className="space-y-3 border-b border-violet-100 bg-[#fffaf4] p-4">
                 <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base font-bold text-slate-900">
                   <span>{reviews.length} avis</span>
                   {counts.unanswered > 0 && (
@@ -420,7 +348,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
                 </CardTitle>
                 <div className="flex flex-wrap gap-1.5">
                   {[
-                    { key: "ALL", label: `Tous (${counts.total})`, active: "bg-slate-900 text-white border-slate-900", inactive: "bg-white text-slate-600 border-slate-200 hover:bg-slate-50" },
+                    { key: "ALL", label: `Tous (${counts.total})`, active: "bg-[#421388] text-white border-[#421388]", inactive: "bg-white text-violet-700 border-violet-200 hover:bg-violet-50" },
                     { key: "URGENT_ONLY", label: ` Urgents (${counts.urgent})`, active: "bg-rose-600 text-white border-rose-600", inactive: "bg-rose-50 text-rose-700 border-rose-100 hover:bg-rose-100" },
                     { key: "UNANSWERED", label: `Sans réponse (${counts.unanswered})`, active: "bg-cyan-700 text-white border-cyan-700", inactive: "bg-cyan-50 text-cyan-700 border-cyan-100 hover:bg-cyan-100" },
                     { key: "BAD_ONLY", label: `Critiques (${counts.bad})`, active: "bg-amber-600 text-white border-amber-600", inactive: "bg-amber-50 text-amber-700 border-amber-100 hover:bg-amber-100" },
@@ -450,13 +378,13 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
                       onClick={() => setSelectedId(rev.id)}
                       className={cn(
                         "w-full text-left p-4 transition-all hover:bg-slate-50 flex items-start gap-3",
-                        selectedId === rev.id ? "bg-cyan-50/50 border-l-4 border-cyan-700 pl-3" : "",
+                        selectedId === rev.id ? "bg-violet-50/65 border-l-4 border-violet-700 pl-3" : "",
                         !rev.answered ? "bg-slate-50/20" : ""
                       )}
                     >
                       <div className="h-9 w-9 rounded-full flex-shrink-0 overflow-hidden bg-slate-100">
                         {rev.avatarUrl
-                          ? <img src={rev.avatarUrl} alt={rev.author} className="h-full w-full object-cover" />
+                          ? <Image src={rev.avatarUrl} alt={rev.author} width={36} height={36} unoptimized className="h-full w-full object-cover" />
                           : <div className="h-full w-full flex items-center justify-center font-bold text-slate-600 text-sm">{rev.avatarLetter}</div>}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -488,10 +416,10 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
             </Card>
 
             {/* Détail + Réponse */}
-            <Card className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-[28px] lg:col-span-7">
+            <Card className="flex flex-col overflow-hidden rounded-[2rem] border border-violet-100 bg-white shadow-[0_14px_36px_rgba(66,19,136,0.08)] lg:col-span-7">
               {selectedReview ? (
                 <div className="flex flex-col h-full">
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/30 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-violet-100 bg-[#fffaf4] p-4">
                     <div className="min-w-0">
                       <h2 className="break-words text-base font-bold text-slate-900">Avis de {selectedReview.author}</h2>
                       <p className="text-xs text-slate-500">{selectedReview.relativeTime}</p>
@@ -504,7 +432,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
                   </div>
 
                   <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
-                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/50 text-sm text-slate-800 leading-relaxed">
+                    <div className="rounded-2xl border border-violet-100 bg-violet-50/45 p-4 text-sm leading-relaxed text-slate-800">
                       {selectedReview.comment ? `"${selectedReview.comment}"` : "(Avis sans commentaire)"}
                     </div>
 
@@ -537,16 +465,16 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
 
                   {/* Suggestion IA */}
                   {aiDraft && (
-                    <div className="mx-4 my-2 space-y-3 rounded-2xl border border-cyan-200/80 bg-cyan-50 p-4 shadow-sm sm:mx-6">
+                    <div className="mx-4 my-2 space-y-3 rounded-2xl border border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 to-violet-50 p-4 shadow-sm sm:mx-6">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-800">
-                          <Bot className="size-4 text-cyan-700 animate-bounce" />Réponse IA proposée
+                        <span className="inline-flex items-center gap-1.5 text-xs font-black text-fuchsia-800">
+                          <Bot className="size-4 text-fuchsia-700" />Réponse IA proposée
                         </span>
                         <button onClick={() => setAiDraft("")} className="text-xs text-slate-400 hover:text-slate-600">Annuler</button>
                       </div>
-                      <div className="text-xs text-slate-700 whitespace-pre-line leading-relaxed border-l-2 border-cyan-300 pl-3 max-h-[140px] overflow-y-auto">{aiDraft}</div>
+                      <div className="max-h-[140px] overflow-y-auto whitespace-pre-line border-l-2 border-fuchsia-300 pl-3 text-xs leading-relaxed text-slate-700">{aiDraft}</div>
                       <div className="flex justify-end">
-                        <Button size="sm" onClick={() => { setReplyText(aiDraft); setAiDraft(""); }} className="rounded-full bg-cyan-700 text-white hover:bg-cyan-800 text-xs px-3 py-1">
+                        <Button size="sm" onClick={() => { setReplyText(aiDraft); setAiDraft(""); }} className="rounded-xl bg-gradient-to-r from-[#7130d8] to-[#d92d7c] px-3 py-1 text-xs font-black text-white shadow-md shadow-violet-200 hover:brightness-105">
                           Insérer dans la réponse
                         </Button>
                       </div>
@@ -555,17 +483,17 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
 
                   {/* Zone de réponse */}
                   {!selectedReview.answered ? (
-                    <div className="border-t border-slate-100 p-4 bg-white space-y-3">
+                    <div className="space-y-3 border-t border-violet-100 bg-[#fffaf4] p-4">
                       <Button size="sm" variant="outline" onClick={handleDraftWithAi} disabled={isAiDrafting}
-                        className="rounded-full text-xs font-semibold text-cyan-700 border-cyan-200 bg-cyan-50/30 hover:bg-cyan-50 flex items-center gap-1.5">
+                        className="flex items-center gap-1.5 rounded-xl border-fuchsia-200 bg-fuchsia-50 text-xs font-black text-fuchsia-700 hover:bg-fuchsia-100">
                         {isAiDrafting ? <><RefreshCw className="size-3 animate-spin" />Rédaction...</> : <><Sparkles className="size-3 text-cyan-600" />Rédiger avec EasyCom IA</>}
                       </Button>
                       <div className="flex flex-col gap-2 sm:flex-row">
                         <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)}
                           placeholder={`Répondre à ${selectedReview.author}...`} rows={3}
-                          className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 resize-none" />
+                          className="flex-1 resize-none rounded-xl border border-violet-100 bg-white px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-100" />
                         <Button onClick={handleSendReply} disabled={!replyText.trim() || isSending}
-                          className="h-11 rounded-xl bg-cyan-700 px-4 text-white hover:bg-cyan-800 sm:h-[76px] sm:self-end">
+                          className="h-11 rounded-xl bg-gradient-to-br from-[#16b86b] to-[#078e50] px-4 font-black text-white shadow-md shadow-emerald-200 hover:brightness-105 sm:h-[76px] sm:self-end">
                           {isSending ? <RefreshCw className="size-4 animate-spin" /> : <Send className="size-4 mb-1" />}
                           <span className="text-[10px] font-semibold">{isSending ? "Envoi..." : "Publier"}</span>
                         </Button>

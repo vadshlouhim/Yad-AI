@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/topbar";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { GmbNotificationBadge } from "@/components/layout/gmb-notification-badge";
+import { DashboardFirstVisitGate } from "@/components/dashboard/dashboard-first-visit-gate";
 import { ensureTodayEventReminderNotifications } from "@/lib/notifications/event-reminders";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
@@ -71,7 +72,8 @@ export default async function DashboardLayout({
           unreadNotifications={unreadCount ?? 0}
         />
         <GmbNotificationBadge />
-        <main className="flex-1 overflow-y-auto w-full animate-fade-in pb-24 md:pb-0">
+        <DashboardFirstVisitGate userId={profile.id} />
+        <main className="flex-1 w-full overflow-y-auto pb-24 animate-fade-in md:pb-0">
           {children}
         </main>
         <MobileBottomNav />

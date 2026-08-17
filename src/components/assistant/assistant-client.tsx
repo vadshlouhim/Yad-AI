@@ -12,7 +12,7 @@ import {
   X, SlidersHorizontal, PlayCircle, PauseCircle,
   Power, ExternalLink, Zap, CalendarDays, BookOpen, Gift, HeartHandshake,
   Lightbulb, Clock3, Mail, ChevronDown, User, Settings, LogOut,
-  Mic, FileText, Loader2,
+  Mic, FileText, Loader2, ArrowLeft, Grid2X2,
 } from "lucide-react";
 import { CHANNEL_LABELS, cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -26,7 +26,7 @@ import { AssistantDataPanel, type PanelActionPayload } from "./assistant-data-pa
 import type { DataPanel } from "@/lib/ai/assistant/panels";
 import type { RoutineItem } from "./daily-routine-wizard";
 import type { BillingConfig } from "@/lib/billing";
-import { AGENTS_GROUP_IMAGE } from "@/lib/agents";
+import { AGENTS_GROUP_IMAGE, HOME_EASYCOM_AGENTS } from "@/lib/agents";
 
 // ============================================================
 // TYPES
@@ -171,6 +171,7 @@ interface Props {
   channels: ChannelOption[];
   seasonalPrompts: QuickPrompt[];
   initialPrompt?: string;
+  initialAgentSlug?: string;
   initialApprovalDraft?: ApprovalDraft | null;
   userName?: string;
   userAvatar?: string | null;
@@ -224,6 +225,24 @@ const QUICK_PROMPT_STYLES = [
 ];
 
 const ASSISTANT_PLACEHOLDER = "En quoi puis-je vous aider ?";
+
+function getFirstPersonAgentDescription(description: string) {
+  const replacements: Array<[RegExp, string]> = [
+    [/^Il vous aide [àa] /, "Je vous aide à "],
+    [/^Il vous accompagne pour /, "Je vous accompagne pour "],
+    [/^Il prépare /, "Je vous aide à préparer "],
+    [/^Il prepare /, "Je vous aide à préparer "],
+    [/^Il met en place /, "Je mets en place "],
+    [/^Il transforme /, "Je transforme "],
+    [/^Il surveille /, "Je surveille "],
+  ];
+
+  for (const [pattern, replacement] of replacements) {
+    if (pattern.test(description)) return description.replace(pattern, replacement);
+  }
+
+  return description;
+}
 const AGENTS_IMAGE_URL = AGENTS_GROUP_IMAGE;
 
 const EASYCOM_FULL_MESSAGE =
@@ -244,20 +263,28 @@ function AssistantAvatar({
   imageClassName,
   iconClassName,
   iconOnly = false,
+  imageUrl = AGENTS_IMAGE_URL,
+  imageAlt = "Agents intelligents EasyCom IA",
 }: {
   className?: string;
   imageClassName?: string;
   iconClassName?: string;
   iconOnly?: boolean;
+  imageUrl?: string;
+  imageAlt?: string;
 }) {
-  const [imageSrc, setImageSrc] = useState<string | null>(AGENTS_IMAGE_URL);
+  const [imageSrc, setImageSrc] = useState<string | null>(imageUrl);
+
+  useEffect(() => {
+    setImageSrc(imageUrl);
+  }, [imageUrl]);
 
   return (
     <div className={className}>
       {!iconOnly && imageSrc ? (
         <img
           src={imageSrc}
-          alt="Agents intelligents EasyCom IA"
+          alt={imageAlt}
           className={imageClassName}
           onError={() => setImageSrc(null)}
         />
@@ -402,6 +429,7 @@ export function AssistantClient({
   channels,
   seasonalPrompts,
   initialPrompt,
+  initialAgentSlug,
   initialApprovalDraft,
   userName,
   userAvatar,
@@ -410,6 +438,9 @@ export function AssistantClient({
 }: Props) {
   void _tone;
   const firstName = userName?.split(" ")[0] ?? "";
+  const selectedAgent = HOME_EASYCOM_AGENTS.find((agent) => agent.slug === initialAgentSlug) ?? null;
+  const activeAssistantImage = selectedAgent?.image ?? AGENTS_IMAGE_URL;
+  const activeAssistantAlt = selectedAgent ? `${selectedAgent.name}, agent IA ${selectedAgent.role}` : "Agents intelligents EasyCom IA";
   const router = useRouter();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -431,7 +462,6 @@ export function AssistantClient({
   const [editTitle, setEditTitle] = useState("");
   const [menuId, setMenuId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [simpleMainMenuOpen, setSimpleMainMenuOpen] = useState(false);
   const [simpleHistoryOpen, setSimpleHistoryOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateSuggestion | null>(null);
   const [preparingPoster, setPreparingPoster] = useState(false);
@@ -463,6 +493,7 @@ export function AssistantClient({
   const [isRecording, setIsRecording] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  const hiddenInitialPromptRef = useRef<string | null>(null);
   const speechBaseRef = useRef("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bubbleDragState = useRef({ active: false, moved: false, offsetX: 0, offsetY: 0 });
@@ -550,6 +581,15 @@ export function AssistantClient({
 
   useEffect(() => {
     if (!initialPrompt) return;
+
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      hiddenInitialPromptRef.current = initialPrompt;
+      setInput("");
+      setHasStartedPromptEntry(false);
+      return;
+    }
+
+    hiddenInitialPromptRef.current = null;
     setInput(initialPrompt);
     setHasStartedPromptEntry(true);
   }, [initialPrompt]);
@@ -823,6 +863,7 @@ export function AssistantClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId: convId,
+          navigationContext: currentMessages.length === 1 ? hiddenInitialPromptRef.current : undefined,
           selectedTemplateId: options?.selectedTemplateId ?? selectedTemplate?.id ?? null,
           templateAction: options?.templateAction ?? null,
           mode: options?.mode ?? (dailyRoutineMode ? "daily_routine" : assistantExperience === "simple" ? "simplified" : undefined),
@@ -1103,13 +1144,6 @@ export function AssistantClient({
   const quickPrompts = seasonalPrompts.length >= 4
     ? seasonalPrompts.slice(0, 4)
     : [...seasonalPrompts, ...QUICK_PROMPTS].slice(0, 4);
-  const simpleMenuSections = DASHBOARD_NAV_ITEMS
-    .filter((section) => section.section !== "AGENTS INTELLIGENTS")
-    .map((section) => ({
-      section: section.section,
-      items: section.items.filter((item) => item.href !== "/dashboard/assistant"),
-    }))
-    .filter((section) => section.items.length > 0);
   const detailedMenuItems = DASHBOARD_NAV_ITEMS.flatMap((section) => section.items);
   const simpleMainButtons = [
     { label: "Créer des automatisations", href: "/dashboard/automations", icon: Zap, accent: "bg-blue-500", iconTone: "text-blue-600", iconBg: "bg-blue-50", mobileOnly: false },
@@ -1984,7 +2018,7 @@ export function AssistantClient({
       className={cn(
         "flex min-h-0 overflow-hidden bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_42%)]",
         assistantExperience === "simple"
-          ? "h-full min-h-full w-full bg-transparent"
+          ? "h-full min-h-full w-full bg-transparent max-md:bg-[#fffaf4]"
           : "h-[calc(100dvh-4rem)]"
       )}
     >
@@ -2107,119 +2141,6 @@ export function AssistantClient({
         </div>
       </div>}
 
-      {assistantExperience === "simple" && false && simpleMainMenuOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-slate-950/30 md:hidden"
-          onClick={() => setSimpleMainMenuOpen(false)}
-        />
-      )}
-
-      {assistantExperience === "simple" && false && (
-        <aside
-          className={cn(
-            "fixed inset-y-0 left-0 z-40 flex w-[84vw] max-w-xs shrink-0 flex-col border-r border-slate-200 bg-slate-50 shadow-2xl transition-transform duration-200",
-            simpleMainMenuOpen ? "translate-x-0" : "-translate-x-full"
-          )}
-        >
-          <div className="flex items-center justify-between border-b border-slate-200 p-3">
-            <p className="text-sm font-semibold text-slate-900">Menu principal</p>
-            <button
-              type="button"
-              onClick={() => setSimpleMainMenuOpen(false)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
-              aria-label="Fermer le menu principal"
-            >
-              <X className="size-4" />
-            </button>
-          </div>
-          <div className="hidden border-b border-slate-200 p-3">
-            <Link
-              href="/dashboard/overview"
-              className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-transparent shadow-sm transition hover:border-blue-200"
-            >
-              <PanelLeftOpen className="size-4 text-slate-800" />
-              <span className="text-slate-800">Menu principal</span>
-              Mode détaillé
-            </Link>
-          </div>
-          <div className="hidden flex-1 overflow-y-auto px-2 py-3">
-            <p className="px-2 pb-1 text-xs font-semibold tracking-wide text-slate-600">
-              Historique des conversations
-            </p>
-            {groupedConversations.length === 0 && (
-              <p className="px-4 py-8 text-center text-xs text-slate-400">
-                Vos conversations apparaîtront ici
-              </p>
-            )}
-            {groupedConversations.map((group) => (
-              <div key={group.label} className="mb-4">
-                <p className="px-2 pb-1 text-[11px] font-semibold uppercase text-slate-400">
-                  {group.label}
-                </p>
-                <div className="space-y-1">
-                  {group.items.map((conv) => (
-                    <div
-                      key={conv.id}
-                      className={cn(
-                        "group flex items-center rounded-lg transition",
-                        activeConversationId === conv.id
-                          ? "bg-white font-semibold text-slate-950 shadow-sm"
-                          : "text-slate-600 hover:bg-white hover:text-slate-950"
-                      )}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => loadConversation(conv.id)}
-                        className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 text-left text-sm"
-                      >
-                        <MessageSquare className="size-3.5 shrink-0 text-slate-400" />
-                        <span className="truncate">{conv.title}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          deleteConversation(conv.id);
-                        }}
-                        className="mr-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus:opacity-100"
-                        aria-label={`Supprimer la conversation ${conv.title}`}
-                        title="Supprimer"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="flex-1 overflow-y-auto px-3 py-3">
-            <div className="space-y-3">
-              {simpleMenuSections.map((section, sectionIndex) => (
-                <div key={section.section} className="rounded-2xl border border-slate-200 bg-white p-2.5 shadow-[0_8px_20px_rgba(15,23,42,0.06)]">
-                  <div className="mb-2 px-1">
-                    <div className={cn("mb-1 h-1 w-9 rounded-full", sectionIndex % 3 === 0 ? "bg-blue-500" : sectionIndex % 3 === 1 ? "bg-cyan-500" : "bg-emerald-500")} />
-                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">{section.section}</p>
-                  </div>
-                  <div className="space-y-1">
-                    {section.items.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className="flex items-center gap-2 rounded-xl border border-transparent px-2.5 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-200 hover:bg-slate-50"
-                      >
-                        {item.icon ? <item.icon className="size-4 text-slate-500" /> : null}
-                        <span className="truncate">{item.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
-      )}
-
       {assistantExperience === "simple" && simpleHistoryOpen && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/45 p-4 md:p-6">
           <div className="max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
@@ -2290,7 +2211,7 @@ export function AssistantClient({
       <div className={cn("flex-1 flex flex-col min-w-0", assistantExperience === "simple" && "w-full")}>
         {/* Header */}
         <div className={cn(
-          "flex items-center justify-between gap-3 border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur-xl sm:px-6",
+          "flex items-center justify-between gap-3 border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur-xl sm:px-6 max-md:hidden",
           assistantExperience === "simple" && "border-slate-100"
         )}>
           <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -2309,7 +2230,7 @@ export function AssistantClient({
             {assistantExperience === "simple" && (
               <button
                 type="button"
-                onClick={() => setSimpleMainMenuOpen(true)}
+                onClick={() => window.dispatchEvent(new CustomEvent("dashboard:open-main-menu"))}
                 className="hidden items-center gap-2 rounded-full border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:from-blue-50 hover:to-sky-50 hover:text-blue-700"
               >
                 <PanelLeftOpen className="size-4" />
@@ -2447,6 +2368,96 @@ export function AssistantClient({
           </div>
         </div>
 
+        {assistantExperience === "simple" && (
+          <section className={cn(
+            "relative shrink-0 overflow-hidden bg-[radial-gradient(circle_at_72%_8%,#6d2bc1_0%,#421388_42%,#210763_100%)] px-5 text-white md:hidden",
+            showQuickPrompts ? "rounded-b-[46%_2.25rem] pb-7 pt-[max(1rem,env(safe-area-inset-top))]" : "rounded-b-[2rem] pb-4 pt-[max(0.8rem,env(safe-area-inset-top))]"
+          )}>
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_48%,rgba(133,69,220,0.28),transparent_34%),radial-gradient(circle_at_88%_70%,rgba(108,52,190,0.3),transparent_28%)]" />
+            <div className="relative flex items-center justify-between gap-3">
+              <Link
+                href="/dashboard/overview"
+                aria-label="Retour à l'accueil"
+                className="flex size-11 items-center justify-center rounded-full bg-white/12 text-white ring-1 ring-white/18 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <ArrowLeft className="size-5" />
+              </Link>
+              <p className="min-w-0 flex-1 truncate text-center text-sm font-black tracking-wide text-white/90">
+                {selectedAgent ? `Agent IA · ${selectedAgent.name}` : "Vos agents IA"}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSimpleHistoryOpen(true)}
+                  aria-label="Historique des conversations"
+                  className="flex size-11 items-center justify-center rounded-full bg-white/12 text-white ring-1 ring-white/18 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  <MessageSquare className="size-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent("dashboard:open-main-menu"))}
+                  aria-label="Ouvrir le menu principal"
+                  className="flex size-11 items-center justify-center rounded-full bg-white/12 text-white ring-1 ring-white/18 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  <Grid2X2 className="size-5" />
+                </button>
+              </div>
+            </div>
+
+            {showQuickPrompts ? (
+              <div className="relative mt-2 text-center">
+                <div className="mx-auto flex h-[190px] w-[230px] items-end justify-center overflow-visible">
+                  <AssistantAvatar
+                    imageUrl={activeAssistantImage}
+                    imageAlt={activeAssistantAlt}
+                    className="flex h-full w-full items-end justify-center"
+                    imageClassName="h-full w-full object-contain object-bottom drop-shadow-[0_22px_30px_rgba(8,1,30,0.38)]"
+                    iconClassName="size-14 text-white"
+                  />
+                </div>
+                <h1 className="-mt-2 text-[2rem] font-black leading-[1.02] tracking-[-0.045em]">
+                  {selectedAgent ? `Je suis ${selectedAgent.name},` : "Vos agents IA"}
+                </h1>
+                <p className="mt-1 text-lg font-extrabold text-[#ffd04c]">
+                  {selectedAgent ? `l’agent IA ${selectedAgent.role}` : "toute votre communication, simplement"}
+                </p>
+                <p className="mx-auto mt-2 max-w-sm text-[13px] leading-5 text-white/78">
+                  {selectedAgent
+                    ? getFirstPersonAgentDescription(selectedAgent.shortDescription)
+                    : "Expliquez votre besoin : le bon agent vous accompagne sans changer vos habitudes."}
+                </p>
+              </div>
+            ) : (
+              <div className="relative mt-3 flex items-center gap-3">
+                <AssistantAvatar
+                  imageUrl={activeAssistantImage}
+                  imageAlt={activeAssistantAlt}
+                  className="flex size-16 shrink-0 items-end justify-center overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/15"
+                  imageClassName="h-[76px] w-[64px] object-contain object-bottom"
+                  iconClassName="size-7 text-white"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-lg font-black leading-tight">
+                    {selectedAgent ? `${selectedAgent.name}, votre agent IA` : "Vos agents IA"}
+                  </p>
+                  <p className="mt-1 truncate text-xs font-semibold text-white/72">
+                    {selectedAgent?.role ?? "Assistant de communication"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={startNewChat}
+                  aria-label="Nouvelle conversation"
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white text-[#421388] shadow-lg transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  <Plus className="size-5" />
+                </button>
+              </div>
+            )}
+          </section>
+        )}
+
         {approvalDraft && (
           <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
             <div className="mx-auto max-w-3xl rounded-2xl border border-blue-200 bg-white p-4 shadow-sm ring-1 ring-blue-50 sm:p-5">
@@ -2491,8 +2502,16 @@ export function AssistantClient({
         {showQuickPrompts && !approvalDraft && (
 	          <div className={cn(
               "flex-1 flex flex-col items-center justify-center px-4 py-8 sm:px-6",
-              assistantExperience === "simple" && "w-full justify-center overflow-y-auto px-6 pb-1 pt-1 sm:px-8 md:pt-0"
+              assistantExperience === "simple" && "w-full overflow-y-auto px-6 pb-2 pt-3 sm:px-8 md:justify-center md:pt-0 max-md:justify-end"
             )}>
+            {assistantExperience === "simple" && (
+              <div className="mb-3 w-full md:hidden">
+                <h2 className="text-center text-[clamp(1.7rem,8vw,2.15rem)] font-black leading-[1.08] tracking-[-0.045em] text-slate-950">
+                  Comment puis-je
+                  <span className="block text-[#421388]">vous aider&nbsp;?</span>
+                </h2>
+              </div>
+            )}
             <div className={cn(
               "hidden",
               assistantExperience === "simple" ? "rounded-full" : "rounded-2xl"
@@ -2536,7 +2555,7 @@ export function AssistantClient({
             </p>
 
             {assistantExperience === "simple" && (
-              <div className="mb-6 w-full max-w-4xl px-5 py-2 text-center sm:px-8">
+              <div className="mb-6 hidden w-full max-w-4xl px-5 py-2 text-center sm:px-8 md:block">
                 <div className="relative mx-auto mb-4 flex w-fit items-center justify-center">
                   <AssistantAvatar
                     className="flex h-64 w-80 items-center justify-center sm:h-80 sm:w-[32rem]"
@@ -2764,7 +2783,7 @@ export function AssistantClient({
         {!showQuickPrompts && (
           <div className={cn(
             "flex-1 overflow-y-auto px-4 py-4 space-y-5 sm:px-6",
-            assistantExperience === "simple" && "px-6 py-3 sm:px-8"
+            assistantExperience === "simple" && "px-6 py-3 sm:px-8 max-md:px-4 max-md:py-4"
           )}>
             {messages.map((message) => (
               <div
@@ -2783,8 +2802,10 @@ export function AssistantClient({
                     )
                   ) : (
                     <AssistantAvatar
+                      imageUrl={activeAssistantImage}
+                      imageAlt={activeAssistantAlt}
                       className="flex h-full w-full items-center justify-center bg-white"
-                      imageClassName="h-full w-full object-cover"
+                      imageClassName="h-full w-full object-contain object-bottom"
                       iconClassName="size-4 text-slate-700"
                     />
                   )}
@@ -2795,8 +2816,8 @@ export function AssistantClient({
                     className={cn(
                       "rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm",
                       message.role === "user"
-                        ? "bg-blue-600 text-white rounded-tr-sm"
-                        : "border border-slate-200 bg-white text-slate-800 rounded-tl-sm ring-1 ring-slate-100"
+                        ? "bg-blue-600 text-white rounded-tr-sm max-md:bg-[#421388]"
+                        : "border border-slate-200 bg-white text-slate-800 rounded-tl-sm ring-1 ring-slate-100 max-md:border-violet-100 max-md:ring-violet-50"
                     )}
                   >
                     {message.content ? (
@@ -3556,8 +3577,10 @@ export function AssistantClient({
             {loading && !hasStreamingAssistantMessage && (
               <div className="flex gap-3">
                 <AssistantAvatar
+                  imageUrl={activeAssistantImage}
+                  imageAlt={activeAssistantAlt}
                   className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white"
-                  imageClassName="h-full w-full object-cover"
+                  imageClassName="h-full w-full object-contain object-bottom"
                   iconClassName="size-4 text-slate-700"
                 />
                 <div className="max-w-[88%] sm:max-w-[75%]">
@@ -3578,7 +3601,7 @@ export function AssistantClient({
         {/* Input */}
         <div className={cn(
           "border-t border-slate-200/80 bg-slate-50/85 px-4 py-4 backdrop-blur-xl sm:px-6",
-          assistantExperience === "simple" && "border-t-0 bg-transparent px-6 pb-7 pt-0 backdrop-blur-0 -mt-8 sm:px-8 md:-mt-16 md:pb-14"
+          assistantExperience === "simple" && "border-t-0 bg-transparent px-6 pb-7 pt-0 backdrop-blur-0 sm:px-8 md:-mt-16 md:pb-14 max-md:border-t max-md:border-[#421388]/10 max-md:bg-[#fffaf4]/95 max-md:px-3 max-md:pb-[max(2rem,calc(env(safe-area-inset-bottom)+1.25rem))] max-md:pt-3 max-md:backdrop-blur-xl"
         )}>
           <div className={cn("mx-auto w-full max-w-3xl", assistantExperience === "simple" && "max-w-none")}>
           {selectedTemplate && (
@@ -3609,7 +3632,7 @@ export function AssistantClient({
               </div>
             </div>
           )}
-          <div className="rounded-3xl border border-slate-200 bg-white p-2 shadow-sm transition focus-within:border-slate-300 focus-within:shadow-md">
+          <div className="rounded-3xl border border-slate-200 bg-white p-2 shadow-sm transition focus-within:border-slate-300 focus-within:shadow-md max-md:rounded-[1.65rem] max-md:border-[#421388]/15 max-md:shadow-[0_12px_30px_rgba(66,19,136,0.12)] max-md:focus-within:border-[#421388]/35">
             <input
               ref={fileInputRef}
               type="file"
@@ -3702,7 +3725,7 @@ export function AssistantClient({
                 onClick={() => sendMessage()}
                 size="icon"
                 disabled={loading || uploadingAttachment}
-                className="h-9 w-9 flex-shrink-0 rounded-full bg-slate-900 text-white transition hover:bg-slate-800 disabled:opacity-50"
+                className="h-9 w-9 flex-shrink-0 rounded-full bg-slate-900 text-white transition hover:bg-slate-800 disabled:opacity-50 max-md:bg-[#421388] max-md:hover:bg-[#371071]"
                 aria-label="Envoyer la demande"
               >
                 <Send className="size-4" />

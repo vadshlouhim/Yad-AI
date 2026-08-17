@@ -11,6 +11,7 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   ImagePlus,
   Loader2,
@@ -143,6 +144,7 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns,
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [campaignsOpen, setCampaignsOpen] = useState(false);
 
   const selectedEvent = upcomingEvents.find((event) => event.id === selectedEventId) ?? null;
   const eventDate = selectedEvent ? dateInTimezone(selectedEvent.startDate, timezone) : selectedEventId === "new" ? newEvent.date : "";
@@ -327,50 +329,54 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns,
 
   return (
     <div className="container mx-auto max-w-6xl space-y-6 px-4 py-5 pb-16 sm:px-6 sm:py-7">
-      <section className="relative min-h-52 overflow-hidden rounded-[1.8rem] border border-[#421388]/30 bg-[#421388] px-6 py-7 text-white shadow-[0_22px_52px_rgba(66,19,136,0.24)] sm:px-8">
-        <div className="pointer-events-none absolute -right-10 -top-20 size-64 rounded-full bg-white/10" />
-        <div className="relative z-10 max-w-xl pr-28 sm:pr-44">
-          <span className="flex size-11 items-center justify-center rounded-2xl bg-white/15"><CalendarClock className="size-6" /></span>
-          <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Automatisation J-10 / J-5</h1>
-          <p className="mt-3 text-sm font-semibold leading-6 text-violet-100 sm:text-base">Choisissez l’événement, David programme vos rappels.</p>
+      <section className="relative min-h-[12rem] overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_72%_12%,#7028bd_0%,#421388_45%,#210763_100%)] px-5 py-5 text-white shadow-[0_24px_58px_rgba(49,13,108,0.26)] sm:min-h-[17rem] sm:px-8 sm:py-8">
+        <div className="pointer-events-none absolute -right-8 -top-12 size-48 rounded-full bg-white/10 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-20 left-1/3 size-52 rounded-full bg-fuchsia-400/10 blur-3xl" />
+        <div className="relative z-10 max-w-[72%] sm:max-w-3xl">
+          <span className="flex size-11 items-center justify-center rounded-2xl bg-white/15 text-white shadow-lg ring-1 ring-white/20 sm:size-12"><CalendarClock className="size-6" /></span>
+          <h1 className="mt-4 text-[clamp(1.75rem,8vw,2.6rem)] font-black leading-[1.03] tracking-[-0.04em] sm:mt-5 sm:text-4xl">Automatisation J-10 / J-5</h1>
+          <p className="mt-3 hidden text-sm font-semibold leading-6 text-white/80 sm:block sm:text-base">Choisissez l’événement, David programme vos rappels.</p>
         </div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={DAVID_AUTOMATION_IMAGE_URL} alt="David, agent intelligent" className="pointer-events-none absolute -bottom-2 right-0 z-10 h-48 w-36 object-contain object-bottom drop-shadow-2xl sm:right-8 sm:h-60 sm:w-48" />
+        <Image src={DAVID_AUTOMATION_IMAGE_URL} alt="David, agent intelligent" width={240} height={280} unoptimized className="pointer-events-none absolute -bottom-3 -right-5 z-10 h-[10.5rem] w-auto object-contain object-bottom drop-shadow-[0_18px_24px_rgba(12,2,35,0.34)] sm:-right-2 sm:h-[16rem]" priority />
       </section>
 
       {error && <p role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</p>}
       {notice && <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{notice}</p>}
 
       {showForm ? (
-        <section className="rounded-[1.8rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+        <section className="relative overflow-hidden rounded-[2rem] border border-violet-100 bg-white p-5 shadow-[0_18px_46px_rgba(66,19,136,0.09)] sm:p-7">
+          <div className="pointer-events-none absolute -right-16 -top-20 size-48 rounded-full bg-violet-300/15 blur-3xl" />
           <div className="flex items-center justify-between gap-4">
-            <div>
+            <div className="relative flex items-center gap-3">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7130d8] to-[#d92d7c] text-white shadow-lg shadow-violet-200"><Sparkles className="size-5" /></span>
+              <div>
               <h2 className="text-xl font-black text-slate-950">Programmez vos rappels</h2>
               <p className="mt-1 text-sm text-slate-500">Une seule configuration, tout est prêt.</p>
+              </div>
             </div>
-            {campaignRows.length > 0 && <button type="button" onClick={() => setShowForm(false)} className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-500" aria-label="Fermer"><X className="size-5" /></button>}
+            {campaignRows.length > 0 && <button type="button" onClick={() => setShowForm(false)} className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-[#fffaf4] text-slate-500 ring-1 ring-violet-100 transition hover:text-[#421388]" aria-label="Fermer"><X className="size-5" /></button>}
           </div>
 
           <div className="mt-6">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-black text-slate-900">1. Votre événement</p>
-              <Button type="button" variant="outline" size="sm" onClick={() => setNewEventOpen(true)} className="rounded-xl"><Plus className="size-4" />Ajouter</Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setNewEventOpen(true)} className="rounded-xl border-violet-200 bg-violet-50 font-black text-violet-700 hover:bg-violet-100"><Plus className="size-4" />Ajouter</Button>
             </div>
             {upcomingEvents.length > 0 ? (
               <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {upcomingEvents.map((event) => {
                   const selected = selectedEventId === event.id;
                   return (
-                    <button key={event.id} type="button" onClick={() => chooseEvent(event.id)} className={cn("flex min-h-20 items-center gap-3 rounded-2xl border p-3 text-left transition", selected ? "border-violet-500 bg-violet-50 ring-2 ring-violet-100" : "border-slate-200 bg-slate-50 hover:border-violet-300")}>
-                      {event.coverImageUrl ? <Image src={event.coverImageUrl} alt="" width={56} height={56} unoptimized className="size-14 shrink-0 rounded-xl object-cover" /> : <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-white text-violet-600"><CalendarDays className="size-5" /></span>}
-                      <span className="min-w-0"><span className="block truncate text-sm font-black text-slate-950">{event.title}</span><span className="mt-1 block text-xs text-slate-500">{formatDate(event.startDate, timezone, true)}</span></span>
+                    <button key={event.id} type="button" onClick={() => chooseEvent(event.id)} className={cn("flex min-h-20 items-center gap-3 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5", selected ? "border-[#421388] bg-gradient-to-br from-[#7130d8] to-[#421388] text-white shadow-lg shadow-violet-200" : "border-violet-100 bg-[#fffaf4] hover:border-violet-300 hover:bg-violet-50")}>
+                      {event.coverImageUrl ? <Image src={event.coverImageUrl} alt="" width={56} height={56} unoptimized className="size-14 shrink-0 rounded-xl object-cover ring-2 ring-white/70" /> : <span className={cn("flex size-14 shrink-0 items-center justify-center rounded-xl bg-white", selected ? "text-[#6428bd]" : "text-violet-600")}><CalendarDays className="size-5" /></span>}
+                      <span className="min-w-0"><span className={cn("block truncate text-sm font-black", selected ? "text-white" : "text-slate-950")}>{event.title}</span><span className={cn("mt-1 block text-xs", selected ? "text-white/75" : "text-slate-500")}>{formatDate(event.startDate, timezone, true)}</span></span>
                       {selected && <span className="ml-auto flex size-6 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white"><Check className="size-4" /></span>}
                     </button>
                   );
                 })}
               </div>
-            ) : <button type="button" onClick={() => setNewEventOpen(true)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-violet-300 bg-violet-50 p-5 text-sm font-black text-violet-700"><Plus className="size-5" />Ajouter votre premier événement</button>}
-            {selectedEventId === "new" && <div className="mt-3 flex items-center gap-3 rounded-2xl border border-violet-300 bg-violet-50 p-4"><span className="flex size-11 items-center justify-center rounded-xl bg-white text-violet-700"><CalendarDays className="size-5" /></span><div className="min-w-0"><p className="truncate font-black text-slate-950">{newEvent.title}</p><p className="text-xs text-slate-500">{newEvent.date} {newEvent.time && `· ${newEvent.time}`}</p></div><button type="button" onClick={() => setNewEventOpen(true)} className="ml-auto text-sm font-bold text-violet-700">Modifier</button></div>}
+            ) : <button type="button" onClick={() => setNewEventOpen(true)} className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-violet-300 bg-[#fffaf4] p-5 text-sm font-black text-violet-700 transition hover:bg-violet-50"><Plus className="size-5" />Ajouter votre premier événement</button>}
+            {selectedEventId === "new" && <div className="mt-3 flex items-center gap-3 rounded-2xl border border-violet-300 bg-gradient-to-r from-violet-50 to-fuchsia-50 p-4"><span className="flex size-11 items-center justify-center rounded-xl bg-white text-violet-700 shadow-sm"><CalendarDays className="size-5" /></span><div className="min-w-0"><p className="truncate font-black text-slate-950">{newEvent.title}</p><p className="text-xs text-slate-500">{newEvent.date} {newEvent.time && `· ${newEvent.time}`}</p></div><button type="button" onClick={() => setNewEventOpen(true)} className="ml-auto text-sm font-black text-violet-700">Modifier</button></div>}
           </div>
 
           <div className="mt-7">
@@ -379,7 +385,7 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns,
               {REMINDER_CHOICES.map((choice) => {
                 const unavailable = Boolean(eventDate) && !availableOffsets.includes(choice.offset);
                 const selected = selectedOffsets.includes(choice.offset) && !unavailable;
-                return <button key={choice.offset} type="button" disabled={unavailable} aria-pressed={selected} onClick={() => toggleOffset(choice.offset)} className={cn("relative min-h-16 rounded-2xl border px-2 py-3 text-sm font-black transition", selected ? "border-violet-600 bg-[#421388] text-white shadow-md shadow-violet-100" : "border-slate-200 bg-slate-50 text-slate-600", unavailable && "cursor-not-allowed opacity-35")}>
+                return <button key={choice.offset} type="button" disabled={unavailable} aria-pressed={selected} onClick={() => toggleOffset(choice.offset)} className={cn("relative min-h-16 rounded-2xl border px-2 py-3 text-sm font-black transition hover:-translate-y-0.5", selected ? "border-[#421388] bg-gradient-to-br from-[#7130d8] to-[#421388] text-white shadow-lg shadow-violet-200" : "border-violet-100 bg-[#fffaf4] text-slate-600 hover:border-violet-300", unavailable && "cursor-not-allowed opacity-35 hover:translate-y-0")}>
                   {selected && <Check className="absolute right-2 top-2 size-3.5" />}{choice.label}
                 </button>;
               })}
@@ -390,8 +396,8 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns,
           <div className="mt-7">
             <p className="text-sm font-black text-slate-900">3. Où publier ?</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <button type="button" disabled={!facebookConnected} onClick={() => toggleChannel("FACEBOOK", facebookConnected)} className={cn("flex min-h-20 items-center gap-3 rounded-2xl border p-4 text-left transition", selectedChannels.includes("FACEBOOK") ? "border-blue-400 bg-blue-50 ring-2 ring-blue-100" : "border-slate-200 bg-white", !facebookConnected && "opacity-55")}><span className="flex size-11 items-center justify-center rounded-xl bg-white text-[#1877f2] shadow-sm"><FacebookIcon className="size-5" /></span><span><span className="block font-black text-slate-950">Facebook</span><span className="text-xs text-slate-500">{facebookConnected ? "Connecté" : "À connecter"}</span></span>{selectedChannels.includes("FACEBOOK") && <CheckCircle2 className="ml-auto size-5 text-blue-600" />}</button>
-              <button type="button" disabled={!instagramConnected} onClick={() => toggleChannel("INSTAGRAM", instagramConnected)} className={cn("flex min-h-20 items-center gap-3 rounded-2xl border p-4 text-left transition", selectedChannels.includes("INSTAGRAM") ? "border-pink-400 bg-pink-50 ring-2 ring-pink-100" : "border-slate-200 bg-white", !instagramConnected && "opacity-55")}><span className="flex size-11 items-center justify-center rounded-xl bg-white text-pink-600 shadow-sm"><InstagramIcon className="size-5" /></span><span><span className="block font-black text-slate-950">Instagram</span><span className="text-xs text-slate-500">{instagramConnected ? "Connecté" : "À connecter"}</span></span>{selectedChannels.includes("INSTAGRAM") && <CheckCircle2 className="ml-auto size-5 text-pink-600" />}</button>
+              <button type="button" disabled={!facebookConnected} onClick={() => toggleChannel("FACEBOOK", facebookConnected)} className={cn("relative flex min-h-20 items-center gap-3 overflow-hidden rounded-2xl border p-4 text-left transition hover:-translate-y-0.5", selectedChannels.includes("FACEBOOK") ? "border-blue-400 bg-gradient-to-br from-[#2878ef] to-[#175acb] text-white shadow-lg shadow-blue-200" : "border-violet-100 bg-[#fffaf4]", !facebookConnected && "opacity-55 hover:translate-y-0")}><span className="relative flex size-11 items-center justify-center rounded-xl bg-white text-[#1877f2] shadow-sm"><FacebookIcon className="size-5" /></span><span className="relative"><span className={cn("block font-black", selectedChannels.includes("FACEBOOK") ? "text-white" : "text-slate-950")}>Facebook</span><span className={cn("text-xs", selectedChannels.includes("FACEBOOK") ? "text-white/75" : "text-slate-500")}>{facebookConnected ? "Connecté" : "À connecter"}</span></span>{selectedChannels.includes("FACEBOOK") && <CheckCircle2 className="relative ml-auto size-5 text-white" />}</button>
+              <button type="button" disabled={!instagramConnected} onClick={() => toggleChannel("INSTAGRAM", instagramConnected)} className={cn("relative flex min-h-20 items-center gap-3 overflow-hidden rounded-2xl border p-4 text-left transition hover:-translate-y-0.5", selectedChannels.includes("INSTAGRAM") ? "border-pink-400 bg-gradient-to-br from-[#f64c89] to-[#d92d7c] text-white shadow-lg shadow-pink-200" : "border-violet-100 bg-[#fffaf4]", !instagramConnected && "opacity-55 hover:translate-y-0")}><span className="relative flex size-11 items-center justify-center rounded-xl bg-white text-pink-600 shadow-sm"><InstagramIcon className="size-5" /></span><span className="relative"><span className={cn("block font-black", selectedChannels.includes("INSTAGRAM") ? "text-white" : "text-slate-950")}>Instagram</span><span className={cn("text-xs", selectedChannels.includes("INSTAGRAM") ? "text-white/75" : "text-slate-500")}>{instagramConnected ? "Connecté" : "À connecter"}</span></span>{selectedChannels.includes("INSTAGRAM") && <CheckCircle2 className="relative ml-auto size-5 text-white" />}</button>
             </div>
             {selectedChannels.includes("INSTAGRAM") && !hasPoster && <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">Sans affiche, les rappels seront publiés uniquement sur Facebook.</p>}
             {(!facebookConnected || !instagramConnected) && <Link href="/dashboard/settings/channels" className="mt-2 inline-flex text-xs font-bold text-violet-700 hover:underline">Configurer mes réseaux</Link>}
@@ -400,54 +406,64 @@ export function EventRemindersAutoClient({ community, upcomingEvents, campaigns,
           <div className="mt-7">
             <p className="text-sm font-black text-slate-900">4. Mode de publication</p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <button type="button" onClick={() => setScheduleMode("notification")} className={cn("rounded-2xl border p-4 text-left transition", scheduleMode === "notification" ? "border-emerald-400 bg-emerald-50 ring-2 ring-emerald-100" : "border-slate-200")}><ShieldCheck className="size-5 text-emerald-700" /><span className="mt-3 block font-black text-slate-950">Validation avant publication</span><span className="mt-1 block text-xs leading-5 text-slate-500">David vous prévient lorsque le contenu est prêt.</span></button>
-              <button type="button" onClick={() => setScheduleMode("automatic")} className={cn("rounded-2xl border p-4 text-left transition", scheduleMode === "automatic" ? "border-fuchsia-400 bg-fuchsia-50 ring-2 ring-fuchsia-100" : "border-slate-200")}><Zap className="size-5 text-fuchsia-700" /><span className="mt-3 block font-black text-slate-950">Publication automatique</span><span className="mt-1 block text-xs leading-5 text-slate-500">David publie directement au moment prévu.</span></button>
+              <button type="button" onClick={() => setScheduleMode("notification")} className={cn("rounded-2xl border p-4 text-left transition hover:-translate-y-0.5", scheduleMode === "notification" ? "border-emerald-400 bg-gradient-to-br from-[#16b86b] to-[#078e50] text-white shadow-lg shadow-emerald-200" : "border-violet-100 bg-[#fffaf4]")}><span className={cn("flex size-10 items-center justify-center rounded-xl", scheduleMode === "notification" ? "bg-white text-emerald-700" : "bg-emerald-50 text-emerald-700")}><ShieldCheck className="size-5" /></span><span className={cn("mt-3 block font-black", scheduleMode === "notification" ? "text-white" : "text-slate-950")}>Validation avant publication</span><span className={cn("mt-1 block text-xs leading-5", scheduleMode === "notification" ? "text-white/75" : "text-slate-500")}>David vous prévient lorsque le contenu est prêt.</span></button>
+              <button type="button" onClick={() => setScheduleMode("automatic")} className={cn("rounded-2xl border p-4 text-left transition hover:-translate-y-0.5", scheduleMode === "automatic" ? "border-fuchsia-400 bg-gradient-to-br from-[#7130d8] to-[#d92d7c] text-white shadow-lg shadow-fuchsia-200" : "border-violet-100 bg-[#fffaf4]")}><span className={cn("flex size-10 items-center justify-center rounded-xl", scheduleMode === "automatic" ? "bg-white text-fuchsia-700" : "bg-fuchsia-50 text-fuchsia-700")}><Zap className="size-5" /></span><span className={cn("mt-3 block font-black", scheduleMode === "automatic" ? "text-white" : "text-slate-950")}>Publication automatique</span><span className={cn("mt-1 block text-xs leading-5", scheduleMode === "automatic" ? "text-white/75" : "text-slate-500")}>David publie directement au moment prévu.</span></button>
             </div>
           </div>
 
-          <Button type="button" size="xl" loading={saving} disabled={saving || uploading} onClick={() => void configureCampaign()} className="mt-7 w-full rounded-2xl bg-[#d92d7c] font-black shadow-lg shadow-pink-100 hover:bg-[#c5236e]"><Sparkles className="size-5" />Activer les rappels</Button>
+          <Button type="button" size="xl" loading={saving} disabled={saving || uploading} onClick={() => void configureCampaign()} className="mt-7 w-full rounded-2xl bg-gradient-to-r from-[#7130d8] via-[#5c24ad] to-[#d92d7c] font-black shadow-lg shadow-violet-200 transition hover:brightness-105"><Sparkles className="size-5" />Activer les rappels</Button>
         </section>
       ) : (
-        <div className="flex justify-end"><Button type="button" onClick={resetForm} className="rounded-2xl bg-[#421388] hover:bg-[#35106f]"><Plus className="size-4" />Nouvelle campagne</Button></div>
+        <div className="flex justify-end"><Button type="button" onClick={resetForm} className="rounded-2xl bg-gradient-to-r from-[#7130d8] to-[#d92d7c] font-black shadow-lg shadow-violet-200 hover:brightness-105"><Plus className="size-4" />Nouvelle campagne</Button></div>
       )}
 
       {campaignRows.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-lg font-black text-slate-950">Vos rappels programmés</h2>
+        <section className="overflow-hidden rounded-[2rem] border border-violet-100 bg-[#fffaf4] shadow-[0_14px_36px_rgba(66,19,136,0.08)]">
+          <button type="button" onClick={() => setCampaignsOpen((open) => !open)} aria-expanded={campaignsOpen} aria-controls="scheduled-reminders-content" className="flex min-h-20 w-full items-center justify-between gap-4 px-5 text-left transition hover:bg-violet-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500">
+            <span className="flex items-center gap-3">
+              <span className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ffbd17] to-[#ee9100] text-white shadow-lg shadow-amber-200"><CalendarClock className="size-5" /></span>
+              <span><span className="block text-lg font-black text-slate-950">Vos rappels programmés</span><span className="mt-0.5 block text-xs font-semibold text-slate-500">{campaignRows.length} campagne{campaignRows.length > 1 ? "s" : ""}</span></span>
+            </span>
+            <ChevronDown className={cn("size-5 shrink-0 text-violet-700 transition-transform duration-200", campaignsOpen && "rotate-180")} />
+          </button>
+          {campaignsOpen && <div id="scheduled-reminders-content" className="space-y-3 border-t border-violet-100 bg-white p-4 sm:p-5">
           {campaignRows.map((automation) => {
             const campaign = getCampaign(automation);
             if (!campaign) return null;
             const active = automation.isActive && automation.status === "ACTIVE";
             return (
-              <article key={automation.id} className="rounded-[1.6rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <article key={automation.id} className="relative overflow-hidden rounded-[1.75rem] border border-violet-100 bg-[#fffaf4] p-5 shadow-[0_14px_36px_rgba(66,19,136,0.08)]">
+                <div className={cn("pointer-events-none absolute inset-y-0 left-0 w-1.5", active ? "bg-emerald-500" : "bg-slate-300")} />
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex min-w-0 items-start gap-4">
-                    <span className={cn("flex size-12 shrink-0 items-center justify-center rounded-2xl", active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500")}><CalendarClock className="size-6" /></span>
+                    <span className={cn("flex size-12 shrink-0 items-center justify-center rounded-2xl shadow-lg", active ? "bg-gradient-to-br from-[#16b86b] to-[#078e50] text-white shadow-emerald-200" : "bg-slate-100 text-slate-500 shadow-slate-100")}><CalendarClock className="size-6" /></span>
                     <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-lg font-black text-slate-950">{campaign.eventName}</h3><span className={cn("rounded-full px-2.5 py-1 text-[11px] font-black", active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500")}>{active ? "Active" : "En pause"}</span></div><p className="mt-1 text-sm text-slate-500">{campaign.reminders.map((reminder) => reminder.label).join(" · ")} · 10:00</p><p className="mt-1 text-xs font-semibold text-slate-500">{campaign.channels.map((channel) => channel === "FACEBOOK" ? "Facebook" : "Instagram").join(" + ")} · {campaign.scheduleMode === "automatic" ? "Automatique" : "Avec validation"}</p>{automation.nextRunAt && active && <p className="mt-2 text-xs font-bold text-violet-700">Prochain rappel : {formatDate(automation.nextRunAt, timezone, true)}</p>}</div>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
-                    <Button type="button" variant="outline" disabled={busyId === automation.id} onClick={() => editCampaign(automation)} className="h-12 rounded-xl px-3"><Pencil className="size-4" /><span className="hidden sm:inline">Modifier</span></Button>
-                    <Button type="button" disabled={!active || busyId === automation.id} onClick={() => void pauseCampaign(automation)} className="h-12 rounded-xl bg-amber-500 px-3 hover:bg-amber-600"><Pause className="size-4" /><span className="hidden sm:inline">Pause</span></Button>
-                    <Button type="button" disabled={!active || busyId === automation.id} onClick={() => void publishNext(automation)} className="h-12 rounded-xl bg-emerald-600 px-3 hover:bg-emerald-700">{busyId === automation.id ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}<span className="hidden sm:inline">Publier</span></Button>
+                    <Button type="button" variant="outline" disabled={busyId === automation.id} onClick={() => editCampaign(automation)} className="h-12 rounded-xl border-blue-200 bg-blue-50 px-3 font-black text-blue-700 hover:bg-blue-100"><Pencil className="size-4" /><span className="hidden sm:inline">Modifier</span></Button>
+                    <Button type="button" disabled={!active || busyId === automation.id} onClick={() => void pauseCampaign(automation)} className="h-12 rounded-xl bg-gradient-to-br from-[#ffbd17] to-[#ee9100] px-3 font-black shadow-md shadow-amber-200 hover:brightness-105"><Pause className="size-4" /><span className="hidden sm:inline">Pause</span></Button>
+                    <Button type="button" disabled={!active || busyId === automation.id} onClick={() => void publishNext(automation)} className="h-12 rounded-xl bg-gradient-to-br from-[#16b86b] to-[#078e50] px-3 font-black shadow-md shadow-emerald-200 hover:brightness-105">{busyId === automation.id ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}<span className="hidden sm:inline">Publier</span></Button>
                   </div>
                 </div>
               </article>
             );
           })}
+          </div>}
         </section>
       )}
 
       {newEventOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" onClick={() => setNewEventOpen(false)}>
-          <div role="dialog" aria-modal="true" aria-labelledby="new-event-title" className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-center justify-between"><div><h2 id="new-event-title" className="text-xl font-black text-slate-950">Ajouter un événement</h2><p className="mt-1 text-sm text-slate-500">Les informations essentielles uniquement.</p></div><button type="button" onClick={() => setNewEventOpen(false)} className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-500"><X className="size-5" /></button></div>
+          <div role="dialog" aria-modal="true" aria-labelledby="new-event-title" className="relative w-full max-w-lg overflow-hidden rounded-[2rem] border border-violet-100 bg-[#fffaf4] p-6 shadow-[0_28px_80px_rgba(33,7,99,0.35)]" onClick={(event) => event.stopPropagation()}>
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-2 bg-gradient-to-r from-[#7130d8] via-[#d92d7c] to-[#ffbd17]" />
+            <div className="flex items-center justify-between"><div className="flex items-center gap-3"><span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7130d8] to-[#d92d7c] text-white shadow-lg shadow-violet-200"><Plus className="size-5" /></span><div><h2 id="new-event-title" className="text-xl font-black text-slate-950">Ajouter un événement</h2><p className="mt-1 text-sm text-slate-500">Les informations essentielles uniquement.</p></div></div><button type="button" onClick={() => setNewEventOpen(false)} className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-violet-100 transition hover:text-[#421388]"><X className="size-5" /></button></div>
             <div className="mt-5 space-y-3">
               <input value={newEvent.title} onChange={(event) => setNewEvent((current) => ({ ...current, title: event.target.value }))} placeholder="Nom de l’événement" className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-100" />
               <div className="grid grid-cols-2 gap-3"><input type="date" min={todayISO(new Date(), timezone)} value={newEvent.date} onChange={(event) => setNewEvent((current) => ({ ...current, date: event.target.value }))} className="h-12 rounded-2xl border border-slate-200 px-3 text-sm focus:border-violet-400 focus:outline-none" /><input type="time" value={newEvent.time} onChange={(event) => setNewEvent((current) => ({ ...current, time: event.target.value }))} className="h-12 rounded-2xl border border-slate-200 px-3 text-sm focus:border-violet-400 focus:outline-none" /></div>
               <div className="relative"><MapPin className="pointer-events-none absolute left-4 top-3.5 size-5 text-slate-400" /><input value={newEvent.location} onChange={(event) => setNewEvent((current) => ({ ...current, location: event.target.value }))} placeholder="Lieu (optionnel)" className="h-12 w-full rounded-2xl border border-slate-200 pl-11 pr-4 text-sm focus:border-violet-400 focus:outline-none" /></div>
-              <label className="flex min-h-20 cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-violet-300 bg-violet-50 p-4"><span className="flex size-11 items-center justify-center rounded-xl bg-white text-violet-700"><ImagePlus className="size-5" /></span><span><span className="block text-sm font-black text-slate-950">Ajouter une affiche</span><span className="text-xs text-slate-500">Facultatif · utile pour Instagram</span></span><input type="file" accept="image/*" disabled={uploading} onChange={(event) => void uploadPoster(event.target.files)} className="sr-only" />{uploading && <Loader2 className="ml-auto size-5 animate-spin text-violet-700" />}{newEvent.coverImageUrl && !uploading && <CheckCircle2 className="ml-auto size-5 text-emerald-600" />}</label>
+              <label className="flex min-h-20 cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-violet-300 bg-gradient-to-r from-violet-50 to-fuchsia-50 p-4 transition hover:border-violet-500"><span className="flex size-11 items-center justify-center rounded-xl bg-white text-violet-700 shadow-sm"><ImagePlus className="size-5" /></span><span><span className="block text-sm font-black text-slate-950">Ajouter une affiche</span><span className="text-xs text-slate-500">Facultatif · utile pour Instagram</span></span><input type="file" accept="image/*" disabled={uploading} onChange={(event) => void uploadPoster(event.target.files)} className="sr-only" />{uploading && <Loader2 className="ml-auto size-5 animate-spin text-violet-700" />}{newEvent.coverImageUrl && !uploading && <CheckCircle2 className="ml-auto size-5 text-emerald-600" />}</label>
             </div>
-            <Button type="button" size="xl" disabled={uploading} onClick={confirmNewEvent} className="mt-5 w-full rounded-2xl bg-[#421388] hover:bg-[#35106f]"><Check className="size-5" />Utiliser cet événement</Button>
+            <Button type="button" size="xl" disabled={uploading} onClick={confirmNewEvent} className="mt-5 w-full rounded-2xl bg-gradient-to-r from-[#7130d8] to-[#d92d7c] font-black shadow-lg shadow-violet-200 hover:brightness-105"><Check className="size-5" />Utiliser cet événement</Button>
           </div>
         </div>
       )}

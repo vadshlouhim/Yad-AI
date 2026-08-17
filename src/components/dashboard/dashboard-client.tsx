@@ -24,12 +24,15 @@ import {
   WhatsAppIcon,
 } from "@/components/layout/dashboard-nav";
 import { getCommunityProfileLabel } from "@/lib/community/profile-labels";
+import { MobileDashboardHome } from "@/components/dashboard/mobile-dashboard-home";
 
 interface Props {
   basePath?: "/dashboard" | "/demo";
   userName: string;
+  userAvatar?: string | null;
   community: {
     name: string;
+    logoUrl?: string | null;
     tone: string;
     hashtags: string[];
     channels: Array<{ type: string; isConnected: boolean }>;
@@ -120,6 +123,7 @@ const CHANNEL_BUTTONS: ChannelButton[] = [
 export function DashboardClient({
   basePath = "/dashboard",
   userName,
+  userAvatar,
   community,
   upcomingEvents,
   pendingPublications,
@@ -141,7 +145,18 @@ export function DashboardClient({
   }
 
   return (
-    <div className="min-w-0 space-y-5 pb-8">
+    <>
+      <MobileDashboardHome
+        firstName={firstName}
+        userName={userName}
+        userAvatar={userAvatar}
+        communityName={community.name}
+        communityLogo={community.logoUrl}
+        communityType={community.communityType}
+        unreadNotifications={notifications.length}
+        basePath={basePath}
+      />
+      <div className="hidden min-w-0 space-y-5 pb-8 md:block">
       <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
@@ -283,7 +298,8 @@ export function DashboardClient({
           icon={Settings2}
         />
       </section>
-    </div>
+      </div>
+    </>
   );
 }
 

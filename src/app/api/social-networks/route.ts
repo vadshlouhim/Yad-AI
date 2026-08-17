@@ -16,6 +16,7 @@ const postSchema = z.object({
   mediaUrls: z.array(z.string().url()).default([]),
   channelTypes: z.array(z.enum(SOCIAL_CHANNELS)).min(1),
   scheduledAt: z.string().datetime().nullable().optional(),
+  scheduledDates: z.array(z.string().datetime()).min(1).max(52).optional(),
   whatsappRecipientIds: z.array(z.string()).default([]),
 });
 
@@ -38,6 +39,17 @@ async function getSessionContext() {
   if (!profile?.communityId) return null;
 
   return { admin, userId: user.id, communityId: profile.communityId };
+}
+
+function getChannelProfileUrl(channel: Channel): string | null {
+  if (channel.type === "INSTAGRAM" && channel.handle) {
+    return `https://www.instagram.com/${encodeURIComponent(channel.handle)}/`;
+  }
+  if (channel.type === "FACEBOOK" && channel.pageId) {
+    return `https://www.facebook.com/${encodeURIComponent(channel.pageId)}`;
+  }
+  if (channel.type === "WHATSAPP") return "https://web.whatsapp.com/";
+  return null;
 }
 
 export async function GET() {
@@ -97,10 +109,20 @@ export async function POST(request: Request) {
     }
 
     const { admin, communityId } = context;
-    const { text, mediaUrls, channelTypes, scheduledAt, whatsappRecipientIds } = parsed.data;
+    const { text, mediaUrls, channelTypes, scheduledAt, scheduledDates, whatsappRecipientIds } = parsed.data;
     const cleanText = text.trim();
     const uniqueChannelTypes = Array.from(new Set(channelTypes));
-    const requestedSocialCount = uniqueChannelTypes.filter((channelType) => LIMITED_SOCIAL_CHANNELS.has(channelType)).length;
+    const scheduleDates = Array.from(new Set(scheduledDates?.length ? scheduledDates : scheduledAt ? [scheduledAt] : []))
+      .map((value) => new Date(value))
+      .sort((a, b) => a.getTime() - b.getTime());
+    const hasSchedule = scheduleDates.length > 0;
+    const requestedSocialCount =
+      uniqueChannelTypes.filter((channelType) => LIMITED_SOCIAL_CHANNELS.has(channelType)).length *
+      Math.max(scheduleDates.length, 1);
+
+    if (scheduleDates.some((date) => Number.isNaN(date.getTime()) || date.getTime() <= Date.now())) {
+      return NextResponse.json({ error: "Choisissez uniquement des dates de planification futures." }, { status: 400 });
+    }
 
     const gate = await getBillingGate(admin, context.userId);
     if (!gate.isSuperAdmin && requestedSocialCount > 0) {
@@ -185,7 +207,7 @@ export async function POST(request: Request) {
       body: cleanText,
       imageUrl: primaryImageUrl,
       contentType: "GENERAL",
-      status: scheduledAt ? "AI_PROPOSAL" : "READY_TO_PUBLISH",
+      status: hasSchedule ? "AI_PROPOSAL" : "READY_TO_PUBLISH",
       aiGenerated: true,
       aiPromptUsed: "social-networks-page",
       updatedAt: now,
@@ -213,15 +235,25 @@ export async function POST(request: Request) {
       );
     }
 
-    const publications = await createPublicationsFromDraft({
-      draftId,
-      communityId,
-      channelIds: (channels ?? []).map((channel) => channel.id),
-      scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
-    });
+    const publications = hasSchedule
+      ? (await Promise.all(
+          scheduleDates.map((date) =>
+            createPublicationsFromDraft({
+              draftId,
+              communityId,
+              channelIds: (channels ?? []).map((channel) => channel.id),
+              scheduledAt: date,
+            })
+          )
+        )).flat()
+      : await createPublicationsFromDraft({
+          draftId,
+          communityId,
+          channelIds: (channels ?? []).map((channel) => channel.id),
+        });
 
     const publishResults: Record<string, unknown> = {};
-    if (!scheduledAt) {
+    if (!hasSchedule) {
       const { data: fullPublications } = await admin
         .from("Publication")
         .select("*, channel:Channel(*)")
@@ -229,13 +261,16 @@ export async function POST(request: Request) {
         .eq("communityId", communityId);
 
       for (const publication of fullPublications ?? []) {
-        publishResults[publication.channelType] = await publishToChannel(
-          publication as Publication & { channel: Channel }
-        );
+        const fullPublication = publication as Publication & { channel: Channel };
+        const result = await publishToChannel(fullPublication);
+        publishResults[publication.channelType] = {
+          ...result,
+          externalUrl: result.externalUrl ?? (result.success ? getChannelProfileUrl(fullPublication.channel) : null),
+        };
       }
     }
 
-    return NextResponse.json({ draftId, publications, publishResults }, { status: scheduledAt ? 201 : 200 });
+    return NextResponse.json({ draftId, publications, publishResults }, { status: hasSchedule ? 201 : 200 });
   } catch (error) {
     console.error("[Social Networks POST]", error);
     return NextResponse.json(

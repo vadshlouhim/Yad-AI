@@ -9,6 +9,7 @@ import {
   CreditCard,
   Database,
   FileText,
+  Headphones,
   ImageIcon,
   LayoutDashboard,
   MessageSquare,
@@ -169,7 +170,7 @@ interface Props {
   initialTemplateError?: string | null;
 }
 
-type AdminSection = "overview" | "templates" | "automations" | "pricing" | "communities" | "activity" | "data" | "development" | "users" | "leads";
+type AdminSection = "overview" | "templates" | "automations" | "pricing" | "communities" | "activity" | "data" | "development" | "users" | "leads" | "support";
 type ThemeMode = "light" | "dark";
 type AdminAutomationFormState = {
   communityId: string;
@@ -368,6 +369,8 @@ export function AdminConsoleClient({
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const supportMessages = useMemo(() => contactLeads.filter((lead) => lead.source === "support_suggestion"), [contactLeads]);
+  const publicContactLeads = useMemo(() => contactLeads.filter((lead) => lead.source !== "support_suggestion"), [contactLeads]);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [savingUserBillingId, setSavingUserBillingId] = useState<string | null>(null);
   const [userDeleteConfirm, setUserDeleteConfirm] = useState<AdminUser | null>(null);
@@ -831,7 +834,8 @@ export function AdminConsoleClient({
     { id: "pricing" as const, label: "Tarification", icon: CreditCard, value: "€" },
     { id: "communities" as const, label: "Beth Habad", icon: Building2, value: formatNumber(metrics.communityCount) },
     { id: "users" as const, label: "Utilisateurs", icon: Users, value: formatNumber(users.length) },
-    { id: "leads" as const, label: "Leads", icon: MessageSquare, value: formatNumber(contactLeads.length) },
+    { id: "leads" as const, label: "Leads", icon: MessageSquare, value: formatNumber(publicContactLeads.length) },
+    { id: "support" as const, label: "Support et suggestions", icon: Headphones, value: formatNumber(supportMessages.length) },
     { id: "activity" as const, label: "Activité IA", icon: Bot, value: formatNumber(metrics.conversationCount) },
     { id: "data" as const, label: "Données", icon: Database, value: formatNumber(metrics.databaseItemCount) },
     { id: "development" as const, label: "Développement", icon: PlayCircle, value: "UI" },
@@ -1442,21 +1446,21 @@ export function AdminConsoleClient({
                   <div>
                     <h3 className={`text-xl font-black ${strongText}`}>Leads</h3>
                     <p className={`mt-1 text-sm ${mutedText}`}>
-                      {contactLeads.length} demande(s) reçue(s) depuis le formulaire de contact public.
+                      {publicContactLeads.length} demande(s) reçue(s) depuis le formulaire de contact public.
                     </p>
                   </div>
                   <div className={`rounded-2xl border px-4 py-3 text-sm font-black ${isDark ? "border-white/10 bg-white/5 text-slate-200" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
-                    Emails envoyés : {contactLeads.filter((lead) => lead.emailSentAt).length}/{contactLeads.length}
+                    Emails envoyés : {publicContactLeads.filter((lead) => lead.emailSentAt).length}/{publicContactLeads.length}
                   </div>
                 </div>
 
                 <div className="mt-5 space-y-4">
-                  {contactLeads.length === 0 ? (
+                  {publicContactLeads.length === 0 ? (
                     <p className={`rounded-2xl border border-dashed p-6 text-sm ${isDark ? "border-white/10 text-slate-400" : "border-slate-200 text-slate-500"}`}>
                       Aucun lead pour le moment.
                     </p>
                   ) : (
-                    contactLeads.map((lead) => (
+                    publicContactLeads.map((lead) => (
                       <article key={lead.id} className={`rounded-3xl border p-4 ${isDark ? "border-white/10 bg-slate-950/55" : "border-slate-200 bg-white"}`}>
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                           <div className="min-w-0">
@@ -1486,6 +1490,61 @@ export function AdminConsoleClient({
                         <div className={`mt-4 rounded-2xl border p-4 text-sm leading-7 ${isDark ? "border-white/10 bg-white/5 text-slate-200" : "border-slate-200 bg-slate-50 text-slate-700"}`}>
                           {lead.message}
                         </div>
+                      </article>
+                    ))
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeSection === "support" && (
+            <section className="mt-6">
+              <div className={`rounded-[2rem] border p-5 shadow-sm ${panelClass}`}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <span className="flex size-11 items-center justify-center rounded-2xl bg-violet-100 text-[#421388]"><Headphones className="size-5" /></span>
+                      <div>
+                        <h3 className={`text-xl font-black ${strongText}`}>Support et suggestions</h3>
+                        <p className={`mt-1 text-sm ${mutedText}`}>Messages envoyés directement depuis EasyCom IA.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className={`rounded-2xl border px-4 py-3 text-sm font-black ${isDark ? "border-white/10 bg-white/5 text-slate-200" : "border-violet-100 bg-violet-50 text-[#421388]"}`}>
+                    {supportMessages.length} message(s)
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-4">
+                  {supportMessages.length === 0 ? (
+                    <div className={`rounded-3xl border border-dashed p-8 text-center ${isDark ? "border-white/10 text-slate-400" : "border-violet-200 bg-violet-50/40 text-slate-500"}`}>
+                      <MessageSquare className="mx-auto size-8 text-violet-400" />
+                      <p className="mt-3 text-sm font-semibold">Aucun message de support pour le moment.</p>
+                    </div>
+                  ) : (
+                    supportMessages.map((lead) => (
+                      <article key={lead.id} className={`rounded-3xl border p-4 ${isDark ? "border-white/10 bg-slate-950/55" : "border-violet-100 bg-white"}`}>
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h4 className={`text-lg font-black ${strongText}`}>{lead.name}</h4>
+                              <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${lead.status === "NEW" ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-600"}`}>{lead.status === "NEW" ? "Nouveau" : lead.status}</span>
+                            </div>
+                            {lead.organization && <p className={`mt-1 text-sm font-semibold ${mutedText}`}>{lead.organization}</p>}
+                            <div className={`mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm ${mutedText}`}>
+                              <a href={`mailto:${lead.email}`} className="font-bold text-blue-600 hover:underline">{lead.email}</a>
+                              <span>Reçu le {new Date(lead.createdAt).toLocaleString("fr-FR")}</span>
+                            </div>
+                          </div>
+                          <a href={`mailto:${lead.email}?subject=${encodeURIComponent("Réponse EasyCom IA — Support et suggestions")}`} className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-[#421388] px-4 text-sm font-black text-white shadow-sm hover:bg-[#35106f]">
+                            Répondre par email
+                          </a>
+                        </div>
+                        <div className={`mt-4 whitespace-pre-wrap rounded-2xl border p-4 text-sm leading-7 ${isDark ? "border-white/10 bg-white/5 text-slate-200" : "border-violet-100 bg-violet-50/50 text-slate-700"}`}>
+                          {lead.message}
+                        </div>
+                        {lead.pageUrl && <p className={`mt-3 truncate text-xs ${mutedText}`}>Page d’envoi : {lead.pageUrl}</p>}
                       </article>
                     ))
                   )}

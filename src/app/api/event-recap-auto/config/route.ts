@@ -237,7 +237,7 @@ export async function POST(request: Request) {
 
       const { data: socialChannels } = await admin
         .from("Channel")
-        .select("id")
+        .select("id,type")
         .eq("communityId", communityId)
         .in("type", channels as never[])
         .eq("isActive", true)
@@ -269,6 +269,15 @@ export async function POST(request: Request) {
       const channelIds = socialChannels.map((c) => c.id);
       await createPublicationsFromDraft({ draftId, communityId, channelIds });
       const results = await publishToAllChannels(draftId, channelIds);
+      const links = socialChannels.map((channel) => {
+        const result = results[channel.id];
+        return {
+          channel: channel.type === "INSTAGRAM" ? "Instagram" : "Facebook",
+          url: result?.externalUrl ?? null,
+          success: result?.success === true,
+          error: result?.error,
+        };
+      });
 
       history[eventId] = { status: "PUBLISHED", publishedAt: nowIso, draftId };
       await upsertRecapAutomation(admin, communityId, existing, currentSettings, history, {
@@ -277,7 +286,7 @@ export async function POST(request: Request) {
         nextRunAt: existing?.nextRunAt ?? null,
       });
 
-      return NextResponse.json({ success: true, draftId, results });
+      return NextResponse.json({ success: true, draftId, results, links });
     }
 
     return NextResponse.json({ error: "Action invalide" }, { status: 400 });

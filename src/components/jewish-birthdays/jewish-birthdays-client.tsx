@@ -18,11 +18,10 @@ type BirthdayContact = {
 
 type Language = "fr" | "he" | "bilingual";
 
-export function JewishBirthdaysClient({ birthdays, currentHebrewDay, currentMonth, databaseReady }: {
+export function JewishBirthdaysClient({ birthdays, currentHebrewDay, currentMonth }: {
   birthdays: BirthdayContact[];
   currentHebrewDay: number;
   currentMonth: string;
-  databaseReady: boolean;
 }) {
   const [selected, setSelected] = useState<BirthdayContact | null>(null);
   const [language, setLanguage] = useState<Language>("fr");
@@ -74,8 +73,6 @@ export function JewishBirthdaysClient({ birthdays, currentHebrewDay, currentMont
         <div className="pointer-events-none absolute -bottom-24 right-28 size-64 rounded-full bg-amber-300/10" />
         <div className="relative max-w-3xl"><span className="flex size-12 items-center justify-center rounded-2xl bg-white text-rose-700 shadow-lg"><Cake className="size-6" /></span><h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Anniversaires juifs</h1><p className="mt-3 text-sm font-semibold leading-6 text-rose-50 sm:text-base">Les anniversaires du mois de {currentMonth}, selon le calendrier hébraïque.</p></div>
       </section>
-
-      {!databaseReady && <section className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm font-bold text-amber-900">La mise à jour Supabase des anniversaires hébraïques doit être appliquée avant d’utiliser cette page.</section>}
 
       <section className="rounded-[1.8rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-black uppercase tracking-[0.14em] text-rose-700">{currentMonth}</p><h2 className="mt-1 text-xl font-black text-slate-950">{birthdays.length} anniversaire{birthdays.length > 1 ? "s" : ""} ce mois-ci</h2></div><Button asChild variant="outline" className="rounded-2xl border-rose-200 text-rose-800 hover:bg-rose-50"><Link href="/dashboard/contacts"><Users className="size-4" />Gérer les dates dans le CRM</Link></Button></div>

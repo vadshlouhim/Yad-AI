@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent, useMemo, useState } from "react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,6 @@ import {
   Filter,
   Mail,
   MessageSquareText,
-  RefreshCw,
   Search,
   Settings2,
   Trash2,
@@ -48,22 +48,22 @@ const CATEGORY_META: Record<
     title: "Urgent",
     icon: <TriangleAlert className="size-4" />,
     badgeClass: "border-white/20 bg-white/10 text-white",
-    listBadgeClass: "border-[#8A184D]/30 bg-[#8A184D] text-white",
-    cardClass: "border-[#8A184D] bg-[#8A184D]",
+    listBadgeClass: "border-rose-300 bg-[#e9333d] text-white",
+    cardClass: "border-[#e9333d] bg-gradient-to-br from-[#ff5357] to-[#df343e] shadow-red-200",
   },
   important: {
     title: "Important",
     icon: <BellRing className="size-4" />,
     badgeClass: "border-orange-300/30 bg-orange-300/15 text-orange-50",
     listBadgeClass: "border-orange-300 bg-orange-500 text-white",
-    cardClass: "border-orange-600 bg-orange-500",
+    cardClass: "border-amber-500 bg-gradient-to-br from-[#ffbd17] to-[#ee9100] shadow-amber-200",
   },
   non_important: {
     title: "Non important",
     icon: <Clock3 className="size-4" />,
-    badgeClass: "border-slate-900 bg-slate-900 text-white",
-    listBadgeClass: "border-slate-900 bg-white text-slate-900",
-    cardClass: "border-slate-900 bg-white",
+    badgeClass: "border-teal-200 bg-teal-50 text-teal-800",
+    listBadgeClass: "border-teal-200 bg-teal-50 text-teal-800",
+    cardClass: "border-teal-200 bg-[#fffaf4] shadow-teal-100",
   },
 };
 
@@ -209,7 +209,7 @@ export function EmailClient({
   const [openCategory, setOpenCategory] = useState<EmailCategory | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(initialState.classifications[0]?.id ?? null);
   const [isClassifying, setIsClassifying] = useState(false);
-  const [isLoadingEmails, setIsLoadingEmails] = useState(false);
+  const [showAllEmails, setShowAllEmails] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [ruleModal, setRuleModal] = useState<RuleModalState>({ open: false, prompt: "", editingRuleId: null });
   const [ruleBuilder, setRuleBuilder] = useState<RuleBuilderState>(EMPTY_RULE_BUILDER);
@@ -238,6 +238,12 @@ export function EmailClient({
       return matchCategory && matchSearch;
     });
   }, [activeCategory, classifications, searchQuery]);
+
+  const visibleEmails = showAllEmails ? filteredEmails : filteredEmails.slice(0, 5);
+
+  useEffect(() => {
+    setShowAllEmails(false);
+  }, [activeCategory, searchQuery]);
 
   useEffect(() => {
     if (!googleConnected) return;
@@ -307,16 +313,6 @@ export function EmailClient({
       console.error("[Email] Classification impossible:", error);
     } finally {
       setIsClassifying(false);
-    }
-  }
-
-  async function refreshEmails() {
-    if (!googleConnected) return;
-    setIsLoadingEmails(true);
-    try {
-      await runClassification("manual");
-    } finally {
-      setIsLoadingEmails(false);
     }
   }
 
@@ -439,45 +435,14 @@ export function EmailClient({
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-6xl space-y-4 overflow-x-clip px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6">
-      <div className="relative overflow-visible rounded-[1.4rem] border border-[#8A184D]/10 bg-[#8A184D] p-5 text-white shadow-[0_22px_55px_rgba(138,24,77,0.24)] sm:p-6">
-        <div className="pointer-events-none absolute inset-y-0 right-6 hidden items-center sm:flex" aria-hidden="true">
-          <div className="rounded-full bg-white/[0.045] p-5">
-            <div className="size-28 rounded-full border border-white/[0.04] bg-white/[0.035]" />
-          </div>
-        </div>
-        <div className="absolute -bottom-8 left-8 size-20 rounded-full bg-rose-300/20 blur-2xl" aria-hidden />
-
-        <div className="relative flex flex-col items-center gap-5 text-center lg:flex-row lg:items-start lg:justify-between lg:text-left">
-          <div className="w-full max-w-3xl">
-            <div className="mb-4 h-1.5 w-12 rounded-full bg-white/80" />
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-rose-50">
-              <Mail className="size-3.5" />
-              Agent Email
-            </div>
-            <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">Email</h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-rose-50/90">
-              Classement intelligent, réponses assistées et alertes utiles pour garder une boîte email claire et maîtrisée
-            </p>
-          </div>
-
-          <div className="relative z-20 flex w-full flex-col items-center gap-4 text-center lg:w-auto lg:flex-row lg:items-center lg:text-left lg:max-w-2xl">
-            <div className="pointer-events-none relative z-30 shrink-0" aria-hidden="true">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={LEVIK_EMAIL_IMAGE}
-                alt=""
-                className="-my-8 h-48 w-auto object-contain drop-shadow-[0_24px_34px_rgba(0,0,0,0.30)] sm:-my-10 lg:-my-14 lg:h-72"
-              />
-            </div>
-            <div className="relative w-full max-w-md rounded-2xl bg-white px-5 py-4 text-center text-base leading-6 text-[#8A184D] shadow-xl before:hidden lg:w-auto lg:text-left lg:before:block lg:before:absolute lg:before:-left-2 lg:before:top-10 lg:before:size-4 lg:before:rotate-45 lg:before:bg-white">
-              <p className="font-black">Je suis Levik, l’agent IA responsable de vos emails</p>
-              <p className="mt-1 font-semibold text-slate-600">
-                Je vous aide à classer vos messages, préparer des réponses assistées et recevoir les alertes
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-2 text-xs lg:absolute lg:bottom-5 lg:left-5 lg:justify-start">
+      <div className="relative min-h-[11rem] overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_72%_12%,#7028bd_0%,#421388_45%,#210763_100%)] px-5 py-5 text-white shadow-[0_24px_58px_rgba(49,13,108,0.26)] sm:min-h-[17rem] sm:px-8 sm:py-8">
+        <div className="pointer-events-none absolute -right-8 -top-12 size-48 rounded-full bg-white/10 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-20 left-1/3 size-52 rounded-full bg-fuchsia-400/10 blur-3xl" />
+        <div className="relative z-10 max-w-[68%] sm:max-w-3xl">
+          <span className="flex size-11 items-center justify-center rounded-2xl bg-white/15 text-white shadow-lg ring-1 ring-white/20 sm:size-12"><Mail className="size-6" /></span>
+          <h1 className="mt-4 text-[clamp(1.75rem,8vw,2.6rem)] font-black leading-[1.03] tracking-[-0.04em] sm:mt-5 sm:text-4xl">Email</h1>
+          <p className="mt-3 hidden max-w-2xl text-sm font-semibold leading-6 text-white/80 sm:block sm:text-base">Classement intelligent, réponses assistées et alertes utiles pour garder une boîte email claire.</p>
+          <div className="mt-4 hidden flex-wrap items-center gap-2 text-xs sm:flex">
             {isClassifying && (
               <Badge className="border-white/20 bg-white/10 text-white">
                 Classement en cours
@@ -493,6 +458,7 @@ export function EmailClient({
             )}
           </div>
         </div>
+        <Image src={LEVIK_EMAIL_IMAGE} alt="Levik, agent IA Email" width={240} height={280} className="pointer-events-none absolute -bottom-3 -right-5 z-10 h-[10.5rem] w-auto object-contain object-bottom drop-shadow-[0_18px_24px_rgba(12,2,35,0.34)] sm:-right-2 sm:h-[16rem]" priority />
       </div>
 
       {oauthNotice && (
@@ -510,9 +476,9 @@ export function EmailClient({
       )}
 
       {!googleConnected ? (
-        <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 text-center shadow-[0_18px_45px_-30px_rgba(8,31,54,0.28)] sm:rounded-[28px] sm:p-10">
+        <Card className="rounded-[2rem] border border-violet-100 bg-[#fffaf4] p-5 text-center shadow-[0_18px_46px_rgba(66,19,136,0.09)] sm:p-10">
           <CardContent className="mx-auto max-w-md space-y-4 pt-4">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-cyan-50 text-cyan-600 shadow-inner">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-[#0faeb3] to-[#078e9b] text-white shadow-lg shadow-teal-200">
               <Mail className="size-8" />
             </div>
             <h2 className="text-xl font-bold text-slate-900">Google Email non connecte</h2>
@@ -522,7 +488,7 @@ export function EmailClient({
             <Button
               onClick={handleConnectGoogle}
               disabled={isConnecting}
-              className="w-full rounded-full bg-cyan-700 px-6 py-5 text-sm font-semibold text-white hover:bg-cyan-800"
+              className="w-full rounded-2xl bg-gradient-to-r from-[#7130d8] to-[#d92d7c] px-6 py-5 text-sm font-black text-white shadow-lg shadow-violet-200 hover:brightness-105"
             >
               {isConnecting ? "Connexion en cours..." : "Connecter Google Email"}
             </Button>
@@ -534,25 +500,19 @@ export function EmailClient({
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <Button
                 variant="outline"
-                onClick={refreshEmails}
-                disabled={isLoadingEmails || isClassifying}
-                className="w-full rounded-full border-slate-200 sm:w-auto"
-              >
-                <RefreshCw className={cn("size-4", (isLoadingEmails || isClassifying) && "animate-spin")} />
-                {isLoadingEmails ? "Actualisation..." : "Classer les emails par IA"}
-              </Button>
-              <Button
-                variant="outline"
                 onClick={() => openRuleModal()}
-                className="w-full rounded-full border-cyan-200 bg-cyan-50 text-cyan-800 hover:bg-cyan-100 sm:w-auto"
+                className="w-full rounded-xl border-fuchsia-200 bg-fuchsia-50 font-black text-fuchsia-700 hover:bg-fuchsia-100 sm:w-auto"
               >
                 <Settings2 className="size-4" />
                 Configurer mes alertes email
               </Button>
             </div>
-            <Badge className="w-fit border-slate-200 bg-white text-slate-600">
-              Push navigateur : {pushPermission === "granted" ? "active" : pushPermission === "denied" ? "bloque" : "a autoriser"}
-            </Badge>
+            <div className="flex flex-wrap gap-2">
+              <Badge className="w-fit border-violet-200 bg-violet-50 text-violet-700">Classement IA automatique</Badge>
+              <Badge className="w-fit border-slate-200 bg-white text-slate-600">
+                Push : {pushPermission === "granted" ? "actif" : pushPermission === "denied" ? "bloqué" : "à autoriser"}
+              </Badge>
+            </div>
           </div>
 
           <div className="grid gap-3 md:grid-cols-3">
@@ -566,7 +526,7 @@ export function EmailClient({
                 <section
                   key={category}
                   className={cn(
-                    "rounded-[1.4rem] border p-4 text-left shadow-sm",
+                    "rounded-[1.6rem] border p-4 text-left shadow-lg",
                     meta.cardClass,
                     activeCategory === category && "ring-2 ring-cyan-500/40"
                   )}
@@ -623,16 +583,16 @@ export function EmailClient({
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[0.95fr_1.25fr] lg:gap-6">
-            <Card className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
-              <CardHeader className="space-y-4 border-b border-slate-100 p-4 sm:p-6">
-                <CardTitle className="text-base font-bold text-slate-900">Boite de reception</CardTitle>
+            <Card className="min-w-0 overflow-hidden rounded-[2rem] border border-violet-100 bg-white shadow-[0_14px_36px_rgba(66,19,136,0.08)]">
+              <CardHeader className="space-y-4 border-b border-violet-100 bg-[#fffaf4] p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base font-black text-slate-900"><span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#2878ef] to-[#175acb] text-white shadow-md shadow-blue-200"><Mail className="size-4" /></span>Boite de reception</CardTitle>
                 <div className="relative">
                   <Search className="absolute left-3 top-2.5 size-4 text-slate-400" />
                   <input
                     value={searchQuery}
                     onChange={(event) => setSearchQuery(event.target.value)}
                     placeholder="Rechercher un email..."
-                    className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                    className="w-full rounded-xl border border-violet-100 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                   />
                 </div>
               </CardHeader>
@@ -643,13 +603,13 @@ export function EmailClient({
                     <p className="text-sm font-semibold text-slate-700">Aucun email</p>
                   </div>
                 ) : (
-                  filteredEmails.map((mail) => {
+                  visibleEmails.map((mail) => {
                     return (
                     <div
                       key={mail.id}
                       className={cn(
                         "min-w-0 border-b border-slate-100 px-4 py-4",
-                        selectedId === mail.id && "bg-cyan-50/50"
+                        selectedId === mail.id && "bg-violet-50/65"
                       )}
                     >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -680,13 +640,25 @@ export function EmailClient({
                     );
                   })
                 )}
+                {filteredEmails.length > 5 && (
+                  <div className="p-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowAllEmails((current) => !current)}
+                      className="min-h-11 w-full rounded-2xl border-violet-200 bg-violet-50 font-black text-[#421388] hover:bg-violet-100"
+                    >
+                      {showAllEmails ? "Afficher seulement les 5 derniers" : `Voir les ${filteredEmails.length - 5} autres emails`}
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            <Card id="email-reader" className="scroll-mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm sm:rounded-3xl">
+            <Card id="email-reader" className="scroll-mt-4 overflow-hidden rounded-[2rem] border border-violet-100 bg-white shadow-[0_14px_36px_rgba(66,19,136,0.08)]">
               {selectedMail ? (
                 <>
-                  <CardHeader className="border-b border-slate-100">
+                  <CardHeader className="border-b border-violet-100 bg-[#fffaf4]">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <CardTitle className="break-words text-lg font-bold text-slate-950">{selectedMail.subject}</CardTitle>
@@ -700,16 +672,16 @@ export function EmailClient({
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-5 p-4 sm:p-6">
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 text-center sm:text-left">
+                    <div className="rounded-2xl border border-violet-100 bg-violet-50/45 p-4 text-center sm:text-left">
                       <p className="whitespace-pre-line break-words text-sm leading-6 text-slate-700">{selectedMail.body}</p>
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2">
-                      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
                         <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Raison du classement</p>
                         <p className="mt-2 text-sm text-slate-700">{selectedMail.classificationReason}</p>
                       </div>
-                      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4">
                         <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Action recommandee</p>
                         <p className="mt-2 text-sm text-slate-700">{selectedMail.actionRecommended ?? "Aucune action immediate."}</p>
                       </div>
@@ -726,15 +698,15 @@ export function EmailClient({
             </Card>
           </div>
 
-          <Card className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <CardHeader className="flex flex-col items-stretch gap-3 border-b border-slate-100 sm:flex-row sm:items-center sm:justify-between">
+          <Card className="overflow-hidden rounded-[2rem] border border-violet-100 bg-white shadow-[0_14px_36px_rgba(66,19,136,0.08)]">
+            <CardHeader className="flex flex-col items-stretch gap-3 border-b border-violet-100 bg-[#fffaf4] sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle className="text-lg font-bold text-slate-950">Mes regles de notification</CardTitle>
               </div>
               <Button
                 variant="outline"
                 onClick={() => openRuleModal()}
-                className="w-full rounded-full border-slate-200 sm:w-auto"
+                className="w-full rounded-xl border-violet-200 bg-violet-50 font-black text-violet-700 hover:bg-violet-100 sm:w-auto"
               >
                 <WandSparkles className="size-4" />
                 Configurer mes alertes email
@@ -749,7 +721,7 @@ export function EmailClient({
                 </div>
               ) : (
                 rules.map((rule) => (
-                  <div key={rule.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div key={rule.id} className="flex flex-col gap-3 rounded-2xl border border-violet-100 bg-[#fffaf4] p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-slate-900">{rule.name}</p>
                       <p className="mt-1 text-xs text-slate-500">{describeRule(rule)}</p>
@@ -951,17 +923,17 @@ export function EmailClient({
       )}
 
       {ruleModal.open && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/50 p-2 py-4 backdrop-blur-sm sm:items-center sm:p-4">
-          <Card className="my-auto w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/20">
-            <CardHeader className="border-b border-slate-200 bg-white px-4 py-4 sm:px-6 sm:py-5">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#170534]/60 p-2 py-4 backdrop-blur-sm sm:items-center sm:p-4">
+          <Card className="my-auto w-full max-w-4xl overflow-hidden rounded-[2rem] border border-violet-100 bg-[#fffaf4] shadow-[0_28px_80px_rgba(33,7,99,0.4)]">
+            <CardHeader className="border-b border-white/10 bg-[radial-gradient(circle_at_80%_0%,#7028bd_0%,#421388_48%,#210763_100%)] px-4 py-4 text-white sm:px-6 sm:py-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white ring-1 ring-white/20">
                     <BellRing className="size-5" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg font-bold text-slate-950">Configurer mes alertes email</CardTitle>
-                    <p className="mt-1 text-sm text-slate-500">Choisissez les emails qui meritent une notification.</p>
+                    <CardTitle className="text-lg font-black text-white">Configurer mes alertes email</CardTitle>
+                    <p className="mt-1 text-sm text-white/75">Choisissez les emails qui meritent une notification.</p>
                   </div>
                 </div>
                 <Button
@@ -971,18 +943,18 @@ export function EmailClient({
                     setRuleModal({ open: false, prompt: "", editingRuleId: null });
                     setRuleBuilder(EMPTY_RULE_BUILDER);
                   }}
-                  className="rounded-full text-slate-500 hover:bg-slate-100"
+                  className="rounded-full text-white hover:bg-white/15 hover:text-white"
                 >
                   <X className="size-4" />
                 </Button>
               </div>
             </CardHeader>
 
-            <CardContent className="max-h-[calc(100dvh-112px)] overflow-y-auto bg-slate-50 p-4 sm:max-h-[calc(92vh-84px)] sm:p-6">
+            <CardContent className="max-h-[calc(100dvh-112px)] overflow-y-auto bg-[#fffaf4] p-4 sm:max-h-[calc(92vh-84px)] sm:p-6">
               <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                    <Filter className="size-4 text-cyan-700" />
+                    <Filter className="size-4 text-violet-700" />
                     Conditions
                   </div>
                   <div className="grid gap-2">
@@ -996,14 +968,14 @@ export function EmailClient({
                           className={cn(
                             "flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition",
                             checked
-                              ? "border-cyan-400 bg-white shadow-sm"
-                              : "border-slate-200 bg-white/70 hover:border-cyan-200 hover:bg-white"
+                              ? "border-violet-400 bg-violet-50 shadow-sm"
+                              : "border-violet-100 bg-white/80 hover:border-violet-300 hover:bg-white"
                           )}
                         >
                           <span
                             className={cn(
                               "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border",
-                              checked ? "border-cyan-600 bg-cyan-600 text-white" : "border-slate-300 bg-white"
+                              checked ? "border-violet-600 bg-violet-600 text-white" : "border-slate-300 bg-white"
                             )}
                           >
                             {checked && <Check className="size-3.5" />}
@@ -1019,7 +991,7 @@ export function EmailClient({
                 </div>
 
                 <div className="space-y-4">
-                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="rounded-2xl border border-violet-100 bg-white p-4 shadow-sm">
                     <p className="text-sm font-semibold text-slate-900">Precisions</p>
                     <div className="mt-4 space-y-3">
                       {ruleBuilder.selected.includes("sender") && (
@@ -1094,7 +1066,7 @@ export function EmailClient({
                     </div>
                   </div>
 
-                  <label className="block rounded-xl border border-slate-200 bg-white p-4">
+                  <label className="block rounded-2xl border border-violet-100 bg-white p-4 shadow-sm">
                     <span className="text-sm font-semibold text-slate-900">Reponse libre</span>
                     <textarea
                       rows={4}
@@ -1105,8 +1077,8 @@ export function EmailClient({
                     />
                   </label>
 
-                  <div className="rounded-xl border border-cyan-100 bg-white p-4">
-                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-700">Apercu</p>
+                  <div className="rounded-2xl border border-fuchsia-100 bg-fuchsia-50/60 p-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-fuchsia-700">Apercu</p>
                     <p className="mt-2 text-sm leading-6 text-slate-700">
                       {buildRulePrompt(ruleBuilder) || "Selectionnez au moins une condition."}
                     </p>
@@ -1121,14 +1093,14 @@ export function EmailClient({
                     setRuleModal({ open: false, prompt: "", editingRuleId: null });
                     setRuleBuilder(EMPTY_RULE_BUILDER);
                   }}
-                  className="rounded-full"
+                  className="rounded-xl border-violet-200 bg-white font-black text-violet-700"
                 >
                   Annuler
                 </Button>
                 <Button
                   onClick={saveRulePrompt}
                   disabled={!buildRulePrompt(ruleBuilder)}
-                  className="rounded-full bg-cyan-700 text-white hover:bg-cyan-800 disabled:bg-slate-300"
+                  className="rounded-xl bg-gradient-to-r from-[#7130d8] to-[#d92d7c] font-black text-white shadow-lg shadow-violet-200 hover:brightness-105 disabled:bg-slate-300"
                 >
                   Enregistrer la regle
                 </Button>

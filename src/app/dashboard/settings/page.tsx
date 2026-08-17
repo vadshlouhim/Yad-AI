@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { SettingsGeneralClient } from "@/components/settings/settings-general-client";
 import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
-import { Settings2 } from "lucide-react";
+import { Settings2, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Paramètres - EasyCom IA" };
@@ -51,13 +51,27 @@ export default async function SettingsPage({
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6">
-      <AgentPageBanner
-        eyebrow="Espace de réglages"
-        title="Paramètres"
-        description="Gérez votre communauté, vos canaux, votre identité éditoriale et votre profil dans une interface claire, moderne et cohérente."
-        icon={Settings2}
-        tone="teal"
-      />
+      <div className="hidden md:block">
+        <AgentPageBanner
+          eyebrow="Espace de réglages"
+          title="Paramètres"
+          description="Gérez votre communauté, vos canaux, votre identité éditoriale et votre profil dans une interface claire, moderne et cohérente."
+          icon={Settings2}
+          tone="teal"
+        />
+      </div>
+
+      <section className="relative overflow-hidden rounded-[2rem] bg-[#421388] px-5 py-6 text-white shadow-[0_24px_58px_-32px_rgba(66,19,136,0.7)] md:hidden">
+        <div className="absolute -right-12 -top-14 size-40 rounded-full bg-fuchsia-400/25 blur-3xl" />
+        <div className="absolute -bottom-16 left-1/3 size-36 rounded-full bg-blue-400/20 blur-3xl" />
+        <div className="relative flex items-center gap-4">
+          <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white text-[#421388] shadow-lg"><Settings2 className="size-7" /></span>
+          <div>
+            <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.14em] text-violet-100"><Sparkles className="size-3.5" /> Mon espace</div>
+            <h1 className="mt-1 text-3xl font-black tracking-tight">Paramètres</h1>
+          </div>
+        </div>
+      </section>
 
       <section className="hidden overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-700 shadow-[0_20px_48px_rgba(6,95,70,0.16)] sm:rounded-[1.75rem]">
         <div className="bg-[linear-gradient(135deg,#047857,#059669,#10b981)] px-4 py-5 text-white sm:px-8 sm:py-7">

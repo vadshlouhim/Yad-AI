@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Agents intelligents — EasyCom IA" 
 export default async function AssistantPage({
   searchParams,
 }: {
-  searchParams: Promise<{ channelTypes?: string; draftId?: string; eventId?: string; prefill?: string }>;
+  searchParams: Promise<{ channelTypes?: string; draftId?: string; eventId?: string; prefill?: string; agent?: string }>;
 }) {
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
@@ -187,6 +187,7 @@ export default async function AssistantPage({
       channels={channels ?? []}
       seasonalPrompts={quickActionPrompts}
       initialPrompt={initialPrompt}
+      initialAgentSlug={typeof params.agent === "string" ? params.agent : undefined}
       initialApprovalDraft={initialApprovalDraft}
       userName={profile.name ?? ""}
       userAvatar={profile.avatarUrl ?? null}

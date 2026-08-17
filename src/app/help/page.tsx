@@ -96,7 +96,7 @@ export default function HelpPage() {
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:px-6 sm:py-10">
       <div className="mx-auto max-w-5xl space-y-6">
         <Link
-          href="/dashboard/assistant"
+          href="/dashboard/overview"
           className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 transition hover:text-blue-800"
         >
           <ChevronLeft className="size-4" />

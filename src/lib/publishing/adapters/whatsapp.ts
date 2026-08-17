@@ -36,6 +36,7 @@ export async function publishToWhatsApp(
     return {
       success: true,
       externalId: `whatsapp:${result.sent}/${result.total}`,
+      externalUrl: phones.length === 1 ? `https://wa.me/${phones[0]}` : "https://web.whatsapp.com/",
       error: result.failed > 0 ? `${result.failed} envoi(s) en échec` : undefined,
     };
   }

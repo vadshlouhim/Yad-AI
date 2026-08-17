@@ -3,7 +3,8 @@
   "short_name": "EasyCom AI",
   "description": "EasyCom IA centralise votre communication, vos publications et vos automatisations sur mobile et ordinateur.",
   "lang": "fr",
-  "start_url": "/",
+  "id": "/",
+  "start_url": "/dashboard",
   "scope": "/",
   "icons": [
     {

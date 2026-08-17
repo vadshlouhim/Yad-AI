@@ -8,140 +8,100 @@ import { PublicNavbar } from "@/components/layout/public-navbar";
 import { AGENTS_GROUP_IMAGE, HOME_EASYCOM_AGENTS } from "@/lib/agents";
 import {
   ArrowRight,
-  BookOpen,
-  BrainCircuit,
-  CalendarDays,
-  ClipboardCheck,
-  HeartHandshake,
-  ImageIcon,
-  LogIn,
-  MailCheck,
-  Newspaper,
-  Palette,
-  Send,
-  Share2,
-  Star,
-  WandSparkles,
+  ChevronRight,
 } from "lucide-react";
 
-const FEATURES = [
+const REGULAR_COMMUNICATION_STATS = [
   {
-    label: "Agenda IA connecté",
-    description: "Vos rappels, événements et automatisations sont centralisés dans un agenda intelligent avec notifications au bon moment.",
-    icon: CalendarDays,
-    tone: "border-cyan-200 text-cyan-700 bg-cyan-50",
-    line: "bg-cyan-500",
+    value: "5×",
+    label: "Plus d’engagement",
+    description:
+      "Une analyse de plus de 100 000 utilisateurs montre que les comptes qui publient régulièrement peuvent obtenir jusqu’à 5× plus d’engagement.",
+    sourceLabel: "Étude Buffer sur la régularité",
+    sourceHref: "https://buffer.com/resources/consistent-posting-study/",
+    accent: "from-blue-700 to-indigo-600",
+    glow: "bg-blue-500/10",
+    gridClass: "xl:col-span-2",
   },
   {
-    label: "Envoi en un clic",
-    description: "Vos messages et publications partent sur les bons canaux en quelques secondes.",
-    icon: Send,
-    tone: "border-indigo-200 text-indigo-700 bg-indigo-50",
-    line: "bg-indigo-500",
+    value: "2×",
+    label: "Plus de croissance",
+    description:
+      "Sur Instagram, les comptes publiant 3 à 5 fois par semaine voient leur nombre d’abonnés croître environ 2× plus vite que ceux publiant seulement 1 à 2 fois par semaine.",
+    sourceLabel: "Étude Buffer sur Instagram",
+    sourceHref: "https://buffer.com/resources/how-often-to-post-on-instagram/",
+    accent: "from-violet-700 to-fuchsia-600",
+    glow: "bg-violet-500/10",
+    gridClass: "xl:col-span-2",
   },
   {
-    label: "Automatisations intelligentes",
-    description: "Créez des routines de communication pour publier, rappeler, et envoyer au bon moment.",
-    icon: BrainCircuit,
-    tone: "border-cyan-200 text-cyan-700 bg-cyan-50",
-    line: "bg-cyan-500",
+    value: "+12 %",
+    label: "Plus de portée par publication",
+    description:
+      "Publier 3 à 5 fois par semaine est associé à environ 12 % de portée supplémentaire par publication.",
+    sourceLabel: "Étude Buffer sur Instagram",
+    sourceHref: "https://buffer.com/resources/how-often-to-post-on-instagram/",
+    accent: "from-cyan-700 to-blue-600",
+    glow: "bg-cyan-500/10",
+    gridClass: "xl:col-span-2",
   },
   {
-    label: "Communication régulière",
-    description: "EasyCom IA vous aide à rester actif, visible et cohérent sur tous vos canaux de communication.",
-    icon: Share2,
-    tone: "border-indigo-200 text-indigo-700 bg-indigo-50",
-    line: "bg-indigo-500",
-  },
-];
-
-const PLATFORM_FEATURES = [
-  ...FEATURES.slice(0, 4),
-  {
-    label: "Affiches & visuels",
-    description: "Personnalisez vos affiches et creez des visuels prets a partager pour chaque evenement.",
-    icon: ImageIcon,
-    tone: "border-cyan-200 text-cyan-700 bg-cyan-50",
-    line: "bg-cyan-500",
+    value: "2×",
+    label: "Plus de chances d’atteindre son objectif",
+    description:
+      "Une campagne de dons partagée 6 à 10 fois pendant ses 3 premiers jours est environ 2× plus susceptible d’atteindre son objectif.",
+    sourceLabel: "Guide GoFundMe",
+    sourceHref: "https://www.gofundme.com/en-ca/c/fundraising-tips",
+    accent: "from-orange-600 to-amber-500",
+    glow: "bg-orange-500/10",
+    gridClass: "xl:col-span-3",
   },
   {
-    label: "Campagnes de dons",
-    description: "Planifiez les etapes, preparez les contenus et suivez votre campagne au meme endroit.",
-    icon: HeartHandshake,
-    tone: "border-indigo-200 text-indigo-700 bg-indigo-50",
-    line: "bg-indigo-500",
+    value: "Jusqu’à 3×",
+    label: "Plus de fonds collectés",
+    description:
+      "Des mises à jour régulières en texte, photo ou vidéo peuvent aider une campagne de collecte à lever jusqu’à 3× plus.",
+    sourceLabel: "Guide GoFundMe",
+    sourceHref: "https://www.gofundme.com/en-ca/c/fundraising-tips",
+    accent: "from-indigo-700 to-violet-600",
+    glow: "bg-indigo-500/10",
+    gridClass: "xl:col-span-3",
   },
-  {
-    label: "Newsletter IA",
-    description: "Creez une newsletter a partir de vos evenements et programmez son envoi au bon moment.",
-    icon: Newspaper,
-    tone: "border-cyan-200 text-cyan-700 bg-cyan-50",
-    line: "bg-cyan-500",
-  },
-  {
-    label: "Emails & avis Google",
-    description: "Classez les messages importants et preparez des reponses qui respectent votre ton.",
-    icon: MailCheck,
-    tone: "border-indigo-200 text-indigo-700 bg-indigo-50",
-    line: "bg-indigo-500",
-  },
-];
-
-const SOCIAL_CHANNELS = [
-  { name: "WhatsApp", src: "/logo/whatsapp-svgrepo-com.svg", color: "text-emerald-600" },
-  { name: "Instagram", src: "/logo/instagram-2-1-logo-svgrepo-com%20(1).svg", color: "text-pink-600" },
-  { name: "Facebook", src: "/logo/facebook-3-logo-svgrepo-com.svg", color: "text-blue-600" },
-  { name: "Telegram", src: "/logo/telegram-svgrepo-com.svg", color: "text-sky-600" },
-  { name: "Gmail", src: "/logo/gmail-svgrepo-com.svg", color: "text-red-600" },
-];
-
-const HOME_AGENT_LABELS = [
-  { name: "Dov Ber", logoSrc: "/logo/instagram-2-1-logo-svgrepo-com%20(1).svg", Icon: null, iconClassName: "" },
-  { name: "Mendy", logoSrc: "/logo/facebook-3-logo-svgrepo-com.svg", Icon: null, iconClassName: "" },
-  { name: "Israel", logoSrc: "/logo/whatsapp-svgrepo-com.svg", Icon: null, iconClassName: "" },
-  { name: "Levik", logoSrc: "/logo/gmail-svgrepo-com.svg", Icon: null, iconClassName: "" },
-  { name: "David", logoSrc: "/easycom-ai-logo.png", Icon: null, iconClassName: "" },
-  { name: "Shmouel", logoSrc: null, Icon: BookOpen, iconClassName: "text-amber-700" },
-  { name: "Tsemah", logoSrc: null, Icon: Newspaper, iconClassName: "text-slate-700" },
-  { name: "Barouh", logoSrc: null, Icon: Star, iconClassName: "fill-amber-400 text-amber-500" },
-  { name: "Zalman", logoSrc: null, Icon: Palette, iconClassName: "text-fuchsia-700" },
 ] as const;
 
-const PROCESS_STEPS = [
+const FAQ = [
   {
-    label: "Préparer",
-    description: "Vos contenus et réponses.",
-    icon: ClipboardCheck,
+    question: "À qui s’adresse EasyCom IA ?",
+    answer:
+      "EasyCom IA est pensé en priorité pour les synagogues, Beth Habad et associations communautaires qui veulent communiquer régulièrement sans multiplier les outils.",
   },
   {
-    label: "Automatiser",
-    description: "Vos routines au bon moment.",
-    icon: WandSparkles,
+    question: "Ai-je besoin de connaissances techniques ?",
+    answer:
+      "Non. Vous décrivez simplement ce que vous souhaitez communiquer. L’IA prépare une proposition claire que vous pouvez modifier et valider.",
   },
   {
-    label: "Publier",
-    description: "Sur les canaux adaptés.",
-    icon: Send,
+    question: "Quels canaux puis-je utiliser ?",
+    answer:
+      "EasyCom IA réunit notamment WhatsApp, Instagram, Facebook, Telegram et l’email, avec des outils pour les affiches, newsletters, rappels et avis Google.",
   },
-];
+  {
+    question: "Est-ce que l’IA publie sans mon accord ?",
+    answer:
+      "Non. Vous choisissez les automatisations et le niveau de validation. Les communications sensibles peuvent toujours être relues avant leur diffusion.",
+  },
+] as const;
 
-const TESTIMONIALS = [
-  { name: "Marc L.", role: "Gérant de restaurant", content: "EasyCom IA m'aide à garder une communication régulière sans y passer mes soirées.", avatar: "ML", color: "bg-cyan-100 text-cyan-800" },
-  { name: "Sarah J.", role: "Coach sportive", content: "Je prépare mes annonces, mes rappels et mes réponses beaucoup plus vite.", avatar: "SJ", color: "bg-indigo-100 text-indigo-800" },
-  { name: "Thomas D.", role: "Agent immobilier", content: "Les publications et relances sont mieux organisées, et je gagne plusieurs heures par semaine.", avatar: "TD", color: "bg-cyan-100 text-cyan-800" },
-  { name: "Nadia B.", role: "Responsable association", content: "Tout est centralisé : réseaux sociaux, emails, avis et messages importants.", avatar: "NB", color: "bg-indigo-100 text-indigo-800" },
-  { name: "Julien R.", role: "Consultant indépendant", content: "L'IA comprend mon ton et me propose des messages qui me ressemblent vraiment.", avatar: "JR", color: "bg-cyan-100 text-cyan-800" },
-  { name: "Camille P.", role: "Boutique locale", content: "Je publie plus souvent, sans devoir repartir de zéro à chaque fois.", avatar: "CP", color: "bg-indigo-100 text-indigo-800" },
-  { name: "Hugo M.", role: "Organisateur d'événements", content: "L'agenda IA et les notifications m'évitent les oublis avant les temps forts.", avatar: "HM", color: "bg-cyan-100 text-cyan-800" },
-  { name: "Leïla A.", role: "Formatrice", content: "Les réponses préparées aux emails et avis me font gagner un temps énorme.", avatar: "LA", color: "bg-indigo-100 text-indigo-800" },
-  { name: "Olivier G.", role: "Artisan", content: "Je peux créer une routine de communication simple, visible et cohérente.", avatar: "OG", color: "bg-cyan-100 text-cyan-800" },
-  { name: "Emma V.", role: "Créatrice de contenu", content: "Les ressources et vidéos IA m'aident à publier rapidement sur les bons canaux.", avatar: "EV", color: "bg-indigo-100 text-indigo-800" },
-];
+const FEATURED_AGENT_SLUGS = ["david", "israel", "dov", "mendy"] as const;
+const LANDING_AGENTS = [
+  ...FEATURED_AGENT_SLUGS.flatMap((slug) => HOME_EASYCOM_AGENTS.filter((agent) => agent.slug === slug)),
+  ...HOME_EASYCOM_AGENTS.filter((agent) => !FEATURED_AGENT_SLUGS.some((slug) => slug === agent.slug)),
+].filter((agent) => !["tsemah", "zalman"].includes(agent.slug));
 
 export const metadata: Metadata = {
-  title: "EasyCom IA - Le copilote IA de communication de votre communauté",
+  title: "EasyCom IA - La communication de votre communauté, orchestrée par l’IA",
   description:
-    "Centralisez et automatisez la communication de votre synagogue, Beth Habad ou association : affiches, horaires de Chabbat, rappels d'événements et récaps, publiés sur Instagram, Facebook, WhatsApp et email.",
+    "EasyCom IA aide les synagogues, Beth Habad et associations à préparer, valider et diffuser leurs publications, messages, affiches, emails et rappels.",
   alternates: { canonical: "/" },
 };
 
@@ -150,239 +110,172 @@ export default function HomePage() {
     <main className="min-h-screen bg-white text-slate-950">
       <PublicNavbar />
 
-      <section id="agents" className="relative overflow-hidden bg-[#070b1d] px-4 py-16 text-white sm:px-6 lg:px-8 lg:py-24">
-        <div className="home-ai-grid absolute inset-0" aria-hidden="true" />
-        <div className="home-starfield absolute inset-0" aria-hidden="true">
-          <span className="home-stars home-stars-far" />
-          <span className="home-stars home-stars-mid" />
-          <span className="home-stars home-stars-near" />
-        </div>
-        <div className="home-ai-beam absolute inset-x-0 top-[26%]" aria-hidden="true" />
-        <div className="relative z-20 mx-auto max-w-7xl">
-          <div className="mx-auto max-w-4xl text-center">
-            <h1 className="mt-3 text-[clamp(2.1rem,7vw,4.1rem)] font-black leading-[1.02] tracking-tight text-white">
-              Des agents IA au service de <span className="text-cyan-300">votre communauté</span>
+      <section className="relative isolate overflow-hidden bg-[#070b1d] px-4 py-16 text-white sm:px-6 sm:py-20 lg:px-8 lg:py-24">
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_72%_42%,rgba(34,211,238,0.18),transparent_28%),radial-gradient(circle_at_16%_12%,rgba(99,102,241,0.14),transparent_24%)]"
+          aria-hidden="true"
+        />
+        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.02fr_0.98fr] lg:gap-8">
+          <div className="max-w-2xl text-center lg:text-left">
+            <p className="inline-flex items-center rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-200">
+              Le copilote des communautés
+            </p>
+            <h1 className="mt-6 text-[clamp(2.45rem,4.6vw,4rem)] font-bold leading-[1.04] tracking-[-0.04em] text-white">
+              Toute la communication de votre communauté, orchestrée par l’IA.
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-center text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
-              EasyCom AI prépare vos publications, emails, avis Google, newsletters, affiches, campagnes de dons, cours de Torah et actions communautaires.
+            <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8 lg:mx-0">
+              EasyCom IA prépare vos publications, messages, affiches, emails et rappels. Vous gardez la validation,
+              vos agents s’occupent du reste.
             </p>
-          </div>
 
-          <div className="flex flex-col items-center gap-8">
-            <div className="relative mx-auto mt-7 flex w-full max-w-6xl flex-col items-center justify-center lg:mt-8">
-              <div className="relative flex w-full items-center justify-center overflow-visible">
-                <div className="pointer-events-none absolute left-1/2 top-[3%] aspect-square w-[72%] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.76)_0%,rgba(255,255,255,0.38)_38%,transparent_72%)] blur-3xl" aria-hidden />
-                <Image
-                  src={AGENTS_GROUP_IMAGE}
-                  alt="L'équipe des agents IA EasyCom IA"
-                  width={1672}
-                  height={810}
-                  preload
-                  sizes="(max-width: 1024px) 100vw, 86vw"
-                  className="relative h-auto w-full object-contain drop-shadow-[0_0_44px_rgba(255,255,255,0.68)] drop-shadow-[0_36px_54px_rgba(0,229,255,0.3)]"
-                />
-              </div>
-              <div className="mt-2 flex w-full max-w-5xl flex-wrap justify-center gap-1.5 px-2 sm:mt-3 sm:gap-2">
-                {HOME_AGENT_LABELS.map((agent) => (
-                  <span key={agent.name} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/45 bg-white/78 px-2.5 text-xs font-bold text-slate-800 shadow-[0_7px_16px_rgba(2,6,23,0.18)] backdrop-blur-sm sm:h-9 sm:px-3 sm:text-sm">
-                    {agent.logoSrc ? (
-                      <Image src={agent.logoSrc} alt="" width={18} height={18} sizes="18px" className="size-4 object-contain sm:size-[18px]" />
-                    ) : agent.Icon ? (
-                      <agent.Icon className={`size-4 sm:size-[18px] ${agent.iconClassName}`} aria-hidden />
-                    ) : null}
-                    {agent.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="mx-auto w-full max-w-3xl">
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                {PROCESS_STEPS.map(({ label, description, icon: Icon }, index) => (
-                  <div key={label} className="group rounded-2xl border border-white/10 bg-white/[0.06] p-3 text-center shadow-lg shadow-black/10 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-cyan-300/50 hover:bg-white/[0.1] sm:p-4">
-                    <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl border border-white/50 text-white shadow-md shadow-cyan-400/20 transition duration-300 group-hover:-translate-y-1 group-hover:rotate-3">
-                      <Icon className="size-5" />
-                    </span>
-                    <span className="mt-3 block text-[10px] font-black text-white sm:text-xs">0{index + 1}</span>
-                    <p className="mt-1 text-xs font-black text-white sm:text-sm">{label}</p>
-                    <p className="mt-1 text-[10px] leading-4 text-slate-400 sm:text-xs sm:leading-5">{description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="mx-auto mt-24 max-w-3xl text-center lg:mt-32">
-            <p className="text-sm font-black uppercase tracking-[0.16em] text-cyan-300">Découvrez vos agents IA</p>
-            <h2 className="mx-auto mt-4 max-w-4xl text-[clamp(1.65rem,4.5vw,2.8rem)] font-black leading-tight tracking-tight text-white">
-              Instagram, Facebook, WhatsApp, Email, Avis Google, Automatisations, Dons et Contenus...
-            </h2>
-            <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-300">
-              Chaque agent a sa mission, pour simplifier toute votre communication communautaire !
-            </p>
-          </div>
-
-          <AgentShowcase agents={HOME_EASYCOM_AGENTS} />
-
-          <div className="hidden">
-            {HOME_EASYCOM_AGENTS.map((agent) => (
-              <details
-                key={agent.slug}
-                className="group text-center"
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
+              <Link
+                href="/auth/register"
+                className="inline-flex h-12 items-center justify-center rounded-full bg-cyan-300 px-6 text-sm font-semibold text-[#070b1d] shadow-lg shadow-cyan-950/30 transition hover:-translate-y-0.5 hover:bg-cyan-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cyan-200/60"
               >
-                <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                  <div className="relative h-44 overflow-hidden sm:h-60 lg:h-80 xl:h-[24rem]">
-                    <Image
-                      src={agent.image}
-                      alt={`${agent.name}, agent IA ${agent.role} d'EasyCom IA`}
-                      fill
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 25vw"
-                      className="object-contain object-bottom drop-shadow-[0_22px_24px_rgba(15,23,42,0.14)] transition duration-500 group-open:scale-[1.04] group-hover:scale-[1.035]"
-                    />
-                  </div>
-                  <div className="px-1 pt-3 text-center">
-                    <h3 className="text-base font-black leading-tight text-slate-950 lg:text-xl">{agent.name}</h3>
-                    <p className="mt-1 text-[11px] font-bold leading-4 text-cyan-300 lg:text-sm">{agent.role}</p>
-                    <span className="mx-auto mt-3 inline-flex h-10 items-center justify-center rounded-full border border-cyan-300/50 bg-cyan-300 px-5 text-xs font-black text-[#070b1d] shadow-lg shadow-cyan-950/20 transition group-hover:-translate-y-0.5 group-hover:bg-white lg:h-11 lg:px-7 lg:text-sm">
-                      Découvrez
-                    </span>
-                  </div>
-                </summary>
-                <div className="mx-auto mt-4 max-w-xs rounded-2xl border border-cyan-300/20 bg-white/5 px-4 py-4 text-center text-xs leading-5 text-slate-300 shadow-sm lg:text-sm lg:leading-6">
-                  <p>{agent.shortDescription}</p>
-                  <p className="mt-3 border-t border-cyan-300/20 pt-3">{agent.details}</p>
-                </div>
-              </details>
+                Essayer gratuitement
+                <ArrowRight className="ml-2 size-4" aria-hidden="true" />
+              </Link>
+              <Link
+                href="/demo"
+                className="inline-flex h-12 items-center justify-center rounded-full border border-white/20 bg-white/[0.06] px-6 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:border-white/40 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/20"
+              >
+                Voir la démo
+              </Link>
+            </div>
+
+            <p className="mx-auto mt-6 max-w-xl text-center text-sm leading-6 text-slate-400">
+              Pensé pour les synagogues, Beth Habad et associations
+            </p>
+          </div>
+
+          <div className="relative mx-auto w-full max-w-3xl lg:max-w-none">
+            <div className="pointer-events-none absolute bottom-[5%] left-1/2 aspect-square w-[72%] -translate-x-1/2 rounded-full bg-cyan-200/20 blur-3xl" aria-hidden="true" />
+            <Image
+              src={AGENTS_GROUP_IMAGE}
+              alt="Les agents IA spécialisés d’EasyCom IA"
+              width={1672}
+              height={810}
+              preload
+              sizes="(max-width: 1024px) 100vw, 56vw"
+              className="relative h-auto w-full object-contain drop-shadow-[0_28px_42px_rgba(2,6,23,0.42)]"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="regular-communication-title" className="relative isolate overflow-hidden bg-[#f7f8fc] px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_8%_18%,rgba(99,102,241,0.10),transparent_24%),radial-gradient(circle_at_92%_80%,rgba(249,115,22,0.09),transparent_22%)]"
+          aria-hidden="true"
+        />
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-4xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">Pensé pour votre quotidien</p>
+            <h2 id="regular-communication-title" className="mt-4 text-3xl font-bold tracking-[-0.03em] text-[#0b1230] sm:text-4xl lg:text-5xl">
+              Pourquoi communiquer régulièrement&nbsp;?
+            </h2>
+            <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-slate-600 sm:text-lg">
+              La régularité de votre communication augmente votre visibilité, renforce l’engagement de votre
+              communauté et multiplie les opportunités de mobilisation.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-6">
+            {REGULAR_COMMUNICATION_STATS.map((stat) => (
+              <article
+                key={stat.label}
+                className={`group relative isolate overflow-hidden rounded-[1.75rem] border border-white bg-white p-6 shadow-[0_22px_65px_rgba(30,41,59,0.08)] ring-1 ring-slate-200/70 transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_75px_rgba(30,41,59,0.13)] sm:p-8 ${stat.gridClass}`}
+              >
+                <span className={`pointer-events-none absolute -right-12 -top-12 -z-10 size-40 rounded-full blur-3xl ${stat.glow}`} aria-hidden="true" />
+                <p className={`bg-gradient-to-r bg-clip-text text-5xl font-bold tracking-[-0.06em] text-transparent sm:text-6xl ${stat.accent}`}>
+                  {stat.value}
+                </p>
+                <h3 className="mt-5 text-xl font-bold tracking-tight text-[#0b1230]">{stat.label}</h3>
+                <p className="mt-3 text-sm leading-7 text-slate-600">{stat.description}</p>
+                <a
+                  href={stat.sourceHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-6 inline-flex text-xs font-semibold text-slate-400 underline decoration-slate-300 underline-offset-4 transition hover:text-blue-700 focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                >
+                  Source : {stat.sourceLabel}
+                </a>
+              </article>
             ))}
           </div>
+
+          <div className="relative mt-8 overflow-hidden rounded-[2rem] bg-[#0b1230] px-6 py-10 text-center text-white shadow-[0_28px_80px_rgba(15,23,42,0.18)] sm:px-10 sm:py-12">
+            <div
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_20%,rgba(59,130,246,0.30),transparent_28%),radial-gradient(circle_at_86%_72%,rgba(249,115,22,0.20),transparent_24%)]"
+              aria-hidden="true"
+            />
+            <p className="relative mx-auto max-w-4xl text-2xl font-bold leading-tight tracking-[-0.03em] sm:text-3xl lg:text-4xl">
+              Plus vous communiquez, plus votre communauté voit ce que vous faites
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="agents" aria-labelledby="agents-title" className="bg-[#070b1d] px-4 py-16 text-white sm:px-6 lg:px-8 lg:py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">Une équipe spécialisée</p>
+            <h2 id="agents-title" className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              8 agents IA au service de votre mission.
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-300">
+              Spécialement conçus pour accompagner les Shlouhim et les représentants communautaires au quotidien.
+            </p>
+          </div>
+
+          <AgentShowcase agents={LANDING_AGENTS} initialVisibleCount={LANDING_AGENTS.length} />
         </div>
       </section>
 
       <InstallAppGuide />
 
-      <section id="fonctionnalites" className="bg-[#f6f8fc] px-4 py-14 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="mx-auto max-w-4xl text-center">
-            <div className="mb-6 flex w-full flex-wrap items-center justify-center gap-2 lg:gap-2.5">
-              {SOCIAL_CHANNELS.map((channel, index) => (
-                <div
-                  key={channel.name}
-                  className="animate-home-float flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white shadow-lg shadow-slate-300/40 transition duration-300 hover:-translate-y-1 hover:scale-110 hover:border-cyan-300 hover:shadow-cyan-400/20 lg:h-11 lg:w-11"
-                  style={{ animationDelay: `${index * 130}ms` }}
-                  title={channel.name}
-                >
-                  <Image src={channel.src} alt={`Logo ${channel.name}`} width={24} height={24} sizes="24px" className="h-6 w-6 object-contain" />
-                </div>
-              ))}
-            </div>
-            <h2 className="text-[clamp(1.75rem,6vw,2.5rem)] font-black leading-tight tracking-tight text-slate-950">
-              <span className="text-indigo-700">Votre temps est précieux</span> EasyCom IA centralise, prépare et{" "}
-              <span className="text-cyan-700">automatise votre communication</span>
+      <section aria-labelledby="faq-title" className="bg-[#f5f7fb] px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700">Questions fréquentes</p>
+            <h2 id="faq-title" className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
+              Les réponses avant de commencer.
             </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-600">
+              Une expérience simple, conçue pour être prise en main sans formation technique.
+            </p>
           </div>
 
-          <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {PLATFORM_FEATURES.map(({ label, description, icon: Icon, tone, line }) => (
-              <article key={label} className={`rounded-2xl border bg-white p-4 text-center shadow-sm ${tone}`}>
-                <div className={`mx-auto mb-4 h-1 w-10 rounded-full ${line}`} />
-                <div className={`mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-xl border bg-white ${tone}`}>
-                  <Icon className="size-5" />
-                </div>
-                <h3 className="text-sm font-black">{label}</h3>
-                <p className="mt-2 text-xs leading-5 text-slate-600">{description}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-slate-50 px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="text-center">
-            <p className="text-sm font-black uppercase tracking-[0.16em] text-cyan-700">Témoignages</p>
-            <h2 className="mt-3 text-[clamp(1.75rem,6vw,2.25rem)] font-black tracking-tight text-slate-950">
-              EasyCom IA les aide à mieux gérer leur communication au quotidien
-            </h2>
-          </div>
-
-          <div className="mt-12 overflow-hidden">
-            <div className="flex w-max gap-6 animate-testimonial-marquee hover:[animation-play-state:paused]">
-              {[...TESTIMONIALS, ...TESTIMONIALS].map((testimonial, index) => (
-                <article key={`${testimonial.name}-${index}`} className="w-[19rem] shrink-0 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-                  <div className="mb-4 flex flex-col items-center gap-3">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-full font-bold ${testimonial.color}`}>
-                      {testimonial.avatar}
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-black text-slate-950">{testimonial.name}</h3>
-                      <p className="text-xs font-medium text-slate-500">{testimonial.role}</p>
-                    </div>
-                  </div>
-                  <p className="text-sm leading-6 text-slate-600 italic">&quot;{testimonial.content}&quot;</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-[#f6f8fc] px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl">
-          <details className="group">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-5 text-left shadow-sm transition hover:border-cyan-300 [&::-webkit-details-marker]:hidden sm:px-6">
-              <div>
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-indigo-700">FAQ</p>
-                <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Questions fréquentes</h2>
-              </div>
-              <ArrowRight className="size-5 shrink-0 text-cyan-700 transition group-open:rotate-90" />
-            </summary>
-
-            <div className="mt-4 space-y-4">
-            {[
-              {
-                q: "Est-ce que je peux utiliser EasyCom IA pour n'importe quelle activité ?",
-                a: "Absolument. Que vous soyez une association, un commerce de proximité, un coach ou une grande communauté, l'IA s'adapte à votre contexte spécifique dès la configuration.",
-              },
-              {
-                q: "Ai-je besoin de connaissances techniques ?",
-                a: "Aucune. L'interface est pensée pour être aussi simple qu'une conversation. Vous demandez, l'IA propose, vous validez.",
-              },
-              {
-                q: "Quels sont les canaux de diffusion supportés ?",
-                a: "Nous supportons actuellement WhatsApp, Instagram, Facebook, Telegram et l'envoi d'emails groupés.",
-              },
-              {
-                q: "Mes données sont-elles sécurisées ?",
-                a: "La sécurité est notre priorité. Vos données et celles de votre communauté sont chiffrées et nous respectons strictement le RGPD.",
-              },
-            ].map((item) => (
-              <details key={item.q} className="group rounded-2xl border border-slate-200 bg-white p-6 transition open:border-cyan-300 open:shadow-sm">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-black text-slate-950 [&::-webkit-details-marker]:hidden">
-                  <span>{item.q}</span>
-                  <ArrowRight className="size-4 shrink-0 text-cyan-700 transition group-open:rotate-90" />
+          <div className="mx-auto mt-10 max-w-4xl space-y-3">
+            {FAQ.map((item) => (
+              <details key={item.question} className="group rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm open:border-cyan-200 sm:px-6">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-base font-semibold text-slate-950 [&::-webkit-details-marker]:hidden">
+                  <span>{item.question}</span>
+                  <ChevronRight className="size-5 shrink-0 text-cyan-700 transition group-open:rotate-90" aria-hidden="true" />
                 </summary>
-                <p className="mt-3 text-sm leading-6 text-slate-600">{item.a}</p>
+                <p className="mt-3 max-w-2xl pr-8 text-sm leading-6 text-slate-600">{item.answer}</p>
               </details>
             ))}
-            </div>
-          </details>
+          </div>
         </div>
       </section>
 
-      <section className="border-t border-cyan-400/20 bg-[#070b1d] px-4 py-12 text-center text-white sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col items-center gap-6">
-          <div>
-            <p className="text-sm font-bold text-cyan-300">EasyCom IA</p>
-            <h2 className="mt-2 text-[clamp(1.5rem,5.4vw,1.875rem)] font-black tracking-tight">
-              Concentrez-vous sur l&apos;essentiel. EasyCom IA s&apos;occupe du reste !
-            </h2>
-          </div>
+      <section className="bg-[#070b1d] px-4 py-16 text-center text-white sm:px-6 lg:px-8 lg:py-20">
+        <div className="mx-auto max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">EasyCom IA</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+            Votre communauté mérite une communication claire et régulière.
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-300">
+            Commencez gratuitement et découvrez comment vos agents peuvent alléger votre quotidien.
+          </p>
           <Link
-            href="/auth/login"
-            className="inline-flex h-11 items-center justify-center rounded-full bg-cyan-300 px-5 text-sm font-bold text-[#070b1d] transition hover:bg-cyan-200"
+            href="/auth/register"
+            className="mt-8 inline-flex h-12 items-center justify-center rounded-full bg-cyan-300 px-7 text-sm font-semibold text-[#070b1d] transition hover:-translate-y-0.5 hover:bg-cyan-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cyan-200/60"
           >
-            <LogIn className="mr-2 size-4" />
-            Essayer maintenant
+            Essayer gratuitement
+            <ArrowRight className="ml-2 size-4" aria-hidden="true" />
           </Link>
         </div>
       </section>

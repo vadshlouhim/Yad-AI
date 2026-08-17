@@ -84,7 +84,7 @@ export default async function DashboardOverviewPage() {
 
     admin
       .from("Community")
-      .select("name, tone, hashtags, channels:Channel(type, isConnected), plan, communityType")
+      .select("name, logoUrl, tone, hashtags, channels:Channel(type, isConnected), plan, communityType")
       .eq("id", communityId)
       .single(),
   ]);
@@ -97,9 +97,10 @@ export default async function DashboardOverviewPage() {
   };
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-0">
+    <div className="container mx-auto max-w-6xl px-0 py-0 md:px-6 md:py-6 lg:px-0">
       <DashboardClient
         userName={profile.name ?? ""}
+        userAvatar={profile.avatarUrl}
         community={community!}
         upcomingEvents={upcomingEvents ?? []}
         pendingPublications={pendingPublications ?? []}

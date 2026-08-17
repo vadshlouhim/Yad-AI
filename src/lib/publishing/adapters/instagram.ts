@@ -99,10 +99,12 @@ export async function publishToInstagram(
       return { success: false, error: publishData.error?.message ?? "Erreur publication Instagram" };
     }
 
+    const permalink = await loadInstagramPermalink(publishData.id, channel.accessToken);
+
     return {
       success: true,
       externalId: publishData.id,
-      externalUrl: `https://www.instagram.com/p/${publishData.id}`,
+      externalUrl: permalink ?? (channel.handle ? `https://www.instagram.com/${encodeURIComponent(channel.handle)}/` : "https://www.instagram.com/"),
     };
   } catch (error) {
     return {
@@ -115,6 +117,19 @@ export async function publishToInstagram(
       },
       error: error instanceof Error ? error.message : "Erreur inconnue",
     };
+  }
+}
+
+async function loadInstagramPermalink(mediaId: string, accessToken: string): Promise<string | null> {
+  try {
+    const permalinkUrl = new URL(`${GRAPH_API_BASE}/${mediaId}`);
+    permalinkUrl.searchParams.set("fields", "permalink");
+    permalinkUrl.searchParams.set("access_token", accessToken);
+    const response = await fetch(permalinkUrl);
+    const data = await response.json() as { permalink?: unknown };
+    return response.ok && typeof data.permalink === "string" ? data.permalink : null;
+  } catch {
+    return null;
   }
 }
 

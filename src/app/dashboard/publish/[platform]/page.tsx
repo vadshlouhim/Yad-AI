@@ -49,7 +49,7 @@ export default async function ManualPublishPage({ params }: Props) {
   const communityName = community?.name || "Ma Communaute";
 
   return (
-    <div className="container max-w-6xl mx-auto py-6">
+    <div className="container mx-auto max-w-6xl px-4 py-6 sm:px-6">
       <ManualPublishClient
         platform={platform}
         channelId={channel?.id ?? null}

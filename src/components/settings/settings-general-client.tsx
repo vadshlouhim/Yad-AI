@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Save, Building2, User, Palette, ChevronRight, ShieldCheck, Users, Smartphone, Trash2, Share2, Bot, SlidersHorizontal, Image as ImageIcon, Loader2, Upload, CreditCard } from "lucide-react";
+import { Save, Building2, User, Palette, ChevronRight, ShieldCheck, Users, Smartphone, Trash2, Share2, Bot, SlidersHorizontal, Image as ImageIcon, Loader2, Upload, CreditCard, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels";
@@ -126,6 +126,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
+  const [mobileSettingsHome, setMobileSettingsHome] = useState(initialSection === "community");
   const [assistantMode, setAssistantMode] = useState<"simple" | "detailed">("simple");
 
   // Community form
@@ -435,6 +436,12 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
     { id: "editorial" as const, label: "Identité éditoriale", icon: Palette },
     { id: "profile" as const, label: "Mon profil", icon: User },
   ];
+  const mobileSettingsItems = [
+    { id: "community" as const, label: "Communauté", icon: Building2, color: "bg-[#075ce5]" },
+    { id: "contacts" as const, label: "Contacts", icon: Users, color: "bg-[#07989c]" },
+    { id: "editorial" as const, label: "Identité éditoriale", icon: Palette, color: "bg-[#ee9d00]" },
+    { id: "profile" as const, label: "Mon profil", icon: User, color: "bg-[#d92c75]" },
+  ];
   const settingsCardClass = "rounded-2xl border border-slate-200/90 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] sm:rounded-[1.9rem]";
   const settingsHeaderClass = "border-b border-slate-100 px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-6";
   const settingsContentClass = "space-y-5 p-4 sm:p-7";
@@ -468,7 +475,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 [&>*]:border-emerald-100 [&>*]:font-semibold [&>*]:shadow-sm [&>*]:transition [&>*]:hover:-translate-y-0.5 [&>*]:hover:border-emerald-200 [&>*]:hover:bg-emerald-50">
+      <div className="hidden grid-cols-1 gap-2 sm:grid-cols-2 md:grid lg:grid-cols-3 [&>*]:border-emerald-100 [&>*]:font-semibold [&>*]:shadow-sm [&>*]:transition [&>*]:hover:-translate-y-0.5 [&>*]:hover:border-emerald-200 [&>*]:hover:bg-emerald-50">
         <Link href="/dashboard/settings/channels" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Connexion réseaux sociaux</Link>
         {profile.canAccessAdmin && (
           <Link href="/admin" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 hover:bg-emerald-100">
@@ -477,8 +484,58 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
         )}
       </div>
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
-        <nav className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:grid-cols-3 lg:flex lg:w-48 lg:shrink-0 lg:flex-col lg:space-y-1 lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
+      {mobileSettingsHome && (
+        <section className="md:hidden">
+          <h2 className="mb-4 text-xl font-black tracking-tight text-slate-950">Que souhaitez-vous régler ?</h2>
+          <div className="grid grid-cols-2 gap-3">
+            {mobileSettingsItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveSection(item.id);
+                    setMobileSettingsHome(false);
+                  }}
+                  className={cn("flex min-h-[132px] flex-col items-center justify-center gap-3 rounded-[1.65rem] p-4 text-center text-white shadow-[0_16px_30px_-18px_rgba(15,23,42,0.5)] transition active:scale-[0.98]", item.color)}
+                >
+                  <span className="flex size-12 items-center justify-center rounded-2xl bg-white text-slate-900 shadow-lg"><Icon className="size-6" /></span>
+                  <span className="text-base font-black leading-tight">{item.label}</span>
+                </button>
+              );
+            })}
+            <Link href="/dashboard/settings/billing" className="flex min-h-[132px] flex-col items-center justify-center gap-3 rounded-[1.65rem] bg-[#421388] p-4 text-center text-white shadow-[0_16px_30px_-18px_rgba(66,19,136,0.65)] transition active:scale-[0.98]">
+              <span className="flex size-12 items-center justify-center rounded-2xl bg-white text-[#421388] shadow-lg"><CreditCard className="size-6" /></span>
+              <span className="text-base font-black leading-tight">Facturation</span>
+            </Link>
+            <Link href="/dashboard/settings/channels" className="flex min-h-[132px] flex-col items-center justify-center gap-3 rounded-[1.65rem] bg-[#ef3f4f] p-4 text-center text-white shadow-[0_16px_30px_-18px_rgba(239,63,79,0.6)] transition active:scale-[0.98]">
+              <span className="flex size-12 items-center justify-center rounded-2xl bg-white text-[#ef3f4f] shadow-lg"><Share2 className="size-6" /></span>
+              <span className="text-base font-black leading-tight">Réseaux sociaux</span>
+            </Link>
+            {profile.canAccessAdmin && (
+              <Link href="/admin" className="col-span-2 flex min-h-20 items-center justify-center gap-3 rounded-[1.65rem] bg-slate-900 p-4 text-white shadow-lg">
+                <span className="flex size-11 items-center justify-center rounded-2xl bg-white text-slate-900"><ShieldCheck className="size-5" /></span>
+                <span className="text-base font-black">Admin global</span>
+              </Link>
+            )}
+          </div>
+        </section>
+      )}
+
+      {!mobileSettingsHome && (
+        <button
+          type="button"
+          onClick={() => setMobileSettingsHome(true)}
+          className="flex min-h-12 w-full items-center gap-3 rounded-2xl border border-violet-100 bg-white px-4 text-left text-sm font-black text-[#421388] shadow-sm md:hidden"
+        >
+          <span className="flex size-8 items-center justify-center rounded-xl bg-violet-100"><ArrowLeft className="size-4" /></span>
+          Retour aux paramètres
+        </button>
+      )}
+
+      <div className={cn("flex flex-col gap-4 lg:flex-row lg:gap-6", mobileSettingsHome && "hidden md:flex")}>
+        <nav className="hidden gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm md:grid md:grid-cols-3 lg:flex lg:w-48 lg:shrink-0 lg:flex-col lg:space-y-1 lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
           {navItems.map((item) => (
             <button
               key={item.id}

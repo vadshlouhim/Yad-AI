@@ -2,9 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
-  BookOpen,
   Download,
   FileImage,
   FileText,
@@ -18,8 +16,6 @@ import {
   WandSparkles,
   X,
 } from "lucide-react";
-import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
-import { AGENT_IMAGE_URLS } from "@/lib/agents";
 import {
   RESOURCE_CATEGORIES,
   RESOURCE_THEMES,
@@ -47,7 +43,6 @@ interface Props {
 }
 
 type Tab = "explorer" | "demandes";
-const SHMOUEL_TORAH_IMAGE = AGENT_IMAGE_URLS.shmouel;
 
 const FILE_ICONS: Record<string, React.ReactNode> = {
   pdf: <FileText className="size-5 text-red-500" />,
@@ -80,14 +75,14 @@ function ResourceCard({
   };
 
   return (
-    <article className="flex min-w-0 flex-col gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_4px_16px_rgba(15,23,42,0.06)] transition-shadow hover:shadow-[0_8px_24px_rgba(15,23,42,0.10)]">
+    <article className="group flex min-w-0 flex-col gap-3 overflow-hidden rounded-3xl border border-violet-100 bg-gradient-to-br from-white via-white to-cyan-50/50 p-4 shadow-[0_12px_35px_-24px_rgba(76,29,149,0.45)] transition duration-300 hover:-translate-y-1 hover:border-teal-200 hover:shadow-[0_20px_45px_-24px_rgba(13,148,136,0.45)]">
       {resource.isFeatured && (
         <div className="flex items-center gap-1 text-xs font-semibold text-amber-600">
           <Sparkles className="size-3.5" /> À la une
         </div>
       )}
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50 ring-1 ring-slate-100">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-50 to-cyan-50 ring-1 ring-violet-100 transition-transform group-hover:scale-105">
           {icon}
         </div>
         <div className="min-w-0 flex-1">
@@ -120,13 +115,13 @@ function ResourceCard({
           <>
             <button
               onClick={handleDownload}
-              className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg bg-teal-700 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-teal-800"
+              className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:from-teal-700 hover:to-cyan-700"
             >
               <Download className="size-3.5" /> Télécharger
             </button>
             <button
               onClick={() => onAdapt(resource)}
-              className="flex min-w-0 items-center justify-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-800 transition-colors hover:bg-teal-100"
+              className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-800 transition-colors hover:bg-violet-100"
             >
               <WandSparkles className="size-3.5" /> Adapter
             </button>
@@ -292,7 +287,7 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
   const [activeTheme, setActiveTheme] = useState<ResourceTheme | "">("");
   const [loading, setLoading] = useState(false);
   const [adaptTarget, setAdaptTarget] = useState<CommunityResource | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchResources = useCallback(async (q: string, category: string, theme: string) => {
@@ -338,32 +333,29 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 overflow-x-hidden px-4 py-6 sm:px-6">
-      <AgentPageBanner
-        eyebrow="Bibliothèque partagée"
-        title="Vos ressources, enrichies par l’intelligence collective"
-        description="Partagez et découvrez des cours, affiches, lettres et textes WhatsApp créés par et pour votre communauté. Shmouel vous aide à adapter chaque ressource au bon moment."
-        icon={Library}
-        imageUrl={SHMOUEL_TORAH_IMAGE}
-        imageAlt="Shmouel, agent IA Bibliothèque partagée"
-        bubbleTitle="Je suis Shmouel, votre agent IA Bibliothèque partagée"
-        bubbleText="Je classe vos ressources Torah et vous aide à les partager au bon moment"
-        bubbleTitleClassName="text-slate-950"
-        tone="teal-dark"
-        flat
-      />
+      <section className="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(125deg,#0f766e_0%,#0891b2_45%,#7c3aed_100%)] px-6 py-7 text-white shadow-[0_28px_70px_-35px_rgba(76,29,149,0.7)] sm:px-9 sm:py-8">
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-fuchsia-300/25 blur-3xl" />
+        <div className="absolute -bottom-24 left-1/4 h-52 w-52 rounded-full bg-cyan-200/25 blur-3xl" />
+        <div className="relative max-w-3xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-white backdrop-blur-sm">
+            <Library className="size-3.5" /> Bibliothèque partagée
+          </div>
+          <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">Bibliothèque partagée</h1>
+        </div>
+      </section>
 
       <div className="flex flex-wrap justify-center gap-3">
         {isPaid ? (
           <>
             <Link
               href="/dashboard/community-library/submit"
-              className="inline-flex items-center gap-2 rounded-2xl bg-teal-700 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-teal-800"
+              className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-violet-200/70 transition hover:-translate-y-0.5 hover:from-violet-700 hover:to-fuchsia-700"
             >
               <Plus className="size-4" /> Soumettre une ressource
             </Link>
             <Link
               href="/dashboard/community-library/request"
-              className="inline-flex items-center gap-2 rounded-2xl border border-teal-200 bg-white px-4 py-2.5 text-sm font-bold text-teal-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-teal-50"
+              className="inline-flex items-center gap-2 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-bold text-cyan-800 shadow-sm transition hover:-translate-y-0.5 hover:bg-cyan-100"
             >
               <MessageCircle className="size-4" /> Faire une demande
             </Link>
@@ -375,74 +367,13 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
         )}
       </div>
 
-      {/* Bandeau violet */}
-      <section className="hidden overflow-hidden rounded-[2rem] border border-violet-900/30 bg-[linear-gradient(135deg,#2e1065,#4c1d95,#6d28d9)] p-[1px] shadow-[0_24px_60px_rgba(109,40,217,0.18)]">
-        <div className="relative rounded-[calc(2rem-1px)] bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.10),transparent_30%),linear-gradient(135deg,rgba(46,16,101,0.97),rgba(76,29,149,0.95),rgba(109,40,217,0.92))] px-6 py-7 text-white sm:px-8">
-          <div className="absolute right-6 top-5 text-right font-serif text-2xl font-bold text-white/60 sm:right-8">
-            ב&quot;ה
-          </div>
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-violet-100">
-              <Library className="size-3.5" />
-              Bibliothèque partagée
-            </div>
-            <h1 className="mt-4 text-3xl font-black tracking-tight">
-              Vos ressources, enrichies par l&apos;intelligence collective
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-violet-100/90">
-              Partagez et découvrez des cours, affiches, lettres et textes WhatsApp créés par et pour votre communauté.
-              L&apos;IA vous aide à adapter chaque ressource à vos besoins.
-            </p>
-          </div>
-          <div className="mt-5 flex flex-wrap gap-3">
-            {isPaid ? (
-              <>
-                <Link
-                  href="/dashboard/community-library/submit"
-                  className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-bold text-violet-700 shadow-sm transition-colors hover:bg-violet-50"
-                >
-                  <Plus className="size-4" /> Soumettre une ressource
-                </Link>
-                <Link
-                  href="/dashboard/community-library/request"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-white/20"
-                >
-                  <MessageCircle className="size-4" /> Faire une demande
-                </Link>
-              </>
-            ) : (
-              <div className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white/80">
-                <Lock className="size-4" /> Abonnez-vous pour contribuer
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Stats rapides */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {[
-          { label: "Ressources", value: total, icon: BookOpen, color: "text-teal-700" },
-          { label: "Demandes ouvertes", value: requests.filter((r) => r.status === "open").length, icon: MessageCircle, color: "text-blue-600" },
-          { label: "Catégories", value: RESOURCE_CATEGORIES.length, icon: Filter, color: "text-emerald-600" },
-        ].map((stat) => (
-          <div key={stat.label} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-            <stat.icon className={`size-5 shrink-0 ${stat.color}`} />
-            <div>
-              <div className="text-lg font-black text-slate-900">{stat.value}</div>
-              <div className="text-xs text-slate-500">{stat.label}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* Tabs */}
-      <div className="flex gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-1">
+      <div className="flex gap-1 rounded-2xl border border-violet-100 bg-gradient-to-r from-cyan-50 via-white to-violet-50 p-1.5 shadow-sm">
         {([["explorer", "Explorer"], ["demandes", "Demandes"]] as [Tab, string][]).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${tab === key ? "bg-white text-teal-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            className={`flex-1 rounded-xl py-2.5 text-sm font-bold transition ${tab === key ? "bg-gradient-to-r from-teal-600 to-violet-600 text-white shadow-md" : "text-slate-500 hover:bg-white/70 hover:text-violet-700"}`}
           >
             {label}
           </button>
@@ -452,21 +383,23 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
       {tab === "explorer" && (
         <>
           {/* Barre de recherche + filtres */}
-          <div className="mx-auto w-full max-w-4xl space-y-3">
-            <div className="flex gap-2">
+          <div className="mx-auto w-full max-w-5xl space-y-3 rounded-3xl border border-violet-100 bg-[linear-gradient(135deg,rgba(236,254,255,0.9),rgba(255,255,255,0.95),rgba(245,243,255,0.9))] p-4 shadow-[0_20px_55px_-35px_rgba(76,29,149,0.45)] sm:p-5">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-teal-600" />
                 <input
                   type="text"
                   value={query}
                   onChange={(e) => handleSearch(e.target.value)}
-                  placeholder="Rechercher une ressource…"
-                  className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-100"
+                  placeholder="Ex. cours sur la paracha, affiche de fête, texte WhatsApp…"
+                  aria-label="Rechercher dans la bibliothèque"
+                  className="w-full rounded-2xl border border-teal-200 bg-white py-3.5 pl-11 pr-4 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
                 />
               </div>
               <button
                 onClick={() => setShowFilters((v) => !v)}
-                className={`flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${showFilters ? "border-teal-300 bg-teal-50 text-teal-800" : "border-slate-200 bg-white text-slate-600 hover:border-teal-200"}`}
+                aria-expanded={showFilters}
+                className={`flex items-center justify-center gap-1.5 rounded-2xl border px-4 py-3 text-sm font-bold transition ${showFilters ? "border-violet-200 bg-violet-600 text-white shadow-md shadow-violet-200" : "border-slate-200 bg-white text-slate-600 hover:border-violet-200 hover:text-violet-700"}`}
               >
                 <Filter className="size-4" /> Filtres
                 {(activeCategory || activeTheme) && (
@@ -475,41 +408,14 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
               </button>
             </div>
 
-            <section className="relative overflow-hidden rounded-3xl border border-teal-100 bg-white px-4 py-4 shadow-[0_18px_45px_-30px_rgba(6,95,70,0.28)] sm:px-6 sm:py-5">
-              <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-end">
-                <Image
-                  src={SHMOUEL_TORAH_IMAGE}
-                  alt="Shmouel, agent IA Bibliothèque"
-                  width={128}
-                  height={128}
-                  className="h-24 w-auto shrink-0 object-contain drop-shadow-[0_14px_18px_rgba(6,60,55,0.18)] sm:-mb-7 sm:h-32"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="relative rounded-2xl bg-teal-50 px-4 py-3 text-sm text-slate-700 before:absolute before:-top-2 before:left-1/2 before:size-4 before:-translate-x-1/2 before:rotate-45 before:bg-teal-50 sm:before:-left-2 sm:before:top-auto sm:before:bottom-8 sm:before:translate-x-0">
-                    <p className="font-black text-slate-950">Que cherchez-vous ?</p>
-                    <p className="mt-1 text-xs leading-5 text-slate-600">Décrivez simplement le document, le thème ou le besoin. Je recherche dans la bibliothèque pour vous.</p>
-                  </div>
-                  <div className="relative mt-4">
-                    <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-teal-700" />
-                    <input
-                      value={query}
-                      onChange={(event) => handleSearch(event.target.value)}
-                      placeholder="Ex. un cours sur la paracha, une affiche pour une fête..."
-                      className="w-full rounded-xl border border-teal-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
-                    />
-                  </div>
-                </div>
-              </div>
-            </section>
-
             {showFilters && (
-              <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+              <div className="space-y-5 rounded-2xl border border-white bg-white/80 p-4 shadow-sm backdrop-blur-sm">
                 <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Catégorie</p>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-teal-700">Catégories</p>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => handleCategoryFilter("")}
-                      className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${!activeCategory ? "bg-teal-700 text-white" : "border border-slate-200 text-slate-600 hover:border-teal-200"}`}
+                      className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${!activeCategory ? "bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-600 hover:border-teal-300 hover:text-teal-700"}`}
                     >
                       Toutes
                     </button>
@@ -517,7 +423,7 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
                       <button
                         key={cat}
                         onClick={() => handleCategoryFilter(cat)}
-                        className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${activeCategory === cat ? "bg-teal-700 text-white" : `border border-slate-200 hover:border-teal-200 ${CATEGORY_COLORS[cat]}`}`}
+                        className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${activeCategory === cat ? "bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-sm" : `border border-white shadow-sm hover:-translate-y-0.5 ${CATEGORY_COLORS[cat]}`}`}
                       >
                         {cat}
                       </button>
@@ -525,11 +431,11 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
                   </div>
                 </div>
                 <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Thème</p>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-violet-700">Thèmes</p>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => handleThemeFilter("")}
-                      className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${!activeTheme ? "bg-teal-700 text-white" : "border border-slate-200 text-slate-600 hover:border-teal-200"}`}
+                      className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${!activeTheme ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-600 hover:border-violet-300 hover:text-violet-700"}`}
                     >
                       Tous
                     </button>
@@ -537,7 +443,7 @@ export function CommunityLibraryClient({ community, initialResources, initialTot
                       <button
                         key={th}
                         onClick={() => handleThemeFilter(th)}
-                        className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${activeTheme === th ? "bg-teal-700 text-white" : `border border-slate-200 hover:border-teal-200 ${THEME_COLORS[th]}`}`}
+                        className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${activeTheme === th ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-sm" : `border border-white shadow-sm hover:-translate-y-0.5 ${THEME_COLORS[th]}`}`}
                       >
                         {th}
                       </button>

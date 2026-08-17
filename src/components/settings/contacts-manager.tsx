@@ -269,25 +269,26 @@ export function ContactsManager() {
   const selectedHebrewMonth = Number(form.hebrewBirthMonth);
 
   return (
-    <section className="overflow-hidden rounded-[1.9rem] border border-emerald-100 bg-white shadow-[0_20px_54px_rgba(5,150,105,0.1)]">
-      <div className="border-b border-emerald-100/80 bg-emerald-50/70 p-5 sm:p-7">
+    <section className="overflow-hidden rounded-[2rem] border border-violet-100 bg-white shadow-[0_20px_54px_rgba(66,19,136,0.1)]">
+      <div className="relative overflow-hidden border-b border-violet-100 bg-[#fffaf4] p-5 sm:p-7">
+        <div className="pointer-events-none absolute -right-16 -top-20 size-48 rounded-full bg-blue-300/15 blur-3xl" />
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-          <div>
-            <div className="flex items-center gap-2 text-slate-950"><Users className="size-5 text-emerald-600" /><h2 className="text-lg font-black">Mes contacts</h2></div>
+          <div className="relative">
+            <div className="flex items-center gap-2 text-slate-950"><span className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2878ef] to-[#175acb] text-white shadow-lg shadow-blue-200"><Users className="size-5" /></span><h2 className="text-lg font-black">Mes contacts</h2></div>
             <p className="mt-1 text-sm text-slate-500">Recherchez, enrichissez et préparez vos destinataires en quelques clics.</p>
           </div>
-          <Button onClick={openCreate} className="bg-emerald-600 shadow-[0_12px_22px_-14px_rgba(5,150,105,0.85)] hover:bg-emerald-700"><Plus className="size-4" />Ajouter un contact</Button>
+          <Button onClick={openCreate} className="relative rounded-xl bg-gradient-to-r from-[#7130d8] to-[#d92d7c] font-black text-white shadow-lg shadow-violet-200 hover:brightness-105"><Plus className="size-4" />Ajouter un contact</Button>
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
-            ["Contacts", stats.total, Users, "text-emerald-900"],
-            ["Avec téléphone", stats.phone, Phone, "text-emerald-700"],
-            ["Avec email", stats.email, Mail, "text-teal-700"],
-            ["Profils enrichis", stats.enriched, Sparkles, "text-lime-700"],
-          ].map(([label, value, Icon, color]) => {
+            ["Contacts", stats.total, Users, "text-blue-700", "border-blue-100 bg-blue-50"],
+            ["Avec téléphone", stats.phone, Phone, "text-emerald-700", "border-emerald-100 bg-emerald-50"],
+            ["Avec email", stats.email, Mail, "text-fuchsia-700", "border-fuchsia-100 bg-fuchsia-50"],
+            ["Profils enrichis", stats.enriched, Sparkles, "text-amber-700", "border-amber-100 bg-amber-50"],
+          ].map(([label, value, Icon, color, surface]) => {
             const StatIcon = Icon as typeof Users;
-            return <div key={String(label)} className="rounded-2xl border border-emerald-100/80 bg-white/80 p-3 shadow-sm"><StatIcon className={cn("size-4", color)} /><p className={cn("mt-2 text-xl font-black", color)}>{String(value)}</p><p className="text-[11px] font-medium text-slate-500">{String(label)}</p></div>;
+            return <div key={String(label)} className={cn("relative rounded-2xl border p-3 shadow-sm", surface)}><StatIcon className={cn("size-4", color)} /><p className={cn("mt-2 text-xl font-black", color)}>{String(value)}</p><p className="text-[11px] font-semibold text-slate-500">{String(label)}</p></div>;
           })}
         </div>
       </div>
@@ -296,29 +297,19 @@ export function ContactsManager() {
         {message && <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-800"><CheckCircle2 className="size-4" />{message}<button className="ml-auto" onClick={() => setMessage(null)} aria-label="Fermer"><X className="size-4" /></button></div>}
         {error && <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">{error}</div>}
 
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-800"><Sparkles className="size-4" /></span>
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-800">Bientôt disponible</p>
-              <p className="mt-1 text-sm font-semibold leading-6">L&apos;IA pourra classer vos contacts selon leur récurrence et les sommes des dons données, des mots clés, ville, amis....</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 shadow-sm sm:p-4">
+        <div className="rounded-[1.6rem] border border-teal-200 bg-gradient-to-br from-[#edfffd] to-[#eefcff] p-3 shadow-[0_12px_30px_rgba(8,142,155,0.09)] sm:p-4">
           <div className="mb-3 flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-xl bg-emerald-700 text-white shadow-sm"><BrainCircuit className="size-4" /></span>
+            <span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#0faeb3] to-[#078e9b] text-white shadow-lg shadow-teal-200"><BrainCircuit className="size-4" /></span>
             <div>
-              <p className="text-sm font-black text-emerald-950">Recherche intelligente par l&apos;IA</p>
-              <p className="text-xs text-emerald-800">Décrivez simplement le contact ou le profil recherché.</p>
+              <p className="text-sm font-black text-slate-950">Recherche intelligente par l&apos;IA</p>
+              <p className="text-xs text-teal-800">Décrivez simplement le contact ou le profil recherché.</p>
             </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <label className="relative min-w-0 flex-1"><Bot className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-emerald-600" /><input value={query} onChange={(event) => handleSearchChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void runAiSearch(); } }} placeholder="Ex. contacts à Paris, enseignants, sans email..." className="h-11 w-full rounded-xl border border-emerald-200 bg-white pl-10 pr-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100" /></label>
-            <Button onClick={() => void runAiSearch()} disabled={aiSearchLoading || query.trim().length < 2} className="bg-emerald-700 text-white hover:bg-emerald-800">{aiSearchLoading ? <><LoaderCircle className="size-4 animate-spin" /> Recherche IA</> : <><Sparkles className="size-4" /> Rechercher avec l&apos;IA</>}</Button>
+            <label className="relative min-w-0 flex-1"><Bot className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-teal-600" /><input value={query} onChange={(event) => handleSearchChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void runAiSearch(); } }} placeholder="Ex. contacts à Paris, enseignants, sans email..." className="h-11 w-full rounded-xl border border-teal-200 bg-white pl-10 pr-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-100" /></label>
+            <Button onClick={() => void runAiSearch()} disabled={aiSearchLoading || query.trim().length < 2} className="rounded-xl bg-gradient-to-r from-[#0faeb3] to-[#078e9b] font-black text-white shadow-md shadow-teal-200 hover:brightness-105">{aiSearchLoading ? <><LoaderCircle className="size-4 animate-spin" /> Recherche IA</> : <><Sparkles className="size-4" /> Rechercher avec l&apos;IA</>}</Button>
           </div>
-          {aiSearchSummary && <p className="mt-3 rounded-xl border border-emerald-100 bg-white/80 px-3 py-2 text-xs font-medium leading-5 text-emerald-900">{aiSearchSummary}</p>}
+          {aiSearchSummary && <p className="mt-3 rounded-xl border border-teal-100 bg-white/80 px-3 py-2 text-xs font-semibold leading-5 text-teal-900">{aiSearchSummary}</p>}
         </div>
 
         <div className="hidden flex-col gap-2 sm:flex-row">
@@ -327,33 +318,34 @@ export function ContactsManager() {
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {[["all", "Tous"], ["phone", "Téléphone"], ["email", "Email"], ["incomplete", "À enrichir"]].map(([value, label]) => <button key={value} onClick={() => value === "all" ? showAllContacts() : setFilter(value as Filter)} className={cn("shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200", filter === value ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/20" : "border border-emerald-100 bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100")}>{label}</button>)}
+          {[["all", "Tous"], ["phone", "Téléphone"], ["email", "Email"], ["incomplete", "À enrichir"]].map(([value, label]) => <button key={value} onClick={() => value === "all" ? showAllContacts() : setFilter(value as Filter)} className={cn("shrink-0 rounded-full px-3 py-1.5 text-xs font-black transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-200", filter === value ? "bg-gradient-to-r from-[#7130d8] to-[#421388] text-white shadow-md shadow-violet-200" : "border border-violet-100 bg-violet-50/70 text-violet-800 hover:bg-violet-100")}>{label}</button>)}
         </div>
 
-        <div className="flex flex-col gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-2"><Smartphone className="mt-0.5 size-4 shrink-0 text-emerald-600" /><p className="text-xs leading-5 text-emerald-950"><strong>Import mobile.</strong> Android/Chrome ouvre le carnet de contacts. Sur iPhone, choisissez un fichier vCard exporté depuis Contacts.</p></div>
-          <div className="flex shrink-0 gap-2"><Button variant="outline" size="sm" className="border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-100" onClick={importPhoneContacts} disabled={saving}><Smartphone className="size-4" />Depuis le téléphone</Button><Button variant="outline" size="sm" className="border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-100" onClick={() => vCardInput.current?.click()} disabled={saving}><Upload className="size-4" />vCard</Button><input ref={vCardInput} type="file" accept=".vcf,text/vcard" className="hidden" onChange={async (event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; if (!file) return; await importContacts(parseVCard(await file.text())); }} /></div>
+        <div className="flex flex-col gap-2 rounded-2xl border border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-2"><Smartphone className="mt-0.5 size-4 shrink-0 text-amber-700" /><p className="text-xs leading-5 text-amber-950"><strong>Import mobile.</strong> Android/Chrome ouvre le carnet de contacts. Sur iPhone, choisissez un fichier vCard exporté depuis Contacts.</p></div>
+          <div className="flex shrink-0 gap-2"><Button variant="outline" size="sm" className="border-amber-200 bg-white font-black text-amber-800 hover:bg-amber-100" onClick={importPhoneContacts} disabled={saving}><Smartphone className="size-4" />Depuis le téléphone</Button><Button variant="outline" size="sm" className="border-amber-200 bg-white font-black text-amber-800 hover:bg-amber-100" onClick={() => vCardInput.current?.click()} disabled={saving}><Upload className="size-4" />vCard</Button><input ref={vCardInput} type="file" accept=".vcf,text/vcard" className="hidden" onChange={async (event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; if (!file) return; await importContacts(parseVCard(await file.text())); }} /></div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-emerald-100">
-          {loading ? <p className="p-8 text-center text-sm text-slate-400">Chargement des contacts…</p> : displayedContacts.length === 0 ? <div className="p-10 text-center"><Users className="mx-auto size-8 text-emerald-200" /><p className="mt-3 text-sm font-semibold text-slate-700">Aucun contact trouvé</p><p className="mt-1 text-xs text-slate-500">Modifiez votre recherche ou ajoutez votre premier contact.</p></div> : <div className="divide-y divide-emerald-50">{displayedContacts.map((contact) => <article key={contact.id} className="group flex items-center gap-3 px-4 py-3 transition hover:bg-emerald-50/65"><div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-sm font-black text-emerald-700">{contact.displayName.slice(0, 1).toUpperCase()}</div><button className="min-w-0 flex-1 text-left" onClick={() => openEdit(contact)}><p className="truncate text-sm font-bold text-slate-900">{contact.displayName}</p><p className="mt-0.5 truncate text-xs text-slate-500">{[contact.phone, contact.email].filter(Boolean).join(" · ") || "Aucun canal renseigné"}</p>{(contact.profession || contact.city) && <p className="mt-1 truncate text-[11px] text-slate-400">{[contact.profession, contact.city].filter(Boolean).join(" · ")}</p>}</button><div className="hidden gap-1 sm:flex">{contact.phone && <Phone className="size-4 text-emerald-500" />}{contact.email && <Mail className="size-4 text-teal-500" />}</div><Button variant="ghost" size="icon-sm" className="text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800" onClick={() => openEdit(contact)} aria-label={`Modifier ${contact.displayName}`}><Pencil className="size-4" /></Button><Button variant="ghost" size="icon-sm" className="text-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => void deleteContact(contact)} aria-label={`Supprimer ${contact.displayName}`}><Trash2 className="size-4" /></Button></article>)}</div>}
+        <div className="overflow-hidden rounded-[1.6rem] border border-violet-100 shadow-sm">
+          {loading ? <p className="p-8 text-center text-sm text-slate-400">Chargement des contacts…</p> : displayedContacts.length === 0 ? <div className="p-10 text-center"><Users className="mx-auto size-8 text-violet-200" /><p className="mt-3 text-sm font-semibold text-slate-700">Aucun contact trouvé</p><p className="mt-1 text-xs text-slate-500">Modifiez votre recherche ou ajoutez votre premier contact.</p></div> : <div className="divide-y divide-violet-50">{displayedContacts.map((contact) => <article key={contact.id} className="group flex items-center gap-3 px-4 py-3 transition hover:bg-violet-50/65"><div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#2878ef] to-[#7130d8] text-sm font-black text-white shadow-sm">{contact.displayName.slice(0, 1).toUpperCase()}</div><button className="min-w-0 flex-1 text-left" onClick={() => openEdit(contact)}><p className="truncate text-sm font-bold text-slate-900">{contact.displayName}</p><p className="mt-0.5 truncate text-xs text-slate-500">{[contact.phone, contact.email].filter(Boolean).join(" · ") || "Aucun canal renseigné"}</p>{(contact.profession || contact.city) && <p className="mt-1 truncate text-[11px] text-slate-400">{[contact.profession, contact.city].filter(Boolean).join(" · ")}</p>}</button><div className="hidden gap-1 sm:flex">{contact.phone && <Phone className="size-4 text-emerald-500" />}{contact.email && <Mail className="size-4 text-fuchsia-500" />}</div><Button variant="ghost" size="icon-sm" className="text-violet-700 hover:bg-violet-100 hover:text-violet-800" onClick={() => openEdit(contact)} aria-label={`Modifier ${contact.displayName}`}><Pencil className="size-4" /></Button><Button variant="ghost" size="icon-sm" className="text-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => void deleteContact(contact)} aria-label={`Supprimer ${contact.displayName}`}><Trash2 className="size-4" /></Button></article>)}</div>}
         </div>
       </div>
 
       {formOpen && (
-        <div className="fixed inset-0 z-50 flex items-end bg-emerald-950/30 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-5">
-          <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-[2rem] border border-emerald-100 bg-white p-5 shadow-2xl sm:max-w-lg sm:rounded-[2rem] sm:p-7">
+        <div className="fixed inset-0 z-50 flex items-end bg-[#170534]/60 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-5">
+          <div className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-[2rem] border border-violet-100 bg-[#fffaf4] p-5 shadow-[0_28px_80px_rgba(33,7,99,0.38)] sm:max-w-lg sm:rounded-[2rem] sm:p-7">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-2 bg-gradient-to-r from-[#7130d8] via-[#d92d7c] to-[#ffbd17]" />
             <div className="flex items-center justify-between">
-              <div><h3 className="text-lg font-black text-slate-950">{editing ? "Modifier le contact" : "Nouveau contact"}</h3><p className="text-xs text-slate-500">Les informations utiles pour mieux communiquer.</p></div>
-              <Button variant="ghost" size="icon-sm" className="text-emerald-700 hover:bg-emerald-50" onClick={() => setFormOpen(false)}><X className="size-4" /></Button>
+              <div className="flex items-center gap-3"><span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2878ef] to-[#7130d8] text-white shadow-lg shadow-violet-200"><Users className="size-5" /></span><div><h3 className="text-lg font-black text-slate-950">{editing ? "Modifier le contact" : "Nouveau contact"}</h3><p className="text-xs text-slate-500">Les informations utiles pour mieux communiquer.</p></div></div>
+              <Button variant="ghost" size="icon-sm" className="text-violet-700 hover:bg-violet-50" onClick={() => setFormOpen(false)}><X className="size-4" /></Button>
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <input value={form.firstName} onChange={(event) => setForm({ ...form, firstName: event.target.value })} placeholder="Prénom" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" />
-              <input value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} placeholder="Nom complet" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" />
-              <input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} placeholder="Téléphone" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" />
-              <input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="Email" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" />
-              <input value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} placeholder="Ville" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" />
-              <input value={form.profession} onChange={(event) => setForm({ ...form, profession: event.target.value })} placeholder="Profession" className="h-11 rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" />
+              <input value={form.firstName} onChange={(event) => setForm({ ...form, firstName: event.target.value })} placeholder="Prénom" className="h-11 rounded-xl border border-violet-100 bg-white px-3 text-sm outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100" />
+              <input value={form.displayName} onChange={(event) => setForm({ ...form, displayName: event.target.value })} placeholder="Nom complet" className="h-11 rounded-xl border border-violet-100 bg-white px-3 text-sm outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100" />
+              <input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} placeholder="Téléphone" className="h-11 rounded-xl border border-violet-100 bg-white px-3 text-sm outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100" />
+              <input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="Email" className="h-11 rounded-xl border border-violet-100 bg-white px-3 text-sm outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100" />
+              <input value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} placeholder="Ville" className="h-11 rounded-xl border border-violet-100 bg-white px-3 text-sm outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100" />
+              <input value={form.profession} onChange={(event) => setForm({ ...form, profession: event.target.value })} placeholder="Profession" className="h-11 rounded-xl border border-violet-100 bg-white px-3 text-sm outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100" />
               <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:col-span-2">
                 <div className="flex items-center gap-2"><Cake className="size-5 text-amber-700" /><p className="text-sm font-black text-amber-950">Anniversaire hébraïque</p></div>
                 <div className="mt-3 grid grid-cols-3 gap-2">
@@ -363,10 +355,10 @@ export function ContactsManager() {
                 </div>
                 {form.hebrewBirthDay && selectedHebrewMonth && form.hebrewBirthYear && <p className="mt-2 text-xs font-bold text-amber-800">{form.hebrewBirthDay} {getHebrewMonthLabel(selectedHebrewMonth, formHebrewYear)} {form.hebrewBirthYear}</p>}
               </div>
-              <textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Notes ou préférences" rows={3} className="rounded-xl border border-emerald-200 bg-emerald-50/30 px-3 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 sm:col-span-2" />
+              <textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Notes ou préférences" rows={3} className="rounded-xl border border-violet-100 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100 sm:col-span-2" />
             </div>
             {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-            <div className="mt-5 flex gap-2"><Button variant="outline" className="flex-1 border-emerald-200 text-emerald-800 hover:bg-emerald-50" onClick={() => setFormOpen(false)}>Annuler</Button><Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={() => void saveContact()} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer"}</Button></div>
+            <div className="mt-5 flex gap-2"><Button variant="outline" className="flex-1 rounded-xl border-violet-200 bg-white font-black text-violet-800 hover:bg-violet-50" onClick={() => setFormOpen(false)}>Annuler</Button><Button className="flex-1 rounded-xl bg-gradient-to-r from-[#7130d8] to-[#d92d7c] font-black text-white shadow-lg shadow-violet-200 hover:brightness-105" onClick={() => void saveContact()} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer"}</Button></div>
           </div>
         </div>
       )}

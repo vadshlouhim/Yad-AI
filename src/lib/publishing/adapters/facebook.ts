@@ -57,10 +57,12 @@ export async function publishToFacebook(
       return { success: false, error: data.error?.message ?? "Erreur API Facebook" };
     }
 
+    const permalink = await loadFacebookPermalink(data.id, channel.accessToken);
+
     return {
       success: true,
       externalId: data.id,
-      externalUrl: `https://www.facebook.com/${data.id}`,
+      externalUrl: permalink ?? `https://www.facebook.com/${data.id}`,
     };
   } catch (error) {
     return {
@@ -113,13 +115,29 @@ async function publishFacebookWithMedia(
       return { success: false, error: data.error?.message ?? "Erreur publication" };
     }
 
+    const permalink = await loadFacebookPermalink(data.id, channel.accessToken ?? "");
+
     return {
       success: true,
       externalId: data.id,
-      externalUrl: `https://www.facebook.com/${data.id}`,
+      externalUrl: permalink ?? `https://www.facebook.com/${data.id}`,
     };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Erreur upload" };
+  }
+}
+
+async function loadFacebookPermalink(postId: string, accessToken: string): Promise<string | null> {
+  if (!accessToken) return null;
+  try {
+    const permalinkUrl = new URL(`${GRAPH_API_BASE}/${postId}`);
+    permalinkUrl.searchParams.set("fields", "permalink_url");
+    permalinkUrl.searchParams.set("access_token", accessToken);
+    const response = await fetch(permalinkUrl);
+    const data = await response.json() as { permalink_url?: unknown };
+    return response.ok && typeof data.permalink_url === "string" ? data.permalink_url : null;
+  } catch {
+    return null;
   }
 }
 
