@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Suspense } from "react";
 import type { ComponentType, SVGProps } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -146,16 +147,18 @@ export function DashboardClient({
 
   return (
     <>
-      <MobileDashboardHome
-        firstName={firstName}
-        userName={userName}
-        userAvatar={userAvatar}
-        communityName={community.name}
-        communityLogo={community.logoUrl}
-        communityType={community.communityType}
-        unreadNotifications={notifications.length}
-        basePath={basePath}
-      />
+      <Suspense fallback={null}>
+        <MobileDashboardHome
+          firstName={firstName}
+          userName={userName}
+          userAvatar={userAvatar}
+          communityName={community.name}
+          communityLogo={community.logoUrl}
+          communityType={community.communityType}
+          unreadNotifications={notifications.length}
+          basePath={basePath}
+        />
+      </Suspense>
       <div className="hidden min-w-0 space-y-5 pb-8 md:block">
       <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
