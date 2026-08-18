@@ -9,6 +9,7 @@ import {
   Bell,
   BookOpen,
   BotMessageSquare,
+  CalendarDays,
   CalendarRange,
   ChevronDown,
   CreditCard,
@@ -29,6 +30,7 @@ import { HOME_EASYCOM_AGENTS, type EasyComAgent } from "@/lib/agents";
 import {
   getOfficialDashboardMenuSections,
   OFFICIAL_MENU_SECTION_STYLES,
+  WhatsAppIcon,
   type OfficialDashboardMenuSection,
 } from "@/components/layout/dashboard-nav";
 
@@ -84,7 +86,7 @@ const ACTION_CARDS: ActionCard[] = [
     title: "Communication ciblée",
     icon: Target,
     className: "from-[#ff4c50] via-[#f63f47] to-[#e9333d]",
-    sectionKey: "targeted",
+    href: "/dashboard/communication-ciblee",
   },
   {
     key: "torah",
@@ -162,6 +164,7 @@ export function MobileDashboardHome({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [whatsAppComingSoonOpen, setWhatsAppComingSoonOpen] = useState(false);
   const agentsScrollerRef = useRef<HTMLDivElement>(null);
   const moduleKey = searchParams.get("module");
   const sections = useMemo(() => getOfficialDashboardMenuSections(communityType), [communityType]);
@@ -171,14 +174,7 @@ export function MobileDashboardHome({
   );
   const selectedSection = useMemo(() => {
     if (!moduleKey) return undefined;
-    if (moduleKey !== "targeted") return sectionByKey.get(moduleKey);
-    return {
-      key: "targeted",
-      section: "COMMUNICATION CIBLÉE",
-      subtitle: "Une communication personnalisée pour chaque groupe de contacts",
-      icon: Target,
-      items: [],
-    } satisfies OfficialDashboardMenuSection;
+    return sectionByKey.get(moduleKey);
   }, [moduleKey, sectionByKey]);
   const featuredAgents = FEATURED_AGENT_SLUGS.flatMap((slug) =>
     HOME_EASYCOM_AGENTS.filter((agent) => agent.slug === slug)
@@ -231,6 +227,19 @@ export function MobileDashboardHome({
           </div>
 
           <div className="flex items-center gap-2.5">
+            <Link
+              href={resolveHref("/dashboard/events", basePath)}
+              aria-label="Ouvrir l’Agenda IA"
+              className="relative flex size-12 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white backdrop-blur-sm transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <span className="relative flex size-7 items-center justify-center rounded-full bg-white/16 ring-1 ring-white/15">
+                <CalendarDays className="size-4.5 stroke-[2.25]" />
+                <span className="absolute -right-1 -top-1 rounded-full bg-[#23c45e] px-1 py-[1px] text-[0.43rem] font-black uppercase leading-none text-white shadow-sm">
+                  IA
+                </span>
+              </span>
+            </Link>
+
             <Link
               href={resolveHref("/dashboard/notifications", basePath)}
               aria-label="Ouvrir les notifications"
@@ -317,19 +326,31 @@ export function MobileDashboardHome({
           Bienvenue, {firstName}
         </h1>
 
-        <div className="relative mt-7 flex items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2.5 text-[1.35rem] font-extrabold tracking-[-0.025em]">
-            <Sparkles className="size-6 fill-[#ffba13] text-[#ffba13]" />
-            Vos agents IA
-          </h2>
-          <button
-            type="button"
-            onClick={scrollAgentsForward}
-            aria-label="Afficher les agents IA suivants"
-            className="flex size-11 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/10 backdrop-blur-sm transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            <ArrowRight className="size-5" />
-          </button>
+        <div className="relative mt-7">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="flex shrink-0 items-center gap-2.5 text-[1.35rem] font-extrabold tracking-[-0.025em]">
+              <Sparkles className="size-6 shrink-0 fill-[#ffba13] text-[#ffba13]" />
+              <span className="inline-flex items-center gap-2">
+                <span>Vos agents IA</span>
+                <button
+                  type="button"
+                  onClick={() => setWhatsAppComingSoonOpen(true)}
+                  aria-label="Bientôt disponible sur WhatsApp"
+                  className="inline-flex size-7 items-center justify-center rounded-full bg-white shadow-[0_8px_20px_rgba(12,23,16,0.2)] ring-1 ring-white/75 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  <WhatsAppIcon className="size-4 text-[#1db954]" />
+                </button>
+              </span>
+            </h2>
+            <button
+              type="button"
+              onClick={scrollAgentsForward}
+              aria-label="Afficher les agents IA suivants"
+              className="flex size-11 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/10 backdrop-blur-sm transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <ArrowRight className="size-5" />
+            </button>
+          </div>
         </div>
 
         <div
@@ -365,6 +386,7 @@ export function MobileDashboardHome({
             })}
           </div>
         </div>
+
       </section>
 
       <section className="px-5 pb-4 pt-7">
@@ -390,11 +412,6 @@ export function MobileDashboardHome({
                     </span>
                   ) : action.title}
                 </span>
-                {action.key === "targeted" && (
-                  <span className="absolute right-2.5 top-2.5 rounded-full bg-white px-2 py-1 text-[0.52rem] font-black uppercase tracking-wide text-[#e9333d] shadow-sm">
-                    Bientôt dispo
-                  </span>
-                )}
               </>
             );
             const className = cn(
@@ -433,6 +450,44 @@ export function MobileDashboardHome({
           if (!open) closeSection();
         }}
       />
+      <DialogPrimitive.Root open={whatsAppComingSoonOpen} onOpenChange={setWhatsAppComingSoonOpen}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-[1000] bg-[#170534]/60 backdrop-blur-[3px]" />
+          <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-[1001] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[2rem] bg-[#fffaf5] shadow-[0_28px_80px_rgba(23,5,52,0.38)] outline-none">
+            <div className="relative bg-[radial-gradient(circle_at_75%_0%,#27c864_0%,#179c49_58%,#0c7c37_100%)] px-5 pb-5 pt-5 text-white">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex size-12 items-center justify-center rounded-2xl bg-white shadow-sm">
+                    <WhatsAppIcon className="size-7 text-[#1db954]" />
+                  </span>
+                  <div>
+                    <DialogPrimitive.Title className="text-lg font-black uppercase tracking-tight">
+                      Bientôt disponible
+                    </DialogPrimitive.Title>
+                  </div>
+                </div>
+                <DialogPrimitive.Close className="flex size-10 items-center justify-center rounded-full bg-white/16 text-white ring-1 ring-white/20 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                  <X className="size-5" />
+                  <span className="sr-only">Fermer</span>
+                </DialogPrimitive.Close>
+              </div>
+            </div>
+            <div className="px-5 pb-5 pt-5 text-center">
+              <p className="text-base font-bold leading-7 text-slate-800">
+                Bientôt vous pourriez dialoguer avec vos agents IA par WhatsApp.
+              </p>
+              <DialogPrimitive.Close asChild>
+                <button
+                  type="button"
+                  className="mt-5 min-h-12 w-full rounded-2xl bg-[#1db954] px-5 text-sm font-black uppercase text-white shadow-[0_16px_30px_-18px_rgba(29,185,84,0.8)] transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200"
+                >
+                  J’ai compris
+                </button>
+              </DialogPrimitive.Close>
+            </div>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
     </div>
   );
 }
@@ -450,7 +505,6 @@ function ModuleDialog({
 }) {
   const isSocialSection = section?.key === "social";
   const isCommunitySection = section?.key === "automations";
-  const isTargetedSection = section?.key === "targeted";
   const isCompactGridSection = Boolean(section && ["torah", "visuals", "contacts", "email"].includes(section.key));
   const style = section
     ? OFFICIAL_MENU_SECTION_STYLES[section.key] ?? OFFICIAL_MENU_SECTION_STYLES.resources
@@ -485,9 +539,7 @@ function ModuleDialog({
                 </span>
                 <div className="min-w-0 flex-1 pt-0.5">
                   <DialogPrimitive.Title className="text-lg font-black uppercase tracking-tight text-white">
-                    {isTargetedSection
-                      ? "Bientôt disponible"
-                      : isSocialSection
+                    {isSocialSection
                       ? "Publier partout"
                       : isCommunitySection
                         ? "Communication automatiser"
@@ -502,7 +554,7 @@ function ModuleDialog({
                             ) : compactGridTitle
                           : section.section}
                   </DialogPrimitive.Title>
-                  <DialogPrimitive.Description className={cn("mt-1 text-sm leading-5 text-white/82", (isTargetedSection || isSocialSection || isCommunitySection || isCompactGridSection || !section.subtitle) && "sr-only")}>
+                  <DialogPrimitive.Description className={cn("mt-1 text-sm leading-5 text-white/82", (isSocialSection || isCommunitySection || isCompactGridSection || !section.subtitle) && "sr-only")}>
                     {section.subtitle || `Choisissez une fonction dans ${section.section.toLowerCase()}.`}
                   </DialogPrimitive.Description>
                 </div>
@@ -513,36 +565,7 @@ function ModuleDialog({
               </div>
 
               <div className="overflow-y-auto p-4">
-                {isTargetedSection ? (
-                  <div className="text-center">
-                    <span className="mx-auto flex size-20 items-center justify-center rounded-[1.75rem] bg-gradient-to-br from-[#ff5b5f] to-[#e9333d] text-white shadow-[0_16px_34px_rgba(233,51,61,0.28)]">
-                      <Target className="size-9 stroke-[2.2]" />
-                    </span>
-                    <h3 className="mt-5 text-xl font-black tracking-[-0.03em] text-slate-950">Communication ciblée</h3>
-                    <p className="mx-auto mt-3 max-w-sm text-sm font-semibold leading-6 text-slate-600">
-                      L’IA vous aidera à sélectionner les bons contacts dans votre CRM, créer un message personnalisé et l’envoyer uniquement au groupe concerné.
-                    </p>
-                    <div className="mt-5 grid gap-2 text-left">
-                      {[
-                        "Sélection intelligente depuis votre CRM",
-                        "Message adapté à chaque groupe de contacts",
-                        "Envoi ciblé, clair et toujours maîtrisé",
-                      ].map((feature) => (
-                        <div key={feature} className="flex min-h-12 items-center gap-3 rounded-2xl border border-red-100 bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm">
-                          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-red-50 text-[#e9333d]">
-                            <Sparkles className="size-4" />
-                          </span>
-                          {feature}
-                        </div>
-                      ))}
-                    </div>
-                    <DialogPrimitive.Close asChild>
-                      <button type="button" className="mt-6 min-h-12 w-full rounded-2xl bg-gradient-to-r from-[#ff4c50] to-[#e9333d] px-5 text-sm font-black uppercase text-white shadow-lg shadow-red-200 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-200">
-                        J’ai compris
-                      </button>
-                    </DialogPrimitive.Close>
-                  </div>
-                ) : isSocialSection ? (
+                {isSocialSection ? (
                   <div className="space-y-3">
                     {socialPrimaryItem && (() => {
                       const PrimaryIcon = socialPrimaryItem.icon;

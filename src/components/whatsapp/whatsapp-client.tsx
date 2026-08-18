@@ -43,6 +43,11 @@ interface Member {
   optInWhatsapp: boolean;
 }
 
+interface GenerateResponse {
+  message: string;
+  variants?: string[];
+}
+
 interface UploadedAttachment {
   url: string;
   name: string;
@@ -108,6 +113,10 @@ function buildOutgoingMediaUrls(attachments: UploadedAttachment[]) {
 
 function uniqueValues(values: string[]) {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
+}
+
+function normalizeVariantList(variants: string[]) {
+  return Array.from(new Set(variants.map((variant) => variant.trim()).filter(Boolean)));
 }
 
 function WhatsAppConnectionPanel({
@@ -638,8 +647,6 @@ function RecipientSelector({
   onToggleContact,
   selectedListTags,
   onToggleList,
-  groups,
-  setGroups,
   manualNumbers,
   setManualNumbers,
 }: {
@@ -649,8 +656,6 @@ function RecipientSelector({
   onToggleContact: (id: string) => void;
   selectedListTags: Set<string>;
   onToggleList: (tag: string) => void;
-  groups: string;
-  setGroups: (value: string) => void;
   manualNumbers: string;
   setManualNumbers: (value: string) => void;
 }) {
@@ -726,7 +731,10 @@ function RecipientSelector({
 
       {listTags.length > 0 && (
         <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Listes</p>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Groupes CRM</p>
+            <p className="text-[11px] font-semibold text-slate-400">Gérés dans la page Contacts</p>
+          </div>
           <div className="flex flex-wrap gap-2">
             {listTags.map((tag) => (
               <button
@@ -747,31 +755,21 @@ function RecipientSelector({
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
-            Groupes
-          </label>
-          <textarea
-            value={groups}
-            onChange={(event) => setGroups(event.target.value)}
-            placeholder="Ex: Groupe parents, bénévoles..."
-            rows={3}
-            className="w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-          />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
-            Numéros manuels
-          </label>
-          <textarea
-            value={manualNumbers}
-            onChange={(event) => setManualNumbers(event.target.value)}
-            placeholder="+33612345678, +972..."
-            rows={3}
-            className="w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-          />
-        </div>
+      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-3 text-sm text-emerald-900">
+        Sélectionnez un ou plusieurs groupes CRM pour cibler les bons destinataires, limiter les envois répétitifs et réduire le risque de spam.
+      </div>
+
+      <div>
+        <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
+          Numéros manuels
+        </label>
+        <textarea
+          value={manualNumbers}
+          onChange={(event) => setManualNumbers(event.target.value)}
+          placeholder="+33612345678, +972..."
+          rows={3}
+          className="w-full resize-none rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+        />
       </div>
     </div>
   );
@@ -800,7 +798,6 @@ function ScheduleDialog({
   const [uploading, setUploading] = useState(false);
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [selectedListTags, setSelectedListTags] = useState<Set<string>>(new Set());
-  const [groups, setGroups] = useState("");
   const [manualNumbers, setManualNumbers] = useState("");
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("09:00");
@@ -826,7 +823,7 @@ function ScheduleDialog({
       const form = new FormData();
       form.append("file", file);
       const response = await fetch("/api/uploads/attachment", { method: "POST", body: form });
-      const data = await response.json();
+      const data = await response.json() as GenerateResponse & { code?: string; error?: string };
       if (!response.ok) throw new Error(data.error ?? "Upload impossible.");
       setAttachments((current) => [...current, data as UploadedAttachment]);
     } catch (uploadError) {
@@ -866,7 +863,6 @@ function ScheduleDialog({
 
   async function createSchedule() {
     const manual = uniqueValues(manualNumbers.split(/[\n,;]/));
-    const groupValues = uniqueValues(groups.split(/[\n,;]/));
     const hasRecipients = selectedContactIds.size > 0 || selectedListTags.size > 0 || manual.length > 0;
 
     if (!content.trim() && attachments.length === 0) {
@@ -891,7 +887,7 @@ function ScheduleDialog({
       attachments,
       contactIds: Array.from(selectedContactIds),
       listTags: Array.from(selectedListTags),
-      groups: groupValues,
+      groups: Array.from(selectedListTags),
       manualNumbers: manual,
       scheduledDate,
       scheduledTime,
@@ -992,8 +988,6 @@ function ScheduleDialog({
               onToggleContact={toggleContact}
               selectedListTags={selectedListTags}
               onToggleList={toggleList}
-              groups={groups}
-              setGroups={setGroups}
               manualNumbers={manualNumbers}
               setManualNumbers={setManualNumbers}
             />
@@ -1121,10 +1115,10 @@ export function WhatsAppClient({
   const [membersLoading, setMembersLoading] = useState(true);
   const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
   const [selectedListTags, setSelectedListTags] = useState<Set<string>>(new Set());
-  const [groups, setGroups] = useState("");
   const [manualNumbers, setManualNumbers] = useState("");
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduledSends, setScheduledSends] = useState<ScheduledSend[]>([]);
+  const [generatedVariants, setGeneratedVariants] = useState<string[]>([]);
   const [upgradeOpen, setUpgradeOpen] = useState(!isPaid);
   const [, setConnectionState] = useState({
     connected: isCloudConfigured,
@@ -1236,9 +1230,9 @@ export function WhatsAppClient({
       const response = await fetch("/api/whatsapp/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: cleanPrompt }),
+        body: JSON.stringify({ prompt: cleanPrompt, variants: 3 }),
       });
-      const data = await response.json();
+      const data = await response.json() as GenerateResponse & { code?: string; error?: string };
       if (!response.ok) {
         if (data.code === "PAYWALL_REQUIRED") {
           setUpgradeOpen(true);
@@ -1246,6 +1240,7 @@ export function WhatsAppClient({
         }
         throw new Error(data.error ?? "Erreur de génération.");
       }
+      setGeneratedVariants(normalizeVariantList(data.variants ?? [data.message]));
       setMessage(data.message);
     } catch (generateError) {
       setError(generateError instanceof Error ? generateError.message : "Erreur de génération IA.");
@@ -1271,18 +1266,13 @@ export function WhatsAppClient({
     const mediaUrls = buildOutgoingMediaUrls(attachments);
     const contactIds = resolveSelectedContactIds();
     const phones = uniqueValues(manualNumbers.split(/[\n,;]/));
-    const groupValues = uniqueValues(groups.split(/[\n,;]/));
 
     if (!text && mediaUrls.length === 0) {
       setError("Ajoutez un message ou une pièce jointe avant l'envoi.");
       return;
     }
-    if (contactIds.length === 0 && phones.length === 0 && groupValues.length === 0) {
+    if (contactIds.length === 0 && phones.length === 0 && selectedListTags.size === 0) {
       setError("Sélectionnez au moins un destinataire.");
-      return;
-    }
-    if (groupValues.length > 0 && contactIds.length === 0 && phones.length === 0) {
-      setError("Ajoutez au moins un contact ou un numéro manuel pour envoyer maintenant.");
       return;
     }
 
@@ -1377,6 +1367,24 @@ export function WhatsAppClient({
 
       <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <section className="space-y-5">
+          <div className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-green-50 p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white text-emerald-700 shadow-sm ring-1 ring-emerald-100">
+                <Sparkles className="size-5" />
+              </span>
+              <div className="space-y-2">
+                <h2 className="text-lg font-bold text-slate-950">Envoyez en masse sur WhatsApp avec plus de s?curit?</h2>
+                <p className="text-sm leading-6 text-slate-600">
+                  EasyCom IA vous aide ? pr?parer un message plus propre pour WhatsApp : vous choisissez les groupes CRM, vous g?n?rez plusieurs variantes, puis vous validez vous-m?me le texte avant l&apos;envoi.
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100">Groupes reli?s au CRM</span>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100">Variantes anti-spam</span>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100">Validation manuelle avant envoi</span>
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="overflow-hidden rounded-3xl border border-emerald-100 bg-white p-0 shadow-sm">
             <div className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50 via-white to-green-50 px-5 py-4">
               <h2 className="flex items-center gap-2 text-base font-bold text-slate-900">
@@ -1481,8 +1489,6 @@ export function WhatsAppClient({
             onToggleContact={toggleContact}
             selectedListTags={selectedListTags}
             onToggleList={toggleList}
-            groups={groups}
-            setGroups={setGroups}
             manualNumbers={manualNumbers}
             setManualNumbers={setManualNumbers}
           />
@@ -1534,6 +1540,41 @@ export function WhatsAppClient({
           <WhatsAppPhonePreview message={previewMessage} attachments={attachments} />
 
           <div className="space-y-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            {generatedVariants.length > 0 && (
+              <div className="space-y-3 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-950">
+                  <Sparkles className="size-4 text-emerald-700" />
+                  Variantes ? valider
+                </div>
+                <div className="grid gap-2">
+                  {generatedVariants.map((variant, index) => {
+                    const active = variant.trim() === message.trim();
+                    return (
+                      <button
+                        key={`${index}-${variant.slice(0, 24)}`}
+                        type="button"
+                        onClick={() => {
+                          setMessage(variant);
+                          setError("");
+                        }}
+                        className={cn(
+                          "rounded-2xl border px-4 py-3 text-left text-sm leading-6 transition",
+                          active
+                            ? "border-emerald-500 bg-white text-slate-900 shadow-sm"
+                            : "border-emerald-100 bg-white/80 text-slate-600 hover:border-emerald-300 hover:bg-white"
+                        )}
+                      >
+                        <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-emerald-700">
+                          Variante {index + 1}
+                        </span>
+                        <span className="line-clamp-3 block">{variant}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <label htmlFor="whatsapp-message-edit" className="text-xs font-bold uppercase tracking-wide text-slate-500">
                 Modifier le message
@@ -1597,9 +1638,7 @@ export function WhatsAppClient({
               onToggleContact={toggleContact}
               selectedListTags={selectedListTags}
               onToggleList={toggleList}
-              groups={groups}
-              setGroups={setGroups}
-              manualNumbers={manualNumbers}
+                            manualNumbers={manualNumbers}
               setManualNumbers={setManualNumbers}
             />
 

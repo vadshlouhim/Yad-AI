@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { FormEvent, useMemo, useState, useTransition } from "react";
+import { FormEvent, type ReactNode, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { HDate } from "@hebcal/core";
@@ -429,10 +429,21 @@ export function EventsClient({
 
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const activeStatus = searchParams.get("status") ?? "";
-  const viewMode: ViewMode = searchParams.get("view") === "calendar" ? "calendar" : "list";
+  const isMobileViewport = typeof window !== "undefined" && window.innerWidth < 768;
+  const viewModeParam = searchParams.get("view");
+  const viewMode: ViewMode =
+    viewModeParam === "calendar"
+      ? "calendar"
+      : viewModeParam === "list"
+        ? "list"
+        : isMobileViewport
+          ? "calendar"
+          : "list";
   const activePeriod = PERIODS.some((period) => period.value === searchParams.get("period"))
     ? (searchParams.get("period") as CalendarPeriod)
-    : "week";
+    : isMobileViewport
+      ? "month"
+      : "week";
   const [anchorDate, setAnchorDate] = useState(() => {
     const today = new Date();
     if (activePeriod === "month") return startOfMonth(today);
@@ -540,195 +551,36 @@ export function EventsClient({
 
   return (
     <div className="min-w-0 space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-[#421388]/60 bg-gradient-to-br from-[#421388] via-[#34106f] to-[#1b0738] p-4 text-white shadow-lg shadow-[#421388]/25 sm:p-5">
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.13)_0%,transparent_34%,transparent_66%,rgba(196,181,253,0.16)_100%)]" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/80 to-transparent" />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="mb-2 h-1.5 w-10 rounded-full bg-violet-200" />
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-[1.7rem]">Mon Agenda</h1>
-            <p className="mt-1 text-sm text-violet-100/85">
-              Retrouvez au même endroit vos publications programmées, vos automatisations et vos tâches personnelles.
-            </p>
-            <div className="mt-4">
-              <TaskCreateDialog />
-            </div>
-          </div>
-          <div className="flex justify-end sm:min-w-28" aria-hidden="true">
-            <div className="relative flex h-20 w-20 items-center justify-center rounded-[1.6rem] border border-white/15 bg-white/10 shadow-2xl shadow-[#1b0738]/40 backdrop-blur animate-install-float sm:h-24 sm:w-24">
-              <div className="absolute inset-2 rounded-[1.15rem] border border-violet-200/25 bg-[#421388]/45" />
-              <div className="absolute -right-1.5 -top-1.5 flex h-8 w-8 items-center justify-center rounded-xl border border-violet-100/50 bg-violet-100 text-[10px] font-black text-[#421388] shadow-lg shadow-[#1b0738]/25 animate-install-pulse">
-                IA
-              </div>
-              <div className="relative text-5xl drop-shadow-[0_12px_20px_rgba(27,7,56,0.45)] sm:text-6xl">
-                🗓️
-              </div>
-              <span className="absolute bottom-4 left-4 size-2 rounded-full bg-violet-200 shadow-[0_0_18px_rgba(221,214,254,0.95)] animate-pulse" />
-              <span className="absolute right-7 top-8 size-1.5 rounded-full bg-white/90 shadow-[0_0_14px_rgba(255,255,255,0.8)] animate-ping" />
-            </div>
-          </div>
-        </div>
+      <div className="space-y-4 md:hidden">
+        <MobileAgendaHero
+          isBethHabad={isBethHabad}
+          showShabbat={showShabbat}
+          showHolidays={showHolidays}
+          onToggleShabbat={toggleShabbat}
+          onToggleHolidays={toggleHolidays}
+        />
 
-        {(isBethHabad || hasAutomations) && <div className="relative mt-4 flex flex-wrap gap-3 border-t border-violet-200/25 pt-3">
-          <p className="w-full text-xs font-semibold uppercase tracking-wide text-violet-100/80">Afficher dans l&apos;agenda :</p>
-          {hasAutomations && (
-            <button
-              type="button"
-              onClick={toggleAutomations}
-              className={cn(
-                "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5",
-                showAutomations
-                  ? "border-violet-200 bg-violet-50 text-[#421388] shadow-sm shadow-[#421388]/20"
-                  : "border-white/25 bg-white/10 text-white hover:border-violet-200 hover:bg-white/15 hover:text-violet-100"
-              )}
-            >
-              <span className={cn(
-                "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-                showAutomations ? "border-[#421388] bg-[#421388]" : "border-white/50"
-              )}>
-                {showAutomations && <span className="text-white text-[10px] leading-none">✓</span>}
-              </span>
-              <Zap className="size-3.5" />
-              Automatisations
-            </button>
-          )}
-          {isBethHabad && <button
-            type="button"
-            onClick={toggleShabbat}
-            className={cn(
-              "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5",
-              showShabbat
-                ? "border-amber-400 bg-amber-50 text-amber-700"
-                : "border-white/25 bg-white/10 text-white hover:border-amber-300 hover:bg-white/15 hover:text-amber-100"
-            )}
-          >
-            <span className={cn(
-              "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-              showShabbat ? "border-amber-500 bg-amber-500" : "border-slate-300"
-            )}>
-              {showShabbat && <span className="text-white text-[10px] leading-none">✓</span>}
-            </span>
-            Horaires de Chabbat
-          </button>}
+        <MobileAgendaControls
+          search={search}
+          setSearch={setSearch}
+          onSearchSubmit={() => updateFilter("q", search)}
+          viewMode={viewMode}
+          onViewChange={(view) => updateFilter("view", view)}
+          period={activePeriod}
+          onPeriodChange={updatePeriod}
+        />
 
-          {isBethHabad && <button
-            type="button"
-            onClick={toggleHolidays}
-            className={cn(
-              "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5",
-              showHolidays
-                ? "border-violet-300 bg-violet-50 text-[#421388]"
-                : "border-white/25 bg-white/10 text-white hover:border-violet-200 hover:bg-white/15 hover:text-violet-100"
-            )}
-          >
-            <span className={cn(
-              "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-              showHolidays ? "border-[#421388] bg-[#421388]" : "border-slate-300"
-            )}>
-              {showHolidays && <span className="text-white text-[10px] leading-none">✓</span>}
-            </span>
-            Fêtes juives
-          </button>}
-        </div>}
-      </div>
-
-      <Card className="rounded-2xl border-[#421388]/15 bg-white shadow-sm shadow-[#421388]/5 transition-shadow duration-300 hover:shadow-md hover:shadow-[#421388]/10 max-md:border-[#421388]/20 max-md:bg-gradient-to-br max-md:from-white max-md:via-violet-50/50 max-md:to-fuchsia-50/40">
-        <CardContent className="space-y-4 p-4">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {STATUS_FILTERS.map((filter) => {
-                const count = filter.value ? (statusCounts[filter.value] ?? 0) : totalAll;
-                const isActive = activeStatus === filter.value;
-                return (
-                  <button
-                    key={filter.value}
-                    onClick={() => updateFilter("status", filter.value)}
-                    className={cn(
-                      "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5",
-                      isActive
-                        ? "bg-[#421388] text-white shadow-sm"
-                        : "border border-slate-200 bg-white text-slate-600 hover:border-[#421388]/20 hover:bg-violet-50/50 hover:text-[#421388]"
-                    )}
-                  >
-                    {filter.label}
-                    <span className={cn(
-                      "rounded-full px-1.5 py-0.5 text-xs",
-                      isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
-                    )}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row xl:items-center">
-              <div className="flex rounded-xl border border-[#421388]/15 bg-violet-50/60 p-1 max-md:border-[#421388]/15 max-md:bg-white/80">
-                {[
-                  { value: "calendar", label: "Calendrier", icon: CalendarDays },
-                  { value: "list", label: "Liste", icon: LayoutList },
-                ].map((view) => {
-                  const Icon = view.icon;
-                  const isActive = viewMode === view.value;
-                  return (
-                    <button
-                      key={view.value}
-                      type="button"
-                      onClick={() => updateFilter("view", view.value)}
-                      className={cn(
-                        "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 sm:flex-none",
-                        isActive ? "bg-white text-[#421388] shadow-sm" : "text-slate-500 hover:text-[#421388]"
-                      )}
-                    >
-                      <Icon className="size-4" />
-                      {view.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  onKeyDown={(event) => event.key === "Enter" && updateFilter("q", search)}
-                  placeholder="Rechercher dans l&apos;agenda..."
-                  className="w-full rounded-xl border border-[#421388]/15 bg-violet-50/50 py-2.5 pl-9 pr-4 text-sm transition-colors focus:border-[#421388] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#421388]/20 max-md:border-[#421388]/15 max-md:bg-white"
-                />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {events.length === 0 && !shouldRenderCalendar ? (
-        <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-slate-200 bg-white py-16 text-center max-md:border-cyan-200 max-md:bg-gradient-to-br max-md:from-white max-md:via-sky-50/60 max-md:to-emerald-50/60">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 max-md:bg-gradient-to-br max-md:from-[#1E88E5] max-md:to-[#00A7A0] max-md:shadow-[0_10px_24px_rgba(30,136,229,0.22)]">
-            <CalendarDays className="size-7 text-slate-400 max-md:text-white" />
-          </div>
-          <div>
-            <p className="font-semibold text-slate-700">Aucune date dans l&apos;agenda</p>
-          <p className="mt-1 text-sm text-slate-400">Aucune date n&apos;est prévue pour le moment.</p>
-        </div>
-      </div>
-      ) : (
-        shouldRenderCalendar ? (
-          <CalendarView
+        {events.length === 0 && !shouldRenderCalendar ? (
+          <MobileAgendaEmpty />
+        ) : shouldRenderCalendar ? (
+          <MobileCalendarView
             events={events}
-            periodEvents={periodEvents}
-            todaysEvents={todaysEvents}
             period={activePeriod}
             anchorDate={anchorDate}
-            dayShabbatItem={showShabbat ? shabbatByDate.get(dayKey(anchorDate)) : undefined}
-            dayHolidayItems={showHolidays ? holidayByDate.get(dayKey(anchorDate)) : undefined}
             shabbatByDate={showShabbat ? shabbatByDate : undefined}
             holidayByDate={showHolidays ? holidayByDate : undefined}
             automationByDate={automationByDate}
             taskByDate={taskByDate}
-            todaysAutomations={todaysAutomations}
-            onPeriodChange={updatePeriod}
             onToday={goToday}
             onPrevious={() => setAnchorDate((date) => moveAnchor(date, activePeriod, -1))}
             onNext={() => setAnchorDate((date) => moveAnchor(date, activePeriod, 1))}
@@ -739,7 +591,7 @@ export function EventsClient({
             timezone={timezone}
           />
         ) : (
-          <ListView
+          <MobileListView
             groupedEvents={groupedEvents}
             taskByDate={listTaskByDate}
             automationByDate={listAutomationByDate}
@@ -749,9 +601,804 @@ export function EventsClient({
             isBethHabad={isBethHabad}
             timezone={timezone}
           />
-        )
+        )}
+      </div>
+
+      <div className="hidden space-y-6 md:block">
+        <div className="relative overflow-hidden rounded-3xl border border-[#421388]/60 bg-gradient-to-br from-[#421388] via-[#34106f] to-[#1b0738] p-4 text-white shadow-lg shadow-[#421388]/25 sm:p-5">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.13)_0%,transparent_34%,transparent_66%,rgba(196,181,253,0.16)_100%)]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/80 to-transparent" />
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="mb-2 h-1.5 w-10 rounded-full bg-violet-200" />
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-[1.7rem]">Mon Agenda</h1>
+              <p className="mt-1 text-sm text-violet-100/85">
+                Retrouvez au même endroit vos publications programmées, vos automatisations et vos tâches personnelles.
+              </p>
+              <div className="mt-4">
+                <TaskCreateDialog />
+              </div>
+            </div>
+            <div className="flex justify-end sm:min-w-28" aria-hidden="true">
+              <div className="relative flex h-20 w-20 items-center justify-center rounded-[1.6rem] border border-white/15 bg-white/10 shadow-2xl shadow-[#1b0738]/40 backdrop-blur animate-install-float sm:h-24 sm:w-24">
+                <div className="absolute inset-2 rounded-[1.15rem] border border-violet-200/25 bg-[#421388]/45" />
+                <div className="absolute -right-1.5 -top-1.5 flex h-8 w-8 items-center justify-center rounded-xl border border-violet-100/50 bg-violet-100 text-[10px] font-black text-[#421388] shadow-lg shadow-[#1b0738]/25 animate-install-pulse">
+                  IA
+                </div>
+                <div className="relative text-5xl drop-shadow-[0_12px_20px_rgba(27,7,56,0.45)] sm:text-6xl">
+                  🗓️
+                </div>
+                <span className="absolute bottom-4 left-4 size-2 rounded-full bg-violet-200 shadow-[0_0_18px_rgba(221,214,254,0.95)] animate-pulse" />
+                <span className="absolute right-7 top-8 size-1.5 rounded-full bg-white/90 shadow-[0_0_14px_rgba(255,255,255,0.8)] animate-ping" />
+              </div>
+            </div>
+          </div>
+
+          {(isBethHabad || hasAutomations) && <div className="relative mt-4 flex flex-wrap gap-3 border-t border-violet-200/25 pt-3">
+            <p className="w-full text-xs font-semibold uppercase tracking-wide text-violet-100/80">Afficher dans l&apos;agenda :</p>
+            {hasAutomations && (
+              <button
+                type="button"
+                onClick={toggleAutomations}
+                className={cn(
+                  "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5",
+                  showAutomations
+                    ? "border-violet-200 bg-violet-50 text-[#421388] shadow-sm shadow-[#421388]/20"
+                    : "border-white/25 bg-white/10 text-white hover:border-violet-200 hover:bg-white/15 hover:text-violet-100"
+                )}
+              >
+                <span className={cn(
+                  "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+                  showAutomations ? "border-[#421388] bg-[#421388]" : "border-white/50"
+                )}>
+                  {showAutomations && <span className="text-white text-[10px] leading-none">✓</span>}
+                </span>
+                <Zap className="size-3.5" />
+                Automatisations
+              </button>
+            )}
+            {isBethHabad && <button
+              type="button"
+              onClick={toggleShabbat}
+              className={cn(
+                "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5",
+                showShabbat
+                  ? "border-amber-400 bg-amber-50 text-amber-700"
+                  : "border-white/25 bg-white/10 text-white hover:border-amber-300 hover:bg-white/15 hover:text-amber-100"
+              )}
+            >
+              <span className={cn(
+                "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+                showShabbat ? "border-amber-500 bg-amber-500" : "border-slate-300"
+              )}>
+                {showShabbat && <span className="text-white text-[10px] leading-none">✓</span>}
+              </span>
+              Horaires de Chabbat
+            </button>}
+
+            {isBethHabad && <button
+              type="button"
+              onClick={toggleHolidays}
+              className={cn(
+                "flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5",
+                showHolidays
+                  ? "border-violet-300 bg-violet-50 text-[#421388]"
+                  : "border-white/25 bg-white/10 text-white hover:border-violet-200 hover:bg-white/15 hover:text-violet-100"
+              )}
+            >
+              <span className={cn(
+                "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+                showHolidays ? "border-[#421388] bg-[#421388]" : "border-slate-300"
+              )}>
+                {showHolidays && <span className="text-white text-[10px] leading-none">✓</span>}
+              </span>
+              Fêtes juives
+            </button>}
+          </div>}
+        </div>
+
+        <Card className="rounded-2xl border-[#421388]/15 bg-white shadow-sm shadow-[#421388]/5 transition-shadow duration-300 hover:shadow-md hover:shadow-[#421388]/10">
+          <CardContent className="space-y-4 p-4">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {STATUS_FILTERS.map((filter) => {
+                  const count = filter.value ? (statusCounts[filter.value] ?? 0) : totalAll;
+                  const isActive = activeStatus === filter.value;
+                  return (
+                    <button
+                      key={filter.value}
+                      onClick={() => updateFilter("status", filter.value)}
+                      className={cn(
+                        "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5",
+                        isActive
+                          ? "bg-[#421388] text-white shadow-sm"
+                          : "border border-slate-200 bg-white text-slate-600 hover:border-[#421388]/20 hover:bg-violet-50/50 hover:text-[#421388]"
+                      )}
+                    >
+                      {filter.label}
+                      <span className={cn(
+                        "rounded-full px-1.5 py-0.5 text-xs",
+                        isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                      )}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row xl:items-center">
+                <div className="flex rounded-xl border border-[#421388]/15 bg-violet-50/60 p-1">
+                  {[
+                    { value: "calendar", label: "Calendrier", icon: CalendarDays },
+                    { value: "list", label: "Liste", icon: LayoutList },
+                  ].map((view) => {
+                    const Icon = view.icon;
+                    const isActive = viewMode === view.value;
+                    return (
+                      <button
+                        key={view.value}
+                        type="button"
+                        onClick={() => updateFilter("view", view.value)}
+                        className={cn(
+                          "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 sm:flex-none",
+                          isActive ? "bg-white text-[#421388] shadow-sm" : "text-slate-500 hover:text-[#421388]"
+                        )}
+                      >
+                        <Icon className="size-4" />
+                        {view.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    onKeyDown={(event) => event.key === "Enter" && updateFilter("q", search)}
+                    placeholder="Rechercher dans l&apos;agenda..."
+                    className="w-full rounded-xl border border-[#421388]/15 bg-violet-50/50 py-2.5 pl-9 pr-4 text-sm transition-colors focus:border-[#421388] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#421388]/20"
+                  />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {events.length === 0 && !shouldRenderCalendar ? (
+          <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-slate-200 bg-white py-16 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100">
+              <CalendarDays className="size-7 text-slate-400" />
+            </div>
+            <div>
+              <p className="font-semibold text-slate-700">Aucune date dans l&apos;agenda</p>
+              <p className="mt-1 text-sm text-slate-400">Aucune date n&apos;est prévue pour le moment.</p>
+            </div>
+          </div>
+        ) : (
+          shouldRenderCalendar ? (
+            <CalendarView
+              events={events}
+              periodEvents={periodEvents}
+              todaysEvents={todaysEvents}
+              period={activePeriod}
+              anchorDate={anchorDate}
+              dayShabbatItem={showShabbat ? shabbatByDate.get(dayKey(anchorDate)) : undefined}
+              dayHolidayItems={showHolidays ? holidayByDate.get(dayKey(anchorDate)) : undefined}
+              shabbatByDate={showShabbat ? shabbatByDate : undefined}
+              holidayByDate={showHolidays ? holidayByDate : undefined}
+              automationByDate={automationByDate}
+              taskByDate={taskByDate}
+              todaysAutomations={todaysAutomations}
+              onPeriodChange={updatePeriod}
+              onToday={goToday}
+              onPrevious={() => setAnchorDate((date) => moveAnchor(date, activePeriod, -1))}
+              onNext={() => setAnchorDate((date) => moveAnchor(date, activePeriod, 1))}
+              onDelete={deleteEvent}
+              deletingId={deletingId}
+              isPending={isPending}
+              isBethHabad={isBethHabad}
+              timezone={timezone}
+            />
+          ) : (
+            <ListView
+              groupedEvents={groupedEvents}
+              taskByDate={listTaskByDate}
+              automationByDate={listAutomationByDate}
+              onDelete={deleteEvent}
+              deletingId={deletingId}
+              isPending={isPending}
+              isBethHabad={isBethHabad}
+              timezone={timezone}
+            />
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MobileAgendaHero({
+  isBethHabad,
+  showShabbat,
+  showHolidays,
+  onToggleShabbat,
+  onToggleHolidays,
+}: {
+  isBethHabad: boolean;
+  showShabbat: boolean;
+  showHolidays: boolean;
+  onToggleShabbat: () => void;
+  onToggleHolidays: () => void;
+}) {
+  return (
+    <section className="relative overflow-hidden rounded-[2rem] bg-[radial-gradient(circle_at_70%_10%,#6d2abd_0%,#421388_38%,#210763_100%)] px-5 pb-5 pt-5 text-white shadow-[0_20px_42px_rgba(43,8,104,0.24)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_34%,rgba(116,52,213,0.26),transparent_30%),radial-gradient(circle_at_88%_60%,rgba(93,45,171,0.32),transparent_28%)]" />
+      <div className="relative flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[0.72rem] font-black uppercase tracking-[0.18em] text-white/70">Agenda IA</p>
+          <h1 className="mt-2 text-[clamp(1.9rem,8.5vw,2.4rem)] font-black leading-none tracking-[-0.05em]">Mon agenda</h1>
+          <p className="mt-2 max-w-[14rem] text-sm font-medium leading-6 text-white/80">
+            Une vue claire de votre mois et de vos dates importantes.
+          </p>
+        </div>
+        <div className="relative flex size-[4.15rem] shrink-0 items-center justify-center rounded-[1.35rem] border border-white/14 bg-white/10 shadow-[0_16px_30px_rgba(18,5,52,0.32)] backdrop-blur">
+          <div className="absolute inset-[0.45rem] rounded-[1.15rem] border border-white/10 bg-white/5" />
+          <span className="absolute -right-1.5 -top-1.5 rounded-xl bg-white px-2 py-1 text-[0.58rem] font-black uppercase tracking-[0.1em] text-[#421388] shadow-sm">
+            IA
+          </span>
+          <CalendarDays className="relative size-7 text-white" />
+        </div>
+      </div>
+
+      <div className="relative mt-4">
+        <TaskCreateDialog triggerClassName="min-h-12 w-full rounded-[1.3rem] border-0 bg-white text-[#421388] shadow-[0_16px_28px_rgba(18,5,52,0.28)] hover:bg-violet-50 hover:text-[#35106f]" />
+      </div>
+
+      {isBethHabad && (
+        <div className="relative mt-4 flex flex-wrap gap-2.5 border-t border-white/14 pt-4">
+          {isBethHabad && (
+            <ToggleChip active={showShabbat} onClick={onToggleShabbat} activeTone="amber">
+              Horaires de Chabbat
+            </ToggleChip>
+          )}
+          {isBethHabad && (
+            <ToggleChip active={showHolidays} onClick={onToggleHolidays} activeTone="violet">
+              Fêtes juives
+            </ToggleChip>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MobileAgendaControls({
+  search,
+  setSearch,
+  onSearchSubmit,
+  viewMode,
+  onViewChange,
+  period,
+  onPeriodChange,
+}: {
+  search: string;
+  setSearch: (value: string) => void;
+  onSearchSubmit: () => void;
+  viewMode: ViewMode;
+  onViewChange: (value: string) => void;
+  period: CalendarPeriod;
+  onPeriodChange: (period: CalendarPeriod) => void;
+}) {
+  return (
+    <section className="rounded-[1.8rem] border border-[#421388]/10 bg-white px-4 py-4 shadow-[0_14px_28px_rgba(45,16,110,0.08)]">
+      <div className="flex rounded-[1.1rem] bg-[#f6f0ff] p-1">
+        {[
+          { value: "calendar", label: "Calendrier", icon: CalendarDays },
+          { value: "list", label: "Liste", icon: LayoutList },
+        ].map((view) => {
+          const Icon = view.icon;
+          const isActive = viewMode === view.value;
+          return (
+            <button
+              key={view.value}
+              type="button"
+              onClick={() => onViewChange(view.value)}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-2 rounded-[0.95rem] px-3 py-2.5 text-sm font-black transition",
+                isActive ? "bg-white text-[#421388] shadow-sm" : "text-slate-500"
+              )}
+            >
+              <Icon className="size-4" />
+              {view.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {PERIODS.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => onPeriodChange(item.value)}
+            className={cn(
+              "shrink-0 rounded-full px-4 py-2 text-sm font-black transition",
+              period === item.value
+                ? "bg-[#421388] text-white shadow-[0_10px_20px_rgba(66,19,136,0.2)]"
+                : "border border-slate-200 bg-white text-slate-600"
+            )}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="relative mt-3">
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+        <input
+          type="text"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          onKeyDown={(event) => event.key === "Enter" && onSearchSubmit()}
+          placeholder="Rechercher dans l’agenda..."
+          className="w-full rounded-[1.1rem] border border-[#421388]/12 bg-[#fffaf4] py-3 pl-9 pr-4 text-sm font-medium text-slate-800 outline-none transition focus:border-[#421388] focus:bg-white focus:ring-4 focus:ring-[#421388]/10"
+        />
+      </div>
+    </section>
+  );
+}
+
+function MobileAgendaEmpty() {
+  return (
+    <div className="flex flex-col items-center gap-4 rounded-[1.9rem] border border-cyan-100 bg-gradient-to-br from-white via-sky-50/60 to-emerald-50/60 px-5 py-14 text-center">
+      <div className="flex h-16 w-16 items-center justify-center rounded-[1.35rem] bg-gradient-to-br from-[#1E88E5] to-[#00A7A0] shadow-[0_14px_28px_rgba(30,136,229,0.24)]">
+        <CalendarDays className="size-8 text-white" />
+      </div>
+      <div>
+        <p className="text-lg font-black text-slate-900">Aucune date dans l’agenda</p>
+        <p className="mt-2 text-sm font-medium leading-6 text-slate-500">Ajoutez un événement, une tâche ou une automatisation pour commencer.</p>
+      </div>
+    </div>
+  );
+}
+
+function MobileCalendarView({
+  events,
+  period,
+  anchorDate,
+  shabbatByDate,
+  holidayByDate,
+  automationByDate,
+  taskByDate,
+  onToday,
+  onPrevious,
+  onNext,
+  onDelete,
+  deletingId,
+  isPending,
+  isBethHabad,
+  timezone,
+}: {
+  events: Event[];
+  period: CalendarPeriod;
+  anchorDate: Date;
+  shabbatByDate?: Map<string, ShabbatItem>;
+  holidayByDate?: Map<string, HolidayItem[]>;
+  automationByDate: Map<string, AutomationOccurrence[]>;
+  taskByDate: Map<string, TaskOccurrence[]>;
+  onToday: () => void;
+  onPrevious: () => void;
+  onNext: () => void;
+  onDelete: (event: Event) => void;
+  deletingId: string | null;
+  isPending: boolean;
+  isBethHabad: boolean;
+  timezone: string;
+}) {
+  const monthDays = useMemo(() => buildMonthDays(anchorDate), [anchorDate]);
+  const [selectedDayKey, setSelectedDayKey] = useState(() => dayKey(new Date()));
+  const defaultSelectedDayKey =
+    new Date().getFullYear() === anchorDate.getFullYear() && new Date().getMonth() === anchorDate.getMonth()
+      ? dayKey(new Date())
+      : dayKey(startOfMonth(anchorDate));
+  const activeSelectedDayKey =
+    period === "month" && monthDays.some((day) => dayKey(day) === selectedDayKey)
+      ? selectedDayKey
+      : defaultSelectedDayKey;
+  const [rangeStart, rangeEnd] = visibleRange(anchorDate, period);
+  const snapshots =
+    period === "year"
+      ? []
+      : (() => {
+          const items: Array<{
+            key: string;
+            date: Date;
+            dayEvents: Event[];
+            dayTasks: TaskOccurrence[];
+            dayAutomations: AutomationOccurrence[];
+            shabbat?: ShabbatItem;
+            holidays?: HolidayItem[];
+          }> = [];
+          for (let cursor = new Date(rangeStart); cursor <= rangeEnd; cursor = addDays(cursor, 1)) {
+            const key = dayKey(cursor);
+            const dayEvents = eventsForDate(events, cursor);
+            const dayTasks = taskByDate.get(key) ?? [];
+            const dayAutomations = automationByDate.get(key) ?? [];
+            const shabbat = shabbatByDate?.get(key);
+            const holidays = holidayByDate?.get(key);
+            const shouldInclude =
+              period === "day" ||
+              period === "week" ||
+              dayEvents.length > 0 ||
+              dayTasks.length > 0 ||
+              dayAutomations.length > 0 ||
+              Boolean(shabbat) ||
+              Boolean(holidays?.length);
+            if (!shouldInclude) continue;
+            items.push({ key, date: new Date(cursor), dayEvents, dayTasks, dayAutomations, shabbat, holidays });
+          }
+          return items;
+        })();
+
+  const yearMonths =
+    period === "year"
+      ? buildYearMonths(anchorDate).map((month) => {
+          const monthEvents = events.filter((event) => isSamePeriod(toDate(event.startDate), month, "month"));
+          const monthTasks = Array.from(taskByDate.entries()).filter(([key]) => Number(key.slice(5, 7)) - 1 === month.getMonth()).reduce((total, [, items]) => total + items.length, 0);
+          const monthAutomations = Array.from(automationByDate.entries()).filter(([key]) => Number(key.slice(5, 7)) - 1 === month.getMonth()).reduce((total, [, items]) => total + items.length, 0);
+          return { month, monthEvents, monthTasks, monthAutomations };
+        })
+      : [];
+
+  return (
+    <div className="space-y-4">
+      <section className="rounded-[1.8rem] border border-[#421388]/10 bg-white px-4 py-4 shadow-[0_14px_28px_rgba(45,16,110,0.08)]">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[0.72rem] font-black uppercase tracking-[0.15em] text-[#421388]">Vue active</p>
+            <h2 className="mt-1 truncate text-lg font-black capitalize text-slate-950">{calendarTitle(anchorDate, period)}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onToday}
+            className="shrink-0 rounded-full bg-[#421388] px-4 py-2 text-xs font-black uppercase tracking-[0.08em] text-white shadow-[0_10px_18px_rgba(66,19,136,0.18)]"
+          >
+            Aujourd’hui
+          </button>
+        </div>
+
+        <div className="mt-4 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onPrevious}
+            aria-label="Période précédente"
+            className="flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <div className="flex-1 rounded-[1rem] bg-[#fffaf4] px-4 py-3 text-center text-sm font-black text-slate-800">
+            {period === "day"
+              ? "Jour"
+              : period === "week"
+                ? "Semaine"
+                : period === "month"
+                  ? "Mois"
+                  : "Année"}
+          </div>
+          <button
+            type="button"
+            onClick={onNext}
+            aria-label="Période suivante"
+            className="flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
+      </section>
+
+      {period === "month" ? (
+        <>
+          <section className="rounded-[1.8rem] border border-[#421388]/10 bg-white px-3 py-4 shadow-[0_14px_28px_rgba(45,16,110,0.08)]">
+            <div className="mb-3 grid grid-cols-7 gap-1 px-1">
+              {WEEK_DAYS.map((day) => (
+                <div key={day} className="text-center text-[0.62rem] font-black uppercase tracking-[0.08em] text-slate-400">
+                  {day.slice(0, 3)}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {monthDays.map((day) => {
+                const key = dayKey(day);
+                const dayEvents = eventsForDate(events, day);
+                const dayTasks = taskByDate.get(key) ?? [];
+                const dayAutomations = automationByDate.get(key) ?? [];
+                const isSelected = key === activeSelectedDayKey;
+                const isToday = key === todayKey();
+                const isOutsideMonth = day.getMonth() !== anchorDate.getMonth();
+                const totalItems = dayEvents.length + dayTasks.length + dayAutomations.length;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSelectedDayKey(key)}
+                    className={cn(
+                      "flex aspect-square flex-col items-center justify-center rounded-[1rem] transition",
+                      isSelected
+                        ? "bg-[#421388] text-white shadow-[0_12px_24px_rgba(66,19,136,0.22)]"
+                        : isToday
+                          ? "bg-violet-50 text-[#421388]"
+                          : "text-slate-800",
+                      isOutsideMonth && !isSelected && "text-slate-300"
+                    )}
+                  >
+                    <span className={cn("text-sm font-black", isOutsideMonth && !isSelected && "opacity-80")}>
+                      {day.getDate()}
+                    </span>
+                    <span className="mt-1 flex min-h-[0.4rem] items-center gap-1">
+                      {totalItems > 0 && (
+                        <>
+                          <span className={cn("size-1.5 rounded-full", isSelected ? "bg-white" : "bg-[#421388]")} />
+                          {totalItems > 2 && <span className={cn("size-1.5 rounded-full", isSelected ? "bg-white/70" : "bg-[#421388]/55")} />}
+                        </>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {(() => {
+            const selectedDate = new Date(`${activeSelectedDayKey}T12:00:00`);
+            const selectedEvents = eventsForDate(events, selectedDate);
+            const selectedTasks = taskByDate.get(activeSelectedDayKey) ?? [];
+            const selectedAutomations = automationByDate.get(activeSelectedDayKey) ?? [];
+            const selectedShabbat = shabbatByDate?.get(activeSelectedDayKey);
+            const selectedHolidays = holidayByDate?.get(activeSelectedDayKey) ?? [];
+            return (
+              <section className="overflow-hidden rounded-[1.7rem] border border-[#421388]/10 bg-white shadow-[0_12px_24px_rgba(45,16,110,0.07)]">
+                <div className="bg-gradient-to-r from-[#421388] via-[#5d1ba6] to-[#7a2ec9] px-4 py-4 text-white">
+                  <p className="text-[0.72rem] font-black uppercase tracking-[0.14em] text-white/70">
+                    {DAY_SHORT_FORMATTER.format(selectedDate)}
+                  </p>
+                  <p className="mt-1 text-lg font-black capitalize">{formatFrenchDate(selectedDate)}</p>
+                  {isBethHabad && <p className="mt-1 text-xs font-semibold text-violet-100 hebrew">{formatHebrewDate(selectedDate)}</p>}
+                </div>
+                <div className="space-y-3 p-4">
+                  {selectedAutomations.map((automation, index) => (
+                    <AutomationPill key={`${automation.id}-${index}`} automation={automation} />
+                  ))}
+                  {selectedTasks.map((task) => <TaskCard key={task.id} task={task} />)}
+                  {selectedShabbat && (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                      <p className="text-sm font-black text-amber-700">Horaires de Chabbat</p>
+                      {selectedShabbat.parasha && <p className="mt-1 text-xs font-semibold text-amber-600">{selectedShabbat.parasha}</p>}
+                      <p className="mt-1 text-xs font-semibold text-amber-700">Entrée {selectedShabbat.entry ?? "-"} · Sortie {selectedShabbat.exit ?? "-"}</p>
+                    </div>
+                  )}
+                  {selectedHolidays.map((holiday) => (
+                    <div key={`${holiday.date}-${holiday.name}`} className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3">
+                      <p className="text-sm font-black text-blue-700">{holiday.name}</p>
+                      {holiday.nameHebrew && <p className="mt-1 text-xs font-semibold text-blue-500 hebrew">{holiday.nameHebrew}</p>}
+                      {holiday.hebrewDate && <p className="mt-1 text-xs font-semibold text-blue-600">{holiday.hebrewDate}</p>}
+                    </div>
+                  ))}
+                  {selectedEvents.length > 0 ? (
+                    selectedEvents.map((event) => (
+                      <AgendaEventCard
+                        key={event.id}
+                        event={event}
+                        onDelete={onDelete}
+                        deleting={deletingId === event.id || isPending}
+                        compact
+                        isBethHabad={isBethHabad}
+                        timezone={timezone}
+                      />
+                    ))
+                  ) : selectedTasks.length === 0 && selectedAutomations.length === 0 && !selectedShabbat && selectedHolidays.length === 0 ? (
+                    <p className="text-sm font-medium text-slate-400">Aucun événement ce jour.</p>
+                  ) : null}
+                </div>
+              </section>
+            );
+          })()}
+        </>
+      ) : period === "year" ? (
+        <div className="space-y-3">
+          {yearMonths.map(({ month, monthEvents, monthTasks, monthAutomations }) => (
+            <section key={month.toISOString()} className="rounded-[1.7rem] border border-[#421388]/10 bg-white px-4 py-4 shadow-[0_12px_24px_rgba(45,16,110,0.07)]">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-base font-black capitalize text-slate-950">{MONTH_NAME_FORMATTER.format(month)}</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                    {monthEvents.length} événement{monthEvents.length > 1 ? "s" : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {monthAutomations > 0 && <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-[0.68rem] font-black text-cyan-700">{monthAutomations} auto</span>}
+                  {monthTasks > 0 && <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[0.68rem] font-black text-emerald-700">{monthTasks} tâche{monthTasks > 1 ? "s" : ""}</span>}
+                </div>
+              </div>
+              <div className="mt-3 space-y-2">
+                {monthEvents.slice(0, 3).map((event) => (
+                  <MiniCalendarEvent key={event.id} event={event} timezone={timezone} />
+                ))}
+                {monthEvents.length === 0 && monthAutomations === 0 && monthTasks === 0 && (
+                  <p className="text-sm font-medium text-slate-400">Aucune activité ce mois-ci.</p>
+                )}
+              </div>
+            </section>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {snapshots.length === 0 ? (
+            <section className="rounded-[1.7rem] border border-dashed border-slate-200 bg-white px-4 py-12 text-center">
+              <p className="text-sm font-bold text-slate-600">Aucune activité sur cette période</p>
+              <p className="mt-2 text-xs font-medium text-slate-400">Essayez une autre vue ou une autre période.</p>
+            </section>
+          ) : (
+            snapshots.map((snapshot) => (
+              <section key={snapshot.key} className="overflow-hidden rounded-[1.7rem] border border-[#421388]/10 bg-white shadow-[0_12px_24px_rgba(45,16,110,0.07)]">
+                <div className="bg-gradient-to-r from-[#421388] via-[#5d1ba6] to-[#7a2ec9] px-4 py-4 text-white">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[0.72rem] font-black uppercase tracking-[0.14em] text-white/70">{DAY_SHORT_FORMATTER.format(snapshot.date)}</p>
+                      <p className="mt-1 text-lg font-black capitalize">{formatFrenchDate(snapshot.date)}</p>
+                      {isBethHabad && <p className="mt-1 text-xs font-semibold text-violet-100 hebrew">{formatHebrewDate(snapshot.date)}</p>}
+                    </div>
+                    <div className="rounded-[1.15rem] bg-white/12 px-3 py-2 text-right backdrop-blur-sm">
+                      <p className="text-[0.68rem] font-black uppercase tracking-[0.1em] text-white/70">Activité</p>
+                      <p className="mt-1 text-base font-black">
+                        {snapshot.dayEvents.length + snapshot.dayTasks.length + snapshot.dayAutomations.length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3 p-4">
+                  {snapshot.dayAutomations.map((automation, index) => (
+                    <AutomationPill key={`${automation.id}-${index}`} automation={automation} />
+                  ))}
+                  {snapshot.dayTasks.map((task) => <TaskCard key={task.id} task={task} />)}
+                  {snapshot.shabbat && (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                      <p className="text-sm font-black text-amber-700">Horaires de Chabbat</p>
+                      {snapshot.shabbat.parasha && <p className="mt-1 text-xs font-semibold text-amber-600">{snapshot.shabbat.parasha}</p>}
+                      <p className="mt-1 text-xs font-semibold text-amber-700">Entrée {snapshot.shabbat.entry ?? "-"} · Sortie {snapshot.shabbat.exit ?? "-"}</p>
+                    </div>
+                  )}
+                  {snapshot.holidays?.map((holiday) => (
+                    <div key={`${holiday.date}-${holiday.name}`} className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3">
+                      <p className="text-sm font-black text-blue-700">{holiday.name}</p>
+                      {holiday.nameHebrew && <p className="mt-1 text-xs font-semibold text-blue-500 hebrew">{holiday.nameHebrew}</p>}
+                      {holiday.hebrewDate && <p className="mt-1 text-xs font-semibold text-blue-600">{holiday.hebrewDate}</p>}
+                    </div>
+                  ))}
+                  {snapshot.dayEvents.length > 0 ? (
+                    snapshot.dayEvents.map((event) => (
+                      <AgendaEventCard
+                        key={event.id}
+                        event={event}
+                        onDelete={onDelete}
+                        deleting={deletingId === event.id || isPending}
+                        compact
+                        isBethHabad={isBethHabad}
+                        timezone={timezone}
+                      />
+                    ))
+                  ) : snapshot.dayTasks.length === 0 && snapshot.dayAutomations.length === 0 && !snapshot.shabbat && !snapshot.holidays?.length ? (
+                    <p className="text-sm font-medium text-slate-400">Aucun événement ce jour.</p>
+                  ) : null}
+                </div>
+              </section>
+            ))
+          )}
+        </div>
       )}
     </div>
+  );
+}
+
+function MobileListView({
+  groupedEvents,
+  taskByDate,
+  automationByDate,
+  onDelete,
+  deletingId,
+  isPending,
+  isBethHabad,
+  timezone,
+}: {
+  groupedEvents: ReturnType<typeof groupEventsByDay>;
+  taskByDate: Map<string, TaskOccurrence[]>;
+  automationByDate: Map<string, AutomationOccurrence[]>;
+  onDelete: (event: Event) => void;
+  deletingId: string | null;
+  isPending: boolean;
+  isBethHabad: boolean;
+  timezone: string;
+}) {
+  const eventGroups = new Map(groupedEvents.map((group) => [group.key, group]));
+  const dayKeys = [...new Set([...eventGroups.keys(), ...taskByDate.keys(), ...automationByDate.keys()])].sort();
+
+  return (
+    <div className="space-y-4">
+      {dayKeys.map((key) => {
+        const group = eventGroups.get(key);
+        const tasks = taskByDate.get(key) ?? [];
+        const automations = automationByDate.get(key) ?? [];
+        const date = group?.date ?? new Date(`${key}T12:00:00`);
+        return (
+          <section key={key} className="overflow-hidden rounded-[1.7rem] border border-[#421388]/10 bg-white shadow-[0_12px_24px_rgba(45,16,110,0.07)]">
+            <div className="bg-gradient-to-r from-white via-violet-50/70 to-fuchsia-50/70 px-4 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex size-14 shrink-0 flex-col items-center justify-center rounded-[1.15rem] bg-[#421388] text-white shadow-[0_12px_22px_rgba(66,19,136,0.22)]">
+                  <span className="text-[0.62rem] font-black uppercase">{formatMonth(date)}</span>
+                  <span className="text-lg font-black leading-none">{formatDayNumber(date)}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-base font-black capitalize text-slate-950">{formatFrenchDate(date)}</p>
+                  {isBethHabad && <p className="mt-1 text-xs font-semibold text-[#421388] hebrew">{formatHebrewDate(date)}</p>}
+                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                    {(group?.events.length ?? 0) + tasks.length + automations.length} élément{(group?.events.length ?? 0) + tasks.length + automations.length > 1 ? "s" : ""}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 p-4">
+              {automations.map((automation) => <AutomationPill key={`${automation.id}-${key}`} automation={automation} />)}
+              {tasks.map((task) => <TaskCard key={task.id} task={task} />)}
+              {group?.events.map((event) => (
+                <AgendaEventCard
+                  key={event.id}
+                  event={event}
+                  onDelete={onDelete}
+                  deleting={deletingId === event.id || isPending}
+                  isBethHabad={isBethHabad}
+                  timezone={timezone}
+                />
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function ToggleChip({
+  active,
+  onClick,
+  children,
+  activeTone,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+  activeTone: "violet" | "amber";
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.08em] transition",
+        activeTone === "amber"
+          ? active
+            ? "bg-amber-50 text-amber-700 shadow-sm"
+            : "border border-white/18 bg-white/10 text-white/88"
+          : active
+            ? "bg-white text-[#421388] shadow-sm"
+            : "border border-white/18 bg-white/10 text-white/88"
+      )}
+    >
+      <span className="inline-flex items-center gap-1.5">{children}</span>
+    </button>
   );
 }
 
@@ -1365,7 +2012,7 @@ function TaskCard({ task }: { task: TaskOccurrence }) {
   );
 }
 
-function TaskCreateDialog() {
+function TaskCreateDialog({ triggerClassName }: { triggerClassName?: string } = {}) {
   const router = useRouter();
   const now = new Date();
   const [open, setOpen] = useState(false);
@@ -1427,7 +2074,14 @@ function TaskCreateDialog() {
 
   return (
     <>
-      <Button type="button" onClick={() => setOpen(true)} className="border border-white/70 bg-white text-[#421388] shadow-lg shadow-[#1b0738]/30 hover:bg-violet-100 hover:text-[#35106f]">
+      <Button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(
+          "border border-white/70 bg-white text-[#421388] shadow-lg shadow-[#1b0738]/30 hover:bg-violet-100 hover:text-[#35106f]",
+          triggerClassName
+        )}
+      >
         <Plus className="size-4" />
         Ajouter une tâche
       </Button>

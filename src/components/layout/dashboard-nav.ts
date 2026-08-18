@@ -26,6 +26,7 @@ import {
   Share2,
   ShoppingBag,
   Star,
+  Target,
   Users,
   Zap,
   Sparkles,
@@ -232,6 +233,10 @@ export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActiv
     label: "text-teal-300",
     itemActive: "bg-teal-600 text-white shadow-sm",
   },
+  "COMMUNICATION CIBLÉE": {
+    label: "text-red-300",
+    itemActive: "bg-red-600 text-white shadow-sm",
+  },
   "BANQUE VISUELLE": {
     label: "text-amber-300",
     itemActive: "bg-amber-600 text-white shadow-sm",
@@ -348,6 +353,15 @@ export const OFFICIAL_MENU_SECTION_STYLES: Record<
     itemHover: "hover:bg-emerald-50/70 hover:text-emerald-950",
     itemActive: "bg-emerald-50 text-emerald-950 ring-1 ring-emerald-100",
   },
+  targeted: {
+    accentBar: "bg-red-500",
+    iconSurface: "bg-red-50",
+    titleClass: "text-red-700",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-red-600",
+    itemHover: "hover:bg-red-50/70 hover:text-red-950",
+    itemActive: "bg-red-50 text-red-950 ring-1 ring-red-100",
+  },
   settings: {
     accentBar: "bg-slate-500",
     iconSurface: "bg-slate-100",
@@ -396,6 +410,15 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
           iconClass: module.iconClass,
           iconSurfaceClass: module.iconSurfaceClass,
         })),
+      ],
+    },
+    {
+      key: "targeted",
+      section: "COMMUNICATION CIBLÉE",
+      subtitle: "Créez des catégories de contacts et envoyez le bon message au bon groupe",
+      icon: Target,
+      items: [
+        { href: "/dashboard/communication-ciblee", label: "Communication ciblée", icon: Target },
       ],
     },
     {
@@ -567,6 +590,12 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     ],
   },
   {
+    section: "COMMUNICATION CIBLÉE",
+    items: [
+      { href: "/dashboard/communication-ciblee", label: "Communication ciblée", icon: Target },
+    ],
+  },
+  {
     section: "CAMPAGNE DE DONS",
     items: [
       { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart, badge: "Bientot disponible" },
@@ -675,6 +704,13 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     icon: Plus,
     items: [
       { href: "/dashboard/contacts", label: "CRM Inteligent IA", icon: Users },
+    ],
+  },
+  {
+    section: "COMMUNICATION CIBLÉE",
+    icon: Target,
+    items: [
+      { href: "/dashboard/communication-ciblee", label: "Communication ciblée", icon: Target },
     ],
   },
   {

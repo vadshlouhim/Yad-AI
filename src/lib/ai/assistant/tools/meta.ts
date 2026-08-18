@@ -22,6 +22,8 @@ const NAVIGATION_TARGETS: Record<string, { href: string; label: string }> = {
   boutique: { href: "/dashboard/boutique", label: "Boutique" },
   help: { href: "/dashboard/help", label: "Aide & support" },
   contact_support: { href: "/contact", label: "Contacter le support" },
+  torah_course: { href: "/dashboard/torah", label: "Cours de Torah IA" },
+  torah_library: { href: "/dashboard/community-library", label: "Bibliothèque partagée" },
 };
 
 export const remember: AssistantToolDef = {

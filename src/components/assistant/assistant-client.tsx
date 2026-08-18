@@ -12,7 +12,7 @@ import {
   X, SlidersHorizontal, PlayCircle, PauseCircle,
   Power, ExternalLink, Zap, CalendarDays, BookOpen, Gift, HeartHandshake,
   Lightbulb, Clock3, Mail, ChevronDown, User, Settings, LogOut,
-  Mic, FileText, Loader2, ArrowLeft, Grid2X2,
+  Mic, FileText, FileDown, Loader2, ArrowLeft, Grid2X2,
 } from "lucide-react";
 import { CHANNEL_LABELS, cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -27,6 +27,7 @@ import type { DataPanel } from "@/lib/ai/assistant/panels";
 import type { RoutineItem } from "./daily-routine-wizard";
 import type { BillingConfig } from "@/lib/billing";
 import { AGENTS_GROUP_IMAGE, HOME_EASYCOM_AGENTS } from "@/lib/agents";
+import { downloadTorahCoursePdf } from "@/lib/torah-pdf";
 
 // ============================================================
 // TYPES
@@ -75,6 +76,17 @@ interface Message {
   assistantActions?: AssistantActionCard[];
   automationSetup?: AutomationSetupDraft;
   dataPanels?: DataPanel[];
+  torahCourse?: TorahCourseResult;
+}
+
+interface TorahCourseResult {
+  title: string;
+  introduction: string;
+  outline: string[];
+  body: string;
+  conclusion: string;
+  sources: string[];
+  note?: string;
 }
 
 interface TemplateSuggestion {
@@ -863,6 +875,7 @@ export function AssistantClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId: convId,
+          agentSlug: selectedAgent?.slug,
           navigationContext: currentMessages.length === 1 ? hiddenInitialPromptRef.current : undefined,
           selectedTemplateId: options?.selectedTemplateId ?? selectedTemplate?.id ?? null,
           templateAction: options?.templateAction ?? null,
@@ -956,6 +969,15 @@ export function AssistantClient({
                   )
                 );
               }
+              if (parsed.type === "torah_course" && parsed.course) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMessage.id
+                      ? { ...m, torahCourse: parsed.course as TorahCourseResult }
+                      : m
+                  )
+                );
+              }
               if (parsed.content) {
                 assistantContent += parsed.content;
                 setMessages((prev) =>
@@ -990,7 +1012,7 @@ export function AssistantClient({
     } finally {
       setLoading(false);
     }
-  }, [input, loading, activeConversationId, messages, selectedTemplate, dailyRoutineMode, assistantExperience, pendingAttachments, isRecording]);
+  }, [input, loading, activeConversationId, messages, selectedTemplate, dailyRoutineMode, assistantExperience, pendingAttachments, isRecording, selectedAgent?.slug]);
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -2502,10 +2524,10 @@ export function AssistantClient({
         {showQuickPrompts && !approvalDraft && (
 	          <div className={cn(
               "flex-1 flex flex-col items-center justify-center px-4 py-8 sm:px-6",
-              assistantExperience === "simple" && "w-full overflow-y-auto px-6 pb-2 pt-3 sm:px-8 md:justify-center md:pt-0 max-md:justify-end"
+              assistantExperience === "simple" && "w-full overflow-y-auto px-6 pb-4 pt-6 sm:px-8 md:justify-center md:pt-0 max-md:justify-start"
             )}>
             {assistantExperience === "simple" && (
-              <div className="mb-3 w-full md:hidden">
+              <div className="mb-5 mt-2 w-full md:hidden">
                 <h2 className="text-center text-[clamp(1.7rem,8vw,2.15rem)] font-black leading-[1.08] tracking-[-0.045em] text-slate-950">
                   Comment puis-je
                   <span className="block text-[#421388]">vous aider&nbsp;?</span>
@@ -2867,6 +2889,44 @@ export function AssistantClient({
                       </div>
                     )}
                   </div>
+
+                  {message.role === "assistant" && message.torahCourse && (() => {
+                    const course = message.torahCourse;
+                    const courseText = [course.title, course.introduction, ...course.outline, course.body, course.conclusion].filter(Boolean).join("\n\n");
+                    return (
+                      <section className="mt-3 overflow-hidden rounded-[1.6rem] border border-violet-200 bg-[#fffaf4] shadow-[0_12px_30px_rgba(66,19,136,0.12)]">
+                        <div className="bg-[#421388] px-4 py-3 text-white">
+                          <div className="flex items-center gap-2">
+                            <span className="flex size-8 items-center justify-center rounded-xl bg-white/15"><BookOpen className="size-4" /></span>
+                            <p className="text-sm font-black uppercase tracking-wide">Cours préparé par Shmouel</p>
+                          </div>
+                          <h3 className="mt-3 text-xl font-black leading-tight">{course.title}</h3>
+                        </div>
+                        <div className="space-y-4 p-4 text-sm leading-6 text-slate-700">
+                          {course.introduction ? <p className="font-medium text-slate-800">{course.introduction}</p> : null}
+                          {course.outline.length > 0 ? (
+                            <div className="rounded-2xl border border-violet-100 bg-white p-3">
+                              <p className="text-xs font-black uppercase tracking-wide text-violet-700">Plan du cours</p>
+                              <ol className="mt-2 list-decimal space-y-1 pl-5">{course.outline.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ol>
+                            </div>
+                          ) : null}
+                          <p className="whitespace-pre-wrap">{course.body}</p>
+                          {course.conclusion ? <p className="border-t border-violet-100 pt-3 font-semibold text-slate-900">{course.conclusion}</p> : null}
+                          {course.sources.length > 0 ? <p className="text-xs font-semibold text-slate-500">Sources : {course.sources.join(" · ")}</p> : null}
+                          {course.note ? <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">{course.note}</p> : null}
+                          <div className="flex flex-wrap gap-2 border-t border-violet-100 pt-3">
+                            <Button size="sm" onClick={() => copyMessage(`torah-${message.id}`, courseText)} className="rounded-xl bg-[#421388] text-white hover:bg-[#32106a]">
+                              {copiedId === `torah-${message.id}` ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                              {copiedId === `torah-${message.id}` ? "Copié" : "Copier"}
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => downloadTorahCoursePdf(course)} className="rounded-xl border-violet-200 text-violet-800 hover:bg-violet-50">
+                              <FileDown className="size-3.5" /> Télécharger en PDF
+                            </Button>
+                          </div>
+                        </div>
+                      </section>
+                    );
+                  })()}
 
                   {message.role === "assistant" && message.content && (
                     <div className="flex gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">

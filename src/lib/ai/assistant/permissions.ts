@@ -70,6 +70,7 @@ export const TOOL_PERMISSIONS: Record<string, ToolPermission> = {
   list_reviews: { domain: "reviews", sensitivity: "READ", requiredTier: "BUSINESS", allowedRoles: ALL_ROLES, cardType: "email" },
   get_usage_and_plan: { domain: "meta", sensitivity: "READ", allowedRoles: ALL_ROLES, cardType: "navigation" },
   suggest_navigation: { domain: "meta", sensitivity: "READ", allowedRoles: ALL_ROLES, cardType: "navigation" },
+  generate_torah_course: { domain: "content", sensitivity: "READ", allowedRoles: ALL_ROLES, cardType: "creation" },
 
   // ── Écritures sans danger (exécution directe) ──
   remember: { domain: "memory", sensitivity: "SAFE_WRITE", allowedRoles: ALL_ROLES, cardType: "setting" },

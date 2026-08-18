@@ -146,7 +146,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
               <div className="min-w-0">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/65">EasyCom IA</p>
                 <h1 id="mobile-tools-title" className="mt-0.5 text-[clamp(1.25rem,6vw,1.65rem)] font-black leading-tight tracking-[-0.035em]">
-                  {supportOpen ? "Support et suggestions" : activeGroup?.title ?? "Autres outils"}
+                  {supportOpen ? "SUPPORT ET SUGGESTIONS" : (activeGroup?.title ?? "AUTRES OUTILS").toUpperCase()}
                 </h1>
               </div>
             </div>
@@ -170,15 +170,14 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
             <Submenu group={activeGroup} onClose={onClose} />
           ) : (
             <>
-              <h2 className="text-[1.45rem] font-black tracking-[-0.035em] text-slate-950">Que souhaitez-vous faire ?</h2>
 
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {menu.tools.map((group) => (
                   <ToolCard key={group.key} group={group} onOpen={() => setActiveGroupKey(group.key)} onClose={onClose} />
                 ))}
               </div>
 
-              <SectionTitle>Bientôt</SectionTitle>
+              <SectionTitle>Nouvelles fonctions bientot dispo</SectionTitle>
               <div className="grid grid-cols-2 gap-3">
                 {menu.comingSoon.map((group) => (
                   <ComingSoonCard key={group.key} group={group} onOpen={() => setActiveGroupKey(group.key)} />
@@ -199,7 +198,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
                       <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-[#421388]">
                         {Icon ? <Icon className="size-[18px]" /> : null}
                       </span>
-                      <span className="flex-1 text-left">{entry.label}</span>
+                      <span className="flex-1 text-left uppercase">{entry.label}</span>
                       <ChevronRight className="size-4 text-slate-300" />
                     </>
                   );
@@ -320,7 +319,7 @@ function ToolCard({ group, onOpen, onClose }: { group: ToolGroup; onOpen: () => 
     <>
       <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,rgba(255,255,255,0.14),transparent_34%),radial-gradient(circle_at_0%_100%,rgba(255,255,255,0.08),transparent_38%)]" aria-hidden="true" />
       <Icon className="relative size-10 shrink-0 stroke-[2.1]" />
-      <span className="relative max-w-full text-[clamp(0.78rem,3.45vw,1rem)] font-black leading-[1.13] tracking-[-0.02em]">{group.title}</span>
+      <span className="relative max-w-full text-[clamp(0.78rem,3.45vw,1rem)] font-black uppercase leading-[1.13] tracking-[-0.02em]">{group.title}</span>
     </>
   );
 
@@ -344,7 +343,7 @@ function ComingSoonCard({ group, onOpen }: { group: ToolGroup; onOpen: () => voi
     >
       <span className="absolute right-2.5 top-2.5 rounded-full bg-white/90 px-2 py-1 text-[8px] font-black uppercase tracking-wide text-slate-600">Bientôt</span>
       <Icon className="size-8" />
-      <span className="text-sm font-black leading-tight">{group.title}</span>
+      <span className="text-sm font-black uppercase leading-tight">{group.title}</span>
     </button>
   );
 }
@@ -352,7 +351,7 @@ function ComingSoonCard({ group, onOpen }: { group: ToolGroup; onOpen: () => voi
 function Submenu({ group, onClose }: { group: ToolGroup; onClose: () => void }) {
   return (
     <div>
-      <p className="mb-3 text-sm font-bold text-slate-500">Choisissez une fonction</p>
+      <p className="mb-3 text-sm font-bold uppercase text-slate-500">CHOISISSEZ UNE FONCTION</p>
       <div className="space-y-2.5">
         {group.items.map((entry, index) => {
           const Icon = entry.icon;
@@ -366,7 +365,7 @@ function Submenu({ group, onClose }: { group: ToolGroup; onClose: () => void }) 
               <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#421388]/8 text-[#421388]">
                 {Icon ? <Icon className="size-5" /> : <Sparkles className="size-5" />}
               </span>
-              <span className="min-w-0 flex-1 text-[15px] font-extrabold leading-tight">{entry.label}</span>
+              <span className="min-w-0 flex-1 text-[15px] font-extrabold uppercase leading-tight">{entry.label}</span>
               {entry.badge && <span className="rounded-full bg-amber-100 px-2 py-1 text-[9px] font-black text-amber-800">Bientôt</span>}
               <ChevronRight className="size-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5" />
             </Link>
@@ -378,5 +377,5 @@ function Submenu({ group, onClose }: { group: ToolGroup; onClose: () => void }) 
 }
 
 function SectionTitle({ children }: { children: ReactNode }) {
-  return <h2 className="mb-3 mt-7 text-base font-black tracking-tight text-slate-950">{children}</h2>;
+  return <h2 className="mb-3 mt-7 text-center text-base font-black uppercase tracking-tight text-slate-950">{children}</h2>;
 }

@@ -56,7 +56,7 @@ export const EASYCOM_AGENTS: readonly EasyComAgent[] = [
     name: "Dov",
     role: "Réseaux sociaux",
     marketingTitle: "Instagram, sans effort.",
-    shortDescription: "Il prépare vos contenus Instagram pour vous aider à rester visible avec des publications cohérentes.",
+    shortDescription: "Il prépare vos contenus pour vous aider à rester visible avec des publications cohérentes.",
     description: "Dov vous accompagne pour transformer une idée, un événement ou une actualité en contenu Instagram prêt à publier.",
     details: "Il vous propose des textes, des angles et des publications adaptées à votre univers afin de vous aider à communiquer régulièrement, sans recommencer à zéro à chaque fois.",
     image: AGENT_IMAGE_URLS.dovBer,

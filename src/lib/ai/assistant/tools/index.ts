@@ -10,6 +10,7 @@ import { reviewTools } from "./reviews";
 import { channelTools } from "./channels";
 import { notificationTools } from "./notifications";
 import { metaTools } from "./meta";
+import { torahTools } from "./torah";
 
 export const ALL_TOOL_DEFS: AssistantToolDef[] = [
   ...eventTools,
@@ -23,4 +24,5 @@ export const ALL_TOOL_DEFS: AssistantToolDef[] = [
   ...channelTools,
   ...notificationTools,
   ...metaTools,
+  ...torahTools,
 ];

@@ -30,6 +30,8 @@ export interface ExecuteResult {
 export interface ReadResult {
   llmResult: unknown;
   panel?: DataPanel;
+  /** Événement typé destiné au client (ex. résultat riche d'un cours). */
+  clientEvent?: unknown;
 }
 
 /** Contexte de construction du catalogue (filtrage par palier, variantes de description). */
@@ -38,6 +40,7 @@ export interface BuildToolsContext {
   tier: BillingGate["tier"];
   isPaid: boolean;
   isSuperAdmin: boolean;
+  specializedAgentSlug?: string | null;
 }
 
 /**

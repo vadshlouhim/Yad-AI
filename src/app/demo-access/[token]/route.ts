@@ -25,7 +25,11 @@ export async function GET(
 
   if (!isValidDemoAccessToken(decodedToken)) return notFound();
 
-  const response = NextResponse.redirect(new URL("/demo", request.url));
+  const requestedDestination = request.nextUrl.searchParams.get("next");
+  const destination = requestedDestination?.startsWith("/demo/")
+    ? requestedDestination
+    : "/demo";
+  const response = NextResponse.redirect(new URL(destination, request.url));
   Object.entries(PRIVATE_HEADERS).forEach(([name, value]) => response.headers.set(name, value));
   response.cookies.set(DEMO_ACCESS_COOKIE, demoAccessCookieValue(), {
     httpOnly: true,

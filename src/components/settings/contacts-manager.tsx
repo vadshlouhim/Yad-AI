@@ -17,6 +17,7 @@ interface CommunityMember {
   notes: string | null;
   source: string;
   createdAt?: string;
+  tags?: string[];
   hebrewBirthDay: number | null;
   hebrewBirthMonth: number | null;
   hebrewBirthYear: number | null;
@@ -37,7 +38,7 @@ interface NavigatorWithContacts extends Navigator {
 type Filter = "all" | "phone" | "email" | "incomplete";
 type Sort = "name" | "recent" | "complete";
 
-const emptyContact = { firstName: "", displayName: "", email: "", phone: "", city: "", profession: "", notes: "", hebrewBirthDay: "", hebrewBirthMonth: "", hebrewBirthYear: "" };
+const emptyContact = { firstName: "", displayName: "", email: "", phone: "", city: "", profession: "", notes: "", tags: "", hebrewBirthDay: "", hebrewBirthMonth: "", hebrewBirthYear: "" };
 
 function parseVCard(content: string) {
   return content
@@ -179,6 +180,7 @@ export function ContactsManager() {
       city: contact.city ?? "",
       profession: contact.profession ?? "",
       notes: contact.notes ?? "",
+      tags: (contact.tags ?? []).join(", "),
       hebrewBirthDay: contact.hebrewBirthDay ? String(contact.hebrewBirthDay) : "",
       hebrewBirthMonth: contact.hebrewBirthMonth ? String(contact.hebrewBirthMonth) : "",
       hebrewBirthYear: contact.hebrewBirthYear ? String(contact.hebrewBirthYear) : "",
@@ -198,7 +200,11 @@ export function ContactsManager() {
       const response = await fetch(editing ? `/api/community/members/${editing.id}` : "/api/community/members", {
         method: editing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, source: editing?.source ?? "manual" }),
+        body: JSON.stringify({
+          ...form,
+          source: editing?.source ?? "manual",
+          tags: form.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
+        }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error ?? "Impossible d’enregistrer ce contact.");
@@ -327,7 +333,7 @@ export function ContactsManager() {
         </div>
 
         <div className="overflow-hidden rounded-[1.6rem] border border-violet-100 shadow-sm">
-          {loading ? <p className="p-8 text-center text-sm text-slate-400">Chargement des contacts…</p> : displayedContacts.length === 0 ? <div className="p-10 text-center"><Users className="mx-auto size-8 text-violet-200" /><p className="mt-3 text-sm font-semibold text-slate-700">Aucun contact trouvé</p><p className="mt-1 text-xs text-slate-500">Modifiez votre recherche ou ajoutez votre premier contact.</p></div> : <div className="divide-y divide-violet-50">{displayedContacts.map((contact) => <article key={contact.id} className="group flex items-center gap-3 px-4 py-3 transition hover:bg-violet-50/65"><div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#2878ef] to-[#7130d8] text-sm font-black text-white shadow-sm">{contact.displayName.slice(0, 1).toUpperCase()}</div><button className="min-w-0 flex-1 text-left" onClick={() => openEdit(contact)}><p className="truncate text-sm font-bold text-slate-900">{contact.displayName}</p><p className="mt-0.5 truncate text-xs text-slate-500">{[contact.phone, contact.email].filter(Boolean).join(" · ") || "Aucun canal renseigné"}</p>{(contact.profession || contact.city) && <p className="mt-1 truncate text-[11px] text-slate-400">{[contact.profession, contact.city].filter(Boolean).join(" · ")}</p>}</button><div className="hidden gap-1 sm:flex">{contact.phone && <Phone className="size-4 text-emerald-500" />}{contact.email && <Mail className="size-4 text-fuchsia-500" />}</div><Button variant="ghost" size="icon-sm" className="text-violet-700 hover:bg-violet-100 hover:text-violet-800" onClick={() => openEdit(contact)} aria-label={`Modifier ${contact.displayName}`}><Pencil className="size-4" /></Button><Button variant="ghost" size="icon-sm" className="text-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => void deleteContact(contact)} aria-label={`Supprimer ${contact.displayName}`}><Trash2 className="size-4" /></Button></article>)}</div>}
+          {loading ? <p className="p-8 text-center text-sm text-slate-400">Chargement des contacts…</p> : displayedContacts.length === 0 ? <div className="p-10 text-center"><Users className="mx-auto size-8 text-violet-200" /><p className="mt-3 text-sm font-semibold text-slate-700">Aucun contact trouvé</p><p className="mt-1 text-xs text-slate-500">Modifiez votre recherche ou ajoutez votre premier contact.</p></div> : <div className="divide-y divide-violet-50">{displayedContacts.map((contact) => <article key={contact.id} className="group flex items-center gap-3 px-4 py-3 transition hover:bg-violet-50/65"><div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#2878ef] to-[#7130d8] text-sm font-black text-white shadow-sm">{contact.displayName.slice(0, 1).toUpperCase()}</div><button className="min-w-0 flex-1 text-left" onClick={() => openEdit(contact)}><p className="truncate text-sm font-bold text-slate-900">{contact.displayName}</p><p className="mt-0.5 truncate text-xs text-slate-500">{[contact.phone, contact.email].filter(Boolean).join(" · ") || "Aucun canal renseigné"}</p>{(contact.profession || contact.city) && <p className="mt-1 truncate text-[11px] text-slate-400">{[contact.profession, contact.city].filter(Boolean).join(" · ")}</p>}{(contact.tags?.length ?? 0) > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{contact.tags?.slice(0, 4).map((tag) => <span key={tag} className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700">{tag}</span>)}{(contact.tags?.length ?? 0) > 4 && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">+{(contact.tags?.length ?? 0) - 4}</span>}</div>}</button><div className="hidden gap-1 sm:flex">{contact.phone && <Phone className="size-4 text-emerald-500" />}{contact.email && <Mail className="size-4 text-fuchsia-500" />}</div><Button variant="ghost" size="icon-sm" className="text-violet-700 hover:bg-violet-100 hover:text-violet-800" onClick={() => openEdit(contact)} aria-label={`Modifier ${contact.displayName}`}><Pencil className="size-4" /></Button><Button variant="ghost" size="icon-sm" className="text-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => void deleteContact(contact)} aria-label={`Supprimer ${contact.displayName}`}><Trash2 className="size-4" /></Button></article>)}</div>}
         </div>
       </div>
 
@@ -355,6 +361,7 @@ export function ContactsManager() {
                 </div>
                 {form.hebrewBirthDay && selectedHebrewMonth && form.hebrewBirthYear && <p className="mt-2 text-xs font-bold text-amber-800">{form.hebrewBirthDay} {getHebrewMonthLabel(selectedHebrewMonth, formHebrewYear)} {form.hebrewBirthYear}</p>}
               </div>
+              <input value={form.tags} onChange={(event) => setForm({ ...form, tags: event.target.value })} placeholder="Groupes CRM : parents, bénévoles, donateurs..." className="h-11 rounded-xl border border-violet-100 bg-white px-3 text-sm outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100 sm:col-span-2" />
               <textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Notes ou préférences" rows={3} className="rounded-xl border border-violet-100 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100 sm:col-span-2" />
             </div>
             {error && <p className="mt-3 text-sm text-red-600">{error}</p>}

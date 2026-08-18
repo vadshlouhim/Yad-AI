@@ -28,6 +28,7 @@ type Platform = "ios" | "android" | "desktop";
 
 const PUSH_SETUP_KEY = "easycom:dashboard-push-setup:v1";
 const DISMISSED_SESSION_KEY = "easycom:dashboard-setup-dismissed:v1";
+const INSTALL_HELP_VIDEO_URL = "https://youtube.com/shorts/VU-N2UbVqzc?si=MH7zQPAbBGH1J280";
 const subscribeToHydration = () => () => undefined;
 
 function getPlatform(): Platform {
@@ -39,7 +40,10 @@ function getPlatform(): Platform {
 
 function isStandalone() {
   const navigatorWithStandalone = window.navigator as Navigator & { standalone?: boolean };
-  return window.matchMedia("(display-mode: standalone)").matches || navigatorWithStandalone.standalone === true;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    navigatorWithStandalone.standalone === true
+  );
 }
 
 function pushFailureMessage(reason: string, message?: string) {
@@ -50,22 +54,31 @@ function pushFailureMessage(reason: string, message?: string) {
     return "Ce navigateur ne permet pas les notifications push. Ouvrez EasyCom IA avec Safari sur iPhone ou Chrome sur Android et ordinateur.";
   }
   if (reason === "missing-vapid-key") {
-    return "Le service de notifications n’est pas encore configuré. Contactez l’assistance EasyCom IA.";
+    return "Le service de notifications n'est pas encore configuré. Contactez l'assistance EasyCom IA.";
   }
-  return message || "L’activation n’a pas abouti. Vérifiez votre connexion puis réessayez.";
+  return message || "L'activation n'a pas abouti. Vérifiez votre connexion puis réessayez.";
 }
 
 export function DashboardFirstVisitGate({ userId }: { userId: string }) {
   const pushSetupKey = `${PUSH_SETUP_KEY}:${userId}`;
   const dismissedSessionKey = `${DISMISSED_SESSION_KEY}:${userId}`;
   const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
-  const [platform] = useState<Platform>(() => typeof window === "undefined" ? "desktop" : getPlatform());
-  const [installed, setInstalled] = useState(() => typeof window !== "undefined" && isStandalone());
+  const [platform] = useState<Platform>(() =>
+    typeof window === "undefined" ? "desktop" : getPlatform()
+  );
+  const [installed, setInstalled] = useState(
+    () => typeof window !== "undefined" && isStandalone()
+  );
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [permission, setPermission] = useState<NotificationPermission | "unsupported">(() => getPushPermission());
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">(() =>
+    getPushPermission()
+  );
   const [pushSetupComplete, setPushSetupComplete] = useState(() => {
     if (typeof window === "undefined") return false;
-    return getPushPermission() === "granted" && window.localStorage.getItem(pushSetupKey) === "complete";
+    return (
+      getPushPermission() === "granted" &&
+      window.localStorage.getItem(pushSetupKey) === "complete"
+    );
   });
   const [installing, setInstalling] = useState(false);
   const [enablingPush, setEnablingPush] = useState(false);
@@ -81,7 +94,8 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
       setInstalled(isStandalone());
       setPermission(currentPermission);
       setPushSetupComplete(
-        currentPermission === "granted" && window.localStorage.getItem(pushSetupKey) === "complete",
+        currentPermission === "granted" &&
+          window.localStorage.getItem(pushSetupKey) === "complete"
       );
     };
 
@@ -103,7 +117,7 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
 
     if ("serviceWorker" in navigator) {
       void navigator.serviceWorker.register("/sw.js").catch(() => {
-        setMessage("L’installation n’a pas pu être préparée. Vérifiez votre connexion puis rechargez la page.");
+        setMessage("L'installation n'a pas pu être préparée. Vérifiez votre connexion puis rechargez la page.");
       });
     }
 
@@ -118,11 +132,7 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
   async function installApplication() {
     setMessage(null);
     if (!installPrompt) {
-      setMessage(
-        platform === "ios"
-          ? "Suivez les 3 étapes ci-dessous, puis ouvrez EasyCom IA depuis l’icône ajoutée à votre écran d’accueil."
-          : "Utilisez le menu de votre navigateur pour installer l’application, puis ouvrez-la depuis son icône.",
-      );
+      window.open(INSTALL_HELP_VIDEO_URL, "_blank", "noopener,noreferrer");
       return;
     }
 
@@ -132,7 +142,7 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
     if (choice.outcome === "accepted") {
       setInstalled(true);
     } else {
-      setMessage("L’installation est nécessaire pour recevoir correctement vos alertes importantes.");
+      setMessage("L'installation est nécessaire pour recevoir correctement vos alertes importantes.");
     }
     setInstallPrompt(null);
     setInstalling(false);
@@ -161,7 +171,9 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
     setDismissed(true);
   }
 
-  if (!hydrated || dismissed || (installed && permission === "granted" && pushSetupComplete)) return null;
+  if (!hydrated || dismissed || (installed && permission === "granted" && pushSetupComplete)) {
+    return null;
+  }
 
   const installationStep = !installed;
   const pushBlocked = permission === "denied";
@@ -188,13 +200,15 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
             <span className="flex size-12 items-center justify-center rounded-2xl bg-white/15 shadow-lg ring-1 ring-white/20">
               <Sparkles className="size-6 fill-[#ffba13] text-[#ffba13]" />
             </span>
-            <p className="mt-4 text-xs font-black uppercase tracking-[0.16em] text-[#ffd04c]">Bienvenue sur EasyCom IA</p>
-            <h1 id="first-visit-title" className="mt-1 text-[clamp(1.7rem,7vw,2.25rem)] font-black leading-[1.05] tracking-[-0.04em]">
+            <p className="mt-4 text-xs font-black uppercase tracking-[0.16em] text-[#ffd04c]">
+              Bienvenue sur EasyCom IA
+            </p>
+            <h1
+              id="first-visit-title"
+              className="mt-1 text-[clamp(1.7rem,7vw,2.25rem)] font-black leading-[1.05] tracking-[-0.04em]"
+            >
               Votre application, toujours à portée de main
             </h1>
-            <p className="mt-2 max-w-md text-sm font-semibold leading-6 text-white/80">
-              Deux réglages rapides pour ne rien manquer.
-            </p>
           </div>
         </header>
 
@@ -206,12 +220,15 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-base font-black text-slate-950">Installer l’application</h2>
-                  <span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${installed ? "bg-emerald-100 text-emerald-700" : "bg-blue-50 text-blue-700"}`}>
+                  <h2 className="text-base font-black text-slate-950">Installer l&apos;application</h2>
+                  <span
+                    className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                      installed ? "bg-emerald-100 text-emerald-700" : "bg-blue-50 text-blue-700"
+                    }`}
+                  >
                     {installed ? "Installée" : "1 minute"}
                   </span>
                 </div>
-                <p className="mt-1 text-sm font-medium leading-5 text-slate-600">Ouvrez EasyCom IA directement depuis votre écran d’accueil.</p>
               </div>
             </div>
 
@@ -222,10 +239,12 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
                     {[
                       { icon: AppWindow, text: "Ouvrez EasyCom IA dans Safari" },
                       { icon: Share, text: "Touchez Partager" },
-                      { icon: ArrowDownToLine, text: "Choisissez Sur l’écran d’accueil" },
+                      { icon: ArrowDownToLine, text: "Choisissez Sur l'écran d'accueil" },
                     ].map((item, index) => (
                       <div key={item.text} className="flex items-center gap-2.5 text-sm font-bold text-slate-700">
-                        <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-black text-[#0878ee] shadow-sm">{index + 1}</span>
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-black text-[#0878ee] shadow-sm">
+                          {index + 1}
+                        </span>
                         <item.icon className="size-4 shrink-0 text-[#0878ee]" />
                         <span>{item.text}</span>
                       </div>
@@ -234,7 +253,7 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
                 ) : !installPrompt ? (
                   <div className="mb-3 flex items-center gap-3 rounded-2xl bg-blue-50/70 p-3 text-sm font-semibold leading-5 text-slate-600">
                     <MoreVertical className="size-5 shrink-0 text-[#0878ee]" />
-                    Ouvrez le menu du navigateur puis choisissez « Installer l’application ».
+                    Ouvrez le menu du navigateur puis choisissez « Installer l&apos;application ».
                   </div>
                 ) : null}
 
@@ -245,7 +264,7 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
                   className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#0878ee] px-5 text-sm font-black text-white shadow-lg shadow-blue-200 transition hover:bg-[#0668d8] disabled:opacity-60"
                 >
                   <ArrowDownToLine className="size-5" />
-                  {installing ? "Installation…" : installPrompt ? "Installer l’application" : "Afficher les instructions"}
+                  {installing ? "Installation..." : installPrompt ? "Installer l'application" : "Voir les instructions"}
                 </button>
               </div>
             ) : null}
@@ -253,28 +272,44 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
 
           <article className="overflow-hidden rounded-[1.6rem] border border-rose-100 bg-white shadow-[0_12px_28px_rgba(217,45,124,0.1)]">
             <div className="flex items-start gap-3 p-4">
-              <span className={`flex size-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ${pushSetupComplete ? "bg-emerald-500 shadow-emerald-200" : "bg-[#d92d7c] shadow-rose-200"}`}>
+              <span
+                className={`flex size-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ${
+                  pushSetupComplete ? "bg-emerald-500 shadow-emerald-200" : "bg-[#d92d7c] shadow-rose-200"
+                }`}
+              >
                 {pushSetupComplete ? <CheckCircle2 className="size-6" /> : <BellRing className="size-6" />}
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-base font-black text-slate-950">Activer les notifications</h2>
-                  <span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${pushSetupComplete ? "bg-emerald-100 text-emerald-700" : "bg-rose-50 text-[#b91c60]"}`}>
+                  <span
+                    className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                      pushSetupComplete ? "bg-emerald-100 text-emerald-700" : "bg-rose-50 text-[#b91c60]"
+                    }`}
+                  >
                     {pushSetupComplete ? "Activées" : installationStep ? "Après installation" : "Recommandé"}
                   </span>
                 </div>
-                <p className="mt-1 text-sm font-medium leading-5 text-slate-600">Recevez vos rappels et confirmations importantes au bon moment.</p>
+                <p className="mt-1 text-sm font-medium leading-5 text-slate-600">
+                  Recevez vos rappels et confirmations importantes au bon moment.
+                </p>
               </div>
             </div>
 
             {!pushSetupComplete ? (
               <div className="border-t border-rose-50 px-4 pb-4 pt-3">
                 {pushBlocked ? (
-                  <p className="mb-3 rounded-2xl bg-amber-50 p-3 text-sm font-semibold leading-5 text-amber-900">Notifications bloquées : autorisez-les dans les réglages de votre appareil.</p>
+                  <p className="mb-3 rounded-2xl bg-amber-50 p-3 text-sm font-semibold leading-5 text-amber-900">
+                    Notifications bloquées : autorisez-les dans les réglages de votre appareil.
+                  </p>
                 ) : !isPushSupported() ? (
-                  <p className="mb-3 rounded-2xl bg-amber-50 p-3 text-sm font-semibold leading-5 text-amber-900">Ouvrez EasyCom IA avec Safari ou Chrome pour activer les notifications.</p>
+                  <p className="mb-3 rounded-2xl bg-amber-50 p-3 text-sm font-semibold leading-5 text-amber-900">
+                    Ouvrez EasyCom IA avec Safari ou Chrome pour activer les notifications.
+                  </p>
                 ) : installationStep ? (
-                  <p className="mb-3 rounded-2xl bg-rose-50 p-3 text-sm font-semibold leading-5 text-rose-800">Installez d’abord l’application, puis activez les notifications.</p>
+                  <p className="mb-3 rounded-2xl bg-rose-50 p-3 text-sm font-semibold leading-5 text-rose-800">
+                    Installez d&apos;abord l&apos;application, puis activez les notifications.
+                  </p>
                 ) : null}
 
                 <button
@@ -284,11 +319,15 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
                   className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#d92d7c] px-5 text-sm font-black text-white shadow-lg shadow-rose-200 transition hover:bg-[#bf256d] disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   <BellRing className="size-5" />
-                  {enablingPush ? "Activation en cours…" : "Activer les notifications"}
+                  {enablingPush ? "Activation en cours..." : "Activer les notifications"}
                 </button>
 
                 {pushBlocked ? (
-                  <button type="button" onClick={() => setPermission(getPushPermission())} className="mt-3 flex w-full items-center justify-center gap-2 text-sm font-bold text-slate-500 hover:text-[#d92d7c]">
+                  <button
+                    type="button"
+                    onClick={() => setPermission(getPushPermission())}
+                    className="mt-3 flex w-full items-center justify-center gap-2 text-sm font-bold text-slate-500 hover:text-[#d92d7c]"
+                  >
                     <RefreshCw className="size-4" /> Vérifier à nouveau
                   </button>
                 ) : null}
@@ -296,13 +335,20 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
             ) : null}
           </article>
 
-          {message && (
-            <p role="status" className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-semibold leading-5 text-amber-900">
+          {message ? (
+            <p
+              role="status"
+              className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-semibold leading-5 text-amber-900"
+            >
               {message}
             </p>
-          )}
+          ) : null}
 
-          <button type="button" onClick={dismiss} className="flex min-h-11 w-full items-center justify-center rounded-2xl text-sm font-black text-slate-500 transition hover:bg-white hover:text-[#421388]">
+          <button
+            type="button"
+            onClick={dismiss}
+            className="flex min-h-11 w-full items-center justify-center rounded-2xl text-sm font-black text-slate-500 transition hover:bg-white hover:text-[#421388]"
+          >
             Plus tard
           </button>
         </div>

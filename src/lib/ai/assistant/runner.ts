@@ -42,6 +42,7 @@ export interface RunAssistantParams {
   gmailConnected: boolean;
   /** Gate billing pré-calculé par le chat route (évite un re-fetch par outil). */
   billingGate: BillingGate;
+  specializedAgentSlug?: string | null;
   emit: AssistantEmit;
 }
 
@@ -52,13 +53,14 @@ function cardTypeFor(kind: string): AssistantActionCard["type"] {
 // Exécute l'agent : boucle d'outils, puis stream de la réponse finale.
 // Retourne le texte final complet (pour persistance).
 export async function runAssistant(params: RunAssistantParams): Promise<string> {
-  const { openrouter, model, systemPrompt, messages, admin, communityId, userId, actionMode, gmailConnected, billingGate, emit } = params;
+  const { openrouter, model, systemPrompt, messages, admin, communityId, userId, actionMode, gmailConnected, billingGate, specializedAgentSlug, emit } = params;
 
   const tools = buildTools({
     gmailConnected,
     tier: billingGate.tier,
     isPaid: billingGate.isPaid,
     isSuperAdmin: billingGate.isSuperAdmin,
+    specializedAgentSlug,
   });
   const currentMessages: ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },
@@ -221,8 +223,9 @@ async function handleToolCall(ctx: ToolCtx): Promise<string> {
   if (sensitivity === "READ") {
     if (!def.read) return `Outil ${name} mal configuré (pas de handler de lecture).`;
     try {
-      const { llmResult, panel } = await def.read(execCtx, args);
+      const { llmResult, panel, clientEvent } = await def.read(execCtx, args);
       if (panel) emit.event({ type: "data_panel", panel });
+      if (clientEvent) emit.event(clientEvent);
       return JSON.stringify(llmResult);
     } catch (error) {
       return `Erreur de lecture : ${(error as Error).message}`;

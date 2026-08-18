@@ -174,7 +174,7 @@ export function TorahClient() {
                   aria-pressed={active}
                   onClick={() => setSelectedDuration(duration.value)}
                   className={cn(
-                    "relative min-h-16 overflow-hidden rounded-xl border px-2 py-3 text-center text-base font-black transition sm:min-h-[4.5rem] sm:rounded-2xl sm:text-lg",
+                    "relative min-h-16 overflow-hidden rounded-xl border px-2 py-3 text-center text-base font-black uppercase transition sm:min-h-[4.5rem] sm:rounded-2xl sm:text-lg",
                     active ? `border-transparent bg-gradient-to-r ${duration.color} text-white shadow-md` : "border-slate-200 bg-slate-50 text-slate-600 hover:border-teal-200",
                   )}
                 >
