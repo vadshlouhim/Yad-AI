@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createCheckoutSession } from "@/lib/stripe";
-import { getBillingConfig, getCheckoutPrice } from "@/lib/billing";
 import Stripe from "stripe";
 
 export async function POST(request: Request) {
@@ -46,13 +45,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: activeSubscription } = await admin
+    const { data: subscriptions } = await admin
       .from("Subscription")
-      .select("id")
+      .select("id, status")
       .eq("communityId", profile.communityId)
-      .in("status", ["TRIALING", "ACTIVE", "PAST_DUE", "UNPAID", "INCOMPLETE", "PAUSED"])
-      .limit(1)
-      .maybeSingle();
+      .limit(10);
+    const activeSubscription = subscriptions?.find((item) =>
+      ["TRIALING", "ACTIVE", "PAST_DUE", "UNPAID", "INCOMPLETE", "PAUSED"].includes(item.status)
+    );
     if (activeSubscription) {
       return NextResponse.json(
         {
@@ -64,18 +64,18 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const tier = body.tier === "ENTERPRISE" ? "ENTERPRISE" : "PROFESSIONAL";
-    const config = await getBillingConfig(admin);
-    const { unitAmount, planName } = getCheckoutPrice(config, tier, body.applyLaunchOffer !== false);
+    const firstSubscription = !(subscriptions?.length);
+    const firstMonthCouponId = firstSubscription ? process.env.STRIPE_FIRST_MONTH_COUPON_ID : undefined;
+    if (firstSubscription && !firstMonthCouponId) {
+      return NextResponse.json({ error: "L'offre premier mois Stripe n'est pas encore configurée.", code: "BILLING_SETUP_REQUIRED" }, { status: 503 });
+    }
     const requestOrigin = new URL(request.url).origin;
     const successUrl = safeReturnUrl(body.successUrl, requestOrigin, "/dashboard/settings/billing?success=true");
     const cancelUrl = safeReturnUrl(body.cancelUrl, requestOrigin, "/dashboard/settings/billing");
 
     const session = await createCheckoutSession({
       communityId: profile.communityId,
-      tier,
-      unitAmount,
-      planName,
+      firstMonthCouponId,
       stripeCustomerId: community.stripeCustomerId ?? undefined,
       customerEmail: user.email,
       successUrl,

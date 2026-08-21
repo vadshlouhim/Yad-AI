@@ -14,24 +14,15 @@ interface Props {
   title?: string;
   description?: string;
   featureLabel?: string;
-  /** "PRO" (défaut) = n'importe quel palier payant débloque ; "BUSINESS" = réservé au palier Business */
+  /** Conservé pour compatibilité avec les anciens appels. */
   requiredTier?: "PRO" | "BUSINESS";
 }
 
-const PRO_FEATURES = [
-  "WhatsApp débloqué",
-  "Affiches illimitées",
-  "20 publications sociales / mois",
-  "3 automatisations IA",
-  "50 messages Agent IA",
-];
-
-const BUSINESS_FEATURES = [
-  "Gestion des emails",
-  "Gestion des avis Google",
-  "Messages Agent IA illimités",
-  "50 publications sociales / mois",
-  "5 automatisations IA",
+const PAID_FEATURES = [
+  "Toutes les automatisations IA",
+  "Générations et affiches IA",
+  "Publications et envois",
+  "Newsletter papier et outils avancés",
 ];
 
 function formatPrice(cents: number) {
@@ -55,16 +46,16 @@ export function UpgradeModal({
 
   if (!open) return null;
 
-  const isBusiness = requiredTier === "BUSINESS";
-  const launchOfferActive = !isBusiness && isLaunchOfferActive(config);
-  const resolvedTitle = title ?? (isBusiness ? "Fonctionnalité réservée à l'offre Business" : "Fonctionnalité réservée au mode payant");
-  const features = isBusiness ? BUSINESS_FEATURES : PRO_FEATURES;
+  void requiredTier;
+  const launchOfferActive = isLaunchOfferActive(config);
+  const resolvedTitle = title ?? "Débloquez cette action avec EasyCom IA";
+  const features = PAID_FEATURES;
 
   async function goToCheckout() {
     setLoading(true);
     try {
       const checkoutUrl = await createSubscriptionCheckout({
-        tier: isBusiness ? "ENTERPRISE" : "PROFESSIONAL",
+        tier: "PROFESSIONAL",
         applyLaunchOffer: launchOfferActive,
         successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
         cancelUrl: window.location.href,
@@ -102,14 +93,12 @@ export function UpgradeModal({
               <div>
                 <div className="flex items-center gap-2">
                   <Sparkles className="size-5 text-blue-700" />
-                  <p className="font-black text-slate-950">{isBusiness ? "Offre Business" : "Offre Pro"}</p>
+                  <p className="font-black text-slate-950">EasyCom IA</p>
                 </div>
                 {launchOfferActive && <p className="mt-1 text-xs font-semibold text-blue-700">{config.launchMessage}</p>}
               </div>
               <div className="text-right">
-                {isBusiness ? (
-                  <p className="text-3xl font-black text-blue-700">59,99 €</p>
-                ) : launchOfferActive ? (
+                {launchOfferActive ? (
                   <>
                     <p className="text-sm font-bold text-slate-400 line-through">
                       {formatPrice(config.basePriceCents)} {config.taxLabel}
@@ -121,16 +110,12 @@ export function UpgradeModal({
                 ) : (
                   <p className="text-3xl font-black text-blue-700">{formatPrice(config.basePriceCents)}</p>
                 )}
-                <p className="text-xs font-semibold text-slate-500">{config.taxLabel} / mois</p>
+                <p className="text-xs font-semibold text-slate-500">{config.taxLabel} / mois, puis {formatPrice(config.basePriceCents)} {config.taxLabel} / mois</p>
               </div>
             </div>
             {launchOfferActive && (
               <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-600">
-                Tarif réduit valable jusqu&apos;au {new Date(`${config.launchEndsAt}T12:00:00`).toLocaleDateString("fr-FR", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}.
+                Offre réservée à la première souscription de votre communauté.
               </p>
             )}
           </div>
@@ -150,7 +135,7 @@ export function UpgradeModal({
               loading={loading}
               className="h-11 flex-1 rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700"
             >
-              Passer au payant
+              Débloquer à 8,99 € TTC
               <ArrowRight className="size-4" />
             </Button>
             <Button

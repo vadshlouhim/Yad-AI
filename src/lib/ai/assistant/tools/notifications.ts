@@ -1,6 +1,7 @@
 import type { AssistantToolDef } from "../types";
 import type { PanelItem } from "../panels";
 import { frDateTime, panelId, truncate } from "./shared";
+import { resolveNotificationTarget } from "@/lib/notifications/navigation";
 
 // Notifications in-app de l'utilisateur : lecture, marquage lu, suppression.
 // Exception assumée : suppression classée REVERSIBLE (hygiène, pas de confirmation).
@@ -26,7 +27,7 @@ export const listNotifications: AssistantToolDef = {
     if (!ctx.userId) return { llmResult: { notifications: [] } };
     let query = ctx.admin
       .from("Notification")
-      .select("id, type, title, body, isRead, link, createdAt")
+      .select("id, type, title, body, isRead, link, data, createdAt")
       .eq("userId", ctx.userId)
       .order("isRead", { ascending: true })
       .order("createdAt", { ascending: false })
@@ -50,7 +51,7 @@ export const listNotifications: AssistantToolDef = {
               toolKind: "mark_notifications_read",
               payload: { notificationId: n.id },
             }]),
-        ...(n.link ? [{ id: `open-${n.id}`, label: "Ouvrir", kind: "navigate" as const, href: n.link }] : []),
+        { id: `open-${n.id}`, label: "Ouvrir", kind: "navigate" as const, href: resolveNotificationTarget(n) },
         {
           id: `del-${n.id}`,
           label: "Supprimer",

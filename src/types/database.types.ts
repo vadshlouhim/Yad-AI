@@ -381,6 +381,7 @@ export type Database = {
           coverUrl: string | null
           createdAt: string
           description: string | null
+          donationUrl: string | null
           editorialRules: string | null
           email: string | null
           hashtags: string[] | null
@@ -413,6 +414,7 @@ export type Database = {
           coverUrl?: string | null
           createdAt?: string
           description?: string | null
+          donationUrl?: string | null
           editorialRules?: string | null
           email?: string | null
           hashtags?: string[] | null
@@ -445,6 +447,7 @@ export type Database = {
           coverUrl?: string | null
           createdAt?: string
           description?: string | null
+          donationUrl?: string | null
           editorialRules?: string | null
           email?: string | null
           hashtags?: string[] | null

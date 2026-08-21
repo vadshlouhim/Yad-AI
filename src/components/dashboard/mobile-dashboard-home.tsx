@@ -13,6 +13,7 @@ import {
   CalendarRange,
   ChevronDown,
   CreditCard,
+  FileText,
   Image as ImageIcon,
   LogOut,
   Mail,
@@ -30,7 +31,6 @@ import { HOME_EASYCOM_AGENTS, type EasyComAgent } from "@/lib/agents";
 import {
   getOfficialDashboardMenuSections,
   OFFICIAL_MENU_SECTION_STYLES,
-  WhatsAppIcon,
   type OfficialDashboardMenuSection,
 } from "@/components/layout/dashboard-nav";
 
@@ -72,7 +72,7 @@ const ACTION_CARDS: ActionCard[] = [
     title: "Publier partout",
     icon: Megaphone,
     className: "from-[#0878ee] via-[#0668e8] to-[#064bd8]",
-    sectionKey: "social",
+    href: "/dashboard/social-networks",
   },
   {
     key: "automations",
@@ -82,11 +82,11 @@ const ACTION_CARDS: ActionCard[] = [
     sectionKey: "automations",
   },
   {
-    key: "targeted",
-    title: "Communication ciblée",
-    icon: Target,
-    className: "from-[#ff4c50] via-[#f63f47] to-[#e9333d]",
-    href: "/dashboard/communication-ciblee",
+    key: "newsletter-paper",
+    title: "Newsletter Papier IA",
+    icon: FileText,
+    className: "from-[#72a816] via-[#60930f] to-[#4d750b]",
+    href: "/dashboard/newsletter",
   },
   {
     key: "torah",
@@ -96,26 +96,18 @@ const ACTION_CARDS: ActionCard[] = [
     sectionKey: "torah",
   },
   {
+    key: "contacts",
+    title: "Contacts",
+    icon: Users,
+    className: "from-[#ef7c18] via-[#e66115] to-[#cf4713]",
+    href: "/dashboard/contacts",
+  },
+  {
     key: "visuals",
     title: "Affiches",
     icon: ImageIcon,
     className: "from-[#7130d8] via-[#6d2bc8] to-[#5722b1]",
     sectionKey: "visuals",
-  },
-  {
-    key: "contacts",
-    title: "Contacts",
-    icon: Users,
-    className: "from-[#0a72ec] via-[#075fdf] to-[#0649cb]",
-    href: "/dashboard/contacts",
-  },
-  {
-    key: "email",
-    title: "Email & Avis",
-    icon: Mail,
-    className: "from-[#f33967] via-[#ed3262] to-[#dc2860]",
-    sectionKey: "email",
-    wide: true,
   },
 ];
 
@@ -164,7 +156,6 @@ export function MobileDashboardHome({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [whatsAppComingSoonOpen, setWhatsAppComingSoonOpen] = useState(false);
   const agentsScrollerRef = useRef<HTMLDivElement>(null);
   const moduleKey = searchParams.get("module");
   const sections = useMemo(() => getOfficialDashboardMenuSections(communityType), [communityType]);
@@ -330,17 +321,7 @@ export function MobileDashboardHome({
           <div className="flex items-center justify-between gap-3">
             <h2 className="flex shrink-0 items-center gap-2.5 text-[1.35rem] font-extrabold tracking-[-0.025em]">
               <Sparkles className="size-6 shrink-0 fill-[#ffba13] text-[#ffba13]" />
-              <span className="inline-flex items-center gap-2">
-                <span>Vos agents IA</span>
-                <button
-                  type="button"
-                  onClick={() => setWhatsAppComingSoonOpen(true)}
-                  aria-label="Bientôt disponible sur WhatsApp"
-                  className="inline-flex size-7 items-center justify-center rounded-full bg-white shadow-[0_8px_20px_rgba(12,23,16,0.2)] ring-1 ring-white/75 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                >
-                  <WhatsAppIcon className="size-4 text-[#1db954]" />
-                </button>
-              </span>
+              <span>Vos agents IA</span>
             </h2>
             <button
               type="button"
@@ -450,44 +431,6 @@ export function MobileDashboardHome({
           if (!open) closeSection();
         }}
       />
-      <DialogPrimitive.Root open={whatsAppComingSoonOpen} onOpenChange={setWhatsAppComingSoonOpen}>
-        <DialogPrimitive.Portal>
-          <DialogPrimitive.Overlay className="fixed inset-0 z-[1000] bg-[#170534]/60 backdrop-blur-[3px]" />
-          <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-[1001] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[2rem] bg-[#fffaf5] shadow-[0_28px_80px_rgba(23,5,52,0.38)] outline-none">
-            <div className="relative bg-[radial-gradient(circle_at_75%_0%,#27c864_0%,#179c49_58%,#0c7c37_100%)] px-5 pb-5 pt-5 text-white">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="flex size-12 items-center justify-center rounded-2xl bg-white shadow-sm">
-                    <WhatsAppIcon className="size-7 text-[#1db954]" />
-                  </span>
-                  <div>
-                    <DialogPrimitive.Title className="text-lg font-black uppercase tracking-tight">
-                      Bientôt disponible
-                    </DialogPrimitive.Title>
-                  </div>
-                </div>
-                <DialogPrimitive.Close className="flex size-10 items-center justify-center rounded-full bg-white/16 text-white ring-1 ring-white/20 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
-                  <X className="size-5" />
-                  <span className="sr-only">Fermer</span>
-                </DialogPrimitive.Close>
-              </div>
-            </div>
-            <div className="px-5 pb-5 pt-5 text-center">
-              <p className="text-base font-bold leading-7 text-slate-800">
-                Bientôt vous pourriez dialoguer avec vos agents IA par WhatsApp.
-              </p>
-              <DialogPrimitive.Close asChild>
-                <button
-                  type="button"
-                  className="mt-5 min-h-12 w-full rounded-2xl bg-[#1db954] px-5 text-sm font-black uppercase text-white shadow-[0_16px_30px_-18px_rgba(29,185,84,0.8)] transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200"
-                >
-                  J’ai compris
-                </button>
-              </DialogPrimitive.Close>
-            </div>
-          </DialogPrimitive.Content>
-        </DialogPrimitive.Portal>
-      </DialogPrimitive.Root>
     </div>
   );
 }
@@ -515,7 +458,7 @@ function ModuleDialog({
     ? section?.items.find((item) => item.href === "/dashboard/social-networks")
     : undefined;
   const socialSecondaryItems = isSocialSection
-    ? section?.items.filter((item) => item.href !== "/dashboard/social-networks") ?? []
+    ? section?.items.filter((item) => item.href === "/dashboard/publications") ?? []
     : [];
   const compactGridTitle =
     section?.key === "torah"
@@ -584,7 +527,7 @@ function ModuleDialog({
                       );
                     })()}
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3">
                       {socialSecondaryItems.map((item) => {
                         const ItemIcon = item.icon;
                         const buttonTone =
@@ -592,9 +535,7 @@ function ModuleDialog({
                             ? "from-[#ec3f85] to-[#d52a72]"
                             : item.href === "/dashboard/facebook"
                               ? "from-[#2678e8] to-[#1557c8]"
-                              : item.href === "/dashboard/whatsapp"
-                                ? "from-[#21ad70] to-[#118758]"
-                                : "from-[#7130d8] to-[#5420ad]";
+                              : "from-[#7130d8] to-[#5420ad]";
                         return (
                           <Link
                             key={item.href}
@@ -611,7 +552,7 @@ function ModuleDialog({
                               ) : null}
                             </span>
                             <span className="relative text-sm font-black uppercase leading-tight">
-                              {item.href === "/dashboard/publications" ? "Mes publications" : item.label}
+                              {item.href === "/dashboard/publications" ? "Historique des publications" : item.label}
                             </span>
                           </Link>
                         );

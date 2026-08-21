@@ -28,6 +28,7 @@ export interface OnboardingData {
   phone: string;
   email: string;
   website: string;
+  donationUrl: string;
   address: string;
   logoUrl: string;
 
@@ -71,6 +72,7 @@ const defaultData: OnboardingData = {
   phone: "",
   email: "",
   website: "",
+  donationUrl: "",
   address: "",
   logoUrl: "",
   tone: "MODERN",
@@ -95,6 +97,7 @@ export const demoOnboardingData: OnboardingData = {
   city: "Paris",
   email: "test@chlomi-test.local",
   website: "https://chlomi-test.local",
+  donationUrl: "https://allodons.fr/chlomi-test",
   signature: "L'équipe Chlomi-test",
   hashtags: ["#ChlomiTest", "#DemoEasycom"],
   channels: [

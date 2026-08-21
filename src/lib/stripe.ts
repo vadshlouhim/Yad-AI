@@ -33,9 +33,9 @@ export const PLANS = {
     },
   },
   PROFESSIONAL: {
-    name: "Payant",
+    name: "EasyCom IA",
     priceId: process.env.STRIPE_PAID_PRICE_ID ?? process.env.STRIPE_PRO_PRICE_ID,
-    price: 19.99,
+    price: 29.99,
     limits: {
       socialPublications: -1,
       assistantMessages: -1,
@@ -48,9 +48,7 @@ export const PLANS = {
 
 export async function createCheckoutSession(params: {
   communityId: string;
-  tier: "PROFESSIONAL" | "ENTERPRISE";
-  unitAmount: number;
-  planName: string;
+  firstMonthCouponId?: string;
   stripeCustomerId?: string;
   customerEmail?: string;
   successUrl: string;
@@ -58,9 +56,7 @@ export async function createCheckoutSession(params: {
 }) {
   const {
     communityId,
-    tier,
-    unitAmount,
-    planName,
+    firstMonthCouponId,
     stripeCustomerId,
     customerEmail,
     successUrl,
@@ -74,26 +70,15 @@ export async function createCheckoutSession(params: {
       : customerEmail
         ? { customer_email: customerEmail }
         : {}),
-    line_items: [
-      {
-        price_data: {
-          currency: "eur",
-          unit_amount: unitAmount,
-          recurring: { interval: "month" },
-          product_data: { name: planName },
-          tax_behavior: "exclusive",
-        },
-        quantity: 1,
-      },
-    ],
+    line_items: [{ price: requiredMonthlyPriceId(), quantity: 1 }],
     success_url: successUrl,
     cancel_url: cancelUrl,
     client_reference_id: communityId,
-    metadata: { communityId, planTier: tier },
+    metadata: { communityId, planTier: "PROFESSIONAL" },
     subscription_data: {
-      metadata: { communityId, planTier: tier },
+      metadata: { communityId, planTier: "PROFESSIONAL" },
     },
-    allow_promotion_codes: true,
+    ...(firstMonthCouponId ? { discounts: [{ coupon: firstMonthCouponId }] } : {}),
     billing_address_collection: "required",
   };
 
@@ -109,6 +94,12 @@ export async function createCheckoutSession(params: {
     }
     throw error;
   }
+}
+
+function requiredMonthlyPriceId() {
+  const priceId = process.env.STRIPE_PAID_PRICE_ID ?? process.env.STRIPE_PRO_PRICE_ID;
+  if (!priceId) throw new Error("STRIPE_PAID_PRICE_ID manquant");
+  return priceId;
 }
 
 function isMissingStripeCustomer(error: unknown) {

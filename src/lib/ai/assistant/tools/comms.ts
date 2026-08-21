@@ -18,7 +18,7 @@ export const sendEmail: AssistantToolDef = {
   summarize: (payload) =>
     `Envoyer un email à ${String(payload.to ?? "?")} — objet : « ${String(payload.subject ?? "")} ».`,
   // Aligné sur /api/email/send : la gestion des emails est réservée à l'offre Business.
-  availability: (ctx: BuildToolsContext) => ctx.isSuperAdmin || ctx.tier === "BUSINESS",
+  availability: (ctx: BuildToolsContext) => ctx.isSuperAdmin || ctx.isPaid,
   schema: {
     type: "function",
     function: {
@@ -37,7 +37,7 @@ export const sendEmail: AssistantToolDef = {
   },
   execute: async (ctx, payload) => {
     const gate = await resolveGate(ctx);
-    if (gate && !gate.isSuperAdmin && gate.tier !== "BUSINESS") {
+    if (gate && !gate.isPaid) {
       return {
         success: false,
         message: "La gestion des emails est réservée à l'offre Business.",

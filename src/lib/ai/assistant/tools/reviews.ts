@@ -5,7 +5,7 @@ import { panelId, resolveGate, truncate } from "./shared";
 
 // Avis Google Business : lecture et réponse publique. Réservé à l'offre Business.
 
-const businessOnly = (ctx: BuildToolsContext) => ctx.isSuperAdmin || ctx.tier === "BUSINESS";
+const businessOnly = (ctx: BuildToolsContext) => ctx.isSuperAdmin || ctx.isPaid;
 
 export const listReviews: AssistantToolDef = {
   name: "list_reviews",
@@ -27,7 +27,7 @@ export const listReviews: AssistantToolDef = {
   },
   read: async (ctx, args) => {
     const gate = await resolveGate(ctx);
-    if (gate && !gate.isSuperAdmin && gate.tier !== "BUSINESS") {
+    if (gate && !gate.isPaid) {
       return { llmResult: { error: "La gestion des avis Google est réservée à l'offre Business." } };
     }
     const result = await listGmbReviews(ctx.admin, ctx.communityId);
@@ -108,7 +108,7 @@ export const replyReview: AssistantToolDef = {
   },
   execute: async (ctx, payload) => {
     const gate = await resolveGate(ctx);
-    if (gate && !gate.isSuperAdmin && gate.tier !== "BUSINESS") {
+    if (gate && !gate.isPaid) {
       return {
         success: false,
         message: "La gestion des avis Google est réservée à l'offre Business.",

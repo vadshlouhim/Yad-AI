@@ -78,7 +78,7 @@ export async function ensureTodayEventReminderNotifications(
         type: "EVENT_REMINDER",
         title: `Événement aujourd'hui : ${event.title}`,
         body: `Votre événement "${event.title}" est prévu aujourd'hui à ${time}.${location}`,
-        link: `/dashboard/assistant?eventId=${event.id}`,
+        link: "/dashboard/events",
         data: {
           eventId: event.id,
           reminderDate: dayKey,

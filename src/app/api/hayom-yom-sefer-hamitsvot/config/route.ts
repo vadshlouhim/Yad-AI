@@ -8,6 +8,7 @@ import {
   HAYOM_YOM_TIME,
   nextHayomYomRunAt,
   normalizeHayomYomDays,
+  normalizeHayomYomChannels,
   type HayomYomSettings,
 } from "@/lib/automation/hayom-yom";
 import type { Json } from "@/types/database.types";
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
 
     const access = await getHayomYomAccess({ admin, communityId: profile.communityId, profile });
     if (!access.allowed) {
-      return NextResponse.json({ error: "Cette automatisation est réservée à l’offre Pro à 29,99 € et à l’offre Business." }, { status: 402 });
+      return NextResponse.json({ error: "Cette automatisation est disponible avec l’abonnement EasyCom IA." }, { status: 402 });
     }
 
     const body = await request.json().catch(() => ({})) as Record<string, unknown>;
@@ -49,18 +50,19 @@ export async function POST(request: Request) {
     const existing = rows?.[0] ?? null;
     const current = getHayomYomSettings(existing?.triggerConfig);
     const days = mode === "pause" ? current?.days ?? [] : normalizeHayomYomDays(body.days);
+    const channels = mode === "pause" ? current?.channels ?? ["FACEBOOK"] : normalizeHayomYomChannels(body.channels);
+    if (channels.length === 0) return NextResponse.json({ error: "SÃ©lectionnez au moins un rÃ©seau." }, { status: 400 });
     if (days.length === 0) return NextResponse.json({ error: "Sélectionnez au moins un jour." }, { status: 400 });
 
     if (mode === "activate") {
-      const { data: facebook } = await admin.from("Channel")
+      const { data: connectedChannels } = await admin.from("Channel")
         .select("id")
         .eq("communityId", profile.communityId)
-        .eq("type", "FACEBOOK")
+        .in("type", channels)
         .eq("isConnected", true)
-        .eq("isActive", true)
-        .maybeSingle();
-      if (!facebook) {
-        return NextResponse.json({ error: "Connectez une page Facebook avant d’activer cette automatisation." }, { status: 400 });
+        .eq("isActive", true);
+      if (!connectedChannels?.length) {
+        return NextResponse.json({ error: "Connectez au moins un réseau sélectionné avant d’activer cette automatisation." }, { status: 400 });
       }
     }
 
@@ -69,14 +71,14 @@ export async function POST(request: Request) {
       days,
       time: HAYOM_YOM_TIME,
       timezone: community?.timezone || "Europe/Paris",
-      channel: "FACEBOOK",
+      channels,
     };
     const baseConfig = isRecord(existing?.triggerConfig) ? existing.triggerConfig : {};
     const triggerConfig = { ...baseConfig, hayomYomSettings: settings } as Json;
     const nextRunAt = mode === "pause" ? null : nextHayomYomRunAt(settings)?.toISOString() ?? null;
     const payload = {
       name: HAYOM_YOM_AUTOMATION_NAME,
-      description: "Publie automatiquement les textes intégraux du Hayom Yom et du Sefer Hamitsvot sur Facebook.",
+      description: "Publie automatiquement le Hayom Yom et le Sefer Hamitsvot avec un visuel, sur les réseaux sélectionnés.",
       trigger: "CUSTOM_SCHEDULE" as const,
       triggerConfig,
       actions: [] as Json,

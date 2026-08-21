@@ -41,6 +41,7 @@ import {
 } from "./monthly-program-recap";
 import { notifyUser } from "@/lib/notifications/notify";
 import { createNotificationOnce } from "@/lib/notifications/create-once";
+import { getAutomationConfigurationHref } from "@/lib/automation/navigation";
 import { addDays, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 import type { Tables, Enums } from "@/types/database.types";
 import { Resend } from "resend";
@@ -150,9 +151,19 @@ type AutomationWithCommunity = Automation & {
     tone: string;
     hashtags: string[] | null;
     email: string | null;
+    logoUrl: string | null;
     vocabulary: unknown;
   };
 };
+
+function getAutomationNotificationLink(automation: AutomationWithCommunity): string {
+  return getAutomationConfigurationHref({
+    id: automation.id,
+    name: automation.name,
+    trigger: automation.trigger,
+    triggerConfig: isRecord(automation.triggerConfig) ? automation.triggerConfig : null,
+  });
+}
 
 function escapeHtml(value: string): string {
   return value
@@ -242,7 +253,7 @@ export async function runAutomationEngine(): Promise<void> {
 
   const { data: automations } = await supabase
     .from("Automation")
-    .select("*, community:Community(id,name,city,timezone,tone,hashtags,email,vocabulary)")
+    .select("*, community:Community(id,name,city,timezone,tone,hashtags,email,logoUrl,vocabulary)")
     .eq("isActive", true)
     .eq("status", "ACTIVE");
 
@@ -385,7 +396,7 @@ async function prepareAutomationNotification(automation: AutomationWithCommunity
       const leadHours = getNotificationLeadHours(automation);
       const notifTitle = "Publication automatique programmée";
       const notifBody = `Cette publication partira automatiquement dans ${leadHours}h.`;
-      const notifLink = "/dashboard/automations";
+      const notifLink = getAutomationNotificationLink(automation);
       const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
         communityId: automation.community.id,
         type: "AUTOMATION_TRIGGERED",
@@ -480,7 +491,7 @@ async function prepareAutomationNotification(automation: AutomationWithCommunity
     const leadHours = getNotificationLeadHours(automation);
     const notifTitle = automation.trigger === "WEEKLY_SHABBAT" ? "Affiche Chabbat prête à valider" : "Validation requise";
     const notifBody = `Dans ${leadHours}h, votre publication sera envoyée. Validez ?`;
-    const notifLink = `/dashboard/assistant?draftId=${draft.id}`;
+    const notifLink = getAutomationNotificationLink(automation);
     const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
       communityId: automation.community.id,
       type: "AI_CONTENT_READY",
@@ -780,8 +791,8 @@ async function executeEventReminderCampaign(
 
     if (requiresValidation && notifyUsers && notifyUsers.length > 0) {
       const notifTitle = `${labelText} : ${campaign.eventName}`;
-      const notifBody = `Votre rappel "${labelText}" est prêt. Ouvrez l'Assistant pour le valider et le publier.`;
-      const notifLink = `/dashboard/assistant?draftId=${draft.id}`;
+      const notifBody = `Votre rappel "${labelText}" est prêt. Vérifiez-le depuis les rappels d'événements avant publication.`;
+      const notifLink = "/dashboard/event-reminders-auto";
       const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
         communityId: automation.community.id,
         type: "AI_CONTENT_READY",
@@ -1092,24 +1103,26 @@ async function executeHayomYomPublication(
     return;
   }
 
-  const { data: channel } = await supabase.from("Channel").select("*")
+  const { data: channels } = await supabase.from("Channel").select("*")
     .eq("communityId", automation.community.id)
-    .eq("type", "FACEBOOK")
+    .in("type", settings.channels)
     .eq("isConnected", true)
-    .eq("isActive", true)
-    .maybeSingle();
-  if (!channel) {
+    .eq("isActive", true);
+  if (!channels?.length) {
     await notifyHayomYomOutcome({
       automation, dateISO, type: "CHANNEL_DISCONNECTED",
-      title: "Facebook doit être reconnecté",
-      body: "La publication automatique n’a pas été envoyée, car aucune page Facebook active n’est connectée.",
+      title: "Un réseau doit être reconnecté",
+      body: "La publication automatique n’a pas été envoyée, car aucun réseau sélectionné n’est connecté.",
       data: { outcome: "CHANNEL_MISSING" },
     });
     return;
   }
 
+  const draftId = crypto.randomUUID();
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const imageUrl = `${appUrl}/api/hayom-yom-sefer-hamitsvot/card?draftId=${encodeURIComponent(draftId)}`;
   const { data: draft, error: draftError } = await supabase.from("ContentDraft").insert({
-    id: crypto.randomUUID(),
+    id: draftId,
     communityId: automation.community.id,
     eventId: null,
     title: `Hayom Yom et Sefer Hamitsvot — ${study.dateLabel}`,
@@ -1117,7 +1130,7 @@ async function executeHayomYomPublication(
     bodyHebrew: null,
     hashtags: [],
     cta: null,
-    imageUrl: null,
+    imageUrl,
     contentType: "DAILY_CONTENT",
     status: "READY_TO_PUBLISH",
     aiGenerated: false,
@@ -1126,37 +1139,41 @@ async function executeHayomYomPublication(
   }).select().single();
   if (draftError || !draft) throw draftError ?? new Error("Brouillon introuvable");
 
-  const { data: publication, error: publicationError } = await supabase.from("Publication").insert({
-    id: crypto.randomUUID(),
-    communityId: automation.community.id,
-    eventId: null,
-    draftId: draft.id,
-    channelId: channel.id,
-    channelType: "FACEBOOK",
-    status: "PENDING",
-    content: study.facebookText,
-    mediaUrls: [],
-    metadata: {
-      automationId: automation.id,
-      date: dateISO,
-      hayomYomUrl: study.hayomYomUrl,
-      seferHamitsvotUrl: study.seferHamitsvotUrl,
-      source: "Beth Loubavitch",
-    },
-    updatedAt: new Date().toISOString(),
-  }).select("*, channel:Channel(*)").single();
-  if (publicationError || !publication) throw publicationError ?? new Error("Publication introuvable");
-
-  const result = await publishToChannel(publication as Publication & { channel: Channel }, { createNotification: false });
+  const results = await Promise.all(channels.map(async (channel) => {
+    const { data: publication, error: publicationError } = await supabase.from("Publication").insert({
+      id: crypto.randomUUID(),
+      communityId: automation.community.id,
+      eventId: null,
+      draftId: draft.id,
+      channelId: channel.id,
+      channelType: channel.type,
+      status: "PENDING",
+      content: study.facebookText,
+      mediaUrls: [imageUrl],
+      metadata: {
+        automationId: automation.id,
+        date: dateISO,
+        hayomYomUrl: study.hayomYomUrl,
+        seferHamitsvotUrl: study.seferHamitsvotUrl,
+        source: "Beth Loubavitch",
+        visual: "generated_without_ai",
+      },
+      updatedAt: new Date().toISOString(),
+    }).select("*, channel:Channel(*)").single();
+    if (publicationError || !publication) throw publicationError ?? new Error("Publication introuvable");
+    return publishToChannel(publication as Publication & { channel: Channel }, { createNotification: false });
+  }));
+  const successCount = results.filter((result) => result.success).length;
+  const result = results[0];
   await notifyHayomYomOutcome({
     automation,
     dateISO,
-    type: result.success ? "PUBLICATION_SUCCESS" : "PUBLICATION_FAILED",
-    title: result.success ? "Études quotidiennes publiées" : "Échec de la publication Facebook",
-    body: result.success
-      ? "Le Hayom Yom et le Sefer Hamitsvot ont été publiés automatiquement sur Facebook."
-      : `La publication Facebook a échoué : ${result.error ?? "erreur inconnue"}`,
-    data: { publicationId: publication.id, externalUrl: result.externalUrl ?? null, outcome: result.success ? "PUBLISHED" : "FAILED" },
+    type: successCount > 0 ? "PUBLICATION_SUCCESS" : "PUBLICATION_FAILED",
+    title: successCount > 0 ? "Études quotidiennes publiées" : "Échec de la publication",
+    body: successCount > 0
+      ? `Le Hayom Yom et le Sefer Hamitsvot ont été publiés avec leur visuel sur ${successCount} réseau(x).`
+      : `La publication a échoué : ${result?.error ?? "erreur inconnue"}`,
+    data: { externalUrl: result?.externalUrl ?? null, outcome: successCount > 0 ? "PUBLISHED" : "FAILED" },
   });
 }
 
@@ -1334,11 +1351,11 @@ export async function executeAutomationActions(
           const notifBody = isScheduledEvent
             ? `C'est l'heure de l'événement "${eventName}".`
             : isShabbat
-            ? "L'affiche de Chabbat est générée. Ouvrez l'Assistant pour la publier."
+            ? "L'affiche de Chabbat est générée. Vérifiez-la depuis les horaires de Chabbat avant publication."
             : `Il est temps d'envoyer votre message sur ${channelsText} pour ${eventName}.`;
           const notifLink = isScheduledEvent
-            ? `/dashboard/assistant?eventId=${automation.eventId}`
-            : `/dashboard/assistant?draftId=${draft.id}`;
+            ? "/dashboard/events"
+            : getAutomationNotificationLink(automation);
           const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
             communityId: automation.community.id,
             type: isScheduledEvent ? "EVENT_REMINDER" : "AI_CONTENT_READY",

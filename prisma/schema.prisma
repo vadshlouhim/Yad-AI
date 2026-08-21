@@ -63,6 +63,7 @@ model Community {
   phone       String?
   email       String?
   website     String?
+  donationUrl String?
   address     String?
   postalCode  String?
 

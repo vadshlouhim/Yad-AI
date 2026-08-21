@@ -200,6 +200,9 @@ CREATE POLICY "Authenticated upload community-library" ON storage.objects
 
 -- 9. Campagne de dons
 
+-- Lien de dons public de la communaute (utilise notamment dans le feuillet Chabbat).
+ALTER TABLE public."Community" ADD COLUMN IF NOT EXISTS "donationUrl" text;
+
 CREATE TABLE IF NOT EXISTS public.donation_campaigns (
   id text PRIMARY KEY DEFAULT gen_random_uuid()::text,
   "communityId" text NOT NULL REFERENCES public."Community"(id) ON DELETE CASCADE,

@@ -38,6 +38,7 @@ export async function POST(request: Request) {
       manualValidationBeforeSend: automationValidationMode === "manual",
       communityProfileType: communityType,
       communityProfileLabel: getCommunityProfileDisplayLabel(communityType),
+      donationUrl: data.donationUrl || null,
     };
 
     const sharedFields = {

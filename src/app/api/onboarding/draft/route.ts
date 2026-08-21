@@ -47,6 +47,7 @@ export async function POST(request: Request) {
       phone: data.phone || null,
       email: data.email || null,
       website: data.website || null,
+      vocabulary: { donationUrl: data.donationUrl || null },
       logoUrl: data.logoUrl || null,
       updatedAt: new Date().toISOString(),
     };

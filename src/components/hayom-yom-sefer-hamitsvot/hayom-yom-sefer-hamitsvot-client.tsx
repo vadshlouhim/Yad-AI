@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import { BookOpen, CalendarDays, Check, ChevronDown, Crown, ExternalLink, Pause, Pencil, ScrollText, ShieldCheck, Sparkles, X } from "lucide-react";
+import { BookOpen, CalendarDays, Check, ChevronDown, Crown, ExternalLink, Instagram, Pause, Pencil, ScrollText, ShieldCheck, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FacebookIcon } from "@/components/layout/dashboard-nav";
 import { AGENT_IMAGE_URLS } from "@/lib/agents";
@@ -19,9 +19,10 @@ const DAYS = [
 
 type Props = {
   communityName: string;
+  communityLogoUrl: string | null;
   timezone: string;
   eligible: boolean;
-  facebook: { connected: boolean; name: string | null };
+  channels: Array<{ type: "FACEBOOK" | "INSTAGRAM"; connected: boolean; name: string | null }>;
   todayStudy: {
     dateLabel: string;
     hayomYom: string;
@@ -29,7 +30,7 @@ type Props = {
     seferHamitsvot: string;
     seferHamitsvotUrl: string;
   } | null;
-  initialAutomation: { id: string; active: boolean; days: number[]; nextRunAt: string | null } | null;
+  initialAutomation: { id: string; active: boolean; days: number[]; channels: ("FACEBOOK" | "INSTAGRAM")[]; nextRunAt: string | null } | null;
 };
 
 function dayNames(days: number[]) {
@@ -43,8 +44,9 @@ function nextRunLabel(value: string | null, timezone: string) {
   }).format(new Date(value));
 }
 
-export function HayomYomSeferHamitsvotClient({ communityName, timezone, eligible, facebook, todayStudy, initialAutomation }: Props) {
+export function HayomYomSeferHamitsvotClient({ communityName, timezone, eligible, channels: availableChannels, todayStudy, initialAutomation }: Props) {
   const [days, setDays] = useState<number[]>(initialAutomation?.days ?? [1]);
+  const [channels, setChannels] = useState<("FACEBOOK" | "INSTAGRAM")[]>(initialAutomation?.channels ?? ["FACEBOOK"]);
   const [active, setActive] = useState(Boolean(initialAutomation?.active));
   const [editing, setEditing] = useState(!initialAutomation?.active);
   const [nextRunAt, setNextRunAt] = useState(initialAutomation?.nextRunAt ?? null);
@@ -55,6 +57,15 @@ export function HayomYomSeferHamitsvotClient({ communityName, timezone, eligible
   const [hayomYomOpen, setHayomYomOpen] = useState(false);
   const [seferHamitsvotOpen, setSeferHamitsvotOpen] = useState(false);
   const selectedDaysLabel = useMemo(() => dayNames(days), [days]);
+  const facebook = availableChannels.find((channel) => channel.type === "FACEBOOK") ?? { connected: false, name: null };
+  const instagram = availableChannels.find((channel) => channel.type === "INSTAGRAM") ?? { connected: false, name: null };
+  const hasSelectedConnectedChannel = channels.some((type) => availableChannels.some((channel) => channel.type === type && channel.connected));
+
+  function toggleChannel(channel: "FACEBOOK" | "INSTAGRAM") {
+    if (!eligible) return setPaywallOpen(true);
+    setChannels((current) => current.includes(channel) ? current.filter((value) => value !== channel) : [...current, channel]);
+    setError("");
+  }
 
   function toggleDay(day: number) {
     if (!eligible) {
@@ -81,7 +92,7 @@ export function HayomYomSeferHamitsvotClient({ communityName, timezone, eligible
       const response = await fetch("/api/hayom-yom-sefer-hamitsvot/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, days }),
+        body: JSON.stringify({ mode, days, channels }),
       });
       const data = await response.json().catch(() => ({})) as { error?: string; nextRunAt?: string | null };
       if (!response.ok) throw new Error(data.error ?? "Enregistrement impossible.");
@@ -105,7 +116,7 @@ export function HayomYomSeferHamitsvotClient({ communityName, timezone, eligible
         <div className="relative z-10 max-w-[72%] sm:max-w-3xl">
           <span className="flex size-11 items-center justify-center rounded-2xl bg-white/15 text-white shadow-lg ring-1 ring-white/20 sm:size-12"><BookOpen className="size-6" /></span>
           <h1 className="mt-4 text-[clamp(1.75rem,8vw,2.6rem)] font-black leading-[1.03] tracking-[-0.04em] sm:mt-5 sm:text-4xl">Hayom Yom et Sefer Hamitsvot</h1>
-          <p className="mt-3 hidden max-w-2xl text-sm font-semibold leading-6 text-white/78 sm:block sm:text-base">Les études quotidiennes publiées automatiquement et fidèlement sur votre page Facebook.</p>
+          <p className="mt-3 hidden max-w-2xl text-sm font-semibold leading-6 text-white/78 sm:block sm:text-base">Les études quotidiennes publiées sur une carte à votre image, sans génération IA, sur Facebook et Instagram.</p>
         </div>
         <Image src={AGENT_IMAGE_URLS.david} alt="David, agent des automatisations" width={240} height={280} className="absolute -bottom-3 -right-5 z-10 h-[10.5rem] w-auto object-contain object-bottom drop-shadow-[0_18px_24px_rgba(12,2,35,0.34)] sm:-right-2 sm:h-[16rem]" priority />
       </section>
@@ -162,7 +173,7 @@ export function HayomYomSeferHamitsvotClient({ communityName, timezone, eligible
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">Automatisation active</p>
                 <h2 className="mt-1 text-xl font-black text-slate-950">{selectedDaysLabel} à 10:00</h2>
                 <p className="mt-2 text-sm text-slate-600">Prochaine publication : <strong>{nextRunLabel(nextRunAt, timezone)}</strong></p>
-                <p className="mt-1 text-sm text-slate-500">Facebook · {facebook.name ?? communityName}</p>
+                <p className="mt-1 text-sm text-slate-500">{channels.join(" · ")} · {communityName}</p>
               </div>
             </div>
             <div className="relative grid grid-cols-2 gap-3">
@@ -176,7 +187,7 @@ export function HayomYomSeferHamitsvotClient({ communityName, timezone, eligible
           <div className="pointer-events-none absolute -right-16 -top-20 size-48 rounded-full bg-violet-300/15 blur-3xl" />
           <div className="flex items-start gap-3">
             <span className="relative flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7130d8] to-[#5420ad] text-white shadow-lg shadow-violet-200"><CalendarDays className="size-5" /></span>
-            <div><h2 className="text-xl font-black text-slate-950">Publiez automatiquement sur Facebook</h2><p className="mt-1 text-sm leading-6 text-slate-500">Sélectionnez un ou plusieurs jours, le Hayom Yom et le Sefer Hamitsvot seront automatiquement publiés !</p></div>
+            <div><h2 className="text-xl font-black text-slate-950">Publiez automatiquement</h2><p className="mt-1 text-sm leading-6 text-slate-500">Sélectionnez vos jours et vos réseaux : les textes seront publiés avec un visuel personnalisé.</p></div>
           </div>
 
           <div className="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-6">
@@ -202,15 +213,20 @@ export function HayomYomSeferHamitsvotClient({ communityName, timezone, eligible
                 <p className={cn("mt-0.5 text-xs font-semibold", facebook.connected ? "text-white/75" : "text-slate-500")}>Publication textuelle automatique à 10:00</p>
               </div>
             </div>
+            <button type="button" onClick={() => toggleChannel("INSTAGRAM")} aria-pressed={channels.includes("INSTAGRAM")} className={cn("mt-3 relative flex min-h-24 w-full items-center gap-4 overflow-hidden rounded-[1.5rem] border p-4 text-left transition", channels.includes("INSTAGRAM") ? "border-fuchsia-400 bg-gradient-to-br from-[#d92d7c] to-[#7130d8] text-white shadow-lg shadow-fuchsia-200" : "border-violet-100 bg-[#fffaf4] text-slate-700") }>
+              <span className={cn("flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-md", channels.includes("INSTAGRAM") ? "text-[#d92d7c]" : "text-slate-500")}><Instagram className="size-6" /></span>
+              <span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><span className="text-xs font-black uppercase tracking-[0.14em]">Instagram</span><span className={cn("rounded-full px-2.5 py-1 text-[10px] font-black uppercase", instagram.connected ? "bg-white/20" : "bg-rose-100 text-rose-700")}>{instagram.connected ? "Connecté" : "Non connecté"}</span></span><span className="mt-1 block truncate font-black">{instagram.name ?? "Compte Instagram"}</span><span className="mt-0.5 block text-xs font-semibold opacity-75">Carte visuelle + texte intégral en légende</span></span>
+              {channels.includes("INSTAGRAM") && <Check className="size-5 shrink-0" />}
+            </button>
           </div>
 
-          {!facebook.connected && <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">Connectez d’abord votre page Facebook dans les paramètres des canaux.</p>}
+          {!hasSelectedConnectedChannel && <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">Connectez au moins un réseau sélectionné dans les paramètres des canaux.</p>}
           {error && <p role="alert" className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</p>}
           {notice && <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{notice}</p>}
-          <Button type="button" size="xl" loading={saving} disabled={eligible && (!facebook.connected || days.length === 0)} onClick={() => void save("activate")} className="mt-5 w-full rounded-2xl bg-gradient-to-r from-[#7130d8] via-[#5c24ad] to-[#d92d7c] font-black shadow-lg shadow-violet-200 transition hover:brightness-105">
+          <Button type="button" size="xl" loading={saving} disabled={eligible && (!hasSelectedConnectedChannel || channels.length === 0 || days.length === 0)} onClick={() => void save("activate")} className="mt-5 w-full rounded-2xl bg-gradient-to-r from-[#7130d8] via-[#5c24ad] to-[#d92d7c] font-black shadow-lg shadow-violet-200 transition hover:brightness-105">
             {!saving && <Sparkles className="size-5" />}Activer les publications automatiques
           </Button>
-          <div className="mt-4 flex items-center justify-center gap-2 text-center text-xs font-semibold text-slate-500"><ScrollText className="size-4" />Textes intégraux, sans reformulation et sans génération d’image.</div>
+          <div className="mt-4 flex items-center justify-center gap-2 text-center text-xs font-semibold text-slate-500"><ScrollText className="size-4" />Carte avec votre logo et votre nom, créée sans IA ni coût de génération.</div>
         </section>
       )}
 
@@ -223,7 +239,7 @@ export function HayomYomSeferHamitsvotClient({ communityName, timezone, eligible
             <button type="button" aria-label="Fermer" onClick={() => setPaywallOpen(false)} className="relative ml-auto flex size-10 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-violet-100 transition hover:text-[#421388]"><X className="size-5" /></button>
             <span className="relative mx-auto mt-2 flex size-16 items-center justify-center rounded-3xl bg-gradient-to-br from-[#ffca37] to-[#f59e0b] text-white shadow-lg shadow-amber-200"><Crown className="size-8" /></span>
             <h2 id="hayom-premium-title" className="mt-5 text-2xl font-black text-slate-950">Activez cette automatisation</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">La lecture du contenu est gratuite. La publication automatique est incluse avec l’offre Pro à 29,99 € et l’offre Business.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">La lecture du contenu est gratuite. La publication automatique est incluse avec l’abonnement EasyCom IA.</p>
             <Button asChild size="xl" className="mt-6 w-full rounded-2xl bg-gradient-to-r from-[#7130d8] to-[#d92d7c] font-black shadow-lg shadow-violet-200 hover:brightness-105"><a href="/dashboard/settings/billing">Découvrir l’abonnement</a></Button>
           </div>
         </div>

@@ -19,6 +19,7 @@ import {
   Zap,
 } from "lucide-react";
 import { cn, formatRelative } from "@/lib/utils";
+import { resolveNotificationTarget } from "@/lib/notifications/navigation";
 
 interface Notification {
   id: string;
@@ -74,26 +75,6 @@ export function NotificationsClient({ notifications }: Props) {
   async function deleteNotification(id: string) {
     setItems((prev) => prev.filter((notification) => notification.id !== id));
     await fetch(`/api/notifications/${id}`, { method: "DELETE" });
-  }
-
-  function buildTargetLink(notification: Notification) {
-    if (notification.type !== "AI_CONTENT_READY") return notification.link;
-
-    const data = notification.data && typeof notification.data === "object"
-      ? notification.data as { draftId?: unknown; channelTypes?: unknown }
-      : null;
-    const draftIdFromData = typeof data?.draftId === "string" ? data.draftId : null;
-    const draftIdFromLink = notification.link?.match(/\/dashboard\/content\/([^/?#]+)/)?.[1] ?? null;
-    const draftIdFromAssistantLink = notification.link ? new URL(notification.link, window.location.origin).searchParams.get("draftId") : null;
-    const draftId = draftIdFromData ?? draftIdFromLink ?? draftIdFromAssistantLink;
-    if (!draftId) return "/dashboard/assistant";
-
-    const channelTypes = Array.isArray(data?.channelTypes)
-      ? data.channelTypes.filter((channel): channel is string => typeof channel === "string")
-      : [];
-    const params = new URLSearchParams({ draftId, notificationId: notification.id });
-    if (channelTypes.length > 0) params.set("channelTypes", channelTypes.join(","));
-    return `/dashboard/assistant?${params.toString()}`;
   }
 
   const activeItems = items.filter((notification) => new Date(notification.createdAt).getTime() >= archiveLimit);
@@ -189,7 +170,7 @@ export function NotificationsClient({ notifications }: Props) {
         ) : (
           <section className="space-y-3">
             {displayedItems.map((notification) => {
-              const targetLink = buildTargetLink(notification);
+              const targetLink = resolveNotificationTarget(notification);
               return (
                 <button
                   key={notification.id}
@@ -350,8 +331,7 @@ export function NotificationsClient({ notifications }: Props) {
                 type="button"
                 onClick={() => {
                   if (!notification.isRead) markAsRead(notification.id);
-                  const targetLink = buildTargetLink(notification);
-                  if (targetLink) router.push(targetLink);
+                  router.push(resolveNotificationTarget(notification));
                 }}
                 className={cn(
                   "group relative flex w-full items-start gap-3 rounded-3xl border bg-white p-4 pr-12 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_16px_36px_rgba(15,23,42,0.08)] sm:gap-4 sm:p-5 sm:pr-14",

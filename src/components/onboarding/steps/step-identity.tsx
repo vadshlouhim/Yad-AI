@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { OnboardingData } from "../onboarding-wizard";
 import {
-  Building2, MapPin, Phone, Mail, Globe, ChevronRight,
+  Building2, MapPin, Phone, Mail, Globe, HandHeart, ChevronRight,
   Image as ImageIcon, Loader2, Upload,
 } from "lucide-react";
 
@@ -214,6 +214,19 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
               placeholder="https://www.macommunaute.fr"
               className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             />
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-slate-500 flex items-center gap-1">
+              <HandHeart className="size-3" /> Page de dons
+            </p>
+            <input
+              type="url"
+              value={data.donationUrl}
+              onChange={(e) => updateData({ donationUrl: e.target.value })}
+              placeholder="https://allodons.fr/votre-structure"
+              className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            />
+            <p className="text-xs leading-5 text-slate-400">Il sera propose automatiquement dans votre Newsletter Papier Chabbat.</p>
           </div>
         </div>
 

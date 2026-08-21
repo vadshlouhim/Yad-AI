@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useMemo, useState, type FormEvent, type ReactElement, type ReactNode, type SVGProps } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -12,26 +12,29 @@ import {
   Mail,
   MessageSquare,
   Plane,
-  Search,
   Settings,
   ShoppingBag,
   Sparkles,
+  Star,
   User,
   X,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type {
-  OfficialDashboardMenuItem,
-  OfficialDashboardMenuSection,
+import {
+  WhatsAppIcon,
+  type OfficialDashboardMenuItem,
+  type OfficialDashboardMenuSection,
 } from "./dashboard-nav";
 
 type ToolGroup = {
   key: string;
   title: string;
-  icon: LucideIcon;
+  icon: LucideIcon | ((props: SVGProps<SVGSVGElement>) => ReactElement);
   tone: string;
   items: OfficialDashboardMenuItem[];
+  description?: string;
+  comingSoon?: boolean;
   href?: string;
   wide?: boolean;
 };
@@ -63,16 +66,6 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         items: section("shop_articles")?.items ?? [],
       },
       {
-        key: "website",
-        title: "Création de site web et référencement IA",
-        icon: Globe2,
-        tone: "from-[#0faeb3] via-[#08a7ad] to-[#07949f]",
-        items: [
-          item("/dashboard/website", "Création de site web", Globe2),
-          item("/dashboard/referencement", "Référencement Google et IA", Search),
-        ],
-      },
-      {
         key: "compensation",
         title: "Assistance indemnisation",
         icon: Plane,
@@ -85,18 +78,67 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
 
     const comingSoon: ToolGroup[] = [
       {
+        key: "website",
+        title: "Creation de site web et referencement IA",
+        icon: Globe2,
+        tone: "from-[#0faeb3] to-[#07949f]",
+        items: [],
+        comingSoon: true,
+        description: "Creez votre site communautaire et ameliorez sa visibilite sur Google grace a l'IA.",
+      },
+      {
+        key: "targeted",
+        title: "Communication ciblee",
+        icon: MessageSquare,
+        tone: "from-[#ff4c50] to-[#e9333d]",
+        items: [],
+        comingSoon: true,
+        description: "Creez des groupes de contacts et adressez le bon message aux bonnes personnes.",
+      },
+      {
+        key: "email",
+        title: "Email",
+        icon: Mail,
+        tone: "from-[#f33967] to-[#dc2860]",
+        items: [],
+        comingSoon: true,
+        description: "Centralisez vos emails et preparez des reponses adaptees avec l'IA.",
+      },
+      {
+        key: "reviews",
+        title: "Avis Google",
+        icon: Star,
+        tone: "from-[#f5a400] to-[#e37800]",
+        items: [],
+        comingSoon: true,
+        description: "Suivez les avis de votre structure et preparez des reponses professionnelles.",
+      },
+      {
+        key: "whatsapp",
+        title: "WhatsApp",
+        icon: WhatsAppIcon,
+        tone: "from-[#1db954] to-[#0f8f43]",
+        items: [],
+        comingSoon: true,
+        description: "Envoyez en masse sur WhatsApp avec une IA qui classe intelligemment les messages et organise l'envoi pour limiter le risque d'etre signale comme spam.",
+      },
+      {
         key: "donation",
         title: "Campagne de dons",
         icon: HandHeart,
         tone: "from-[#1aae68] to-[#078e50]",
-        items: section("donation")?.items ?? [],
+        items: [],
+        comingSoon: true,
+        description: "Preparez une campagne de collecte avec messages, visuels et calendrier de relance assistes par IA.",
       },
       {
         key: "newsletter",
         title: "Newsletter IA",
         icon: Mail,
         tone: "from-[#ed3d91] to-[#c72879]",
-        items: section("newsletter")?.items ?? [],
+        items: [],
+        comingSoon: true,
+        description: "La newsletter numerique, sa programmation et son envoi automatique arriveront prochainement.",
       },
     ];
 
@@ -167,7 +209,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
           {supportOpen ? (
             <SupportSuggestionForm />
           ) : activeGroup ? (
-            <Submenu group={activeGroup} onClose={onClose} />
+            activeGroup.comingSoon ? <ComingSoonDetail group={activeGroup} /> : <Submenu group={activeGroup} onClose={onClose} />
           ) : (
             <>
 
@@ -345,6 +387,21 @@ function ComingSoonCard({ group, onOpen }: { group: ToolGroup; onOpen: () => voi
       <Icon className="size-8" />
       <span className="text-sm font-black uppercase leading-tight">{group.title}</span>
     </button>
+  );
+}
+
+function ComingSoonDetail({ group }: { group: ToolGroup }) {
+  const Icon = group.icon;
+  return (
+    <div className="flex min-h-full flex-col items-center justify-center px-3 text-center normal-case">
+      <span className={cn("flex size-20 items-center justify-center rounded-[1.7rem] bg-gradient-to-br text-white shadow-[0_18px_34px_rgba(35,20,80,0.18)]", group.tone)}>
+        <Icon className="size-9" />
+      </span>
+      <span className="mt-5 rounded-full bg-amber-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-800">Bientot disponible</span>
+      <h2 className="mt-3 text-2xl font-black text-slate-950">{group.title}</h2>
+      <p className="mt-3 max-w-sm text-sm font-medium leading-6 text-slate-600">{group.description}</p>
+      <p className="mt-5 text-xs font-bold leading-5 text-slate-400">Cette fonction est en preparation. Elle n&apos;ouvre pas encore son espace de travail.</p>
+    </div>
   );
 }
 

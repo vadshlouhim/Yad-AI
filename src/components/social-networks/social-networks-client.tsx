@@ -1352,7 +1352,12 @@ export function SocialNetworksClient() {
         </aside>
       </section>
 
-      <Card className="overflow-hidden rounded-2xl border-slate-200 p-0">
+      <Link href="/dashboard/publications" className="group flex min-h-20 items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-[#421388] via-[#5c24ad] to-[#d92d7c] px-5 py-4 text-white shadow-[0_16px_32px_rgba(66,19,136,0.24)] transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-200">
+        <span className="flex min-w-0 items-center gap-3"><span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/16 ring-1 ring-white/25"><History className="size-5" /></span><span className="min-w-0"><span className="block text-base font-black">Historique des publications</span><span className="mt-0.5 block text-sm font-semibold text-white/75">Retrouvez toutes vos publications envoyées et programmées.</span></span></span>
+        <ExternalLink className="size-5 shrink-0 text-white/85 transition group-hover:translate-x-0.5" />
+      </Link>
+
+      <Card aria-hidden="true" className="hidden overflow-hidden rounded-2xl border-slate-200 p-0">
         <button
           type="button"
           onClick={() => setHistoryOpen((open) => !open)}

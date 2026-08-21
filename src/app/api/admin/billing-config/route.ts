@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canAccessAdmin } from "@/lib/admin-access";
-import { DEFAULT_BILLING_CONFIG, getBillingConfig, saveBillingConfig } from "@/lib/billing";
+import { DEFAULT_BILLING_CONFIG, getBillingConfig } from "@/lib/billing";
 
 export async function GET() {
   const supabase = await createClient();
@@ -29,36 +29,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
   }
 
-  const body = await request.json().catch(() => ({}));
-  const basePriceCents = eurosToCents(body.basePriceEuros, DEFAULT_BILLING_CONFIG.basePriceCents);
-  const launchPriceCents = eurosToCents(body.launchPriceEuros, DEFAULT_BILLING_CONFIG.launchPriceCents);
-  const launchEndsAt = typeof body.launchEndsAt === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.launchEndsAt)
-    ? body.launchEndsAt
-    : DEFAULT_BILLING_CONFIG.launchEndsAt;
-  const launchMessage = typeof body.launchMessage === "string" && body.launchMessage.trim()
-    ? body.launchMessage.trim()
-    : DEFAULT_BILLING_CONFIG.launchMessage;
-
-  try {
-    const config = await saveBillingConfig(admin, {
-      basePriceCents,
-      launchPriceCents,
-      currency: "EUR",
-      taxLabel: "HT",
-      launchEndsAt,
-      launchMessage,
-    });
-    return NextResponse.json({ config });
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Impossible d'enregistrer la tarification" },
-      { status: 500 }
-    );
-  }
-}
-
-function eurosToCents(value: unknown, fallback: number) {
-  const numeric = typeof value === "number" ? value : Number(String(value ?? "").replace(",", "."));
-  if (!Number.isFinite(numeric) || numeric <= 0) return fallback;
-  return Math.round(numeric * 100);
+  await request.json().catch(() => ({}));
+  return NextResponse.json({
+    config: DEFAULT_BILLING_CONFIG,
+    message: "Tarification centralisée : 8,99 € TTC le premier mois, puis 29,99 € TTC/mois.",
+  });
 }

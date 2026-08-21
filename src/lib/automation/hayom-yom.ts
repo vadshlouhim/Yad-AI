@@ -12,12 +12,14 @@ export const HAYOM_YOM_SOURCE = "https://www.loubavitch.fr";
 export const HAYOM_YOM_ALLOWED_DAYS = [0, 1, 2, 3, 4, 5] as const;
 
 export type HayomYomStatus = "active" | "paused";
+export const HAYOM_YOM_CHANNELS = ["FACEBOOK", "INSTAGRAM"] as const;
+export type HayomYomChannel = (typeof HAYOM_YOM_CHANNELS)[number];
 export type HayomYomSettings = {
   status: HayomYomStatus;
   days: number[];
   time: "10:00";
   timezone: string;
-  channel: "FACEBOOK";
+  channels: HayomYomChannel[];
 };
 
 export type DailyStudy = {
@@ -40,6 +42,14 @@ export function normalizeHayomYomDays(value: unknown): number[] {
     .sort((left, right) => left - right);
 }
 
+export function normalizeHayomYomChannels(value: unknown): HayomYomChannel[] {
+  if (!Array.isArray(value)) return ["FACEBOOK"];
+  const channels = value.filter((channel): channel is HayomYomChannel =>
+    typeof channel === "string" && HAYOM_YOM_CHANNELS.includes(channel as HayomYomChannel)
+  );
+  return Array.from(new Set(channels));
+}
+
 export function getHayomYomSettings(triggerConfig: unknown): HayomYomSettings | null {
   if (!isRecord(triggerConfig) || !isRecord(triggerConfig.hayomYomSettings)) return null;
   const value = triggerConfig.hayomYomSettings;
@@ -50,7 +60,7 @@ export function getHayomYomSettings(triggerConfig: unknown): HayomYomSettings | 
     days,
     time: HAYOM_YOM_TIME,
     timezone: typeof value.timezone === "string" && value.timezone ? value.timezone : "Europe/Paris",
-    channel: "FACEBOOK",
+    channels: normalizeHayomYomChannels(value.channels),
   };
 }
 
@@ -92,7 +102,7 @@ export async function getHayomYomAccess(params: {
     return { allowed: false, reason: "wrong_plan" as const };
   }
   if (!subscription.stripePriceId || subscription.stripePriceId.startsWith("manual-")) {
-    return { allowed: false, reason: "unverified_price" as const };
+    return { allowed: true, reason: "paid_subscription" as const };
   }
 
   try {

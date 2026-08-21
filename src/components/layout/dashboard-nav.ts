@@ -481,7 +481,7 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       subtitle: "Créez et programmez vos newsletters avec l'IA",
       icon: Mail,
       items: [
-        { href: "/dashboard/newsletter", label: "Création de newsletter", icon: Mail, badge: "Bientôt disponible" },
+        { href: "/dashboard/newsletter", label: "Newsletter papier Chabbat", icon: Mail },
       ],
     },
     {
@@ -605,7 +605,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "NEWSLETTER IA",
     items: [
-      { href: "/dashboard/newsletter", label: "Création de newsletter", icon: Mail, badge: "Bientôt disponible" },
+      { href: "/dashboard/newsletter", label: "Newsletter papier Chabbat", icon: Mail },
     ],
   },
   {
@@ -725,7 +725,7 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     section: "NEWSLETTER IA",
     icon: Mail,
     items: [
-      { href: "/dashboard/newsletter", label: "Création de newsletter", icon: Mail, badge: "Bientôt disponible" },
+      { href: "/dashboard/newsletter", label: "Newsletter papier Chabbat", icon: Mail },
     ],
   },
   {

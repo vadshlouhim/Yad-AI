@@ -12,8 +12,7 @@ export type PlanTier = "FREE" | "PRO" | "BUSINESS";
 const TIER_LABELS: Record<PlanTier, string> = { FREE: "Gratuit", PRO: "Pro", BUSINESS: "Business" };
 
 export function planToTier(plan: string | null | undefined): PlanTier {
-  if (plan === "ENTERPRISE") return "BUSINESS";
-  if (plan === "PROFESSIONAL" || plan === "STARTER") return "PRO";
+  if (plan && plan !== "FREE_TRIAL") return "PRO";
   return "FREE";
 }
 
@@ -23,28 +22,19 @@ export function planToTier(plan: string | null | undefined): PlanTier {
  * zéro) et un cumul mensuel pour PRO/BUSINESS — voir `getBillingUsage`.
  */
 export const TIER_LIMITS: Record<PlanTier, { assistantMessages: number; automations: number; socialPublications: number }> = {
-  FREE: { assistantMessages: 20, automations: 0, socialPublications: 5 },
-  PRO: { assistantMessages: 50, automations: 3, socialPublications: 20 },
-  BUSINESS: { assistantMessages: Number.MAX_SAFE_INTEGER, automations: 5, socialPublications: 50 },
+  FREE: { assistantMessages: 0, automations: 0, socialPublications: 0 },
+  PRO: { assistantMessages: Number.MAX_SAFE_INTEGER, automations: Number.MAX_SAFE_INTEGER, socialPublications: Number.MAX_SAFE_INTEGER },
+  BUSINESS: { assistantMessages: Number.MAX_SAFE_INTEGER, automations: Number.MAX_SAFE_INTEGER, socialPublications: Number.MAX_SAFE_INTEGER },
 };
 
 export function tierLimitMessage(
   tier: PlanTier,
   metric: "assistantMessages" | "automations" | "socialPublications"
 ): string {
-  if (metric === "automations") {
-    if (tier === "FREE") return "Le mode gratuit ne permet pas de créer d'automatisation IA. Passez à l'offre Pro (3 automatisations) ou Business (5 automatisations).";
-    if (tier === "PRO") return "Vous avez atteint la limite de 3 automatisations IA de l'offre Pro. Passez à l'offre Business pour en programmer jusqu'à 5.";
-    return "Vous avez atteint la limite de 5 automatisations IA de l'offre Business.";
-  }
-  if (metric === "socialPublications") {
-    if (tier === "FREE") return "Le mode gratuit permet 5 publications sociales manuelles par mois. Passez à l'offre Pro (20/mois) ou Business (50/mois).";
-    if (tier === "PRO") return "Vous avez atteint la limite de 20 publications sociales par mois de l'offre Pro. Passez à l'offre Business pour 50/mois.";
-    return "Vous avez atteint la limite de 50 publications sociales par mois de l'offre Business.";
-  }
-  if (tier === "FREE") return "Le mode gratuit inclut 20 messages avec l'assistant IA au total. Passez à l'offre Pro pour 50 messages renouvelés chaque mois.";
-  if (tier === "PRO") return "Vous avez atteint la limite de 50 messages avec l'assistant IA ce mois-ci. Passez à l'offre Business pour un nombre illimité de messages.";
-  return "";
+  if (tier !== "FREE") return "";
+  if (metric === "automations") return "Créez votre première automatisation : premier mois à 8,99 € TTC, puis 29,99 € TTC/mois.";
+  if (metric === "socialPublications") return "Publiez avec EasyCom IA : premier mois à 8,99 € TTC, puis 29,99 € TTC/mois.";
+  return "Lancez votre première génération IA : premier mois à 8,99 € TTC, puis 29,99 € TTC/mois.";
 }
 
 export function tierLabel(tier: PlanTier): string {
@@ -52,8 +42,7 @@ export function tierLabel(tier: PlanTier): string {
 }
 
 /** Limite du poster/affiche gratuit (binaire, indépendante des paliers) */
-export const FREE_POSTER_LIMIT = 1;
-export const BUSINESS_PRICE_CENTS = 5999;
+export const FREE_POSTER_LIMIT = 0;
 
 export const LIMITED_SOCIAL_CHANNELS = ["INSTAGRAM", "FACEBOOK", "TELEGRAM"] as const;
 
@@ -61,7 +50,7 @@ export interface BillingConfig {
   basePriceCents: number;
   launchPriceCents: number;
   currency: "EUR";
-  taxLabel: "HT";
+  taxLabel: "TTC";
   launchEndsAt: string;
   launchMessage: string;
 }
@@ -84,11 +73,11 @@ export interface BillingUsage {
 
 export const DEFAULT_BILLING_CONFIG: BillingConfig = {
   basePriceCents: 2999,
-  launchPriceCents: 999,
+  launchPriceCents: 899,
   currency: "EUR",
-  taxLabel: "HT",
-  launchEndsAt: "2026-08-31",
-  launchMessage: "Offre de lancement : profitez d'EasyCom IA à 9,99 € HT par mois jusqu'à fin août 2026.",
+  taxLabel: "TTC",
+  launchEndsAt: "2099-12-31",
+  launchMessage: "Offre de bienvenue : premier mois à 8,99 € TTC au lieu de 29,99 € TTC, puis 29,99 € TTC/mois.",
 };
 
 export function isPaidPlan(plan: string | null | undefined) {
@@ -96,8 +85,9 @@ export function isPaidPlan(plan: string | null | undefined) {
 }
 
 export function isLaunchOfferActive(config: BillingConfig, now = new Date()) {
-  const end = new Date(`${config.launchEndsAt}T23:59:59`);
-  return Number.isFinite(end.getTime()) && now <= end;
+  void config;
+  void now;
+  return true;
 }
 
 export function formatEuroCents(cents: number) {
@@ -109,47 +99,18 @@ export function formatEuroCents(cents: number) {
 }
 
 function normalizeBillingConfig(value: unknown): BillingConfig {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return DEFAULT_BILLING_CONFIG;
-  const data = value as Partial<BillingConfig>;
-  return {
-    basePriceCents: positiveInt(data.basePriceCents, DEFAULT_BILLING_CONFIG.basePriceCents),
-    launchPriceCents: positiveInt(data.launchPriceCents, DEFAULT_BILLING_CONFIG.launchPriceCents),
-    currency: "EUR",
-    taxLabel: "HT",
-    launchEndsAt: typeof data.launchEndsAt === "string" && data.launchEndsAt ? data.launchEndsAt : DEFAULT_BILLING_CONFIG.launchEndsAt,
-    launchMessage: typeof data.launchMessage === "string" && data.launchMessage.trim()
-      ? data.launchMessage.trim()
-      : DEFAULT_BILLING_CONFIG.launchMessage,
-  };
-}
-
-function positiveInt(value: unknown, fallback: number) {
-  return typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.round(value) : fallback;
+  void value;
+  return DEFAULT_BILLING_CONFIG;
 }
 
 export async function getBillingConfig(admin: Admin): Promise<BillingConfig> {
-  const { data, error } = await admin
-    .from("PlatformSetting")
-    .select("value")
-    .eq("key", BILLING_CONFIG_KEY)
-    .maybeSingle();
-
-  if (error) return DEFAULT_BILLING_CONFIG;
-  return normalizeBillingConfig((data as { value?: unknown } | null)?.value);
+  void admin;
+  return DEFAULT_BILLING_CONFIG;
 }
 
 export async function saveBillingConfig(admin: Admin, config: BillingConfig) {
-  const normalized = normalizeBillingConfig(config);
-  const { error } = await admin.from("PlatformSetting").upsert(
-    {
-      key: BILLING_CONFIG_KEY,
-      value: normalized,
-      updatedAt: new Date().toISOString(),
-    },
-    { onConflict: "key" }
-  );
-  if (error) throw new Error(error.message);
-  return normalized;
+  void admin;
+  return normalizeBillingConfig(config);
 }
 
 export async function getBillingGate(admin: Admin, userId: string): Promise<BillingGate> {
@@ -303,7 +264,7 @@ export async function assertTierFeature(
   if (!gate.communityId) {
     return { ok: false as const, gate, response: NextResponse.json({ error: "Communauté introuvable" }, { status: 403 }) };
   }
-  if (!gate.isSuperAdmin && gate.tier !== requiredTier) {
+  if (!gate.isPaid) {
     return { ok: false as const, gate, response: paywallResponse(feature, message) };
   }
   return { ok: true as const, gate };
@@ -311,16 +272,11 @@ export async function assertTierFeature(
 
 export function getCheckoutPrice(
   config: BillingConfig,
-  tier: "PROFESSIONAL" | "ENTERPRISE" = "PROFESSIONAL",
-  applyLaunchOffer = true
+  ..._legacyArgs: [tier?: "PROFESSIONAL" | "ENTERPRISE", applyLaunchOffer?: boolean]
 ) {
-  if (tier === "ENTERPRISE") {
-    return { unitAmount: BUSINESS_PRICE_CENTS, planName: "EasyCom Biz" };
-  }
-
-  const launchOfferApplied = applyLaunchOffer && isLaunchOfferActive(config);
+  void _legacyArgs;
   return {
-    unitAmount: launchOfferApplied ? config.launchPriceCents : config.basePriceCents,
-    planName: "EasyCom Pro",
+    unitAmount: config.basePriceCents,
+    planName: "EasyCom IA",
   };
 }

@@ -14,7 +14,7 @@ self.addEventListener("push", (event) => {
     icon: "/easycom-ai-logo.png",
     badge: "/easycom-ai-logo.png",
     tag: payload.tag || "easycom-ia",
-    data: { url: payload.url || "/dashboard/assistant" },
+    data: { url: payload.url || "/dashboard/notifications" },
     requireInteraction: false,
   };
 
@@ -23,7 +23,7 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || "/dashboard/assistant";
+  const targetUrl = (event.notification.data && event.notification.data.url) || "/dashboard/notifications";
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {

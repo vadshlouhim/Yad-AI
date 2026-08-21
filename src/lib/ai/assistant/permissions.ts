@@ -139,7 +139,7 @@ export function isToolAllowed(name: string, ctx: ToolAllowContext): ToolAllowRes
   if (!permission) return { allowed: false, reason: `Outil inconnu : ${name}.` };
   if (ctx.isSuperAdmin) return { allowed: true };
 
-  if (permission.requiredTier && ctx.tier !== permission.requiredTier) {
+  if (permission.requiredTier && !ctx.isPaid) {
     return {
       allowed: false,
       reason: `Cette fonctionnalité est réservée à l'offre ${tierLabel(permission.requiredTier)}. Passez à l'offre supérieure depuis la page Facturation.`,

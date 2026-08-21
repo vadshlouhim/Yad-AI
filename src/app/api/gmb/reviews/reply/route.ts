@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   const tierCheck = await assertTierFeature(
     admin,
     user.id,
-    'BUSINESS',
+    'PRO',
     'reviews_management',
     "La gestion des avis Google est réservée à l'offre Business."
   );
