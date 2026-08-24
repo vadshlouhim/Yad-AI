@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import { BookOpen, CalendarDays, Check, ChevronDown, Crown, ExternalLink, Instagram, Pause, Pencil, ScrollText, ShieldCheck, Sparkles, X } from "lucide-react";
+import { BookOpen, CalendarDays, Check, ChevronDown, Crown, ExternalLink, Pause, Pencil, ScrollText, ShieldCheck, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FacebookIcon } from "@/components/layout/dashboard-nav";
+import { FacebookIcon, InstagramIcon } from "@/components/layout/dashboard-nav";
 import { AGENT_IMAGE_URLS } from "@/lib/agents";
 import { cn } from "@/lib/utils";
 
@@ -214,7 +214,7 @@ export function HayomYomSeferHamitsvotClient({ communityName, timezone, eligible
               </div>
             </div>
             <button type="button" onClick={() => toggleChannel("INSTAGRAM")} aria-pressed={channels.includes("INSTAGRAM")} className={cn("mt-3 relative flex min-h-24 w-full items-center gap-4 overflow-hidden rounded-[1.5rem] border p-4 text-left transition", channels.includes("INSTAGRAM") ? "border-fuchsia-400 bg-gradient-to-br from-[#d92d7c] to-[#7130d8] text-white shadow-lg shadow-fuchsia-200" : "border-violet-100 bg-[#fffaf4] text-slate-700") }>
-              <span className={cn("flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-md", channels.includes("INSTAGRAM") ? "text-[#d92d7c]" : "text-slate-500")}><Instagram className="size-6" /></span>
+              <span className={cn("flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-md", channels.includes("INSTAGRAM") ? "text-[#d92d7c]" : "text-slate-500")}><InstagramIcon className="size-6" /></span>
               <span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><span className="text-xs font-black uppercase tracking-[0.14em]">Instagram</span><span className={cn("rounded-full px-2.5 py-1 text-[10px] font-black uppercase", instagram.connected ? "bg-white/20" : "bg-rose-100 text-rose-700")}>{instagram.connected ? "Connecté" : "Non connecté"}</span></span><span className="mt-1 block truncate font-black">{instagram.name ?? "Compte Instagram"}</span><span className="mt-0.5 block text-xs font-semibold opacity-75">Carte visuelle + texte intégral en légende</span></span>
               {channels.includes("INSTAGRAM") && <Check className="size-5 shrink-0" />}
             </button>
