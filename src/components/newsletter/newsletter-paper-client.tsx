@@ -10,13 +10,16 @@ import {
   Cake,
   Clock3,
   Download,
+  Eye,
   FileText,
   Gift,
   HandHeart,
   HeartHandshake,
   ImagePlus,
+  LayoutList,
   Loader2,
   Printer,
+  PenLine,
   Sparkles,
   Store,
   Upload,
@@ -65,7 +68,8 @@ type CommunityInfo = {
   isBethHabad: boolean;
 };
 
-type ModuleKey = "ravWord" | "photos" | "posters" | "parness" | "birthdays" | "kiddush" | "events" | "restaurantAd" | "support" | "shabbat";
+type ModuleKey = "ravWord" | "sicha" | "photos" | "posters" | "parness" | "birthdays" | "kiddush" | "events" | "restaurantAd" | "support" | "shabbat";
+type EditorStep = "modules" | "content" | "preview";
 
 type ModuleConfig = {
   key: ModuleKey;
@@ -88,12 +92,16 @@ type GeneratedNewsletter = {
   shabbatNote: string;
   eventIntro: string;
   restaurantAd: string;
+  sichaTitle: string;
+  sichaExcerpt: string;
+  sichaUrl: string;
   proofreadNote: string;
   warnings: string[];
 };
 
 const MODULES: ModuleConfig[] = [
   { key: "ravWord", title: "Mot du Rav", description: "Texte court de Torah adapte au theme.", icon: BookOpen },
+  { key: "sicha", title: "Siha du Rabbi", description: "Extrait officiel Chabad.org, sans IA.", icon: BookOpen },
   { key: "photos", title: "Photos de la semaine", description: "Grille de 3 a 5 photos televersees.", icon: ImagePlus },
   { key: "posters", title: "Affiches a venir", description: "Affiches des prochains rendez-vous.", icon: ImagePlus },
   { key: "parness", title: "Parness Hayom", description: "Leylouy Nichmat, Refoua Chelema ou soutien.", icon: HeartHandshake },
@@ -107,6 +115,7 @@ const MODULES: ModuleConfig[] = [
 
 const DEFAULT_ENABLED: Record<ModuleKey, boolean> = {
   ravWord: true,
+  sicha: false,
   photos: true,
   posters: false,
   parness: true,
@@ -143,6 +152,9 @@ function initialGenerated(community: CommunityInfo, shabbat: NewsletterShabbat |
       : "Generez le feuillet pour recevoir un resume clair de la Paracha de la semaine.",
     eventIntro: "Les rendez-vous importants des prochains jours sont rassembles ici pour une lecture claire avant Chabbat.",
     restaurantAd: "Votre partenaire cacher de la semaine vous souhaite Chabbat Chalom.",
+    sichaTitle: "",
+    sichaExcerpt: "",
+    sichaUrl: "",
     proofreadNote: "Pret pour relecture avant impression.",
     warnings: [],
   };
@@ -161,10 +173,16 @@ export function NewsletterPaperClient({
 }) {
   const rectoRef = useRef<HTMLDivElement>(null);
   const versoRef = useRef<HTMLDivElement>(null);
+  const pdfRectoRef = useRef<HTMLDivElement>(null);
+  const pdfVersoRef = useRef<HTMLDivElement>(null);
   const [enabled, setEnabled] = useState<Record<ModuleKey, boolean>>(() => ({ ...DEFAULT_ENABLED, support: Boolean(community.donationUrl) }));
+  const [editorStep, setEditorStep] = useState<EditorStep>("modules");
+  const [mobilePreviewPage, setMobilePreviewPage] = useState<"front" | "back">("front");
   const [ravTheme, setRavTheme] = useState("");
   const [parnessText, setParnessText] = useState("");
   const [kiddushText, setKiddushText] = useState("");
+  const [sichaUrl, setSichaUrl] = useState("");
+  const [importingSicha, setImportingSicha] = useState(false);
   const [partnerAds, setPartnerAds] = useState<UploadedPhoto[]>([]);
   const [donationUrl, setDonationUrl] = useState(community.donationUrl ?? "");
   const [savingDonationUrl, setSavingDonationUrl] = useState(false);
@@ -305,6 +323,9 @@ export function NewsletterPaperClient({
         shabbatNote: data.shabbatNote || current.shabbatNote,
         eventIntro: data.eventIntro || current.eventIntro,
         restaurantAd: data.restaurantAd || current.restaurantAd,
+        sichaTitle: current.sichaTitle,
+        sichaExcerpt: current.sichaExcerpt,
+        sichaUrl: current.sichaUrl,
         proofreadNote: data.proofreadNote || "Relu et adapte a l'impression.",
         warnings: Array.isArray(data.warnings) ? data.warnings : [],
       }));
@@ -334,6 +355,25 @@ export function NewsletterPaperClient({
     }
   }
 
+  async function importOfficialSicha() {
+    setImportingSicha(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/newsletter/sicha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: sichaUrl }),
+      });
+      const data = await response.json().catch(() => ({})) as { title?: string; excerpt?: string; url?: string; error?: string };
+      if (!response.ok) throw new Error(data.error ?? "Import impossible.");
+      setGenerated((current) => ({ ...current, sichaTitle: data.title ?? "", sichaExcerpt: data.excerpt ?? "", sichaUrl: data.url ?? "" }));
+    } catch (importError) {
+      setError(importError instanceof Error ? importError.message : "Import impossible.");
+    } finally {
+      setImportingSicha(false);
+    }
+  }
+
   async function saveDonationLink() {
     setSavingDonationUrl(true);
     setError(null);
@@ -354,22 +394,35 @@ export function NewsletterPaperClient({
   }
 
   async function downloadPdf() {
-    const pages = [rectoRef.current, versoRef.current].filter((page): page is HTMLDivElement => Boolean(page));
+    const pages = [pdfRectoRef.current, pdfVersoRef.current].filter((page): page is HTMLDivElement => Boolean(page));
     if (pages.length === 0) return;
     setExporting(true);
     setError(null);
     try {
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
+      const exportWidth = 794;
+      const exportHeight = 1123;
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
       for (const [index, page] of pages.entries()) {
         const dataUrl = await toPng(page, {
           cacheBust: true,
           pixelRatio: 2,
-          width: 794,
-          height: 1122,
+          width: exportWidth,
+          height: exportHeight,
           backgroundColor: "#fffdf7",
+          style: {
+            boxSizing: "border-box",
+            width: `${exportWidth}px`,
+            minWidth: `${exportWidth}px`,
+            maxWidth: `${exportWidth}px`,
+            height: `${exportHeight}px`,
+            minHeight: `${exportHeight}px`,
+            margin: "0",
+          },
         });
         if (index > 0) pdf.addPage("a4", "portrait");
-        pdf.addImage(dataUrl, "PNG", 0, 0, 210, 297, undefined, "FAST");
+        pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight, undefined, "FAST");
       }
       pdf.save(`newsletter-chabbat-${community.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "communaute"}.pdf`);
     } catch (pdfError) {
@@ -380,29 +433,38 @@ export function NewsletterPaperClient({
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-5 pb-20 sm:px-6 sm:pt-6">
-      <section className="relative overflow-hidden rounded-b-[2.4rem] bg-[radial-gradient(circle_at_82%_0%,#7834c6_0%,#421388_44%,#22065d_100%)] px-5 pb-6 pt-7 text-white shadow-[0_18px_35px_rgba(43,8,104,0.2)] sm:rounded-[2rem] sm:px-8">
-        <span className="pointer-events-none absolute -right-14 top-12 size-48 rounded-full bg-lime-300/15 blur-3xl" />
-        <span className="pointer-events-none absolute -left-10 bottom-0 size-36 rounded-full bg-fuchsia-400/15 blur-2xl" />
+    <div className="mx-auto w-full max-w-7xl space-y-5 bg-[#fffaf1] pb-48 md:pb-28 sm:px-6 sm:pt-6">
+      <section className="relative overflow-hidden rounded-b-[2.4rem] bg-[radial-gradient(circle_at_82%_0%,#36506d_0%,#17253f_48%,#0f1c2e_100%)] px-5 pb-6 pt-7 text-white shadow-[0_18px_35px_rgba(23,37,63,0.2)] sm:rounded-[2rem] sm:px-8">
+        <span className="pointer-events-none absolute -right-14 top-12 size-48 rounded-full bg-[#e9c76a]/20 blur-3xl" />
+        <span className="pointer-events-none absolute -left-10 bottom-0 size-36 rounded-full bg-[#36506d]/35 blur-2xl" />
         <div className="relative flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-lime-200">Newsletter Papier IA</p>
-            <h1 className="mt-2 break-words text-[clamp(2rem,9vw,3.1rem)] font-black leading-[0.95] tracking-[-0.055em]">Votre Newsletter<br />imprimable pour Chabbat</h1>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#e9c76a]">Votre feuillet communautaire</p>
+            <h1 className="mt-2 break-words text-[clamp(2rem,9vw,3.1rem)] font-black leading-[0.95] tracking-[-0.055em]">Le Chabaton <span className="inline-flex translate-y-[-0.15em] rounded-lg bg-[#e9c76a] px-2 py-1 text-[0.36em] tracking-normal text-[#17253f] shadow-sm">PDF</span></h1>
           </div>
           <span className="flex size-14 shrink-0 items-center justify-center rounded-[1.25rem] border border-white/20 bg-white/10 text-2xl font-black shadow-lg backdrop-blur-sm">ב&quot;ה</span>
         </div>
       </section>
 
+      <nav className="mx-4 grid grid-cols-3 gap-2 sm:mx-0 print:hidden" aria-label="Étapes de création">
+        {([ ["modules", "1", "Rubriques", LayoutList], ["content", "2", "Contenu", PenLine], ["preview", "3", "Aperçu", Eye] ] as const).map(([step, number, label, Icon]) => (
+          <button key={step} type="button" onClick={() => setEditorStep(step)} className={cn("flex min-h-14 items-center justify-center gap-1.5 rounded-2xl px-2 text-xs font-black transition sm:text-sm", editorStep === step ? "bg-[#17253f] text-white shadow-lg shadow-slate-300" : "border border-[#e6dcc7] bg-white text-[#5d6b7d] hover:bg-[#fff5dc]")}>
+            <span className={cn("flex size-6 items-center justify-center rounded-lg text-[10px]", editorStep === step ? "bg-[#e9c76a] text-[#17253f]" : "bg-[#edf1f6] text-[#52648e]")}>{number}</span><Icon className="size-3.5" />{label}
+          </button>
+        ))}
+      </nav>
+
       <div className="grid gap-5 px-4 sm:px-0 xl:grid-cols-[minmax(320px,420px)_minmax(0,1fr)]">
         <aside className="space-y-4 print:hidden">
-          <section className="rounded-[1.65rem] border border-violet-100 bg-white p-4 shadow-[0_12px_28px_rgba(48,25,91,0.08)]">
+          <section className={cn("rounded-[1.65rem] border border-[#e6dcc7] bg-white p-4 shadow-[0_12px_28px_rgba(23,37,63,0.08)]", editorStep !== "modules" && "hidden")}>
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-black text-slate-950">Rubriques a activer</h2>
               </div>
-              <span className="rounded-full bg-lime-50 px-3 py-1 text-xs font-black text-lime-800">{activeCount}/9</span>
+              <span className="rounded-full bg-[#edf1f6] px-3 py-1 text-xs font-black text-[#36506d]">{activeCount}/11</span>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-1">
+            <p className="mt-1 text-sm font-medium text-slate-500">Activez uniquement ce que vous voulez voir dans le PDF.</p>
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-2">
               {MODULES.map((module) => {
                 const Icon = module.icon;
                 const isActive = enabled[module.key];
@@ -412,18 +474,17 @@ export function NewsletterPaperClient({
                     type="button"
                     onClick={() => toggleModule(module.key)}
                     className={cn(
-                      "flex min-h-[88px] items-center gap-2 rounded-2xl border p-2.5 text-left transition",
-                      isActive ? "border-violet-200 bg-violet-50 text-violet-950" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                      "flex min-h-[72px] items-center gap-2 rounded-2xl border p-2.5 text-left transition",
+                      isActive ? "border-[#b8c6d9] bg-[#edf2f8] text-[#17253f]" : "border-[#e1e7ef] bg-white text-slate-600 hover:bg-[#f5f7fc]"
                     )}
                   >
-                    <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl", isActive ? "bg-[#421388] text-white" : "bg-slate-100 text-slate-500")}>
+                    <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl", isActive ? "bg-[#36506d] text-white" : "bg-slate-100 text-slate-500")}>
                       <Icon className="size-5" />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block break-words text-sm font-black">{module.title}</span>
-                      <span className="mt-0.5 hidden text-xs leading-5 text-slate-500 xl:block">{module.description}</span>
                     </span>
-                    <span className={cn("flex h-5 w-9 items-center rounded-full p-1 transition", isActive ? "bg-[#421388]" : "bg-slate-200")}>
+                    <span className={cn("flex h-5 w-9 items-center rounded-full p-1 transition", isActive ? "bg-[#36506d]" : "bg-slate-200")}>
                       <span className={cn("size-4 rounded-full bg-white shadow transition", isActive && "translate-x-5")} />
                     </span>
                   </button>
@@ -432,30 +493,43 @@ export function NewsletterPaperClient({
             </div>
           </section>
 
-          <section className="rounded-[1.65rem] border border-slate-200 bg-white p-4 shadow-[0_12px_28px_rgba(48,25,91,0.08)]">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#421388]">2. Les details</p>
+          {editorStep === "content" ? <>
+          <section className="rounded-[1.65rem] border border-[#e6dcc7] bg-white p-4 shadow-[0_12px_28px_rgba(23,37,63,0.08)]">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#36506d]">2. Les details</p>
             <div className="mt-4 space-y-3">
               {enabled.ravWord ? (
                 <label className="block text-sm font-bold text-slate-700">
                   Mot du Rav
-                  <input value={ravTheme} onChange={(event) => setRavTheme(event.target.value)} placeholder="Theme souhaite (facultatif)" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100" />
+                  <input value={ravTheme} onChange={(event) => setRavTheme(event.target.value)} placeholder="Theme souhaite (facultatif)" className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#36506d] focus:ring-2 focus:ring-[#dfe8f3]" />
                   <textarea
                     value={generated.ravWord}
                     onChange={(event) => setGenerated((current) => ({ ...current, ravWord: event.target.value }))}
                     rows={7}
-                    className="mt-1.5 w-full resize-y rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium leading-6 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                    className="mt-1.5 w-full resize-y rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium leading-6 outline-none focus:border-[#36506d] focus:ring-2 focus:ring-[#dfe8f3]"
                   />
-                  <button type="button" onClick={() => void rewriteRavWord()} disabled={generating} className="mt-2 inline-flex min-h-10 items-center gap-2 rounded-xl bg-violet-50 px-3 text-xs font-black text-[#421388] transition hover:bg-violet-100 disabled:opacity-60">
+                  <button type="button" onClick={() => void rewriteRavWord()} disabled={generating} className="mt-2 inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#edf2f8] px-3 text-xs font-black text-[#17253f] transition hover:bg-[#dfe8f3] disabled:opacity-60">
                     <Sparkles className="size-4" /> Retravailler avec l&apos;IA
                   </button>
                 </label>
+              ) : null}
+              {enabled.sicha ? (
+                <section className="rounded-2xl border border-[#d9e0f1] bg-[#f5f7fc] p-3 text-sm text-slate-700">
+                  <p className="font-black text-[#17253f]">Siha du Rabbi</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">Collez le lien de la Siha liée à la Paracha sur Chabad.org. Le texte importé reste exactement celui de la source officielle : aucune IA ne l’écrit ni ne le modifie.</p>
+                  <input value={sichaUrl} onChange={(event) => setSichaUrl(event.target.value)} placeholder="https://fr.chabad.org/..." className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#36506d] focus:ring-2 focus:ring-[#dfe8f3]" />
+                  <button type="button" onClick={() => void importOfficialSicha()} disabled={importingSicha || !sichaUrl.trim()} className="mt-2 inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#17253f] px-3 text-xs font-black text-white disabled:opacity-60">
+                    {importingSicha ? <Loader2 className="size-4 animate-spin" /> : <BookOpen className="size-4" />} Importer depuis Chabad.org
+                  </button>
+                  {generated.sichaTitle ? <p className="mt-3 font-black text-[#17253f]">{generated.sichaTitle}</p> : null}
+                  {generated.sichaExcerpt ? <p className="mt-1 text-xs leading-5 text-slate-600">{generated.sichaExcerpt}</p> : null}
+                </section>
               ) : null}
               {enabled.parness ? <TextInput label="Parness Hayom" value={parnessText} onChange={setParnessText} placeholder="Ex. Leylouy Nichmat..." /> : null}
               {enabled.kiddush ? <TextInput label="Kidouch offert par" value={kiddushText} onChange={setKiddushText} placeholder="Ex. Famille Cohen" /> : null}
               <label className="block text-sm font-bold text-slate-700">
                 Lien de la page de dons
                 <div className="mt-1.5 flex flex-col gap-2 sm:flex-row">
-                  <input value={donationUrl} onChange={(event) => setDonationUrl(event.target.value)} placeholder="https://allodons.fr/..." className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100" />
+                  <input value={donationUrl} onChange={(event) => setDonationUrl(event.target.value)} placeholder="https://allodons.fr/..." className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#36506d] focus:ring-2 focus:ring-[#dfe8f3]" />
                   <button type="button" onClick={() => void saveDonationLink()} disabled={savingDonationUrl} className="min-h-10 rounded-xl bg-[#18264d] px-3 text-xs font-black text-white disabled:opacity-60">{savingDonationUrl ? "Enregistrement..." : "Enregistrer"}</button>
                 </div>
               </label>
@@ -463,7 +537,7 @@ export function NewsletterPaperClient({
                 Photo de banniere (synagogue / Beth Habad)
                 <span className="mt-1.5 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
                   <span className="truncate">{bannerPhotoUrl ? "Photo ajoutee au feuillet" : "Photo circulaire optionnelle"}</span>
-                  <span className="shrink-0 rounded-lg bg-white px-2 py-1 text-[#421388] shadow-sm">Choisir</span>
+                  <span className="shrink-0 rounded-lg bg-white px-2 py-1 text-[#36506d] shadow-sm">Choisir</span>
                   <input type="file" accept="image/*" className="sr-only" disabled={uploading} onChange={(event) => void uploadBannerPhoto(event)} />
                 </span>
               </label>
@@ -474,7 +548,7 @@ export function NewsletterPaperClient({
                 </div>
                 <label className="mt-2 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
                   <span className="truncate">Ajoutez jusqu&apos;a 3 images de publicite</span>
-                  <span className="shrink-0 rounded-lg bg-white px-2 py-1 text-[#421388] shadow-sm">Televerser</span>
+                  <span className="shrink-0 rounded-lg bg-white px-2 py-1 text-[#36506d] shadow-sm">Televerser</span>
                   <input type="file" accept="image/*" multiple className="sr-only" disabled={uploading || partnerAds.length >= 3} onChange={(event) => void uploadPartnerAds(event)} />
                 </label>
                 {partnerAds.length > 0 ? <div className="mt-3 grid grid-cols-3 gap-2">
@@ -493,7 +567,7 @@ export function NewsletterPaperClient({
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Photos</p>
                 <p className="mt-1 text-sm text-slate-500">{photos.length}/9 photo(s) ajoutee(s)</p>
               </div>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#421388] px-3 py-2 text-xs font-black text-white transition hover:bg-[#35106f]">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#36506d] px-3 py-2 text-xs font-black text-white transition hover:bg-[#17253f]">
                 {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                 Ajouter
                 <input type="file" accept="image/*" multiple className="hidden" onChange={(event) => void uploadPhotos(event)} disabled={uploading || photos.length >= 9} />
@@ -544,8 +618,8 @@ export function NewsletterPaperClient({
             </div>
           ) : null}
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 xl:grid-cols-1">
-            <Button type="button" onClick={() => void generateNewsletter()} loading={generating} className="h-12 rounded-2xl bg-[#421388] px-2 font-black text-white hover:bg-[#35106f] xl:px-4">
+          <div className="hidden grid-cols-1 gap-2 sm:grid-cols-3 xl:grid-cols-1">
+            <Button type="button" onClick={() => void generateNewsletter()} loading={generating} className="h-12 rounded-2xl bg-[#17253f] px-2 font-black text-white hover:bg-[#0f1c2e] xl:px-4">
               <Sparkles className="size-4" />
               Generer avec l&apos;IA
             </Button>
@@ -553,15 +627,20 @@ export function NewsletterPaperClient({
               <Printer className="size-4" />
               Imprimer le feuillet
             </Button>
-            <Button type="button" variant="outline" onClick={() => void downloadPdf()} loading={exporting} className="h-12 rounded-2xl border-[#421388]/20 px-3 font-black text-[#421388] hover:bg-violet-50 xl:px-4">
+            <Button type="button" variant="outline" onClick={() => void downloadPdf()} loading={exporting} className="h-12 rounded-2xl border-[#36506d]/20 px-3 font-black text-[#17253f] hover:bg-[#f5f7fc] xl:px-4">
               <Download className="size-4" />
               Telecharger le PDF
             </Button>
           </div>
+          </> : null}
         </aside>
 
-        <main className="min-w-0">
-          <div className="overflow-hidden rounded-[1.65rem] bg-[#e8e2ef] p-2 shadow-inner sm:overflow-auto sm:p-3 print:overflow-visible print:rounded-none print:bg-white print:p-0 print:shadow-none">
+        {editorStep === "preview" ? <main className="min-w-0 xl:col-span-2">
+          <div className="mb-3 grid grid-cols-2 gap-2 sm:hidden print:hidden">
+            <button type="button" onClick={() => { setMobilePreviewPage("front"); rectoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className={cn("min-h-11 rounded-xl text-sm font-black", mobilePreviewPage === "front" ? "bg-[#17253f] text-white" : "border border-[#e6dcc7] bg-white text-[#17253f]")}>Recto</button>
+            <button type="button" onClick={() => { setMobilePreviewPage("back"); versoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className={cn("min-h-11 rounded-xl text-sm font-black", mobilePreviewPage === "back" ? "bg-[#17253f] text-white" : "border border-[#e6dcc7] bg-white text-[#17253f]")}>Verso</button>
+          </div>
+          <div className="overflow-hidden rounded-[1.65rem] bg-[#e8eef6] p-2 shadow-inner sm:overflow-auto sm:p-3 print:overflow-visible print:rounded-none print:bg-white print:p-0 print:shadow-none">
             <article ref={rectoRef} className="mx-auto min-h-[760px] w-full max-w-[794px] bg-[#fffdf7] text-slate-950 shadow-2xl sm:min-h-[1122px] print:min-h-screen print:w-full print:shadow-none">
               <NewsletterPreview
                 community={previewCommunity}
@@ -599,7 +678,54 @@ export function NewsletterPaperClient({
               />
             </article>
           </div>
-        </main>
+        </main> : null}
+      </div>
+      <div aria-hidden="true" className="pointer-events-none fixed left-[-10000px] top-0 w-[794px]">
+        <article ref={pdfRectoRef} className="h-[1123px] w-[794px] overflow-hidden bg-[#fffdf7] text-slate-950">
+          <NewsletterPreview
+            community={previewCommunity}
+            enabled={enabled}
+            generated={generated}
+            ravTheme={ravTheme}
+            parnessText={parnessText}
+            kiddushText={kiddushText}
+            partnerAds={visiblePartnerAds}
+            events={visibleEvents}
+            birthdays={initialBirthdays}
+            shabbat={initialShabbat}
+            photos={visiblePhotos}
+            posters={visiblePosters}
+            bannerPhotoUrl={bannerPhotoUrl}
+            page="front"
+            exportMode
+          />
+        </article>
+        <article ref={pdfVersoRef} className="mt-4 h-[1123px] w-[794px] overflow-hidden bg-[#fffdf7] text-slate-950">
+          <NewsletterPreview
+            community={previewCommunity}
+            enabled={enabled}
+            generated={generated}
+            ravTheme={ravTheme}
+            parnessText={parnessText}
+            kiddushText={kiddushText}
+            partnerAds={visiblePartnerAds}
+            events={visibleEvents}
+            birthdays={initialBirthdays}
+            shabbat={initialShabbat}
+            photos={visiblePhotos}
+            posters={visiblePosters}
+            bannerPhotoUrl={bannerPhotoUrl}
+            page="back"
+            exportMode
+          />
+        </article>
+      </div>
+      <div className="fixed inset-x-0 bottom-[calc(5.9rem+env(safe-area-inset-bottom))] z-20 border-t border-[#e5dcc8] bg-[#fffaf1]/95 p-3 backdrop-blur print:hidden md:bottom-0 md:z-40">
+        <div className="mx-auto grid max-w-3xl grid-cols-3 gap-2">
+          <Button type="button" onClick={() => void generateNewsletter()} loading={generating} className="min-h-12 rounded-2xl bg-[#17253f] px-2 text-xs font-black text-white hover:bg-[#0f1c2e] sm:text-sm"><Sparkles className="size-4" />IA</Button>
+          <Button type="button" variant="outline" onClick={() => window.print()} className="min-h-12 rounded-2xl border-[#d8ccb3] bg-white px-2 text-xs font-black text-[#17253f] sm:text-sm"><Printer className="size-4" />Imprimer</Button>
+          <Button type="button" variant="outline" onClick={() => void downloadPdf()} loading={exporting} className="min-h-12 rounded-2xl border-[#d8ccb3] bg-[#e9c76a] px-2 text-xs font-black text-[#17253f] hover:bg-[#ddbb5d] sm:text-sm"><Download className="size-4" />PDF</Button>
+        </div>
       </div>
     </div>
   );
@@ -609,7 +735,7 @@ function TextInput({ label, value, onChange, placeholder }: { label: string; val
   return (
     <label className="block text-sm font-bold text-slate-700">
       {label}
-      <input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-lime-500 focus:ring-2 focus:ring-lime-100" />
+      <input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#36506d] focus:ring-2 focus:ring-[#dfe8f3]" />
     </label>
   );
 }
@@ -629,6 +755,7 @@ function NewsletterPreview({
   posters,
   bannerPhotoUrl,
   page,
+  exportMode = false,
 }: {
   community: CommunityInfo;
   enabled: Record<ModuleKey, boolean>;
@@ -644,45 +771,54 @@ function NewsletterPreview({
   posters: UploadedPhoto[];
   bannerPhotoUrl: string;
   page: "front" | "back";
+  exportMode?: boolean;
 }) {
   return (
-    <div className="flex min-h-[760px] flex-col p-5 sm:min-h-[1122px] sm:p-10 print:min-h-screen">
+    <div className={cn("flex flex-col", exportMode ? "min-h-[1123px] p-10" : "min-h-[760px] p-5 sm:min-h-[1122px] sm:p-10 print:min-h-screen")}>
       {page === "front" ? <header className="relative border-b-4 border-[#18264d] pb-6">
-        <span className="absolute right-0 top-0 text-sm font-black text-lime-950 sm:text-xl">ב&quot;ה</span>
-        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:gap-6">
+        <span className="absolute right-0 top-0 text-sm font-black text-[#17253f] sm:text-xl">ב&quot;ה</span>
+        <div className={cn("flex flex-col items-start justify-between gap-4 sm:flex-row sm:gap-6", exportMode && "!flex-row !gap-6")}>
           <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-[#52648e]">Feuillet hebdomadaire de Chabbat</p>
             <h1 className="mt-2 max-w-[520px] pr-8 text-[clamp(1.8rem,8vw,3rem)] font-black leading-[0.98] tracking-normal text-slate-950 sm:mt-3">{generated.title}</h1>
             <p className="mt-3 max-w-[560px] text-[12px] font-semibold leading-5 text-slate-600 sm:mt-4 sm:text-[15px] sm:leading-6">{generated.intro}</p>
           </div>
-          <div className="flex w-full shrink-0 flex-row items-center gap-3 text-left sm:w-40 sm:flex-col sm:items-end sm:pt-7 sm:text-right">
-            {bannerPhotoUrl || community.logoUrl ? <img src={bannerPhotoUrl || community.logoUrl || ""} alt={community.name} className="size-14 rounded-full border-3 border-white object-cover shadow-[0_8px_20px_rgba(38,45,15,0.2)] ring-2 ring-lime-700 sm:size-24 sm:border-4" /> : null}
-            <p className="sm:mt-3 text-base font-black text-[#18264d] sm:text-xl">{community.name}</p>
+          <div className={cn("flex w-full shrink-0 flex-row items-center gap-3 text-left sm:w-40 sm:flex-col sm:items-end sm:pt-7 sm:text-right", exportMode && "!w-40 !flex-col !items-end !pt-7 !text-right")}>
+            {bannerPhotoUrl || community.logoUrl ? <img src={bannerPhotoUrl || community.logoUrl || ""} alt={community.name} className={cn("size-14 rounded-full border-3 border-white object-cover shadow-[0_8px_20px_rgba(23,37,63,0.2)] ring-2 ring-[#36506d] sm:size-24 sm:border-4", exportMode && "!size-24 !border-4")} /> : null}
+            <p className={cn("sm:mt-3 text-base font-black text-[#18264d] sm:text-xl", exportMode && "!mt-3 !text-xl")}>{community.name}</p>
             <p className="mt-1 text-sm font-bold text-slate-500">{community.city}</p>
           </div>
         </div>
         {enabled.shabbat ? (
-          <div className="mt-5 grid grid-cols-2 gap-2 sm:mt-6 sm:grid-cols-4 sm:gap-3">
+          <div className={cn("mt-5 grid grid-cols-2 gap-2 sm:mt-6 sm:grid-cols-4 sm:gap-3", exportMode && "!mt-6 !grid-cols-4 !gap-3")}>
             <InfoTile label="Paracha" value={shabbat?.parasha ?? "Chabbat"} />
             <InfoTile label="Date hebraique" value={shabbat?.hebrewDate ?? "Cette semaine"} />
             <InfoTile label="Entree" value={shabbat?.entry ?? "A verifier"} />
             <InfoTile label="Sortie" value={shabbat?.exit ?? "A verifier"} />
           </div>
         ) : null}
-      </header> : <header className="flex items-center justify-between border-b-4 border-[#421388] pb-5">
+      </header> : <header className="flex items-center justify-between border-b-4 border-[#18264d] pb-5">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-[#421388]">La vie de notre communaute</p>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-[#36506d]">La vie de notre communaute</p>
           <h1 className="mt-2 text-3xl font-black text-slate-950">Rendez-vous & souvenirs</h1>
         </div>
-        {community.logoUrl ? <img src={community.logoUrl} alt={community.name} className="size-14 rounded-full object-contain ring-2 ring-[#421388]/20" /> : <span className="text-xl font-black text-[#421388]">ב&quot;ה</span>}
+        {community.logoUrl ? <img src={community.logoUrl} alt={community.name} className="size-14 rounded-full object-contain ring-2 ring-[#36506d]/20" /> : <span className="text-xl font-black text-[#17253f]">ב&quot;ה</span>}
       </header>}
 
-      <div className="grid flex-1 grid-cols-1 gap-4 py-4 sm:grid-cols-[1.35fr_0.9fr] sm:gap-6 sm:py-6">
+      <div className={cn("grid flex-1 grid-cols-1 gap-4 py-4 sm:grid-cols-[1.35fr_0.9fr] sm:gap-6 sm:py-6", exportMode && "!grid-cols-[1.35fr_0.9fr] !gap-6 !py-6")}>
         <div className="space-y-5">
           {page === "front" && enabled.ravWord ? (
-            <PrintBlock icon={BookOpen} title="Mot du Rav" accent="lime">
-              {ravTheme ? <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-lime-800">Theme: {ravTheme}</p> : null}
+            <PrintBlock icon={BookOpen} title="Mot du Rav" accent="navy">
+              {ravTheme ? <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-[#52648e]">Theme: {ravTheme}</p> : null}
               <p className="text-[14px] leading-[1.62] text-slate-700">{generated.ravWord}</p>
+            </PrintBlock>
+          ) : null}
+
+          {page === "front" && enabled.sicha ? (
+            <PrintBlock icon={BookOpen} title="Siha du Rabbi" accent="gold" compact>
+              {generated.sichaTitle ? <p className="text-[14px] font-black leading-5 text-slate-900">{generated.sichaTitle}</p> : null}
+              <p className="mt-2 text-[12px] leading-5 text-slate-700">{generated.sichaExcerpt || "Ajoutez le lien officiel Chabad.org pour importer le résumé de la Siha, sans modification."}</p>
+              {generated.sichaUrl ? <p className="mt-2 break-all text-[9px] font-bold text-[#52648e]">Source : {generated.sichaUrl}</p> : null}
             </PrintBlock>
           ) : null}
 
@@ -716,9 +852,9 @@ function NewsletterPreview({
               <p className="mb-3 text-[13px] leading-5 text-slate-600">{generated.eventIntro}</p>
               <div className="space-y-2">
                 {events.length > 0 ? events.map((event) => (
-                  <div key={event.id} className="rounded-xl border border-violet-100 bg-violet-50/60 px-3 py-2">
+                  <div key={event.id} className="rounded-xl border border-[#d9e0f1] bg-[#f5f7fc] px-3 py-2">
                     <p className="text-[13px] font-black text-slate-950">{event.title}</p>
-                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-violet-800">{formatDate(event.startDate, community.timezone)}{event.location ? ` · ${event.location}` : ""}</p>
+                    <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#52648e]">{formatDate(event.startDate, community.timezone)}{event.location ? ` · ${event.location}` : ""}</p>
                   </div>
                 )) : <p className="text-sm text-slate-500">Aucun evenement renseigne pour le moment.</p>}
               </div>
@@ -734,9 +870,9 @@ function NewsletterPreview({
           ) : null}
         </div>
 
-        <aside className="grid grid-cols-1 gap-4 sm:block sm:space-y-5">
+        <aside className={cn("grid grid-cols-1 gap-4 sm:block sm:space-y-5", exportMode && "!block !space-y-5")}>
           {page === "front" && enabled.shabbat ? (
-            <PrintBlock icon={Clock3} title="Resume de la Paracha" accent="lime" compact>
+            <PrintBlock icon={Clock3} title="Resume de la Paracha" accent="navy" compact>
               <p className="text-[13px] leading-5 text-slate-700">{generated.shabbatNote}</p>
             </PrintBlock>
           ) : null}
@@ -758,9 +894,9 @@ function NewsletterPreview({
               {birthdays.length > 0 ? (
                 <div className="space-y-2">
                   {birthdays.slice(0, 8).map((birthday) => (
-                    <div key={birthday.id} className="flex items-start justify-between gap-2 rounded-lg bg-rose-50 px-2.5 py-2">
+                    <div key={birthday.id} className="flex items-start justify-between gap-2 rounded-lg bg-[#f5f7fc] px-2.5 py-2">
                       <p className="text-[12px] font-black text-slate-900">{birthday.name}</p>
-                      <p className="shrink-0 text-right text-[10px] font-bold text-rose-700">{formatShortDate(birthday.gregorianDate)}</p>
+                      <p className="shrink-0 text-right text-[10px] font-bold text-[#52648e]">{formatShortDate(birthday.gregorianDate)}</p>
                     </div>
                   ))}
                 </div>
@@ -785,7 +921,7 @@ function NewsletterPreview({
         </aside>
       </div>
 
-      <footer className="mt-6 flex items-center justify-between gap-3 border-t border-slate-200 pt-4 text-[9px] font-bold text-slate-500 sm:mt-auto sm:text-[11px]">
+      <footer className={cn("mt-6 flex items-center justify-between gap-3 border-t border-slate-200 pt-4 text-[9px] font-bold text-slate-500 sm:mt-auto sm:text-[11px]", exportMode && "!mt-auto !text-[11px]")}>
         <div className="flex min-w-0 items-center gap-3">
           {community.logoUrl ? <img src={community.logoUrl} alt="" className="size-9 shrink-0 rounded-full object-contain" /> : null}
           <p className="leading-4">
@@ -802,7 +938,7 @@ function NewsletterPreview({
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-[#18264d] px-3 py-3 text-white shadow-[0_8px_18px_rgba(24,38,77,0.18)]">
-      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-violet-200">{label}</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#c6d1e2]">{label}</p>
       <p className="mt-1 truncate text-lg font-black">{value}</p>
     </div>
   );
@@ -817,15 +953,15 @@ function PrintBlock({
 }: {
   icon: LucideIcon;
   title: string;
-  accent: "lime" | "violet" | "gold" | "rose" | "slate";
+  accent: "navy" | "violet" | "gold" | "rose" | "slate";
   compact?: boolean;
   children: ReactNode;
 }) {
   const styles = {
-    lime: "border-[#d9e0f1] bg-[#f5f7fc] text-[#18264d]",
-    violet: "border-[#e6dff5] bg-[#f8f6fc] text-[#402171]",
-    gold: "border-[#f0dfb8] bg-[#fffbf2] text-[#7a5310]",
-    rose: "border-rose-200 bg-rose-50/70 text-rose-900",
+    navy: "border-[#d9e0f1] bg-[#f5f7fc] text-[#18264d]",
+    violet: "border-[#d9e0f1] bg-[#f5f7fc] text-[#18264d]",
+    gold: "border-[#e6dcc7] bg-[#fffdf7] text-[#36506d]",
+    rose: "border-[#d9e0f1] bg-[#f5f7fc] text-[#18264d]",
     slate: "border-slate-200 bg-white text-slate-900",
   }[accent];
 

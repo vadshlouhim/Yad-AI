@@ -4,6 +4,8 @@ import { useMemo, useState, type FormEvent, type ReactElement, type ReactNode, t
 import Link from "next/link";
 import {
   ArrowLeft,
+  BookOpen,
+  CalendarRange,
   CheckCircle2,
   ChevronRight,
   Globe2,
@@ -77,6 +79,24 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
     ];
 
     const comingSoon: ToolGroup[] = [
+      {
+        key: "automations",
+        title: "Automatiser",
+        icon: CalendarRange,
+        tone: "from-[#0faeb3] to-[#07949f]",
+        items: [],
+        comingSoon: true,
+        description: "Programmez des communications au bon moment : rappels, horaires de Chabbat, événements et publications récurrentes.",
+      },
+      {
+        key: "torah",
+        title: "Cours de Torah",
+        icon: BookOpen,
+        tone: "from-[#f5ae12] to-[#e58b00]",
+        items: [],
+        comingSoon: true,
+        description: "Préparez et partagez vos cours de Torah avec des contenus adaptés à votre communauté.",
+      },
       {
         key: "website",
         title: "Creation de site web et referencement IA",

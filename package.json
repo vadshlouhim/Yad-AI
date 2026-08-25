@@ -14,6 +14,7 @@
     "db:check-target": "tsx scripts/check-supabase-target.ts",
     "db:migrate:safe": "npm run db:check-target && prisma migrate deploy",
     "test:admin-templates": "tsx scripts/test-admin-templates.ts",
+    "templates:import": "tsx scripts/import-template-library.ts",
     "test:posters": "eslint src/lib/templates/fal-edit.ts src/app/api/templates"
   },
   "dependencies": {

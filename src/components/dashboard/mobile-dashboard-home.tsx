@@ -30,7 +30,10 @@ import { cn } from "@/lib/utils";
 import { HOME_EASYCOM_AGENTS, type EasyComAgent } from "@/lib/agents";
 import {
   getOfficialDashboardMenuSections,
+  FacebookIcon,
+  InstagramIcon,
   OFFICIAL_MENU_SECTION_STYLES,
+  WhatsAppIcon,
   type OfficialDashboardMenuSection,
 } from "@/components/layout/dashboard-nav";
 
@@ -69,44 +72,30 @@ const FEATURED_AGENT_SLUGS = [
 const ACTION_CARDS: ActionCard[] = [
   {
     key: "publish",
-    title: "Publier partout",
+    title: "Publier partout en un clic",
     icon: Megaphone,
-    className: "from-[#0878ee] via-[#0668e8] to-[#064bd8]",
+    className: "from-[#2478d8] via-[#1d63c5] to-[#174b9f]",
     href: "/dashboard/social-networks",
   },
   {
-    key: "automations",
-    title: "Automatiser",
-    icon: CalendarRange,
-    className: "from-[#0faeb3] via-[#08a7ad] to-[#07949f]",
-    sectionKey: "automations",
-  },
-  {
     key: "newsletter-paper",
-    title: "Newsletter Papier IA",
+    title: "Le Newsletter",
     icon: FileText,
-    className: "from-[#72a816] via-[#60930f] to-[#4d750b]",
+    className: "from-[#2b456d] via-[#20385b] to-[#172b48]",
     href: "/dashboard/newsletter",
-  },
-  {
-    key: "torah",
-    title: "Cours de Torah",
-    icon: BookOpen,
-    className: "from-[#ffbd16] via-[#f7ad05] to-[#ee9b00]",
-    sectionKey: "torah",
   },
   {
     key: "contacts",
     title: "Contacts",
     icon: Users,
-    className: "from-[#ef7c18] via-[#e66115] to-[#cf4713]",
+    className: "from-[#dc7a5b] via-[#c96045] to-[#a94535]",
     href: "/dashboard/contacts",
   },
   {
     key: "visuals",
-    title: "Affiches",
+    title: "Affiches & Visuels",
     icon: ImageIcon,
-    className: "from-[#7130d8] via-[#6d2bc8] to-[#5722b1]",
+    className: "from-[#7654a8] via-[#60418e] to-[#452e70]",
     sectionKey: "visuals",
   },
 ];
@@ -382,7 +371,13 @@ export function MobileDashboardHome({
             const content = (
               <>
                 <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,rgba(255,255,255,0.12),transparent_31%),radial-gradient(circle_at_100%_100%,rgba(255,255,255,0.08),transparent_34%)]" />
-                <Icon className="relative size-[clamp(2.25rem,10vw,4rem)] shrink-0 stroke-[2]" />
+                {action.key === "publish" ? (
+                  <span className="relative flex items-center gap-3 text-white" aria-label="Facebook, Instagram et WhatsApp">
+                    <FacebookIcon className="size-[clamp(2rem,8vw,3.2rem)] !fill-white" />
+                    <InstagramIcon className="size-[clamp(2rem,8vw,3.2rem)] !fill-none !stroke-white" />
+                    <WhatsAppIcon className="size-[clamp(2rem,8vw,3.2rem)] !fill-white" />
+                  </span>
+                ) : <Icon className="relative size-[clamp(2.25rem,10vw,4rem)] shrink-0 stroke-[2]" />}
                 <span className="relative min-w-0 max-w-full whitespace-normal text-[clamp(1rem,4.2vw,1.4rem)] font-black leading-[1.15] tracking-[-0.02em]">
                   {action.key === "contacts" ? (
                     <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
@@ -391,12 +386,19 @@ export function MobileDashboardHome({
                         AI
                       </span>
                     </span>
+                  ) : action.key === "newsletter-paper" ? (
+                    <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
+                      Le Newsletter
+                      <span className="inline-flex size-7 items-center justify-center rounded-lg bg-white text-[0.62rem] font-black tracking-normal text-[#172b48] shadow-sm ring-1 ring-white/70">
+                        PDF
+                      </span>
+                    </span>
                   ) : action.title}
                 </span>
               </>
             );
             const className = cn(
-              "relative flex min-h-[118px] items-center gap-2 overflow-hidden rounded-[1.6rem] bg-gradient-to-br px-3 py-5 text-left text-white shadow-[0_12px_24px_rgba(30,41,59,0.12)] transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#421388]/25 max-[520px]:min-h-[132px] max-[520px]:flex-col max-[520px]:justify-center max-[520px]:gap-2.5 max-[520px]:text-center",
+              "relative flex min-h-[118px] items-center gap-2 overflow-hidden rounded-[1.8rem] border border-white/25 bg-gradient-to-br px-3 py-5 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.12),0_14px_28px_rgba(30,41,59,0.16)] transition-[transform,box-shadow] duration-200 active:scale-[0.975] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_5px_12px_rgba(30,41,59,0.16)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#36506d]/25 max-[520px]:min-h-[132px] max-[520px]:flex-col max-[520px]:justify-center max-[520px]:gap-2.5 max-[520px]:text-center",
               action.className,
               action.wide && "col-span-2 min-h-[96px] justify-center"
             );
@@ -483,7 +485,7 @@ function ModuleDialog({
                 <div className="min-w-0 flex-1 pt-0.5">
                   <DialogPrimitive.Title className="text-lg font-black uppercase tracking-tight text-white">
                     {isSocialSection
-                      ? "Publier partout"
+                      ? "Publier partout en un clic"
                       : isCommunitySection
                         ? "Communication automatiser"
                         : isCompactGridSection

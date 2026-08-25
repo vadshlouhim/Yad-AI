@@ -98,6 +98,25 @@ const CATEGORY_TONES = [
   "border-rose-300 bg-rose-50 text-rose-700",
 ];
 
+const JEWISH_CALENDAR_ORDER = [
+  "Tichri", "19 Kisslev", "Hannoucah", "Didan Notsah", "Youd Chavat", "Tou Bichvat", "Pourim", "Youd Aleph Nissan", "Pessah", "Lag Baomer", "Chavouot", "Guimel Tamouz",
+];
+
+function splitSubCategory(value: string | null) {
+  return value?.split(" › ").map((part) => part.trim()).filter(Boolean) ?? [];
+}
+
+function sortSubCategories(values: string[], category: string | null) {
+  return [...values].sort((left, right) => {
+    if (category === "HOLIDAY") {
+      const leftIndex = JEWISH_CALENDAR_ORDER.indexOf(left);
+      const rightIndex = JEWISH_CALENDAR_ORDER.indexOf(right);
+      if (leftIndex >= 0 || rightIndex >= 0) return (leftIndex < 0 ? 999 : leftIndex) - (rightIndex < 0 ? 999 : rightIndex);
+    }
+    return left.localeCompare(right, "fr");
+  });
+}
+
 function templateImage(template: Template) {
   return template.previewUrl ?? template.thumbnailUrl ?? template.originalUrl;
 }
@@ -117,6 +136,7 @@ export function TemplatesClient({
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+  const [subCategoryPath, setSubCategoryPath] = useState<string[]>([]);
   const [requestText, setRequestText] = useState("");
   const [brief, setBrief] = useState<PosterBrief | null>(null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
@@ -133,13 +153,26 @@ export function TemplatesClient({
     const needle = search.trim().toLocaleLowerCase("fr");
     return templates.filter((template) => {
       if (category && template.category !== category) return false;
+      if (subCategoryPath.length && !subCategoryPath.every((part, index) => splitSubCategory(template.subCategory)[index] === part)) return false;
       if (!needle) return true;
       return [template.name, template.description ?? "", template.subCategory ?? "", ...(template.tags ?? [])]
         .join(" ")
         .toLocaleLowerCase("fr")
         .includes(needle);
     });
-  }, [category, search, templates]);
+  }, [category, search, subCategoryPath, templates]);
+  const nextSubCategories = useMemo(() => {
+    if (!category) return [];
+    const options = new Set<string>();
+    for (const template of templates) {
+      if (template.category !== category) continue;
+      const parts = splitSubCategory(template.subCategory);
+      if (subCategoryPath.every((part, index) => parts[index] === part) && parts[subCategoryPath.length]) {
+        options.add(parts[subCategoryPath.length]);
+      }
+    }
+    return sortSubCategories(Array.from(options), category);
+  }, [category, subCategoryPath, templates]);
 
   const freePosterAlreadyUsed = plan === "FREE_TRIAL" && billingUsage.posterGenerations >= 1;
 
@@ -332,7 +365,7 @@ export function TemplatesClient({
               <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 <button
                   type="button"
-                  onClick={() => setCategory(null)}
+                  onClick={() => { setCategory(null); setSubCategoryPath([]); }}
                   className={cn(
                     "min-h-12 rounded-2xl border px-3 text-sm font-black transition",
                     category === null
@@ -346,7 +379,7 @@ export function TemplatesClient({
                   <button
                     key={item}
                     type="button"
-                    onClick={() => setCategory(item)}
+                    onClick={() => { setCategory(item); setSubCategoryPath([]); }}
                     className={cn(
                       "min-h-12 rounded-2xl border px-3 text-sm font-black transition hover:-translate-y-0.5",
                       category === item
@@ -361,6 +394,19 @@ export function TemplatesClient({
                   </button>
                 ))}
               </div>
+              {category && nextSubCategories.length > 0 ? (
+                <div className="rounded-[1.5rem] border border-violet-100 bg-white p-3.5 shadow-sm">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <p className="text-xs font-black uppercase tracking-[0.13em] text-violet-700">
+                      {subCategoryPath.length ? subCategoryPath.join(" · ") : "Choisissez un thème"}
+                    </p>
+                    {subCategoryPath.length > 0 ? <button type="button" onClick={() => setSubCategoryPath((path) => path.slice(0, -1))} className="inline-flex items-center gap-1 rounded-xl bg-violet-50 px-2.5 py-1.5 text-xs font-black text-violet-700 hover:bg-violet-100"><ArrowLeft className="size-3.5" />Retour</button> : null}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {nextSubCategories.map((item, index) => <button key={item} type="button" onClick={() => setSubCategoryPath((path) => [...path, item])} className={cn("min-h-11 rounded-2xl border px-3.5 text-sm font-black transition hover:-translate-y-0.5", CATEGORY_TONES[(index + 1) % CATEGORY_TONES.length])}>{item}<span className="ml-1.5 opacity-65">{templates.filter((template) => template.category === category && [...subCategoryPath, item].every((part, pathIndex) => splitSubCategory(template.subCategory)[pathIndex] === part)).length}</span></button>)}
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         ) : null}
