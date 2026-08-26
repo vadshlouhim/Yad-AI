@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState, type FormEvent, type ReactElement, type ReactNode, type SVGProps } from "react";
+import { useMemo, useRef, useState, type FormEvent, type MutableRefObject, type ReactElement, type ReactNode, type SVGProps } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BookOpen,
@@ -28,6 +29,7 @@ import {
   type OfficialDashboardMenuItem,
   type OfficialDashboardMenuSection,
 } from "./dashboard-nav";
+import type { MobileHomeModuleKey } from "@/lib/mobile-dashboard/modules";
 
 type ToolGroup = {
   key: string;
@@ -39,6 +41,7 @@ type ToolGroup = {
   comingSoon?: boolean;
   href?: string;
   wide?: boolean;
+  homeModuleKey?: MobileHomeModuleKey;
 };
 
 type MobileMainMenuDialogProps = {
@@ -48,8 +51,25 @@ type MobileMainMenuDialogProps = {
 };
 
 export function MobileMainMenuDialog({ communityName, sections, onClose }: MobileMainMenuDialogProps) {
+  const router = useRouter();
   const [activeGroupKey, setActiveGroupKey] = useState<string | null>(null);
   const [supportOpen, setSupportOpen] = useState(false);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressClickRef = useRef(false);
+
+  function beginAddToHome(key?: MobileHomeModuleKey) {
+    if (!key) return;
+    longPressTimerRef.current = setTimeout(() => {
+      suppressClickRef.current = true;
+      onClose();
+      router.push(`/dashboard/overview?addModule=${encodeURIComponent(key)}&edit=1`);
+    }, 520);
+  }
+
+  function clearAddToHome() {
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = null;
+  }
 
   const menu = useMemo(() => {
     const allItems = sections.flatMap((section) => section.items);
@@ -61,11 +81,48 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
 
     const tools: ToolGroup[] = [
       {
+        key: "publish",
+        title: "Publier partout",
+        icon: Sparkles,
+        tone: "from-[#2478d8] via-[#1d63c5] to-[#174b9f]",
+        href: "/dashboard/social-networks",
+        items: [],
+        homeModuleKey: "publish",
+      },
+      {
+        key: "newsletter-paper",
+        title: "Le Newsletter PDF",
+        icon: Mail,
+        tone: "from-[#2b456d] via-[#20385b] to-[#172b48]",
+        href: "/dashboard/newsletter",
+        items: [],
+        homeModuleKey: "newsletter-paper",
+      },
+      {
+        key: "contacts",
+        title: "Contacts",
+        icon: User,
+        tone: "from-[#dc7a5b] via-[#c96045] to-[#a94535]",
+        href: "/dashboard/contacts",
+        items: [],
+        homeModuleKey: "contacts",
+      },
+      {
+        key: "visuals",
+        title: "Affiches & Visuels",
+        icon: Sparkles,
+        tone: "from-[#7654a8] via-[#60418e] to-[#452e70]",
+        href: "/dashboard/templates",
+        items: [],
+        homeModuleKey: "visuals",
+      },
+      {
         key: "shop",
         title: "Boutique en ligne",
         icon: ShoppingBag,
         tone: "from-[#0878ee] via-[#0668e8] to-[#064bd8]",
         items: section("shop_articles")?.items ?? [],
+        homeModuleKey: "shop",
       },
       {
         key: "compensation",
@@ -75,6 +132,16 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         href: "/dashboard/assistance-indemnisation-aerienne",
         wide: true,
         items: [],
+        homeModuleKey: "assistance",
+      },
+      {
+        key: "seo",
+        title: "Référencement IA",
+        icon: Globe2,
+        tone: "from-[#596d9a] via-[#465984] to-[#344266]",
+        href: "/dashboard/referencement",
+        items: [],
+        homeModuleKey: "seo",
       },
     ];
 
@@ -85,7 +152,8 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         icon: CalendarRange,
         tone: "from-[#0faeb3] to-[#07949f]",
         items: [],
-        comingSoon: true,
+        href: "/dashboard/automations",
+        homeModuleKey: "automations",
         description: "Programmez des communications au bon moment : rappels, horaires de Chabbat, événements et publications récurrentes.",
       },
       {
@@ -94,16 +162,18 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         icon: BookOpen,
         tone: "from-[#f5ae12] to-[#e58b00]",
         items: [],
-        comingSoon: true,
+        href: "/dashboard/torah",
+        homeModuleKey: "torah",
         description: "Préparez et partagez vos cours de Torah avec des contenus adaptés à votre communauté.",
       },
       {
         key: "website",
-        title: "Creation de site web et referencement IA",
+        title: "Création de site web",
         icon: Globe2,
         tone: "from-[#0faeb3] to-[#07949f]",
         items: [],
-        comingSoon: true,
+        href: "/dashboard/website",
+        homeModuleKey: "website",
         description: "Creez votre site communautaire et ameliorez sa visibilite sur Google grace a l'IA.",
       },
       {
@@ -112,7 +182,8 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         icon: MessageSquare,
         tone: "from-[#ff4c50] to-[#e9333d]",
         items: [],
-        comingSoon: true,
+        href: "/dashboard/communication-ciblee",
+        homeModuleKey: "targeted",
         description: "Creez des groupes de contacts et adressez le bon message aux bonnes personnes.",
       },
       {
@@ -121,7 +192,8 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         icon: Mail,
         tone: "from-[#f33967] to-[#dc2860]",
         items: [],
-        comingSoon: true,
+        href: "/dashboard/email",
+        homeModuleKey: "email",
         description: "Centralisez vos emails et preparez des reponses adaptees avec l'IA.",
       },
       {
@@ -130,7 +202,8 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         icon: Star,
         tone: "from-[#f5a400] to-[#e37800]",
         items: [],
-        comingSoon: true,
+        href: "/dashboard/google-reviews",
+        homeModuleKey: "reviews",
         description: "Suivez les avis de votre structure et preparez des reponses professionnelles.",
       },
       {
@@ -139,7 +212,8 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         icon: WhatsAppIcon,
         tone: "from-[#1db954] to-[#0f8f43]",
         items: [],
-        comingSoon: true,
+        href: "/dashboard/whatsapp",
+        homeModuleKey: "whatsapp",
         description: "Envoyez en masse sur WhatsApp avec une IA qui classe intelligemment les messages et organise l'envoi pour limiter le risque d'etre signale comme spam.",
       },
       {
@@ -168,7 +242,11 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
       item("/dashboard/settings?section=profile", "Profil", User),
     ];
 
-    return { tools, comingSoon, account };
+    return {
+      tools: [...tools, ...comingSoon.filter((group) => !group.comingSoon)],
+      comingSoon: comingSoon.filter((group) => group.comingSoon),
+      account,
+    };
   }, [sections]);
 
   const activeGroup = [...menu.tools, ...menu.comingSoon].find((group) => group.key === activeGroupKey) ?? null;
@@ -233,13 +311,15 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
           ) : (
             <>
 
+              <SectionTitle>Tous les modules</SectionTitle>
+              <p className="-mt-1 mb-3 text-center text-[11px] font-semibold normal-case text-slate-500">Maintenez un module pour l’ajouter à votre accueil.</p>
               <div className="grid grid-cols-2 gap-3">
                 {menu.tools.map((group) => (
-                  <ToolCard key={group.key} group={group} onOpen={() => setActiveGroupKey(group.key)} onClose={onClose} />
+                  <ToolCard key={group.key} group={group} onOpen={() => setActiveGroupKey(group.key)} onClose={onClose} onLongPressStart={beginAddToHome} onLongPressEnd={clearAddToHome} suppressClickRef={suppressClickRef} />
                 ))}
               </div>
 
-              <SectionTitle>Nouvelles fonctions bientot dispo</SectionTitle>
+              <SectionTitle>À venir</SectionTitle>
               <div className="grid grid-cols-2 gap-3">
                 {menu.comingSoon.map((group) => (
                   <ComingSoonCard key={group.key} group={group} onOpen={() => setActiveGroupKey(group.key)} />
@@ -370,7 +450,14 @@ function SupportSuggestionForm() {
   );
 }
 
-function ToolCard({ group, onOpen, onClose }: { group: ToolGroup; onOpen: () => void; onClose: () => void }) {
+function ToolCard({ group, onOpen, onClose, onLongPressStart, onLongPressEnd, suppressClickRef }: {
+  group: ToolGroup;
+  onOpen: () => void;
+  onClose: () => void;
+  onLongPressStart: (key?: MobileHomeModuleKey) => void;
+  onLongPressEnd: () => void;
+  suppressClickRef: MutableRefObject<boolean>;
+}) {
   const Icon = group.icon;
   const className = cn(
     "relative flex min-h-[142px] flex-col items-center justify-center gap-3 overflow-hidden rounded-[1.55rem] bg-gradient-to-br px-2.5 py-4 text-center text-white shadow-[0_13px_26px_rgba(35,20,80,0.16)] transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#421388]/20",
@@ -385,10 +472,27 @@ function ToolCard({ group, onOpen, onClose }: { group: ToolGroup; onOpen: () => 
     </>
   );
 
+  const pointerProps = {
+    onPointerDown: () => onLongPressStart(group.homeModuleKey),
+    onPointerUp: onLongPressEnd,
+    onPointerLeave: onLongPressEnd,
+    onPointerCancel: onLongPressEnd,
+  };
+
   return group.href ? (
-    <Link href={group.href} onClick={onClose} className={className}>{content}</Link>
+    <Link href={group.href} onClick={(event) => {
+      if (suppressClickRef.current) {
+        event.preventDefault();
+        suppressClickRef.current = false;
+        return;
+      }
+      onClose();
+    }} className={className} {...pointerProps}>{content}</Link>
   ) : (
-    <button type="button" onClick={onOpen} className={className}>{content}</button>
+    <button type="button" onClick={() => {
+      if (suppressClickRef.current) { suppressClickRef.current = false; return; }
+      onOpen();
+    }} className={className} {...pointerProps}>{content}</button>
   );
 }
 

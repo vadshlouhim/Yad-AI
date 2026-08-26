@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   ArrowRight,
@@ -21,8 +21,16 @@ import {
   Settings,
   Sparkles,
   Target,
+  Globe2,
+  GripVertical,
+  MessageSquare,
+  Plane,
+  Search,
+  ShoppingBag,
+  Star,
   User,
   Users,
+  Zap,
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -36,6 +44,7 @@ import {
   WhatsAppIcon,
   type OfficialDashboardMenuSection,
 } from "@/components/layout/dashboard-nav";
+import { MOBILE_HOME_DEFAULT_MODULES, MOBILE_HOME_MODULES, MOBILE_HOME_MAX_MODULES, type MobileHomeModuleKey } from "@/lib/mobile-dashboard/modules";
 
 type MobileDashboardHomeProps = {
   firstName: string;
@@ -49,7 +58,7 @@ type MobileDashboardHomeProps = {
 };
 
 type ActionCard = {
-  key: string;
+  key: MobileHomeModuleKey;
   title: string;
   icon: typeof Megaphone;
   className: string;
@@ -71,33 +80,55 @@ const FEATURED_AGENT_SLUGS = [
 
 const ACTION_CARDS: ActionCard[] = [
   {
+    key: "automations",
+    title: "Automatiser",
+    icon: Zap,
+    className: "bg-[#2f7e88]",
+    href: "/dashboard/automations",
+  },
+  {
     key: "publish",
     title: "Publier partout en un clic",
     icon: Megaphone,
-    className: "from-[#2478d8] via-[#1d63c5] to-[#174b9f]",
+    className: "bg-[#2962ff]",
     href: "/dashboard/social-networks",
+  },
+  {
+    key: "torah",
+    title: "Cours de Torah",
+    icon: BookOpen,
+    className: "bg-[#80652d]",
+    href: "/dashboard/torah",
   },
   {
     key: "newsletter-paper",
     title: "Le Newsletter",
     icon: FileText,
-    className: "from-[#2b456d] via-[#20385b] to-[#172b48]",
+    className: "bg-[#7b61ff]",
     href: "/dashboard/newsletter",
   },
   {
     key: "contacts",
     title: "Contacts",
     icon: Users,
-    className: "from-[#dc7a5b] via-[#c96045] to-[#a94535]",
+    className: "bg-[#ff6b5e]",
     href: "/dashboard/contacts",
   },
   {
     key: "visuals",
     title: "Affiches & Visuels",
     icon: ImageIcon,
-    className: "from-[#7654a8] via-[#60418e] to-[#452e70]",
+    className: "bg-[#e84393]",
     sectionKey: "visuals",
   },
+  { key: "targeted", title: "Communication ciblée", icon: Target, className: "bg-[#a25064]", href: "/dashboard/communication-ciblee" },
+  { key: "email", title: "Email", icon: Mail, className: "bg-[#a34d72]", href: "/dashboard/email" },
+  { key: "reviews", title: "Avis Google", icon: Star, className: "bg-[#b07b32]", href: "/dashboard/google-reviews" },
+  { key: "whatsapp", title: "WhatsApp", icon: MessageSquare, className: "bg-[#357e62]", href: "/dashboard/whatsapp" },
+  { key: "website", title: "Création de site web", icon: Globe2, className: "bg-[#426d9e]", href: "/dashboard/website" },
+  { key: "seo", title: "Référencement IA", icon: Search, className: "bg-[#596d9a]", href: "/dashboard/referencement" },
+  { key: "shop", title: "Boutique & articles", icon: ShoppingBag, className: "bg-[#a86639]", href: "/dashboard/boutique" },
+  { key: "assistance", title: "Assistance indemnisation", icon: Plane, className: "bg-[#586c8d]", href: "/dashboard/assistance-indemnisation-aerienne" },
 ];
 
 const AGENT_ACCENTS: Record<string, { icon: typeof Sparkles; surface: string }> = {
@@ -145,7 +176,14 @@ export function MobileDashboardHome({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [homeModules, setHomeModules] = useState<MobileHomeModuleKey[]>([...MOBILE_HOME_DEFAULT_MODULES]);
+  const [homeLoaded, setHomeLoaded] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [draggingKey, setDraggingKey] = useState<MobileHomeModuleKey | null>(null);
+  const [undoModule, setUndoModule] = useState<MobileHomeModuleKey | null>(null);
+  const [homeNotice, setHomeNotice] = useState<string | null>(null);
   const agentsScrollerRef = useRef<HTMLDivElement>(null);
+  const addedModuleRef = useRef(false);
   const moduleKey = searchParams.get("module");
   const sections = useMemo(() => getOfficialDashboardMenuSections(communityType), [communityType]);
   const sectionByKey = useMemo(
@@ -159,6 +197,53 @@ export function MobileDashboardHome({
   const featuredAgents = FEATURED_AGENT_SLUGS.flatMap((slug) =>
     HOME_EASYCOM_AGENTS.filter((agent) => agent.slug === slug)
   );
+  const actionByKey = useMemo(() => new Map(ACTION_CARDS.map((action) => [action.key, action])), []);
+  const visibleActions = homeModules.flatMap((key) => {
+    const action = actionByKey.get(key);
+    return action ? [action] : [];
+  });
+
+  async function persistHomeModules(modules: MobileHomeModuleKey[]) {
+    await fetch("/api/dashboard/mobile-home", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ modules }),
+    });
+  }
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/dashboard/mobile-home")
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: { modules?: MobileHomeModuleKey[] } | null) => {
+        if (active && Array.isArray(data?.modules)) setHomeModules(data.modules);
+      })
+      .finally(() => { if (active) setHomeLoaded(true); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    const key = searchParams.get("addModule");
+    if (!homeLoaded || !key || addedModuleRef.current) return;
+    const moduleToAdd = MOBILE_HOME_MODULES.find((candidate) => candidate.key === key)?.key;
+    addedModuleRef.current = true;
+    if (!moduleToAdd || homeModules.includes(moduleToAdd)) return;
+    if (homeModules.length >= MOBILE_HOME_MAX_MODULES) {
+      window.setTimeout(() => setHomeNotice("Vous avez déjà 8 modules. Retirez-en un avant d’en ajouter un autre."), 0);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      const next = [...homeModules, moduleToAdd];
+      setHomeModules(next);
+      setEditMode(true);
+      void persistHomeModules(next);
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("addModule");
+      params.delete("edit");
+      router.replace(params.toString() ? `${pathname}?${params}` : pathname, { scroll: false });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [homeLoaded, homeModules, pathname, router, searchParams]);
 
   function openSection(sectionKey: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -189,6 +274,33 @@ export function MobileDashboardHome({
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
+  }
+
+  function removeHomeModule(key: MobileHomeModuleKey) {
+    const next = homeModules.filter((module) => module !== key);
+    setHomeModules(next);
+    setUndoModule(key);
+    void persistHomeModules(next);
+  }
+
+  function restoreHomeModule() {
+    if (!undoModule || homeModules.length >= MOBILE_HOME_MAX_MODULES) return;
+    const next = [...homeModules, undoModule];
+    setHomeModules(next);
+    setUndoModule(null);
+    void persistHomeModules(next);
+  }
+
+  function moveHomeModule(from: MobileHomeModuleKey, to: MobileHomeModuleKey) {
+    if (from === to) return;
+    const fromIndex = homeModules.indexOf(from);
+    const toIndex = homeModules.indexOf(to);
+    if (fromIndex < 0 || toIndex < 0) return;
+    const next = [...homeModules];
+    next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, from);
+    setHomeModules(next);
+    void persistHomeModules(next);
   }
 
   return (
@@ -360,17 +472,20 @@ export function MobileDashboardHome({
       </section>
 
       <section className="px-5 pb-4 pt-7">
-        <h2 className="flex items-center gap-2.5 text-[clamp(1.55rem,7vw,2rem)] font-black leading-tight tracking-[-0.045em]">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2.5 text-[clamp(1.55rem,7vw,2rem)] font-black leading-tight tracking-[-0.045em]">
           <Sparkles className="size-7 fill-[#ffb20b] text-[#ffb20b]" />
           Que souhaitez-vous faire ?
-        </h2>
+          </h2>
+          {editMode ? <button type="button" onClick={() => setEditMode(false)} className="min-h-10 rounded-full bg-[#421388] px-4 text-xs font-black text-white shadow-sm">Terminé</button> : null}
+        </div>
+        {editMode ? <p className="mt-2 text-xs font-semibold text-slate-500">Maintenez et faites glisser un module pour changer son ordre. Touchez × pour le retirer.</p> : null}
 
         <div className="mt-4 grid grid-cols-2 gap-3.5">
-          {ACTION_CARDS.map((action) => {
+          {visibleActions.map((action) => {
             const Icon = action.icon;
             const content = (
               <>
-                <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,rgba(255,255,255,0.12),transparent_31%),radial-gradient(circle_at_100%_100%,rgba(255,255,255,0.08),transparent_34%)]" />
                 {action.key === "publish" ? (
                   <span className="relative flex items-center gap-3 text-white" aria-label="Facebook, Instagram et WhatsApp">
                     <FacebookIcon className="size-[clamp(2rem,8vw,3.2rem)] !fill-white" />
@@ -398,15 +513,36 @@ export function MobileDashboardHome({
               </>
             );
             const className = cn(
-              "relative flex min-h-[118px] items-center gap-2 overflow-hidden rounded-[1.8rem] border border-white/25 bg-gradient-to-br px-3 py-5 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.12),0_14px_28px_rgba(30,41,59,0.16)] transition-[transform,box-shadow] duration-200 active:scale-[0.975] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_5px_12px_rgba(30,41,59,0.16)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#36506d]/25 max-[520px]:min-h-[132px] max-[520px]:flex-col max-[520px]:justify-center max-[520px]:gap-2.5 max-[520px]:text-center",
+              "relative flex min-h-[118px] items-center gap-2 overflow-hidden rounded-[1.8rem] border border-white/25 px-3 py-5 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.12),0_14px_28px_rgba(30,41,59,0.16)] transition-[transform,box-shadow] duration-200 active:scale-[0.975] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_5px_12px_rgba(30,41,59,0.16)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#36506d]/25 max-[520px]:min-h-[132px] max-[520px]:flex-col max-[520px]:justify-center max-[520px]:gap-2.5 max-[520px]:text-center",
               action.className,
               action.wide && "col-span-2 min-h-[96px] justify-center"
             );
 
+            const sharedProps = {
+              "data-home-module": action.key,
+              onPointerDown: () => {
+                if (editMode) setDraggingKey(action.key);
+              },
+              onPointerMove: (event: ReactPointerEvent<HTMLElement>) => {
+                if (!editMode || !draggingKey) return;
+                const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-home-module]");
+                const targetKey = target?.dataset.homeModule as MobileHomeModuleKey | undefined;
+                if (targetKey) moveHomeModule(draggingKey, targetKey);
+              },
+              onPointerUp: () => setDraggingKey(null),
+              onPointerCancel: () => setDraggingKey(null),
+            };
+            const removable = editMode && homeModules.length > 0;
+            const cardContent = <>
+              {removable ? <button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); removeHomeModule(action.key); }} className="absolute right-2 top-2 z-20 flex size-7 items-center justify-center rounded-full bg-white text-slate-700 shadow-md" aria-label={`Retirer ${action.title}`}><X className="size-4" /></button> : null}
+              {editMode ? <span className="absolute left-2 top-2 z-20 flex size-7 items-center justify-center rounded-full bg-black/15 text-white"><GripVertical className="size-4" /></span> : null}
+              {content}
+            </>;
+
             if (action.href) {
               return (
-                <Link key={action.key} href={resolveHref(action.href, basePath)} className={className}>
-                  {content}
+                <Link key={action.key} href={resolveHref(action.href, basePath)} className={cn(className, editMode && "animate-[pulse_1.4s_ease-in-out_infinite]")} onClick={(event) => { if (editMode) event.preventDefault(); }} {...sharedProps}>
+                  {cardContent}
                 </Link>
               );
             }
@@ -415,14 +551,17 @@ export function MobileDashboardHome({
               <button
                 key={action.key}
                 type="button"
-                onClick={() => action.sectionKey && openSection(action.sectionKey)}
+                onClick={() => { if (!editMode && action.sectionKey) openSection(action.sectionKey); }}
                 className={className}
+                {...sharedProps}
               >
-                {content}
+                {cardContent}
               </button>
             );
           })}
         </div>
+        {undoModule ? <div className="fixed bottom-[6.5rem] left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl bg-slate-950 px-4 py-3 text-xs font-bold text-white shadow-xl"><span>Module retiré</span><button type="button" onClick={restoreHomeModule} className="text-[#f2c75c]">Annuler</button></div> : null}
+        {homeNotice ? <button type="button" onClick={() => setHomeNotice(null)} className="fixed bottom-[6.5rem] left-1/2 z-50 w-[calc(100%-2rem)] -translate-x-1/2 rounded-2xl bg-slate-950 px-4 py-3 text-left text-xs font-bold text-white shadow-xl">{homeNotice}</button> : null}
       </section>
 
       <ModuleDialog

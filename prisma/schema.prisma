@@ -21,6 +21,7 @@ model User {
   avatarUrl   String?
   role        UserRole @default(ADMIN)
   communityId String?
+  mobileDashboardLayout Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

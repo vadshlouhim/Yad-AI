@@ -917,6 +917,7 @@ export type Database = {
           email: string
           id: string
           name: string | null
+          mobileDashboardLayout: Json | null
           role: Database["public"]["Enums"]["UserRole"]
           updatedAt: string
         }
@@ -927,6 +928,7 @@ export type Database = {
           email: string
           id: string
           name?: string | null
+          mobileDashboardLayout?: Json | null
           role?: Database["public"]["Enums"]["UserRole"]
           updatedAt: string
         }
@@ -937,6 +939,7 @@ export type Database = {
           email?: string
           id?: string
           name?: string | null
+          mobileDashboardLayout?: Json | null
           role?: Database["public"]["Enums"]["UserRole"]
           updatedAt?: string
         }
