@@ -1,10 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PlanCard, type PlanFeature } from "@/components/billing/plan-card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { OnboardingData } from "../onboarding-wizard";
-import { ChevronLeft, ChevronRight, Loader2, Rocket } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, Eye, Rocket, Sparkles } from "lucide-react";
 
 interface Props {
   data: OnboardingData;
@@ -14,89 +13,49 @@ interface Props {
   saving?: boolean;
 }
 
-const FREE_FEATURES: PlanFeature[] = [
-  { label: "Tableau de bord et aperçu", included: true },
-  { label: "5 publications sociales manuelles / mois", included: true },
-  { label: "20 messages Agent IA", included: true },
-  { label: "Affiches limitées", included: true },
-  { label: "0 automatisation IA", included: false },
-  { label: "WhatsApp bloqué", included: false },
-  { label: "Gestion des emails", included: false },
-  { label: "Gestion des avis Google", included: false },
+const INCLUDED = [
+  "Toutes les pages restent accessibles gratuitement",
+  "Aucune carte bancaire demandée pendant l'inscription",
+  "Paiement uniquement avant une génération, un envoi ou une automatisation",
 ];
 
-const PRO_FEATURES: PlanFeature[] = [
-  { label: "Tableau de bord et aperçu", included: true },
-  { label: "20 publications sociales / mois", included: true },
-  { label: "3 automatisations IA", included: true },
-  { label: "50 messages Agent IA", included: true },
-  { label: "WhatsApp débloqué", included: true },
-  { label: "Affiches illimitées", included: true },
-  { label: "Gestion des emails", included: false },
-  { label: "Gestion des avis Google", included: false },
-];
-
-const BUSINESS_FEATURES: PlanFeature[] = [
-  { label: "Tableau de bord et aperçu", included: true },
-  { label: "50 publications sociales / mois", included: true },
-  { label: "5 automatisations IA", included: true },
-  { label: "Messages Agent IA illimités", included: true },
-  { label: "WhatsApp débloqué", included: true },
-  { label: "Affiches illimitées", included: true },
-  { label: "Gestion des emails", included: true },
-  { label: "Gestion des avis Google", included: true },
-];
-
-export function StepPlan({ data, updateData, onPrev, onFinish, saving = false }: Props) {
+export function StepPlan({ updateData, onPrev, onFinish, saving = false }: Props) {
   return (
     <Card className="border-blue-100 shadow-xl shadow-blue-100/70">
       <CardHeader className="pb-4">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-100 to-sky-100 flex items-center justify-center mb-3">
+        <div className="mb-3 flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-sky-100">
           <Rocket className="size-6 text-blue-600" />
         </div>
-        <CardTitle className="text-xl">Choisissez votre mode de départ</CardTitle>
+        <CardTitle className="text-xl">Vous êtes prêt à démarrer</CardTitle>
         <CardDescription>
-          Vous pourrez modifier ce choix après l&apos;onboarding depuis la facturation.
+          Explorez EasyCom IA librement. Vous choisirez de vous abonner uniquement lorsque vous lancerez votre première action réelle.
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="space-y-8">
-        <div className="grid gap-4 md:grid-cols-3">
-          <PlanCard
-            tier="FREE"
-            title="Gratuit"
-            priceLabel="0 €"
-            features={FREE_FEATURES}
-            selected={data.billingChoice === "free"}
-            onClick={() => updateData({ billingChoice: "free" })}
-          />
-          <PlanCard
-            tier="PRO"
-            title="Pro"
-            priceLabel="29,99 €"
-            features={PRO_FEATURES}
-            badge="Populaire"
-            selected={data.billingChoice === "pro"}
-            onClick={() => updateData({ billingChoice: "pro" })}
-          />
-          <PlanCard
-            tier="BUSINESS"
-            title="Business"
-            priceLabel="59,99 €"
-            features={BUSINESS_FEATURES}
-            selected={data.billingChoice === "business"}
-            onClick={() => updateData({ billingChoice: "business" })}
-          />
+      <CardContent className="space-y-6">
+        <div className="overflow-hidden rounded-3xl border border-violet-200 bg-violet-50/60 p-5">
+          <div className="flex items-start gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[#421388] shadow-sm"><Eye className="size-5" /></span>
+            <div>
+              <p className="font-black text-slate-950">Découverte gratuite</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">Naviguez dans l'application, préparez votre organisation et découvrez tous les outils sans payer.</p>
+            </div>
+          </div>
+          <div className="mt-5 space-y-3">
+            {INCLUDED.map((item) => <p key={item} className="flex items-start gap-2 text-sm font-semibold leading-5 text-slate-700"><CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-500" />{item}</p>)}
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-[#421388] p-4 text-white">
+          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-violet-100"><Sparkles className="size-3.5" />Quand vous serez prêt</div>
+          <p className="mt-2 text-lg font-black">8,99 € TTC le premier mois</p>
+          <p className="mt-1 text-sm font-semibold text-white/80">Puis 29,99 € TTC/mois. Une seule offre, annulable à tout moment depuis l'espace Paiement.</p>
         </div>
 
         <div className="flex gap-3">
-          <Button variant="outline" size="lg" onClick={onPrev} className="flex-shrink-0" disabled={saving}>
-            <ChevronLeft className="size-4" />
-            Retour
-          </Button>
-          <Button size="lg" className="flex-1" onClick={onFinish} disabled={saving}>
-            {saving ? <Loader2 className="size-4 animate-spin" /> : <ChevronRight className="size-4" />}
-            {saving ? "Finalisation..." : "Finaliser"}
+          <Button variant="outline" size="lg" onClick={onPrev} className="shrink-0" disabled={saving}><ChevronLeft className="size-4" />Retour</Button>
+          <Button size="lg" className="flex-1" onClick={() => { updateData({ billingChoice: "free" }); onFinish(); }} disabled={saving}>
+            <ChevronRight className="size-4" />{saving ? "Finalisation..." : "Accéder à EasyCom IA"}
           </Button>
         </div>
       </CardContent>

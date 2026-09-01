@@ -8,7 +8,13 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Affiches — EasyCom IA" };
 
-export default async function TemplatesPage() {
+interface Props {
+  searchParams: Promise<{ templateId?: string | string[] }>;
+}
+
+export default async function TemplatesPage({ searchParams }: Props) {
+  const requestedTemplateId = (await searchParams).templateId;
+  const initialTemplateId = typeof requestedTemplateId === "string" ? requestedTemplateId : undefined;
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
   const admin = createAdminClient();
@@ -51,6 +57,7 @@ export default async function TemplatesPage() {
         plan={community?.plan ?? "FREE_TRIAL"}
         billingConfig={billingConfig}
         billingUsage={billingUsage}
+        initialTemplateId={initialTemplateId}
       />
     </div>
   );

@@ -468,7 +468,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
               <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", PLAN_LABELS[community.plan]?.color)}>
                 {PLAN_LABELS[community.plan]?.label ?? community.plan}
               </span>
-              Facturation
+              Paiement
               <ChevronRight className="size-3.5 ml-1" />
             </Button>
           </Link>
@@ -507,7 +507,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
             })}
             <Link href="/dashboard/settings/billing" className="flex min-h-[132px] flex-col items-center justify-center gap-3 rounded-[1.65rem] bg-[#421388] p-4 text-center text-white shadow-[0_16px_30px_-18px_rgba(66,19,136,0.65)] transition active:scale-[0.98]">
               <span className="flex size-12 items-center justify-center rounded-2xl bg-white text-[#421388] shadow-lg"><CreditCard className="size-6" /></span>
-              <span className="text-base font-black leading-tight">Facturation</span>
+              <span className="text-base font-black leading-tight">Paiement</span>
             </Link>
             <Link href="/dashboard/settings/channels" className="flex min-h-[132px] flex-col items-center justify-center gap-3 rounded-[1.65rem] bg-[#ef3f4f] p-4 text-center text-white shadow-[0_16px_30px_-18px_rgba(239,63,79,0.6)] transition active:scale-[0.98]">
               <span className="flex size-12 items-center justify-center rounded-2xl bg-white text-[#ef3f4f] shadow-lg"><Share2 className="size-6" /></span>
@@ -553,11 +553,11 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
           ))}
           <Link
             href="/dashboard/settings/billing"
-            aria-label={`Facturation - offre ${PLAN_LABELS[community.plan]?.label ?? community.plan}`}
+            aria-label={`Paiement - offre ${PLAN_LABELS[community.plan]?.label ?? community.plan}`}
             className="flex min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-center text-xs font-medium text-slate-600 transition-colors hover:bg-emerald-50 hover:text-emerald-800 sm:text-sm lg:w-full lg:justify-start lg:px-3 lg:text-left"
           >
             <CreditCard className="size-4 shrink-0" />
-            <span>Facturation</span>
+            <span>Paiement</span>
             <span className={cn(
               "ml-auto hidden rounded-full px-2 py-0.5 text-[10px] font-semibold lg:inline-flex",
               PLAN_LABELS[community.plan]?.color

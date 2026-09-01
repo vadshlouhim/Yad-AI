@@ -4,16 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { StepIdentity } from "./steps/step-identity";
 import { StepSocial } from "./steps/step-social";
-import { StepPlan } from "./steps/step-plan";
 import { WelcomeAnimation } from "./welcome-animation";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
-import { createSubscriptionCheckout } from "@/lib/billing/checkout-client";
 
 const STEPS = [
   { id: 0, label: "Identité", description: "Votre structure" },
-  { id: 1, label: "Réseaux sociaux", description: "Connexion & automatisations" },
-  { id: 2, label: "C'est parti !", description: "Choisissez votre offre" },
+  { id: 1, label: "Connexions", description: "Canaux facultatifs" },
 ];
 
 export interface OnboardingData {
@@ -57,8 +54,9 @@ export interface OnboardingData {
   automationNotificationLeadHours: number;
   automationValidationMode: "manual" | "automatic";
 
-  // Étape 3 - Offre
-  billingChoice: "free" | "pro" | "business";
+  // Conservé pour compatibilité avec les brouillons d'onboarding existants.
+  // Le paiement intervient uniquement lors de la première action réelle.
+  billingChoice: "free";
 }
 
 const defaultData: OnboardingData = {
@@ -187,21 +185,8 @@ export function OnboardingWizard({
 
       if (!res.ok) throw new Error("Erreur lors de la sauvegarde");
 
-      if (data.billingChoice !== "free") {
-        const tier = data.billingChoice === "business" ? "ENTERPRISE" : "PROFESSIONAL";
-        const checkoutUrl = await createSubscriptionCheckout({
-          tier,
-          applyLaunchOffer: tier === "PROFESSIONAL",
-          successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
-          cancelUrl: `${window.location.origin}/dashboard`,
-        });
-        if (checkoutUrl) {
-          window.location.assign(checkoutUrl);
-          return;
-        }
-      }
-
-      setShowWelcome(true);
+      router.replace("/dashboard");
+      router.refresh();
     } catch (err) {
       console.error(err);
       alert(err instanceof Error ? err.message : "Impossible de finaliser votre inscription.");
@@ -218,7 +203,6 @@ export function OnboardingWizard({
             setCurrentStep(STEPS.length - 1);
             return;
           }
-          router.push("/dashboard?welcome=true");
         }}
       />
     );
@@ -243,12 +227,12 @@ export function OnboardingWizard({
             Créons un espace qui vous ressemble
           </h1>
           <p className="relative mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-blue-50 sm:text-base">
-            En quelques étapes, EasyCom IA apprend à connaître votre structure pour vous aider à créer des communications plus justes, plus simples et plus personnelles.
+            En deux étapes rapides, EasyCom IA apprend à connaître votre structure pour personnaliser votre espace.
           </p>
         </div>
 
-        <div className="mb-8 w-full max-w-2xl overflow-x-auto rounded-3xl border border-white bg-white/80 p-5 shadow-sm shadow-slate-200/80 sm:mb-10">
-          <div className="relative flex min-w-[460px] items-center justify-between">
+        <div className="mb-8 w-full max-w-2xl overflow-hidden rounded-3xl border border-white bg-white/80 p-5 shadow-sm shadow-slate-200/80 sm:mb-10">
+          <div className="relative flex w-full items-center justify-between">
             <div className="absolute left-0 right-0 top-4 h-0.5 bg-slate-200 -z-0" />
             <div
               className="absolute left-0 top-4 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-500 transition-all duration-500 -z-0"
@@ -304,18 +288,10 @@ export function OnboardingWizard({
             <StepSocial
               data={data}
               updateData={updateData}
-              onNext={goNext}
+              onNext={finishOnboarding}
               onPrev={goPrev}
               communityId={communityId}
               simulationMode={simulationMode}
-            />
-          )}
-          {currentStep === 2 && (
-            <StepPlan
-              data={data}
-              updateData={updateData}
-              onPrev={goPrev}
-              onFinish={finishOnboarding}
               saving={saving}
             />
           )}

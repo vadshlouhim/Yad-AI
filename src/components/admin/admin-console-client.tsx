@@ -1386,23 +1386,23 @@ export function AdminConsoleClient({
 
               <div className="mt-6 grid gap-4 lg:grid-cols-2">
                 <label className={`text-sm font-semibold ${strongText}`}>
-                  Tarif normal HT mensuel
+                  Tarif normal TTC mensuel
                   <input
                     value={billingDraft.basePriceEuros}
                     onChange={(event) => setBillingDraft((current) => ({ ...current, basePriceEuros: event.target.value }))}
                     className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}
                     inputMode="decimal"
-                    placeholder="19.99"
+                    placeholder="29.99"
                   />
                 </label>
                 <label className={`text-sm font-semibold ${strongText}`}>
-                  Tarif réduit HT mensuel
+                  Tarif de bienvenue TTC (premier mois)
                   <input
                     value={billingDraft.launchPriceEuros}
                     onChange={(event) => setBillingDraft((current) => ({ ...current, launchPriceEuros: event.target.value }))}
                     className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}
                     inputMode="decimal"
-                    placeholder="9.99"
+                    placeholder="8.99"
                   />
                 </label>
                 <label className={`text-sm font-semibold ${strongText}`}>
@@ -1417,9 +1417,9 @@ export function AdminConsoleClient({
                 <div className={`rounded-3xl border p-4 ${isDark ? "border-blue-300/20 bg-blue-300/10" : "border-blue-100 bg-blue-50"}`}>
                   <p className={`text-xs font-black uppercase tracking-[0.16em] ${isDark ? "text-blue-100" : "text-blue-700"}`}>Aperçu public</p>
                   <p className={`mt-3 text-sm font-bold ${mutedText}`}>
-                    <span className="line-through">{billingDraft.basePriceEuros || "19.99"} € HT</span>
+                    <span className="line-through">{billingDraft.basePriceEuros || "29.99"} € TTC</span>
                     <span className={`ml-3 text-2xl font-black ${isDark ? "text-white" : "text-blue-700"}`}>
-                      {billingDraft.launchPriceEuros || "9.99"} € HT
+                      {billingDraft.launchPriceEuros || "8.99"} € TTC
                     </span>
                     <span className="ml-1 text-xs">/ mois</span>
                   </p>

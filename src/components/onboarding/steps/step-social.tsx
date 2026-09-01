@@ -5,19 +5,19 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { OnboardingData } from "../onboarding-wizard";
-import { enablePushNotifications } from "@/lib/push/client";
 import {
-  Radio, ChevronRight, ChevronLeft, CheckCircle2, Info, ExternalLink, Loader2, Unlink, Calendar,
+  Radio, ChevronRight, ChevronLeft, CheckCircle2, Info, ExternalLink, Loader2, Unlink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
   data: OnboardingData;
   updateData: (partial: Partial<OnboardingData>) => void;
-  onNext: () => void;
+  onNext: () => void | Promise<void>;
   onPrev: () => void;
   communityId?: string;
   simulationMode?: boolean;
+  saving?: boolean;
 }
 
 type ConnectedStatus = {
@@ -89,6 +89,7 @@ export function StepSocial({
   onPrev,
   communityId,
   simulationMode = false,
+  saving = false,
 }: Props) {
   const searchParams = useSearchParams();
   const [connecting, setConnecting] = useState<string | null>(null);
@@ -276,35 +277,37 @@ export function StepSocial({
               return (
                 <div key={channel.type} className="space-y-2">
                   <div className={cn(
-                    "w-full flex items-center gap-4 rounded-xl border-2 px-4 py-3 transition-all",
+                    "flex w-full flex-col items-stretch gap-3 rounded-xl border-2 px-4 py-3 transition-all sm:flex-row sm:items-center sm:gap-4",
                     isConnected
                       ? "border-green-500 bg-green-50"
                       : selected
                       ? "border-blue-600 bg-blue-50"
                       : "border-slate-200 bg-white"
                   )}>
-                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 p-2", channel.logoBg)}>
-                      <img src={channel.logo} alt={`Logo ${channel.label}`} className="w-full h-full object-contain" />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className={cn(
-                          "text-sm font-semibold",
-                          isConnected ? "text-green-700" : selected ? "text-blue-700" : "text-slate-800"
-                        )}>
-                          {channel.label}
-                        </p>
-                        {isConnected && (
-                          <span className="text-xs font-medium bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                            Connecté ✓
-                          </span>
-                        )}
+                    <div className="flex min-w-0 items-center gap-3 sm:flex-1">
+                      <div className={cn("flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl p-2", channel.logoBg)}>
+                        <img src={channel.logo} alt={`Logo ${channel.label}`} className="h-full w-full object-contain" />
                       </div>
-                      <p className="text-xs text-slate-500">{channel.description}</p>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className={cn(
+                            "text-sm font-semibold",
+                            isConnected ? "text-green-700" : selected ? "text-blue-700" : "text-slate-800"
+                          )}>
+                            {channel.label}
+                          </p>
+                          {isConnected && (
+                            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                              Connecté ✓
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500">{channel.description}</p>
+                      </div>
                     </div>
 
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0 sm:self-center">
                       {channel.canConnectNow ? (
                         isConnected ? (
                           <button
@@ -348,7 +351,7 @@ export function StepSocial({
                   </div>
 
                   {selected && channel.needsHandle && !isConnected && (
-                    <div className="ml-14">
+                    <div className="sm:ml-14">
                       <input
                         type="text"
                         value={getHandle(channel.type)}
@@ -364,100 +367,24 @@ export function StepSocial({
           </div>
 
           <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2.5 text-center text-xs leading-relaxed text-blue-800">
-            Cette étape est entièrement facultative : vous pourrez connecter vos canaux et régler vos automatisations à tout moment depuis les Paramètres.
+            Cette étape est entièrement facultative. Vous pourrez connecter vos canaux à tout moment depuis les Paramètres.
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-blue-100 bg-white shadow-xl shadow-blue-100/50">
-        <CardHeader className="pb-4">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-sky-100">
-            <Calendar className="size-6 text-blue-700" />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="text-xl">Automatisations de vos réseaux sociaux</CardTitle>
-            <span className="rounded-full border border-slate-200 px-2 py-0.5 text-xs font-medium text-slate-400">
-              Facultatif
-            </span>
-          </div>
-          <CardDescription>
-            L&apos;IA préparera automatiquement vos contenus et publications selon vos préférences ci-dessous.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-8">
-          <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
-            <p className="text-sm font-semibold text-slate-800">Préférences d&apos;automatisation</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-500">
-              Vous pourrez modifier ces réglages à tout moment dans les paramètres.
-            </p>
-
-            <div className="mt-4 grid gap-4 sm:grid-cols-[12rem_1fr]">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                  Notification
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="0.25"
-                    step="0.25"
-                    value={data.automationNotificationLeadHours}
-                    onChange={(event) =>
-                      updateData({ automationNotificationLeadHours: Math.max(0.25, Number(event.target.value) || 2) })
-                    }
-                    className="w-24 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                  <span className="text-sm text-slate-500">h avant</span>
-                </div>
-                <p className="text-xs text-slate-400">Par défaut : 2 heures avant.</p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                  Validation
-                </label>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {[
-                    { value: "manual" as const, title: "Valider avant envoi", description: "Recommandé : l'IA prépare les contenus, vous les confirmez avant publication." },
-                    { value: "automatic" as const, title: "Envoyer automatiquement", description: "Les publications automatiques sont envoyées seules à l'heure prévue." },
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => {
-                        updateData({ automationValidationMode: option.value });
-                        if (option.value === "manual") void enablePushNotifications();
-                      }}
-                      className={cn(
-                        "rounded-xl border p-3 text-left transition",
-                        data.automationValidationMode === option.value
-                          ? "border-blue-300 bg-white text-blue-800 ring-2 ring-blue-100"
-                          : "border-slate-200 bg-white/70 text-slate-700 hover:bg-white"
-                      )}
-                    >
-                      <span className="block text-sm font-bold">{option.title}</span>
-                      <span className="mt-1 block text-xs leading-relaxed text-slate-500">{option.description}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex gap-3">
-        <Button variant="outline" size="lg" onClick={onPrev} className="flex-shrink-0">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row">
+        <Button variant="outline" size="lg" onClick={onPrev} className="w-full sm:w-auto" disabled={saving}>
           <ChevronLeft className="size-4" />
           Retour
         </Button>
-        <Button variant="outline" size="lg" className="flex-1" onClick={onNext}>
-          Passer pour l&apos;instant
-        </Button>
-        <Button size="lg" className="flex-1" onClick={onNext}>
-          Continuer
-          <ChevronRight className="size-4" />
+        <Button
+          size="lg"
+          className="w-full flex-1"
+          onClick={() => void onNext()}
+          disabled={saving || connecting !== null}
+        >
+          {saving ? <Loader2 className="size-4 animate-spin" /> : <ChevronRight className="size-4" />}
+          {saving ? "Ouverture de votre espace..." : "Accéder à EasyCom IA"}
         </Button>
       </div>
     </div>

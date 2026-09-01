@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       editorialRules: data.editorialRules || null,
       vocabulary,
       onboardingDone: true,
-      onboardingStep: 3,
+      onboardingStep: 2,
       updatedAt: new Date().toISOString(),
     };
 

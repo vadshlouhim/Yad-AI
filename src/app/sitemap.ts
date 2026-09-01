@@ -6,6 +6,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "http
 const STATIC_ROUTES = [
   { path: "/", priority: 1, changeFrequency: "weekly" as const },
   { path: "/blog", priority: 0.9, changeFrequency: "weekly" as const },
+  { path: "/affiches", priority: 0.9, changeFrequency: "weekly" as const },
   { path: "/tarification", priority: 0.85, changeFrequency: "monthly" as const },
   { path: "/method", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "/contact", priority: 0.7, changeFrequency: "monthly" as const },
