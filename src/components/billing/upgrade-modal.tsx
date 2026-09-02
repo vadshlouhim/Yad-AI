@@ -135,7 +135,7 @@ export function UpgradeModal({
               loading={loading}
               className="h-11 flex-1 rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700"
             >
-              Débloquer à 8,99 € TTC
+              Débloquer à 9,99 € TTC
               <ArrowRight className="size-4" />
             </Button>
             <Button

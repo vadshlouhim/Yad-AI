@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createArticleCheckoutSession } from "@/lib/stripe";
+import { getCanonicalAppOrigin, safeAppReturnUrl } from "@/lib/stripe-config";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
       .single(),
     admin
       .from("Article")
-      .select("id, slug, stripePriceId")
+      .select("id, slug, stripePriceId, priceCents, currency")
       .eq("id", articleId)
       .eq("isActive", true)
       .or(`isGlobal.eq.true,communityId.eq.${profile.communityId}`)
@@ -48,8 +49,10 @@ export async function POST(request: Request) {
     articleSlug: article.slug,
     priceId: article.stripePriceId,
     stripeCustomerId: community?.stripeCustomerId ?? undefined,
-    successUrl,
-    cancelUrl,
+    successUrl: safeAppReturnUrl(successUrl, getCanonicalAppOrigin(request.url), `/dashboard/articles/${article.slug}?success=true`),
+    cancelUrl: safeAppReturnUrl(cancelUrl, getCanonicalAppOrigin(request.url), `/dashboard/articles/${article.slug}`),
+    expectedAmount: article.priceCents,
+    expectedCurrency: article.currency,
   });
 
   return NextResponse.json({ url: session.url });

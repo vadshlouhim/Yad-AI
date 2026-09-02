@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { stripe, switchIntroductorySubscriptionToBasePrice } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type Stripe from "stripe";
 import { createNotificationOnce } from "@/lib/notifications/create-once";
+import { assertStripeConfiguration } from "@/lib/stripe-config";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  try {
+    assertStripeConfiguration({ webhook: true });
+  } catch (error) {
+    console.error("[Stripe Webhook] Configuration invalide:", error);
+    return NextResponse.json({ error: "Webhook Stripe non configuré" }, { status: 503 });
+  }
+
   const body = await request.text();
   const signature = request.headers.get("stripe-signature");
 
@@ -50,12 +58,6 @@ export async function POST(request: Request) {
         break;
       }
 
-      case "invoice.payment_succeeded": {
-        const invoice = event.data.object as Stripe.Invoice;
-        await handlePaymentSucceeded(invoice);
-        break;
-      }
-
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
         await handlePaymentFailed(invoice);
@@ -74,12 +76,19 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const communityId = session.metadata?.communityId;
   if (!communityId) return;
 
-  const customerId = session.customer as string;
+  const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
+  if (!customerId) throw new Error("Checkout Stripe sans Customer.");
   const admin = createAdminClient();
-  await admin
+  const communityUpdate = await admin
     .from("Community")
     .update({ stripeCustomerId: customerId, updatedAt: new Date().toISOString() })
     .eq("id", communityId);
+  throwIfSupabaseError(communityUpdate.error, "association Customer/communauté");
+
+  const subscriptionId = typeof session.subscription === "string" ? session.subscription : session.subscription?.id;
+  if (session.mode === "subscription" && session.metadata?.introductoryPrice === "true" && subscriptionId) {
+    await switchIntroductorySubscriptionToBasePrice(subscriptionId);
+  }
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
@@ -87,6 +96,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   if (!communityId) return;
 
   const priceId = subscription.items.data[0]?.price.id;
+  if (!priceId) throw new Error("Abonnement Stripe sans Price.");
   const plan = getPlanFromSubscription(subscription, priceId);
   const sub = subscription as unknown as {
     current_period_start: number;
@@ -98,12 +108,17 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
   const admin = createAdminClient();
 
-  await admin
+  const communityUpdate = await admin
     .from("Community")
-    .update({ plan, stripeCustomerId: subscription.customer as string, updatedAt: new Date().toISOString() })
+    .update({
+      plan: hasPaidAccess(subscription.status) ? plan : "FREE_TRIAL",
+      stripeCustomerId: subscription.customer as string,
+      updatedAt: new Date().toISOString(),
+    })
     .eq("id", communityId);
+  throwIfSupabaseError(communityUpdate.error, "mise à jour du plan");
 
-  await admin.from("Subscription").upsert(
+  const subscriptionUpsert = await admin.from("Subscription").upsert(
     {
       communityId,
       stripeSubscriptionId: subscription.id,
@@ -120,6 +135,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     },
     { onConflict: "stripeSubscriptionId" }
   );
+  throwIfSupabaseError(subscriptionUpsert.error, "enregistrement de l'abonnement");
 
   await notifySubscriptionChange(
     communityId,
@@ -135,15 +151,17 @@ async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
 
   const admin = createAdminClient();
 
-  await admin
+  const communityUpdate = await admin
     .from("Community")
     .update({ plan: "FREE_TRIAL", updatedAt: new Date().toISOString() })
     .eq("id", communityId);
+  throwIfSupabaseError(communityUpdate.error, "révocation du plan");
 
-  await admin
+  const subscriptionUpdate = await admin
     .from("Subscription")
     .update({ status: "CANCELED", canceledAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
     .eq("stripeSubscriptionId", subscription.id);
+  throwIfSupabaseError(subscriptionUpdate.error, "annulation de l'abonnement");
 
   await notifySubscriptionChange(
     communityId,
@@ -151,10 +169,6 @@ async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
     "Votre abonnement a été annulé. Passez à un plan payant pour continuer.",
     `subscription-canceled:${subscription.id}`
   );
-}
-
-async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
-  console.log("[Stripe] Paiement réussi:", invoice.id);
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
@@ -198,13 +212,13 @@ async function notifySubscriptionChange(communityId: string, type: string, messa
   });
 }
 
-function getPlanFromPriceId(priceId: string): "FREE_TRIAL" | "STARTER" | "PROFESSIONAL" | "ENTERPRISE" {
+function getPlanFromPriceId(priceId: string): "STARTER" | "PROFESSIONAL" | "ENTERPRISE" {
   if (priceId === process.env.STRIPE_PAID_PRICE_ID) return "PROFESSIONAL";
   if (priceId === process.env.STRIPE_LAUNCH_PRICE_ID) return "PROFESSIONAL";
   if (priceId === process.env.STRIPE_STARTER_PRICE_ID) return "STARTER";
   if (priceId === process.env.STRIPE_PRO_PRICE_ID) return "PROFESSIONAL";
   if (priceId === process.env.STRIPE_ENTERPRISE_PRICE_ID) return "ENTERPRISE";
-  return "PROFESSIONAL";
+  throw new Error(`Price Stripe non autorisé: ${priceId}`);
 }
 
 function getPlanFromSubscription(
@@ -212,9 +226,11 @@ function getPlanFromSubscription(
   priceId: string
 ): "FREE_TRIAL" | "STARTER" | "PROFESSIONAL" | "ENTERPRISE" {
   const metadataTier = subscription.metadata?.planTier;
-  if (metadataTier === "ENTERPRISE") return "ENTERPRISE";
-  if (metadataTier === "PROFESSIONAL") return "PROFESSIONAL";
-  return getPlanFromPriceId(priceId);
+  const configuredPlan = getPlanFromPriceId(priceId);
+  if (metadataTier && metadataTier !== configuredPlan) {
+    throw new Error("Le plan des metadata Stripe ne correspond pas au Price configuré.");
+  }
+  return configuredPlan;
 }
 
 function mapStripeStatus(status: string): "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "UNPAID" | "INCOMPLETE" | "PAUSED" {
@@ -225,7 +241,18 @@ function mapStripeStatus(status: string): "TRIALING" | "ACTIVE" | "PAST_DUE" | "
     canceled: "CANCELED",
     unpaid: "UNPAID",
     incomplete: "INCOMPLETE",
+    incomplete_expired: "CANCELED",
     paused: "PAUSED",
   };
-  return map[status] ?? "ACTIVE";
+  const mapped = map[status];
+  if (!mapped) throw new Error(`Statut Stripe non pris en charge: ${status}`);
+  return mapped;
+}
+
+function hasPaidAccess(status: Stripe.Subscription.Status) {
+  return status === "trialing" || status === "active" || status === "past_due";
+}
+
+function throwIfSupabaseError(error: { message: string } | null, operation: string) {
+  if (error) throw new Error(`Échec Supabase pendant ${operation}: ${error.message}`);
 }

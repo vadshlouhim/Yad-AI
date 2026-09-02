@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createCheckoutSession } from "@/lib/stripe";
 import Stripe from "stripe";
+import { stripe } from "@/lib/stripe";
+import { getCanonicalAppOrigin, safeAppReturnUrl } from "@/lib/stripe-config";
 
 export async function POST(request: Request) {
   try {
@@ -47,12 +49,10 @@ export async function POST(request: Request) {
 
     const { data: subscriptions } = await admin
       .from("Subscription")
-      .select("id, status")
+      .select("id, stripeSubscriptionId, status")
       .eq("communityId", profile.communityId)
       .limit(10);
-    const activeSubscription = subscriptions?.find((item) =>
-      ["TRIALING", "ACTIVE", "PAST_DUE", "UNPAID", "INCOMPLETE", "PAUSED"].includes(item.status)
-    );
+    const activeSubscription = await findCurrentModeSubscription(subscriptions ?? []);
     if (activeSubscription) {
       return NextResponse.json(
         {
@@ -65,17 +65,13 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({}));
     const firstSubscription = !(subscriptions?.length);
-    const firstMonthCouponId = firstSubscription ? process.env.STRIPE_FIRST_MONTH_COUPON_ID : undefined;
-    if (firstSubscription && !firstMonthCouponId) {
-      return NextResponse.json({ error: "L'offre premier mois Stripe n'est pas encore configurée.", code: "BILLING_SETUP_REQUIRED" }, { status: 503 });
-    }
-    const requestOrigin = new URL(request.url).origin;
-    const successUrl = safeReturnUrl(body.successUrl, requestOrigin, "/dashboard/settings/billing?success=true");
-    const cancelUrl = safeReturnUrl(body.cancelUrl, requestOrigin, "/dashboard/settings/billing");
+    const requestOrigin = getCanonicalAppOrigin(request.url);
+    const successUrl = safeAppReturnUrl(body.successUrl, requestOrigin, "/dashboard/settings/billing?success=true");
+    const cancelUrl = safeAppReturnUrl(body.cancelUrl, requestOrigin, "/dashboard/settings/billing");
 
     const session = await createCheckoutSession({
       communityId: profile.communityId,
-      firstMonthCouponId,
+      useIntroductoryPrice: firstSubscription,
       stripeCustomerId: community.stripeCustomerId ?? undefined,
       customerEmail: user.email,
       successUrl,
@@ -93,13 +89,22 @@ export async function POST(request: Request) {
   }
 }
 
-function safeReturnUrl(value: unknown, origin: string, fallbackPath: string) {
-  try {
-    const url = new URL(typeof value === "string" ? value : fallbackPath, origin);
-    return url.origin === origin ? url.toString() : new URL(fallbackPath, origin).toString();
-  } catch {
-    return new URL(fallbackPath, origin).toString();
+async function findCurrentModeSubscription(subscriptions: Array<{ id: string; stripeSubscriptionId: string; status: string }>) {
+  const candidates = subscriptions.filter((item) =>
+    ["TRIALING", "ACTIVE", "PAST_DUE", "UNPAID", "INCOMPLETE", "PAUSED"].includes(item.status)
+  );
+
+  for (const candidate of candidates) {
+    if (candidate.stripeSubscriptionId.startsWith("manual:")) return candidate;
+    try {
+      const current = await stripe.subscriptions.retrieve(candidate.stripeSubscriptionId);
+      if (current.status !== "canceled" && current.status !== "incomplete_expired") return candidate;
+    } catch (error) {
+      if (error instanceof Stripe.errors.StripeError && error.code === "resource_missing") continue;
+      throw error;
+    }
   }
+  return undefined;
 }
 
 function checkoutErrorMessage(error: unknown) {

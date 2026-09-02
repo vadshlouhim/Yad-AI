@@ -32,9 +32,9 @@ export function tierLimitMessage(
   metric: "assistantMessages" | "automations" | "socialPublications"
 ): string {
   if (tier !== "FREE") return "";
-  if (metric === "automations") return "Créez votre première automatisation : premier mois à 8,99 € TTC, puis 29,99 € TTC/mois.";
-  if (metric === "socialPublications") return "Publiez avec EasyCom IA : premier mois à 8,99 € TTC, puis 29,99 € TTC/mois.";
-  return "Lancez votre première génération IA : premier mois à 8,99 € TTC, puis 29,99 € TTC/mois.";
+  if (metric === "automations") return "Créez votre première automatisation : premier mois à 9,99 € TTC, puis 19,99 € TTC/mois.";
+  if (metric === "socialPublications") return "Publiez avec EasyCom IA : premier mois à 9,99 € TTC, puis 19,99 € TTC/mois.";
+  return "Lancez votre première génération IA : premier mois à 9,99 € TTC, puis 19,99 € TTC/mois.";
 }
 
 export function tierLabel(tier: PlanTier): string {
@@ -72,12 +72,12 @@ export interface BillingUsage {
 }
 
 export const DEFAULT_BILLING_CONFIG: BillingConfig = {
-  basePriceCents: 2999,
-  launchPriceCents: 899,
+  basePriceCents: 1999,
+  launchPriceCents: 999,
   currency: "EUR",
   taxLabel: "TTC",
   launchEndsAt: "2099-12-31",
-  launchMessage: "Offre de bienvenue : premier mois à 8,99 € TTC au lieu de 29,99 € TTC, puis 29,99 € TTC/mois.",
+  launchMessage: "Offre de bienvenue : premier mois à 9,99 € TTC, puis 19,99 € TTC/mois.",
 };
 
 export function isPaidPlan(plan: string | null | undefined) {

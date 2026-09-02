@@ -5,8 +5,8 @@ import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicNavbar } from "@/components/layout/public-navbar";
 
 export const metadata: Metadata = {
-  title: "Tarification EasyCom IA — 29,99 € TTC/mois",
-  description: "Premier mois à 8,99 € TTC, puis 29,99 € TTC/mois. Explorez l'application librement avant de lancer vos actions.",
+  title: "Tarification EasyCom IA — 19,99 € TTC/mois",
+  description: "Premier mois à 9,99 € TTC, puis 19,99 € TTC/mois. Explorez l'application librement avant de lancer vos actions.",
   alternates: { canonical: "/tarification" },
 };
 
@@ -22,7 +22,7 @@ const INCLUDED = [
 const STEPS = [
   { icon: Eye, title: "Vous explorez", text: "Toutes les pages et les outils restent visibles gratuitement." },
   { icon: Sparkles, title: "Vous lancez une action", text: "Au moment d’une génération, d’un envoi ou d’une automatisation." },
-  { icon: Zap, title: "Vous débloquez tout", text: "8,99 € TTC le premier mois, puis 29,99 € TTC/mois." },
+  { icon: Zap, title: "Vous débloquez tout", text: "9,99 € TTC le premier mois, puis 19,99 € TTC/mois." },
 ];
 
 export default function PricingPage() {
@@ -46,10 +46,10 @@ export default function PricingPage() {
         <article className="overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-[0_24px_52px_rgba(43,8,104,0.16)]">
           <div className="bg-[linear-gradient(135deg,#fff8d9,#fffdf3_48%,#f2e9ff)] p-5 sm:p-7">
             <div className="flex items-start justify-between gap-4"><div><p className="inline-flex items-center gap-1.5 rounded-full bg-[#421388] px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.13em] text-white"><Sparkles className="size-3" />Offre de bienvenue</p><h2 className="mt-4 text-[clamp(1.8rem,8vw,2.5rem)] font-black leading-none tracking-[-0.05em] text-slate-950">EasyCom IA</h2><p className="mt-2 max-w-sm text-sm font-semibold leading-6 text-slate-600">Toutes les fonctions qui font réellement avancer votre communication.</p></div><span className="flex size-14 shrink-0 items-center justify-center rounded-[1.2rem] bg-white text-[#421388] shadow-[0_12px_24px_rgba(66,19,136,0.12)]"><Sparkles className="size-7 fill-[#ffbd17] text-[#ffbd17]" /></span></div>
-            <div className="mt-6 flex items-end gap-2"><span className="text-[clamp(3rem,14vw,4.5rem)] font-black leading-none tracking-[-0.08em] text-[#421388]">8,99 €</span><span className="pb-1.5 text-sm font-black text-slate-600">TTC · premier mois</span></div>
-            <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white/85 px-3 py-2 text-sm font-bold text-slate-600"><span className="line-through decoration-2">29,99 €</span><span className="text-[#421388]">puis 29,99 € TTC/mois</span></p>
+            <div className="mt-6 flex items-end gap-2"><span className="text-[clamp(3rem,14vw,4.5rem)] font-black leading-none tracking-[-0.08em] text-[#421388]">9,99 €</span><span className="pb-1.5 text-sm font-black text-slate-600">TTC · premier mois</span></div>
+            <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white/85 px-3 py-2 text-sm font-bold text-slate-600"><span className="line-through decoration-2">19,99 €</span><span className="text-[#421388]">puis 19,99 € TTC/mois</span></p>
           </div>
-          <div className="p-5 sm:p-7"><div className="grid gap-3 sm:grid-cols-2">{INCLUDED.map((item) => <p key={item} className="flex items-start gap-3 rounded-2xl bg-[#fffaf4] px-3 py-3 text-sm font-bold leading-5 text-slate-700"><Check className="mt-0.5 size-4 shrink-0 text-[#14a857]" />{item}</p>)}</div><Link href="/auth/register" className="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#421388] px-5 text-base font-black text-white shadow-[0_16px_28px_rgba(66,19,136,0.28)] transition hover:bg-[#321070] active:scale-[0.985]">Commencer à 8,99 € TTC <ArrowRight className="size-5" /></Link><p className="mt-3 text-center text-xs font-semibold leading-5 text-slate-500">Réservé à la première souscription de votre communauté.</p></div>
+          <div className="p-5 sm:p-7"><div className="grid gap-3 sm:grid-cols-2">{INCLUDED.map((item) => <p key={item} className="flex items-start gap-3 rounded-2xl bg-[#fffaf4] px-3 py-3 text-sm font-bold leading-5 text-slate-700"><Check className="mt-0.5 size-4 shrink-0 text-[#14a857]" />{item}</p>)}</div><Link href="/auth/register" className="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#421388] px-5 text-base font-black text-white shadow-[0_16px_28px_rgba(66,19,136,0.28)] transition hover:bg-[#321070] active:scale-[0.985]">Commencer à 9,99 € TTC <ArrowRight className="size-5" /></Link><p className="mt-3 text-center text-xs font-semibold leading-5 text-slate-500">Réservé à la première souscription de votre communauté.</p></div>
         </article>
       </section>
 

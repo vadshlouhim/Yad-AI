@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPortalSession } from "@/lib/stripe";
+import { getCanonicalAppOrigin, safeAppReturnUrl } from "@/lib/stripe-config";
 
 export async function POST(request: Request) {
   try {
@@ -24,10 +25,10 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const origin = new URL(request.url).origin;
+    const origin = getCanonicalAppOrigin(request.url);
     const session = await createPortalSession({
       stripeCustomerId: community.stripeCustomerId,
-      returnUrl: safeReturnUrl(body.returnUrl, origin),
+      returnUrl: safeAppReturnUrl(body.returnUrl, origin, "/dashboard/settings/billing"),
     });
 
     return NextResponse.json({ url: session.url });
@@ -37,15 +38,5 @@ export async function POST(request: Request) {
       { error: "Impossible d'ouvrir le portail de facturation pour le moment." },
       { status: 500 }
     );
-  }
-}
-
-function safeReturnUrl(value: unknown, origin: string) {
-  const fallback = new URL("/dashboard/settings/billing", origin).toString();
-  try {
-    const url = new URL(typeof value === "string" ? value : fallback, origin);
-    return url.origin === origin ? url.toString() : fallback;
-  } catch {
-    return fallback;
   }
 }

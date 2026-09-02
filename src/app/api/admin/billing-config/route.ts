@@ -32,6 +32,6 @@ export async function POST(request: Request) {
   await request.json().catch(() => ({}));
   return NextResponse.json({
     config: DEFAULT_BILLING_CONFIG,
-    message: "Tarification centralisée : 8,99 € TTC le premier mois, puis 29,99 € TTC/mois.",
+    message: "Tarification centralisée : 9,99 € TTC le premier mois, puis 19,99 € TTC/mois.",
   });
 }
