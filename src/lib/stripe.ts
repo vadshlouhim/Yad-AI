@@ -1,4 +1,3 @@
-import "server-only";
 import Stripe from "stripe";
 import { assertStripeConfiguration, getConfiguredLaunchPriceId, getConfiguredPriceId, getStripeMode } from "@/lib/stripe-config";
 

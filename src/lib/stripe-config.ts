@@ -1,5 +1,3 @@
-import "server-only";
-
 export type StripeMode = "test" | "live";
 
 interface StripeConfigurationRequirements {
