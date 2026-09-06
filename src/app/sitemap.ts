@@ -1,7 +1,9 @@
 import type { MetadataRoute } from "next";
+import { EASYCOM_AGENTS } from "@/lib/agents";
 import { getPublishedBlogArticles } from "@/lib/blog/server";
+import { absoluteUrl, SITE_URL } from "@/lib/site-url";
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "https://easycom-ai.com";
+export const revalidate = 3600;
 
 const STATIC_ROUTES = [
   { path: "/", priority: 1, changeFrequency: "weekly" as const },
@@ -20,20 +22,35 @@ const STATIC_ROUTES = [
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const articles = await getPublishedBlogArticles();
-  const now = new Date();
+  const siteOrigin = new URL(SITE_URL).origin;
 
-  return [
-    ...STATIC_ROUTES.map((route) => ({
-      url: `${SITE_URL}${route.path}`,
-      lastModified: now,
-      changeFrequency: route.changeFrequency,
-      priority: route.priority,
-    })),
-    ...articles.map((article) => ({
-      url: `${SITE_URL}/blog/${article.slug}`,
+  const articleEntries: MetadataRoute.Sitemap = articles.flatMap((article) => {
+    const url = absoluteUrl(article.canonicalUrl ?? `/blog/${article.slug}`);
+
+    // An external canonical must not compete with an EasyCom URL in the sitemap.
+    if (new URL(url).origin !== siteOrigin) return [];
+
+    return [{
+      url,
       lastModified: new Date(article.updatedAt),
       changeFrequency: "monthly" as const,
       priority: article.isFeatured ? 0.85 : 0.75,
+      images: article.coverImageUrl ? [absoluteUrl(article.coverImageUrl)] : undefined,
+    }];
+  });
+
+  return [
+    ...STATIC_ROUTES.map((route) => ({
+      url: absoluteUrl(route.path),
+      changeFrequency: route.changeFrequency,
+      priority: route.priority,
     })),
+    ...EASYCOM_AGENTS.map((agent) => ({
+      url: absoluteUrl(`/agents/${agent.slug}`),
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+      images: [absoluteUrl(agent.image)],
+    })),
+    ...articleEntries,
   ];
 }

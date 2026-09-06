@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicFooter } from "@/components/layout/public-footer";
+import { EASYCOM_AGENTS } from "@/lib/agents";
 import { getPublishedBlogArticles } from "@/lib/blog/server";
 
 export const dynamic = "force-dynamic";
@@ -63,6 +64,17 @@ export default async function SiteMapPage() {
             {LEGAL_LINKS.map((link) => (
               <Link key={link.href} href={link.href} className="rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm hover:text-blue-700">
                 {link.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[1.7rem] border border-slate-200 bg-slate-50 p-6 lg:col-span-2">
+          <h2 className="text-xl font-black">Agents IA</h2>
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            {EASYCOM_AGENTS.map((agent) => (
+              <Link key={agent.slug} href={`/agents/${agent.slug}`} className="rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm hover:text-blue-700">
+                {agent.name} - {agent.role}
               </Link>
             ))}
           </div>

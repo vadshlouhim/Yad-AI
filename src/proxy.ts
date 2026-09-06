@@ -24,6 +24,8 @@ const PUBLIC_ROUTES = [
   "/site-map",
   "/sitemap.xml",
   "/robots.txt",
+  "/llms.txt",
+  "/agents",
   "/legal",
   "/communication",
 ];

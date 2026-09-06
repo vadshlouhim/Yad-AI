@@ -12,6 +12,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: { template: "%s — EasyCom IA", default: "Dashboard — EasyCom IA" },
+  robots: { index: false, follow: false, noarchive: true, nocache: true },
 };
 
 export default async function DashboardLayout({

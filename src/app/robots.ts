@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
-
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "https://easycom-ai.com";
+import { absoluteUrl, SITE_URL } from "@/lib/site-url";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -8,10 +7,17 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/api", "/dashboard", "/demo", "/demo-access", "/onboarding"],
+        disallow: [
+          "/admin",
+          "/api",
+          "/dashboard",
+          "/demo",
+          "/demo-access",
+          "/onboarding",
+        ],
       },
     ],
-    sitemap: `${SITE_URL}/sitemap.xml`,
+    sitemap: absoluteUrl("/sitemap.xml"),
     host: SITE_URL,
   };
 }

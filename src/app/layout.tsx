@@ -1,12 +1,33 @@
 import type { Metadata, Viewport } from "next";
 import { DisableSpellcheck } from "@/components/ui/disable-spellcheck";
+import { absoluteUrl, SITE_URL } from "@/lib/site-url";
 import "./globals.css";
 
 const SITE_NAME = "EasyCom IA";
 const SITE_TITLE = "EasyCom IA - Communication communautaire assistée par IA";
 const SITE_DESCRIPTION =
   "EasyCom IA est le copilote IA de communication de votre communauté. Centralisez, préparez et diffusez automatiquement votre communication sur Instagram, Facebook, WhatsApp et email.";
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? "https://easycom-ai.com";
+const STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: absoluteUrl("/easycom-ai-logo.png"),
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: SITE_NAME,
+      description: SITE_DESCRIPTION,
+      inLanguage: "fr-FR",
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+  ],
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -47,6 +68,9 @@ export const metadata: Metadata = {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
   },
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
 };
 
 export const viewport: Viewport = {
@@ -61,6 +85,12 @@ export default function RootLayout({
   return (
     <html lang="fr" className="h-full antialiased">
       <body className="min-h-full bg-slate-50" spellCheck={false}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(STRUCTURED_DATA).replace(/</g, "\\u003c"),
+          }}
+        />
         <DisableSpellcheck />
         {children}
       </body>
