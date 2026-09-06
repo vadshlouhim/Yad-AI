@@ -31,8 +31,8 @@ changement d'offre est désactivé puisqu'EasyCom ne propose qu'une offre payant
 Configurer dans l'environnement Production de Netlify :
 
 - `NEXT_PUBLIC_APP_URL=https://easycom-ai.com`
-- `STRIPE_SECRET_KEY` avec une clé `sk_live_...`
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` avec la clé `pk_live_...` associée
+- `STRIPE_SECRET_KEY` avec la clé secrète LIVE copiée depuis Stripe Workbench
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` avec la clé publique LIVE associée
 - `STRIPE_LAUNCH_PRICE_ID` avec le Price LIVE à 9,99 EUR/mois
 - `STRIPE_PAID_PRICE_ID` avec le Price LIVE à 19,99 EUR/mois
 - `STRIPE_WEBHOOK_SECRET` avec le signing secret LIVE
