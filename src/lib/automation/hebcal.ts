@@ -1,3 +1,4 @@
+import { resolveShabbatLocation } from "./city-location";
 // ============================================================
 // EasyCom IA — Intégration Hebcal
 // Calendrier hébraïque, horaires Chabbat, fêtes
@@ -5,6 +6,9 @@
 // ============================================================
 
 export interface ShabbatTimes {
+  cityName?: string;
+  timezone?: string;
+  countryCode?: string;
   date: string;          // YYYY-MM-DD
   hebrewDate: string;    // Date hébraïque en texte
   parasha: string;       // Nom de la paracha
@@ -40,100 +44,9 @@ const HAVDALAH_MINUTES = 63;
 // ============================================================
 
 export async function getShabbatTimes(params: {
-  city?: string;
-  latitude?: number;
-  longitude?: number;
-  timezone?: string;
-  date?: Date;
+  city?: string; country?: string; latitude?: number; longitude?: number; timezone?: string; date?: Date;
 }): Promise<ShabbatTimes | null> {
-  try {
-    const { city, latitude, longitude, timezone = "Europe/Paris", date = new Date() } = params;
-
-    // Trouver le prochain vendredi
-    const friday = getNextFriday(date);
-    const year = friday.getFullYear();
-    const month = friday.getMonth() + 1;
-
-    const searchParams = new URLSearchParams({
-      v: "1",
-      cfg: "json",
-      maj: "off",
-      min: "off",
-      mod: "off",
-      nx: "off",
-      year: year.toString(),
-      month: month.toString(),
-      ss: "on",     // Chabbat times
-      mf: "on",     // Minor fasts
-      c: "on",      // Candle lighting
-      start: friday.toISOString().split("T")[0],
-      end: new Date(friday.getTime() + 86400000).toISOString().split("T")[0],
-      b: "18",      // Minutes avant coucher soleil pour l'allumage des bougies
-      m: HAVDALAH_MINUTES.toString(), // Havdalah a 63 min apres le coucher du soleil.
-      s: "on",      // Sedrot (paracha)
-      i: "off",
-      lg: "fr",
-    });
-
-    // Géolocalisation
-    if (latitude && longitude) {
-      searchParams.set("geo", "pos");
-      searchParams.set("latitude", latitude.toString());
-      searchParams.set("longitude", longitude.toString());
-      searchParams.set("tzid", timezone);
-    } else if (city) {
-      searchParams.set("geo", "city");
-      searchParams.set("city", getCityGeoId(city));
-    } else {
-      // Paris par défaut
-      searchParams.set("geo", "city");
-      searchParams.set("city", "Paris");
-    }
-
-    const response = await fetch(`${HEBCAL_API}?${searchParams.toString()}`, {
-      next: { revalidate: 3600 }, // Cache 1h
-    });
-
-    if (!response.ok) {
-      console.error("[Hebcal] Erreur API:", response.status);
-      return null;
-    }
-
-    const data = await response.json();
-    if (!data.items || data.items.length === 0) return null;
-
-    // Parser les items
-    let candleLighting: string | null = null;
-    let havdalah: string | null = null;
-    let parasha: string | null = null;
-    let hebrewDate: string | null = null;
-
-    for (const item of data.items) {
-      if (item.category === "candles") {
-        candleLighting = formatTime(item.date);
-      } else if (item.category === "havdalah") {
-        havdalah = formatTime(item.date);
-      } else if (item.category === "parashat") {
-        parasha = item.title;
-        hebrewDate = item.hdate ?? "";
-      }
-    }
-
-    if (!candleLighting) return null;
-
-    return {
-      date: friday.toISOString().split("T")[0],
-      hebrewDate: hebrewDate ?? "",
-      parasha: parasha ?? "",
-      entry: candleLighting,
-      exit: havdalah ?? "",
-      candleLighting: candleLighting,
-      havdalah: havdalah ?? "",
-    };
-  } catch (error) {
-    console.error("[Hebcal] Erreur getShabbatTimes:", error);
-    return null;
-  }
+  return (await getUpcomingShabbatTimes({ ...params, count: 1 }))[0] ?? null;
 }
 
 /**
@@ -143,6 +56,7 @@ export async function getShabbatTimes(params: {
  */
 export async function getUpcomingShabbatTimes(params: {
   city?: string;
+  country?: string;
   latitude?: number;
   longitude?: number;
   timezone?: string;
@@ -151,37 +65,35 @@ export async function getUpcomingShabbatTimes(params: {
 }): Promise<UpcomingShabbatTimes[]> {
   try {
     const { city, latitude, longitude, timezone = "Europe/Paris", date = new Date(), count = 8 } = params;
-    const friday = getNextFriday(date);
+    const explicitCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
+    const location = explicitCoordinates ? { latitude: latitude!, longitude: longitude!, timezone, cityName: city ?? "Coordonnées choisies", countryCode: params.country === "IL" ? "IL" : "FR" } : await resolveShabbatLocation(city, params.country);
+    const friday = getNextFriday(date, location.timezone);
     const end = new Date(friday);
     end.setDate(end.getDate() + Math.max(count * 8, 14));
 
     const searchParams = new URLSearchParams({
       v: "1",
       cfg: "json",
-      maj: "off",
+      maj: "on",
       min: "off",
       mod: "off",
       nx: "off",
       ss: "on",
       c: "on",
       s: "on",
+      D: "on",
       b: "18",
       m: HAVDALAH_MINUTES.toString(),
-      i: "off",
+      i: location.countryCode === "IL" ? "on" : "off",
       lg: "fr",
       start: friday.toISOString().slice(0, 10),
       end: end.toISOString().slice(0, 10),
     });
 
-    if (latitude && longitude) {
-      searchParams.set("geo", "pos");
-      searchParams.set("latitude", latitude.toString());
-      searchParams.set("longitude", longitude.toString());
-      searchParams.set("tzid", timezone);
-    } else {
-      searchParams.set("geo", "city");
-      searchParams.set("city", getCityGeoId(city ?? "Paris"));
-    }
+    searchParams.set("geo", "pos");
+    searchParams.set("latitude", location.latitude.toString());
+    searchParams.set("longitude", location.longitude.toString());
+    searchParams.set("tzid", location.timezone);
 
     const response = await fetch(`${HEBCAL_API}?${searchParams.toString()}`, {
       next: { revalidate: 3600 },
@@ -189,7 +101,7 @@ export async function getUpcomingShabbatTimes(params: {
     if (!response.ok) return [];
 
     const data = await response.json() as {
-      items?: Array<{ category?: string; date?: string; title?: string; hdate?: string }>;
+      items?: Array<{ category?: string; date?: string; title?: string; hdate?: string; yomtov?: boolean }>;
     };
     const entries = new Map<string, { candleLighting?: string; havdalah?: string; parasha?: string; hebrewDate?: string }>();
     const getEntry = (key: string) => {
@@ -201,15 +113,15 @@ export async function getUpcomingShabbatTimes(params: {
     for (const item of data.items ?? []) {
       if (!item.date) continue;
       const itemDate = item.date.slice(0, 10);
-      // Havdalah et paracha sont datées du samedi ; elles appartiennent au vendredi précédent.
-      const shabbatDate = item.category === "candles" ? itemDate : previousDay(itemDate);
-      const entry = getEntry(shabbatDate);
-      if (item.category === "candles") entry.candleLighting = formatTime(item.date, timezone);
-      if (item.category === "havdalah") entry.havdalah = formatTime(item.date, timezone);
-      if (item.category === "parashat") {
-        entry.parasha = item.title;
-        entry.hebrewDate = item.hdate;
-      }
+      const day = new Date(`${itemDate}T12:00:00Z`).getUTCDay();
+      if (item.category === "candles" && day === 5) getEntry(itemDate).candleLighting = formatTime(item.date, location.timezone);
+      if (day !== 6) continue;
+      const entry = getEntry(previousDay(itemDate));
+      // On a Saturday leading into Yom Tov, the after-nightfall candles mark the transition, not the end of the festival.
+      if (item.category === "havdalah" || item.category === "candles") entry.havdalah = formatTime(item.date, location.timezone);
+      if (item.hdate) entry.hebrewDate = item.hdate;
+      if (item.category === "parashat") entry.parasha = item.title;
+      else if (item.category === "holiday" && item.yomtov && !entry.parasha) entry.parasha = item.title;
     }
 
     return Array.from(entries.entries())
@@ -218,6 +130,9 @@ export async function getUpcomingShabbatTimes(params: {
       .slice(0, count)
       .map(([dateKey, entry]) => ({
         date: dateKey,
+        cityName: location.cityName,
+        timezone: location.timezone,
+        countryCode: location.countryCode,
         hebrewDate: entry.hebrewDate ?? "",
         parasha: entry.parasha ?? "",
         entry: entry.candleLighting ?? "",
@@ -294,6 +209,7 @@ export async function getJewishHolidays(params: {
 
 export async function getHolidayTimes(params: {
   city?: string;
+  country?: string;
   latitude?: number;
   longitude?: number;
   timezone?: string;
@@ -324,18 +240,14 @@ export async function getHolidayTimes(params: {
       lg: "fr",
     });
 
-    if (latitude && longitude) {
-      searchParams.set("geo", "pos");
-      searchParams.set("latitude", latitude.toString());
-      searchParams.set("longitude", longitude.toString());
-      searchParams.set("tzid", timezone);
-    } else if (city) {
-      searchParams.set("geo", "city");
-      searchParams.set("city", getCityGeoId(city));
-    } else {
-      searchParams.set("geo", "city");
-      searchParams.set("city", "Paris");
-    }
+    const location = Number.isFinite(latitude) && Number.isFinite(longitude)
+      ? { latitude: latitude!, longitude: longitude!, timezone, countryCode: params.country === "IL" ? "IL" : "FR" }
+      : await resolveShabbatLocation(city, params.country);
+    searchParams.set("geo", "pos");
+    searchParams.set("latitude", location.latitude.toString());
+    searchParams.set("longitude", location.longitude.toString());
+    searchParams.set("tzid", location.timezone);
+    searchParams.set("i", location.countryCode === "IL" ? "on" : "off");
 
     const response = await fetch(`${HEBCAL_API}?${searchParams.toString()}`, {
       next: { revalidate: 3600 },
@@ -377,24 +289,24 @@ export async function getHolidayTimes(params: {
     let exit: string | null = null;
 
     if (candlesOnTargetDate?.date) {
-      entry = formatTime(candlesOnTargetDate.date);
+      entry = formatTime(candlesOnTargetDate.date, location.timezone);
     } else {
       for (let index = startIndex; index >= 0; index -= 1) {
         const item = items[index];
         if (item.category === "candles") {
-          entry = formatTime(item.date);
+          entry = formatTime(item.date, location.timezone);
           break;
         }
       }
     }
 
     if (havdalahOnTargetDate?.date) {
-      exit = formatTime(havdalahOnTargetDate.date);
+      exit = formatTime(havdalahOnTargetDate.date, location.timezone);
     } else {
       for (let index = endIndex; index < items.length; index += 1) {
         const item = items[index];
         if (item.category === "havdalah") {
-          exit = formatTime(item.date);
+          exit = formatTime(item.date, location.timezone);
           break;
         }
       }
@@ -423,13 +335,10 @@ export async function getNextHoliday(): Promise<JewishHoliday | null> {
 // HELPERS
 // ============================================================
 
-function getNextFriday(from: Date): Date {
-  const date = new Date(from);
-  // Use Paris time to avoid UTC-midnight drift causing wrong date
-  const parisDate = new Date(date.toLocaleString("en-US", { timeZone: "Europe/Paris" }));
-  const day = parisDate.getDay(); // 0=Sun…5=Fri…6=Sat
-  const daysUntilFriday = (5 - day + 7) % 7; // 0 when already Friday → stays on current Friday
-  date.setDate(date.getDate() + daysUntilFriday);
+export function getNextFriday(from: Date, timezone = "Europe/Paris"): Date {
+  const localDate = from.toLocaleDateString("en-CA", { timeZone: timezone });
+  const date = new Date(`${localDate}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + (5 - date.getUTCDay() + 7) % 7);
   return date;
 }
 
@@ -446,23 +355,4 @@ function previousDay(date: string) {
   const value = new Date(`${date}T12:00:00Z`);
   value.setUTCDate(value.getUTCDate() - 1);
   return value.toISOString().slice(0, 10);
-}
-
-function getCityGeoId(city: string): string {
-  const cityMap: Record<string, string> = {
-    paris: "Paris",
-    "paris 1": "Paris",
-    lyon: "Lyon",
-    marseille: "Marseille",
-    toulouse: "Toulouse",
-    nice: "Nice",
-    strasbourg: "Strasbourg",
-    bordeaux: "Bordeaux",
-    jerusalem: "Jerusalem",
-    "tel aviv": "Tel_Aviv",
-    new_york: "New_York",
-    london: "London",
-  };
-
-  return cityMap[city.toLowerCase()] ?? "Paris";
 }

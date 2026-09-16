@@ -777,6 +777,9 @@ export type Database = {
           communityId: string
           createdAt: string
           duration: number | null
+          editState: Json | null
+          userId: string | null
+          templateId: string | null
           eventId: string | null
           height: number | null
           id: string
@@ -784,6 +787,7 @@ export type Database = {
           name: string
           originalName: string
           publicId: string
+          source: string
           size: number
           tags: string[] | null
           type: Database["public"]["Enums"]["MediaType"]
@@ -797,6 +801,9 @@ export type Database = {
           communityId: string
           createdAt?: string
           duration?: number | null
+          editState?: Json | null
+          userId?: string | null
+          templateId?: string | null
           eventId?: string | null
           height?: number | null
           id: string
@@ -804,6 +811,7 @@ export type Database = {
           name: string
           originalName: string
           publicId: string
+          source: string
           size: number
           tags?: string[] | null
           type: Database["public"]["Enums"]["MediaType"]
@@ -817,6 +825,9 @@ export type Database = {
           communityId?: string
           createdAt?: string
           duration?: number | null
+          editState?: Json | null
+          userId?: string | null
+          templateId?: string | null
           eventId?: string | null
           height?: number | null
           id?: string
@@ -824,6 +835,7 @@ export type Database = {
           name?: string
           originalName?: string
           publicId?: string
+          source?: string
           size?: number
           tags?: string[] | null
           type?: Database["public"]["Enums"]["MediaType"]

@@ -168,16 +168,12 @@ export async function findCityScheduleForYear(
         closeMatches.find((row) => normalizeCityName(row.city_name) === normalizedCity) ??
         closeMatches.find((row) => normalizeCityName(row.city_name).includes(normalizedCity)) ??
         closeMatches.find((row) => normalizedCity.includes(normalizeCityName(row.city_name))) ??
-        closeMatches[0]
+        null
       );
     }
   }
 
-  return (await ((table
-    .select("city_code, city_name, shabbat_schedule")
-    .eq("year", year)
-    .eq("city_code", "75056")
-    .maybeSingle()) as unknown as Promise<{ data: ScheduleRow | null }>)).data;
+  return null;
 }
 
 export function getNextWeeklyRunAt({

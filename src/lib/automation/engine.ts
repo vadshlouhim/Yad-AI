@@ -1,7 +1,11 @@
-﻿import { createAdminClient } from "@/lib/supabase/admin";
+﻿import { getPosterSource, trustedCommunityLogo, logoEditInstructions } from "@/lib/templates/edit-source";
+import { readPosterEditState } from "@/lib/templates/edit-state";
+import { buildShabbatPosterChanges, buildShabbatCaption } from "./shabbat-poster";
+import type { ShabbatTimes } from "./hebcal";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { generateContent } from "@/lib/ai/engine";
 import { createPublicationsFromDraft, publishToAllChannels, publishToChannel } from "@/lib/publishing/publisher";
-import { editTemplatePosterWithFal, type PosterChange } from "@/lib/templates/fal-edit";
+import { editTemplatePosterWithFal } from "@/lib/templates/fal-edit";
 import { getShabbatTimes, getNextHoliday } from "./hebcal";
 import {
   getCampaignFromTriggerConfig,
@@ -85,35 +89,17 @@ function getShabbatPosterConfig(triggerConfig: Record<string, unknown>) {
   return isRecord(value) ? value : {};
 }
 
-function buildShabbatPosterChanges(
-  fields: Record<string, string>,
-  shabbatTimes: { entry: string; exit: string; date?: string; parasha?: string } | null
-): PosterChange[] {
-  const formatDate = (d: string) => {
-    try {
-      return new Date(`${d}T12:00:00`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
-    } catch { return d; }
-  };
-  return [
-    { label: "Organisation", currentText: "", newText: fields.structureName ?? "" },
-    { label: "Paracha", currentText: "", newText: shabbatTimes?.parasha ?? fields.parasha ?? "" },
-    { label: "Date", currentText: "", newText: shabbatTimes?.date ? formatDate(shabbatTimes.date) : "" },
-    { label: "Heure d'entrée", currentText: "", newText: shabbatTimes?.entry ?? "" },
-    { label: "Heure de sortie", currentText: "", newText: shabbatTimes?.exit ?? "" },
-    { label: "Ville", currentText: "", newText: fields.city ?? "" },
-    { label: "Kiddouch", currentText: "", newText: fields.kiddouch ?? "" },
-  ].filter((change) => change.newText.trim().length > 0) as PosterChange[];
-}
-
 async function renderShabbatPosterImage(params: {
   supabase: ReturnType<typeof createAdminClient>;
   triggerConfig: Record<string, unknown>;
   communityId: string;
-  shabbatTimes: { entry: string; exit: string; date?: string; parasha?: string; hebrewDate?: string } | null;
+  shabbatTimes: ShabbatTimes | null;
+  logoUrl?: string | null;
 }): Promise<string | null> {
   const posterConfig = getShabbatPosterConfig(params.triggerConfig);
   const selectedTemplateId = typeof posterConfig.selectedTemplateId === "string" ? posterConfig.selectedTemplateId : "";
-  if (!selectedTemplateId) return null;
+  if (!selectedTemplateId) throw new Error("Choisissez un modèle pour la préparation Chabbat.");
+  if (!params.shabbatTimes?.entry || !params.shabbatTimes.exit || !params.shabbatTimes.parasha) throw new Error("Horaires Chabbat indisponibles : vérifiez la ville puis relancez la préparation.");
 
   const { data: template } = await params.supabase
     .from("Template")
@@ -122,23 +108,30 @@ async function renderShabbatPosterImage(params: {
     .or(`isGlobal.eq.true,communityId.eq.${params.communityId}`)
     .maybeSingle();
 
-  if (!template) return null;
+  if (!template) throw new Error("Modèle Chabbat inaccessible.");
 
   const savedFields = (isRecord(posterConfig.fields) ? posterConfig.fields : {}) as Record<string, string>;
 
   try {
-    const changes = buildShabbatPosterChanges(savedFields, params.shabbatTimes);
+    const source = await getPosterSource(params.supabase, params.communityId, posterConfig.sourceMediaId);
+    const previous = readPosterEditState(source?.editState);
+    const logoUrl = trustedCommunityLogo(params.logoUrl || savedFields.logoUrl, params.communityId);
+    const changes = buildShabbatPosterChanges({ ...savedFields, officeTimes: typeof posterConfig.officeTimes === "string" ? posterConfig.officeTimes : savedFields.officeTimes }, params.shabbatTimes, previous?.changes);
     if (changes.length === 0) return null;
     const rendered = await editTemplatePosterWithFal({
       admin: params.supabase,
       template,
       communityId: params.communityId,
       changes,
+      sourceImageUrl: source && source.templateId === template.id ? source.url : undefined,
+      referenceImageUrls: logoUrl ? [logoUrl] : undefined,
+      editInstructions: logoEditInstructions(logoUrl),
+      editState: { version: 1, templateId: template.id, sourceMediaId: source?.id ?? null, changes: previous?.changes ?? [], textsToRemove: [], logoUrl, shabbatDate: params.shabbatTimes.date },
     });
     return rendered.imageUrl;
   } catch (err) {
     console.error("[Automation] Erreur rendu affiche Chabbat:", err);
-    return null;
+    throw err;
   }
 }
 
@@ -147,6 +140,7 @@ type AutomationWithCommunity = Automation & {
     id: string;
     name: string;
     city: string | null;
+    country?: string | null;
     timezone: string;
     tone: string;
     hashtags: string[] | null;
@@ -253,7 +247,7 @@ export async function runAutomationEngine(): Promise<void> {
 
   const { data: automations } = await supabase
     .from("Automation")
-    .select("*, community:Community(id,name,city,timezone,tone,hashtags,email,logoUrl,vocabulary)")
+    .select("*, community:Community(id,name,city,country,timezone,tone,hashtags,email,logoUrl,vocabulary)")
     .eq("isActive", true)
     .eq("status", "ACTIVE");
 
@@ -288,14 +282,22 @@ async function processAutomation(
   const hayomSettings = getHayomYomSettings(automation.triggerConfig);
   const runId = hayomSettings
     ? `hayom-yom:${automation.id}:${dateISOInTz(now, hayomSettings.timezone)}`
-    : crypto.randomUUID();
-  const { data: run, error: runError } = await supabase
+    : automation.trigger === "WEEKLY_SHABBAT"
+      ? `shabbat:${automation.id}:${dateISOInTz(automation.nextRunAt ? new Date(automation.nextRunAt) : now, automation.community.timezone)}`
+      : crypto.randomUUID();
+  let { data: run, error: runError } = await supabase
     .from("AutomationRun")
     .insert({ id: runId, automationId: automation.id, status: "RUNNING" })
     .select()
     .single();
 
-  if (runError?.code === "23505") return;
+  if (runError?.code === "23505") {
+    if (automation.trigger !== "WEEKLY_SHABBAT") return;
+    const retry = await supabase.from("AutomationRun").update({ status: "RUNNING", error: null, completedAt: null }).eq("id", runId).eq("status", "FAILED").select().maybeSingle();
+    if (!retry.data) return;
+    run = retry.data;
+    runError = null;
+  }
   if (runError) throw runError;
   if (!run) return;
 
@@ -359,6 +361,7 @@ function hasSocialNotificationChannel(action: AutomationAction | undefined) {
 async function prepareAutomationNotification(automation: AutomationWithCommunity, now: Date): Promise<void> {
   // Les campagnes J-10/J-5 et les récaps après événement gèrent eux-mêmes
   // leurs notifications au déclenchement (cf. executeAutomationActions).
+  if (automation.trigger === "WEEKLY_SHABBAT") return;
   if (getCampaignFromTriggerConfig(automation.triggerConfig)) return;
   if (getRecapSettingsFromTriggerConfig(automation.triggerConfig)) return;
   if (getWeeklyImagesSettings(automation.triggerConfig)) return;
@@ -427,21 +430,7 @@ async function prepareAutomationNotification(automation: AutomationWithCommunity
   const triggerConfig = (automation.triggerConfig ?? {}) as Record<string, unknown>;
   const configuredMessage = typeof triggerConfig.message === "string" ? triggerConfig.message.trim() : "";
 
-  // Pour WEEKLY_SHABBAT : récupérer les horaires + l'image du template sélectionné
-  let shabbatTimesForPrep = null;
-  let preNotifImageUrl: string | null = null;
-  if (automation.trigger === "WEEKLY_SHABBAT") {
-    shabbatTimesForPrep = await getShabbatTimes({
-      city: automation.community.city ?? undefined,
-      timezone: automation.community.timezone,
-    });
-    preNotifImageUrl = await renderShabbatPosterImage({
-      supabase,
-      triggerConfig,
-      communityId: automation.community.id,
-      shabbatTimes: shabbatTimesForPrep,
-    });
-  }
+  const preNotifImageUrl: string | null = null;
 
   const generated = configuredMessage
     ? { body: configuredMessage, bodyHebrew: null, hashtags: [], cta: null }
@@ -449,8 +438,6 @@ async function prepareAutomationNotification(automation: AutomationWithCommunity
         communityId: automation.community.id,
         contentType: (action.contentType ?? "GENERAL") as never,
         eventId: automation.eventId ?? undefined,
-        shabbatTimes: shabbatTimesForPrep ?? undefined,
-        hebrewDate: shabbatTimesForPrep?.hebrewDate,
       });
 
   const { data: draft } = await supabase
@@ -489,7 +476,7 @@ async function prepareAutomationNotification(automation: AutomationWithCommunity
   if (notifyUsers && notifyUsers.length > 0) {
     const channels = action.channels ?? [];
     const leadHours = getNotificationLeadHours(automation);
-    const notifTitle = automation.trigger === "WEEKLY_SHABBAT" ? "Affiche Chabbat prête à valider" : "Validation requise";
+    const notifTitle = "Validation requise";
     const notifBody = `Dans ${leadHours}h, votre publication sera envoyée. Validez ?`;
     const notifLink = getAutomationNotificationLink(automation);
     const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
@@ -1229,6 +1216,7 @@ export async function executeAutomationActions(
   for (const action of actions) {
     switch (action.type) {
       case "GENERATE_CONTENT": {
+        if (automation.trigger === "WEEKLY_SHABBAT") action.requiresValidation = true;
         if (
           action.requiresValidation !== false &&
           automation.nextRunAt &&
@@ -1242,10 +1230,17 @@ export async function executeAutomationActions(
 
         if (automation.trigger === "WEEKLY_SHABBAT") {
           shabbatTimes = await getShabbatTimes({
-            city: automation.community.city ?? undefined,
+            city: typeof getShabbatPosterConfig(triggerConfig).fields === "object" ? (getShabbatPosterConfig(triggerConfig).fields as Record<string, string>).city || automation.community.city || undefined : automation.community.city ?? undefined,
+            country: automation.community.country ?? undefined,
             timezone: automation.community.timezone,
           });
           hebrewDate = shabbatTimes?.hebrewDate;
+        }
+
+        const weeklyDraftId = shabbatTimes ? `shabbat-draft:${automation.id}:${shabbatTimes.date}` : null;
+        if (weeklyDraftId) {
+          const { data: existingDraft } = await supabase.from("ContentDraft").select("id").eq("id", weeklyDraftId).eq("communityId", automation.community.id).maybeSingle();
+          if (existingDraft) break;
         }
 
         const selectedTemplateImageUrl = automation.trigger === "WEEKLY_SHABBAT"
@@ -1254,10 +1249,14 @@ export async function executeAutomationActions(
               triggerConfig,
               communityId: automation.community.id,
               shabbatTimes,
+              logoUrl: automation.community.logoUrl,
             })
           : null;
 
-        const generated = configuredMessage
+        const posterFields = getShabbatPosterConfig(triggerConfig).fields;
+        const generated = shabbatTimes
+          ? { body: buildShabbatCaption(isRecord(posterFields) ? posterFields as Record<string, string> : {}, shabbatTimes), bodyHebrew: null, hashtags: [], cta: null }
+          : configuredMessage
           ? { body: configuredMessage, bodyHebrew: null, hashtags: [], cta: null }
           : await generateContent({
               communityId: automation.community.id,
@@ -1270,7 +1269,7 @@ export async function executeAutomationActions(
         const { data: draft } = await supabase
           .from("ContentDraft")
           .insert({
-            id: crypto.randomUUID(),
+            id: weeklyDraftId ?? crypto.randomUUID(),
             communityId: automation.community.id,
             eventId: automation.eventId ?? null,
             body: generated.body,
@@ -1285,11 +1284,11 @@ export async function executeAutomationActions(
             updatedAt: new Date().toISOString(),
           })
           .select()
-          .single();
+          .single().throwOnError();
 
         if (!draft) break;
 
-        if (action.channels?.includes("EMAIL")) {
+        if (!action.requiresValidation && action.channels?.includes("EMAIL")) {
           await sendAutomationEmail({
             automation,
             subject: automation.trigger === "WEEKLY_SHABBAT"
@@ -1355,7 +1354,7 @@ export async function executeAutomationActions(
             : `Il est temps d'envoyer votre message sur ${channelsText} pour ${eventName}.`;
           const notifLink = isScheduledEvent
             ? "/dashboard/events"
-            : getAutomationNotificationLink(automation);
+            : isShabbat ? `/dashboard/content/${draft.id}` : getAutomationNotificationLink(automation);
           const notifiedUsers = await insertAutomationNotificationsOnce(supabase, notifyUsers, {
             communityId: automation.community.id,
             type: isScheduledEvent ? "EVENT_REMINDER" : "AI_CONTENT_READY",

@@ -1,7 +1,8 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { Download, Image as ImageIcon, Share2, Sparkles } from "lucide-react";
+import { Pencil, Download, Image as ImageIcon, Share2, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -12,6 +13,8 @@ type PersonalImage = {
   createdAt: string;
   width: number | null;
   height: number | null;
+  templateId: string | null;
+  isShabbat: boolean;
 };
 
 export function PersonalMediaLibraryClient({ images }: { images: PersonalImage[] }) {
@@ -93,6 +96,16 @@ export function PersonalMediaLibraryClient({ images }: { images: PersonalImage[]
                   </p>
                 </div>
 
+                {image.templateId ? (
+                  <Button asChild variant="outline" className="w-full rounded-2xl border-violet-200 text-xs font-black text-violet-700">
+                    <Link href={`/dashboard/templates?mediaId=${encodeURIComponent(image.id)}`}><Pencil className="mr-2 size-4" />Modifier</Link>
+                  </Button>
+                ) : null}
+                {image.isShabbat ? (
+                  <Button asChild variant="outline" className="w-full rounded-2xl border-violet-200 text-xs font-black text-violet-700">
+                    <Link href={`/dashboard/shabbat-times-auto?mediaId=${encodeURIComponent(image.id)}`}>Prochain Chabbat</Link>
+                  </Button>
+                ) : null}
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <Button
                     variant="outline"

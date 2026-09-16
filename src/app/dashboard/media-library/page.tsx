@@ -1,3 +1,4 @@
+import { readPosterEditState } from "@/lib/templates/edit-state";
 import type { Metadata } from "next";
 import { PersonalMediaLibraryClient } from "@/components/media-library/personal-media-library-client";
 import { requireAuth } from "@/lib/auth";
@@ -26,6 +27,8 @@ export default async function PersonalMediaLibraryPage() {
       createdAt: item.createdAt,
       width: item.width,
       height: item.height,
+      templateId: item.templateId,
+      isShabbat: Boolean(readPosterEditState(item.editState)?.shabbatDate),
     }));
 
   return <PersonalMediaLibraryClient images={images} />;

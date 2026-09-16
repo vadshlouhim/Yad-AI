@@ -1,6 +1,8 @@
 export const runtime = "nodejs";
 export const maxDuration = 180;
 
+import { getPosterSource, trustedCommunityLogo, logoEditInstructions } from "@/lib/templates/edit-source";
+import { readPosterEditState } from "@/lib/templates/edit-state";
 import { NextResponse } from "next/server";
 import { FREE_POSTER_LIMIT, getBillingGate, getBillingUsage, paywallResponse } from "@/lib/billing";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -21,6 +23,8 @@ export async function POST(request: Request) {
 
     const body = await request.json() as {
       templateId?: unknown;
+      sourceMediaId?: unknown;
+      logoUrl?: unknown;
       changes?: unknown;
       textsToRemove?: unknown;
       editPrompt?: unknown;
@@ -31,7 +35,7 @@ export async function POST(request: Request) {
     const textsToRemove = validatePosterTextsToRemove(body.textsToRemove);
     const editInstructions = validatePosterEditInstructions(body.editPrompt);
     const resolution = body.resolution === "2k" ? "2k" : "1k";
-    if (!templateId || changes.length === 0) {
+    if (!templateId || (changes.length === 0 && !body.logoUrl)) {
       return NextResponse.json({ error: "Confirmez au moins une modification." }, { status: 400 });
     }
 
@@ -57,6 +61,12 @@ export async function POST(request: Request) {
       .or(`isGlobal.eq.true,communityId.eq.${gate.communityId}`)
       .single();
     if (!template) return NextResponse.json({ error: "Template introuvable" }, { status: 404 });
+    const source = await getPosterSource(admin, gate.communityId, body.sourceMediaId);
+    if (source && source.templateId !== template.id) return NextResponse.json({ error: "Modèle source incompatible." }, { status: 400 });
+    const logoUrl = trustedCommunityLogo(body.logoUrl, gate.communityId);
+    if (body.logoUrl && !logoUrl) return NextResponse.json({ error: "Logo inaccessible." }, { status: 400 });
+    const previous = readPosterEditState(source?.editState);
+
 
     const edited = await editTemplatePosterWithFal({
       admin,
@@ -65,8 +75,11 @@ export async function POST(request: Request) {
       userId: user.id,
       changes,
       textsToRemove,
-      editInstructions,
-      recordMedia: false,
+      editInstructions: [editInstructions, logoEditInstructions(logoUrl)].join("\n"),
+      referenceImageUrls: logoUrl ? [logoUrl] : undefined,
+      sourceImageUrl: source?.url,
+      editState: { version: 1, templateId: template.id, sourceMediaId: source?.id ?? null, changes: previous?.changes ?? [], textsToRemove, logoUrl, shabbatDate: previous?.shabbatDate },
+      recordMedia: true,
       resolution,
     });
     await admin.from("Template").update({

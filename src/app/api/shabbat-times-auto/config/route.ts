@@ -1,3 +1,5 @@
+import { getPosterSource } from "@/lib/templates/edit-source";
+import { getShabbatTimes } from "@/lib/automation/hebcal";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -23,6 +25,8 @@ function buildActions(channels: string[], scheduleMode: string): Json {
 }
 
 type ShabbatPosterConfig = {
+  sourceMediaId?: string | null;
+  draftSourceMediaId?: string | null;
   selectedTemplateId?: string | null;
   selectedTemplateCategory?: ShabbatTemplateMode | null;
   palette?: string;
@@ -92,6 +96,8 @@ function sanitizeConfig(value: unknown, existing: ShabbatPosterConfig): ShabbatP
 
   return {
     ...existing,
+    sourceMediaId: stringOrEmpty(value.sourceMediaId) || existing.sourceMediaId || null,
+    draftSourceMediaId: stringOrEmpty(value.draftSourceMediaId) || existing.draftSourceMediaId || null,
     palette: stringOrEmpty(value.palette) || existing.palette || "violet",
     fields: sanitizeFields(value.fields ?? existing.fields),
     postText: stringOrEmpty(value.postText ?? existing.postText),
@@ -240,6 +246,19 @@ export async function POST(request: Request) {
       suspended: mode === "activate" ? false : posterBase.suspended,
     };
 
+    if (poster.selectedTemplateId !== currentPoster.selectedTemplateId) {
+      poster.sourceMediaId = isRecord(body.config) ? stringOrEmpty(body.config.sourceMediaId) || null : null;
+      poster.draftSourceMediaId = isRecord(body.config) ? stringOrEmpty(body.config.draftSourceMediaId) || null : null;
+    }
+
+    const { data: selectedTemplate } = await auth.admin.from("Template").select("id").eq("id", poster.selectedTemplateId ?? "").or(`isGlobal.eq.true,communityId.eq.${auth.communityId}`).maybeSingle();
+    if (!selectedTemplate) return NextResponse.json({ error: "Modèle inaccessible." }, { status: 400 });
+    for (const id of [poster.sourceMediaId, poster.draftSourceMediaId]) {
+      const source = await getPosterSource(auth.admin, auth.communityId, id);
+      if (source && source.templateId !== selectedTemplate.id) return NextResponse.json({ error: "Affiche source incompatible." }, { status: 400 });
+    }
+    poster.scheduleMode = "notification";
+
     if (mode === "save-config") {
       const automation = await upsertAutomation(auth.admin, auth.communityId, existing, {
         poster,
@@ -261,6 +280,9 @@ export async function POST(request: Request) {
     }
 
     if (mode === "activate") {
+      const { data: community } = await auth.admin.from("Community").select("city, country").eq("id", auth.communityId).single();
+      const times = await getShabbatTimes({ city: poster.fields?.city || community?.city || undefined, country: community?.country ?? undefined, timezone });
+      if (!times?.entry || !times.exit) return NextResponse.json({ error: "Vérifiez la ville avant d’activer la préparation hebdomadaire." }, { status: 422 });
       const nextRunAt = getNextWeeklyRunAt({
         dayOfWeek: poster.notificationDayOfWeek ?? 5,
         time: poster.notificationTime ?? "10:00",

@@ -816,6 +816,7 @@ model MediaFile {
   eventId      String?
   userId       String?   @db.Uuid
   templateId   String?
+  editState    Json?
   name         String
   originalName String
   url          String

@@ -1,6 +1,8 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
+import type { PosterEditState } from "@/lib/templates/edit-state";
+import { CommunityLogoPicker } from "./community-logo-picker";
 import { useState } from "react";
 import {
   ArrowLeft,
@@ -50,6 +52,7 @@ interface Props {
   emptyTitle?: string;
   emptyDescription?: string;
   initialTemplateId?: string;
+  initialSource?: { id: string; imageUrl: string; editState: PosterEditState | null } | null;
 }
 
 interface PosterChange {
@@ -88,18 +91,26 @@ export function TemplatesClient({
   emptyTitle = "Aucune affiche trouvée",
   emptyDescription = "Modifiez votre recherche ou choisissez une autre catégorie.",
   initialTemplateId,
+  initialSource,
+  community,
 }: Props) {
   const freePosterAlreadyUsed = plan === "FREE_TRIAL" && billingUsage.posterGenerations >= 1;
   const initialTemplate = initialTemplateId ? templates.find((template) => template.id === initialTemplateId) ?? null : null;
   const initialTemplateLocked = Boolean(
     initialTemplate && (freePosterAlreadyUsed || (plan === "FREE_TRIAL" && initialTemplate.isPremium))
   );
-  const [step, setStep] = useState<Step>(initialTemplate && !initialTemplateLocked ? "request" : "gallery");
+  const [step, setStep] = useState<Step>(initialTemplate && !initialTemplateLocked ? (initialSource?.editState ? "confirm" : "request") : "gallery");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
     initialTemplate && !initialTemplateLocked ? initialTemplate : null
   );
   const [requestText, setRequestText] = useState("");
-  const [brief, setBrief] = useState<PosterBrief | null>(null);
+  const [source, setSource] = useState(initialSource ?? null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(initialSource?.editState?.logoUrl ?? community.logoUrl);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [brief, setBrief] = useState<PosterBrief | null>(initialSource?.editState ? {
+    summary: "Modifier votre affiche", changes: initialSource.editState.changes.map((change) => ({ ...change, currentText: change.newText })),
+    textsToRemove: [], editPrompt: "Only change the explicitly confirmed texts. Preserve all other information and the existing layout.", unchangedElements: [], missingInformation: [],
+  } : null);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [generatedAsset, setGeneratedAsset] = useState<GeneratedAsset | null>(null);
   const [savingLibrary, setSavingLibrary] = useState(false);
@@ -115,6 +126,7 @@ export function TemplatesClient({
       return;
     }
     setSelectedTemplate(template);
+    setSource(null);
     setRequestText("");
     setBrief(null);
     setGeneratedImageUrl(null);
@@ -126,18 +138,18 @@ export function TemplatesClient({
   }
 
   async function analyzeRequest() {
-    if (!selectedTemplate || !requestText.trim()) return;
+    if (!selectedTemplate || (!requestText.trim() && !logoUrl)) return;
     setLoading(true);
     setError("");
     try {
       const response = await fetch("/api/templates/analyze-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId: selectedTemplate.id, request: requestText.trim() }),
+        body: JSON.stringify({ templateId: selectedTemplate.id, sourceMediaId: source?.id, request: requestText.trim() || "Conserver tous les textes et toutes les informations existantes. Le logo officiel sera ajout? s?par?ment." }),
       });
       const data = (await response.json()) as PosterBrief & { error?: string };
       if (!response.ok) throw new Error(data.error ?? "Gemini n'a pas pu comprendre la demande.");
-      if (!Array.isArray(data.changes) || data.changes.length === 0) {
+      if (!Array.isArray(data.changes) || (data.changes.length === 0 && !logoUrl)) {
         throw new Error("Aucune modification précise n'a été identifiée. Indiquez les textes à remplacer.");
       }
       setBrief(data);
@@ -165,7 +177,7 @@ export function TemplatesClient({
   async function generatePoster() {
     if (!selectedTemplate || !brief) return;
     const changes = brief.changes.filter((change) => change.label.trim() && change.newText.trim());
-    if (changes.length === 0 || brief.missingInformation.length > 0) return;
+    if ((changes.length === 0 && !logoUrl) || brief.missingInformation.length > 0) return;
     setLoading(true);
     setError("");
     try {
@@ -175,12 +187,15 @@ export function TemplatesClient({
         body: JSON.stringify({
           templateId: selectedTemplate.id,
           changes,
+          sourceMediaId: source?.id,
+          logoUrl,
           textsToRemove: brief.textsToRemove,
           editPrompt: brief.editPrompt,
           resolution: "1k",
         }),
       });
       const data = (await response.json()) as {
+        mediaId?: string;
         imageUrl?: string;
         storagePath?: string;
         size?: number;
@@ -198,6 +213,8 @@ export function TemplatesClient({
       }
       if (!data.imageUrl || !data.storagePath) throw new Error("Aucune image personnalisée n'a été renvoyée.");
       setGeneratedImageUrl(data.imageUrl);
+      if (data.mediaId) setSource({ id: data.mediaId, imageUrl: data.imageUrl, editState: null });
+      setBrief((current) => current ? { ...current, changes: current.changes.map((change) => ({ ...change, currentText: change.newText })), textsToRemove: [], editPrompt: "Only change the explicitly confirmed texts. Preserve the existing layout and all other information." } : null);
       setGeneratedAsset({
         imageUrl: data.imageUrl,
         storagePath: data.storagePath,
@@ -205,7 +222,7 @@ export function TemplatesClient({
         width: data.width ?? null,
         height: data.height ?? null,
       });
-      setLibrarySaved(false);
+      setLibrarySaved(true);
       setActionMessage("");
       setStep("preview");
     } catch (cause) {
@@ -280,7 +297,8 @@ export function TemplatesClient({
   }
 
   if (!selectedTemplate) return null;
-  const sourceImage = posterTemplateImage(selectedTemplate);
+  const sourceImage = source?.imageUrl ?? posterTemplateImage(selectedTemplate);
+  const logoPicker = <CommunityLogoPicker value={logoUrl} onChange={(url) => { setLogoUrl(url); setError(""); }} onBusyChange={setUploadingLogo} onError={setError} />;
 
   if (step === "request") {
     return (
@@ -304,6 +322,8 @@ export function TemplatesClient({
                   <h1 className="mt-1 text-2xl font-black text-slate-900">Que souhaitez-vous afficher ?</h1>
                 </div>
               </div>
+              {source ? <p className="text-sm text-violet-700">Vous reprenez votre affiche. Indiquez seulement ce qui doit changer.</p> : null}
+              {logoPicker}
               <textarea
                 value={requestText}
                 onChange={(event) => setRequestText(event.target.value)}
@@ -314,7 +334,7 @@ export function TemplatesClient({
               {error ? <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
               <Button
                 onClick={() => void analyzeRequest()}
-                disabled={loading || !requestText.trim()}
+                disabled={loading || uploadingLogo || (!requestText.trim() && !logoUrl)}
                 className="min-h-12 w-full rounded-2xl bg-gradient-to-r from-[#7130d8] via-[#5c24ad] to-[#d92d7c] font-black text-white shadow-lg shadow-violet-200 hover:brightness-105"
               >
                 {loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Sparkles className="mr-2 size-4" />}
@@ -347,6 +367,9 @@ export function TemplatesClient({
               </div>
             </div>
 
+            {sourceImage ? <img src={sourceImage} alt="Affiche à modifier" className="mx-auto max-h-80 rounded-2xl object-contain" /> : null}
+            <p className="text-sm text-slate-600">Chaque génération produit une nouvelle version et compte dans votre quota. Vérifiez l’aperçu avant de la diffuser.</p>
+            {logoPicker}
             <div className="space-y-3">
               {brief.changes.map((change, index) => (
                 <div
@@ -386,7 +409,7 @@ export function TemplatesClient({
 
             <Button
               onClick={() => void generatePoster()}
-              disabled={loading || blocked}
+              disabled={loading || uploadingLogo || blocked}
               className="min-h-14 w-full rounded-2xl bg-gradient-to-r from-[#16b86b] to-[#078e50] text-base font-black text-white shadow-lg shadow-emerald-200 hover:brightness-105"
             >
               {loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Check className="mr-2 size-4" />}
@@ -404,7 +427,7 @@ export function TemplatesClient({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Button variant="ghost" onClick={() => setStep("confirm")} className="rounded-xl font-black text-violet-700 hover:bg-violet-50">
             <ArrowLeft className="mr-2 size-4" />
-            Retour
+            Modifier
           </Button>
           <div className="flex flex-wrap gap-2">
             <Button

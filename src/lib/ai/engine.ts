@@ -96,7 +96,7 @@ export async function getStoredShabbatTimes(params: {
   timezone?: string | null;
 }): Promise<GenerationShabbatTimes | null> {
   const live = await getShabbatTimes({
-    city: params.city ?? "Paris",
+    city: params.city ?? undefined,
     timezone: params.timezone ?? "Europe/Paris",
   });
 

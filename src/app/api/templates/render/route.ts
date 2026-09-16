@@ -1,6 +1,9 @@
 export const runtime = "nodejs";
 export const maxDuration = 180;
 
+import { getShabbatTimes } from "@/lib/automation/hebcal";
+import { getPosterSource, trustedCommunityLogo, logoEditInstructions } from "@/lib/templates/edit-source";
+import { readPosterEditState } from "@/lib/templates/edit-state";
 import { NextResponse } from "next/server";
 import { FREE_POSTER_LIMIT, getBillingGate, getBillingUsage, paywallResponse } from "@/lib/billing";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -30,17 +33,6 @@ function changesFromLegacyBody(body: Record<string, unknown>): PosterChange[] {
   return [];
 }
 
-function trustedLogoUrl(value: unknown) {
-  if (typeof value !== "string" || !value.trim()) return null;
-  try {
-    const logoUrl = new URL(value.trim());
-    const supabaseUrl = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "");
-    return logoUrl.protocol === "https:" && logoUrl.host === supabaseUrl.host ? logoUrl.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -49,7 +41,7 @@ export async function POST(request: Request) {
     const body = await request.json() as Record<string, unknown>;
     const templateId = typeof body.templateId === "string" ? body.templateId : "";
     const changes = changesFromLegacyBody(body);
-    const logoUrl = trustedLogoUrl(body.logoUrl);
+
     const structureName = changes.find((change) => change.label === "organization")?.newText;
     if (!templateId || changes.length === 0) return NextResponse.json({ error: "Données invalides" }, { status: 400 });
 
@@ -65,15 +57,36 @@ export async function POST(request: Request) {
     const { data: template } = await admin.from("Template").select("*").eq("id", templateId)
       .or(`isGlobal.eq.true,communityId.eq.${gate.communityId}`).single();
     if (!template) return NextResponse.json({ error: "Template introuvable" }, { status: 404 });
+    const source = await getPosterSource(admin, gate.communityId, body.sourceMediaId);
+    if (source && source.templateId !== template.id) return NextResponse.json({ error: "Modèle source incompatible." }, { status: 400 });
+    const logoUrl = trustedCommunityLogo(body.logoUrl, gate.communityId);
+    if (body.logoUrl && !logoUrl) return NextResponse.json({ error: "Logo inaccessible." }, { status: 400 });
+    let shabbatDate: string | undefined;
+    if (body.shabbat === true) {
+      const { data: community } = await admin.from("Community").select("city, country, timezone").eq("id", gate.communityId).single();
+      const city = changes.find((change) => change.label === "location")?.newText ?? community?.city ?? undefined;
+      const times = await getShabbatTimes({ city, country: community?.country ?? undefined, timezone: community?.timezone ?? undefined });
+      if (!times?.entry || !times.exit || !times.parasha) return NextResponse.json({ error: "Impossible d’actualiser les horaires. Vérifiez la ville et réessayez." }, { status: 422 });
+      shabbatDate = times.date;
+      const fresh: Record<string, string> = { parasha: times.parasha, "entry time": times.entry, "exit time": times.exit, location: city ?? "" };
+      for (const change of changes) if (fresh[change.label]) change.newText = fresh[change.label];
+      changes.push({ label: "Date", currentText: "", newText: new Date(`${times.date}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }) });
+    }
+    const previous = readPosterEditState(source?.editState);
+    for (const change of changes) change.currentText = previous?.changes.find((old) => old.label === change.label)?.newText ?? change.currentText;
+
     const edited = await editTemplatePosterWithFal({
       admin,
       template,
       communityId: gate.communityId,
       userId: user.id,
       changes,
+      sourceImageUrl: source?.url,
+      editState: { version: 1, templateId: template.id, sourceMediaId: source?.id ?? null, changes: previous?.changes ?? [], textsToRemove: [], logoUrl, shabbatDate },
       referenceImageUrls: logoUrl ? [logoUrl] : undefined,
       editInstructions: [
         "NON-NEGOTIABLE BRANDING REQUIREMENTS:",
+        logoEditInstructions(logoUrl),
         structureName
           ? `The official organization name is "${structureName}". It is mandatory: reproduce it exactly, clearly and legibly once on the final poster. Never omit, abbreviate, translate or alter it.`
           : "The organization name provided in the confirmed content is mandatory and must never be omitted or altered.",
@@ -83,7 +96,7 @@ export async function POST(request: Request) {
       ].join("\n"),
     });
     await admin.from("Template").update({ usageCount: (template.usageCount ?? 0) + 1, updatedAt: new Date().toISOString() }).eq("id", template.id);
-    return NextResponse.json({ imageUrl: edited.imageUrl, usedTextBlocks: body.textBlocks ?? [], generatedTexts: body.generatedTexts ?? {}, warnings: [] });
+    return NextResponse.json({ imageUrl: edited.imageUrl, mediaId: edited.mediaId, shabbatDate, usedTextBlocks: body.textBlocks ?? [], generatedTexts: body.generatedTexts ?? {}, warnings: [] });
   } catch (error) {
     console.error("[Template Fal Render]", error);
     return NextResponse.json({ error: error instanceof Error ? error.message : "Modification impossible" }, { status: 500 });

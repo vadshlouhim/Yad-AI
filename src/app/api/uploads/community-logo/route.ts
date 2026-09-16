@@ -67,11 +67,11 @@ export async function POST(request: Request) {
 
   const ownerId = profile?.communityId ?? user.id;
   const structureName = community?.slug ?? community?.name ?? user.email ?? ownerId;
-  const storagePath = `${ownerId}/${slugifyLogoName(structureName)}-logo.${extensionForFile(file)}`;
+  const storagePath = `${ownerId}/${slugifyLogoName(structureName)}-logo-${crypto.randomUUID()}.${extensionForFile(file)}`;
   let { error: uploadError } = await admin.storage.from(BUCKET).upload(storagePath, input, {
     contentType: file.type,
     cacheControl: "3600",
-    upsert: true,
+    upsert: false,
   });
 
   if (uploadError?.message.toLowerCase().includes("bucket")) {
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     const retry = await admin.storage.from(BUCKET).upload(storagePath, input, {
       contentType: file.type,
       cacheControl: "3600",
-      upsert: true,
+      upsert: false,
     });
     uploadError = retry.error;
   }
@@ -92,10 +92,11 @@ export async function POST(request: Request) {
   const logoUrl = `${data.publicUrl}?v=${Date.now()}`;
 
   if (profile?.communityId) {
-    await admin
+    const { error: saveError } = await admin
       .from("Community")
       .update({ logoUrl, updatedAt: new Date().toISOString() })
       .eq("id", profile.communityId);
+    if (saveError) return NextResponse.json({ error: "Le logo n’a pas pu être enregistré." }, { status: 500 });
   }
 
   return NextResponse.json({ logoUrl, path: storagePath, contentType: file.type });

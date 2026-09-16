@@ -1,3 +1,4 @@
+import { resolveShabbatLocation, CityResolutionError } from "@/lib/automation/city-location";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -12,17 +13,17 @@ export async function GET(request: Request) {
     const admin = createAdminClient();
     const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
 
-    let city = "Paris";
-    let timezone = "Europe/Paris";
+    let city = "";
+    let country = "France";
 
     if (profile?.communityId) {
       const { data: community } = await admin
         .from("Community")
-        .select("city, timezone")
+        .select("city, timezone, country")
         .eq("id", profile.communityId)
         .single();
+      if (community?.country) country = community.country;
       if (community?.city) city = community.city;
-      if (community?.timezone) timezone = community.timezone;
     }
 
     const { searchParams } = new URL(request.url);
@@ -33,9 +34,13 @@ export async function GET(request: Request) {
       return NextResponse.json(holidays);
     }
 
-    const shabbatTimes = await getShabbatTimes({ city, timezone });
+    city = searchParams.get("city")?.trim() || city;
+    const location = await resolveShabbatLocation(city, country);
+    const shabbatTimes = await getShabbatTimes({ city: location.cityName, latitude: location.latitude, longitude: location.longitude, timezone: location.timezone, country: location.countryCode });
+    if (!shabbatTimes?.entry || !shabbatTimes.exit) return NextResponse.json({ error: "Horaires indisponibles pour cette ville et cette semaine." }, { status: 503 });
     return NextResponse.json(shabbatTimes);
-  } catch {
+  } catch (error) {
+    if (error instanceof CityResolutionError) return NextResponse.json({ error: error.message, candidates: error.candidates }, { status: 422 });
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

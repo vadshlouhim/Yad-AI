@@ -15,7 +15,8 @@
     "db:migrate:safe": "npm run db:check-target && prisma migrate deploy",
     "test:admin-templates": "tsx scripts/test-admin-templates.ts",
     "templates:import": "tsx scripts/import-template-library.ts",
-    "test:posters": "eslint src/lib/templates/fal-edit.ts src/app/api/templates"
+    "test:posters": "eslint src/lib/templates/fal-edit.ts src/app/api/templates",
+    "test:poster-reuse": "tsx scripts/test-poster-reuse.ts"
   },
   "dependencies": {
     "@fal-ai/client": "^1.10.0",

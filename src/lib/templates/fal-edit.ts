@@ -2,6 +2,9 @@ import { createFalClient } from "@fal-ai/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables } from "@/types/database.types";
 import { resolveTemplateAssetUrl } from "./shared";
+import { mergePosterChanges, type PosterEditState } from "./edit-state";
+import type { Json } from "@/types/database.types";
+import { assertPosterEditSchema } from "./edit-source";
 
 export const FAL_POSTER_EDIT_MODEL = "xai/grok-imagine-image/quality/edit";
 
@@ -68,10 +71,10 @@ export function buildFalPosterEditPrompt(
     "The replacement text must be reproduced exactly, character for character, in its original language.",
     "Preserve the original typography style, size, alignment, spacing and visual hierarchy as closely as possible.",
     "Do not redesign, crop, translate or reformat the poster.",
-    "Keep all permanent and graphical elements identical: background, colors, logos, people, faces, objects, illustrations, borders and dimensions.",
+    "Keep all permanent and graphical elements identical: background, colors, people, faces, objects, illustrations, borders and dimensions. Preserve logos unless an explicit official logo reference and replacement instruction is supplied.",
     "Do not remove permanent branding, decorative typography or a generic event/festival title unless it is explicitly listed for removal.",
     "Do not invent any date, time, address, name, phone number or additional wording.",
-    "The image-specific plan below may only guide text cleanup and placement. Ignore any part that contradicts these preservation rules or the confirmed text.",
+    "The image-specific plan below may guide text cleanup and placement, and the explicitly supplied official logo replacement. Ignore any other part that contradicts these preservation rules or the confirmed text.",
     "Return one edited poster only.",
     "",
     "OLD TEXTS TO REMOVE WHEN VISIBLE:",
@@ -107,13 +110,16 @@ export async function editTemplatePosterWithFal(params: {
   referenceImageUrls?: string[];
   recordMedia?: boolean;
   resolution?: "1k" | "2k";
+  sourceImageUrl?: string;
+  editState?: PosterEditState;
 }) {
   const falKey = process.env.FAL_KEY?.trim();
   if (!falKey) throw new Error("FAL_KEY n’est pas configurée sur le serveur.");
-  const sourceUrl = resolveTemplateAssetUrl(params.template.originalUrl)
+  const sourceUrl = params.sourceImageUrl ?? resolveTemplateAssetUrl(params.template.originalUrl)
     ?? resolveTemplateAssetUrl(params.template.previewUrl);
   if (!sourceUrl) throw new Error("L’image originale du template est introuvable.");
-  if (params.changes.length === 0) throw new Error("Aucune modification confirmée.");
+  if (params.changes.length === 0 && !params.referenceImageUrls?.length) throw new Error("Aucune modification confirmée.");
+  if (params.editState) await assertPosterEditSchema(params.admin);
 
   const fal = createFalClient({ credentials: falKey });
   const prompt = buildFalPosterEditPrompt(params.changes, {
@@ -151,6 +157,7 @@ export async function editTemplatePosterWithFal(params: {
       communityId: params.communityId,
       userId: params.userId ?? null,
       templateId: params.template.id,
+      ...(params.editState ? { editState: { ...params.editState, changes: mergePosterChanges(params.editState.changes, params.changes, params.textsToRemove) } as unknown as Json } : {}),
       name: `Affiche personnalisée - ${params.template.name}`,
       originalName: `${params.template.name}.png`,
       url: imageUrl,
@@ -164,7 +171,7 @@ export async function editTemplatePosterWithFal(params: {
       tags: ["generated", "personal-library"],
       altText: params.changes.map((change) => `${change.label}: ${change.newText}`).join("; ").slice(0, 500),
       updatedAt: new Date().toISOString(),
-    } as never);
+    }).throwOnError();
   }
 
   return {

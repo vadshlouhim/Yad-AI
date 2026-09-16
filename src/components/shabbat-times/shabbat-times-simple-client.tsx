@@ -1,5 +1,6 @@
 "use client";
 
+import { CommunityLogoPicker } from "@/components/templates/community-logo-picker";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -11,11 +12,9 @@ import {
   Edit3,
   ExternalLink,
   ImageIcon,
-  Loader2,
   MapPin,
   Send,
   Sparkles,
-  Upload,
   X,
 } from "lucide-react";
 import { DAVID_AUTOMATION_IMAGE_URL } from "@/components/automations/automation-design-kit";
@@ -42,6 +41,9 @@ type Community = {
 
 type Shabbat = {
   parasha: string | null;
+  date: string;
+  entry: string | null;
+  exit: string | null;
 } | null;
 
 type SocialChannel = {
@@ -79,6 +81,7 @@ type Props = {
   shabbat: Shabbat;
   initialAutomation: InitialAutomation;
   socialChannels: SocialChannel[];
+  initialPoster?: { id: string; imageUrl: string } | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -280,6 +283,8 @@ function Field({
   label,
   value,
   onChange,
+  onBlur,
+  readOnly = false,
   placeholder,
   required = false,
   icon: Icon,
@@ -287,6 +292,8 @@ function Field({
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
+  readOnly?: boolean;
   placeholder: string;
   required?: boolean;
   icon: typeof Clock3;
@@ -301,6 +308,8 @@ function Field({
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
+        readOnly={readOnly}
         placeholder={placeholder}
         required={required}
         className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold text-slate-950 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-[#421388] focus:ring-4 focus:ring-violet-100"
@@ -315,16 +324,23 @@ export function ShabbatTimesSimpleClient({
   shabbat,
   initialAutomation,
   socialChannels,
+  initialPoster,
 }: Props) {
   const savedFields = useMemo(() => savedPosterFields(initialAutomation), [initialAutomation]);
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const savedPoster = initialAutomation && isRecord(initialAutomation.triggerConfig) && isRecord(initialAutomation.triggerConfig.shabbatPoster) ? initialAutomation.triggerConfig.shabbatPoster : {};
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(() => templates.find((template) => template.id === savedPoster.selectedTemplateId) ?? null);
+  const [sourceMediaId, setSourceMediaId] = useState<string | null>(initialPoster?.id ?? null);
+  const [weekDate, setWeekDate] = useState(shabbat?.date ?? "");
+  const [loadingTimes, setLoadingTimes] = useState(false);
+  const [cityCandidates, setCityCandidates] = useState<string[]>([]);
+  const timesRequest = useRef(0);
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [form, setForm] = useState<FormState>(() => ({
     structureName: stringValue(savedFields.structureName) || community.name,
     city: stringValue(savedFields.city) || community.city || "",
-    parasha: stringValue(savedFields.parasha) || shabbat?.parasha || "",
-    entry: "",
-    exit: "",
+    parasha: shabbat?.parasha || "",
+    entry: shabbat?.entry || "",
+    exit: shabbat?.exit || "",
     logoUrl: stringValue(savedFields.logoUrl) || community.logoUrl || "",
   }));
   const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
@@ -338,7 +354,7 @@ export function ShabbatTimesSimpleClient({
   const [automationTime, setAutomationTime] = useState("10:00");
   const [automationActive, setAutomationActive] = useState(Boolean(initialAutomation?.isActive));
   const [savingAutomation, setSavingAutomation] = useState(false);
-  const logoInputRef = useRef<HTMLInputElement>(null);
+
   const isPaid = community.plan !== "FREE_TRIAL";
 
   const connectedChannels = useMemo(
@@ -368,7 +384,8 @@ export function ShabbatTimesSimpleClient({
   }, [generating, publishSuccessResults, publishing, selectedTemplate]);
 
   function updateForm(field: keyof FormState, value: string) {
-    setForm((current) => ({ ...current, [field]: value }));
+    if (field === "city") { timesRequest.current += 1; setWeekDate(""); }
+    setForm((current) => field === "city" ? { ...current, city: value, parasha: "", entry: "", exit: "" } : { ...current, [field]: value });
     setError("");
     setNotice("");
   }
@@ -378,6 +395,7 @@ export function ShabbatTimesSimpleClient({
       setPaywallOpen(true);
       return;
     }
+    if (template.id !== selectedTemplate?.id) setSourceMediaId(null);
     setSelectedTemplate(template);
     setResultImageUrl(null);
     setAutomationOpen(false);
@@ -386,44 +404,37 @@ export function ShabbatTimesSimpleClient({
     setPublishSuccessResults(null);
   }
 
-  async function uploadLogo(file: File | null | undefined) {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setError("Choisissez un fichier image pour le logo.");
-      return;
-    }
-    setUploadingLogo(true);
+  async function refreshShabbatTimes(city = form.city) {
+    const requestId = ++timesRequest.current;
+    setLoadingTimes(true);
     setError("");
     try {
-      const body = new FormData();
-      body.append("file", file);
-      const response = await fetch("/api/uploads/community-logo", { method: "POST", body });
-      const data = await response.json().catch(() => ({})) as { logoUrl?: string; error?: string };
-      if (!response.ok || !data.logoUrl) throw new Error(data.error ?? "Téléversement impossible.");
-      updateForm("logoUrl", data.logoUrl);
-    } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : "Téléversement du logo impossible.");
-    } finally {
-      setUploadingLogo(false);
-    }
-  }
-
-  function validateForm() {
-    if (!form.structureName.trim()) return "Indiquez le nom de la structure.";
-    if (!form.city.trim()) return "Indiquez la ville.";
-    if (!form.parasha.trim()) return "Indiquez la paracha.";
-    if (!form.entry.trim()) return "Indiquez l’heure d’entrée de Chabbat.";
-    if (!form.exit.trim()) return "Indiquez l’heure de sortie de Chabbat.";
-    return "";
+      const response = await fetch(`/api/shabbat?city=${encodeURIComponent(city)}`, { cache: "no-store" });
+      const data = await response.json();
+      if (requestId !== timesRequest.current) return null;
+      if (!response.ok || !data.entry || !data.exit) {
+        setCityCandidates(Array.isArray(data.candidates) ? data.candidates : []);
+        throw new Error(data.error ?? "Horaires indisponibles.");
+      }
+      setCityCandidates([]);
+      setWeekDate(data.date);
+      setForm((current) => ({ ...current, city, parasha: data.parasha || "", entry: data.entry, exit: data.exit }));
+      return data as { parasha: string; entry: string; exit: string; date: string };
+    } catch (error) {
+      if (requestId === timesRequest.current) {
+        setForm((current) => ({ ...current, parasha: "", entry: "", exit: "" }));
+        setWeekDate("");
+        setError(error instanceof Error ? error.message : "Horaires indisponibles.");
+      }
+      return null;
+    } finally { if (requestId === timesRequest.current) setLoadingTimes(false); }
   }
 
   async function generatePoster() {
     if (!selectedTemplate || generating) return;
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
+    if (!form.structureName.trim() || !form.city.trim()) { setError("Indiquez le nom de la structure et sa ville."); return; }
+    const times = await refreshShabbatTimes();
+    if (!times) return;
 
     setGenerating(true);
     setError("");
@@ -432,21 +443,22 @@ export function ShabbatTimesSimpleClient({
       const textBlocks = [
         { id: "structure", text: form.structureName.trim(), role: "organization", priority: "main" },
         { id: "city", text: form.city.trim(), role: "location", priority: "complementary" },
-        { id: "parasha", text: form.parasha.trim(), role: "parasha", priority: "main" },
-        { id: "entry", text: form.entry.trim(), role: "entry time", priority: "important" },
-        { id: "exit", text: form.exit.trim(), role: "exit time", priority: "important" },
+        { id: "parasha", text: times.parasha, role: "parasha", priority: "main" },
+        { id: "entry", text: times.entry, role: "entry time", priority: "important" },
+        { id: "exit", text: times.exit, role: "exit time", priority: "important" },
       ];
       const response = await fetch("/api/templates/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId: selectedTemplate.id, textBlocks, logoUrl: form.logoUrl || null }),
+        body: JSON.stringify({ templateId: selectedTemplate.id, sourceMediaId, shabbat: true, textBlocks, logoUrl: form.logoUrl || null }),
       });
-      const data = await response.json().catch(() => ({})) as { imageUrl?: string; error?: string };
+      const data = await response.json().catch(() => ({})) as { imageUrl?: string; mediaId?: string; error?: string };
       if (!response.ok || !data.imageUrl) throw new Error(data.error ?? "L’affiche n’a pas pu être créée.");
       setResultImageUrl(data.imageUrl);
+      setSourceMediaId(data.mediaId ?? null);
       setNotice("Votre affiche est prête.");
 
-      void fetch("/api/shabbat-times-auto/config", {
+      const configResponse = await fetch("/api/shabbat-times-auto/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -454,13 +466,15 @@ export function ShabbatTimesSimpleClient({
           templateId: selectedTemplate.id,
           templateMode: "simple",
           config: {
-            fields: form,
-            postText: buildCaption(form),
+            fields: { ...savedFields, ...form, ...times },
+            draftSourceMediaId: data.mediaId,
+            postText: buildCaption({ ...form, ...times }),
             scheduleMode: "notification",
             channels: publishChannels,
           },
         }),
-      }).catch(() => undefined);
+      });
+      if (!configResponse.ok) setNotice("Affiche créée et enregistrée. La configuration hebdomadaire n’a pas pu être sauvegardée ; réessayez son activation.");
     } catch (generationError) {
       setError(generationError instanceof Error ? generationError.message : "L’affiche n’a pas pu être créée.");
     } finally {
@@ -522,6 +536,13 @@ export function ShabbatTimesSimpleClient({
       setNotice(names.length ? `Affiche publiée sur ${names.join(" et ")}.` : "Publication lancée.");
       const successfulResults = (data.results ?? []).filter((result) => result.success);
       if (successfulResults.length > 0) setPublishSuccessResults(successfulResults);
+      if (successfulResults.length && sourceMediaId) {
+        const saved = await fetch("/api/shabbat-times-auto/config", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: "save-config", templateId: selectedTemplate?.id, config: { fields: { ...savedFields, ...form }, sourceMediaId, draftSourceMediaId: sourceMediaId, scheduleMode: "notification" } }),
+        });
+        if (!saved.ok) setNotice("Publication effectuée. La référence pour les prochaines semaines n’a pas pu être enregistrée.");
+      }
     } catch (publishError) {
       setError(publishError instanceof Error ? publishError.message : "Publication impossible.");
     } finally {
@@ -542,7 +563,8 @@ export function ShabbatTimesSimpleClient({
           templateId: selectedTemplate.id,
           templateMode: "simple",
           config: {
-            fields: form,
+            fields: { ...savedFields, ...form },
+            sourceMediaId: resultImageUrl ? sourceMediaId : savedPoster.sourceMediaId,
             postText: buildCaption(form),
             notificationDay: "Vendredi",
             notificationDayOfWeek: 5,
@@ -583,6 +605,7 @@ export function ShabbatTimesSimpleClient({
       </header>
 
       <section className="mt-7">
+        {savedPoster.selectedTemplateId ? <Button variant="outline" className="mb-4 rounded-xl font-black text-violet-700" onClick={() => { const template = templates.find((item) => item.id === savedPoster.selectedTemplateId); if (template) { openTemplate(template, templates.indexOf(template)); void refreshShabbatTimes(); } }}><Edit3 className="mr-2 size-4" />Reprendre pour le prochain Chabbat</Button> : null}
         <div className="flex items-end justify-between gap-4">
           <div>
             <h2 className="text-2xl font-black tracking-tight text-slate-950">Choisissez votre affiche</h2>
@@ -691,33 +714,23 @@ export function ShabbatTimesSimpleClient({
 
                     <div className="mt-5 grid gap-4 sm:grid-cols-2">
                       <Field label="Nom de la structure" value={form.structureName} onChange={(value) => updateForm("structureName", value)} placeholder="Ex. Beth Habad" required icon={Edit3} />
-                      <Field label="Ville" value={form.city} onChange={(value) => updateForm("city", value)} placeholder="Ex. Paris" required icon={MapPin} />
-                      <Field label="Paracha" value={form.parasha} onChange={(value) => updateForm("parasha", value)} placeholder="Ex. Ekev" required icon={Sparkles} />
+                      <Field label="Ville" value={form.city} onChange={(value) => updateForm("city", value)} onBlur={() => void refreshShabbatTimes()} placeholder="Ex. Paris" required icon={MapPin} />
+                      <Field label="Paracha" value={form.parasha} onChange={(value) => updateForm("parasha", value)} placeholder="Actualisée selon la semaine" readOnly required icon={Sparkles} />
                       <div className="hidden sm:block" />
-                      <Field label="Entrée de Chabbat" value={form.entry} onChange={(value) => updateForm("entry", value)} placeholder="Ex. 20:42" required icon={Clock3} />
-                      <Field label="Sortie de Chabbat" value={form.exit} onChange={(value) => updateForm("exit", value)} placeholder="Ex. 21:51" required icon={Clock3} />
+                      <Field label="Entrée de Chabbat" value={form.entry} onChange={(value) => updateForm("entry", value)} placeholder="Selon la ville" readOnly required icon={Clock3} />
+                      <Field label="Sortie de Chabbat" value={form.exit} onChange={(value) => updateForm("exit", value)} placeholder="Selon la ville" readOnly required icon={Clock3} />
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => logoInputRef.current?.click()}
-                      className="mt-5 flex w-full items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-3 text-left transition hover:border-violet-400 hover:bg-violet-50"
-                    >
-                      <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white">
-                        {form.logoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={form.logoUrl} alt="Logo" className="h-full w-full object-contain p-1" />
-                        ) : <Upload className="size-5 text-slate-400" />}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-black text-slate-900">Logo de la structure</span>
-                        <span className="mt-0.5 block text-xs text-slate-500">{uploadingLogo ? "Téléversement en cours…" : "Touchez pour ajouter ou remplacer le logo"}</span>
-                      </span>
-                      {uploadingLogo ? <Loader2 className="size-5 animate-spin text-[#421388]" /> : <Upload className="size-5 text-[#421388]" />}
-                      <input ref={logoInputRef} type="file" accept="image/*" className="sr-only" onChange={(event) => void uploadLogo(event.target.files?.[0])} />
-                    </button>
+                    <div className="rounded-xl bg-violet-50 p-3 text-sm text-violet-900">
+                      <p>{weekDate ? `Semaine du ${new Date(`${weekDate}T12:00:00Z`).toLocaleDateString("fr-FR", { timeZone: "UTC" })} · ${form.city}` : "Horaires à actualiser"}</p>
+                      <p className="mt-1 text-xs">Allumage : 18 min avant le coucher du soleil · Sortie : 63 min après.</p>
+                      <Button type="button" variant="outline" disabled={loadingTimes || generating} className="mt-2" onClick={() => void refreshShabbatTimes()}>{loadingTimes ? "Actualisation…" : "Actualiser pour le prochain Chabbat"}</Button>
+                      {cityCandidates.map((city) => <Button key={city} type="button" variant="outline" className="mt-2" onClick={() => void refreshShabbatTimes(city)}>{city}</Button>)}
+                    </div>
+                    <CommunityLogoPicker value={form.logoUrl || null} onChange={(url) => updateForm("logoUrl", url)} onBusyChange={setUploadingLogo} onError={setError} />
 
-                    <Button type="button" size="xl" className="mt-5 w-full rounded-2xl bg-[#d92d7c] font-black shadow-lg shadow-pink-950/20 hover:bg-[#c5236e]" loading={generating} onClick={() => void generatePoster()}>
+                    <p className="mt-3 text-xs text-slate-500">Chaque génération crée une nouvelle version enregistrée dans Mes créations et compte dans votre quota.</p>
+                    <Button type="button" size="xl" className="mt-5 w-full rounded-2xl bg-[#d92d7c] font-black shadow-lg shadow-pink-950/20 hover:bg-[#c5236e]" loading={generating} disabled={uploadingLogo || loadingTimes || generating} onClick={() => void generatePoster()}>
                       {!generating && <Sparkles className="size-5" />}
                       {generating ? "David personnalise l’affiche…" : "Créer mon affiche avec David"}
                     </Button>

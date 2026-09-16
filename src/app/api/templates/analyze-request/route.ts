@@ -1,3 +1,4 @@
+import { getPosterSource } from "@/lib/templates/edit-source";
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "OPENROUTER_API_KEY n’est pas configurée." }, { status: 503 });
     }
 
-    const body = await request.json() as { templateId?: unknown; request?: unknown };
+    const body = await request.json() as { templateId?: unknown; sourceMediaId?: unknown; request?: unknown };
     const templateId = typeof body.templateId === "string" ? body.templateId : "";
     const userRequest = typeof body.request === "string" ? body.request.trim() : "";
     if (!templateId || !userRequest) return NextResponse.json({ error: "Demande incomplète." }, { status: 400 });
@@ -32,7 +33,9 @@ export async function POST(request: Request) {
       .or(`isGlobal.eq.true,communityId.eq.${profile.communityId}`)
       .single();
     if (!template) return NextResponse.json({ error: "Template introuvable" }, { status: 404 });
-    const imageUrl = resolveTemplateAssetUrl(template.originalUrl) ?? resolveTemplateAssetUrl(template.previewUrl);
+    const source = await getPosterSource(admin, profile.communityId, body.sourceMediaId);
+    if (source && source.templateId !== template.id) return NextResponse.json({ error: "Modèle source incompatible." }, { status: 400 });
+    const imageUrl = source?.url ?? resolveTemplateAssetUrl(template.originalUrl) ?? resolveTemplateAssetUrl(template.previewUrl);
     if (!imageUrl) return NextResponse.json({ error: "Image du template introuvable" }, { status: 400 });
 
     const openrouter = new OpenAI({ baseURL: "https://openrouter.ai/api/v1", apiKey: process.env.OPENROUTER_API_KEY });
@@ -45,6 +48,7 @@ export async function POST(request: Request) {
           { type: "text", text: [
             `Analyse cette affiche nommée « ${template.name} » et la demande de modification de l’utilisateur.`,
             "Lis l’image et distingue les éléments graphiques permanents des informations événementielles variables.",
+            "Pour permettre une prochaine réutilisation, recense TOUS les textes événementiels éditables visibles dans changes, même ceux qui ne changent pas. Pour un texte inchangé, currentText et newText doivent être identiques. Préserve les informations non concernées par la demande. Ne recopie pas les anciens textes remplacés comme un second champ.",
             "Extrais toutes les nouvelles informations que l’utilisateur veut voir sur l’affiche, même si le template ne possède aucun champ ou texte correspondant.",
             "Pour chaque nouvelle information, crée une entrée changes. Si un texte correspondant est visible, place-le dans currentText ; sinon laisse currentText vide.",
             "Recense dans textsToRemove les anciens textes événementiels visibles qui entreraient en conflit ou feraient doublon avec les nouvelles informations.",

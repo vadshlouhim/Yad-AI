@@ -1,3 +1,6 @@
+import { notFound } from "next/navigation";
+import { getPosterSource } from "@/lib/templates/edit-source";
+import { readPosterEditState } from "@/lib/templates/edit-state";
 import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TemplatesClient } from "@/components/templates/templates-client";
@@ -9,15 +12,19 @@ import type { Metadata } from "next";
 export const metadata: Metadata = { title: "Affiches — EasyCom IA" };
 
 interface Props {
-  searchParams: Promise<{ templateId?: string | string[] }>;
+  searchParams: Promise<{ templateId?: string | string[]; mediaId?: string | string[] }>;
 }
 
 export default async function TemplatesPage({ searchParams }: Props) {
-  const requestedTemplateId = (await searchParams).templateId;
-  const initialTemplateId = typeof requestedTemplateId === "string" ? requestedTemplateId : undefined;
+  const query = await searchParams;
+  const requestedTemplateId = query.templateId;
+  let initialTemplateId = typeof requestedTemplateId === "string" ? requestedTemplateId : undefined;
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
   const admin = createAdminClient();
+  const source = typeof query.mediaId === "string" ? await getPosterSource(admin, communityId, query.mediaId).catch(() => null) : null;
+  if (query.mediaId && !source) notFound();
+  if (source?.templateId) initialTemplateId = source.templateId;
 
   const [{ data: templates }, { data: community }, billingConfig] = await Promise.all([
     admin
@@ -44,7 +51,7 @@ export default async function TemplatesPage({ searchParams }: Props) {
     previewUrl: resolveTemplateAssetUrl(template.previewUrl),
   }));
   const shabbatTimes = await getStoredShabbatTimes({
-    city: community?.city ?? "Paris",
+    city: community?.city ?? undefined,
     timezone: community?.timezone ?? "Europe/Paris",
   });
 
@@ -57,7 +64,9 @@ export default async function TemplatesPage({ searchParams }: Props) {
         plan={community?.plan ?? "FREE_TRIAL"}
         billingConfig={billingConfig}
         billingUsage={billingUsage}
+        key={source?.id ?? initialTemplateId ?? "gallery"}
         initialTemplateId={initialTemplateId}
+        initialSource={source ? { id: source.id, imageUrl: source.url, editState: readPosterEditState(source.editState) } : null}
       />
     </div>
   );
