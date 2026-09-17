@@ -1,41 +1,41 @@
-# Design QA — Accueil et assistant mobile « Studio dynamique »
+# Validation visuelle — accueil de présentation
 
-- Source visuelle : PNG joint dans la conversation (aucun chemin de fichier local exposé)
-- Implémentation : `http://localhost:3000/dashboard/overview`
-- Assistant : `http://localhost:3000/dashboard/assistant?agent=dov`
-- Viewports prévus : 320, 375, 390, 430, 767 et 768 px
-- Source : 852 × 1876 px, interprétée comme une maquette @2x pour un viewport CSS proche de 426 × 938
-- État : utilisateur connecté, accueil mobile, aucune fenêtre ouverte
-- Capture d’implémentation : indisponible dans cette session
+## Références et états
 
-## Contrôles effectués
+Source visual truth path : sept captures jointes par l'utilisateur dans cette conversation : deux écrans Publier partout, deux écrans Banque d'affiches, deux écrans Newsletter Chabbat et un écran Accueil mobile.
 
-- Composition mobile isolée sous 768 px ; dashboard ordinateur conservé.
-- Logo, profil, notifications et données des agents réutilisés sans mutation métier.
-- Dix agents présents dans l’ordre des rubriques ; Avi puis Tsemah/Newsletter terminent le carrousel.
-- La flèche fait défiler le carrousel et revient au début après le dernier agent.
-- Les sept cartes ouvrent une fenêtre modale centrale associée à leur rubrique.
-- Chaque en-tête de fenêtre reprend exactement la famille de couleurs de sa carte.
-- Les intitulés des cartes utilisent une taille fluide, une largeur flexible et une disposition verticale sur les écrans les plus étroits.
-- Les quatre boutons inférieurs sont remplacés sur l’accueil par un bouton unique « Menu principal ».
-- Le bouton « Menu principal » déclenche le menu mobile existant et conserve toutes les routes actuelles.
-- ESLint : aucune erreur sur les fichiers de l’accueil mobile ; quatre avertissements `<img>` préexistants dans `topbar.tsx`.
-- TypeScript : aucune erreur dans les fichiers modifiés. Le contrôle global reste en échec sur des erreurs antérieures dans les modules dons et email, hors périmètre de cette refonte.
+Sources : 1080 × 2400 pixels, affichées dans la conversation à 922 × 2048 pixels. La densité CSS du téléphone n'est pas fournie. La barre Android, l'heure, les données personnelles et les photos des captures ne font pas partie de l'interface publique à reproduire.
 
-## Comparaison visuelle
+Implementation screenshot path : indisponible.
 
-La maquette source est visible dans la conversation, mais aucun navigateur pilotable n’est disponible dans cette session. La capture navigateur de l’implémentation, la comparaison côte à côte, les interactions réelles et la console ne peuvent donc pas être certifiées ici.
+Viewport prévu : 390, 768 et 1440 pixels de largeur. Normalisation et deviceScaleFactor : non exécutés faute de capture navigateur.
 
-## Historique des corrections
+États à comparer : bandeau et cartes de l'accueil ; sélection/personnalisation/aperçu d'une affiche ; texte et sélection des canaux ; rubriques/contenu/aperçu du feuillet ; fenêtres ouvertes et contrôles de lecture.
 
-1. Première intégration : cartes trop contraintes sur certaines largeurs, carrousel limité à trois agents et sous-menus en tiroir inférieur.
-2. Correction : typographie fluide, adaptation verticale sous 360 px, dix agents ordonnés, flèche de défilement et fenêtres centrales colorées.
-3. Correction : suppression complète des quatre boutons inférieurs et remplacement par un bouton unique « Menu principal ».
-4. Refonte de l’assistant mobile : passage du slug de l’agent depuis l’accueil, portrait individuel, titre personnalisé, compétences rapides, en-tête et composer violets.
-5. Conservation du chat existant : historique, nouvelle conversation, pièces jointes, dictée, validations, cartes d’action et réponses IA restent branchés sur leurs fonctions actuelles.
+## Findings
 
-## Résultat
+Blocage de validation : aucun navigateur connecté au runtime disponible. Les captures de référence sont visibles, mais aucune capture du rendu local ne peut être obtenue. Le code, les tests et les réponses HTTP ne constituent pas une validation visuelle.
+
+Full-view comparison evidence : indisponible. Focused region comparison evidence : indisponible. Aucun constat de fidélité pixel à pixel, d'absence de débordement ou de qualité responsive n'est revendiqué.
+
+## Surfaces de fidélité requises
+
+- Typographie : styles existants réutilisés ; tailles, retours à la ligne et rendu réel non comparés.
+- Espacement et rythme : arrondis et ombres partagés avec le dashboard ; cadrage réel et débordements non comparés.
+- Couleurs et tokens : fond crème, violet et couleurs des modules issus du code existant ; contraste et perception du rendu non vérifiés en navigateur.
+- Images : portraits locaux réutilisés et affiche dérivée fournie via imagegen, inspectée séparément. Cadrage, netteté en contexte et comparaison de l'interface non vérifiés.
+- Texte : exemples fictifs et libellés des outils ; lisibilité et correspondance visuelle non comparées.
+
+## Historique de comparaison
+
+Aucune comparaison visuelle source/rendu n'a pu être réalisée. Pas de classification P0/P1/P2 fondée sur une comparaison inexistante. Les corrections de code et tests ne sont pas des itérations de QA visuelle.
+
+## Implementation checklist
+
+1. Connecter un navigateur et ouvrir l'accueil local.
+2. Capturer les états aux trois largeurs prévues, normaliser les captures sources sans le chrome Android et comparer chaque paire dans la même vue.
+3. Vérifier les cartes, Échap, retour du focus, pause/relecture, onglet masqué, sortie du viewport et réduction des mouvements ; vérifier console et réseau.
+4. Corriger toute différence P0/P1/P2, capturer à nouveau et mettre à jour ce rapport.
+5. Valider en préversion Netlify avant toute publication. Aucun déploiement réalisé.
 
 final result: blocked
-
-Blocage : absence de navigateur pilotable et de capture authentifiée pour réaliser la comparaison visuelle obligatoire avec la maquette.

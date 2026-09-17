@@ -1,0 +1,32 @@
+@keyframes demo-screen-in {
+  from {
+    opacity: 0.65;
+    translate: 8px 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+.demo-screen {
+  animation: demo-screen-in 320ms ease-out both;
+  transition: transform 350ms ease-out;
+}
+[data-playing="false"] .demo-screen {
+  animation: none;
+}
+.demo-touch {
+  transition:
+    top 450ms ease-out,
+    left 450ms ease-out,
+    transform 200ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .demo-screen {
+    animation: none;
+    transition: none;
+  }
+  .demo-touch {
+    display: none;
+  }
+}

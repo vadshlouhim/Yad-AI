@@ -2,9 +2,11 @@ import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { OnboardingWizard, type OnboardingData } from "@/components/onboarding/onboarding-wizard";
+import { getPublicToolDestination } from "@/lib/public-tools";
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ callbackUrl?: string }> }) {
   const { profile } = await requireAuth();
+  const destination = getPublicToolDestination((await searchParams).callbackUrl) ?? "/dashboard";
 
   const admin = createAdminClient();
   let initialData: Partial<OnboardingData> | undefined;
@@ -17,7 +19,7 @@ export default async function OnboardingPage() {
       .single();
 
     if (community?.onboardingDone) {
-      redirect("/dashboard");
+      redirect(destination);
     }
 
     if (community) {
@@ -44,6 +46,7 @@ export default async function OnboardingPage() {
       communityId={profile.communityId ?? undefined}
       initialStep={initialStep}
       initialData={initialData}
+      returnTo={destination}
     />
   );
 }

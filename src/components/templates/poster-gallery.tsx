@@ -6,6 +6,7 @@ import { ArrowLeft, ImageIcon, Paintbrush, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { CATEGORY_EMOJI, CATEGORY_LABELS } from "@/lib/templates/shared";
 import { cn } from "@/lib/utils";
+import { POSTER_HEADER_CLASS } from "@/components/presentation/platform-style";
 
 export interface PosterGalleryTemplate {
   id: string;
@@ -112,7 +113,7 @@ export function PosterGallery({
 
   return (
     <div className="space-y-7">
-      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_78%_8%,#8037ce_0%,#421388_48%,#210763_100%)] px-5 py-6 text-white shadow-[0_24px_58px_rgba(49,13,108,0.26)] sm:px-8 sm:py-8">
+      <section className={POSTER_HEADER_CLASS}>
         <div className="pointer-events-none absolute -right-10 -top-16 size-52 rounded-full bg-fuchsia-300/15 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 left-1/4 size-48 rounded-full bg-amber-300/10 blur-3xl" />
         <div className="relative z-10 flex items-start gap-4">

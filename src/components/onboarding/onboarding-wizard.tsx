@@ -7,6 +7,7 @@ import { StepSocial } from "./steps/step-social";
 import { WelcomeAnimation } from "./welcome-animation";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
+import { getPublicToolDestination } from "@/lib/public-tools";
 
 const STEPS = [
   { id: 0, label: "Identité", description: "Votre structure" },
@@ -114,6 +115,7 @@ interface Props {
   initialStep?: number;
   initialData?: Partial<OnboardingData>;
   simulationMode?: boolean;
+  returnTo?: string;
 }
 
 export function OnboardingWizard({
@@ -123,6 +125,7 @@ export function OnboardingWizard({
   initialStep = 0,
   initialData,
   simulationMode = false,
+  returnTo,
 }: Props) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(Math.min(initialStep, STEPS.length - 1));
@@ -185,7 +188,7 @@ export function OnboardingWizard({
 
       if (!res.ok) throw new Error("Erreur lors de la sauvegarde");
 
-      router.replace("/dashboard");
+      router.replace(getPublicToolDestination(returnTo) ?? "/dashboard");
       router.refresh();
     } catch (err) {
       console.error(err);

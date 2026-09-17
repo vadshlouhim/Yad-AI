@@ -10,11 +10,11 @@ const FOOTER_LINKS = [
   { href: "/data-deletion", label: "Suppression des données" },
 ];
 
-export function PublicFooter() {
+export function PublicFooter({ platformStyle = false }: { platformStyle?: boolean }) {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-slate-200 bg-slate-50 px-4 py-10 text-slate-600 sm:px-6 lg:px-8">
+    <footer className={`border-t border-slate-200 px-4 py-10 text-slate-600 sm:px-6 lg:px-8 ${platformStyle ? "bg-[#fffaf4] [&_nav_a:hover]:text-[#421388]" : "bg-slate-50"}`}>
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-8 border-b border-slate-200 pb-8 md:grid-cols-[1fr_1.4fr] md:items-start">
           <Link href="/" className="flex max-w-sm items-center gap-3">

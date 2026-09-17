@@ -2,6 +2,7 @@
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { updateSession } from "@/lib/supabase/session";
 import { DEMO_ACCESS_COOKIE, isValidDemoAccessCookie } from "@/lib/demo/access";
+import { normalizeAuthNextPath } from "@/lib/supabase/auth-redirect";
 
 const PUBLIC_ROUTES = [
   "/",
@@ -41,6 +42,18 @@ function isApiRoute(pathname: string): boolean {
   return pathname.startsWith("/api/");
 }
 
+function redirectWithSession(url: URL, supabaseResponse: NextResponse) {
+  const response = NextResponse.redirect(url);
+  for (const cookie of supabaseResponse.cookies.getAll()) {
+    response.cookies.set(cookie);
+  }
+  for (const header of ["cache-control", "expires", "pragma"]) {
+    const value = supabaseResponse.headers.get(header);
+    if (value !== null) response.headers.set(header, value);
+  }
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -77,9 +90,18 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const publicRoute = isPublicRoute(pathname);
+  const authEntry = pathname === "/auth/login" || pathname === "/auth/register";
+
+  // Les pages publiques ordinaires ne dépendent pas de Supabase Auth.
+  // Connexion et inscription conservent la redirection des utilisateurs connectés.
+  if (publicRoute && !authEntry) {
+    return NextResponse.next();
+  }
+
   // Sans variables Supabase valides (dev sans .env.local) â†’ autoriser les routes publiques
   if (!isSupabaseConfigured()) {
-    if (isPublicRoute(pathname)) return NextResponse.next();
+    if (publicRoute) return NextResponse.next();
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
@@ -87,11 +109,10 @@ export async function proxy(request: NextRequest) {
   const { supabaseResponse, user } = await updateSession(request);
 
   // Routes publiques — rediriger vers dashboard si déjà connecté
-  if (isPublicRoute(pathname)) {
-    if (user && (pathname === "/auth/login" || pathname === "/auth/register")) {
-      const callbackUrl =
-        request.nextUrl.searchParams.get("callbackUrl") || "/dashboard";
-      return NextResponse.redirect(new URL(callbackUrl, request.url));
+  if (publicRoute) {
+    if (user && authEntry) {
+      const callbackUrl = normalizeAuthNextPath(request.nextUrl.searchParams.get("callbackUrl"));
+      return redirectWithSession(new URL(callbackUrl, request.url), supabaseResponse);
     }
     return supabaseResponse;
   }
@@ -100,7 +121,7 @@ export async function proxy(request: NextRequest) {
   if (!user) {
     const loginUrl = new URL("/auth/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
+    return redirectWithSession(loginUrl, supabaseResponse);
   }
 
   return supabaseResponse;

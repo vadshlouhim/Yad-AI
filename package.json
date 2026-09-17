@@ -16,7 +16,10 @@
     "test:admin-templates": "tsx scripts/test-admin-templates.ts",
     "templates:import": "tsx scripts/import-template-library.ts",
     "test:posters": "eslint src/lib/templates/fal-edit.ts src/app/api/templates",
-    "test:poster-reuse": "tsx scripts/test-poster-reuse.ts"
+    "test:poster-reuse": "tsx scripts/test-poster-reuse.ts",
+    "test:proxy": "tsx scripts/test-proxy.ts",
+    "test:public-discovery": "tsx scripts/test-public-discovery.ts",
+    "benchmark:public-ttfb": "node scripts/benchmark-public-ttfb.mjs"
   },
   "dependencies": {
     "@fal-ai/client": "^1.10.0",

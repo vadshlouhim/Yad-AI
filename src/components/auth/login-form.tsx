@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { buildAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
+import { buildAuthCallbackUrl, normalizeAuthNextPath } from "@/lib/supabase/auth-redirect";
+import { getPublicToolDestination, getToolOnboardingPath } from "@/lib/public-tools";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -12,7 +13,8 @@ import { Eye, EyeOff, Mail, Lock, Globe } from "lucide-react";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const toolDestination = getPublicToolDestination(searchParams.get("callbackUrl"));
+  const callbackUrl = toolDestination ? getToolOnboardingPath(toolDestination) : normalizeAuthNextPath(searchParams.get("callbackUrl"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -180,7 +182,7 @@ export function LoginForm() {
 
       <p className="text-center text-sm text-slate-500">
         Pas encore de compte ?{" "}
-        <Link href="/auth/register" className="text-blue-600 hover:underline font-medium">
+        <Link href={toolDestination ? `/auth/register?callbackUrl=${encodeURIComponent(toolDestination)}` : "/auth/register"} className="text-blue-600 hover:underline font-medium">
           Créer un compte
         </Link>
       </p>

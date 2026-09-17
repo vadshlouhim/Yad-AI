@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   DEFAULT_POST_LOGIN_PATH,
   normalizeAuthNextPath,
+  getPostAuthDestination,
 } from "@/lib/supabase/auth-redirect";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
         .eq("id", data.user.id)
         .single();
 
-      const destination = !profile?.communityId ? "/onboarding" : next;
+      const destination = getPostAuthDestination(next, Boolean(profile?.communityId));
       const redirectResponse = NextResponse.redirect(
         new URL(destination, redirectOrigin)
       );

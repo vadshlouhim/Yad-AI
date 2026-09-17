@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { NEWSLETTER_HEADER_CLASS } from "@/components/presentation/platform-style";
 
 export type NewsletterEvent = {
   id: string;
@@ -434,7 +435,7 @@ export function NewsletterPaperClient({
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-5 bg-[#fffaf1] pb-48 md:pb-28 sm:px-6 sm:pt-6">
-      <section className="relative overflow-hidden rounded-b-[2.4rem] bg-[radial-gradient(circle_at_82%_0%,#36506d_0%,#17253f_48%,#0f1c2e_100%)] px-5 pb-6 pt-7 text-white shadow-[0_18px_35px_rgba(23,37,63,0.2)] sm:rounded-[2rem] sm:px-8">
+      <section className={NEWSLETTER_HEADER_CLASS}>
         <span className="pointer-events-none absolute -right-14 top-12 size-48 rounded-full bg-[#e9c76a]/20 blur-3xl" />
         <span className="pointer-events-none absolute -left-10 bottom-0 size-36 rounded-full bg-[#36506d]/35 blur-2xl" />
         <div className="relative flex items-start justify-between gap-4">

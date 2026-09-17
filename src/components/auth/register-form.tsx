@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { getPublicToolDestination, getToolOnboardingPath } from "@/lib/public-tools";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import {
@@ -12,6 +14,10 @@ import Link from "next/link";
 import { Eye, EyeOff, Mail, Lock, User, Globe } from "lucide-react";
 
 export function RegisterForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const toolDestination = getPublicToolDestination(searchParams.get("callbackUrl"));
+  const onboardingPath = getToolOnboardingPath(toolDestination);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,7 +41,7 @@ export function RegisterForm() {
     }
 
     const supabase = createClient();
-    const { error } = await supabase.auth
+    const { data, error } = await supabase.auth
       .signUp({
         email,
         password,
@@ -43,12 +49,13 @@ export function RegisterForm() {
           data: { full_name: name },
           emailRedirectTo: buildAuthCallbackUrl(
             window.location.origin,
-            DEFAULT_POST_REGISTER_PATH,
+            onboardingPath,
             DEFAULT_POST_REGISTER_PATH
           ),
         },
       })
       .catch(() => ({
+        data: null,
         error: new Error("Auth service unreachable"),
       }));
 
@@ -62,6 +69,11 @@ export function RegisterForm() {
       return;
     }
 
+    if (data?.session && toolDestination) {
+      router.replace(onboardingPath);
+      router.refresh();
+      return;
+    }
     setSuccess(true);
     setLoading(false);
   }
@@ -75,7 +87,7 @@ export function RegisterForm() {
         options: {
           redirectTo: buildAuthCallbackUrl(
             window.location.origin,
-            DEFAULT_POST_REGISTER_PATH,
+            onboardingPath,
             DEFAULT_POST_REGISTER_PATH
           ),
           queryParams: { prompt: "select_account" },
@@ -247,7 +259,7 @@ export function RegisterForm() {
 
       <p className="text-center text-sm text-slate-500">
         Déjà un compte ?{" "}
-        <Link href="/auth/login" className="text-blue-600 hover:underline font-medium">
+        <Link href={toolDestination ? `/auth/login?callbackUrl=${encodeURIComponent(toolDestination)}` : "/auth/login"} className="text-blue-600 hover:underline font-medium">
           Se connecter
         </Link>
       </p>

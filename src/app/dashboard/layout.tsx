@@ -9,6 +9,7 @@ import { DashboardFirstVisitGate } from "@/components/dashboard/dashboard-first-
 import { ensureTodayEventReminderNotifications } from "@/lib/notifications/event-reminders";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
+import { getToolOnboardingPath } from "@/lib/public-tools";
 
 export const metadata: Metadata = {
   title: { template: "%s — EasyCom IA", default: "Dashboard — EasyCom IA" },
@@ -25,7 +26,7 @@ export default async function DashboardLayout({
   const isSettingsPath = pathname.startsWith("/dashboard/settings");
 
   if (!profile.communityId) {
-    redirect("/onboarding");
+    redirect(getToolOnboardingPath(pathname));
   }
 
   const admin = createAdminClient();
@@ -37,11 +38,11 @@ export default async function DashboardLayout({
     .single();
 
   if (!community) {
-    redirect("/onboarding");
+    redirect(getToolOnboardingPath(pathname));
   }
 
   if (!community.onboardingDone && !isSettingsPath) {
-    redirect("/onboarding");
+    redirect(getToolOnboardingPath(pathname));
   }
 
   await ensureTodayEventReminderNotifications(admin, {

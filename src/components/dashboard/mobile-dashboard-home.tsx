@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -35,6 +36,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { MOBILE_ACTION_CARD_CLASS, MOBILE_HOME_HEADER_CLASS, MODULE_COLORS } from "@/components/presentation/platform-style";
 import { HOME_EASYCOM_AGENTS, type EasyComAgent } from "@/lib/agents";
 import {
   getOfficialDashboardMenuSections,
@@ -83,42 +85,42 @@ const ACTION_CARDS: ActionCard[] = [
     key: "automations",
     title: "Automatiser",
     icon: Zap,
-    className: "bg-[#2f7e88]",
+    className: MODULE_COLORS.automations,
     href: "/dashboard/automations",
   },
   {
     key: "publish",
     title: "Publier partout en un clic",
     icon: Megaphone,
-    className: "bg-[#2962ff]",
+    className: MODULE_COLORS.publish,
     href: "/dashboard/social-networks",
   },
   {
     key: "torah",
     title: "Cours de Torah",
     icon: BookOpen,
-    className: "bg-[#80652d]",
+    className: MODULE_COLORS.torah,
     href: "/dashboard/torah",
   },
   {
     key: "newsletter-paper",
     title: "Le Newsletter",
     icon: FileText,
-    className: "bg-[#7b61ff]",
+    className: MODULE_COLORS.newsletter,
     href: "/dashboard/newsletter",
   },
   {
     key: "contacts",
     title: "Contacts",
     icon: Users,
-    className: "bg-[#ff6b5e]",
+    className: MODULE_COLORS.contacts,
     href: "/dashboard/contacts",
   },
   {
     key: "visuals",
     title: "Affiches & Visuels",
     icon: ImageIcon,
-    className: "bg-[#e84393]",
+    className: MODULE_COLORS.posters,
     sectionKey: "visuals",
   },
   { key: "targeted", title: "Communication ciblée", icon: Target, className: "bg-[#a25064]", href: "/dashboard/communication-ciblee" },
@@ -305,7 +307,7 @@ export function MobileDashboardHome({
 
   return (
     <div className="min-h-full overflow-x-hidden bg-[#fffaf4] text-slate-950 md:hidden">
-      <section className="relative overflow-hidden rounded-b-[46%_2.4rem] bg-[radial-gradient(circle_at_68%_9%,#6822b5_0%,#421388_38%,#210763_100%)] px-5 pb-9 pt-[max(1.2rem,env(safe-area-inset-top))] text-white shadow-[0_18px_35px_rgba(43,8,104,0.2)]">
+      <section className={MOBILE_HOME_HEADER_CLASS}>
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_46%,rgba(116,52,213,0.24),transparent_31%),radial-gradient(circle_at_82%_60%,rgba(92,44,171,0.3),transparent_28%)]" />
 
         <div className="relative flex items-center justify-between gap-4">
@@ -452,9 +454,11 @@ export function MobileDashboardHome({
                   <span className={cn("absolute right-3 top-3 z-20 flex size-9 items-center justify-center rounded-full text-white shadow-lg", accent.surface)}>
                     <AccentIcon className="size-[18px] stroke-[2.4]" />
                   </span>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={agent.image}
+                    width={94}
+                    height={137}
+                    sizes="94px"
                     alt=""
                     aria-hidden="true"
                     className="absolute -bottom-1 left-0 h-[137px] w-[94px] object-contain object-bottom drop-shadow-[0_10px_12px_rgba(8,1,30,0.28)]"
@@ -513,7 +517,7 @@ export function MobileDashboardHome({
               </>
             );
             const className = cn(
-              "relative flex min-h-[118px] items-center gap-2 overflow-hidden rounded-[1.8rem] border border-white/25 px-3 py-5 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.12),0_14px_28px_rgba(30,41,59,0.16)] transition-[transform,box-shadow] duration-200 active:scale-[0.975] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_5px_12px_rgba(30,41,59,0.16)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#36506d]/25 max-[520px]:min-h-[132px] max-[520px]:flex-col max-[520px]:justify-center max-[520px]:gap-2.5 max-[520px]:text-center",
+              MOBILE_ACTION_CARD_CLASS,
               action.className,
               action.wide && "col-span-2 min-h-[96px] justify-center"
             );

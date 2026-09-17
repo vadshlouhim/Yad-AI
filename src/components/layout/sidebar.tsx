@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronDown, LogOut, Settings, User, X } from "lucide-react";
@@ -45,14 +46,23 @@ const PLAN_LABELS: Record<string, string> = {
 const SOCIAL_AGENT_IMAGES = [
   {
     src: AGENT_IMAGE_URLS.dovBer,
+    width: 54,
+    height: 75,
+    sizes: "3.35rem",
     className: "left-0 -top-2 h-[4.7rem] w-[3.35rem] -rotate-6",
   },
   {
     src: AGENT_IMAGE_URLS.mendy,
+    width: 64,
+    height: 80,
+    sizes: "4rem",
     className: "left-1/2 -top-3 h-20 w-16 -translate-x-1/2 z-10",
   },
   {
     src: AGENT_IMAGE_URLS.israel,
+    width: 54,
+    height: 75,
+    sizes: "3.35rem",
     className: "right-0 -top-2 h-[4.7rem] w-[3.35rem] rotate-6",
   },
 ];
@@ -68,9 +78,12 @@ function SocialAgentBubble() {
   return (
     <span className="relative flex h-16 w-[4.9rem] shrink-0 items-center justify-center self-center overflow-visible">
       {SOCIAL_AGENT_IMAGES.map((agent) => (
-        <img
+        <Image
           key={agent.src}
           src={agent.src}
+          width={agent.width}
+          height={agent.height}
+          sizes={agent.sizes}
           alt=""
           aria-hidden="true"
           className={cn(
@@ -86,8 +99,11 @@ function SocialAgentBubble() {
 function AutomationAgentBubble() {
   return (
     <span className="relative z-20 flex h-16 w-[4.9rem] shrink-0 items-center justify-center self-center overflow-visible">
-      <img
+      <Image
         src={DAVID_AUTOMATION_IMAGE_URL}
+        width={64}
+        height={80}
+        sizes="4rem"
         alt=""
         aria-hidden="true"
         className="absolute -top-3 z-20 h-20 w-16 object-contain object-top drop-shadow-[0_10px_14px_rgba(15,23,42,0.18)]"
@@ -99,8 +115,11 @@ function AutomationAgentBubble() {
 function SingleAgentBubble({ src }: { src: string }) {
   return (
     <span className="relative flex h-16 w-[4.9rem] shrink-0 items-center justify-center self-center overflow-visible">
-      <img
+      <Image
         src={src}
+        width={64}
+        height={80}
+        sizes="4rem"
         alt=""
         aria-hidden="true"
         className="absolute -top-3 h-20 w-16 object-contain object-top drop-shadow-[0_10px_14px_rgba(15,23,42,0.18)]"
@@ -112,8 +131,11 @@ function SingleAgentBubble({ src }: { src: string }) {
 function AviAgentBubble() {
   return (
     <span className="relative flex h-16 w-[5.4rem] shrink-0 items-center justify-center self-center overflow-visible">
-      <img
+      <Image
         src={AVI_DONATION_IMAGE_URL}
+        width={79}
+        height={98}
+        sizes="4.9rem"
         alt=""
         aria-hidden="true"
         className="absolute -top-4 h-[6.1rem] w-[4.9rem] object-contain object-top drop-shadow-[0_12px_16px_rgba(15,23,42,0.2)]"
