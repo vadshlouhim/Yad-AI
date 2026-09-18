@@ -1,4 +1,4 @@
-export const MOBILE_HOME_DEFAULT_MODULES = ["publish", "newsletter-paper", "contacts", "visuals"] as const;
+export const MOBILE_HOME_DEFAULT_MODULES = ["publish", "newsletter-paper", "automations", "visuals"] as const;
 export const MOBILE_HOME_MAX_MODULES = 8;
 
 export type MobileHomeModuleKey =

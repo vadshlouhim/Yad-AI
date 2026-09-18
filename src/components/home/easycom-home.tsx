@@ -3,27 +3,30 @@
 import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  ArrowRight, BookOpen, Check, FileText, Image as ImageIcon, Menu,
+  ArrowLeft, ArrowRight, BookOpen, Check, FileText, Image as ImageIcon, Menu,
   MessageCircle, Pause, Play, Plus, Settings, Share2, Sparkles, Users,
-  Volume2, VolumeX, X,
+  Volume2, VolumeX, X, ShoppingBag, Clock, Mail,
 } from "lucide-react";
 import { PUBLIC_TOOLS, type PublicTool } from "@/lib/public-tools";
 import { ToolIcon } from "@/components/presentation/tool-visual";
+import { HOME_AGENT_IMAGES, FALLBACK_MAIN_VIDEO, homeVideoSource } from "./home-media";
 import "./easycom-home.css";
 
-const PreviewDialog = dynamic(() => import("./tool-preview-dialog"), {
+const PreviewDialog = dynamic(() => import("./home-video-dialog"), {
   ssr: false,
   loading: () => <div role="status" className="home-loading">Ouverture de l’aperçu…</div>,
 });
 const MEDIA = "/media/home/";
 const TOOLS = [
-  { id: "publish", name: "Publier partout", media: "02-dovber-publier-partout", agent: "Dov Ber", role: "Réseaux sociaux", portrait: "/agents/dov-ber-transparent.png", Icon: Share2 },
-  { id: "newsletter", name: "Newsletter papier", media: "04-levik-newsletter", agent: "Levik", role: "Newsletter", portrait: "/agents/levik-transparent.png", Icon: FileText },
-  { id: "automations", name: "Horaires & automatisations", media: "07-david-automatisations", agent: "David", role: "Automatisations", portrait: "/agents/david-transparent.png", Icon: Settings },
-  { id: "posters", name: "Affiches & visuels", media: "03-zalman-affiches", agent: "Zalman", role: "Affiches & visuels", portrait: "/agents/zalman-visuals-transparent.png", Icon: ImageIcon },
-  { id: "torah", name: "Cours de Torah", media: "08-shmouel-cours-torah", agent: "Shmouel", role: "Cours de Torah", portrait: "/agents/shmouel-transparent.png", Icon: BookOpen },
+  { id: "publish", name: "Publier partout en un clic", media: "02-dovber-publier-partout", agent: "Dov Ber", role: "Réseaux sociaux", portrait: HOME_AGENT_IMAGES.dovBer, Icon: Share2 },
+  { id: "newsletter", name: "Newsletter papier", media: "04-levik-newsletter", agent: "Levik", role: "Newsletter", portrait: HOME_AGENT_IMAGES.levik, Icon: FileText },
+  { id: "shabbat", name: "Horaires de Chabbat", media: "05-david-horaires-chabbat", agent: "David", role: "Horaires de Chabbat", portrait: HOME_AGENT_IMAGES.david, Icon: Clock },
+  { id: "automations", name: "Hayom Yom, anniversaire juif auto", media: "06-david-anniversaires", agent: "David", role: "Automatisations", portrait: HOME_AGENT_IMAGES.david, Icon: Settings },
+  { id: "posters", name: "Affiches & visuels", media: "03-zalman-affiches", agent: "Zalman", role: "Affiches & visuels", portrait: HOME_AGENT_IMAGES.zalman, Icon: ImageIcon },
+  { id: "torah", name: "Cours de Torah", media: "08-shmouel-cours-torah", agent: "Shmouel", role: "Cours de Torah", portrait: HOME_AGENT_IMAGES.shmouel, Icon: BookOpen },
+  { id: "email", name: "Email/Avis Google", media: "10-email-avis-google", agent: "Levik", role: "Email/Avis Google", portrait: HOME_AGENT_IMAGES.levik, Icon: Mail },
 ] as const;
 type HomeTool = (typeof TOOLS)[number];
 const NAV = [
@@ -41,7 +44,7 @@ const LEGAL = [
 
 function Brand() {
   return <Link href="/" className="home-brand" aria-label="EasyCom AI — Accueil">
-    <Image src="/easycom-ai-logo.png" width={40} height={40} alt="" />
+    <Image src={`${MEDIA}easycom-brand-mark.webp`} width={40} height={30} alt="" />
     <span>EasyCom AI</span>
   </Link>;
 }
@@ -50,8 +53,17 @@ function TrialLink({ yellow = false }: { yellow?: boolean }) {
     Essayer gratuitement <ArrowRight size={20} aria-hidden="true" />
   </Link>;
 }
+function HomeToolIcon({ id }: { id: string }) {
+  if (id !== "publish") return <ToolIcon id={id} className="home-tool-icon" />;
+  return <span className="home-publish-icons" aria-hidden="true">
+    {["facebook", "instagram", "whatsapp"].map(channel => <Image key={channel} src={`${MEDIA}${channel}-white.svg`} width={32} height={32} className="home-tool-icon" alt="" />)}
+  </span>;
+}
 function DemoLink() {
-  return <a href="#demo" className="home-button home-button-secondary" onClick={() => { document.getElementById("home-demo-play")?.click(); }}>
+  return <a href="#demo" className="home-button home-button-secondary" onClick={() => {
+    const player = document.querySelector<HTMLVideoElement>(".home-master-video");
+    if (player?.paused) document.getElementById("home-demo-play")?.click();
+  }}>
     <span className="home-play-small"><Play size={14} fill="currentColor" aria-hidden="true" /></span>Regarder la vidéo
   </a>;
 }
@@ -99,13 +111,13 @@ function Hero() {
   return <section className="home-container home-hero" aria-labelledby="home-title">
     <div className="home-hero-copy">
       <p className="home-eyebrow">Pensé pour les synagogues, Beth Habad et associations</p>
-      <h1 id="home-title">Toute la communication de votre synagogue.<br /><span>Au même endroit.</span></h1>
+      <h1 id="home-title"><span className="home-title-line">Toute la communication</span>{" "}<span className="home-title-line">de votre synagogue.</span>{" "}<span className="home-title-accent">Au même endroit.</span></h1>
       <p className="home-hero-subtitle">Publiez, créez, automatisez. Vos agents IA s’occupent du reste.</p>
       <div className="home-hero-buttons"><TrialLink /><DemoLink /></div>
     </div>
     <div className="home-hero-art" aria-label="Dov Ber, votre agent de communication">
       <div className="home-hero-halo" />
-      <div className="home-hero-portrait"><Image src={`${MEDIA}dov-ber-hero.png`} alt="Dov Ber présente EasyCom AI sur son téléphone" width={899} height={1100} sizes="(max-width: 767px) 44vw, 520px" preload /></div>
+      <div className="home-hero-portrait"><Image src={HOME_AGENT_IMAGES.dovBer} alt="Dov Ber, votre agent de communication" width={899} height={1100} sizes="(max-width: 767px) 44vw, 520px" preload /></div>
       <span className="home-orbit home-orbit-publish"><ToolIcon id="publish" className="size-5" /><span>Publier partout</span></span>
       <span className="home-orbit home-orbit-newsletter"><FileText /><span>Newsletter</span></span>
       <span className="home-orbit home-orbit-posters"><ImageIcon /><span>Affiches</span></span>
@@ -114,10 +126,11 @@ function Hero() {
     <ul className="home-reassurance" aria-label="Pour commencer simplement">{["Sans engagement", "Configuration en 5 minutes", "Support en français"].map(text => <li key={text}><span><Check size={12} strokeWidth={3} aria-hidden="true" /></span>{text}</li>)}</ul>
   </section>;
 }
-function MainDemo({ blocked }: { blocked: boolean }) {
+function MainDemo({ blocked, source }: { blocked: boolean; source: string }) {
   const video = useRef<HTMLVideoElement>(null);
   const container = useRef<HTMLDivElement>(null);
   const manualPause = useRef(false);
+  const automaticPause = useRef(false);
   const manuallyStarted = useRef(false);
   const [playing, setPlaying] = useState(false);
   const [started, setStarted] = useState(false);
@@ -128,28 +141,37 @@ function MainDemo({ blocked }: { blocked: boolean }) {
     const player = video.current;
     if (!element || !player) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let inView = false;
+    function pauseAutomatically() {
+      if (!player || player.paused) return;
+      automaticPause.current = true;
+      player.pause();
+    }
+    function playWhenVisible() {
+      if (!player || !inView || blocked || document.hidden || manualPause.current || (reduced.matches && !manuallyStarted.current)) return;
+      if (player.getAttribute("src") !== source) player.src = source;
+      void player.play().catch(() => {});
+    }
     const observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting || blocked) { player.pause(); return; }
-      if (!manualPause.current && (!reduced.matches || manuallyStarted.current)) {
-        if (!player.getAttribute("src")) player.src = `${MEDIA}easycom-demo-master.mp4`;
-        void player.play().catch(() => {});
-      }
+      inView = entry.isIntersecting && entry.intersectionRatio >= 0.35;
+      if (!inView || blocked) pauseAutomatically();
+      else playWhenVisible();
     }, { threshold: 0.35 });
     observer.observe(element);
-    function onVisibility() { if (document.hidden) player?.pause(); }
-    function onMotionChange() { if (reduced.matches && !manuallyStarted.current) player?.pause(); }
+    function onVisibility() { if (document.hidden) pauseAutomatically(); else playWhenVisible(); }
+    function onMotionChange() { if (reduced.matches && !manuallyStarted.current) pauseAutomatically(); else playWhenVisible(); }
     document.addEventListener("visibilitychange", onVisibility);
     reduced.addEventListener("change", onMotionChange);
-    if (blocked) player.pause();
+    if (blocked) pauseAutomatically();
     return () => { observer.disconnect(); document.removeEventListener("visibilitychange", onVisibility); reduced.removeEventListener("change", onMotionChange); };
-  }, [blocked]);
+  }, [blocked, source]);
   function togglePlayback() {
     const player = video.current;
     if (!player) return;
     if (player.paused) {
       manuallyStarted.current = true;
       manualPause.current = false;
-      if (!player.getAttribute("src")) player.src = `${MEDIA}easycom-demo-master.mp4`;
+      if (player.getAttribute("src") !== source) player.src = source;
       if (player.ended) player.currentTime = 0;
       void player.play().catch(() => setFailed(true));
     } else { manualPause.current = true; player.pause(); }
@@ -157,10 +179,9 @@ function MainDemo({ blocked }: { blocked: boolean }) {
   return <section id="demo" className="home-container home-demo" aria-label="Démonstration d’EasyCom AI">
     <div ref={container} className={`home-demo-frame${started ? " home-demo-started" : ""}`}>
       <picture className="home-demo-poster"><source media="(max-width: 767px)" srcSet={`${MEDIA}demo-mobile.webp`} />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={`${MEDIA}demo-desktop.webp`} alt="Découvrez EasyCom AI en action" width={1600} height={670} loading="lazy" />
       </picture>
-      <video ref={video} className="home-master-video" muted={muted} playsInline preload="none" controls={started} poster={`${MEDIA}easycom-demo-master.webp`} aria-label="Vidéo de démonstration générale d’EasyCom AI" onPlay={() => { setPlaying(true); setStarted(true); setFailed(false); }} onPause={() => setPlaying(false)} onEnded={() => { manualPause.current = true; setPlaying(false); }} onError={() => { setFailed(true); setPlaying(false); }} />
+      <video ref={video} className="home-master-video" muted={muted} playsInline preload="none" controls={started} poster={`${MEDIA}easycom-demo-master.webp`} aria-label="Vidéo de démonstration générale d’EasyCom AI" onVolumeChange={event => setMuted(event.currentTarget.muted)} onPlay={() => { manualPause.current = false; setPlaying(true); setStarted(true); setFailed(false); }} onPause={() => { if (!automaticPause.current) manualPause.current = true; automaticPause.current = false; setPlaying(false); }} onEnded={() => { manualPause.current = true; setPlaying(false); }} onError={() => { setFailed(true); setPlaying(false); }} />
       {!playing && <button id="home-demo-play" type="button" className="home-demo-play" aria-label={started ? "Reprendre la démonstration" : "Lire la démonstration d’EasyCom AI"} onClick={togglePlayback}><Play fill="currentColor" aria-hidden="true" /></button>}
       {playing && <button id="home-demo-play" type="button" className="home-demo-pause" aria-label="Mettre la démonstration en pause" onClick={togglePlayback}><Pause size={17} aria-hidden="true" /></button>}
       <span className="home-demo-label">Démonstration — données fictives</span>
@@ -187,7 +208,7 @@ function FeatureCard({ tool, active, setActive, onOpen }: {
     const video = player.current;
     if (!video) return;
     if (active) {
-      if (!video.getAttribute("src")) video.src = `${MEDIA}${tool.media}.mp4`;
+      if (!video.getAttribute("src")) video.src = homeVideoSource(tool.media);
       void video.play().catch(() => {});
     } else { video.pause(); if (video.readyState > 0) video.currentTime = 0; }
     return () => video.pause();
@@ -196,7 +217,7 @@ function FeatureCard({ tool, active, setActive, onOpen }: {
   return <button ref={button} type="button" className={`home-tool home-tool-${tool.id}${active && ready ? " home-tool-previewing" : ""}`} aria-label={`Découvrir ${tool.name}`} aria-haspopup="dialog" onMouseEnter={start} onMouseLeave={() => { if (active) setActive(null); }} onFocus={start} onBlur={() => { if (active) setActive(null); }} onClick={event => { setActive(null); onOpen(tool, event.currentTarget); }}>
     <video ref={player} muted playsInline preload="none" loop poster={`${MEDIA}${tool.media}.webp`} aria-hidden="true" tabIndex={-1} onPlaying={() => setReady(true)} onTimeUpdate={() => { const video = player.current; if (video && video.currentTime >= 8) video.currentTime = 0; }} />
     <span className="home-tool-shade" />
-    <span className="home-tool-content">{tool.id === "automations" ? <Settings className="home-tool-icon" aria-hidden="true" /> : <ToolIcon id={tool.id} className="home-tool-icon" />}<span className="home-tool-title">{tool.name}</span></span>
+    <span className="home-tool-content">{["automations", "shabbat", "email"].includes(tool.id) ? <tool.Icon className="home-tool-icon" aria-hidden="true" /> : <HomeToolIcon id={tool.id} />}<span className="home-tool-title">{tool.name}</span>{tool.id === "torah" && <span className="home-trusted-sources">Sources fiables</span>}</span>
     <span className="home-card-arrow"><ArrowRight size={20} aria-hidden="true" /></span>
   </button>;
 }
@@ -214,32 +235,76 @@ function FAQ() {
     </div>)}</div>
   </section>;
 }
-export function EasyComHome() {
+function CardRow({ id, className, label, children, footer }: { id: string; className: string; label: string; children: ReactNode; footer?: ReactNode }) {
+  const row = useRef<HTMLDivElement>(null);
+  const [navigation, setNavigation] = useState({ overflow: false, previous: false, next: false });
+  useEffect(() => {
+    const element = row.current;
+    if (!element) return;
+    function update() {
+      if (!element) return;
+      const remaining = element.scrollWidth - element.clientWidth;
+      setNavigation({ overflow: remaining > 1, previous: element.scrollLeft > 1, next: element.scrollLeft < remaining - 1 });
+    }
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    element.addEventListener("scroll", update, { passive: true });
+    update();
+    return () => { observer.disconnect(); element.removeEventListener("scroll", update); };
+  }, []);
+  function advance(direction: number) {
+    const element = row.current;
+    if (!element) return;
+    element.scrollBy({ left: direction * element.clientWidth, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+  }
+  return <>
+    <div ref={row} id={id} className={className}>{children}</div>
+    {(footer || navigation.overflow) && <div className={footer ? "home-row-footer" : undefined}>
+    {footer}
+    {navigation.overflow && <nav className="home-row-navigation" aria-label={`Défilement des ${label}`}>
+      <button type="button" aria-controls={id} aria-label={`Voir les ${label} précédents`} disabled={!navigation.previous} onClick={() => advance(-1)}><ArrowLeft size={20} aria-hidden="true" /></button>
+      <button type="button" aria-controls={id} aria-label={`Voir les ${label} suivants`} disabled={!navigation.next} onClick={() => advance(1)}><ArrowRight size={20} aria-hidden="true" /></button>
+    </nav>}
+    </div>}
+  </>;
+}
+export function EasyComHome({ mainVideoSource = FALLBACK_MAIN_VIDEO }: { mainVideoSource?: string }) {
   const [active, setActive] = useState<string | null>(null);
-  const [selected, setSelected] = useState<{ item: PublicTool; trigger: HTMLElement } | null>(null);
+  const [selected, setSelected] = useState<{ item: PublicTool; media: string; trigger: HTMLElement } | null>(null);
+  useEffect(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    function stopPreviews() { if (reduced.matches || document.hidden) setActive(null); }
+    reduced.addEventListener("change", stopPreviews);
+    document.addEventListener("visibilitychange", stopPreviews);
+    return () => { reduced.removeEventListener("change", stopPreviews); document.removeEventListener("visibilitychange", stopPreviews); };
+  }, []);
   function open(tool: HomeTool, trigger: HTMLElement) {
     const original = PUBLIC_TOOLS.find(item => item.id === tool.id);
     if (!original) return;
     setActive(null);
-    setSelected({ item: { ...original, name: tool.name, agent: tool.agent, portrait: tool.portrait }, trigger });
+    setSelected({ item: { ...original, name: tool.name, agent: tool.agent, portrait: tool.portrait }, media: tool.media, trigger });
   }
   return <div className="easycom-home">
     <a className="home-skip" href="#home-main">Aller au contenu</a>
     <HomeHeader />
     <main id="home-main">
       <Hero />
-      <MainDemo blocked={selected !== null} />
+      <MainDemo blocked={selected !== null} source={mainVideoSource} />
       <div className="home-container home-body">
         <section id="fonctionnalites" className="home-features" aria-labelledby="home-features-title">
           <h2 id="home-features-title"><Sparkles className="home-sparkles" fill="currentColor" aria-hidden="true" />Que souhaitez-vous faire ?</h2>
-          <div className="home-tool-row">{TOOLS.map(tool => <FeatureCard key={tool.id} tool={tool} active={active === tool.id} setActive={setActive} onOpen={open} />)}</div>
+          <CardRow id="home-functions-row" className="home-tool-row" label="outils" footer={<div className="home-feature-links">
+            <a href="https://linktr.ee/Yadshlouhim" className="home-feature-link home-feature-link-shop"><ShoppingBag aria-hidden="true" /><span>Boutique en ligne</span><ArrowRight className="home-feature-link-arrow" size={17} aria-hidden="true" /></a>
+            <Link href="/affiches" prefetch={false} className="home-feature-link home-feature-link-posters"><ImageIcon aria-hidden="true" /><span>Affiche<small>AI &amp; Canva</small></span><ArrowRight className="home-feature-link-arrow" size={17} aria-hidden="true" /></Link>
+          </div>}>{TOOLS.filter(tool => tool.id !== "posters").map(tool => <FeatureCard key={tool.id} tool={tool} active={active === tool.id} setActive={setActive} onOpen={open} />)}
+          </CardRow>
         </section>
         <section id="agents" className="home-agents" aria-labelledby="home-agents-title">
           <div className="home-section-heading"><h2 id="home-agents-title"><Users fill="currentColor" aria-hidden="true" /><span className="home-agents-desktop-title">Vos agents IA</span><span className="home-agents-mobile-title">Vos agents IA spécialisés</span></h2></div>
-          <div className="home-agent-row">{TOOLS.map(tool => <button key={tool.id} type="button" className={`home-agent home-agent-${tool.id}`} aria-label={`Découvrir ${tool.agent}, ${tool.role}`} aria-haspopup="dialog" onClick={event => open(tool, event.currentTarget)}>
-            <span className="home-agent-art"><Image src={tool.id === "publish" ? `${MEDIA}dov-ber-hero.png` : tool.portrait} alt="" width={260} height={310} sizes="(max-width: 767px) 100px, (max-width: 1023px) 150px, 240px" /><span className="home-agent-badge"><tool.Icon size={23} aria-hidden="true" /></span></span>
+          <CardRow id="home-agents-row" className="home-agent-row" label="agents">{TOOLS.filter(tool => tool.id !== "shabbat" && tool.id !== "email").map(tool => <button key={tool.id} type="button" className={`home-agent home-agent-${tool.id}`} aria-label={`Découvrir ${tool.agent}, ${tool.role}`} aria-haspopup="dialog" onClick={event => open(tool, event.currentTarget)}>
+            <span className="home-agent-art"><Image src={tool.portrait} alt="" width={260} height={310} sizes="(max-width: 767px) 100px, (max-width: 1023px) 150px, 240px" /><span className="home-agent-badge"><tool.Icon size={23} aria-hidden="true" /></span></span>
             <span className="home-agent-info"><strong>{tool.agent}</strong><span>{tool.role}</span><ArrowRight size={19} className="home-agent-arrow" aria-hidden="true" /></span>
-          </button>)}</div>
+          </button>)}</CardRow>
         </section>
         <section id="tarifs" className="home-pricing" aria-label="Offre de bienvenue EasyCom AI">
           <h2><Sparkles className="home-sparkles" fill="currentColor" aria-hidden="true" />Essayez EasyCom AI</h2>
@@ -256,6 +321,6 @@ export function EasyComHome() {
       <div className="home-footer-top"><Brand /><nav aria-label="Navigation de pied de page">{NAV.map(link => <a key={link.href} href={link.href} className={link.desktop ? "home-footer-faq" : ""}>{link.label}</a>)}<Link href="/contact" className="home-footer-contact">Contact</Link></nav></div>
       <div className="home-footer-bottom"><p>© {new Date().getFullYear()} EasyCom AI. Tous droits réservés.</p><nav aria-label="Liens légaux">{LEGAL.map(link => <Link key={link.href} href={link.href}>{link.label}</Link>)}</nav></div>
     </footer>
-    {selected && <PreviewDialog item={selected.item} trigger={selected.trigger} onClose={() => setSelected(null)} />}
+    {selected && <PreviewDialog item={selected.item} media={selected.media} trigger={selected.trigger} onClose={() => setSelected(null)} />}
   </div>;
 }

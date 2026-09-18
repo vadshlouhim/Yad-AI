@@ -155,7 +155,13 @@ async function main() {
     assert.equal((await proxy(request(path))).headers.get("x-middleware-next"), "1");
     assert.equal(calls, 0);
   }
-  assert.equal(moduleExports.config?.matcher[0], "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|webmanifest)$).*)");
+  const matcher = new RegExp(`^${moduleExports.config?.matcher[0]}$`);
+  for (const asset of ["/media/home/easycom-demo-master.mp4", "/media/home/02-dovber-publier-partout.mp4", "/media/home/demo-mobile.webp"]) {
+    assert.equal(matcher.test(asset), false, `Public home asset must bypass the session proxy: ${asset}`);
+  }
+  for (const privatePath of ["/dashboard", "/dashboard/boutique", "/dashboard/private.mp4", "/media/private.mp4", "/media/home-private/file.mp4"]) {
+    assert.equal(matcher.test(privatePath), true, `Private route must keep session protection: ${privatePath}`);
+  }
   console.log("Proxy regression tests passed (public outage, auth redirects, cookies, private routes, OAuth, demos, APIs, matcher).");
 }
 main().catch((error: unknown) => { console.error(error); process.exitCode = 1; });

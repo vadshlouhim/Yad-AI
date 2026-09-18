@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { EasyComHome } from "@/components/home/easycom-home";
+import { resolveHomeMainVideo } from "@/lib/home-main-video";
 
 export const metadata: Metadata = {
   title: "EasyCom AI — Toute la communication de votre synagogue",
@@ -8,6 +9,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-export default function HomePage() {
-  return <EasyComHome />;
+export default async function HomePage() {
+  return <EasyComHome mainVideoSource={await resolveHomeMainVideo()} />;
 }

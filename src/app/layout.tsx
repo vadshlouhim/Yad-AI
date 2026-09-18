@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { DisableSpellcheck } from "@/components/ui/disable-spellcheck";
 import { absoluteUrl, SITE_URL } from "@/lib/site-url";
 import "./globals.css";
+import "@/components/presentation/home-tool-colors.css";
 
 const SITE_NAME = "EasyCom IA";
 const SITE_TITLE = "EasyCom IA - Communication communautaire assistée par IA";

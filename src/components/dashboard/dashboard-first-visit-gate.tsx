@@ -3,13 +3,9 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   ArrowDownToLine,
-  AppWindow,
   BellRing,
   CheckCircle2,
-  MoreVertical,
   RefreshCw,
-  Share,
-  Sparkles,
   Smartphone,
   X,
 } from "lucide-react";
@@ -179,178 +175,63 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
   const pushBlocked = permission === "denied";
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-[#170534]/65 p-3 backdrop-blur-sm sm:p-5">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-[#170534]/65 p-3 backdrop-blur-sm">
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="first-visit-title"
-        className="relative my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-[2rem] border border-white/70 bg-[#fffaf4] shadow-[0_30px_100px_rgba(23,5,52,0.42)]"
+        className="relative my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-sm overflow-y-auto rounded-3xl border border-white/70 bg-[#fffaf4] shadow-[0_30px_100px_rgba(23,5,52,0.42)]"
       >
-        <header className="relative overflow-hidden rounded-b-[42%_1.5rem] bg-[radial-gradient(circle_at_72%_8%,#6d2bc1_0%,#421388_45%,#210763_100%)] px-5 pb-7 pt-6 text-white sm:px-7 sm:pb-8">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_16%_70%,rgba(146,83,229,0.3),transparent_34%)]" />
-          <button
-            type="button"
-            onClick={dismiss}
-            aria-label="Fermer"
-            className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-full bg-white/12 text-white ring-1 ring-white/20 transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
+        <header className="flex items-center gap-3 bg-gradient-to-br from-[#6d2bc1] to-[#210763] px-4 py-4 text-white">
+          <Smartphone className="size-7 shrink-0" aria-hidden="true" />
+          <h1 id="first-visit-title" className="flex-1 text-lg font-black leading-tight">
+            Installez EasyCom IA
+          </h1>
+          <button type="button" onClick={dismiss} aria-label="Fermer" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/12 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
             <X className="size-5" />
           </button>
-          <div className="relative pr-11">
-            <span className="flex size-12 items-center justify-center rounded-2xl bg-white/15 shadow-lg ring-1 ring-white/20">
-              <Sparkles className="size-6 fill-[#ffba13] text-[#ffba13]" />
-            </span>
-            <p className="mt-4 text-xs font-black uppercase tracking-[0.16em] text-[#ffd04c]">
-              Bienvenue sur EasyCom IA
-            </p>
-            <h1
-              id="first-visit-title"
-              className="mt-1 text-[clamp(1.7rem,7vw,2.25rem)] font-black leading-[1.05] tracking-[-0.04em]"
-            >
-              Votre application, toujours à portée de main
-            </h1>
-          </div>
         </header>
 
-        <div className="space-y-3 p-4 pt-5 sm:p-6">
-          <article className="overflow-hidden rounded-[1.6rem] border border-blue-100 bg-white shadow-[0_12px_28px_rgba(6,88,220,0.1)]">
-            <div className="flex items-start gap-3 p-4">
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#0878ee] text-white shadow-lg shadow-blue-200">
-                {installed ? <CheckCircle2 className="size-6" /> : <Smartphone className="size-6" />}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-base font-black text-slate-950">Installer l&apos;application</h2>
-                  <span
-                    className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                      installed ? "bg-emerald-100 text-emerald-700" : "bg-blue-50 text-blue-700"
-                    }`}
-                  >
-                    {installed ? "Installée" : "1 minute"}
-                  </span>
-                </div>
-              </div>
+        <div className="space-y-3 p-4">
+          <article className="rounded-2xl border border-blue-100 bg-white p-3">
+            <div className="flex items-center gap-2">
+              {installed ? <CheckCircle2 className="size-5 text-emerald-600" /> : <Smartphone className="size-5 text-[#0878ee]" />}
+              <h2 className="text-sm font-bold text-slate-950">Application</h2>
+              {installed && <span className="ml-auto text-xs font-bold text-emerald-700">Installée</span>}
             </div>
-
-            {!installed ? (
-              <div className="border-t border-blue-50 px-4 pb-4 pt-3">
-                {!installPrompt && platform === "ios" ? (
-                  <div className="mb-3 grid gap-2 rounded-2xl bg-blue-50/70 p-3">
-                    {[
-                      { icon: AppWindow, text: "Ouvrez EasyCom IA dans Safari" },
-                      { icon: Share, text: "Touchez Partager" },
-                      { icon: ArrowDownToLine, text: "Choisissez Sur l'écran d'accueil" },
-                    ].map((item, index) => (
-                      <div key={item.text} className="flex items-center gap-2.5 text-sm font-bold text-slate-700">
-                        <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-black text-[#0878ee] shadow-sm">
-                          {index + 1}
-                        </span>
-                        <item.icon className="size-4 shrink-0 text-[#0878ee]" />
-                        <span>{item.text}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : !installPrompt ? (
-                  <div className="mb-3 flex items-center gap-3 rounded-2xl bg-blue-50/70 p-3 text-sm font-semibold leading-5 text-slate-600">
-                    <MoreVertical className="size-5 shrink-0 text-[#0878ee]" />
-                    Ouvrez le menu du navigateur puis choisissez « Installer l&apos;application ».
-                  </div>
-                ) : null}
-
-                <button
-                  type="button"
-                  onClick={() => void installApplication()}
-                  disabled={installing}
-                  className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#0878ee] px-5 text-sm font-black text-white shadow-lg shadow-blue-200 transition hover:bg-[#0668d8] disabled:opacity-60"
-                >
-                  <ArrowDownToLine className="size-5" />
-                  {installing ? "Installation..." : installPrompt ? "Installer l'application" : "Voir les instructions"}
-                </button>
-              </div>
-            ) : null}
+            {!installed && <>
+              {!installPrompt && <p className="mt-2 text-xs leading-5 text-slate-600">
+                {platform === "ios" ? "Safari : Partager → Sur l’écran d’accueil." : "Menu du navigateur → Installer l’application."}
+              </p>}
+              <button type="button" onClick={() => void installApplication()} disabled={installing} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#0878ee] px-3 text-sm font-bold text-white hover:bg-[#0668d8] disabled:opacity-60">
+                <ArrowDownToLine className="size-4" />
+                {installing ? "Installation…" : installPrompt ? "Installer l’application" : "Voir comment installer"}
+              </button>
+            </>}
           </article>
 
-          <article className="overflow-hidden rounded-[1.6rem] border border-rose-100 bg-white shadow-[0_12px_28px_rgba(217,45,124,0.1)]">
-            <div className="flex items-start gap-3 p-4">
-              <span
-                className={`flex size-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ${
-                  pushSetupComplete ? "bg-emerald-500 shadow-emerald-200" : "bg-[#d92d7c] shadow-rose-200"
-                }`}
-              >
-                {pushSetupComplete ? <CheckCircle2 className="size-6" /> : <BellRing className="size-6" />}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-base font-black text-slate-950">Activer les notifications</h2>
-                  <span
-                    className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
-                      pushSetupComplete ? "bg-emerald-100 text-emerald-700" : "bg-rose-50 text-[#b91c60]"
-                    }`}
-                  >
-                    {pushSetupComplete ? "Activées" : installationStep ? "Après installation" : "Recommandé"}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm font-medium leading-5 text-slate-600">
-                  Recevez vos rappels et confirmations importantes au bon moment.
-                </p>
-              </div>
+          <article className="rounded-2xl border border-rose-100 bg-white p-3">
+            <div className="flex items-center gap-2">
+              {pushSetupComplete ? <CheckCircle2 className="size-5 text-emerald-600" /> : <BellRing className="size-5 text-[#d92d7c]" />}
+              <h2 className="text-sm font-bold text-slate-950">Notifications</h2>
+              {pushSetupComplete && <span className="ml-auto text-xs font-bold text-emerald-700">Activées</span>}
             </div>
-
-            {!pushSetupComplete ? (
-              <div className="border-t border-rose-50 px-4 pb-4 pt-3">
-                {pushBlocked ? (
-                  <p className="mb-3 rounded-2xl bg-amber-50 p-3 text-sm font-semibold leading-5 text-amber-900">
-                    Notifications bloquées : autorisez-les dans les réglages de votre appareil.
-                  </p>
-                ) : !isPushSupported() ? (
-                  <p className="mb-3 rounded-2xl bg-amber-50 p-3 text-sm font-semibold leading-5 text-amber-900">
-                    Ouvrez EasyCom IA avec Safari ou Chrome pour activer les notifications.
-                  </p>
-                ) : installationStep ? (
-                  <p className="mb-3 rounded-2xl bg-rose-50 p-3 text-sm font-semibold leading-5 text-rose-800">
-                    Installez d&apos;abord l&apos;application, puis activez les notifications.
-                  </p>
-                ) : null}
-
-                <button
-                  type="button"
-                  onClick={() => void activatePush()}
-                  disabled={installationStep || enablingPush || pushBlocked || !isPushSupported()}
-                  className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#d92d7c] px-5 text-sm font-black text-white shadow-lg shadow-rose-200 transition hover:bg-[#bf256d] disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  <BellRing className="size-5" />
-                  {enablingPush ? "Activation en cours..." : "Activer les notifications"}
-                </button>
-
-                {pushBlocked ? (
-                  <button
-                    type="button"
-                    onClick={() => setPermission(getPushPermission())}
-                    className="mt-3 flex w-full items-center justify-center gap-2 text-sm font-bold text-slate-500 hover:text-[#d92d7c]"
-                  >
-                    <RefreshCw className="size-4" /> Vérifier à nouveau
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
+            {!pushSetupComplete && <>
+              {(pushBlocked || !isPushSupported() || installationStep) && <p className="mt-2 text-xs leading-5 text-slate-600">
+                {pushBlocked ? "Autorisez-les dans les réglages de votre appareil." : !isPushSupported() ? "Utilisez Safari ou Chrome." : "À activer après l’installation."}
+              </p>}
+              <button type="button" onClick={() => void activatePush()} disabled={installationStep || enablingPush || pushBlocked || !isPushSupported()} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#d92d7c] px-3 text-sm font-bold text-white hover:bg-[#bf256d] disabled:cursor-not-allowed disabled:opacity-45">
+                <BellRing className="size-4" />
+                {enablingPush ? "Activation…" : "Activer les notifications"}
+              </button>
+              {pushBlocked && <button type="button" onClick={() => setPermission(getPushPermission())} className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 text-xs font-bold text-slate-500 hover:text-[#d92d7c]">
+                <RefreshCw className="size-4" /> Vérifier à nouveau
+              </button>}
+            </>}
           </article>
 
-          {message ? (
-            <p
-              role="status"
-              className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm font-semibold leading-5 text-amber-900"
-            >
-              {message}
-            </p>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={dismiss}
-            className="flex min-h-11 w-full items-center justify-center rounded-2xl text-sm font-black text-slate-500 transition hover:bg-white hover:text-[#421388]"
-          >
-            Plus tard
-          </button>
+          {message && <p role="status" className="rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">{message}</p>}
+          <button type="button" onClick={dismiss} className="flex min-h-11 w-full items-center justify-center rounded-xl text-sm font-bold text-slate-500 hover:bg-white hover:text-[#421388]">Plus tard</button>
         </div>
       </section>
     </div>

@@ -29,6 +29,7 @@ import {
   type OfficialDashboardMenuItem,
   type OfficialDashboardMenuSection,
 } from "./dashboard-nav";
+import { DASHBOARD_MENU_COLORS } from "@/components/dashboard/dashboard-module-colors";
 import type { MobileHomeModuleKey } from "@/lib/mobile-dashboard/modules";
 
 type ToolGroup = {
@@ -41,6 +42,7 @@ type ToolGroup = {
   comingSoon?: boolean;
   href?: string;
   wide?: boolean;
+  compact?: boolean;
   homeModuleKey?: MobileHomeModuleKey;
 };
 
@@ -81,46 +83,11 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
 
     const tools: ToolGroup[] = [
       {
-        key: "publish",
-        title: "Publier partout",
-        icon: Sparkles,
-        tone: "from-[#2478d8] via-[#1d63c5] to-[#174b9f]",
-        href: "/dashboard/social-networks",
-        items: [],
-        homeModuleKey: "publish",
-      },
-      {
-        key: "newsletter-paper",
-        title: "Le Newsletter PDF",
-        icon: Mail,
-        tone: "from-[#2b456d] via-[#20385b] to-[#172b48]",
-        href: "/dashboard/newsletter",
-        items: [],
-        homeModuleKey: "newsletter-paper",
-      },
-      {
-        key: "contacts",
-        title: "Contacts",
-        icon: User,
-        tone: "from-[#dc7a5b] via-[#c96045] to-[#a94535]",
-        href: "/dashboard/contacts",
-        items: [],
-        homeModuleKey: "contacts",
-      },
-      {
-        key: "visuals",
-        title: "Affiches & Visuels",
-        icon: Sparkles,
-        tone: "from-[#7654a8] via-[#60418e] to-[#452e70]",
-        href: "/dashboard/templates",
-        items: [],
-        homeModuleKey: "visuals",
-      },
-      {
         key: "shop",
+        compact: true,
         title: "Boutique en ligne",
         icon: ShoppingBag,
-        tone: "from-[#0878ee] via-[#0668e8] to-[#064bd8]",
+        tone: DASHBOARD_MENU_COLORS["shop"],
         items: section("shop_articles")?.items ?? [],
         homeModuleKey: "shop",
       },
@@ -128,9 +95,9 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         key: "compensation",
         title: "Assistance indemnisation",
         icon: Plane,
-        tone: "from-[#ff8a00] via-[#f47700] to-[#e96000]",
+        tone: DASHBOARD_MENU_COLORS["assistance"],
         href: "/dashboard/assistance-indemnisation-aerienne",
-        wide: true,
+        compact: true,
         items: [],
         homeModuleKey: "assistance",
       },
@@ -138,10 +105,19 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         key: "seo",
         title: "Référencement IA",
         icon: Globe2,
-        tone: "from-[#596d9a] via-[#465984] to-[#344266]",
+        tone: DASHBOARD_MENU_COLORS["seo"],
         href: "/dashboard/referencement",
         items: [],
         homeModuleKey: "seo",
+      },
+      {
+        key: "contacts",
+        title: "Contacts",
+        icon: User,
+        tone: DASHBOARD_MENU_COLORS.contacts,
+        href: "/dashboard/contacts",
+        items: [],
+        homeModuleKey: "contacts",
       },
     ];
 
@@ -150,7 +126,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         key: "automations",
         title: "Automatiser",
         icon: CalendarRange,
-        tone: "from-[#0faeb3] to-[#07949f]",
+        tone: DASHBOARD_MENU_COLORS["automations"],
         items: [],
         href: "/dashboard/automations",
         homeModuleKey: "automations",
@@ -160,7 +136,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         key: "torah",
         title: "Cours de Torah",
         icon: BookOpen,
-        tone: "from-[#f5ae12] to-[#e58b00]",
+        tone: DASHBOARD_MENU_COLORS["torah"],
         items: [],
         href: "/dashboard/torah",
         homeModuleKey: "torah",
@@ -170,7 +146,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         key: "website",
         title: "Création de site web",
         icon: Globe2,
-        tone: "from-[#0faeb3] to-[#07949f]",
+        tone: DASHBOARD_MENU_COLORS["website"],
         items: [],
         href: "/dashboard/website",
         homeModuleKey: "website",
@@ -180,7 +156,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         key: "targeted",
         title: "Communication ciblee",
         icon: MessageSquare,
-        tone: "from-[#ff4c50] to-[#e9333d]",
+        tone: DASHBOARD_MENU_COLORS["targeted"],
         items: [],
         href: "/dashboard/communication-ciblee",
         homeModuleKey: "targeted",
@@ -190,7 +166,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         key: "email",
         title: "Email",
         icon: Mail,
-        tone: "from-[#f33967] to-[#dc2860]",
+        tone: DASHBOARD_MENU_COLORS["email"],
         items: [],
         href: "/dashboard/email",
         homeModuleKey: "email",
@@ -200,7 +176,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         key: "reviews",
         title: "Avis Google",
         icon: Star,
-        tone: "from-[#f5a400] to-[#e37800]",
+        tone: DASHBOARD_MENU_COLORS["reviews"],
         items: [],
         href: "/dashboard/google-reviews",
         homeModuleKey: "reviews",
@@ -210,7 +186,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         key: "whatsapp",
         title: "WhatsApp",
         icon: WhatsAppIcon,
-        tone: "from-[#1db954] to-[#0f8f43]",
+        tone: DASHBOARD_MENU_COLORS["whatsapp"],
         items: [],
         href: "/dashboard/whatsapp",
         homeModuleKey: "whatsapp",
@@ -220,7 +196,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         key: "donation",
         title: "Campagne de dons",
         icon: HandHeart,
-        tone: "from-[#1aae68] to-[#078e50]",
+        tone: DASHBOARD_MENU_COLORS["torah"],
         items: [],
         comingSoon: true,
         description: "Preparez une campagne de collecte avec messages, visuels et calendrier de relance assistes par IA.",
@@ -229,7 +205,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         key: "newsletter",
         title: "Newsletter IA",
         icon: Mail,
-        tone: "from-[#ed3d91] to-[#c72879]",
+        tone: DASHBOARD_MENU_COLORS["newsletter-paper"],
         items: [],
         comingSoon: true,
         description: "La newsletter numerique, sa programmation et son envoi automatique arriveront prochainement.",
@@ -312,7 +288,6 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
             <>
 
               <SectionTitle>Tous les modules</SectionTitle>
-              <p className="-mt-1 mb-3 text-center text-[11px] font-semibold normal-case text-slate-500">Maintenez un module pour l’ajouter à votre accueil.</p>
               <div className="grid grid-cols-2 gap-3">
                 {menu.tools.map((group) => (
                   <ToolCard key={group.key} group={group} onOpen={() => setActiveGroupKey(group.key)} onClose={onClose} onLongPressStart={beginAddToHome} onLongPressEnd={clearAddToHome} suppressClickRef={suppressClickRef} />
@@ -460,15 +435,15 @@ function ToolCard({ group, onOpen, onClose, onLongPressStart, onLongPressEnd, su
 }) {
   const Icon = group.icon;
   const className = cn(
-    "relative flex min-h-[142px] flex-col items-center justify-center gap-3 overflow-hidden rounded-[1.55rem] bg-gradient-to-br px-2.5 py-4 text-center text-white shadow-[0_13px_26px_rgba(35,20,80,0.16)] transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#421388]/20",
+    "relative flex min-h-[142px] flex-col items-center justify-center gap-3 overflow-hidden rounded-[1.55rem] px-2.5 py-4 text-center text-white shadow-[0_13px_26px_rgba(35,20,80,0.16)] transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#421388]/20",
     group.tone,
-    group.wide && "col-span-2 min-h-[102px] flex-row px-5"
+    group.wide && "col-span-2 min-h-[102px] flex-row px-5",
+    group.compact && "min-h-[88px] gap-1.5 px-2.5 py-2.5"
   );
   const content = (
     <>
-      <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,rgba(255,255,255,0.14),transparent_34%),radial-gradient(circle_at_0%_100%,rgba(255,255,255,0.08),transparent_38%)]" aria-hidden="true" />
-      <Icon className="relative size-10 shrink-0 stroke-[2.1]" />
-      <span className="relative max-w-full text-[clamp(0.78rem,3.45vw,1rem)] font-black uppercase leading-[1.13] tracking-[-0.02em]">{group.title}</span>
+      <Icon className={cn("relative size-10 shrink-0 stroke-[2.1]", group.compact && "size-6")} />
+      <span className={cn("relative max-w-full text-[clamp(0.78rem,3.45vw,1rem)] font-black uppercase leading-[1.13] tracking-[-0.02em]", group.compact && "text-xs tracking-normal")}>{group.title}</span>
     </>
   );
 
@@ -503,7 +478,7 @@ function ComingSoonCard({ group, onOpen }: { group: ToolGroup; onOpen: () => voi
       type="button"
       onClick={onOpen}
       className={cn(
-        "relative flex min-h-[108px] flex-col items-center justify-center gap-2.5 overflow-hidden rounded-[1.4rem] bg-gradient-to-br px-3 pb-3 pt-6 text-center text-white shadow-[0_10px_22px_rgba(35,20,80,0.12)] transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#421388]/15",
+        "relative flex min-h-[108px] flex-col items-center justify-center gap-2.5 overflow-hidden rounded-[1.4rem] px-3 pb-3 pt-6 text-center text-white shadow-[0_10px_22px_rgba(35,20,80,0.12)] transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#421388]/15",
         group.tone
       )}
     >
@@ -518,7 +493,7 @@ function ComingSoonDetail({ group }: { group: ToolGroup }) {
   const Icon = group.icon;
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-3 text-center normal-case">
-      <span className={cn("flex size-20 items-center justify-center rounded-[1.7rem] bg-gradient-to-br text-white shadow-[0_18px_34px_rgba(35,20,80,0.18)]", group.tone)}>
+      <span className={cn("flex size-20 items-center justify-center rounded-[1.7rem] text-white shadow-[0_18px_34px_rgba(35,20,80,0.18)]", group.tone)}>
         <Icon className="size-9" />
       </span>
       <span className="mt-5 rounded-full bg-amber-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-800">Bientot disponible</span>

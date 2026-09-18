@@ -1,0 +1,17 @@
+/* One palette for public Home, dashboard modules and the tools menu. */
+.home-tool-publish { background: linear-gradient(130deg, #327eff, #0757ef); }
+.home-tool-newsletter { background: linear-gradient(130deg, #a26aff, #681cf2); }
+.home-tool-automations { background: linear-gradient(130deg, #f36756, #d63830); }
+.home-tool-shabbat { background: linear-gradient(130deg, #ffb13c, #e37d16); }
+.home-tool-email { background: linear-gradient(130deg, #43a0dc, #2260b5); }
+.home-tool-posters { background: linear-gradient(130deg, #f142a9, #d31d7d); }
+.home-tool-torah { background: linear-gradient(130deg, #13aa8a, #008b70); }
+.home-tool-shop { background: linear-gradient(130deg, #ffbd41, #ec8b16); color: #24114f; }
+
+@media (max-width: 767px) {
+  .home-tool-publish { background: linear-gradient(130deg, #2267df, #0757cc); }
+  .home-tool-newsletter { background: linear-gradient(130deg, #8940e8, #6317cf); }
+  .home-tool-automations { background: linear-gradient(130deg, #c74538, #b9302a); }
+  .home-tool-posters { background: linear-gradient(130deg, #ce2887, #bc156a); }
+  .home-tool-torah { background: linear-gradient(130deg, #008467, #006c56); }
+}

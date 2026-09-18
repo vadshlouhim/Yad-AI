@@ -1,0 +1,26 @@
+[
+  {
+    "width": 390,
+    "passed": true,
+    "videos": 10,
+    "navigation": true,
+    "touch": true,
+    "publicShop": true
+  },
+  {
+    "width": 768,
+    "passed": true,
+    "videos": 10,
+    "navigation": true,
+    "touch": true,
+    "publicShop": true
+  },
+  {
+    "width": 1440,
+    "passed": true,
+    "videos": 10,
+    "navigation": true,
+    "touch": true,
+    "publicShop": true
+  }
+]
