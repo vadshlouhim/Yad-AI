@@ -21,6 +21,7 @@ import {
   posterTemplateImage,
   type PosterGalleryTemplate,
 } from "./poster-gallery";
+import { CanvaLogo, DesignerRequestLink } from "./template-actions";
 
 type Template = PosterGalleryTemplate;
 
@@ -99,10 +100,12 @@ export function TemplatesClient({
   const initialTemplateLocked = Boolean(
     initialTemplate && (freePosterAlreadyUsed || (plan === "FREE_TRIAL" && initialTemplate.isPremium))
   );
-  const [step, setStep] = useState<Step>(initialTemplate && !initialTemplateLocked ? (initialSource?.editState ? "confirm" : "request") : "gallery");
+  const initialTemplateSupportsAi = Boolean(initialTemplate?.supportsAi);
+  const [step, setStep] = useState<Step>(initialTemplate && initialTemplateSupportsAi && !initialTemplateLocked ? (initialSource?.editState ? "confirm" : "request") : "gallery");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
-    initialTemplate && !initialTemplateLocked ? initialTemplate : null
+    initialTemplate && initialTemplateSupportsAi && !initialTemplateLocked ? initialTemplate : null
   );
+  const [choiceTemplate, setChoiceTemplate] = useState<Template | null>(null);
   const [requestText, setRequestText] = useState("");
   const [source, setSource] = useState(initialSource ?? null);
   const [logoUrl, setLogoUrl] = useState<string | null>(initialSource?.editState?.logoUrl ?? community.logoUrl);
@@ -120,11 +123,8 @@ export function TemplatesClient({
   const [error, setError] = useState("");
   const [upgradeOpen, setUpgradeOpen] = useState(initialTemplateLocked);
 
-  function selectTemplate(template: Template) {
-    if (freePosterAlreadyUsed || (plan === "FREE_TRIAL" && template.isPremium)) {
-      setUpgradeOpen(true);
-      return;
-    }
+  function beginAiTemplate(template: Template) {
+    setChoiceTemplate(null);
     setSelectedTemplate(template);
     setSource(null);
     setRequestText("");
@@ -135,6 +135,32 @@ export function TemplatesClient({
     setActionMessage("");
     setError("");
     setStep("request");
+  }
+
+  function openCanva(template: Template) {
+    if (plan === "FREE_TRIAL") {
+      setChoiceTemplate(null);
+      setUpgradeOpen(true);
+      return;
+    }
+    setChoiceTemplate(null);
+    window.open(`/templates/canva/${encodeURIComponent(template.id)}`, "_blank", "noopener,noreferrer");
+  }
+
+  function selectTemplate(template: Template) {
+    if (freePosterAlreadyUsed || (plan === "FREE_TRIAL" && template.isPremium)) {
+      setUpgradeOpen(true);
+      return;
+    }
+    if (!template.supportsAi && template.hasCanva) {
+      openCanva(template);
+      return;
+    }
+    if (template.supportsAi && template.hasCanva) {
+      setChoiceTemplate(template);
+      return;
+    }
+    beginAiTemplate(template);
   }
 
   async function analyzeRequest() {
@@ -272,17 +298,47 @@ export function TemplatesClient({
     />
   );
 
+  const choiceModal = choiceTemplate ? (
+    <div
+      className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) setChoiceTemplate(null);
+      }}
+    >
+      <div role="dialog" aria-modal="true" aria-labelledby="template-choice-title" className="w-full max-w-lg rounded-[2rem] bg-white p-5 shadow-2xl sm:p-7">
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-violet-700">Deux outils disponibles</p>
+        <h2 id="template-choice-title" className="mt-2 text-2xl font-black text-slate-950">Comment personnaliser cette affiche ?</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-600">Choisissez EasyCom IA pour modifier automatiquement les textes, ou ouvrez le modèle dans Canva.</p>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <button type="button" onClick={() => beginAiTemplate(choiceTemplate)} className="min-h-28 rounded-2xl bg-gradient-to-br from-[#7130d8] to-[#d92d7c] p-4 text-left text-white shadow-lg shadow-violet-200 transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300">
+            <Sparkles className="size-5" />
+            <span className="mt-3 block text-sm font-black">Personnaliser avec l’IA</span>
+            <span className="mt-1 block text-xs text-white/75">Automatique dans EasyCom</span>
+          </button>
+          <button type="button" onClick={() => openCanva(choiceTemplate)} className="min-h-28 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-left text-blue-900 transition hover:-translate-y-0.5 hover:border-blue-400 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200">
+            <CanvaLogo className="h-6" />
+            <span className="mt-3 block text-sm font-black">Ouvrir dans Canva</span>
+            <span className="mt-1 block text-xs text-blue-700">Abonnement requis</span>
+          </button>
+        </div>
+        <DesignerRequestLink template={choiceTemplate} className="mt-3 w-full" />
+        <button type="button" onClick={() => setChoiceTemplate(null)} className="mt-4 min-h-11 w-full rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50">Annuler</button>
+      </div>
+    </div>
+  ) : null;
+
   if (step === "gallery") {
     return (
       <>
         {modal}
+        {choiceModal}
         <PosterGallery
           templates={templates}
           onSelect={selectTemplate}
           getStatus={(template) => {
-            const locked = freePosterAlreadyUsed || (plan === "FREE_TRIAL" && template.isPremium);
+            const locked = freePosterAlreadyUsed || (plan === "FREE_TRIAL" && (template.isPremium || !template.supportsAi));
             return {
-              label: locked ? "Réservée" : "Personnaliser",
+              label: locked ? "Réservée" : template.supportsAi && template.hasCanva ? "Choisir IA ou Canva" : template.hasCanva ? "Ouvrir dans Canva" : "Personnaliser avec l’IA",
               className: locked ? "text-amber-700" : "text-[#d92d7c]",
             };
           }}

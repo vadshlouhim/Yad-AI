@@ -322,7 +322,7 @@ export const PUBLIC_TOOLS: readonly PublicTool[] = [
   ),
   tool(
     "shabbat",
-    "Horaires de Chabbat",
+    "Horaires Chabbat et Fêtes",
     "Préparez vos rendez-vous hebdomadaires.",
     "Automatiser",
     "/dashboard/shabbat-times-auto",

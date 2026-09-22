@@ -17,6 +17,8 @@ export interface TemplateSuggestion {
   previewUrl: string | null;
   tags: string[];
   isPremium: boolean;
+  supportsAi: boolean;
+  hasCanva: boolean;
   usageCount: number;
   reason: string;
 }
@@ -573,6 +575,8 @@ export function buildTemplateSuggestions(
       | "tags"
       | "subCategory"
       | "isPremium"
+      | "supportsAi"
+      | "canvaUrl"
       | "usageCount"
     >
   >,
@@ -650,6 +654,8 @@ export function buildTemplateSuggestions(
       previewUrl: resolveTemplateAssetUrl(template.previewUrl),
       tags: template.tags ?? [],
       isPremium: template.isPremium,
+      supportsAi: template.supportsAi,
+      hasCanva: Boolean(template.canvaUrl),
       usageCount: template.usageCount,
       reason: buildTemplateReason(template, text),
     }));
@@ -732,6 +738,8 @@ export function buildTemplateSuggestions(
       previewUrl: resolveTemplateAssetUrl(template.previewUrl),
       tags: template.tags ?? [],
       isPremium: template.isPremium,
+      supportsAi: template.supportsAi,
+      hasCanva: Boolean(template.canvaUrl),
       usageCount: template.usageCount,
       reason: buildTemplateReason(template, text),
     }));

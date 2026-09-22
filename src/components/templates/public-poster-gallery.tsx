@@ -3,18 +3,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { LogIn, MessageCircle, UserPlus, X } from "lucide-react";
+import { LogIn, UserPlus, X } from "lucide-react";
 import {
   PosterGallery,
   posterTemplateImage,
   type PosterGalleryTemplate,
 } from "./poster-gallery";
+import { CanvaLogo, DesignerRequestLink } from "./template-actions";
 
 interface Props {
   templates: PosterGalleryTemplate[];
 }
-
-const DESIGNER_PHONE = "33668508898";
 
 export function PublicPosterGallery({ templates }: Props) {
   const [selectedTemplate, setSelectedTemplate] = useState<PosterGalleryTemplate | null>(null);
@@ -71,19 +70,23 @@ export function PublicPosterGallery({ templates }: Props) {
     ? `/dashboard/templates?templateId=${encodeURIComponent(selectedTemplate.id)}`
     : "/dashboard/templates";
   const loginUrl = `/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`;
-  const whatsappMessage = selectedTemplate
-    ? `Bonjour, je souhaite personnaliser l'affiche « ${selectedTemplate.name} » avec un designer.`
-    : "Bonjour, je souhaite personnaliser une affiche avec un designer.";
-  const whatsappUrl = `https://wa.me/${DESIGNER_PHONE}?text=${encodeURIComponent(whatsappMessage)}`;
 
   return (
     <>
       <PosterGallery
         templates={templates}
         onSelect={(template) => {
+          if (!template.supportsAi && template.hasCanva) {
+            window.open(`/templates/canva/${encodeURIComponent(template.id)}`, "_blank", "noopener,noreferrer");
+            return;
+          }
           triggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
           setSelectedTemplate(template);
         }}
+        getStatus={(template) => ({
+          label: template.supportsAi && template.hasCanva ? "Choisir IA ou Canva" : template.hasCanva ? "Ouvrir dans Canva" : "Voir et personnaliser",
+          className: template.hasCanva && !template.supportsAi ? "text-blue-700" : "text-[#d92d7c]",
+        })}
         gallerySubtitle="Parcourez toutes nos affiches. Ouvrez un modèle pour le voir en grand."
       />
 
@@ -134,33 +137,40 @@ export function PublicPosterGallery({ templates }: Props) {
                 <p className="mt-3 text-sm leading-6 text-slate-500">{selectedTemplate.description}</p>
               ) : null}
               <p id="public-poster-description" className="mt-6 text-base font-semibold leading-7 text-slate-700">
-                Vous souhaitez personnaliser automatiquement cette affiche avec l&apos;IA ? Connectez-vous ou créez un compte EasyCom IA. Vous pouvez aussi contacter directement un designer.
+                {selectedTemplate.supportsAi && selectedTemplate.hasCanva
+                  ? "Cette affiche est disponible avec EasyCom IA et dans Canva. Choisissez l’outil qui vous convient."
+                  : "Connectez-vous ou créez un compte EasyCom IA pour personnaliser automatiquement cette affiche."}
               </p>
 
               <div className="mt-7 grid gap-3">
-                <Link
-                  href={loginUrl}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#421388] px-4 text-sm font-black text-white transition hover:bg-[#35106d] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
-                >
-                  <LogIn className="size-4" aria-hidden="true" />
-                  Se connecter
-                </Link>
-                <Link
-                  href="/auth/register"
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 text-sm font-black text-violet-800 transition hover:bg-violet-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-200"
-                >
-                  <UserPlus className="size-4" aria-hidden="true" />
-                  Créer un compte
-                </Link>
-                <a
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#128c4a] px-4 text-center text-sm font-black text-white transition hover:bg-[#0f773f] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300"
-                >
-                  <MessageCircle className="size-4" aria-hidden="true" />
-                  Contacter un designer
-                </a>
+                {selectedTemplate.supportsAi ? <>
+                  <Link
+                    href={loginUrl}
+                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#421388] px-4 text-sm font-black text-white transition hover:bg-[#35106d] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
+                  >
+                    <LogIn className="size-4" aria-hidden="true" />
+                    Personnaliser avec l’IA
+                  </Link>
+                  <Link
+                    href={`/auth/register?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 text-sm font-black text-violet-800 transition hover:bg-violet-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-200"
+                  >
+                    <UserPlus className="size-4" aria-hidden="true" />
+                    Créer un compte
+                  </Link>
+                </> : null}
+                {selectedTemplate.hasCanva ? (
+                  <a
+                    href={`/templates/canva/${encodeURIComponent(selectedTemplate.id)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#1778f2] px-4 text-sm font-black text-white transition hover:bg-[#1268d7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
+                  >
+                    <CanvaLogo className="h-5 brightness-0 invert" />
+                    Ouvrir dans Canva
+                  </a>
+                ) : null}
+                <DesignerRequestLink template={selectedTemplate} className="min-h-12 bg-[#128c4a] text-sm text-white hover:bg-[#0f773f]" />
               </div>
             </div>
           </div>

@@ -248,7 +248,7 @@ export async function POST(request: Request) {
     const fetchTemplates = () =>
       admin
         .from("Template")
-        .select("id, communityId, name, description, category, channelType, thumbnailUrl, previewUrl, tags, subCategory, isPremium, usageCount")
+        .select("id, communityId, name, description, category, channelType, thumbnailUrl, previewUrl, tags, subCategory, isPremium, supportsAi, canvaUrl, usageCount")
         .eq("isActive", true)
         .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
         .limit(250);
@@ -367,18 +367,18 @@ export async function POST(request: Request) {
 
     let selectedTemplateContext = "";
     let selectedTemplate:
-      | { id: string; name: string; category: string; thumbnailUrl: string | null; previewUrl: string | null }
+      | { id: string; name: string; category: string; thumbnailUrl: string | null; previewUrl: string | null; supportsAi: boolean }
       | null = null;
 
     if (selectedTemplateId) {
       const { data: template } = await admin
         .from("Template")
-        .select("id, name, category, thumbnailUrl, previewUrl")
+        .select("id, name, category, thumbnailUrl, previewUrl, supportsAi")
         .eq("id", selectedTemplateId)
         .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
         .single();
 
-      if (template) {
+      if (template?.supportsAi) {
         selectedTemplate = {
           ...template,
           thumbnailUrl: resolveTemplateAssetUrl(template.thumbnailUrl),
@@ -486,8 +486,8 @@ export async function POST(request: Request) {
               ? `${templateSuggestions.length} affiches pertinentes`
               : "une affiche pertinente";
             const selectionMessage = detectedCategory
-              ? `Voici ${countLabel} dans la catégorie ${CATEGORY_LABELS[detectedCategory] ?? detectedCategory}. Clique sur Choisir sur celle qui te convient, et je préparerai ensuite les textes à personnaliser.\n\nSi aucune ne te convient, dis-le moi et je t'en proposerai d'autres dans la même catégorie.`
-              : `Je te propose de choisir parmi ces affiches. Clique sur Choisir sur celle qui te correspond le mieux, et je préparerai ensuite les textes exacts à remplacer dessus.\n\nSi tu veux, tu peux aussi me préciser un angle plus précis comme la fête, le type d'événement, la date ou le public visé.`;
+              ? `Voici ${countLabel} dans la catégorie ${CATEGORY_LABELS[detectedCategory] ?? detectedCategory}. Choisis l'option IA ou Canva proposée sur celle qui te convient.\n\nSi aucune ne te convient, dis-le moi et je t'en proposerai d'autres dans la même catégorie.`
+              : `Je te propose de choisir parmi ces affiches, puis d'utiliser l'option IA ou Canva disponible.\n\nSi tu veux, tu peux aussi me préciser un angle plus précis comme la fête, le type d'événement, la date ou le public visé.`;
             fullResponse += selectionMessage;
             send({ content: selectionMessage });
             await persistAndClose();

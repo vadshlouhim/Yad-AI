@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.types";
 import { classifyTemplateAdminError } from "@/lib/templates/admin-errors";
+import { assertTemplateDestination, normalizeCanvaUrl } from "@/lib/templates/availability";
 import { NextResponse } from "next/server";
 
 const TEMPLATE_CATEGORIES = new Set<Database["public"]["Enums"]["TemplateCategory"]>([
@@ -57,6 +58,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const body = await request.json();
   const updateData: Record<string, unknown> = { updatedAt: new Date().toISOString() };
 
+  const admin = createAdminClient();
+  const { data: currentTemplate } = await admin
+    .from("Template")
+    .select("supportsAi, canvaUrl, isActive")
+    .eq("id", id)
+    .maybeSingle();
+  if (!currentTemplate) {
+    return NextResponse.json({ error: "Affiche introuvable", code: "TEMPLATE_NOT_FOUND" }, { status: 404 });
+  }
+
   if (body.name !== undefined) {
     const name = String(body.name).trim();
     if (name.length < 2) {
@@ -104,6 +115,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     updateData.previewUrl = previewUrl.length > 0 ? previewUrl : null;
   }
 
+  try {
+    const supportsAi = body.supportsAi === undefined ? currentTemplate.supportsAi : Boolean(body.supportsAi);
+    const canvaUrl = body.canvaUrl === undefined ? currentTemplate.canvaUrl : normalizeCanvaUrl(body.canvaUrl);
+    const isActive = body.isActive === undefined ? currentTemplate.isActive : Boolean(body.isActive);
+    assertTemplateDestination({ supportsAi, canvaUrl, isActive });
+    if (body.supportsAi !== undefined) updateData.supportsAi = supportsAi;
+    if (body.canvaUrl !== undefined) updateData.canvaUrl = canvaUrl;
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Configuration Canva invalide", code: "INVALID_REQUEST" },
+      { status: 400 },
+    );
+  }
+
   const tags = normalizeTags(body.tags);
   if (tags) updateData.tags = tags;
 
@@ -111,7 +136,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (body[field] !== undefined) updateData[field] = Boolean(body[field]);
   }
 
-  const admin = createAdminClient();
   const { data: updated, error } = await admin.from("Template").update(updateData).eq("id", id).select().single();
 
   if (error) {

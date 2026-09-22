@@ -61,6 +61,7 @@ export async function POST(request: Request) {
       .or(`isGlobal.eq.true,communityId.eq.${gate.communityId}`)
       .single();
     if (!template) return NextResponse.json({ error: "Template introuvable" }, { status: 404 });
+    if (!template.supportsAi) return NextResponse.json({ error: "Cette affiche est disponible uniquement dans Canva." }, { status: 409 });
     const source = await getPosterSource(admin, gate.communityId, body.sourceMediaId);
     if (source && source.templateId !== template.id) return NextResponse.json({ error: "Modèle source incompatible." }, { status: 400 });
     const logoUrl = trustedCommunityLogo(body.logoUrl, gate.communityId);

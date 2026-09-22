@@ -24,7 +24,7 @@ export default async function PublicPostersPage() {
   const admin = createAdminClient();
   const { data: templates, error } = await admin
     .from("Template")
-    .select("id, name, description, category, subCategory, originalUrl, thumbnailUrl, previewUrl, isGlobal, isPremium, tags, usageCount")
+    .select("id, name, description, category, subCategory, originalUrl, thumbnailUrl, previewUrl, supportsAi, canvaUrl, isGlobal, isPremium, tags, usageCount")
     .eq("isActive", true)
     .eq("isGlobal", true)
     .order("category", { ascending: true })
@@ -44,6 +44,8 @@ export default async function PublicPostersPage() {
     originalUrl: resolveTemplateAssetUrl(template.originalUrl),
     thumbnailUrl: resolveTemplateAssetUrl(template.thumbnailUrl),
     previewUrl: resolveTemplateAssetUrl(template.previewUrl),
+    supportsAi: template.supportsAi,
+    hasCanva: Boolean(template.canvaUrl),
     isGlobal: template.isGlobal,
     isPremium: template.isPremium,
     tags: template.tags ?? [],

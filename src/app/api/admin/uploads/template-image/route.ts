@@ -2,7 +2,11 @@ import { canAccessAdmin } from "@/lib/admin-access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { classifyTemplateAdminError } from "@/lib/templates/admin-errors";
+import { optimizeTemplateImage, optimizeTemplateImages } from "@/lib/templates/image-optimization";
 import { NextResponse } from "next/server";
+
+export const runtime = "nodejs";
+export const maxDuration = 180;
 
 const MAX_FILE_SIZE = 24 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = [
@@ -77,6 +81,7 @@ async function uploadBuffer(params: {
   await ensureTemplatesBucket(admin);
   let { error } = await admin.storage.from("templates").upload(storagePath, buffer, {
     contentType,
+    cacheControl: "31536000",
     upsert: true,
   });
 
@@ -84,6 +89,7 @@ async function uploadBuffer(params: {
     await admin.storage.createBucket("templates", { public: true });
     error = (await admin.storage.from("templates").upload(storagePath, buffer, {
       contentType,
+      cacheControl: "31536000",
       upsert: true,
     })).error;
   }
@@ -152,16 +158,47 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Affiche introuvable", code: "TEMPLATE_NOT_FOUND" }, { status: 404 });
     }
 
-    const publicUrl = context.admin.storage.from("templates").getPublicUrl(storagePath).data.publicUrl;
-    const update = kind === "original"
-      ? { originalUrl: publicUrl, previewUrl: publicUrl, thumbnailUrl: publicUrl, updatedAt: new Date().toISOString() }
-      : { [kind === "thumbnail" ? "thumbnailUrl" : "previewUrl"]: publicUrl, updatedAt: new Date().toISOString() };
+    const { data: sourceFile, error: downloadError } = await context.admin.storage.from("templates").download(storagePath);
+    if (downloadError || !sourceFile) throw downloadError ?? new Error("Fichier téléversé introuvable");
+    const input = Buffer.from(await sourceFile.arrayBuffer());
+    const originalUrl = context.admin.storage.from("templates").getPublicUrl(storagePath).data.publicUrl;
+
+    if (kind === "original") {
+      const variants = await optimizeTemplateImages(input);
+      const variantId = crypto.randomUUID();
+      const thumbnailPath = `admin/${templateId}/thumbnail-${variantId}.webp`;
+      const previewPath = `admin/${templateId}/preview-${variantId}.webp`;
+      const [thumbnailUrl, previewUrl] = await Promise.all([
+        uploadBuffer({ admin: context.admin, storagePath: thumbnailPath, buffer: variants.thumbnail.buffer, contentType: variants.thumbnail.contentType }),
+        uploadBuffer({ admin: context.admin, storagePath: previewPath, buffer: variants.preview.buffer, contentType: variants.preview.contentType }),
+      ]);
+      const { error } = await context.admin.from("Template").update({
+        originalUrl,
+        previewUrl,
+        thumbnailUrl,
+        updatedAt: new Date().toISOString(),
+      }).eq("id", templateId);
+      if (error) throw error;
+      return NextResponse.json({
+        originalUrl,
+        previewUrl,
+        thumbnailUrl,
+        path: storagePath,
+        optimization: {
+          thumbnail: { size: variants.thumbnail.size, width: variants.thumbnail.width, height: variants.thumbnail.height },
+          preview: { size: variants.preview.size, width: variants.preview.width, height: variants.preview.height },
+        },
+      });
+    }
+
+    const variantKind = kind as "thumbnail" | "preview";
+    const variant = await optimizeTemplateImage(input, variantKind);
+    const variantPath = `admin/${templateId}/${variantKind}-${crypto.randomUUID()}.webp`;
+    const publicUrl = await uploadBuffer({ admin: context.admin, storagePath: variantPath, buffer: variant.buffer, contentType: variant.contentType });
+    const update = { [variantKind === "thumbnail" ? "thumbnailUrl" : "previewUrl"]: publicUrl, updatedAt: new Date().toISOString() };
     const { error } = await context.admin.from("Template").update(update).eq("id", templateId);
     if (error) throw error;
-
-    return kind === "original"
-      ? NextResponse.json({ originalUrl: publicUrl, previewUrl: publicUrl, thumbnailUrl: publicUrl, path: storagePath })
-      : NextResponse.json({ url: publicUrl, path: storagePath });
+    return NextResponse.json({ url: publicUrl, path: variantPath, optimization: { size: variant.size, width: variant.width, height: variant.height } });
   } catch (error) {
     console.error("[Admin Templates] Finalisation upload impossible:", error);
     const apiError = classifyTemplateAdminError(error, "TEMPLATE_UPLOAD_FAILED");
@@ -221,8 +258,11 @@ export async function POST(request: Request) {
         buffer: input,
         contentType: file.type,
       });
-      const previewUrl = originalUrl;
-      const thumbnailUrl = originalUrl;
+      const variants = await optimizeTemplateImages(input);
+      const [thumbnailUrl, previewUrl] = await Promise.all([
+        uploadBuffer({ admin, storagePath: `admin/${safeTemplateId}/thumbnail-${uploadId}.webp`, buffer: variants.thumbnail.buffer, contentType: variants.thumbnail.contentType }),
+        uploadBuffer({ admin, storagePath: `admin/${safeTemplateId}/preview-${uploadId}.webp`, buffer: variants.preview.buffer, contentType: variants.preview.contentType }),
+      ]);
 
       if (templateId) {
         const { error } = await admin
@@ -243,6 +283,10 @@ export async function POST(request: Request) {
         thumbnailUrl,
         path: originalPath,
         contentType: file.type,
+        optimization: {
+          thumbnail: { size: variants.thumbnail.size, width: variants.thumbnail.width, height: variants.thumbnail.height },
+          preview: { size: variants.preview.size, width: variants.preview.width, height: variants.preview.height },
+        },
       });
     }
 
@@ -250,12 +294,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Type d'image invalide" }, { status: 400 });
     }
 
-    const storagePath = `admin/${safeTemplateId}/${kind}-${uploadId}.${extensionForFile(file)}`;
+    const variant = await optimizeTemplateImage(input, kind);
+    const storagePath = `admin/${safeTemplateId}/${kind}-${uploadId}.webp`;
     const publicUrl = await uploadBuffer({
       admin,
       storagePath,
-      buffer: input,
-      contentType: file.type,
+      buffer: variant.buffer,
+      contentType: variant.contentType,
     });
 
     if (templateId) {
@@ -269,7 +314,7 @@ export async function POST(request: Request) {
       if (error) throw error;
     }
 
-    return NextResponse.json({ url: publicUrl, path: storagePath, contentType: file.type });
+    return NextResponse.json({ url: publicUrl, path: storagePath, contentType: variant.contentType, optimization: { size: variant.size, width: variant.width, height: variant.height } });
   } catch (error) {
     console.error("[Admin Templates] Upload impossible:", error);
     const apiError = classifyTemplateAdminError(

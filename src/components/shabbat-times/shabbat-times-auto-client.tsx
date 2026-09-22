@@ -36,6 +36,8 @@ import {
   type ShabbatTemplateMode,
 } from "@/lib/automation/shabbat-times";
 import type { Json } from "@/types/database.types";
+import { ScheduleHubNav } from "@/components/templates/schedule-hub-nav";
+import { CanvaLogo, DesignerRequestLink } from "@/components/templates/template-actions";
 
 type Template = {
   id: string;
@@ -49,6 +51,8 @@ type Template = {
   isPremium: boolean;
   tags: string[];
   usageCount: number;
+  supportsAi?: boolean;
+  canvaUrl?: string | null;
 };
 
 type Community = {
@@ -780,6 +784,7 @@ export function ShabbatTimesAutoClient({
 
     return (
       <div className="container max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-24">
+        <div className="mb-6"><ScheduleHubNav active="shabbat" /></div>
         {/* Header */}
         <div className="relative overflow-visible rounded-[1.4rem] border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-[0_22px_52px_rgba(66,19,136,0.22)]">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -829,14 +834,11 @@ export function ShabbatTimesAutoClient({
                   const selected = template.id === selectedTemplateId;
                   const isLocked = !isPaid && index > 0;
                   return (
+                    <article key={template.id} className={cn("overflow-hidden rounded-xl border bg-white p-1 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-400 hover:shadow-md", selected ? "border-violet-500 ring-2 ring-violet-500" : "border-slate-200")}>
                     <button
-                      key={template.id}
                       type="button"
                       onClick={() => handleSelectTemplate(template, index)}
-                      className={cn(
-                        "group relative overflow-hidden rounded-xl border bg-white p-1 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-400 hover:shadow-md",
-                        selected ? "border-violet-500 ring-2 ring-violet-500" : "border-slate-200"
-                      )}
+                      className="group relative w-full overflow-hidden rounded-lg text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
                     >
                       <div className="relative aspect-square overflow-hidden rounded-lg bg-slate-100">
                         <TemplateImage template={template} />
@@ -856,12 +858,15 @@ export function ShabbatTimesAutoClient({
                             Offert
                           </span>
                         )}
+                        {template.canvaUrl ? <span className="absolute bottom-3 left-3 inline-flex rounded-full bg-white/95 px-2.5 py-1 shadow"><CanvaLogo className="h-4" /></span> : null}
                       </div>
                       <div className="flex items-center justify-between gap-3 px-2 py-3">
                         <span className="text-sm font-bold text-slate-900">{selected ? "Modèle sélectionné" : isLocked ? "Débloquer" : "Choisir ce modèle"}</span>
                         <ArrowRight className="size-4 text-violet-500 transition group-hover:translate-x-0.5" />
                       </div>
                     </button>
+                    <DesignerRequestLink template={template} compact className="m-2 w-[calc(100%-1rem)]" />
+                    </article>
                   );
                 })}
               </div>
@@ -1124,7 +1129,7 @@ export function ShabbatTimesAutoClient({
                         )}
                       >
                         Oui
-                      </button>
+                    </button>
                       <button
                         type="button"
                         onClick={() => {
@@ -1399,6 +1404,7 @@ export function ShabbatTimesAutoClient({
   // ??? OVERVIEW VIEW ???????????????????????????????????????????????????????????
   return (
     <div className="container max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-16">
+      <div className="mb-6"><ScheduleHubNav active="shabbat" /></div>
       {/* Welcome popup (first visit) */}
       {showWelcomePopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">

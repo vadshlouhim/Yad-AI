@@ -67,7 +67,7 @@ export default async function AssistantPage({
       prompt: `Explique comment EasyCom IA peut préparer, programmer et publier automatiquement les contenus au bon moment pour ma communauté. Appuie-toi si utile sur ce programme :\n${programContext}`,
     },
     {
-      label: "Horaires de Chabbat",
+      label: "Horaires Chabbat et Fêtes",
       description: "Recevez chaque vendredi vos horaires de Chabbat préremplis",
       prompt: "Prépare un exemple de contenu d'horaires de Chabbat prérempli pour vendredi, avec texte prêt à publier et structure claire.",
     },

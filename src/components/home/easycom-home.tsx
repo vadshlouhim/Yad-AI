@@ -22,7 +22,7 @@ const MEDIA = "/media/home/";
 const TOOLS = [
   { id: "publish", name: "Publier partout en un clic", media: "02-dovber-publier-partout", agent: "Dov Ber", role: "Réseaux sociaux", portrait: HOME_AGENT_IMAGES.dovBer, Icon: Share2 },
   { id: "newsletter", name: "Newsletter papier", media: "04-levik-newsletter", agent: "Levik", role: "Newsletter", portrait: HOME_AGENT_IMAGES.levik, Icon: FileText },
-  { id: "shabbat", name: "Horaires de Chabbat", media: "05-david-horaires-chabbat", agent: "David", role: "Horaires de Chabbat", portrait: HOME_AGENT_IMAGES.david, Icon: Clock },
+  { id: "shabbat", name: "Horaires Chabbat et Fêtes", media: "05-david-horaires-chabbat", agent: "David", role: "Horaires Chabbat et Fêtes", portrait: HOME_AGENT_IMAGES.david, Icon: Clock },
   { id: "automations", name: "Hayom Yom, anniversaire juif auto", media: "06-david-anniversaires", agent: "David", role: "Automatisations", portrait: HOME_AGENT_IMAGES.david, Icon: Settings },
   { id: "posters", name: "Affiches & visuels", media: "03-zalman-affiches", agent: "Zalman", role: "Affiches & visuels", portrait: HOME_AGENT_IMAGES.zalman, Icon: ImageIcon },
   { id: "torah", name: "Cours de Torah", media: "08-shmouel-cours-torah", agent: "Shmouel", role: "Cours de Torah", portrait: HOME_AGENT_IMAGES.shmouel, Icon: BookOpen },

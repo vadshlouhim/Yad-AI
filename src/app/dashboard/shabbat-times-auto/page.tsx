@@ -12,7 +12,7 @@ import {
 } from "@/lib/automation/shabbat-times";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 
-export const metadata: Metadata = { title: "Horaires de Chabbat — EasyCom IA" };
+export const metadata: Metadata = { title: "Horaires Chabbat et Fêtes — EasyCom IA" };
 
 export default async function ShabbatTimesAutoPage({ searchParams }: { searchParams: Promise<{ mediaId?: string | string[] }> }) {
   const query = await searchParams;
@@ -33,6 +33,7 @@ export default async function ShabbatTimesAutoPage({ searchParams }: { searchPar
         .select("*")
         .eq("isActive", true)
         .eq("category", "SHABBAT")
+        .contains("tags", ["usage:shabbat-times"])
         .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
         .order("usageCount", { ascending: false }),
       admin

@@ -8,6 +8,11 @@ import {
   classifyTemplateAdminError,
   isTemplateSchemaOutdated,
 } from "../src/lib/templates/admin-errors";
+import {
+  assertTemplateDestination,
+  normalizeCanvaUrl,
+  templateAvailability,
+} from "../src/lib/templates/availability";
 
 const projectRef = "abcdefghijklmnopqrst";
 assert.equal(getSupabaseProjectRef(`https://${projectRef}.supabase.co`), projectRef);
@@ -63,5 +68,13 @@ assert.equal(
   classifyTemplateAdminError(new Error("network"), "TEMPLATE_UPLOAD_FAILED").code,
   "TEMPLATE_UPLOAD_FAILED",
 );
+
+assert.equal(templateAvailability({ supportsAi: true, canvaUrl: null }), "AI_ONLY");
+assert.equal(templateAvailability({ supportsAi: true, canvaUrl: "https://www.canva.com/design/demo" }), "AI_AND_CANVA");
+assert.equal(templateAvailability({ supportsAi: false, canvaUrl: "https://www.canva.com/design/demo" }), "CANVA_ONLY");
+assert.equal(normalizeCanvaUrl("https://www.canva.com/design/demo")?.startsWith("https://www.canva.com/"), true);
+assert.throws(() => normalizeCanvaUrl("https://example.com/design/demo"), /canva\.com/);
+assert.throws(() => assertTemplateDestination({ supportsAi: false, canvaUrl: null, isActive: true }), /active/);
+assert.doesNotThrow(() => assertTemplateDestination({ supportsAi: false, canvaUrl: null, isActive: false }));
 
 console.log("Admin template tests passed");

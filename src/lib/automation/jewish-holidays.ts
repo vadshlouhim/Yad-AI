@@ -1,5 +1,6 @@
 import { addDays, differenceInCalendarDays, startOfDay, subDays } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
+import { holidayThemeFromTag, inferHolidayTheme } from "@/lib/templates/taxonomy";
 
 export const JEWISH_HOLIDAYS_AUTOMATION_NAME = "Fetes juives et Hassidiques";
 export const DEFAULT_HOLIDAY_NOTIFICATION_DAYS = 20;
@@ -200,6 +201,10 @@ export function getNotificationDateTime({
 }
 
 export function templateMatchesHoliday<T extends HolidayTemplateLike>(template: T, holiday: HolidayItem) {
+  const templateTheme = holidayThemeFromTag(template.tags);
+  const holidayTheme = inferHolidayTheme({ name: holiday.officialName, subCategory: null, tags: [] });
+  if (templateTheme) return Boolean(holidayTheme && templateTheme === holidayTheme);
+
   const relation = HOLIDAY_TEMPLATE_RELATIONS[getHolidayRelationKey(holiday.officialName)];
   if (!relation) return false;
 

@@ -51,7 +51,7 @@ export const DEMO_MODULES: Record<string, DemoModuleConfig> = {
     items: ["Annonce hebdomadaire", "Rappel événement", "Cours du jour"],
   },
   "shabbat-times-auto": {
-    title: "Horaires de Chabbat",
+    title: "Horaires Chabbat et Fêtes",
     subtitle: "Générez automatiquement les horaires et le contenu hebdomadaire.",
     action: "Générer cette semaine",
     highlights: ["Horaires locaux", "Paracha intégrée", "Diffusion jeudi"],

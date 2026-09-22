@@ -44,12 +44,16 @@ export default async function TemplatesPage({ searchParams }: Props) {
   ]);
   const billingUsage = await getBillingUsage(admin, communityId, planToTier(community?.plan));
 
-  const hydratedTemplates = (templates ?? []).map((template) => ({
-    ...template,
-    originalUrl: resolveTemplateAssetUrl(template.originalUrl),
-    thumbnailUrl: resolveTemplateAssetUrl(template.thumbnailUrl),
-    previewUrl: resolveTemplateAssetUrl(template.previewUrl),
-  }));
+  const hydratedTemplates = (templates ?? []).map((template) => {
+    const { canvaUrl, ...safeTemplate } = template;
+    return {
+      ...safeTemplate,
+      hasCanva: Boolean(canvaUrl),
+      originalUrl: resolveTemplateAssetUrl(template.originalUrl),
+      thumbnailUrl: resolveTemplateAssetUrl(template.thumbnailUrl),
+      previewUrl: resolveTemplateAssetUrl(template.previewUrl),
+    };
+  });
   const shabbatTimes = await getStoredShabbatTimes({
     city: community?.city ?? undefined,
     timezone: community?.timezone ?? "Europe/Paris",

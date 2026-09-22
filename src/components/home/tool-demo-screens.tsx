@@ -141,7 +141,7 @@ export const TOOL_DEMO_CONFIG: Record<
     family: "automation",
   },
   shabbat: {
-    title: "Horaires de Chabbat",
+    title: "Horaires Chabbat et Fêtes",
     section: "Votre programmation",
     tabs: ["Configuration", "Programmation"],
     fields: [

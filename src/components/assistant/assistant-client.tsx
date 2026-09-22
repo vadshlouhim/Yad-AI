@@ -28,6 +28,7 @@ import type { RoutineItem } from "./daily-routine-wizard";
 import type { BillingConfig } from "@/lib/billing";
 import { AGENTS_GROUP_IMAGE, HOME_EASYCOM_AGENTS } from "@/lib/agents";
 import { downloadTorahCoursePdf } from "@/lib/torah-pdf";
+import { CanvaLogo, DesignerRequestLink } from "@/components/templates/template-actions";
 
 // ============================================================
 // TYPES
@@ -98,6 +99,8 @@ interface TemplateSuggestion {
   previewUrl: string | null;
   tags: string[];
   isPremium: boolean;
+  supportsAi: boolean;
+  hasCanva: boolean;
   usageCount: number;
   reason: string;
 }
@@ -1512,6 +1515,7 @@ export function AssistantClient({
   }
 
   function chooseTemplate(template: TemplateSuggestion) {
+    if (!template.supportsAi) return;
     setSelectedTemplate(template);
     const choiceMessage: Message = {
       id: crypto.randomUUID(),
@@ -3340,21 +3344,39 @@ export function AssistantClient({
                                   <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">
                                     {CATEGORY_LABELS_FR[template.category] ?? template.category}
                                   </span>
+                                  {template.supportsAi ? <span className="rounded-full bg-fuchsia-50 px-2 py-0.5 text-[10px] font-bold text-fuchsia-700">IA</span> : null}
+                                  {template.hasCanva ? <span className="inline-flex h-5 items-center rounded-full bg-sky-50 px-2"><CanvaLogo className="h-3" /></span> : null}
                                   {template.tags.slice(0, 2).map((tag) => (
                                     <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
                                       {tag}
                                     </span>
                                   ))}
                                 </div>
-                                <Button
-                                  size="sm"
-                                  className="w-full"
-                                  onClick={() => chooseTemplate(template)}
-                                  loading={preparingPoster && selectedTemplate?.id === template.id}
-                                  disabled={preparingPoster}
-                                >
-                                  Choisir et préparer
-                                </Button>
+                                <div className={template.supportsAi && template.hasCanva ? "grid gap-2" : ""}>
+                                  {template.supportsAi ? (
+                                    <Button
+                                      size="sm"
+                                      className="w-full"
+                                      onClick={() => chooseTemplate(template)}
+                                      loading={preparingPoster && selectedTemplate?.id === template.id}
+                                      disabled={preparingPoster}
+                                    >
+                                      Personnaliser avec l’IA
+                                    </Button>
+                                  ) : null}
+                                  {template.hasCanva ? (
+                                    <a
+                                      href={`/templates/canva/${encodeURIComponent(template.id)}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-bold text-blue-800 transition hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                                    >
+                                      <CanvaLogo className="h-4" />
+                                      Ouvrir dans Canva
+                                    </a>
+                                  ) : null}
+                                </div>
+                                <DesignerRequestLink template={template} compact className="w-full" />
                               </div>
                             </div>
                           ))}

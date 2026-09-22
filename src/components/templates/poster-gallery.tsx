@@ -7,6 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CATEGORY_EMOJI, CATEGORY_LABELS } from "@/lib/templates/shared";
 import { cn } from "@/lib/utils";
 import { POSTER_HEADER_CLASS } from "@/components/presentation/platform-style";
+import { CanvaLogo, DesignerRequestLink } from "@/components/templates/template-actions";
+import { HOLIDAY_THEMES } from "@/lib/templates/taxonomy";
 
 export interface PosterGalleryTemplate {
   id: string;
@@ -17,6 +19,8 @@ export interface PosterGalleryTemplate {
   originalUrl: string | null;
   thumbnailUrl: string | null;
   previewUrl: string | null;
+  supportsAi: boolean;
+  hasCanva: boolean;
   isGlobal: boolean;
   isPremium: boolean;
   tags: string[];
@@ -48,9 +52,7 @@ const CATEGORY_TONES = [
   "border-rose-300 bg-rose-50 text-rose-700",
 ];
 
-const JEWISH_CALENDAR_ORDER = [
-  "Tichri", "19 Kisslev", "Hannoucah", "Didan Notsah", "Youd Chavat", "Tou Bichvat", "Pourim", "Youd Aleph Nissan", "Pessah", "Lag Baomer", "Chavouot", "Guimel Tamouz",
-];
+const JEWISH_CALENDAR_ORDER: string[] = HOLIDAY_THEMES.map((theme) => theme.label);
 
 function splitSubCategory(value: string | null) {
   return value?.split(" › ").map((part) => part.trim()).filter(Boolean) ?? [];
@@ -69,6 +71,10 @@ function sortSubCategories(values: string[], category: string | null) {
 
 export function posterTemplateImage(template: PosterGalleryTemplate) {
   return template.previewUrl ?? template.thumbnailUrl ?? template.originalUrl;
+}
+
+export function posterTemplateThumbnail(template: PosterGalleryTemplate) {
+  return template.thumbnailUrl ?? template.previewUrl ?? template.originalUrl;
 }
 
 export function PosterGallery({
@@ -210,15 +216,14 @@ export function PosterGallery({
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 xl:grid-cols-4">
           {filteredTemplates.map((template) => {
-            const image = posterTemplateImage(template);
+            const image = posterTemplateThumbnail(template);
             const status = getStatus(template);
             return (
-              <button
+              <article
                 key={template.id}
-                type="button"
-                onClick={() => onSelect(template)}
-                className="group overflow-hidden rounded-[1.4rem] border border-violet-100 bg-white text-left shadow-[0_10px_28px_rgba(66,19,136,0.08)] transition hover:-translate-y-1 hover:border-violet-300 hover:shadow-[0_18px_38px_rgba(66,19,136,0.14)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300 sm:rounded-[1.6rem]"
+                className="group flex min-w-0 flex-col overflow-hidden rounded-[1.4rem] border border-violet-100 bg-white text-left shadow-[0_10px_28px_rgba(66,19,136,0.08)] transition hover:-translate-y-1 hover:border-violet-300 hover:shadow-[0_18px_38px_rgba(66,19,136,0.14)] sm:rounded-[1.6rem]"
               >
+                <button type="button" onClick={() => onSelect(template)} className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-violet-300">
                 <div className="aspect-[3/4] overflow-hidden bg-[#f7f3ee] p-1.5 sm:p-2">
                   {image ? (
                     <img
@@ -238,10 +243,18 @@ export function PosterGallery({
                   <span className="inline-flex rounded-full bg-violet-50 px-2 py-1 text-[10px] font-black uppercase text-violet-700">
                     {CATEGORY_LABELS[template.category] ?? template.category}
                   </span>
+                  <span className="ml-1.5 inline-flex gap-1 align-top">
+                    {template.supportsAi ? <span className="rounded-full bg-fuchsia-50 px-2 py-1 text-[10px] font-black uppercase text-fuchsia-700">IA</span> : null}
+                    {template.hasCanva ? <span className="inline-flex h-6 items-center rounded-full bg-blue-50 px-2"><CanvaLogo className="h-3.5" /></span> : null}
+                  </span>
                   <p className="mt-2 line-clamp-2 text-sm font-black text-slate-900">{template.name}</p>
                   <p className={cn("mt-1 text-xs font-semibold", status.className)}>{status.label}</p>
                 </div>
-              </button>
+                </button>
+                <div className="mt-auto px-3 pb-3 sm:px-4 sm:pb-4">
+                  <DesignerRequestLink template={template} compact className="w-full px-2" />
+                </div>
+              </article>
             );
           })}
         </div>

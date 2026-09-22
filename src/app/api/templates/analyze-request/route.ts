@@ -27,12 +27,13 @@ export async function POST(request: Request) {
     if (!profile?.communityId) return NextResponse.json({ error: "Communauté non configurée" }, { status: 400 });
     const { data: template } = await admin
       .from("Template")
-      .select("id, name, originalUrl, previewUrl")
+      .select("id, name, originalUrl, previewUrl, supportsAi")
       .eq("id", templateId)
       .eq("isActive", true)
       .or(`isGlobal.eq.true,communityId.eq.${profile.communityId}`)
       .single();
     if (!template) return NextResponse.json({ error: "Template introuvable" }, { status: 404 });
+    if (!template.supportsAi) return NextResponse.json({ error: "Cette affiche est disponible uniquement dans Canva." }, { status: 409 });
     const source = await getPosterSource(admin, profile.communityId, body.sourceMediaId);
     if (source && source.templateId !== template.id) return NextResponse.json({ error: "Modèle source incompatible." }, { status: 400 });
     const imageUrl = source?.url ?? resolveTemplateAssetUrl(template.originalUrl) ?? resolveTemplateAssetUrl(template.previewUrl);

@@ -81,7 +81,7 @@ export default async function AdminPage() {
     admin
       .from("Template")
       .select(
-        "id, communityId, name, description, category, subCategory, channelType, originalUrl, thumbnailUrl, previewUrl, isGlobal, isPremium, isActive, tags, usageCount, createdAt, updatedAt"
+        "id, communityId, name, description, category, subCategory, channelType, originalUrl, thumbnailUrl, previewUrl, supportsAi, canvaUrl, isGlobal, isPremium, isActive, tags, usageCount, createdAt, updatedAt"
       )
       .order("usageCount", { ascending: false })
       .order("updatedAt", { ascending: false }),

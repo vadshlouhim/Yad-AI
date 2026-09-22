@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.types";
 import { classifyTemplateAdminError } from "@/lib/templates/admin-errors";
+import { assertTemplateDestination, normalizeCanvaUrl } from "@/lib/templates/availability";
 import { NextResponse } from "next/server";
 
 const TEMPLATE_CATEGORIES = new Set<Database["public"]["Enums"]["TemplateCategory"]>([
@@ -53,6 +54,17 @@ export async function POST(request: Request) {
   const body = await request.json();
   const name = String(body.name ?? "Nouvelle affiche").trim();
   const category = TEMPLATE_CATEGORIES.has(body.category) ? body.category : "GENERAL";
+  const supportsAi = body.supportsAi === undefined ? true : Boolean(body.supportsAi);
+  let canvaUrl: string | null;
+  try {
+    canvaUrl = normalizeCanvaUrl(body.canvaUrl);
+    assertTemplateDestination({ supportsAi, canvaUrl, isActive: body.isActive === undefined ? true : Boolean(body.isActive) });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Configuration Canva invalide", code: "INVALID_REQUEST" },
+      { status: 400 },
+    );
+  }
   const now = new Date().toISOString();
 
   if (name.length < 2) {
@@ -75,6 +87,8 @@ export async function POST(request: Request) {
       originalUrl: body.originalUrl ? String(body.originalUrl).trim() : null,
       thumbnailUrl: body.thumbnailUrl ? String(body.thumbnailUrl).trim() : null,
       previewUrl: body.previewUrl ? String(body.previewUrl).trim() : null,
+      supportsAi,
+      canvaUrl,
       // The production database requires this JSON column even though older
       // installations relied on Prisma's default. A new template starts with
       // no validated text zones; they can be prepared after the image upload.

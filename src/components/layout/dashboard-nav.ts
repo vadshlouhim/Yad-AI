@@ -580,7 +580,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "BANQUE VISUELLE",
     items: [
-      { href: "/dashboard/shabbat-times-auto", label: "Horaires de Chabbat", icon: Clock3 },
+      { href: "/dashboard/shabbat-times-auto", label: "Horaires Chabbat et Fêtes", icon: Clock3 },
     ],
   },
   {
@@ -653,7 +653,7 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     section: "AGENDA ET QUOTIDIEN",
     icon: CalendarDays,
     items: [
-      { href: "/dashboard/shabbat-times-auto", label: "Horaires de Chabbat", icon: Clock3 },
+      { href: "/dashboard/shabbat-times-auto", label: "Horaires Chabbat et Fêtes", icon: Clock3 },
       { href: "/dashboard/event-reminders-auto", label: "Automatisation J-10 / J-5", icon: CalendarClock },
       { href: "/dashboard/recap-auto", label: "Récap automatique", icon: Camera },
     ],

@@ -524,6 +524,8 @@ model Template {
   originalUrl           String?
   thumbnailUrl          String? // URL Supabase Storage (bucket templates)
   previewUrl            String?
+  supportsAi            Boolean              @default(true)
+  canvaUrl              String?
   design                Json                 @default("[]")
   layoutStatus          TemplateLayoutStatus @default(PENDING)
   layoutConfidence      Int?

@@ -67,7 +67,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     const [{ data: candidateTemplates }, { data: candidateArticles }] = await Promise.all([
       admin
         .from("Template")
-        .select("id, communityId, name, description, category, channelType, thumbnailUrl, previewUrl, tags, subCategory, isPremium, usageCount")
+        .select("id, communityId, name, description, category, channelType, thumbnailUrl, previewUrl, tags, subCategory, isPremium, supportsAi, canvaUrl, usageCount")
         .eq("isActive", true)
         .or(`isGlobal.eq.true,communityId.eq.${conversation.communityId}`)
         .limit(250),

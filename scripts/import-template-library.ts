@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { optimizeTemplateImages } from "../src/lib/templates/image-optimization";
 
 config({ path: ".env.local" });
 config({ path: ".env" });
@@ -101,7 +102,18 @@ async function main() {
       const storagePath = `global-library/affiches-2026/${file.id}${extension}`;
       const { error: uploadError } = await supabase.storage.from("templates").upload(storagePath, buffer, { contentType: extension === ".png" ? "image/png" : `image/${extension.slice(1)}`, cacheControl: "31536000", upsert: false });
       if (uploadError) throw uploadError;
+      const variants = await optimizeTemplateImages(buffer);
+      const thumbnailPath = `global-library/affiches-2026/${file.id}-thumbnail.webp`;
+      const previewPath = `global-library/affiches-2026/${file.id}-preview.webp`;
+      const [{ error: thumbnailError }, { error: previewError }] = await Promise.all([
+        supabase.storage.from("templates").upload(thumbnailPath, variants.thumbnail.buffer, { contentType: variants.thumbnail.contentType, cacheControl: "31536000", upsert: false }),
+        supabase.storage.from("templates").upload(previewPath, variants.preview.buffer, { contentType: variants.preview.contentType, cacheControl: "31536000", upsert: false }),
+      ]);
+      if (thumbnailError) throw thumbnailError;
+      if (previewError) throw previewError;
       const publicUrl = supabase.storage.from("templates").getPublicUrl(storagePath).data.publicUrl;
+      const thumbnailUrl = supabase.storage.from("templates").getPublicUrl(thumbnailPath).data.publicUrl;
+      const previewUrl = supabase.storage.from("templates").getPublicUrl(previewPath).data.publicUrl;
       const { error: insertError } = await supabase.from("Template").insert({
         id: file.id,
         communityId: null,
@@ -111,8 +123,10 @@ async function main() {
         subCategory: file.subCategory,
         channelType: null,
         originalUrl: publicUrl,
-        thumbnailUrl: publicUrl,
-        previewUrl: publicUrl,
+        thumbnailUrl,
+        previewUrl,
+        supportsAi: true,
+        canvaUrl: null,
         design: [],
         isGlobal: true,
         isPremium: false,

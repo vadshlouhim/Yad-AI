@@ -9,7 +9,7 @@ import {
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import { JewishHolidaysAutoClient } from "@/components/jewish-holidays/jewish-holidays-auto-client";
 
-export const metadata: Metadata = { title: "Fetes juives et Hassidiques — EasyCom IA" };
+export const metadata: Metadata = { title: "Horaires des fêtes — EasyCom IA" };
 
 export default async function JewishHolidaysAutoPage() {
   const { profile } = await requireAuth();
@@ -40,6 +40,8 @@ export default async function JewishHolidaysAutoPage() {
       .from("Template")
       .select("*")
       .eq("isActive", true)
+      .eq("category", "HOLIDAY")
+      .contains("tags", ["usage:holiday-times"])
       .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
       .order("usageCount", { ascending: false })
       .limit(120),

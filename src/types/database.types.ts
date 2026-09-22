@@ -1122,6 +1122,7 @@ export type Database = {
       Template: {
         Row: {
           category: Database["public"]["Enums"]["TemplateCategory"]
+          canvaUrl: string | null
           channelType: Database["public"]["Enums"]["ChannelType"] | null
           communityId: string | null
           createdAt: string
@@ -1139,6 +1140,7 @@ export type Database = {
           originalUrl: string | null
           previewUrl: string | null
           subCategory: string | null
+          supportsAi: boolean
           tags: string[] | null
           thumbnailUrl: string | null
           updatedAt: string
@@ -1146,6 +1148,7 @@ export type Database = {
         }
         Insert: {
           category: Database["public"]["Enums"]["TemplateCategory"]
+          canvaUrl?: string | null
           channelType?: Database["public"]["Enums"]["ChannelType"] | null
           communityId?: string | null
           createdAt?: string
@@ -1163,6 +1166,7 @@ export type Database = {
           originalUrl?: string | null
           previewUrl?: string | null
           subCategory?: string | null
+          supportsAi?: boolean
           tags?: string[] | null
           thumbnailUrl?: string | null
           updatedAt: string
@@ -1170,6 +1174,7 @@ export type Database = {
         }
         Update: {
           category?: Database["public"]["Enums"]["TemplateCategory"]
+          canvaUrl?: string | null
           channelType?: Database["public"]["Enums"]["ChannelType"] | null
           communityId?: string | null
           createdAt?: string
@@ -1187,6 +1192,7 @@ export type Database = {
           originalUrl?: string | null
           previewUrl?: string | null
           subCategory?: string | null
+          supportsAi?: boolean
           tags?: string[] | null
           thumbnailUrl?: string | null
           updatedAt?: string

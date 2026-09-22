@@ -9,6 +9,7 @@ import {
   CreditCard,
   Database,
   FileText,
+  ExternalLink,
   Headphones,
   ImageIcon,
   LayoutDashboard,
@@ -36,6 +37,19 @@ import { OnboardingWizard, demoOnboardingData } from "@/components/onboarding/on
 import type { BillingConfig, PlanTier } from "@/lib/billing";
 import { planToTier, tierLabel } from "@/lib/billing";
 import { createClient as createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { templateAvailability, type TemplateAvailability } from "@/lib/templates/availability";
+import {
+  buildTemplateTaxonomy,
+  HOLIDAY_THEMES,
+  holidayThemeFromTag,
+  inferHolidayTheme,
+  inferShabbatTimesVariant,
+  inferTemplateUsage,
+  TEMPLATE_USAGE_TAGS,
+  type HolidayTheme,
+  type ShabbatTimesVariant,
+  type TemplateUsage,
+} from "@/lib/templates/taxonomy";
 
 interface AdminMetrics {
   userCount: number;
@@ -69,6 +83,9 @@ interface AdminTemplate {
   originalUrl: string | null;
   thumbnailUrl: string | null;
   previewUrl: string | null;
+  supportsAi: boolean;
+  canvaUrl: string | null;
+  availabilityMode?: TemplateAvailability;
   isGlobal: boolean;
   isPremium: boolean;
   isActive: boolean;
@@ -217,6 +234,7 @@ const AUTOMATION_DAY_TYPES = [
 ];
 const VISIBILITY_FILTERS = ["ALL", "GLOBAL", "LOCAL"] as const;
 const STATUS_FILTERS = ["ALL", "ACTIVE", "INACTIVE", "PREMIUM"] as const;
+type AvailabilityFilter = "ALL" | TemplateAvailability;
 const USER_PLAN_TIERS: Array<{ value: PlanTier; label: string; helper: string }> = [
   { value: "FREE", label: "Gratuit", helper: "Limites de l'offre gratuite" },
   { value: "PRO", label: "Pro", helper: "WhatsApp, 3 automatisations et 50 messages IA / mois" },
@@ -350,6 +368,7 @@ export function AdminConsoleClient({
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>("ALL");
   const [visibilityFilter, setVisibilityFilter] = useState<(typeof VISIBILITY_FILTERS)[number]>("ALL");
+  const [availabilityFilter, setAvailabilityFilter] = useState<AvailabilityFilter>("ALL");
   const [activeSection, setActiveSection] = useState<AdminSection>("overview");
   const [automationCommunityFilter, setAutomationCommunityFilter] = useState("ALL");
   const [theme, setTheme] = useState<ThemeMode>("light");
@@ -380,6 +399,15 @@ export function AdminConsoleClient({
 
   const isDark = theme === "dark";
   const selectedTemplate = drafts.get(selectedId) ?? Array.from(drafts.values())[0] ?? null;
+  const selectedAvailability = selectedTemplate
+    ? selectedTemplate.availabilityMode ?? templateAvailability(selectedTemplate)
+    : "AI_ONLY";
+  const selectedCanvaLinkMissing = Boolean(
+    selectedTemplate && selectedAvailability !== "AI_ONLY" && !selectedTemplate.canvaUrl?.trim()
+  );
+  const selectedUsage = selectedTemplate ? inferTemplateUsage(selectedTemplate) : null;
+  const selectedHolidayTheme = selectedTemplate ? holidayThemeFromTag(selectedTemplate.tags) ?? inferHolidayTheme(selectedTemplate) : null;
+  const selectedShabbatVariant = selectedTemplate ? inferShabbatTimesVariant(selectedTemplate) : "simple";
   const allTemplates = useMemo(() => Array.from(drafts.values()), [drafts]);
   const templateStats = useMemo(() => {
     const active = allTemplates.filter((template) => template.isActive).length;
@@ -412,6 +440,7 @@ export function AdminConsoleClient({
       if (statusFilter === "PREMIUM" && !template.isPremium) return false;
       if (visibilityFilter === "GLOBAL" && !template.isGlobal) return false;
       if (visibilityFilter === "LOCAL" && template.isGlobal) return false;
+      if (availabilityFilter !== "ALL" && (template.availabilityMode ?? templateAvailability(template)) !== availabilityFilter) return false;
       if (!normalizedQuery) return true;
       return [
         template.name,
@@ -425,7 +454,7 @@ export function AdminConsoleClient({
         .toLowerCase()
         .includes(normalizedQuery);
     });
-  }, [allTemplates, categoryFilter, query, statusFilter, visibilityFilter]);
+  }, [allTemplates, availabilityFilter, categoryFilter, query, statusFilter, visibilityFilter]);
 
   const shellClass = isDark
     ? "min-h-screen bg-[#071016] text-slate-100"
@@ -449,10 +478,36 @@ export function AdminConsoleClient({
     });
   }
 
+  function updateSelectedTaxonomy(input: {
+    category?: string;
+    usage?: TemplateUsage;
+    holidayTheme?: HolidayTheme | null;
+    shabbatVariant?: ShabbatTimesVariant;
+  }) {
+    if (!selectedTemplate) return;
+    const category = input.category ?? selectedTemplate.category;
+    const usage = input.usage ?? (category === "SHABBAT" ? TEMPLATE_USAGE_TAGS.shabbatTimes : category === "HOLIDAY" ? TEMPLATE_USAGE_TAGS.holidayPoster : selectedUsage);
+    if (!usage) {
+      updateSelectedTemplate({ category });
+      return;
+    }
+    const taxonomy = buildTemplateTaxonomy({
+      category,
+      usage,
+      holidayTheme: input.holidayTheme === undefined ? selectedHolidayTheme : input.holidayTheme,
+      shabbatVariant: input.shabbatVariant ?? selectedShabbatVariant,
+      tags: selectedTemplate.tags,
+    });
+    updateSelectedTemplate({ category, ...taxonomy });
+  }
+
   async function saveTemplate() {
     if (!selectedTemplate) return;
     setSaving(true);
     setStatus(null);
+    const normalizedTaxonomy = selectedUsage
+      ? buildTemplateTaxonomy({ category: selectedTemplate.category, usage: selectedUsage, holidayTheme: selectedHolidayTheme, shabbatVariant: selectedShabbatVariant, tags: selectedTemplate.tags })
+      : { subCategory: selectedTemplate.subCategory, tags: selectedTemplate.tags };
 
     const response = await fetch(`/api/admin/templates/${selectedTemplate.id}`, {
       method: "PATCH",
@@ -461,12 +516,14 @@ export function AdminConsoleClient({
         name: selectedTemplate.name,
         description: selectedTemplate.description,
         category: selectedTemplate.category,
-        subCategory: selectedTemplate.subCategory,
+        subCategory: normalizedTaxonomy.subCategory,
         channelType: selectedTemplate.channelType,
         originalUrl: selectedTemplate.originalUrl,
         thumbnailUrl: selectedTemplate.thumbnailUrl,
         previewUrl: selectedTemplate.previewUrl,
-        tags: selectedTemplate.tags,
+        supportsAi: (selectedTemplate.availabilityMode ?? templateAvailability(selectedTemplate)) !== "CANVA_ONLY",
+        canvaUrl: (selectedTemplate.availabilityMode ?? templateAvailability(selectedTemplate)) === "AI_ONLY" ? null : selectedTemplate.canvaUrl,
+        tags: normalizedTaxonomy.tags,
         isGlobal: selectedTemplate.isGlobal,
         isActive: selectedTemplate.isActive,
         isPremium: selectedTemplate.isPremium,
@@ -490,6 +547,9 @@ export function AdminConsoleClient({
         originalUrl: payload.originalUrl ?? null,
         thumbnailUrl: payload.thumbnailUrl ?? null,
         previewUrl: payload.previewUrl ?? null,
+        supportsAi: payload.supportsAi ?? true,
+        canvaUrl: payload.canvaUrl ?? null,
+        availabilityMode: templateAvailability({ supportsAi: payload.supportsAi ?? true, canvaUrl: payload.canvaUrl ?? null }),
       });
       return next;
     });
@@ -511,6 +571,8 @@ export function AdminConsoleClient({
           description: "Décrire ici quand l'assistant doit suggérer cette affiche.",
           isGlobal: true,
           isActive: true,
+          supportsAi: true,
+          canvaUrl: null,
           tags: ["nouvelle-affiche"],
         }),
       });
@@ -520,11 +582,16 @@ export function AdminConsoleClient({
         return;
       }
 
+      const createdSupportsAi = typeof payload.supportsAi === "boolean" ? payload.supportsAi : true;
+      const createdCanvaUrl = typeof payload.canvaUrl === "string" ? payload.canvaUrl : null;
       const nextTemplate = {
         ...payload,
         originalUrl: payload.originalUrl ?? null,
         thumbnailUrl: payload.thumbnailUrl ?? null,
         previewUrl: payload.previewUrl ?? null,
+        supportsAi: createdSupportsAi,
+        canvaUrl: createdCanvaUrl,
+        availabilityMode: templateAvailability({ supportsAi: createdSupportsAi, canvaUrl: createdCanvaUrl }),
         tags: Array.isArray(payload.tags) ? payload.tags : [],
       } as unknown as AdminTemplate;
       setDrafts((previous) => {
@@ -640,12 +707,12 @@ export function AdminConsoleClient({
           previewUrl: typeof payload.previewUrl === "string" ? payload.previewUrl : null,
           thumbnailUrl: typeof payload.thumbnailUrl === "string" ? payload.thumbnailUrl : null,
         });
-        setStatus("Source originale conservée. Le template est prêt pour la modification par fal.ai.");
+        setStatus("Original conservé. La miniature et l’aperçu WebP ont été générés automatiquement.");
         return;
       }
       const uploadedUrl = typeof payload.url === "string" ? payload.url : null;
       updateSelectedTemplate(kind === "thumbnail" ? { thumbnailUrl: uploadedUrl } : { previewUrl: uploadedUrl });
-      setStatus(`${kind === "thumbnail" ? "Miniature" : "Aperçu"} envoyé dans son format original.`);
+      setStatus(`${kind === "thumbnail" ? "Miniature" : "Aperçu"} optimisé en WebP et enregistré.`);
     } catch {
       setGlobalError("Le téléversement a échoué avant la réponse du serveur.");
     } finally {
@@ -1027,11 +1094,18 @@ export function AdminConsoleClient({
                   <select value={visibilityFilter} onChange={(event) => setVisibilityFilter(event.target.value as typeof visibilityFilter)} className={`rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>
                     {VISIBILITY_FILTERS.map((visibility) => <option key={visibility} value={visibility}>{visibility === "ALL" ? "Toutes" : visibility}</option>)}
                   </select>
+                  <select value={availabilityFilter} onChange={(event) => setAvailabilityFilter(event.target.value as typeof availabilityFilter)} className={`rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>
+                    <option value="ALL">Tous les modes</option>
+                    <option value="AI_ONLY">IA uniquement</option>
+                    <option value="AI_AND_CANVA">IA + Canva</option>
+                    <option value="CANVA_ONLY">Canva uniquement</option>
+                  </select>
                 </div>
 
                 <div className="mt-5 grid gap-3">
                   {filteredTemplates.map((template) => {
                     const isSelected = selectedTemplate?.id === template.id;
+                    const availability = template.availabilityMode ?? templateAvailability(template);
                     return (
                       <button
                         key={template.id}
@@ -1098,6 +1172,8 @@ export function AdminConsoleClient({
                                 {template.originalUrl ? "Source originale prête" : "Source à téléverser"}
                               </span>
                               {template.isPremium && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-600">Premium</span>}
+                              {availability !== "CANVA_ONLY" && <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-[10px] font-semibold text-violet-600">IA</span>}
+                              {availability !== "AI_ONLY" && <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-600">Canva</span>}
                             </div>
                           </div>
                         </div>
@@ -1116,14 +1192,93 @@ export function AdminConsoleClient({
                     </div>
 
                     <label className={`block text-sm font-semibold ${strongText}`}>Nom affiche<input value={selectedTemplate.name} onChange={(event) => updateSelectedTemplate({ name: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
-                    <label className={`block text-sm font-semibold ${strongText}`}>Famille / cas d&apos;usage<input value={selectedTemplate.subCategory ?? ""} onChange={(event) => updateSelectedTemplate({ subCategory: event.target.value })} placeholder="Ex: Chabbat horaires, fete juive, cours" className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
-
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <label className={`block text-sm font-semibold ${strongText}`}>Catégorie<select value={selectedTemplate.category} onChange={(event) => updateSelectedTemplate({ category: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>{EDITABLE_TEMPLATE_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
+                      <label className={`block text-sm font-semibold ${strongText}`}>Catégorie<select value={selectedTemplate.category} onChange={(event) => updateSelectedTaxonomy({ category: event.target.value })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>{EDITABLE_TEMPLATE_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
                       <label className={`block text-sm font-semibold ${strongText}`}>Canal<select value={selectedTemplate.channelType ?? ""} onChange={(event) => updateSelectedTemplate({ channelType: event.target.value || null })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}>{CHANNEL_TYPES.map((channel) => <option key={channel || "ALL"} value={channel}>{channel || "Tous"}</option>)}</select></label>
                     </div>
 
-                    <label className={`block text-sm font-semibold ${strongText}`}>Consignes IA / quand suggerer cette affiche<textarea value={selectedTemplate.description ?? ""} onChange={(event) => updateSelectedTemplate({ description: event.target.value })} rows={6} placeholder="Ex: A proposer quand l'utilisateur demande une affiche pour les horaires de Chabbat..." className={`mt-2 w-full resize-none rounded-2xl border px-3 py-2 text-sm leading-6 outline-none ${inputClass}`} /></label>
+                    {selectedTemplate.category === "SHABBAT" ? (
+                      <section className={`rounded-3xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-amber-100 bg-amber-50/60"}`}>
+                        <p className={`text-sm font-black ${strongText}`}>Classement Chabbat</p>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <label className={`block text-sm font-semibold ${strongText}`}>Type d&apos;affiche<select value={selectedUsage === TEMPLATE_USAGE_TAGS.shabbatCommunity ? TEMPLATE_USAGE_TAGS.shabbatCommunity : TEMPLATE_USAGE_TAGS.shabbatTimes} onChange={(event) => updateSelectedTaxonomy({ usage: event.target.value as TemplateUsage })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}><option value={TEMPLATE_USAGE_TAGS.shabbatTimes}>Horaires de Chabbat</option><option value={TEMPLATE_USAGE_TAGS.shabbatCommunity}>Chabbat communautaire</option></select></label>
+                          {selectedUsage !== TEMPLATE_USAGE_TAGS.shabbatCommunity ? <label className={`block text-sm font-semibold ${strongText}`}>Format<select value={selectedShabbatVariant} onChange={(event) => updateSelectedTaxonomy({ shabbatVariant: event.target.value as ShabbatTimesVariant })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}><option value="simple">Simples</option><option value="with-offices">Avec offices</option></select></label> : null}
+                        </div>
+                        <p className={`mt-3 text-xs ${mutedText}`}>Chemin généré : {selectedTemplate.subCategory}</p>
+                      </section>
+                    ) : selectedTemplate.category === "HOLIDAY" ? (
+                      <section className={`rounded-3xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-rose-100 bg-rose-50/60"}`}>
+                        <p className={`text-sm font-black ${strongText}`}>Classement Fêtes juives</p>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <label className={`block text-sm font-semibold ${strongText}`}>Type d&apos;affiche<select value={selectedUsage === TEMPLATE_USAGE_TAGS.holidayTimes ? TEMPLATE_USAGE_TAGS.holidayTimes : TEMPLATE_USAGE_TAGS.holidayPoster} onChange={(event) => updateSelectedTaxonomy({ usage: event.target.value as TemplateUsage })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}><option value={TEMPLATE_USAGE_TAGS.holidayPoster}>Affiche de fête</option><option value={TEMPLATE_USAGE_TAGS.holidayTimes}>Horaires des fêtes</option></select></label>
+                          <label className={`block text-sm font-semibold ${strongText}`}>Fête précise<select value={selectedHolidayTheme ?? ""} onChange={(event) => updateSelectedTaxonomy({ holidayTheme: (event.target.value || null) as HolidayTheme | null })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}><option value="">Autre / à classer</option>{HOLIDAY_THEMES.map((theme) => <option key={theme.value} value={theme.value}>{theme.label}</option>)}</select></label>
+                        </div>
+                        <p className={`mt-3 text-xs ${mutedText}`}>Chemin généré : {selectedTemplate.subCategory}</p>
+                      </section>
+                    ) : (
+                      <label className={`block text-sm font-semibold ${strongText}`}>Famille / cas d&apos;usage<input value={selectedTemplate.subCategory ?? ""} onChange={(event) => updateSelectedTemplate({ subCategory: event.target.value })} placeholder="Ex: Annonce communautaire" className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
+                    )}
+
+                    <section className={`rounded-3xl border p-3 ${isDark ? "border-white/10 bg-white/5" : "border-violet-100 bg-violet-50/60"}`}>
+                      <div className="flex items-start gap-3">
+                        <span className={`flex size-10 shrink-0 items-center justify-center rounded-2xl ${isDark ? "bg-violet-400/15 text-violet-200" : "bg-violet-100 text-violet-700"}`}>
+                          <Wand2 className="size-5" />
+                        </span>
+                        <div>
+                          <p className={`text-sm font-black ${strongText}`}>Mode de personnalisation</p>
+                          <p className={`mt-1 text-xs leading-5 ${mutedText}`}>Choisissez exactement où l&apos;utilisateur pourra modifier cette affiche.</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 grid gap-2">
+                        {([
+                          { value: "AI_ONLY", title: "IA uniquement", detail: "Personnalisation automatique dans EasyCom.", icon: Sparkles },
+                          { value: "AI_AND_CANVA", title: "IA + Canva", detail: "L'utilisateur choisit son outil.", icon: Bot },
+                          { value: "CANVA_ONLY", title: "Canva uniquement", detail: "Ouverture du modèle dans Canva.", icon: ExternalLink },
+                        ] as const).map((option) => {
+                          const Icon = option.icon;
+                          const active = selectedAvailability === option.value;
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              aria-pressed={active}
+                              onClick={() => updateSelectedTemplate({
+                                availabilityMode: option.value,
+                                supportsAi: option.value !== "CANVA_ONLY",
+                              })}
+                              className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300 ${
+                                active
+                                  ? isDark ? "border-violet-300/60 bg-violet-400/15" : "border-violet-500 bg-white shadow-sm"
+                                  : isDark ? "border-white/10 bg-slate-950/30 hover:border-white/25" : "border-violet-100 bg-white/70 hover:border-violet-300"
+                              }`}
+                            >
+                              <span className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${active ? "bg-violet-600 text-white" : isDark ? "bg-white/10 text-slate-300" : "bg-slate-100 text-slate-500"}`}><Icon className="size-4" /></span>
+                              <span className="min-w-0">
+                                <span className={`block text-sm font-black ${strongText}`}>{option.title}</span>
+                                <span className={`mt-0.5 block text-xs ${mutedText}`}>{option.detail}</span>
+                              </span>
+                              <span className={`ml-auto size-4 rounded-full border-2 ${active ? "border-violet-600 bg-violet-600 ring-2 ring-violet-200" : isDark ? "border-slate-500" : "border-slate-300"}`} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {selectedAvailability !== "AI_ONLY" ? (
+                        <label className={`mt-3 block text-sm font-semibold ${strongText}`}>
+                          Lien du modèle Canva
+                          <input
+                            type="url"
+                            value={selectedTemplate.canvaUrl ?? ""}
+                            onChange={(event) => updateSelectedTemplate({ canvaUrl: event.target.value || null })}
+                            placeholder="https://www.canva.com/design/..."
+                            className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}
+                          />
+                          <span className={`mt-1.5 block text-xs font-normal leading-5 ${mutedText}`}>Utilisez de préférence un lien de modèle Canva à copier, pas le lien d&apos;édition du fichier maître.</span>
+                          {selectedCanvaLinkMissing ? <span className="mt-1 block text-xs font-bold text-red-600">Ajoutez le lien Canva pour enregistrer ce mode.</span> : null}
+                        </label>
+                      ) : null}
+                    </section>
+
+                    <label className={`block text-sm font-semibold ${strongText}`}>{selectedAvailability === "CANVA_ONLY" ? "Description et critères de suggestion" : "Consignes IA / quand suggérer cette affiche"}<textarea value={selectedTemplate.description ?? ""} onChange={(event) => updateSelectedTemplate({ description: event.target.value })} rows={6} placeholder="Ex: À proposer quand l'utilisateur demande une affiche pour les horaires de Chabbat..." className={`mt-2 w-full resize-none rounded-2xl border px-3 py-2 text-sm leading-6 outline-none ${inputClass}`} /></label>
                     <label className={`block text-sm font-semibold ${strongText}`}>Mots-cles de suggestion<input value={selectedTemplate.tags.join(", ")} onChange={(event) => updateSelectedTemplate({ tags: event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean) })} placeholder="chabbat, horaires, synagogue" className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
                     <label className={`block text-sm font-semibold ${strongText}`}>URL miniature<input value={selectedTemplate.thumbnailUrl ?? ""} onChange={(event) => updateSelectedTemplate({ thumbnailUrl: event.target.value || null })} placeholder="https://..." className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
                     <div
@@ -1182,7 +1337,7 @@ export function AdminConsoleClient({
                       })}
                     </div>
 
-                    <button type="button" onClick={saveTemplate} disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"><Save className="size-4" />{saving ? "Enregistrement..." : "Enregistrer la fiche"}</button>
+                    <button type="button" onClick={saveTemplate} disabled={saving || selectedCanvaLinkMissing} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"><Save className="size-4" />{saving ? "Enregistrement..." : "Enregistrer la fiche"}</button>
                     <button type="button" onClick={deleteTemplate} disabled={deletingId === selectedTemplate.id} className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${isDark ? "border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20" : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"}`}><Trash2 className="size-4" />{deletingId === selectedTemplate.id ? "Suppression..." : "Supprimer cette affiche"}</button>
                     {status && <p className={`rounded-2xl border px-3 py-2 text-sm ${isDark ? "border-white/10 bg-white/10 text-slate-200" : "border-slate-200 bg-slate-50 text-slate-700"}`}>{status}</p>}
                   </div>

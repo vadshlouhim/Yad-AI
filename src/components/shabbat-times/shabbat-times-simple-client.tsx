@@ -21,6 +21,8 @@ import { DAVID_AUTOMATION_IMAGE_URL } from "@/components/automations/automation-
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Json } from "@/types/database.types";
+import { ScheduleHubNav } from "@/components/templates/schedule-hub-nav";
+import { CanvaLogo, DesignerRequestLink } from "@/components/templates/template-actions";
 
 type Template = {
   id: string;
@@ -29,6 +31,8 @@ type Template = {
   thumbnailUrl: string | null;
   previewUrl: string | null;
   isPremium: boolean;
+  supportsAi?: boolean;
+  canvaUrl?: string | null;
 };
 
 type Community = {
@@ -588,6 +592,7 @@ export function ShabbatTimesSimpleClient({
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 pb-24 pt-5 sm:px-6 sm:pt-7">
+      <div className="mb-5"><ScheduleHubNav active="shabbat" /></div>
       <header className="relative overflow-hidden rounded-[2rem] bg-[#421388] px-5 py-7 text-white shadow-[0_22px_55px_rgba(66,19,136,0.24)] sm:px-8 sm:py-9">
         <div className="pointer-events-none absolute -right-8 -top-10 size-44 rounded-full border border-white/10 bg-white/[0.04]" />
         <div className="pointer-events-none absolute -bottom-20 right-24 size-52 rounded-full border border-white/10" />
@@ -627,11 +632,11 @@ export function ShabbatTimesSimpleClient({
             {templates.map((template, index) => {
               const locked = !isPaid && index > 0;
               return (
+                <article key={template.id} className="group flex min-w-0 flex-col overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white p-1.5 text-left shadow-sm transition duration-200 hover:-translate-y-1 hover:border-violet-300 hover:shadow-xl hover:shadow-violet-950/10">
                 <button
-                  key={template.id}
                   type="button"
                   onClick={() => openTemplate(template, index)}
-                  className="group overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white p-1.5 text-left shadow-sm transition duration-200 hover:-translate-y-1 hover:border-violet-300 hover:shadow-xl hover:shadow-violet-950/10"
+                  className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
                 >
                   <div className="relative aspect-square overflow-hidden rounded-[1.2rem] bg-slate-100">
                     <TemplateImage template={template} className="h-full w-full transition duration-300 group-hover:scale-[1.02]" />
@@ -645,6 +650,7 @@ export function ShabbatTimesSimpleClient({
                         </span>
                       </div>
                     )}
+                    {template.canvaUrl ? <span className="absolute bottom-2 left-2 inline-flex rounded-full bg-white/95 px-2 py-1 shadow"><CanvaLogo className="h-4" /></span> : null}
                   </div>
                   <div className="flex items-center justify-between gap-2 px-2 py-3">
                     <span className="line-clamp-1 text-sm font-black text-slate-900">{template.name}</span>
@@ -653,6 +659,8 @@ export function ShabbatTimesSimpleClient({
                     </span>
                   </div>
                 </button>
+                <DesignerRequestLink template={template} compact className="mt-auto w-full" />
+                </article>
               );
             })}
           </div>

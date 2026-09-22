@@ -26,10 +26,11 @@ import {
   formatDate,
   getDaysUntil,
   getNotificationDate,
-  templateMatchesHoliday,
   type HolidayItem,
 } from "@/lib/automation/jewish-holidays";
 import type { Json } from "@/types/database.types";
+import { ScheduleHubNav } from "@/components/templates/schedule-hub-nav";
+import { CanvaLogo, DesignerRequestLink } from "@/components/templates/template-actions";
 
 const HOLIDAYS_AGENT_IMAGE_URL =
   "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Presatntaion.webp";
@@ -52,6 +53,8 @@ type Template = {
   isGlobal: boolean;
   isPremium: boolean;
   usageCount: number;
+  supportsAi?: boolean;
+  canvaUrl?: string | null;
 };
 
 type Community = {
@@ -177,14 +180,8 @@ function TemplateOption({
   onSelect: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={cn(
-        "group overflow-hidden rounded-xl border bg-white p-1 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
-        featured ? "border-violet-400 ring-2 ring-violet-200/70" : "border-slate-200 hover:border-violet-400"
-      )}
-    >
+    <article className={cn("group overflow-hidden rounded-xl border bg-white p-1 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md", featured ? "border-violet-400 ring-2 ring-violet-200/70" : "border-slate-200 hover:border-violet-400")}>
+    <button type="button" onClick={onSelect} className="w-full text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300">
       <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-slate-100">
         <TemplateImage template={template} />
         {featured ? (
@@ -192,12 +189,15 @@ function TemplateOption({
             A la une
           </span>
         ) : null}
+        {template.canvaUrl ? <span className="absolute bottom-2 left-2 inline-flex rounded-full bg-white/95 px-2 py-1 shadow"><CanvaLogo className="h-4" /></span> : null}
       </div>
       <div className="space-y-1 px-3 py-3">
         <p className="line-clamp-2 text-sm font-bold text-slate-950">{template.name}</p>
         <p className="truncate text-xs font-semibold uppercase tracking-[0.12em] text-violet-600">{template.subCategory ?? "Modèle lié"}</p>
       </div>
     </button>
+    <DesignerRequestLink template={template} compact className="mb-2 ml-2 w-[calc(100%-1rem)]" />
+    </article>
   );
 }
 
@@ -318,28 +318,14 @@ export function JewishHolidaysAutoClient({
       return left.name.localeCompare(right.name, "fr");
     });
   }, [allTemplates]);
-  const featuredTemplates = useMemo(
-    () => nextHoliday ? orderedTemplates.filter((template) => templateMatchesHoliday(template, nextHoliday)) : [],
-    [nextHoliday, orderedTemplates]
-  );
-  const calendarTemplateSections = useMemo(() => {
-    const displayedTemplateIds = new Set(featuredTemplates.map((template) => template.id));
-    const sections = holidays
-      .filter((holiday) => holiday.id !== nextHoliday?.id)
-      .map((holiday) => {
-        const templates = orderedTemplates.filter((template) =>
-          !displayedTemplateIds.has(template.id) && templateMatchesHoliday(template, holiday)
-        );
-        templates.forEach((template) => displayedTemplateIds.add(template.id));
-        return { holiday, templates };
-      })
-      .filter((section) => section.templates.length > 0);
-
-    return {
-      sections,
-      otherTemplates: orderedTemplates.filter((template) => !displayedTemplateIds.has(template.id)),
-    };
-  }, [featuredTemplates, holidays, nextHoliday, orderedTemplates]);
+  const scheduleTemplateSections = useMemo(() => {
+    const groups = new Map<string, Template[]>();
+    for (const template of orderedTemplates) {
+      const label = template.subCategory?.split("›").map((part) => part.trim()).filter(Boolean).at(-1) ?? "Autre / à classer";
+      groups.set(label, [...(groups.get(label) ?? []), template]);
+    }
+    return Array.from(groups, ([label, templates]) => ({ label, templates }));
+  }, [orderedTemplates]);
   const selectedTemplate = allTemplates.find((template) => template.id === selectedTemplateId) ?? null;
   const nextNotificationDate = selectedHoliday ? getNotificationDate(selectedHoliday.firstEveningDate, daysBefore) : null;
 
@@ -533,6 +519,7 @@ export function JewishHolidaysAutoClient({
   if (view === "models") {
     return (
       <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+        <ScheduleHubNav active="holidays" />
         <div className="relative overflow-visible rounded-[1.4rem] border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-[0_22px_52px_rgba(66,19,136,0.22)]">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-4">
@@ -554,70 +541,18 @@ export function JewishHolidaysAutoClient({
         </div>
 
         {orderedTemplates.length > 0 ? (
-          <div className="space-y-10">
-            <section className="border-y border-violet-200 bg-violet-50/70 px-4 py-6 sm:px-6">
-              <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="flex size-10 items-center justify-center rounded-xl bg-violet-700 text-white shadow-sm">
-                    <Gift className="size-5" />
-                  </span>
-                  <div>
-                    <h2 className="text-xl font-black text-slate-950">Affiches pour la fête à venir</h2>
-                    <p className="mt-1 text-sm font-semibold text-violet-800">
-                      {nextHoliday ? `${nextHoliday.officialName} - ${nextHoliday.dateLabel}` : "La prochaine fête sera affichée ici."}
-                    </p>
-                  </div>
-                </div>
-                {featuredTemplates.length > 0 ? (
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-violet-700 shadow-sm">
-                    {featuredTemplates.length} affiche{featuredTemplates.length > 1 ? "s" : ""}
-                  </span>
-                ) : null}
-              </div>
-
-              {featuredTemplates.length > 0 ? (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {featuredTemplates.map((template) => (
-                    <TemplateOption key={template.id} template={template} featured onSelect={() => void chooseTemplate(template, "template")} />
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm font-medium text-slate-600">Aucune affiche n&apos;est encore associée à cette fête. Les autres modèles restent disponibles ci-dessous.</p>
-              )}
-            </section>
-
-            <section className="space-y-8">
-              <div>
-                <h2 className="text-xl font-black text-slate-950">Toutes les autres affiches</h2>
-                <p className="mt-1 text-sm text-slate-500">Classées selon les prochaines dates du calendrier juif.</p>
-              </div>
-
-              {calendarTemplateSections.sections.map(({ holiday, templates }) => (
-                <section key={holiday.id} className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0">
-                  <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-                    <h3 className="text-lg font-black text-slate-950">{holiday.officialName}</h3>
-                    <span className="text-sm font-semibold text-slate-500">{holiday.dateLabel}</span>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {templates.map((template) => (
-                      <TemplateOption key={template.id} template={template} onSelect={() => void chooseTemplate(template, "template")} />
-                    ))}
-                  </div>
-                </section>
-              ))}
-
-              {calendarTemplateSections.otherTemplates.length > 0 ? (
-                <section className="border-t border-slate-200 pt-5">
-                  <h3 className="text-lg font-black text-slate-950">Autres affiches</h3>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {calendarTemplateSections.otherTemplates.map((template) => (
-                      <TemplateOption key={template.id} template={template} onSelect={() => void chooseTemplate(template, "template")} />
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-            </section>
-          </div>
+          <section className="space-y-8 rounded-2xl border border-violet-100 bg-white p-5 shadow-sm sm:p-7">
+            <div className="flex items-center gap-3">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-violet-700 text-white"><Gift className="size-5" /></span>
+              <div><h2 className="text-xl font-black text-slate-950">Horaires des fêtes</h2><p className="mt-1 text-sm text-slate-500">Affiches classées uniquement par fête précise.</p></div>
+            </div>
+            {scheduleTemplateSections.map(({ label, templates }) => (
+              <section key={label} className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0">
+                <div className="mb-4 flex items-center justify-between gap-3"><h3 className="text-lg font-black text-slate-950">{label}</h3><span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700">{templates.length}</span></div>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{templates.map((template) => <TemplateOption key={template.id} template={template} onSelect={() => void chooseTemplate(template, "template")} />)}</div>
+              </section>
+            ))}
+          </section>
         ) : (
           <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
             <ImageIcon className="mx-auto size-12 text-slate-300" />
@@ -826,6 +761,7 @@ export function JewishHolidaysAutoClient({
 
   return (
     <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+      <ScheduleHubNav active="holidays" />
       {showWelcome && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-[2rem] bg-white p-8 shadow-2xl">
@@ -837,9 +773,9 @@ export function JewishHolidaysAutoClient({
                 <X className="size-5" />
               </button>
             </div>
-            <h2 className="mt-5 text-2xl font-bold leading-tight text-slate-950">Fêtes juives et Hassidiques</h2>
+            <h2 className="mt-5 text-2xl font-bold leading-tight text-slate-950">Horaires des fêtes</h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Préparez automatiquement vos affiches et messages avant chaque fête juive.
+              Préparez automatiquement les affiches d’horaires de chaque fête juive.
             </p>
             <div className="mt-6 space-y-4">
               {[
@@ -888,9 +824,9 @@ export function JewishHolidaysAutoClient({
                 <span className="relative block h-6 w-2.5 rounded-sm bg-amber-100 shadow-[0_0_12px_rgba(255,215,128,0.72)] before:absolute before:-top-2 before:left-1/2 before:size-2 before:-translate-x-1/2 before:rounded-full before:bg-orange-300" />
                 <Paintbrush className="mb-0.5 ml-0.5 size-4 text-violet-100" />
               </div>
-              <h1 className="text-4xl font-bold tracking-tight">Fêtes juives et Hassidiques</h1>
+              <h1 className="text-4xl font-bold tracking-tight">Horaires des fêtes</h1>
             </div>
-            <p className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-violet-100">Horaires &amp; visuels de Fêtes</p>
+            <p className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-violet-100">Calendriers et horaires des fêtes</p>
           </div>
           <DavidBannerAgent
             className="lg:max-w-2xl"
