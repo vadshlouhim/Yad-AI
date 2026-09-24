@@ -1,15 +1,16 @@
-export const MOBILE_HOME_DEFAULT_MODULES = ["publish", "newsletter-paper", "automations", "visuals"] as const;
+export const MOBILE_HOME_DEFAULT_MODULES = ["publish", "newsletter-paper", "automations", "visuals", "torah", "email-reviews"] as const;
 export const MOBILE_HOME_MAX_MODULES = 8;
 
 export type MobileHomeModuleKey =
   | "publish" | "automations" | "newsletter-paper" | "torah" | "contacts" | "visuals"
-  | "targeted" | "email" | "reviews" | "whatsapp" | "website" | "seo" | "shop" | "assistance";
+  | "targeted" | "email-reviews" | "email" | "reviews" | "whatsapp" | "website" | "seo" | "shop" | "assistance";
 
 export const MOBILE_HOME_MODULES: ReadonlyArray<{ key: MobileHomeModuleKey; title: string; href: string }> = [
   { key: "publish", title: "Publier partout en un clic", href: "/dashboard/social-networks" },
   { key: "automations", title: "Automatiser", href: "/dashboard/automations" },
   { key: "newsletter-paper", title: "Le Newsletter", href: "/dashboard/newsletter" },
   { key: "torah", title: "Cours de Torah", href: "/dashboard/torah" },
+  { key: "email-reviews", title: "Email et Avis Google", href: "/dashboard?module=email" },
   { key: "contacts", title: "Contacts", href: "/dashboard/contacts" },
   { key: "visuals", title: "Affiches & Visuels", href: "/dashboard/templates" },
   { key: "targeted", title: "Communication ciblée", href: "/dashboard/communication-ciblee" },

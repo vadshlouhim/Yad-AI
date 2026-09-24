@@ -1,8 +1,9 @@
 import type { LucideIcon } from "lucide-react";
-import { BookOpen, Cake, CalendarClock, Camera, Clock3 } from "lucide-react";
+import { BookOpen, Cake, CalendarClock, CalendarDays, Camera, Clock3 } from "lucide-react";
 
 export type CommunityAutomationModuleKey =
   | "shabbat-times"
+  | "jewish-holidays"
   | "hayom-yom"
   | "jewish-birthdays"
   | "event-reminders"
@@ -46,6 +47,18 @@ export const COMMUNITY_AUTOMATION_MODULES: readonly CommunityAutomationModuleDef
     iconSurfaceClass: "bg-amber-100",
     kind: "automation",
     trigger: "WEEKLY_SHABBAT",
+  },
+  {
+    key: "jewish-holidays",
+    href: "/dashboard/jewish-holidays-auto",
+    label: "Horaires des fêtes",
+    shortLabel: "Horaires des fêtes",
+    description: "Préparez et programmez les horaires des fêtes juives.",
+    icon: CalendarDays,
+    iconClass: "text-violet-700",
+    iconSurfaceClass: "bg-violet-100",
+    kind: "automation",
+    trigger: "JEWISH_HOLIDAY",
   },
   {
     key: "hayom-yom",

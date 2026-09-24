@@ -114,6 +114,10 @@ const MODULES: ModuleConfig[] = [
   { key: "shabbat", title: "Repere Chabbat", description: "Paracha et horaires disponibles.", icon: Clock3, locked: true },
 ];
 
+const ESSENTIAL_MODULE_KEYS = new Set<ModuleKey>(["shabbat", "ravWord", "events", "photos"]);
+const ESSENTIAL_MODULES = MODULES.filter((module) => ESSENTIAL_MODULE_KEYS.has(module.key));
+const OPTIONAL_MODULES = MODULES.filter((module) => !ESSENTIAL_MODULE_KEYS.has(module.key));
+
 const DEFAULT_ENABLED: Record<ModuleKey, boolean> = {
   ravWord: true,
   sicha: false,
@@ -143,9 +147,24 @@ function formatShortDate(value: string) {
   return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long" }).format(new Date(`${value}T12:00:00`));
 }
 
+function clipText(value: string, maxLength: number) {
+  const normalized = value.trim();
+  return normalized.length > maxLength ? `${normalized.slice(0, maxLength - 1).trimEnd()}…` : normalized;
+}
+
+function filenamePart(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 54);
+}
+
 function initialGenerated(community: CommunityInfo, shabbat: NewsletterShabbat | null): GeneratedNewsletter {
   return {
-    title: "Le Chabatone",
+    title: "Le Chabaton",
     intro: "Votre feuillet communautaire des activites de la semaine.",
     ravWord: "Selectionnez un theme puis lancez la generation IA pour preparer le Mot du Rav.",
     shabbatNote: shabbat?.parasha
@@ -198,15 +217,46 @@ export function NewsletterPaperClient({
   const [error, setError] = useState<string | null>(null);
 
   const activeCount = useMemo(() => Object.values(enabled).filter(Boolean).length, [enabled]);
-  const visibleEvents = initialEvents.slice(0, 6);
-  const visiblePhotos = photos.slice(0, 9);
+  const visibleEvents = initialEvents.slice(0, 4);
+  const visiblePhotos = photos.slice(0, 6);
   const visiblePosters = posters.slice(0, 3);
-  const visiblePartnerAds = partnerAds.slice(0, 3);
+  const visiblePartnerAds = partnerAds.slice(0, 2);
   const previewCommunity = { ...community, donationUrl };
 
   function toggleModule(key: ModuleKey) {
     if (key === "shabbat") return;
     setEnabled((current) => ({ ...current, [key]: !current[key] }));
+  }
+
+  function renderModuleToggle(module: ModuleConfig) {
+    const Icon = module.icon;
+    const isActive = enabled[module.key];
+
+    return (
+      <button
+        key={module.key}
+        type="button"
+        onClick={() => toggleModule(module.key)}
+        aria-pressed={isActive}
+        className={cn(
+          "group flex min-h-[74px] items-center gap-3 rounded-[1.25rem] border px-3 py-3 text-left transition active:scale-[0.985] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#421388]/20",
+          isActive
+            ? "border-violet-200 bg-[#f4edff] text-[#2d0c64] shadow-[0_9px_22px_rgba(66,19,136,0.08)]"
+            : "border-slate-200 bg-white text-slate-600 hover:border-violet-200 hover:bg-[#fffafd]"
+        )}
+      >
+        <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-[0.95rem]", isActive ? "bg-[#421388] text-white" : "bg-slate-100 text-slate-500")}>
+          <Icon className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-black leading-tight">{module.title}</span>
+          <span className="mt-1 block text-[11px] font-semibold leading-4 text-slate-500">{module.description}</span>
+        </span>
+        <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-black", isActive ? "border-[#421388] bg-[#421388] text-white" : "border-slate-300 bg-white text-transparent")}>
+          ✓
+        </span>
+      </button>
+    );
   }
 
   async function uploadPhotos(event: ChangeEvent<HTMLInputElement>) {
@@ -299,6 +349,11 @@ export function NewsletterPaperClient({
   }
 
   async function generateNewsletter() {
+    if (!generated.title.trim()) {
+      setError("Donnez un titre à votre newsletter avant de continuer.");
+      setEditorStep("modules");
+      return;
+    }
     setGenerating(true);
     setError(null);
     try {
@@ -306,6 +361,7 @@ export function NewsletterPaperClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          title: generated.title,
           modules: enabled,
           ravTheme,
           parnessText,
@@ -344,7 +400,7 @@ export function NewsletterPaperClient({
       const response = await fetch("/api/newsletter/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modules: { ...enabled, ravWord: true }, ravTheme, tone, mode: "rav" }),
+        body: JSON.stringify({ title: generated.title, modules: { ...enabled, ravWord: true }, ravTheme, tone, mode: "rav" }),
       });
       const data = await response.json().catch(() => ({})) as Partial<GeneratedNewsletter> & { error?: string };
       if (!response.ok) throw new Error(data.error ?? "Reecriture impossible.");
@@ -395,6 +451,11 @@ export function NewsletterPaperClient({
   }
 
   async function downloadPdf() {
+    if (!generated.title.trim()) {
+      setError("Donnez un titre à votre newsletter avant de télécharger le PDF.");
+      setEditorStep("modules");
+      return;
+    }
     const pages = [pdfRectoRef.current, pdfVersoRef.current].filter((page): page is HTMLDivElement => Boolean(page));
     if (pages.length === 0) return;
     setExporting(true);
@@ -406,6 +467,14 @@ export function NewsletterPaperClient({
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       for (const [index, page] of pages.entries()) {
+        const printable = page.firstElementChild as HTMLElement | null;
+        if (
+          page.scrollWidth > exportWidth + 1
+          || page.scrollHeight > exportHeight + 1
+          || (printable && (printable.scrollWidth > exportWidth + 1 || printable.scrollHeight > exportHeight + 1))
+        ) {
+          throw new Error(`La page ${index + 1} dépasse le format A4. Réduisez un texte ou retirez une rubrique.`);
+        }
         const dataUrl = await toPng(page, {
           cacheBust: true,
           pixelRatio: 2,
@@ -425,7 +494,7 @@ export function NewsletterPaperClient({
         if (index > 0) pdf.addPage("a4", "portrait");
         pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight, undefined, "FAST");
       }
-      pdf.save(`newsletter-chabbat-${community.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "communaute"}.pdf`);
+      pdf.save(`${filenamePart(generated.title) || "newsletter"}-${filenamePart(community.name) || "communaute"}.pdf`);
     } catch (pdfError) {
       setError(pdfError instanceof Error ? pdfError.message : "Export PDF impossible.");
     } finally {
@@ -434,69 +503,68 @@ export function NewsletterPaperClient({
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-5 bg-[#fffaf1] pb-48 md:pb-28 sm:px-6 sm:pt-6">
+    <div className="mx-auto w-full max-w-7xl space-y-5 bg-[#fffaf4] pb-48 md:pb-28 sm:px-6 sm:pt-6">
       <section className={NEWSLETTER_HEADER_CLASS}>
-        <span className="pointer-events-none absolute -right-14 top-12 size-48 rounded-full bg-[#e9c76a]/20 blur-3xl" />
-        <span className="pointer-events-none absolute -left-10 bottom-0 size-36 rounded-full bg-[#36506d]/35 blur-2xl" />
+        <span className="pointer-events-none absolute -right-14 top-12 size-48 rounded-full bg-[#ffcd32]/20 blur-3xl" />
+        <span className="pointer-events-none absolute -left-10 bottom-0 size-36 rounded-full bg-[#d7b6ff]/25 blur-2xl" />
         <div className="relative flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#e9c76a]">Votre feuillet communautaire</p>
-            <h1 className="mt-2 break-words text-[clamp(2rem,9vw,3.1rem)] font-black leading-[0.95] tracking-[-0.055em]">Le Chabaton <span className="inline-flex translate-y-[-0.15em] rounded-lg bg-[#e9c76a] px-2 py-1 text-[0.36em] tracking-normal text-[#17253f] shadow-sm">PDF</span></h1>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#ffdd74]">Simple, beau, prêt à imprimer</p>
+            <h1 className="mt-2 max-w-2xl break-words text-[clamp(2rem,9vw,3.1rem)] font-black leading-[0.98] tracking-[-0.045em]">Newsletter imprimable <span className="mt-2 inline-flex rounded-xl bg-white px-2.5 py-1 text-[0.38em] tracking-normal text-[#421388] shadow-sm">pour Chabbat</span></h1>
           </div>
           <span className="flex size-14 shrink-0 items-center justify-center rounded-[1.25rem] border border-white/20 bg-white/10 text-2xl font-black shadow-lg backdrop-blur-sm">ב&quot;ה</span>
         </div>
       </section>
 
       <nav className="mx-4 grid grid-cols-3 gap-2 sm:mx-0 print:hidden" aria-label="Étapes de création">
-        {([ ["modules", "1", "Rubriques", LayoutList], ["content", "2", "Contenu", PenLine], ["preview", "3", "Aperçu", Eye] ] as const).map(([step, number, label, Icon]) => (
-          <button key={step} type="button" onClick={() => setEditorStep(step)} className={cn("flex min-h-14 items-center justify-center gap-1.5 rounded-2xl px-2 text-xs font-black transition sm:text-sm", editorStep === step ? "bg-[#17253f] text-white shadow-lg shadow-slate-300" : "border border-[#e6dcc7] bg-white text-[#5d6b7d] hover:bg-[#fff5dc]")}>
-            <span className={cn("flex size-6 items-center justify-center rounded-lg text-[10px]", editorStep === step ? "bg-[#e9c76a] text-[#17253f]" : "bg-[#edf1f6] text-[#52648e]")}>{number}</span><Icon className="size-3.5" />{label}
+        {([ ["modules", "1", "Composer", LayoutList], ["content", "2", "Personnaliser", PenLine], ["preview", "3", "Aperçu", Eye] ] as const).map(([step, number, label, Icon]) => (
+          <button key={step} type="button" onClick={() => setEditorStep(step)} className={cn("flex min-h-14 items-center justify-center gap-1.5 rounded-2xl px-2 text-[11px] font-black transition sm:text-sm", editorStep === step ? "bg-[#421388] text-white shadow-[0_10px_24px_rgba(66,19,136,0.22)]" : "border border-violet-100 bg-white text-slate-600 hover:bg-violet-50")}>
+            <span className={cn("flex size-6 items-center justify-center rounded-lg text-[10px]", editorStep === step ? "bg-[#ffcd32] text-[#28104f]" : "bg-violet-50 text-[#421388]")}>{number}</span><Icon className="size-3.5" />{label}
           </button>
         ))}
       </nav>
 
       <div className="grid gap-5 px-4 sm:px-0 xl:grid-cols-[minmax(320px,420px)_minmax(0,1fr)]">
         <aside className="space-y-4 print:hidden">
-          <section className={cn("rounded-[1.65rem] border border-[#e6dcc7] bg-white p-4 shadow-[0_12px_28px_rgba(23,37,63,0.08)]", editorStep !== "modules" && "hidden")}>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-black text-slate-950">Rubriques a activer</h2>
+          <section className={cn("rounded-[1.8rem] border border-violet-100 bg-white p-4 shadow-[0_14px_34px_rgba(66,19,136,0.08)]", editorStep !== "modules" && "hidden")}>
+            <div className="rounded-[1.35rem] bg-[linear-gradient(135deg,#f3eaff,#fff_72%)] p-4 ring-1 ring-violet-100">
+              <label htmlFor="newsletter-title" className="text-xs font-black uppercase tracking-[0.14em] text-[#421388]">Titre du feuillet</label>
+              <input
+                id="newsletter-title"
+                value={generated.title}
+                maxLength={70}
+                onChange={(event) => setGenerated((current) => ({ ...current, title: event.target.value }))}
+                placeholder="Ex. Les nouvelles de notre communauté"
+                className="mt-2 h-12 w-full rounded-2xl border border-violet-100 bg-white px-4 text-base font-black text-slate-950 outline-none transition placeholder:font-medium placeholder:text-slate-400 focus:border-[#421388] focus:ring-4 focus:ring-violet-100"
+              />
+              <div className="mt-2 flex items-center justify-between gap-3 text-[11px] font-semibold text-slate-500">
+                <span>Ce titre apparaîtra sur le PDF.</span>
+                <span>{generated.title.length}/70</span>
               </div>
-              <span className="rounded-full bg-[#edf1f6] px-3 py-1 text-xs font-black text-[#36506d]">{activeCount}/11</span>
             </div>
-            <p className="mt-1 text-sm font-medium text-slate-500">Activez uniquement ce que vous voulez voir dans le PDF.</p>
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-2">
-              {MODULES.map((module) => {
-                const Icon = module.icon;
-                const isActive = enabled[module.key];
-                return (
-                  <button
-                    key={module.key}
-                    type="button"
-                    onClick={() => toggleModule(module.key)}
-                    className={cn(
-                      "flex min-h-[72px] items-center gap-2 rounded-2xl border p-2.5 text-left transition",
-                      isActive ? "border-[#b8c6d9] bg-[#edf2f8] text-[#17253f]" : "border-[#e1e7ef] bg-white text-slate-600 hover:bg-[#f5f7fc]"
-                    )}
-                  >
-                    <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl", isActive ? "bg-[#36506d] text-white" : "bg-slate-100 text-slate-500")}>
-                      <Icon className="size-5" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block break-words text-sm font-black">{module.title}</span>
-                    </span>
-                    <span className={cn("flex h-5 w-9 items-center rounded-full p-1 transition", isActive ? "bg-[#36506d]" : "bg-slate-200")}>
-                      <span className={cn("size-4 rounded-full bg-white shadow transition", isActive && "translate-x-5")} />
-                    </span>
-                  </button>
-                );
-              })}
+
+            <div className="mt-5 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-black text-slate-950">L’essentiel</h2>
+                <p className="mt-1 text-xs font-semibold text-slate-500">Les rubriques recommandées pour un feuillet complet.</p>
+              </div>
+              <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-[#421388]">{activeCount} actives</span>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">{ESSENTIAL_MODULES.map(renderModuleToggle)}</div>
+
+            <div className="mt-6">
+              <h2 className="text-base font-black text-slate-950">Ajouter si besoin</h2>
+              <p className="mt-1 text-xs font-semibold text-slate-500">Gardez seulement ce qui apporte une vraie valeur cette semaine.</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">{OPTIONAL_MODULES.map(renderModuleToggle)}</div>
             </div>
           </section>
+          {editorStep === "modules" && error ? <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</p> : null}
 
           {editorStep === "content" ? <>
-          <section className="rounded-[1.65rem] border border-[#e6dcc7] bg-white p-4 shadow-[0_12px_28px_rgba(23,37,63,0.08)]">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#36506d]">2. Les details</p>
+          <section className="rounded-[1.8rem] border border-violet-100 bg-white p-4 shadow-[0_14px_34px_rgba(66,19,136,0.08)]">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#421388]">Votre contenu</p>
+            <h2 className="mt-1 text-xl font-black text-slate-950">Personnalisez l’essentiel</h2>
+            <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">Quelques informations suffisent. L’aperçu se met à jour automatiquement.</p>
             <div className="mt-4 space-y-3">
               {enabled.ravWord ? (
                 <label className="block text-sm font-bold text-slate-700">
@@ -505,10 +573,12 @@ export function NewsletterPaperClient({
                   <textarea
                     value={generated.ravWord}
                     onChange={(event) => setGenerated((current) => ({ ...current, ravWord: event.target.value }))}
-                    rows={7}
-                    className="mt-1.5 w-full resize-y rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium leading-6 outline-none focus:border-[#36506d] focus:ring-2 focus:ring-[#dfe8f3]"
+                    maxLength={850}
+                    rows={6}
+                    className="mt-1.5 w-full resize-y rounded-xl border border-violet-100 px-3 py-2 text-sm font-medium leading-6 outline-none focus:border-[#421388] focus:ring-4 focus:ring-violet-100"
                   />
-                  <button type="button" onClick={() => void rewriteRavWord()} disabled={generating} className="mt-2 inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#edf2f8] px-3 text-xs font-black text-[#17253f] transition hover:bg-[#dfe8f3] disabled:opacity-60">
+                  <span className="mt-1 block text-right text-[10px] font-bold text-slate-400">{generated.ravWord.length}/850</span>
+                  <button type="button" onClick={() => void rewriteRavWord()} disabled={generating} className="mt-2 inline-flex min-h-10 items-center gap-2 rounded-xl bg-violet-50 px-3 text-xs font-black text-[#421388] transition hover:bg-violet-100 disabled:opacity-60">
                     <Sparkles className="size-4" /> Retravailler avec l&apos;IA
                   </button>
                 </label>
@@ -701,7 +771,7 @@ export function NewsletterPaperClient({
             exportMode
           />
         </article>
-        <article ref={pdfVersoRef} className="mt-4 h-[1123px] w-[794px] overflow-hidden bg-[#fffdf7] text-slate-950">
+        <article ref={pdfVersoRef} className="h-[1123px] w-[794px] overflow-hidden bg-[#fffdf7] text-slate-950">
           <NewsletterPreview
             community={previewCommunity}
             enabled={enabled}
@@ -721,11 +791,22 @@ export function NewsletterPaperClient({
           />
         </article>
       </div>
-      <div className="fixed inset-x-0 bottom-[calc(5.9rem+env(safe-area-inset-bottom))] z-20 border-t border-[#e5dcc8] bg-[#fffaf1]/95 p-3 backdrop-blur print:hidden md:bottom-0 md:z-40">
-        <div className="mx-auto grid max-w-3xl grid-cols-3 gap-2">
-          <Button type="button" onClick={() => void generateNewsletter()} loading={generating} className="min-h-12 rounded-2xl bg-[#17253f] px-2 text-xs font-black text-white hover:bg-[#0f1c2e] sm:text-sm"><Sparkles className="size-4" />IA</Button>
-          <Button type="button" variant="outline" onClick={() => window.print()} className="min-h-12 rounded-2xl border-[#d8ccb3] bg-white px-2 text-xs font-black text-[#17253f] sm:text-sm"><Printer className="size-4" />Imprimer</Button>
-          <Button type="button" variant="outline" onClick={() => void downloadPdf()} loading={exporting} className="min-h-12 rounded-2xl border-[#d8ccb3] bg-[#e9c76a] px-2 text-xs font-black text-[#17253f] hover:bg-[#ddbb5d] sm:text-sm"><Download className="size-4" />PDF</Button>
+      <div className="fixed inset-x-0 bottom-[calc(5.9rem+env(safe-area-inset-bottom))] z-20 border-t border-violet-100 bg-[#fffaf4]/95 p-3 backdrop-blur print:hidden md:bottom-0 md:z-40">
+        <div className={cn("mx-auto grid max-w-3xl gap-2", editorStep === "preview" ? "grid-cols-3" : editorStep === "content" ? "grid-cols-2" : "grid-cols-1")}>
+          {editorStep === "modules" ? (
+            <Button type="button" onClick={() => { if (generated.title.trim()) { setError(null); setEditorStep("content"); } else { setError("Donnez un titre à votre newsletter avant de continuer."); } }} className="min-h-13 rounded-2xl bg-[#421388] px-5 font-black text-white shadow-[0_10px_22px_rgba(66,19,136,0.22)] hover:bg-[#32106d]">
+              Continuer <PenLine className="size-4" />
+            </Button>
+          ) : null}
+          {editorStep === "content" ? <>
+            <Button type="button" onClick={() => void generateNewsletter()} loading={generating} className="min-h-13 rounded-2xl bg-[#421388] px-2 text-xs font-black text-white hover:bg-[#32106d] sm:text-sm"><Sparkles className="size-4" />Créer avec l’IA</Button>
+            <Button type="button" variant="outline" onClick={() => setEditorStep("preview")} className="min-h-13 rounded-2xl border-violet-200 bg-white px-2 text-xs font-black text-[#421388] sm:text-sm"><Eye className="size-4" />Voir l’aperçu</Button>
+          </> : null}
+          {editorStep === "preview" ? <>
+            <Button type="button" variant="outline" onClick={() => setEditorStep("content")} className="min-h-12 rounded-2xl border-violet-200 bg-white px-2 text-xs font-black text-[#421388] sm:text-sm"><PenLine className="size-4" />Modifier</Button>
+            <Button type="button" variant="outline" onClick={() => window.print()} className="min-h-12 rounded-2xl border-violet-200 bg-white px-2 text-xs font-black text-[#421388] sm:text-sm"><Printer className="size-4" />Imprimer</Button>
+            <Button type="button" onClick={() => void downloadPdf()} loading={exporting} className="min-h-12 rounded-2xl bg-[#ffcd32] px-2 text-xs font-black text-[#28104f] hover:bg-[#f2bd16] sm:text-sm"><Download className="size-4" />PDF A4</Button>
+          </> : null}
         </div>
       </div>
     </div>
@@ -774,15 +855,25 @@ function NewsletterPreview({
   page: "front" | "back";
   exportMode?: boolean;
 }) {
+  const displayTitle = clipText(generated.title || "Newsletter de Chabbat", 70);
+  const titleSize = exportMode
+    ? displayTitle.length > 52 ? "text-[30px]" : displayTitle.length > 34 ? "text-[36px]" : "text-[42px]"
+    : "text-[clamp(1.8rem,8vw,3rem)]";
+  const displayIntro = clipText(generated.intro, 180);
+  const displayRavWord = clipText(generated.ravWord, 850);
+  const displayShabbatNote = clipText(generated.shabbatNote, 430);
+  const displayEventIntro = clipText(generated.eventIntro, 220);
+  const displaySicha = clipText(generated.sichaExcerpt, 620);
+
   return (
-    <div className={cn("flex flex-col", exportMode ? "min-h-[1123px] p-10" : "min-h-[760px] p-5 sm:min-h-[1122px] sm:p-10 print:min-h-screen")}>
-      {page === "front" ? <header className="relative border-b-4 border-[#18264d] pb-6">
+    <div className={cn("flex flex-col", exportMode ? "h-[1123px] overflow-hidden p-8" : "min-h-[760px] p-5 sm:min-h-[1122px] sm:p-10 print:min-h-screen")}>
+      {page === "front" ? <header className={cn("relative border-b-4 border-[#421388] pb-6", exportMode && "!pb-4")}>
         <span className="absolute right-0 top-0 text-sm font-black text-[#17253f] sm:text-xl">ב&quot;ה</span>
         <div className={cn("flex flex-col items-start justify-between gap-4 sm:flex-row sm:gap-6", exportMode && "!flex-row !gap-6")}>
           <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-[#52648e]">Feuillet hebdomadaire de Chabbat</p>
-            <h1 className="mt-2 max-w-[520px] pr-8 text-[clamp(1.8rem,8vw,3rem)] font-black leading-[0.98] tracking-normal text-slate-950 sm:mt-3">{generated.title}</h1>
-            <p className="mt-3 max-w-[560px] text-[12px] font-semibold leading-5 text-slate-600 sm:mt-4 sm:text-[15px] sm:leading-6">{generated.intro}</p>
+            <h1 className={cn("mt-2 max-w-[520px] pr-8 font-black leading-[0.98] tracking-normal text-slate-950 sm:mt-3", titleSize)}>{displayTitle}</h1>
+            <p className="mt-3 max-w-[560px] text-[12px] font-semibold leading-5 text-slate-600 sm:mt-4 sm:text-[15px] sm:leading-6">{displayIntro}</p>
           </div>
           <div className={cn("flex w-full shrink-0 flex-row items-center gap-3 text-left sm:w-40 sm:flex-col sm:items-end sm:pt-7 sm:text-right", exportMode && "!w-40 !flex-col !items-end !pt-7 !text-right")}>
             {bannerPhotoUrl || community.logoUrl ? <img src={bannerPhotoUrl || community.logoUrl || ""} alt={community.name} className={cn("size-14 rounded-full border-3 border-white object-cover shadow-[0_8px_20px_rgba(23,37,63,0.2)] ring-2 ring-[#36506d] sm:size-24 sm:border-4", exportMode && "!size-24 !border-4")} /> : null}
@@ -791,14 +882,14 @@ function NewsletterPreview({
           </div>
         </div>
         {enabled.shabbat ? (
-          <div className={cn("mt-5 grid grid-cols-2 gap-2 sm:mt-6 sm:grid-cols-4 sm:gap-3", exportMode && "!mt-6 !grid-cols-4 !gap-3")}>
+          <div className={cn("mt-5 grid grid-cols-2 gap-2 sm:mt-6 sm:grid-cols-4 sm:gap-3", exportMode && "!mt-4 !grid-cols-4 !gap-2")}>
             <InfoTile label="Paracha" value={shabbat?.parasha ?? "Chabbat"} />
             <InfoTile label="Date hebraique" value={shabbat?.hebrewDate ?? "Cette semaine"} />
             <InfoTile label="Entree" value={shabbat?.entry ?? "A verifier"} />
             <InfoTile label="Sortie" value={shabbat?.exit ?? "A verifier"} />
           </div>
         ) : null}
-      </header> : <header className="flex items-center justify-between border-b-4 border-[#18264d] pb-5">
+      </header> : <header className={cn("flex items-center justify-between border-b-4 border-[#421388] pb-5", exportMode && "!pb-4")}>
         <div>
           <p className="text-xs font-black uppercase tracking-[0.2em] text-[#36506d]">La vie de notre communaute</p>
           <h1 className="mt-2 text-3xl font-black text-slate-950">Rendez-vous & souvenirs</h1>
@@ -806,33 +897,33 @@ function NewsletterPreview({
         {community.logoUrl ? <img src={community.logoUrl} alt={community.name} className="size-14 rounded-full object-contain ring-2 ring-[#36506d]/20" /> : <span className="text-xl font-black text-[#17253f]">ב&quot;ה</span>}
       </header>}
 
-      <div className={cn("grid flex-1 grid-cols-1 gap-4 py-4 sm:grid-cols-[1.35fr_0.9fr] sm:gap-6 sm:py-6", exportMode && "!grid-cols-[1.35fr_0.9fr] !gap-6 !py-6")}>
-        <div className="space-y-5">
+      <div className={cn("grid min-h-0 flex-1 grid-cols-1 gap-4 py-4 sm:grid-cols-[1.35fr_0.9fr] sm:gap-6 sm:py-6", exportMode && "!grid-cols-[1.35fr_0.9fr] !gap-4 !py-4")}>
+        <div className={cn("space-y-5", exportMode && "!space-y-3")}>
           {page === "front" && enabled.ravWord ? (
-            <PrintBlock icon={BookOpen} title="Mot du Rav" accent="navy">
+            <PrintBlock icon={BookOpen} title="Mot du Rav" accent="navy" dense={exportMode}>
               {ravTheme ? <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-[#52648e]">Theme: {ravTheme}</p> : null}
-              <p className="text-[14px] leading-[1.62] text-slate-700">{generated.ravWord}</p>
+              <p className={cn("text-[14px] leading-[1.62] text-slate-700", exportMode && "text-[13px] leading-[1.5]")}>{displayRavWord}</p>
             </PrintBlock>
           ) : null}
 
           {page === "front" && enabled.sicha ? (
-            <PrintBlock icon={BookOpen} title="Siha du Rabbi" accent="gold" compact>
+            <PrintBlock icon={BookOpen} title="Siha du Rabbi" accent="gold" compact dense={exportMode}>
               {generated.sichaTitle ? <p className="text-[14px] font-black leading-5 text-slate-900">{generated.sichaTitle}</p> : null}
-              <p className="mt-2 text-[12px] leading-5 text-slate-700">{generated.sichaExcerpt || "Ajoutez le lien officiel Chabad.org pour importer le résumé de la Siha, sans modification."}</p>
+              <p className="mt-2 text-[12px] leading-5 text-slate-700">{displaySicha || "Ajoutez le lien officiel Chabad.org pour importer le résumé de la Siha, sans modification."}</p>
               {generated.sichaUrl ? <p className="mt-2 break-all text-[9px] font-bold text-[#52648e]">Source : {generated.sichaUrl}</p> : null}
             </PrintBlock>
           ) : null}
 
           {page === "back" && enabled.photos ? (
-            <PrintBlock icon={ImagePlus} title="Photos de la semaine" accent="slate">
+            <PrintBlock icon={ImagePlus} title="Photos de la semaine" accent="slate" dense={exportMode}>
               {photos.length > 0 ? (
-                <div className={cn("grid gap-2", photos.length >= 7 ? "grid-cols-3" : photos.length >= 5 ? "grid-cols-6" : "grid-cols-2")}>
+                <div className={cn("grid gap-2", exportMode ? "grid-cols-3" : photos.length >= 5 ? "grid-cols-6" : "grid-cols-2")}>
                   {photos.map((photo, index) => (
                     <img
                       key={photo.id}
                       src={photo.url}
                       alt={photo.name}
-                      className={cn("h-32 w-full rounded-xl object-cover sm:h-36", photos.length >= 7 ? "col-span-1" : photos.length >= 5 && index < 2 ? "col-span-3" : photos.length >= 5 ? "col-span-2" : "")}
+                      className={cn("h-32 w-full rounded-xl object-cover sm:h-36", exportMode ? "!h-28" : photos.length >= 5 && index < 2 ? "col-span-3" : photos.length >= 5 ? "col-span-2" : "")}
                     />
                   ))}
                 </div>
@@ -849,8 +940,8 @@ function NewsletterPreview({
           ) : null}
 
           {page === "back" && enabled.events ? (
-            <PrintBlock icon={CalendarDays} title="Activites et evenements a venir" accent="violet">
-              <p className="mb-3 text-[13px] leading-5 text-slate-600">{generated.eventIntro}</p>
+            <PrintBlock icon={CalendarDays} title="Activites et evenements a venir" accent="violet" dense={exportMode}>
+              <p className="mb-3 text-[13px] leading-5 text-slate-600">{displayEventIntro}</p>
               <div className="space-y-2">
                 {events.length > 0 ? events.map((event) => (
                   <div key={event.id} className="rounded-xl border border-[#d9e0f1] bg-[#f5f7fc] px-3 py-2">
@@ -863,38 +954,38 @@ function NewsletterPreview({
           ) : null}
 
           {page === "back" && enabled.posters ? (
-            <PrintBlock icon={ImagePlus} title="Affiches a venir" accent="slate">
-              {posters.length > 0 ? <div className="space-y-3">
-                {posters.map((poster) => <img key={poster.id} src={poster.url} alt={poster.name} className="h-48 w-full rounded-xl bg-slate-100 object-contain shadow-sm sm:h-56" />)}
+            <PrintBlock icon={ImagePlus} title="Affiches a venir" accent="slate" dense={exportMode}>
+              {posters.length > 0 ? <div className={cn("space-y-3", exportMode && "grid grid-cols-3 gap-2 space-y-0")}>
+                {posters.map((poster) => <img key={poster.id} src={poster.url} alt={poster.name} className={cn("h-48 w-full rounded-xl bg-slate-100 object-contain shadow-sm sm:h-56", exportMode && "!h-36")} />)}
               </div> : <p className="text-sm text-slate-500">Ajoutez les affiches des prochains rendez-vous.</p>}
             </PrintBlock>
           ) : null}
         </div>
 
-        <aside className={cn("grid grid-cols-1 gap-4 sm:block sm:space-y-5", exportMode && "!block !space-y-5")}>
+        <aside className={cn("grid grid-cols-1 gap-4 sm:block sm:space-y-5", exportMode && "!block !space-y-3")}>
           {page === "front" && enabled.shabbat ? (
-            <PrintBlock icon={Clock3} title="Resume de la Paracha" accent="navy" compact>
-              <p className="text-[13px] leading-5 text-slate-700">{generated.shabbatNote}</p>
+            <PrintBlock icon={Clock3} title="Resume de la Paracha" accent="navy" compact dense={exportMode}>
+              <p className="text-[13px] leading-5 text-slate-700">{displayShabbatNote}</p>
             </PrintBlock>
           ) : null}
 
           {page === "front" && enabled.parness ? (
-            <PrintBlock icon={HeartHandshake} title="Parness Hayom" accent="gold" compact>
+            <PrintBlock icon={HeartHandshake} title="Parness Hayom" accent="gold" compact dense={exportMode}>
               <p className="text-[13px] font-bold leading-5 text-slate-700">{parnessText || "Leylouy Nichmat / Refoua Chelema / soutien de la semaine"}</p>
             </PrintBlock>
           ) : null}
 
           {page === "front" && enabled.kiddush ? (
-            <PrintBlock icon={Gift} title="Kidouch offert par" accent="violet" compact>
+            <PrintBlock icon={Gift} title="Kidouch offert par" accent="violet" compact dense={exportMode}>
               <p className="text-[16px] font-black leading-6 text-slate-900">{kiddushText || "A completer"}</p>
             </PrintBlock>
           ) : null}
 
           {page === "back" && enabled.birthdays ? (
-            <PrintBlock icon={Cake} title="Anniversaires de la semaine" accent="rose" compact>
+            <PrintBlock icon={Cake} title="Anniversaires de la semaine" accent="rose" compact dense={exportMode}>
               {birthdays.length > 0 ? (
                 <div className="space-y-2">
-                  {birthdays.slice(0, 8).map((birthday) => (
+                  {birthdays.slice(0, exportMode ? 6 : 8).map((birthday) => (
                     <div key={birthday.id} className="flex items-start justify-between gap-2 rounded-lg bg-[#f5f7fc] px-2.5 py-2">
                       <p className="text-[12px] font-black text-slate-900">{birthday.name}</p>
                       <p className="shrink-0 text-right text-[10px] font-bold text-[#52648e]">{formatShortDate(birthday.gregorianDate)}</p>
@@ -906,15 +997,15 @@ function NewsletterPreview({
           ) : null}
 
           {page === "back" && enabled.restaurantAd ? (
-            <PrintBlock icon={Store} title="Pub partenaire" accent="slate" compact>
-              {partnerAds.length > 0 ? <div className="grid grid-cols-1 gap-2">
-                {partnerAds.map((ad) => <img key={ad.id} src={ad.url} alt={ad.name} className="h-28 w-full rounded-xl bg-slate-100 object-contain" />)}
+            <PrintBlock icon={Store} title="Pub partenaire" accent="slate" compact dense={exportMode}>
+              {partnerAds.length > 0 ? <div className={cn("grid grid-cols-1 gap-2", exportMode && "grid-cols-2")}>
+                {partnerAds.map((ad) => <img key={ad.id} src={ad.url} alt={ad.name} className={cn("h-28 w-full rounded-xl bg-slate-100 object-contain", exportMode && "!h-24")} />)}
               </div> : <p className="text-[13px] leading-5 text-slate-500">Ajoutez jusqu&apos;a 3 visuels de partenaires.</p>}
             </PrintBlock>
           ) : null}
 
           {page === "back" && enabled.support ? (
-            <PrintBlock icon={HandHeart} title="Nous soutenir" accent="gold" compact>
+            <PrintBlock icon={HandHeart} title="Nous soutenir" accent="gold" compact dense={exportMode}>
               <p className="text-[13px] font-bold leading-5 text-slate-700">Soutenez les actions de {community.name}.</p>
               <p className="mt-2 break-all text-[11px] font-black text-amber-800">{community.donationUrl || "Lien de dons a renseigner dans vos parametres."}</p>
             </PrintBlock>
@@ -938,8 +1029,8 @@ function NewsletterPreview({
 
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-[#18264d] px-3 py-3 text-white shadow-[0_8px_18px_rgba(24,38,77,0.18)]">
-      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#c6d1e2]">{label}</p>
+    <div className="rounded-2xl bg-[linear-gradient(145deg,#54209b,#35106f)] px-3 py-3 text-white shadow-[0_8px_18px_rgba(66,19,136,0.2)]">
+      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#e6d8ff]">{label}</p>
       <p className="mt-1 truncate text-lg font-black">{value}</p>
     </div>
   );
@@ -950,26 +1041,28 @@ function PrintBlock({
   title,
   accent,
   compact = false,
+  dense = false,
   children,
 }: {
   icon: LucideIcon;
   title: string;
   accent: "navy" | "violet" | "gold" | "rose" | "slate";
   compact?: boolean;
+  dense?: boolean;
   children: ReactNode;
 }) {
   const styles = {
-    navy: "border-[#d9e0f1] bg-[#f5f7fc] text-[#18264d]",
-    violet: "border-[#d9e0f1] bg-[#f5f7fc] text-[#18264d]",
-    gold: "border-[#e6dcc7] bg-[#fffdf7] text-[#36506d]",
-    rose: "border-[#d9e0f1] bg-[#f5f7fc] text-[#18264d]",
+    navy: "border-violet-100 bg-[#f7f2ff] text-[#421388]",
+    violet: "border-violet-100 bg-[#f7f2ff] text-[#421388]",
+    gold: "border-amber-100 bg-[#fffaf0] text-[#744d00]",
+    rose: "border-rose-100 bg-[#fff5f8] text-[#8b2850]",
     slate: "border-slate-200 bg-white text-slate-900",
   }[accent];
 
   return (
-    <section className={cn("break-inside-avoid rounded-2xl border p-4", styles, compact && "p-3.5")}>
-      <div className="mb-3 flex items-center gap-2">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm">
+    <section className={cn("break-inside-avoid rounded-2xl border p-4", styles, compact && "p-3.5", dense && "!rounded-xl !p-3")}>
+      <div className={cn("mb-3 flex items-center gap-2", dense && "!mb-2")}>
+        <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm", dense && "size-7 rounded-lg")}>
           <Icon className="size-4" />
         </span>
         <h2 className="text-[15px] font-black tracking-normal">{title}</h2>

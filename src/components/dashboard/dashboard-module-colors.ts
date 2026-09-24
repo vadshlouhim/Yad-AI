@@ -9,6 +9,7 @@ export const DASHBOARD_MODULE_COLORS = {
   torah: "home-tool-torah text-white",
   contacts: "home-tool-email text-white",
   targeted: "home-tool-posters text-white",
+  "email-reviews": "home-tool-email text-white",
   email: "home-tool-email text-white",
   reviews: "home-tool-shop text-[#24114f]",
   whatsapp: "home-tool-torah text-white",

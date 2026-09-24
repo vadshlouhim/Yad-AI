@@ -36,11 +36,17 @@ async function main() {
     select() { return this; },
     eq(key: string, value: unknown) { filters.set(key, value); return this; },
     async single() {
-      return filters.get("communityId") === "ours" ? { data: { id: "image", templateId: "template", publicId: "generated-ai/ours/image.png" }, error: null } : { data: null, error: { message: "not found" } };
+      const userAllowed = !filters.has("userId") || filters.get("userId") === "user-1";
+      return filters.get("communityId") === "ours" && userAllowed
+        ? { data: { id: "image", templateId: "template", publicId: "generated-ai/ours/image.png" }, error: null }
+        : { data: null, error: { message: "not found" } };
     },
   };
   const admin = { from() { return builder; } } as unknown as SupabaseClient<Database>;
   assert.equal((await getPosterSource(admin, "ours", "image"))?.id, "image");
+  assert.equal((await getPosterSource(admin, "ours", "image", "user-1"))?.id, "image");
+  assert.equal(filters.get("userId"), "user-1", "Personal poster access must be scoped to its owner");
+  await assert.rejects(getPosterSource(admin, "ours", "image", "another-user"), /inaccessible/);
   await assert.rejects(getPosterSource(admin, "other", "image"), /inaccessible/);
   await assert.rejects(resolveShabbatLocation(""), /ville/);
   await assert.rejects(resolveShabbatLocation("Paris", "Canada"), /pays/);

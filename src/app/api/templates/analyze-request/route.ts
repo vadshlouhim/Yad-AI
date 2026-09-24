@@ -1,4 +1,5 @@
 import { getPosterSource } from "@/lib/templates/edit-source";
+import { readPosterEditState } from "@/lib/templates/edit-state";
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -34,8 +35,12 @@ export async function POST(request: Request) {
       .single();
     if (!template) return NextResponse.json({ error: "Template introuvable" }, { status: 404 });
     if (!template.supportsAi) return NextResponse.json({ error: "Cette affiche est disponible uniquement dans Canva." }, { status: 409 });
-    const source = await getPosterSource(admin, profile.communityId, body.sourceMediaId);
+    const source = await getPosterSource(admin, profile.communityId, body.sourceMediaId, user.id);
     if (source && source.templateId !== template.id) return NextResponse.json({ error: "Modèle source incompatible." }, { status: 400 });
+    const previous = readPosterEditState(source?.editState);
+    const knownInformation = previous?.changes
+      .map((change) => `${change.label}: ${change.newText}`)
+      .join("\n") || "Aucune information structurée disponible : lis directement l’image.";
     const imageUrl = source?.url ?? resolveTemplateAssetUrl(template.originalUrl) ?? resolveTemplateAssetUrl(template.previewUrl);
     if (!imageUrl) return NextResponse.json({ error: "Image du template introuvable" }, { status: 400 });
 
@@ -49,16 +54,20 @@ export async function POST(request: Request) {
           { type: "text", text: [
             `Analyse cette affiche nommée « ${template.name} » et la demande de modification de l’utilisateur.`,
             "Lis l’image et distingue les éléments graphiques permanents des informations événementielles variables.",
-            "Pour permettre une prochaine réutilisation, recense TOUS les textes événementiels éditables visibles dans changes, même ceux qui ne changent pas. Pour un texte inchangé, currentText et newText doivent être identiques. Préserve les informations non concernées par la demande. Ne recopie pas les anciens textes remplacés comme un second champ.",
+            "Dans changes, recense uniquement les textes que la demande utilisateur exige de modifier ou d’ajouter. N’inclus jamais un texte inchangé.",
+            "Chaque information visible qui n’est pas explicitement concernée par la demande doit rester strictement identique et doit être décrite dans unchangedElements.",
+            `Informations personnalisées déjà enregistrées (contexte uniquement, ne pas les modifier sans demande explicite) :\n${knownInformation}`,
+            "Si la demande est ambiguë sur l’élément à modifier, ne devine pas : ajoute une question précise dans missingInformation.",
+            "Ne recopie pas les anciens textes remplacés comme un second champ.",
             "Extrais toutes les nouvelles informations que l’utilisateur veut voir sur l’affiche, même si le template ne possède aucun champ ou texte correspondant.",
             "Pour chaque nouvelle information, crée une entrée changes. Si un texte correspondant est visible, place-le dans currentText ; sinon laisse currentText vide.",
-            "Recense dans textsToRemove les anciens textes événementiels visibles qui entreraient en conflit ou feraient doublon avec les nouvelles informations.",
+            "Recense dans textsToRemove uniquement les anciens textes directement remplacés par la demande et qui entreraient en conflit ou feraient doublon avec les nouvelles informations.",
             "Rédige editPrompt en anglais pour un modèle d’édition d’image : indique précisément quels anciens textes nettoyer, où intégrer les nouveaux contenus et comment respecter la hiérarchie visuelle existante.",
             "Le prompt doit fonctionner dans les deux cas : remplacement des anciens textes s’ils existent, ou ajout harmonieux si le template est vierge.",
             "Interdis explicitement tout doublon entre anciens et nouveaux textes.",
             "N’invente aucune information. Toute donnée nécessaire mais absente doit apparaître dans missingInformation.",
             "Ne considère pas un nom propre comme manquant si l’utilisateur souhaite seulement afficher une fonction, par exemple « le maire ».",
-            "Le fond, les photos, les visages, les logos, les illustrations, les couleurs, le cadrage et la composition doivent rester inchangés.",
+            "Le fond, les photos, les visages, les logos, les illustrations, les couleurs, le cadrage, la composition et tous les textes non demandés doivent rester inchangés.",
             `Demande utilisateur : ${userRequest}`,
           ].join("\n") },
           { type: "image_url", image_url: { url: imageUrl } },

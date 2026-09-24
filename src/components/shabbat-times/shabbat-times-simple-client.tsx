@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Json } from "@/types/database.types";
 import { ScheduleHubNav } from "@/components/templates/schedule-hub-nav";
-import { CanvaLogo, DesignerRequestLink } from "@/components/templates/template-actions";
+import { CanvaLogo } from "@/components/templates/template-actions";
 
 type Template = {
   id: string;
@@ -338,6 +338,7 @@ export function ShabbatTimesSimpleClient({
   const [loadingTimes, setLoadingTimes] = useState(false);
   const [cityCandidates, setCityCandidates] = useState<string[]>([]);
   const timesRequest = useRef(0);
+  const cityRefreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [form, setForm] = useState<FormState>(() => ({
     structureName: stringValue(savedFields.structureName) || community.name,
@@ -358,6 +359,10 @@ export function ShabbatTimesSimpleClient({
   const [automationTime, setAutomationTime] = useState("10:00");
   const [automationActive, setAutomationActive] = useState(Boolean(initialAutomation?.isActive));
   const [savingAutomation, setSavingAutomation] = useState(false);
+
+  useEffect(() => () => {
+    if (cityRefreshTimer.current) clearTimeout(cityRefreshTimer.current);
+  }, []);
 
   const isPaid = community.plan !== "FREE_TRIAL";
 
@@ -388,7 +393,14 @@ export function ShabbatTimesSimpleClient({
   }, [generating, publishSuccessResults, publishing, selectedTemplate]);
 
   function updateForm(field: keyof FormState, value: string) {
-    if (field === "city") { timesRequest.current += 1; setWeekDate(""); }
+    if (field === "city") {
+      timesRequest.current += 1;
+      setWeekDate("");
+      if (cityRefreshTimer.current) clearTimeout(cityRefreshTimer.current);
+      if (value.trim().length >= 2) {
+        cityRefreshTimer.current = setTimeout(() => void refreshShabbatTimes(value.trim()), 650);
+      }
+    }
     setForm((current) => field === "city" ? { ...current, city: value, parasha: "", entry: "", exit: "" } : { ...current, [field]: value });
     setError("");
     setNotice("");
@@ -604,7 +616,7 @@ export function ShabbatTimesSimpleClient({
           </div>
           <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Créez votre affiche des horaires de Chabbat</h1>
           <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-violet-100 sm:text-base">
-            Choisissez une affiche, saisissez vos horaires et obtenez un visuel prêt à télécharger ou à publier.
+            Choisissez une affiche : la Paracha et les horaires sont remplis automatiquement selon votre ville.
           </p>
         </div>
       </header>
@@ -659,7 +671,6 @@ export function ShabbatTimesSimpleClient({
                     </span>
                   </div>
                 </button>
-                <DesignerRequestLink template={template} compact className="mt-auto w-full" />
                 </article>
               );
             })}
@@ -680,20 +691,16 @@ export function ShabbatTimesSimpleClient({
             aria-labelledby="shabbat-dialog-title"
             className="max-h-[94dvh] w-full max-w-5xl overflow-y-auto rounded-t-[2rem] bg-slate-50 shadow-2xl sm:max-h-[92vh] sm:rounded-[2rem]"
           >
-            <div className="sticky top-0 z-20 flex items-center gap-4 border-b border-violet-100 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
-              <div className="relative flex h-28 w-24 shrink-0 items-end justify-center rounded-[1.5rem] bg-violet-50 ring-1 ring-violet-100 sm:h-32 sm:w-28">
+            <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-violet-100 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
+              <div className="relative flex size-14 shrink-0 items-end justify-center overflow-hidden rounded-2xl bg-violet-50 ring-1 ring-violet-100">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={DAVID_AUTOMATION_IMAGE_URL} alt="David" className="h-full w-full object-contain object-bottom drop-shadow-[0_12px_18px_rgba(66,19,136,0.22)]" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-[#421388]">
-                  <span className="size-2 rounded-full bg-emerald-500 ring-4 ring-emerald-100" />
-                  Conversation avec David
-                </p>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#421388]">Horaires de Chabbat</p>
                 <h2 id="shabbat-dialog-title" className="truncate text-lg font-black text-slate-950">
                   {resultImageUrl ? "Votre affiche est prête" : "Personnalisez votre affiche"}
                 </h2>
-                <p className="mt-0.5 hidden text-xs font-semibold text-slate-500 sm:block">Votre assistant IA vous accompagne en direct.</p>
               </div>
               <button
                 type="button"
@@ -710,34 +717,28 @@ export function ShabbatTimesSimpleClient({
               <div className="space-y-5">
                 {!resultImageUrl ? (
                   <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                    <div className="flex items-start gap-3">
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#421388] text-white shadow-md shadow-violet-200">
-                        <Sparkles className="size-4" />
-                      </span>
-                      <div className="rounded-2xl rounded-tl-sm bg-violet-50 px-4 py-3 text-sm font-semibold leading-6 text-violet-950 ring-1 ring-violet-100">
-                        <p className="mb-1 text-xs font-black uppercase tracking-[0.12em] text-[#421388]">David</p>
-                        <p>Donnez-moi les informations ci-dessous et je les adapterai harmonieusement à votre affiche.</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h3 className="font-black text-slate-950">Informations de l’affiche</h3>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">Les horaires se mettent à jour automatiquement.</p>
                       </div>
+                      {loadingTimes ? <span className="rounded-full bg-violet-50 px-3 py-1.5 text-[11px] font-black text-[#421388]">Actualisation…</span> : null}
                     </div>
 
-                    <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
                       <Field label="Nom de la structure" value={form.structureName} onChange={(value) => updateForm("structureName", value)} placeholder="Ex. Beth Habad" required icon={Edit3} />
-                      <Field label="Ville" value={form.city} onChange={(value) => updateForm("city", value)} onBlur={() => void refreshShabbatTimes()} placeholder="Ex. Paris" required icon={MapPin} />
-                      <Field label="Paracha" value={form.parasha} onChange={(value) => updateForm("parasha", value)} placeholder="Actualisée selon la semaine" readOnly required icon={Sparkles} />
-                      <div className="hidden sm:block" />
+                      <Field label="Ville" value={form.city} onChange={(value) => updateForm("city", value)} placeholder="Ex. Paris" required icon={MapPin} />
+                      <Field label="Paracha" value={form.parasha} onChange={(value) => updateForm("parasha", value)} placeholder="Calcul automatique" readOnly required icon={Sparkles} />
                       <Field label="Entrée de Chabbat" value={form.entry} onChange={(value) => updateForm("entry", value)} placeholder="Selon la ville" readOnly required icon={Clock3} />
                       <Field label="Sortie de Chabbat" value={form.exit} onChange={(value) => updateForm("exit", value)} placeholder="Selon la ville" readOnly required icon={Clock3} />
                     </div>
 
-                    <div className="rounded-xl bg-violet-50 p-3 text-sm text-violet-900">
-                      <p>{weekDate ? `Semaine du ${new Date(`${weekDate}T12:00:00Z`).toLocaleDateString("fr-FR", { timeZone: "UTC" })} · ${form.city}` : "Horaires à actualiser"}</p>
-                      <p className="mt-1 text-xs">Allumage : 18 min avant le coucher du soleil · Sortie : 63 min après.</p>
-                      <Button type="button" variant="outline" disabled={loadingTimes || generating} className="mt-2" onClick={() => void refreshShabbatTimes()}>{loadingTimes ? "Actualisation…" : "Actualiser pour le prochain Chabbat"}</Button>
+                    <div className="mt-4 rounded-xl bg-violet-50 px-3 py-2.5 text-xs font-bold text-violet-900">
+                      {weekDate ? `Horaires du ${new Date(`${weekDate}T12:00:00Z`).toLocaleDateString("fr-FR", { timeZone: "UTC" })} · ${form.city}` : "Recherche automatique des horaires…"}
                       {cityCandidates.map((city) => <Button key={city} type="button" variant="outline" className="mt-2" onClick={() => void refreshShabbatTimes(city)}>{city}</Button>)}
                     </div>
                     <CommunityLogoPicker value={form.logoUrl || null} onChange={(url) => updateForm("logoUrl", url)} onBusyChange={setUploadingLogo} onError={setError} />
 
-                    <p className="mt-3 text-xs text-slate-500">Chaque génération crée une nouvelle version enregistrée dans Mes créations et compte dans votre quota.</p>
                     <Button type="button" size="xl" className="mt-5 w-full rounded-2xl bg-[#d92d7c] font-black shadow-lg shadow-pink-950/20 hover:bg-[#c5236e]" loading={generating} disabled={uploadingLogo || loadingTimes || generating} onClick={() => void generatePoster()}>
                       {!generating && <Sparkles className="size-5" />}
                       {generating ? "David personnalise l’affiche…" : "Créer mon affiche avec David"}
@@ -762,8 +763,7 @@ export function ShabbatTimesSimpleClient({
                   <div className="flex items-start gap-3">
                     <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white text-amber-600 shadow-sm"><Clock3 className="size-5" /></span>
                     <div>
-                      <h3 className="font-black text-slate-950">Chaque semaine avec David</h3>
-                      <p className="mt-1 text-xs leading-5 text-slate-600">Recevez l’affiche préparée le vendredi et validez-la avant publication.</p>
+                      <h3 className="font-black text-slate-950">Rappel chaque vendredi</h3>
                     </div>
                   </div>
                   {automationActive ? (

@@ -62,11 +62,12 @@ export async function POST(request: Request) {
       .single();
     if (!template) return NextResponse.json({ error: "Template introuvable" }, { status: 404 });
     if (!template.supportsAi) return NextResponse.json({ error: "Cette affiche est disponible uniquement dans Canva." }, { status: 409 });
-    const source = await getPosterSource(admin, gate.communityId, body.sourceMediaId);
+    const source = await getPosterSource(admin, gate.communityId, body.sourceMediaId, user.id);
     if (source && source.templateId !== template.id) return NextResponse.json({ error: "Modèle source incompatible." }, { status: 400 });
-    const logoUrl = trustedCommunityLogo(body.logoUrl, gate.communityId);
-    if (body.logoUrl && !logoUrl) return NextResponse.json({ error: "Logo inaccessible." }, { status: 400 });
     const previous = readPosterEditState(source?.editState);
+    const requestedLogoUrl = trustedCommunityLogo(body.logoUrl, gate.communityId);
+    if (body.logoUrl && !requestedLogoUrl) return NextResponse.json({ error: "Logo inaccessible." }, { status: 400 });
+    const storedLogoUrl = requestedLogoUrl ?? previous?.logoUrl ?? null;
 
 
     const edited = await editTemplatePosterWithFal({
@@ -76,10 +77,10 @@ export async function POST(request: Request) {
       userId: user.id,
       changes,
       textsToRemove,
-      editInstructions: [editInstructions, logoEditInstructions(logoUrl)].join("\n"),
-      referenceImageUrls: logoUrl ? [logoUrl] : undefined,
+      editInstructions: [editInstructions, logoEditInstructions(requestedLogoUrl)].join("\n"),
+      referenceImageUrls: requestedLogoUrl ? [requestedLogoUrl] : undefined,
       sourceImageUrl: source?.url,
-      editState: { version: 1, templateId: template.id, sourceMediaId: source?.id ?? null, changes: previous?.changes ?? [], textsToRemove, logoUrl, shabbatDate: previous?.shabbatDate },
+      editState: { version: 1, templateId: template.id, sourceMediaId: source?.id ?? null, changes: previous?.changes ?? [], textsToRemove, logoUrl: storedLogoUrl, shabbatDate: previous?.shabbatDate },
       recordMedia: true,
       resolution,
     });

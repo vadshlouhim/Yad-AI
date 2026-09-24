@@ -19,10 +19,12 @@ export default async function TemplatesPage({ searchParams }: Props) {
   const query = await searchParams;
   const requestedTemplateId = query.templateId;
   let initialTemplateId = typeof requestedTemplateId === "string" ? requestedTemplateId : undefined;
-  const { profile } = await requireAuth();
+  const { profile, supabaseUser } = await requireAuth();
   const communityId = profile.communityId!;
   const admin = createAdminClient();
-  const source = typeof query.mediaId === "string" ? await getPosterSource(admin, communityId, query.mediaId).catch(() => null) : null;
+  const source = typeof query.mediaId === "string"
+    ? await getPosterSource(admin, communityId, query.mediaId, supabaseUser.id).catch(() => null)
+    : null;
   if (query.mediaId && !source) notFound();
   if (source?.templateId) initialTemplateId = source.templateId;
 

@@ -22,4 +22,4 @@ export const MODULE_COLORS = {
 export const POSTER_HEADER_CLASS =
   "relative overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_78%_8%,#8037ce_0%,#421388_48%,#210763_100%)] px-5 py-6 text-white shadow-[0_24px_58px_rgba(49,13,108,0.26)] sm:px-8 sm:py-8";
 export const NEWSLETTER_HEADER_CLASS =
-  "relative overflow-hidden rounded-b-[2.4rem] bg-[radial-gradient(circle_at_82%_0%,#36506d_0%,#17253f_48%,#0f1c2e_100%)] px-5 pb-6 pt-7 text-white shadow-[0_18px_35px_rgba(23,37,63,0.2)] sm:rounded-[2rem] sm:px-8";
+  "relative overflow-hidden rounded-b-[2.4rem] bg-[radial-gradient(circle_at_78%_8%,#8037ce_0%,#421388_48%,#210763_100%)] px-5 pb-7 pt-7 text-white shadow-[0_20px_42px_rgba(49,13,108,0.24)] sm:rounded-[2rem] sm:px-8";

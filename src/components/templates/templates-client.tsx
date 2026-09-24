@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import type { PosterEditState } from "@/lib/templates/edit-state";
+import { mergePosterChanges, type PosterEditState } from "@/lib/templates/edit-state";
 import { CommunityLogoPicker } from "./community-logo-picker";
 import { useState } from "react";
 import {
@@ -10,6 +10,9 @@ import {
   Download,
   Library,
   Loader2,
+  MessageCircle,
+  Send,
+  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import { UpgradeModal } from "@/components/billing/upgrade-modal";
@@ -21,7 +24,7 @@ import {
   posterTemplateImage,
   type PosterGalleryTemplate,
 } from "./poster-gallery";
-import { CanvaLogo, DesignerRequestLink } from "./template-actions";
+import { CanvaLogo } from "./template-actions";
 
 type Template = PosterGalleryTemplate;
 
@@ -79,6 +82,12 @@ interface GeneratedAsset {
   height: number | null;
 }
 
+interface ConversationMessage {
+  id: string;
+  role: "assistant" | "user";
+  content: string;
+}
+
 type Step = "gallery" | "request" | "confirm" | "preview";
 
 export function TemplatesClient({
@@ -101,7 +110,7 @@ export function TemplatesClient({
     initialTemplate && (freePosterAlreadyUsed || (plan === "FREE_TRIAL" && initialTemplate.isPremium))
   );
   const initialTemplateSupportsAi = Boolean(initialTemplate?.supportsAi);
-  const [step, setStep] = useState<Step>(initialTemplate && initialTemplateSupportsAi && !initialTemplateLocked ? (initialSource?.editState ? "confirm" : "request") : "gallery");
+  const [step, setStep] = useState<Step>(initialTemplate && initialTemplateSupportsAi && !initialTemplateLocked ? "request" : "gallery");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
     initialTemplate && initialTemplateSupportsAi && !initialTemplateLocked ? initialTemplate : null
   );
@@ -109,11 +118,14 @@ export function TemplatesClient({
   const [requestText, setRequestText] = useState("");
   const [source, setSource] = useState(initialSource ?? null);
   const [logoUrl, setLogoUrl] = useState<string | null>(initialSource?.editState?.logoUrl ?? community.logoUrl);
+  const [logoChanged, setLogoChanged] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [brief, setBrief] = useState<PosterBrief | null>(initialSource?.editState ? {
-    summary: "Modifier votre affiche", changes: initialSource.editState.changes.map((change) => ({ ...change, currentText: change.newText })),
-    textsToRemove: [], editPrompt: "Only change the explicitly confirmed texts. Preserve all other information and the existing layout.", unchangedElements: [], missingInformation: [],
-  } : null);
+  const [brief, setBrief] = useState<PosterBrief | null>(null);
+  const [conversation, setConversation] = useState<ConversationMessage[]>(initialSource ? [{
+    id: "initial-assistant",
+    role: "assistant",
+    content: "J’ai ouvert votre affiche personnalisée. Dites-moi uniquement ce que vous souhaitez changer : tout le reste sera conservé.",
+  }] : []);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [generatedAsset, setGeneratedAsset] = useState<GeneratedAsset | null>(null);
   const [savingLibrary, setSavingLibrary] = useState(false);
@@ -128,7 +140,9 @@ export function TemplatesClient({
     setSelectedTemplate(template);
     setSource(null);
     setRequestText("");
+    setLogoChanged(false);
     setBrief(null);
+    setConversation([]);
     setGeneratedImageUrl(null);
     setGeneratedAsset(null);
     setLibrarySaved(false);
@@ -164,21 +178,39 @@ export function TemplatesClient({
   }
 
   async function analyzeRequest() {
-    if (!selectedTemplate || (!requestText.trim() && !logoUrl)) return;
+    const instruction = requestText.trim();
+    const canAnalyze = source ? Boolean(instruction || logoChanged) : Boolean(instruction || logoUrl);
+    if (!selectedTemplate || !canAnalyze) return;
     setLoading(true);
     setError("");
     try {
       const response = await fetch("/api/templates/analyze-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId: selectedTemplate.id, sourceMediaId: source?.id, request: requestText.trim() || "Conserver tous les textes et toutes les informations existantes. Le logo officiel sera ajout? s?par?ment." }),
+        body: JSON.stringify({
+          templateId: selectedTemplate.id,
+          sourceMediaId: source?.id,
+          request: instruction || "Conserver tous les textes et toutes les informations existantes. Modifier uniquement le logo officiel.",
+        }),
       });
       const data = (await response.json()) as PosterBrief & { error?: string };
       if (!response.ok) throw new Error(data.error ?? "Gemini n'a pas pu comprendre la demande.");
-      if (!Array.isArray(data.changes) || (data.changes.length === 0 && !logoUrl)) {
+      if (!Array.isArray(data.changes) || (data.changes.length === 0 && !(logoChanged || (!source && logoUrl)))) {
         throw new Error("Aucune modification précise n'a été identifiée. Indiquez les textes à remplacer.");
       }
       setBrief(data);
+      setConversation((current) => [
+        ...current,
+        ...(instruction ? [{ id: crypto.randomUUID(), role: "user" as const, content: instruction }] : []),
+        {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: data.missingInformation.length > 0
+            ? `J’ai besoin d’une précision : ${data.missingInformation.join(" ")}`
+            : `${data.summary} Je ne modifierai aucun autre détail.`,
+        },
+      ]);
+      setRequestText("");
       setStep("confirm");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Analyse impossible.");
@@ -214,7 +246,7 @@ export function TemplatesClient({
           templateId: selectedTemplate.id,
           changes,
           sourceMediaId: source?.id,
-          logoUrl,
+          logoUrl: !source || logoChanged ? logoUrl : null,
           textsToRemove: brief.textsToRemove,
           editPrompt: brief.editPrompt,
           resolution: "1k",
@@ -239,7 +271,16 @@ export function TemplatesClient({
       }
       if (!data.imageUrl || !data.storagePath) throw new Error("Aucune image personnalisée n'a été renvoyée.");
       setGeneratedImageUrl(data.imageUrl);
-      if (data.mediaId) setSource({ id: data.mediaId, imageUrl: data.imageUrl, editState: null });
+      const nextEditState: PosterEditState = {
+        version: 1,
+        templateId: selectedTemplate.id,
+        sourceMediaId: source?.id ?? null,
+        changes: mergePosterChanges(source?.editState?.changes ?? [], changes, brief.textsToRemove),
+        textsToRemove: [],
+        logoUrl,
+        shabbatDate: source?.editState?.shabbatDate,
+      };
+      if (data.mediaId) setSource({ id: data.mediaId, imageUrl: data.imageUrl, editState: nextEditState });
       setBrief((current) => current ? { ...current, changes: current.changes.map((change) => ({ ...change, currentText: change.newText })), textsToRemove: [], editPrompt: "Only change the explicitly confirmed texts. Preserve the existing layout and all other information." } : null);
       setGeneratedAsset({
         imageUrl: data.imageUrl,
@@ -249,6 +290,12 @@ export function TemplatesClient({
         height: data.height ?? null,
       });
       setLibrarySaved(true);
+      setLogoChanged(false);
+      setConversation((current) => [...current, {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: "La nouvelle version est prête. Vous pouvez me demander une autre modification à partir de cette affiche.",
+      }]);
       setActionMessage("");
       setStep("preview");
     } catch (cause) {
@@ -256,6 +303,16 @@ export function TemplatesClient({
     } finally {
       setLoading(false);
     }
+  }
+
+  function continueEditing() {
+    setBrief(null);
+    setRequestText("");
+    setGeneratedImageUrl(null);
+    setGeneratedAsset(null);
+    setError("");
+    setActionMessage("");
+    setStep("request");
   }
 
   async function saveToLibrary() {
@@ -321,7 +378,6 @@ export function TemplatesClient({
             <span className="mt-1 block text-xs text-blue-700">Abonnement requis</span>
           </button>
         </div>
-        <DesignerRequestLink template={choiceTemplate} className="mt-3 w-full" />
         <button type="button" onClick={() => setChoiceTemplate(null)} className="mt-4 min-h-11 w-full rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50">Annuler</button>
       </div>
     </div>
@@ -354,48 +410,106 @@ export function TemplatesClient({
 
   if (!selectedTemplate) return null;
   const sourceImage = source?.imageUrl ?? posterTemplateImage(selectedTemplate);
-  const logoPicker = <CommunityLogoPicker value={logoUrl} onChange={(url) => { setLogoUrl(url); setError(""); }} onBusyChange={setUploadingLogo} onError={setError} />;
+  const logoPicker = <CommunityLogoPicker value={logoUrl} onChange={(url) => { setLogoUrl(url); setLogoChanged(true); setError(""); }} onBusyChange={setUploadingLogo} onError={setError} />;
 
   if (step === "request") {
+    const canSendInstruction = source
+      ? Boolean(requestText.trim() || logoChanged)
+      : Boolean(requestText.trim() || logoUrl);
+    const knownDetails = source?.editState?.changes ?? [];
     return (
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className="mx-auto max-w-6xl space-y-6">
         {modal}
-        <Button variant="ghost" onClick={() => setStep("gallery")} className="rounded-xl font-black text-violet-700 hover:bg-violet-50">
+        <Button
+          variant="ghost"
+          onClick={() => {
+            if (source) window.location.href = "/dashboard/media-library";
+            else setStep("gallery");
+          }}
+          className="rounded-xl font-black text-violet-700 hover:bg-violet-50"
+        >
           <ArrowLeft className="mr-2 size-4" />
-          Retour aux affiches
+          {source ? "Retour à mes créations" : "Retour aux affiches"}
         </Button>
-        <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-          <Card className="overflow-hidden rounded-[2rem] border-violet-100 bg-[#f7f3ee] p-2 shadow-[0_16px_40px_rgba(66,19,136,0.1)]">
-            {sourceImage ? <img src={sourceImage} alt={selectedTemplate.name} className="w-full rounded-[1.5rem] object-contain" /> : null}
-          </Card>
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)]">
+          <div className="space-y-4 lg:sticky lg:top-6">
+            <Card className="overflow-hidden rounded-[2rem] border-violet-100 bg-[#f7f3ee] p-2 shadow-[0_16px_40px_rgba(66,19,136,0.1)]">
+              {sourceImage ? <img src={sourceImage} alt={source ? "Votre affiche personnalisée" : selectedTemplate.name} className="w-full rounded-[1.5rem] object-contain" /> : null}
+            </Card>
+            {source ? (
+              <Card className="rounded-[1.5rem] border-emerald-200 bg-emerald-50/70 shadow-none">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 text-sm font-black text-emerald-900">
+                    <ShieldCheck className="size-4" />
+                    Vos informations sont conservées
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-emerald-800">
+                    L’IA part de cette version et ne touche qu’aux éléments que vous demandez de modifier.
+                  </p>
+                  {knownDetails.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap gap-2" aria-label="Informations personnalisées présentes">
+                      {knownDetails.map((detail, index) => (
+                        <span key={`${detail.label}-${index}`} className="rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-[11px] font-bold text-emerald-900">
+                          {detail.label} : {detail.newText}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            ) : null}
+          </div>
           <Card className="overflow-hidden rounded-[2rem] border-violet-100 bg-white shadow-[0_16px_40px_rgba(66,19,136,0.09)]">
             <CardContent className="space-y-5 p-5 sm:p-6">
               <div className="flex items-start gap-3">
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7130d8] to-[#d92d7c] text-white shadow-lg shadow-violet-200">
-                  <Sparkles className="size-5" />
+                  <MessageCircle className="size-5" />
                 </span>
                 <div>
-                  <h1 className="mt-1 text-2xl font-black text-slate-900">Que souhaitez-vous afficher ?</h1>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-violet-600">Assistant affiche</p>
+                  <h1 className="mt-1 text-2xl font-black text-slate-900">
+                    {source ? "Que souhaitez-vous modifier ?" : "Que souhaitez-vous afficher ?"}
+                  </h1>
                 </div>
               </div>
-              {source ? <p className="text-sm text-violet-700">Vous reprenez votre affiche. Indiquez seulement ce qui doit changer.</p> : null}
+
+              {conversation.length > 0 ? (
+                <div className="max-h-72 space-y-3 overflow-y-auto rounded-2xl bg-slate-50 p-3 sm:p-4" aria-live="polite">
+                  {conversation.map((message) => (
+                    <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-6 ${message.role === "user" ? "rounded-br-md bg-[#421388] text-white" : "rounded-bl-md border border-violet-100 bg-white text-slate-700 shadow-sm"}`}>
+                        {message.content}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
               {logoPicker}
-              <textarea
-                value={requestText}
-                onChange={(event) => setRequestText(event.target.value)}
-                rows={8}
-                maxLength={4000}
-                className="w-full resize-y rounded-2xl border border-violet-100 bg-[#fffaf4] px-4 py-3 text-sm leading-6 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-              />
+              <div className="rounded-2xl border border-violet-200 bg-[#fffaf4] p-2 focus-within:border-violet-400 focus-within:ring-4 focus-within:ring-violet-100">
+                <label htmlFor="poster-ai-instruction" className="sr-only">Consigne de modification pour l’IA</label>
+                <textarea
+                  id="poster-ai-instruction"
+                  value={requestText}
+                  onChange={(event) => setRequestText(event.target.value)}
+                  rows={5}
+                  maxLength={4000}
+                  placeholder={source ? "Exemple : change uniquement la date en 12 octobre et conserve tout le reste." : "Décrivez les textes et informations à afficher."}
+                  className="w-full resize-y bg-transparent px-3 py-2 text-sm leading-6 outline-none placeholder:text-slate-400"
+                />
+                <div className="flex items-center justify-between gap-3 border-t border-violet-100 px-2 pt-2">
+                  <span className="text-[11px] text-slate-400">{requestText.length}/4000</span>
+                  <Button
+                    onClick={() => void analyzeRequest()}
+                    disabled={loading || uploadingLogo || !canSendInstruction}
+                    className="min-h-10 rounded-xl bg-gradient-to-r from-[#7130d8] via-[#5c24ad] to-[#d92d7c] px-5 font-black text-white shadow-md shadow-violet-200 hover:brightness-105"
+                  >
+                    {loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                    {loading ? "Analyse..." : "Envoyer à l’IA"}
+                  </Button>
+                </div>
+              </div>
               {error ? <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
-              <Button
-                onClick={() => void analyzeRequest()}
-                disabled={loading || uploadingLogo || (!requestText.trim() && !logoUrl)}
-                className="min-h-12 w-full rounded-2xl bg-gradient-to-r from-[#7130d8] via-[#5c24ad] to-[#d92d7c] font-black text-white shadow-lg shadow-violet-200 hover:brightness-105"
-              >
-                {loading ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Sparkles className="mr-2 size-4" />}
-                {loading ? "Analyse..." : "Créer"}
-              </Button>
             </CardContent>
           </Card>
         </div>
@@ -424,7 +538,14 @@ export function TemplatesClient({
             </div>
 
             {sourceImage ? <img src={sourceImage} alt="Affiche à modifier" className="mx-auto max-h-80 rounded-2xl object-contain" /> : null}
-            <p className="text-sm text-slate-600">Chaque génération produit une nouvelle version et compte dans votre quota. Vérifiez l’aperçu avant de la diffuser.</p>
+            <div className="flex gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+              <ShieldCheck className="mt-0.5 size-5 shrink-0" />
+              <div>
+                <p className="font-black">Seuls les changements ci-dessous seront appliqués</p>
+                <p className="mt-1 leading-5 text-emerald-800">Les autres textes, le fond, les couleurs, les photos, les illustrations et la mise en page seront conservés.</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600">Chaque génération produit une nouvelle version et compte dans votre quota. Vérifiez les changements avant de continuer.</p>
             {logoPicker}
             <div className="space-y-3">
               {brief.changes.map((change, index) => (
@@ -481,9 +602,9 @@ export function TemplatesClient({
     return (
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button variant="ghost" onClick={() => setStep("confirm")} className="rounded-xl font-black text-violet-700 hover:bg-violet-50">
-            <ArrowLeft className="mr-2 size-4" />
-            Modifier
+          <Button variant="ghost" onClick={continueEditing} className="rounded-xl font-black text-violet-700 hover:bg-violet-50">
+            <MessageCircle className="mr-2 size-4" />
+            Continuer à modifier avec l’IA
           </Button>
           <div className="flex flex-wrap gap-2">
             <Button

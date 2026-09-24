@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 export function MobileBottomNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const isOverviewPage = pathname === "/dashboard/overview";
+  const isOverviewPage = pathname === "/dashboard" || pathname === "/dashboard/overview";
 
   function handleClick() {
     if (isOverviewPage) {
@@ -14,7 +14,7 @@ export function MobileBottomNav() {
       return;
     }
 
-    router.push("/dashboard/overview");
+    router.push("/dashboard");
   }
 
   return (

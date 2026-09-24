@@ -37,7 +37,7 @@ import {
 } from "@/lib/automation/shabbat-times";
 import type { Json } from "@/types/database.types";
 import { ScheduleHubNav } from "@/components/templates/schedule-hub-nav";
-import { CanvaLogo, DesignerRequestLink } from "@/components/templates/template-actions";
+import { CanvaLogo } from "@/components/templates/template-actions";
 
 type Template = {
   id: string;
@@ -865,7 +865,6 @@ export function ShabbatTimesAutoClient({
                         <ArrowRight className="size-4 text-violet-500 transition group-hover:translate-x-0.5" />
                       </div>
                     </button>
-                    <DesignerRequestLink template={template} compact className="m-2 w-[calc(100%-1rem)]" />
                     </article>
                   );
                 })}

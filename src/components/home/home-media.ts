@@ -9,8 +9,7 @@ export const HOME_AGENT_IMAGES = {
   zalman: images + encodeURIComponent("Zalman Affiche visuel...webp"),
   shmouel: images + encodeURIComponent("Shmouel etude Torah.webp"),
 };
-export const MAIN_VIDEO_URL = `${origin}/storage/v1/object/public/${encodeURIComponent("Video du site")}/${encodeURIComponent("Video general.mp4")}`;
-export const FALLBACK_MAIN_VIDEO = "/media/home/easycom-demo-master.mp4";
+export const MAIN_VIDEO_URL = `${origin}/storage/v1/object/public/${encodeURIComponent("Video du site")}/${encodeURIComponent("Accueil principal 2026-09-23.mp4")}`;
 export function homeVideoSource(media: string) {
   return sources[media as keyof typeof sources] ?? `/media/home/${media}.mp4`;
 }

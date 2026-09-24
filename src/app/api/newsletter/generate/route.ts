@@ -13,6 +13,7 @@ type ModuleKey = "ravWord" | "photos" | "parness" | "birthdays" | "kiddush" | "e
 
 type GenerateBody = {
   mode?: "full" | "rav";
+  title?: string;
   modules?: Partial<Record<ModuleKey, boolean>>;
   ravTheme?: string;
   parnessText?: string;
@@ -84,6 +85,7 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({})) as GenerateBody;
     const modules = body.modules ?? {};
+    const requestedTitle = safeText(body.title, 70) || "Le Chabaton";
     const now = new Date();
     const [{ data: community }, { data: events }, { data: contacts }] = await Promise.all([
       admin
@@ -136,7 +138,7 @@ export async function POST(request: Request) {
     const prompt = [
       "Tu prepares une newsletter papier A4 professionnelle pour Chabbat, en francais, pour une synagogue ou Beth Habad.",
       "Retourne uniquement un JSON valide avec les cles: title, intro, ravWord, shabbatNote, eventIntro, restaurantAd, proofreadNote.",
-      body.mode === "rav" ? "Tu retravailles uniquement le Mot du Rav. Garde les autres champs courts ou vides, mais renvoie toujours un JSON valide." : "Le titre doit etre exactement : Le Chabatone. L'introduction doit etre exactement : Votre feuillet communautaire des activites de la semaine.",
+      body.mode === "rav" ? "Tu retravailles uniquement le Mot du Rav. Garde les autres champs courts ou vides, mais renvoie toujours un JSON valide." : `Le titre doit rester exactement : ${requestedTitle}. L'introduction doit etre courte, accueillante et tenir sur deux lignes maximum.`,
       "Style: chaleureux, clair, tres professionnel, adapte a l'impression papier. Pas d'emojis. Pas de Markdown.",
       `Communaute: ${community?.name ?? "Communaute"}. Ville: ${city}. Ton souhaite: ${safeText(body.tone, 80) || community?.tone || "professionnel"}.`,
       shabbat ? `Chabbat: ${shabbat.parasha ?? "Chabbat"}, date hebraique ${shabbat.hebrewDate ?? ""}, entree ${shabbat.entry ?? ""}, sortie ${shabbat.exit ?? ""}.` : "Horaires de Chabbat indisponibles.",
@@ -159,13 +161,13 @@ export async function POST(request: Request) {
     const parsed = extractJson(generated.body) ?? extractJson(generated.raw ?? "");
 
     return NextResponse.json({
-      title: "Le Chabatone",
-      intro: "Votre feuillet communautaire des activites de la semaine.",
-      ravWord: parsed?.ravWord?.trim() || "",
-      shabbatNote: parsed?.shabbatNote?.trim() || `Retrouvez les grands enseignements de ${shabbat?.parasha ?? "la Paracha de la semaine"} et partagez-les en famille pendant Chabbat.`,
-      eventIntro: parsed?.eventIntro?.trim() || "Voici les principaux rendez-vous a noter pour les prochains jours.",
-      restaurantAd: parsed?.restaurantAd?.trim() || "",
-      proofreadNote: parsed?.proofreadNote?.trim() || "Texte relu et adapte a un support papier.",
+      title: requestedTitle,
+      intro: parsed?.intro?.trim().slice(0, 180) || "Votre feuillet communautaire des activites de la semaine.",
+      ravWord: parsed?.ravWord?.trim().slice(0, 850) || "",
+      shabbatNote: parsed?.shabbatNote?.trim().slice(0, 430) || `Retrouvez les grands enseignements de ${shabbat?.parasha ?? "la Paracha de la semaine"} et partagez-les en famille pendant Chabbat.`,
+      eventIntro: parsed?.eventIntro?.trim().slice(0, 220) || "Voici les principaux rendez-vous a noter pour les prochains jours.",
+      restaurantAd: parsed?.restaurantAd?.trim().slice(0, 220) || "",
+      proofreadNote: parsed?.proofreadNote?.trim().slice(0, 180) || "Texte relu et adapte a un support papier.",
       warnings: [
         ...(eventLines.length === 0 && modules.events ? ["Aucun evenement a venir trouve dans l'agenda."] : []),
         ...(birthdays.length === 0 && modules.birthdays ? ["Aucun anniversaire juif trouve sur les 7 prochains jours."] : []),

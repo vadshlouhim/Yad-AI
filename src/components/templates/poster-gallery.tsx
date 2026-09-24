@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CATEGORY_EMOJI, CATEGORY_LABELS } from "@/lib/templates/shared";
 import { cn } from "@/lib/utils";
 import { POSTER_HEADER_CLASS } from "@/components/presentation/platform-style";
-import { CanvaLogo, DesignerRequestLink } from "@/components/templates/template-actions";
+import { CanvaLogo } from "@/components/templates/template-actions";
 import { HOLIDAY_THEMES } from "@/lib/templates/taxonomy";
 
 export interface PosterGalleryTemplate {
@@ -252,7 +252,6 @@ export function PosterGallery({
                 </div>
                 </button>
                 <div className="mt-auto px-3 pb-3 sm:px-4 sm:pb-4">
-                  <DesignerRequestLink template={template} compact className="w-full px-2" />
                 </div>
               </article>
             );

@@ -9,7 +9,7 @@ import {
   posterTemplateImage,
   type PosterGalleryTemplate,
 } from "./poster-gallery";
-import { CanvaLogo, DesignerRequestLink } from "./template-actions";
+import { CanvaLogo } from "./template-actions";
 
 interface Props {
   templates: PosterGalleryTemplate[];
@@ -170,7 +170,6 @@ export function PublicPosterGallery({ templates }: Props) {
                     Ouvrir dans Canva
                   </a>
                 ) : null}
-                <DesignerRequestLink template={selectedTemplate} className="min-h-12 bg-[#128c4a] text-sm text-white hover:bg-[#0f773f]" />
               </div>
             </div>
           </div>

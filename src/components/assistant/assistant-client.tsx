@@ -28,7 +28,7 @@ import type { RoutineItem } from "./daily-routine-wizard";
 import type { BillingConfig } from "@/lib/billing";
 import { AGENTS_GROUP_IMAGE, HOME_EASYCOM_AGENTS } from "@/lib/agents";
 import { downloadTorahCoursePdf } from "@/lib/torah-pdf";
-import { CanvaLogo, DesignerRequestLink } from "@/components/templates/template-actions";
+import { CanvaLogo } from "@/components/templates/template-actions";
 
 // ============================================================
 // TYPES
@@ -3376,7 +3376,6 @@ export function AssistantClient({
                                     </a>
                                   ) : null}
                                 </div>
-                                <DesignerRequestLink template={template} compact className="w-full" />
                               </div>
                             </div>
                           ))}

@@ -30,7 +30,7 @@ import {
 } from "@/lib/automation/jewish-holidays";
 import type { Json } from "@/types/database.types";
 import { ScheduleHubNav } from "@/components/templates/schedule-hub-nav";
-import { CanvaLogo, DesignerRequestLink } from "@/components/templates/template-actions";
+import { CanvaLogo } from "@/components/templates/template-actions";
 
 const HOLIDAYS_AGENT_IMAGE_URL =
   "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Presatntaion.webp";
@@ -196,7 +196,6 @@ function TemplateOption({
         <p className="truncate text-xs font-semibold uppercase tracking-[0.12em] text-violet-600">{template.subCategory ?? "Modèle lié"}</p>
       </div>
     </button>
-    <DesignerRequestLink template={template} compact className="mb-2 ml-2 w-[calc(100%-1rem)]" />
     </article>
   );
 }

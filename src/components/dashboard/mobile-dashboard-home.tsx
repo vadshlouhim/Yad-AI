@@ -87,7 +87,7 @@ const ACTION_CARDS: ActionCard[] = [
     title: "Automatiser",
     icon: Zap,
     className: DASHBOARD_MODULE_COLORS["automations"],
-    href: "/dashboard/automations",
+    sectionKey: "automations",
   },
   {
     key: "publish",
@@ -104,8 +104,15 @@ const ACTION_CARDS: ActionCard[] = [
     href: "/dashboard/torah",
   },
   {
+    key: "email-reviews",
+    title: "Email et Avis Google",
+    icon: Mail,
+    className: DASHBOARD_MODULE_COLORS["email-reviews"],
+    sectionKey: "email",
+  },
+  {
     key: "newsletter-paper",
-    title: "Le Newsletter",
+    title: "Newsletter imprimable pour Chabbat",
     icon: FileText,
     className: DASHBOARD_MODULE_COLORS["newsletter-paper"],
     href: "/dashboard/newsletter",
@@ -149,7 +156,7 @@ const AGENT_ACCENTS: Record<string, { icon: typeof Sparkles; surface: string }> 
 
 const MODAL_TONES: Record<string, string> = {
   social: "from-[#0878ee] via-[#0668e8] to-[#064bd8]",
-  automations: "from-[#0faeb3] via-[#08a7ad] to-[#07949f]",
+  automations: "from-[#f36756] via-[#df4639] to-[#b9302a]",
   targeted: "from-[#ff4c50] via-[#f63f47] to-[#e9333d]",
   torah: "from-[#ffbd16] via-[#f7ad05] to-[#ee9b00]",
   visuals: "from-[#7130d8] via-[#6d2bc8] to-[#5722b1]",
@@ -220,10 +227,15 @@ export function MobileDashboardHome({
       .then((response) => response.ok ? response.json() : null)
       .then((data: { modules?: MobileHomeModuleKey[] } | null) => {
         if (active && Array.isArray(data?.modules)) {
-          const previousDefaults = ["publish", "newsletter-paper", "contacts", "visuals"];
-          const isPreviousDefault = data.modules.length === previousDefaults.length
-            && data.modules.every((key, index) => key === previousDefaults[index]);
-          setHomeModules(isPreviousDefault ? [...MOBILE_HOME_DEFAULT_MODULES] : data.modules);
+          const legacyDefaults = [
+            ["publish", "newsletter-paper", "contacts", "visuals"],
+            ["publish", "newsletter-paper", "automations", "visuals"],
+          ];
+          const isLegacyDefault = legacyDefaults.some((layout) => data.modules?.length === layout.length
+            && data.modules.every((key, index) => key === layout[index]));
+          const nextModules = isLegacyDefault ? [...MOBILE_HOME_DEFAULT_MODULES] : data.modules;
+          setHomeModules(nextModules);
+          if (isLegacyDefault) void persistHomeModules(nextModules);
         }
       })
       .finally(() => { if (active) setHomeLoaded(true); });
@@ -497,10 +509,16 @@ export function MobileDashboardHome({
             const content = (
               <>
                 {action.key === "publish" ? (
-                  <span className="relative flex items-center gap-3" aria-label="Facebook, Instagram et WhatsApp">
-                    <FacebookIcon className="size-[clamp(2rem,8vw,3.2rem)] !fill-current" />
-                    <InstagramIcon className="size-[clamp(2rem,8vw,3.2rem)] !fill-none !stroke-current" />
-                    <WhatsAppIcon className="size-[clamp(2rem,8vw,3.2rem)] !fill-current" />
+                  <span className="relative flex items-center justify-center gap-2" aria-label="Facebook, Instagram et WhatsApp">
+                    <span className="flex size-[clamp(2.7rem,11vw,3.5rem)] items-center justify-center rounded-[1rem] bg-white shadow-[0_8px_18px_rgba(10,36,90,0.2)] ring-1 ring-white/80">
+                      <FacebookIcon className="size-[clamp(1.55rem,6vw,2rem)]" />
+                    </span>
+                    <span className="flex size-[clamp(2.7rem,11vw,3.5rem)] items-center justify-center rounded-[1rem] bg-white shadow-[0_8px_18px_rgba(10,36,90,0.2)] ring-1 ring-white/80">
+                      <InstagramIcon className="size-[clamp(1.55rem,6vw,2rem)]" />
+                    </span>
+                    <span className="flex size-[clamp(2.7rem,11vw,3.5rem)] items-center justify-center rounded-[1rem] bg-white shadow-[0_8px_18px_rgba(10,36,90,0.2)] ring-1 ring-white/80">
+                      <WhatsAppIcon className="size-[clamp(1.55rem,6vw,2rem)]" />
+                    </span>
                   </span>
                 ) : <Icon className="relative size-[clamp(2.25rem,10vw,4rem)] shrink-0 stroke-[2]" />}
                 <span className="relative min-w-0 max-w-full whitespace-normal text-[clamp(1rem,4.2vw,1.4rem)] font-black leading-[1.15] tracking-[-0.02em]">
@@ -512,10 +530,24 @@ export function MobileDashboardHome({
                       </span>
                     </span>
                   ) : action.key === "newsletter-paper" ? (
-                    <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
-                      Le Newsletter
-                      <span className="inline-flex size-7 items-center justify-center rounded-lg bg-white text-[0.62rem] font-black tracking-normal text-[#172b48] shadow-sm ring-1 ring-white/70">
-                        PDF
+                    <span className="inline-flex flex-col items-center justify-center gap-2">
+                      <span>Newsletter</span>
+                      <span className="inline-flex rounded-xl bg-white px-2.5 py-1.5 text-[clamp(0.62rem,2.7vw,0.78rem)] font-black leading-tight tracking-[-0.01em] text-[#5b20bc] shadow-[0_7px_16px_rgba(44,10,101,0.18)] ring-1 ring-white/75">
+                        imprimable pour Chabbat
+                      </span>
+                    </span>
+                  ) : action.key === "torah" ? (
+                    <span className="inline-flex flex-col items-center justify-center gap-2">
+                      <span>Cours de Torah</span>
+                      <span className="inline-flex rounded-xl bg-white px-2.5 py-1.5 text-[clamp(0.62rem,2.7vw,0.78rem)] font-black leading-tight text-[#7a4d00] shadow-[0_7px_16px_rgba(78,48,0,0.14)] ring-1 ring-white/80">
+                        Sources fiables
+                      </span>
+                    </span>
+                  ) : action.key === "email-reviews" ? (
+                    <span className="inline-flex flex-col items-center justify-center gap-1">
+                      <span>Email</span>
+                      <span className="inline-flex rounded-xl bg-white px-2.5 py-1.5 text-[clamp(0.62rem,2.7vw,0.78rem)] font-black leading-tight text-[#b01c55] shadow-[0_7px_16px_rgba(83,10,42,0.14)] ring-1 ring-white/80">
+                        et Avis Google
                       </span>
                     </span>
                   ) : action.title}
@@ -619,7 +651,7 @@ function ModuleDialog({
         ? "Affiches"
         : section?.key === "contacts"
           ? "Contacts"
-          : "Email & Avis";
+          : "Email et Avis Google";
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -637,7 +669,7 @@ function ModuleDialog({
                     {isSocialSection
                       ? "Publier partout en un clic"
                       : isCommunitySection
-                        ? "Communication automatiser"
+                        ? "Automatiser votre communication"
                         : isCompactGridSection
                           ? section.key === "contacts" ? (
                               <span className="inline-flex items-center gap-2">
@@ -710,39 +742,38 @@ function ModuleDialog({
                     </div>
                   </div>
                 ) : isCommunitySection ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    {section.items.map((item, index) => {
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                    {section.items.map((item) => {
                       const ItemIcon = item.icon;
-                      const isLastOddItem = section.items.length % 2 === 1 && index === section.items.length - 1;
-                      const buttonTone =
-                        item.href === "/dashboard/shabbat-times-auto"
-                          ? DASHBOARD_MODULE_COLORS.reviews
-                          : item.href === "/dashboard/hayom-yom-sefer-hamitsvot"
-                            ? DASHBOARD_MODULE_COLORS.torah
-                            : item.href === "/dashboard/jewish-birthdays"
-                              ? DASHBOARD_MODULE_COLORS.visuals
-                              : item.href === "/dashboard/event-reminders-auto"
-                                ? DASHBOARD_MODULE_COLORS.publish
-                                : DASHBOARD_MODULE_COLORS["newsletter-paper"];
                       return (
                         <Link
                           key={item.href}
                           href={resolveHref(item.href, basePath)}
-                          className={cn(
-                            "relative flex min-h-[112px] flex-col items-center justify-center gap-3 overflow-hidden rounded-[1.4rem] px-3 py-4 text-center text-white shadow-[0_11px_24px_rgba(35,20,80,0.15)] transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#421388]/20",
-                            buttonTone,
-                            isLastOddItem && "col-span-2 min-h-[96px] flex-row px-5"
-                          )}
+                          className="group relative flex min-h-[126px] flex-col items-center justify-center gap-3 rounded-[1.4rem] border border-white bg-white px-3 py-4 text-center shadow-[0_12px_28px_rgba(45,22,82,0.09)] ring-1 ring-slate-200/70 transition hover:-translate-y-0.5 hover:shadow-[0_16px_34px_rgba(45,22,82,0.14)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#421388]/20"
                         >
-                          <span className="relative flex size-11 shrink-0 items-center justify-center rounded-[0.95rem] bg-white shadow-sm ring-1 ring-white/70">
+                          <span className={cn("relative flex size-12 shrink-0 items-center justify-center rounded-[1rem] shadow-sm ring-1 ring-black/5", item.iconSurfaceClass ?? "bg-violet-100")}>
                             {ItemIcon ? <ItemIcon className={cn("size-5", item.iconClass ?? "text-[#421388]")} /> : null}
                           </span>
-                          <span className="relative max-w-full text-[clamp(0.85rem,3.8vw,1rem)] font-black uppercase leading-[1.16] tracking-[-0.015em]">
+                          <span className="relative max-w-full text-[clamp(0.78rem,3.45vw,0.94rem)] font-black leading-[1.18] tracking-[-0.015em] text-slate-900">
                             {item.label}
                           </span>
+                          <ArrowRight className="absolute right-3 top-3 size-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-[#421388]" />
                         </Link>
                       );
                     })}
+                    </div>
+
+                    <div className="rounded-[1.55rem] bg-[linear-gradient(135deg,#f2eaff,#fff_70%)] p-3 ring-1 ring-violet-100">
+                      <Link
+                        href={resolveHref("/dashboard/automations", basePath)}
+                        className="flex min-h-14 w-full items-center justify-center gap-2 rounded-[1.15rem] bg-[#421388] px-4 py-3 text-sm font-black text-white shadow-[0_12px_26px_rgba(66,19,136,0.28)] transition hover:bg-[#35106f] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#421388]/25"
+                      >
+                        <Settings className="size-4.5" />
+                        Automatisations enregistrées
+                        <ArrowRight className="size-4" />
+                      </Link>
+                    </div>
                   </div>
                 ) : isCompactGridSection ? (
                   <div className="grid grid-cols-2 gap-3">

@@ -7,6 +7,7 @@
 .home-tool-posters { background: linear-gradient(130deg, #f142a9, #d31d7d); }
 .home-tool-torah { background: linear-gradient(130deg, #13aa8a, #008b70); }
 .home-tool-shop { background: linear-gradient(130deg, #ffbd41, #ec8b16); color: #24114f; }
+.home-tool-coming-soon { background: linear-gradient(135deg, #6547d8, #342188); }
 
 @media (max-width: 767px) {
   .home-tool-publish { background: linear-gradient(130deg, #2267df, #0757cc); }
@@ -14,4 +15,5 @@
   .home-tool-automations { background: linear-gradient(130deg, #c74538, #b9302a); }
   .home-tool-posters { background: linear-gradient(130deg, #ce2887, #bc156a); }
   .home-tool-torah { background: linear-gradient(130deg, #008467, #006c56); }
+  .home-tool-coming-soon { background: linear-gradient(135deg, #5940c7, #2d1b78); }
 }

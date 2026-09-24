@@ -1,9 +1,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 
-export async function getPosterSource(admin: SupabaseClient<Database>, communityId: string, mediaId: unknown) {
+export async function getPosterSource(
+  admin: SupabaseClient<Database>,
+  communityId: string,
+  mediaId: unknown,
+  userId?: string,
+) {
   if (typeof mediaId !== "string" || !mediaId) return null;
-  const { data, error } = await admin.from("MediaFile").select("*").eq("id", mediaId).eq("communityId", communityId).eq("source", "TEMPLATE_GENERATION").single();
+  let query = admin
+    .from("MediaFile")
+    .select("*")
+    .eq("id", mediaId)
+    .eq("communityId", communityId)
+    .eq("source", "TEMPLATE_GENERATION");
+  if (userId) query = query.eq("userId", userId);
+  const { data, error } = await query.single();
   if (error || !data || !data.templateId || !data.publicId.startsWith(`generated-ai/${communityId}/`)) throw new Error("Affiche source introuvable ou inaccessible.");
   return data;
 }

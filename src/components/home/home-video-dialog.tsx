@@ -7,10 +7,11 @@ import { X } from "lucide-react";
 import type { PublicTool } from "@/lib/public-tools";
 import { homeVideoSource } from "./home-media";
 
-export default function HomeVideoDialog({ item, media, trigger, onClose }: {
+export default function HomeVideoDialog({ item, media, trigger, comingSoon = false, onClose }: {
   item: PublicTool;
   media: string;
   trigger: HTMLElement;
+  comingSoon?: boolean;
   onClose: () => void;
 }) {
   const video = useRef<HTMLVideoElement>(null);
@@ -29,9 +30,11 @@ export default function HomeVideoDialog({ item, media, trigger, onClose }: {
       }}>
         <Dialog.Title className="sr-only">Présentation : {item.name}</Dialog.Title>
         <Dialog.Close className="home-video-close" aria-label="Fermer la vidéo"><X size={20} aria-hidden="true" /></Dialog.Close>
-        <video ref={video} src={homeVideoSource(media)} poster={`/media/home/${media}.webp`} autoPlay muted controls playsInline preload="metadata" aria-label={`Présentation de ${item.name}`} />
-        <Link className="home-video-use" prefetch={false} href={`/auth/register?callbackUrl=${encodeURIComponent(item.destination)}`}>Utilisez cet outil</Link>
-        <Link className="home-video-login" prefetch={false} href={`/auth/login?callbackUrl=${encodeURIComponent(item.destination)}`}>Se connecter</Link>
+        <video ref={video} src={homeVideoSource(media)} poster={comingSoon ? undefined : `/media/home/${media}.webp`} autoPlay muted controls playsInline preload="metadata" aria-label={`Présentation de ${item.name}`} />
+        {!comingSoon ? <>
+          <Link className="home-video-use" prefetch={false} href={`/auth/register?callbackUrl=${encodeURIComponent(item.destination)}`}>Utilisez cet outil</Link>
+          <Link className="home-video-login" prefetch={false} href={`/auth/login?callbackUrl=${encodeURIComponent(item.destination)}`}>Se connecter</Link>
+        </> : null}
       </Dialog.Content>
     </Dialog.Portal>
   </Dialog.Root>;
