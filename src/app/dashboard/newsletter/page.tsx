@@ -30,7 +30,7 @@ export default async function NewsletterPage() {
   const [{ data: community }, { data: events }, { data: contacts }] = await Promise.all([
     admin
       .from("Community")
-      .select("name, logoUrl, coverUrl, city, timezone, communityType, religiousStream, signature, vocabulary, address, phone, email, website")
+      .select("name, logoUrl, coverUrl, city, timezone, communityType, religiousStream, vocabulary, address, phone, email, website")
       .eq("id", profile.communityId)
       .single(),
     admin
@@ -111,7 +111,6 @@ export default async function NewsletterPage() {
         coverUrl: community?.coverUrl ?? null,
         city,
         timezone,
-        signature: community?.signature ?? null,
         donationUrl,
         address: community?.address ?? null,
         phone: community?.phone ?? null,

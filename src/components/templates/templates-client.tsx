@@ -25,6 +25,7 @@ import {
   type PosterGalleryTemplate,
 } from "./poster-gallery";
 import { CanvaLogo } from "./template-actions";
+import { attachGeneratedImageToSocialComposer } from "@/lib/publishing/social-composer-session";
 
 type Template = PosterGalleryTemplate;
 
@@ -57,6 +58,7 @@ interface Props {
   emptyDescription?: string;
   initialTemplateId?: string;
   initialSource?: { id: string; imageUrl: string; editState: PosterEditState | null } | null;
+  returnToPublish?: boolean;
 }
 
 interface PosterChange {
@@ -102,6 +104,7 @@ export function TemplatesClient({
   emptyDescription = "Modifiez votre recherche ou choisissez une autre catégorie.",
   initialTemplateId,
   initialSource,
+  returnToPublish = false,
   community,
 }: Props) {
   const freePosterAlreadyUsed = plan === "FREE_TRIAL" && billingUsage.posterGenerations >= 1;
@@ -297,6 +300,17 @@ export function TemplatesClient({
         content: "La nouvelle version est prête. Vous pouvez me demander une autre modification à partir de cette affiche.",
       }]);
       setActionMessage("");
+      if (returnToPublish) {
+        const attached = attachGeneratedImageToSocialComposer(
+          data.imageUrl,
+          `${selectedTemplate.name} — affiche personnalisée`
+        );
+        if (attached) {
+          window.location.assign("/dashboard/social-networks");
+          return;
+        }
+        setError("L’image a bien été créée, mais le brouillon de publication n’a pas pu être retrouvé. Vous pouvez télécharger l’image depuis cet écran.");
+      }
       setStep("preview");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Modification impossible.");

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { DatabaseZap, Sparkles, UsersRound } from "lucide-react";
 import { ContactsManager } from "@/components/settings/contacts-manager";
+import { UnisoftIntegrationCard } from "@/components/settings/unisoft-integration-card";
+import { YahrzeitManager } from "@/components/settings/yahrzeit-manager";
 import { requireAuth } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "CRM Inteligent IA — EasyCom IA" };
@@ -34,7 +36,9 @@ export default async function ContactsPage() {
           </div>
         </div>
       </section>
+      <UnisoftIntegrationCard />
       <ContactsManager />
+      <YahrzeitManager />
     </div>
   );
 }

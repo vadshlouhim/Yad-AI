@@ -10,9 +10,12 @@ import {
   Bell,
   BookOpen,
   BotMessageSquare,
+  Cake,
   CalendarDays,
   CalendarRange,
+  Camera,
   ChevronDown,
+  Clock3,
   CreditCard,
   FileText,
   Image as ImageIcon,
@@ -31,7 +34,6 @@ import {
   Star,
   User,
   Users,
-  Zap,
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -67,7 +69,10 @@ type ActionCard = {
   className: string;
   href?: string;
   sectionKey?: string;
-  wide?: boolean;
+  columns?: 2 | 3 | 6;
+  density?: "standard" | "slim" | "compact";
+  badge?: string;
+  badgeClassName?: string;
 };
 
 const FEATURED_AGENT_SLUGS = [
@@ -83,11 +88,15 @@ const FEATURED_AGENT_SLUGS = [
 
 const ACTION_CARDS: ActionCard[] = [
   {
-    key: "automations",
-    title: "Automatiser",
-    icon: Zap,
-    className: DASHBOARD_MODULE_COLORS["automations"],
-    sectionKey: "automations",
+    key: "shabbat-times",
+    title: "Horaires de Chabbat & Fêtes",
+    icon: Clock3,
+    className: DASHBOARD_MODULE_COLORS["shabbat-times"],
+    href: "/dashboard/shabbat-times-auto",
+    badge: "Préremplis et publiés automatiquement",
+    badgeClassName: "text-[#8a2d22]",
+    columns: 3,
+    density: "slim",
   },
   {
     key: "publish",
@@ -95,6 +104,7 @@ const ACTION_CARDS: ActionCard[] = [
     icon: Megaphone,
     className: DASHBOARD_MODULE_COLORS["publish"],
     href: "/dashboard/social-networks",
+    columns: 3,
   },
   {
     key: "torah",
@@ -102,42 +112,64 @@ const ACTION_CARDS: ActionCard[] = [
     icon: BookOpen,
     className: DASHBOARD_MODULE_COLORS["torah"],
     href: "/dashboard/torah",
+    badge: "Sources fiables",
+    badgeClassName: "text-[#9a3412]",
+    columns: 2,
+    density: "compact",
   },
   {
     key: "email-reviews",
-    title: "Email et Avis Google",
+    title: "Email & Avis Google",
     icon: Mail,
     className: DASHBOARD_MODULE_COLORS["email-reviews"],
     sectionKey: "email",
+    badge: "Intelligents, triés et notifiés",
+    badgeClassName: "text-[#334155]",
+    columns: 3,
+    density: "compact",
   },
   {
     key: "newsletter-paper",
-    title: "Newsletter imprimable pour Chabbat",
+    title: "Newsletter",
     icon: FileText,
     className: DASHBOARD_MODULE_COLORS["newsletter-paper"],
     href: "/dashboard/newsletter",
+    badge: "Imprimable pour Chabbat",
+    badgeClassName: "text-[#5b20bc]",
+    columns: 3,
   },
   {
     key: "contacts",
-    title: "Contacts",
+    title: "CRM intelligent",
     icon: Users,
     className: DASHBOARD_MODULE_COLORS["contacts"],
     href: "/dashboard/contacts",
+    badge: "Connecté",
+    badgeClassName: "text-[#075fdf]",
+    columns: 3,
   },
   {
     key: "visuals",
-    title: "Affiches & Visuels",
+    title: "Affiches professionnelles",
     icon: ImageIcon,
     className: DASHBOARD_MODULE_COLORS["visuals"],
     sectionKey: "visuals",
+    badge: "+ de 195 modèles",
+    badgeClassName: "text-[#5b21b6]",
+    columns: 2,
+    density: "compact",
   },
-  { key: "targeted", title: "Communication ciblée", icon: Target, className: DASHBOARD_MODULE_COLORS["targeted"], href: "/dashboard/communication-ciblee" },
+  { key: "daily-study", title: "Hayom Yom & Sefer Hamitsvot", icon: BookOpen, className: DASHBOARD_MODULE_COLORS["daily-study"], href: "/dashboard/hayom-yom-sefer-hamitsvot", columns: 3 },
+  { key: "birthdays-yahrzeit", title: "Anniversaires & Yahrzeit", icon: Cake, className: DASHBOARD_MODULE_COLORS["birthdays-yahrzeit"], href: "/dashboard/jewish-birthdays", badge: "Intelligent et automatique", badgeClassName: "text-[#1e3a8a]", columns: 3 },
+  { key: "event-reminders", title: "Automatisations", icon: CalendarRange, className: DASHBOARD_MODULE_COLORS["event-reminders"], href: "/dashboard/event-reminders-auto", badge: "J-10 / J-5 / J-J", badgeClassName: "text-[#701a75]", columns: 3, density: "slim" },
+  { key: "photo-recap", title: "Récap photos", icon: Camera, className: DASHBOARD_MODULE_COLORS["photo-recap"], href: "/dashboard/recap-auto", columns: 2, density: "compact" },
+  { key: "targeted", title: "Communication ciblée", icon: Target, className: DASHBOARD_MODULE_COLORS["targeted"], href: "/dashboard/communication-ciblee", badge: "Ciblage intelligent", badgeClassName: "text-[#155e75]", columns: 3, density: "compact" },
   { key: "email", title: "Email", icon: Mail, className: DASHBOARD_MODULE_COLORS["email"], href: "/dashboard/email" },
   { key: "reviews", title: "Avis Google", icon: Star, className: DASHBOARD_MODULE_COLORS["reviews"], href: "/dashboard/google-reviews" },
-  { key: "whatsapp", title: "WhatsApp", icon: MessageSquare, className: DASHBOARD_MODULE_COLORS["whatsapp"], href: "/dashboard/whatsapp" },
+  { key: "whatsapp", title: "WhatsApp automatisé", icon: MessageSquare, className: DASHBOARD_MODULE_COLORS["whatsapp"], href: "/dashboard/whatsapp" },
   { key: "website", title: "Création de site web", icon: Globe2, className: DASHBOARD_MODULE_COLORS["website"], href: "/dashboard/website" },
   { key: "seo", title: "Référencement IA", icon: Search, className: DASHBOARD_MODULE_COLORS["seo"], href: "/dashboard/referencement" },
-  { key: "shop", title: "Boutique & articles", icon: ShoppingBag, className: DASHBOARD_MODULE_COLORS["shop"], href: "/dashboard/boutique" },
+  { key: "shop", title: "Boutique en ligne", icon: ShoppingBag, className: DASHBOARD_MODULE_COLORS["shop"], href: "https://linktr.ee/Yadshlouhim" },
   { key: "assistance", title: "Assistance indemnisation", icon: Plane, className: DASHBOARD_MODULE_COLORS["assistance"], href: "/dashboard/assistance-indemnisation-aerienne" },
 ];
 
@@ -226,17 +258,7 @@ export function MobileDashboardHome({
     fetch("/api/dashboard/mobile-home")
       .then((response) => response.ok ? response.json() : null)
       .then((data: { modules?: MobileHomeModuleKey[] } | null) => {
-        if (active && Array.isArray(data?.modules)) {
-          const legacyDefaults = [
-            ["publish", "newsletter-paper", "contacts", "visuals"],
-            ["publish", "newsletter-paper", "automations", "visuals"],
-          ];
-          const isLegacyDefault = legacyDefaults.some((layout) => data.modules?.length === layout.length
-            && data.modules.every((key, index) => key === layout[index]));
-          const nextModules = isLegacyDefault ? [...MOBILE_HOME_DEFAULT_MODULES] : data.modules;
-          setHomeModules(nextModules);
-          if (isLegacyDefault) void persistHomeModules(nextModules);
-        }
+        if (active && Array.isArray(data?.modules)) setHomeModules(data.modules);
       })
       .finally(() => { if (active) setHomeLoaded(true); });
     return () => { active = false; };
@@ -249,7 +271,7 @@ export function MobileDashboardHome({
     addedModuleRef.current = true;
     if (!moduleToAdd || homeModules.includes(moduleToAdd)) return;
     if (homeModules.length >= MOBILE_HOME_MAX_MODULES) {
-      window.setTimeout(() => setHomeNotice("Vous avez déjà 8 modules. Retirez-en un avant d’en ajouter un autre."), 0);
+      window.setTimeout(() => setHomeNotice(`Vous avez déjà ${MOBILE_HOME_MAX_MODULES} modules. Retirez-en un avant d’en ajouter un autre.`), 0);
       return;
     }
     const timer = window.setTimeout(() => {
@@ -329,12 +351,12 @@ export function MobileDashboardHome({
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_46%,rgba(116,52,213,0.24),transparent_31%),radial-gradient(circle_at_82%_60%,rgba(92,44,171,0.3),transparent_28%)]" />
 
         <div className="relative flex items-center justify-between gap-4">
-          <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-[0_8px_24px_rgba(9,2,34,0.28)] ring-1 ring-white/60">
+          <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-[0_8px_24px_rgba(9,2,34,0.28)] ring-1 ring-white/60">
             {communityLogo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={communityLogo} alt={`Logo ${communityName}`} className="h-full w-full object-cover" />
             ) : (
-              <span className="text-sm font-black text-[#421388]">{communityName.slice(0, 2).toUpperCase()}</span>
+            <span className="text-xs font-black text-[#421388]">{communityName.slice(0, 2).toUpperCase()}</span>
             )}
           </div>
 
@@ -342,7 +364,7 @@ export function MobileDashboardHome({
             <Link
               href={resolveHref("/dashboard/events", basePath)}
               aria-label="Ouvrir l’Agenda IA"
-              className="relative flex size-12 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white backdrop-blur-sm transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="relative flex size-10 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white backdrop-blur-sm transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <span className="relative flex size-7 items-center justify-center rounded-full bg-white/16 ring-1 ring-white/15">
                 <CalendarDays className="size-4.5 stroke-[2.25]" />
@@ -355,7 +377,7 @@ export function MobileDashboardHome({
             <Link
               href={resolveHref("/dashboard/notifications", basePath)}
               aria-label="Ouvrir les notifications"
-              className="relative flex size-12 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white backdrop-blur-sm transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="relative flex size-10 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white backdrop-blur-sm transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <Bell className="size-6 stroke-[2.2]" />
               {unreadNotifications > 0 && (
@@ -369,9 +391,9 @@ export function MobileDashboardHome({
                 onClick={() => setProfileOpen((open) => !open)}
                 aria-expanded={profileOpen}
                 aria-label="Ouvrir le menu du profil"
-                className="flex h-12 items-center gap-2 rounded-full bg-white/10 px-2.5 pr-3.5 text-white ring-1 ring-white/10 backdrop-blur-sm transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="flex h-10 items-center gap-1.5 rounded-full bg-white/10 px-1.5 pr-2.5 text-white ring-1 ring-white/10 backdrop-blur-sm transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
-                <span className="flex size-9 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#a352e2] to-[#6730b6] text-xs font-black shadow-inner shadow-white/10">
+                <span className="flex size-8 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#a352e2] to-[#6730b6] text-[0.65rem] font-black shadow-inner shadow-white/10">
                   {userAvatar ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={userAvatar} alt={userName} className="h-full w-full object-cover" />
@@ -379,7 +401,7 @@ export function MobileDashboardHome({
                     userName.slice(0, 2).toUpperCase()
                   )}
                 </span>
-                <ChevronDown className={cn("size-5 transition-transform", profileOpen && "rotate-180")} />
+                <ChevronDown className={cn("size-4 transition-transform", profileOpen && "rotate-180")} />
               </button>
 
               {profileOpen && (
@@ -434,21 +456,21 @@ export function MobileDashboardHome({
           </div>
         </div>
 
-        <h1 className="relative mt-4 text-[clamp(2rem,9.2vw,2.85rem)] font-black leading-none tracking-[-0.045em]">
+        <h1 className="relative mt-2.5 text-[clamp(1.7rem,7.8vw,2.3rem)] font-black leading-none tracking-[-0.045em]">
           Bienvenue, {firstName}
         </h1>
 
-        <div className="relative mt-7">
+        <div className="relative mt-4">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="flex shrink-0 items-center gap-2.5 text-[1.35rem] font-extrabold tracking-[-0.025em]">
-              <Sparkles className="size-6 shrink-0 fill-[#ffba13] text-[#ffba13]" />
+            <h2 className="flex shrink-0 items-center gap-2 text-[1.12rem] font-extrabold tracking-[-0.025em]">
+              <Sparkles className="size-5 shrink-0 fill-[#ffba13] text-[#ffba13]" />
               <span>Vos agents IA</span>
             </h2>
             <button
               type="button"
               onClick={scrollAgentsForward}
               aria-label="Afficher les agents IA suivants"
-              className="flex size-11 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/10 backdrop-blur-sm transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="flex size-9 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/10 backdrop-blur-sm transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <ArrowRight className="size-5" />
             </button>
@@ -457,7 +479,7 @@ export function MobileDashboardHome({
 
         <div
           ref={agentsScrollerRef}
-          className="relative -mr-5 mt-3 snap-x snap-mandatory overflow-x-auto pb-2 pr-5 scroll-smooth [scrollbar-width:none] motion-reduce:scroll-auto [&::-webkit-scrollbar]:hidden"
+          className="relative -mr-5 mt-2 snap-x snap-mandatory overflow-x-auto pr-5 scroll-smooth [scrollbar-width:none] motion-reduce:scroll-auto [&::-webkit-scrollbar]:hidden"
         >
           <div className="flex w-max gap-3 pr-5">
             {featuredAgents.map((agent) => {
@@ -467,23 +489,23 @@ export function MobileDashboardHome({
                 <Link
                   key={agent.slug}
                   href={`${resolveHref("/dashboard/assistant", basePath)}?agent=${encodeURIComponent(agent.slug)}&prefill=${encodeURIComponent(getAgentPrompt(agent))}`}
-                  className="relative h-[142px] w-[167px] shrink-0 snap-start overflow-hidden rounded-[1.6rem] border border-white/20 bg-white/[0.055] shadow-[0_12px_22px_rgba(17,2,58,0.2)] backdrop-blur-sm transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  className="relative h-[112px] w-[150px] shrink-0 snap-start overflow-hidden rounded-[1.35rem] border border-white/20 bg-white/[0.055] shadow-[0_12px_22px_rgba(17,2,58,0.2)] backdrop-blur-sm transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
-                  <span className={cn("absolute right-3 top-3 z-20 flex size-9 items-center justify-center rounded-full text-white shadow-lg", accent.surface)}>
-                    <AccentIcon className="size-[18px] stroke-[2.4]" />
+                  <span className={cn("absolute right-2.5 top-2.5 z-20 flex size-8 items-center justify-center rounded-full text-white shadow-lg", accent.surface)}>
+                    <AccentIcon className="size-4 stroke-[2.4]" />
                   </span>
                   <Image
                     src={agent.image}
                     width={94}
                     height={137}
-                    sizes="94px"
+                    sizes="76px"
                     alt=""
                     aria-hidden="true"
-                    className="absolute -bottom-1 left-0 h-[137px] w-[94px] object-contain object-bottom drop-shadow-[0_10px_12px_rgba(8,1,30,0.28)]"
+                    className="absolute -bottom-1 left-0 h-[108px] w-[76px] object-contain object-bottom drop-shadow-[0_10px_12px_rgba(8,1,30,0.28)]"
                   />
-                  <span className="absolute bottom-3 left-[88px] right-2 z-10 flex min-h-[58px] flex-col justify-end text-left">
-                    <span className="block text-[16px] font-black leading-tight">{agent.name}</span>
-                    <span className="mt-1 block break-words text-[11px] font-semibold leading-[1.25] text-white/90">{agent.role}</span>
+                  <span className="absolute bottom-2.5 left-[71px] right-2 z-10 flex min-h-[46px] flex-col justify-end text-left">
+                    <span className="block text-sm font-black leading-tight">{agent.name}</span>
+                    <span className="mt-0.5 block break-words text-[10px] font-semibold leading-[1.18] text-white/90">{agent.role}</span>
                   </span>
                 </Link>
               );
@@ -493,7 +515,7 @@ export function MobileDashboardHome({
 
       </section>
 
-      <section className="px-5 pb-4 pt-7">
+      <section className="px-5 pb-4 pt-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="flex items-center gap-2.5 text-[clamp(1.55rem,7vw,2rem)] font-black leading-tight tracking-[-0.045em]">
           <Sparkles className="size-7 fill-[#ffb20b] text-[#ffb20b]" />
@@ -503,7 +525,7 @@ export function MobileDashboardHome({
         </div>
         {editMode ? <p className="mt-2 text-xs font-semibold text-slate-500">Maintenez et faites glisser un module pour changer son ordre. Touchez × pour le retirer.</p> : null}
 
-        <div className="mt-4 grid grid-cols-2 gap-3.5">
+        <div className="mt-4 grid grid-cols-6 gap-3">
           {visibleActions.map((action) => {
             const Icon = action.icon;
             const content = (
@@ -520,45 +542,47 @@ export function MobileDashboardHome({
                       <WhatsAppIcon className="size-[clamp(1.55rem,6vw,2rem)]" />
                     </span>
                   </span>
-                ) : <Icon className="relative size-[clamp(2.25rem,10vw,4rem)] shrink-0 stroke-[2]" />}
-                <span className="relative min-w-0 max-w-full whitespace-normal text-[clamp(1rem,4.2vw,1.4rem)] font-black leading-[1.15] tracking-[-0.02em]">
-                  {action.key === "contacts" ? (
-                    <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
-                      Contacts
-                      <span className="inline-flex size-7 items-center justify-center rounded-lg bg-white text-[0.68rem] font-black tracking-normal text-[#075fdf] shadow-sm ring-1 ring-white/70">
-                        AI
-                      </span>
-                    </span>
-                  ) : action.key === "newsletter-paper" ? (
+                ) : <Icon className={cn(
+                  "relative shrink-0 stroke-[2]",
+                  action.density === "compact"
+                    ? "size-[clamp(1.7rem,7vw,2.3rem)]"
+                    : action.density === "slim"
+                      ? "size-[clamp(2rem,8vw,3rem)]"
+                      : "size-[clamp(2.25rem,10vw,4rem)]",
+                )} />}
+                <span className={cn(
+                  "relative min-w-0 max-w-full whitespace-normal text-[clamp(1rem,4.2vw,1.4rem)] font-black leading-[1.15] tracking-[-0.02em]",
+                  action.density === "compact" && "text-[clamp(0.72rem,3vw,0.9rem)] leading-[1.08]",
+                )}>
+                  {action.badge ? (
                     <span className="inline-flex flex-col items-center justify-center gap-2">
-                      <span>Newsletter</span>
-                      <span className="inline-flex rounded-xl bg-white px-2.5 py-1.5 text-[clamp(0.62rem,2.7vw,0.78rem)] font-black leading-tight tracking-[-0.01em] text-[#5b20bc] shadow-[0_7px_16px_rgba(44,10,101,0.18)] ring-1 ring-white/75">
-                        imprimable pour Chabbat
-                      </span>
-                    </span>
-                  ) : action.key === "torah" ? (
-                    <span className="inline-flex flex-col items-center justify-center gap-2">
-                      <span>Cours de Torah</span>
-                      <span className="inline-flex rounded-xl bg-white px-2.5 py-1.5 text-[clamp(0.62rem,2.7vw,0.78rem)] font-black leading-tight text-[#7a4d00] shadow-[0_7px_16px_rgba(78,48,0,0.14)] ring-1 ring-white/80">
-                        Sources fiables
-                      </span>
-                    </span>
-                  ) : action.key === "email-reviews" ? (
-                    <span className="inline-flex flex-col items-center justify-center gap-1">
-                      <span>Email</span>
-                      <span className="inline-flex rounded-xl bg-white px-2.5 py-1.5 text-[clamp(0.62rem,2.7vw,0.78rem)] font-black leading-tight text-[#b01c55] shadow-[0_7px_16px_rgba(83,10,42,0.14)] ring-1 ring-white/80">
-                        et Avis Google
+                      <span>{action.title}</span>
+                      <span className={cn(
+                        "inline-flex max-w-full rounded-xl bg-white px-2.5 py-1.5 text-center text-[clamp(0.6rem,2.55vw,0.76rem)] font-black leading-tight tracking-[-0.01em] shadow-[0_7px_16px_rgba(44,10,101,0.16)] ring-1 ring-white/80",
+                        action.badgeClassName,
+                      )}>
+                        {action.badge}
                       </span>
                     </span>
                   ) : action.title}
                 </span>
               </>
             );
-            const className = cn(
+            const layoutClassName = cn(
+              "relative",
+              action.columns === 2
+                ? "col-span-2 max-[359px]:col-span-3"
+                : action.columns === 6
+                  ? "col-span-6"
+                  : "col-span-3",
+              editMode && "animate-[pulse_1.4s_ease-in-out_infinite]"
+            );
+            const cardClassName = cn(
               MOBILE_ACTION_CARD_CLASS,
-              "shadow-[0_8px_20px_rgba(35,20,80,0.1)]",
+              "h-full w-full shadow-[0_8px_20px_rgba(35,20,80,0.1)]",
               action.className,
-              action.wide && "col-span-2 min-h-[96px] justify-center"
+              action.density === "compact" && "!min-h-[98px] px-2 py-3 max-[520px]:!min-h-[108px] max-[520px]:gap-1.5",
+              action.density === "slim" && "!min-h-[104px] py-3.5 max-[520px]:!min-h-[112px]"
             );
 
             const sharedProps = {
@@ -575,31 +599,35 @@ export function MobileDashboardHome({
               onPointerUp: () => setDraggingKey(null),
               onPointerCancel: () => setDraggingKey(null),
             };
-            const removable = editMode && homeModules.length > 0;
             const cardContent = <>
-              {removable ? <button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); removeHomeModule(action.key); }} className="absolute right-2 top-2 z-20 flex size-7 items-center justify-center rounded-full bg-white text-slate-700 shadow-md" aria-label={`Retirer ${action.title}`}><X className="size-4" /></button> : null}
               {editMode ? <span className="absolute left-2 top-2 z-20 flex size-7 items-center justify-center rounded-full bg-black/15 text-white"><GripVertical className="size-4" /></span> : null}
               {content}
             </>;
+            const removeButton = <button type="button" onClick={() => removeHomeModule(action.key)} className="absolute right-1.5 top-1.5 z-20 flex size-8 items-center justify-center text-white/65 transition hover:text-white active:scale-90 focus-visible:rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" aria-label={`Retirer ${action.title} de mon accueil`}><X className="size-3.5 drop-shadow-sm" /></button>;
+
+            if (action.href?.startsWith("http")) {
+              return (
+                <div key={action.key} className={layoutClassName} {...sharedProps}>
+                  <a href={action.href} className={cardClassName} onClick={(event) => { if (editMode) event.preventDefault(); }}>{cardContent}</a>
+                  {removeButton}
+                </div>
+              );
+            }
 
             if (action.href) {
               return (
-                <Link key={action.key} href={resolveHref(action.href, basePath)} className={cn(className, editMode && "animate-[pulse_1.4s_ease-in-out_infinite]")} onClick={(event) => { if (editMode) event.preventDefault(); }} {...sharedProps}>
-                  {cardContent}
-                </Link>
+                <div key={action.key} className={layoutClassName} {...sharedProps}>
+                  <Link href={resolveHref(action.href, basePath)} className={cardClassName} onClick={(event) => { if (editMode) event.preventDefault(); }}>{cardContent}</Link>
+                  {removeButton}
+                </div>
               );
             }
 
             return (
-              <button
-                key={action.key}
-                type="button"
-                onClick={() => { if (!editMode && action.sectionKey) openSection(action.sectionKey); }}
-                className={className}
-                {...sharedProps}
-              >
-                {cardContent}
-              </button>
+              <div key={action.key} className={layoutClassName} {...sharedProps}>
+                <button type="button" onClick={() => { if (!editMode && action.sectionKey) openSection(action.sectionKey); }} className={cardClassName}>{cardContent}</button>
+                {removeButton}
+              </div>
             );
           })}
         </div>

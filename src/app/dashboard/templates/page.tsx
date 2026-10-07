@@ -12,7 +12,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = { title: "Affiches — EasyCom IA" };
 
 interface Props {
-  searchParams: Promise<{ templateId?: string | string[]; mediaId?: string | string[] }>;
+  searchParams: Promise<{ templateId?: string | string[]; mediaId?: string | string[]; returnTo?: string | string[] }>;
 }
 
 export default async function TemplatesPage({ searchParams }: Props) {
@@ -73,6 +73,7 @@ export default async function TemplatesPage({ searchParams }: Props) {
         key={source?.id ?? initialTemplateId ?? "gallery"}
         initialTemplateId={initialTemplateId}
         initialSource={source ? { id: source.id, imageUrl: source.url, editState: readPosterEditState(source.editState) } : null}
+        returnToPublish={query.returnTo === "publish"}
       />
     </div>
   );

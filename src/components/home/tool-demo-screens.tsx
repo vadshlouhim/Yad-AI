@@ -163,7 +163,7 @@ export const TOOL_DEMO_CONFIG: Record<
     family: "automation",
   },
   birthdays: {
-    title: "Anniversaires juifs",
+    title: "Anniversaires & Yahrzeit",
     section: "Votre programmation",
     tabs: ["Contacts", "Message", "Programmation"],
     fields: [

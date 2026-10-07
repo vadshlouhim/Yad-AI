@@ -107,6 +107,8 @@ const OAUTH_MESSAGES: Record<string, { tone: "success" | "error"; text: string }
   forbidden: { tone: "error", text: "Ce compte ne correspond pas à cette communauté." },
   no_page: { tone: "error", text: "Aucune Page Facebook administrable trouvée." },
   no_instagram_business: { tone: "error", text: "Aucun compte Instagram Pro lié à une Page Facebook." },
+  app_deleted: { tone: "error", text: "L’application Meta configurée a été supprimée. Créez une nouvelle application Meta puis remplacez META_APP_ID et META_APP_SECRET." },
+  redirect_uri_mismatch: { tone: "error", text: "L’URL de redirection n’est pas autorisée dans Meta. Ajoutez l’URL exacte du callback dans Facebook Login > Paramètres." },
   error: { tone: "error", text: "Connexion refusée par Meta. Vérifiez l'URL de redirection." },
   // Gmail
   gmail_success: { tone: "success", text: "Gmail connecté avec succès ! Vous pouvez maintenant envoyer des emails depuis EasyCom IA." },

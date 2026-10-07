@@ -4,6 +4,7 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CHANNEL_LABELS } from "@/lib/utils";
+import { getMetaGraphBaseUrl } from "@/lib/meta/config";
 
 type RouteParams = { params: Promise<{ provider: string }> };
 
@@ -31,6 +32,27 @@ type StoredOAuthState = {
   returnTo?: string;
 };
 
+type MetaApiErrorBody = {
+  error?: {
+    code?: number;
+    error_subcode?: number;
+    message?: string;
+    type?: string;
+  };
+};
+
+class MetaApiError extends Error {
+  code?: number;
+  subcode?: number;
+
+  constructor(body: MetaApiErrorBody) {
+    super(body.error?.message ?? "Erreur Meta OAuth");
+    this.name = "MetaApiError";
+    this.code = body.error?.code;
+    this.subcode = body.error?.error_subcode;
+  }
+}
+
 function verifySignedState(state: string, secret: string): SignedOAuthState | null {
   const [encodedPayload, signature] = state.split(".");
   if (!encodedPayload || !signature) return null;
@@ -48,11 +70,11 @@ function verifySignedState(state: string, secret: string): SignedOAuthState | nu
 
 async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
-  const data = await response.json();
+  const data = await response.json() as T & MetaApiErrorBody;
   if (!response.ok || data.error) {
-    throw new Error(data.error?.message ?? "Erreur Meta OAuth");
+    throw new MetaApiError(data);
   }
-  return data as T;
+  return data;
 }
 
 function getOAuthBaseUrl(requestUrl: URL) {
@@ -149,8 +171,9 @@ export async function GET(request: Request, { params }: RouteParams) {
   }
 
   try {
+    const graphApiBase = getMetaGraphBaseUrl();
     const redirectUri = new URL(`/api/auth/oauth/${provider}/callback`, getOAuthBaseUrl(url)).toString();
-    const tokenUrl = new URL("https://graph.facebook.com/v20.0/oauth/access_token");
+    const tokenUrl = new URL(`${graphApiBase}/oauth/access_token`);
     tokenUrl.searchParams.set("client_id", appId);
     tokenUrl.searchParams.set("client_secret", appSecret);
     tokenUrl.searchParams.set("redirect_uri", redirectUri);
@@ -158,14 +181,14 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     const token = await fetchJson<{ access_token: string; expires_in?: number }>(tokenUrl.toString());
 
-    const longLivedUrl = new URL("https://graph.facebook.com/v20.0/oauth/access_token");
+    const longLivedUrl = new URL(`${graphApiBase}/oauth/access_token`);
     longLivedUrl.searchParams.set("grant_type", "fb_exchange_token");
     longLivedUrl.searchParams.set("client_id", appId);
     longLivedUrl.searchParams.set("client_secret", appSecret);
     longLivedUrl.searchParams.set("fb_exchange_token", token.access_token);
     const longLived = await fetchJson<{ access_token: string; expires_in?: number }>(longLivedUrl.toString());
 
-    const pagesUrl = new URL("https://graph.facebook.com/v20.0/me/accounts");
+    const pagesUrl = new URL(`${graphApiBase}/me/accounts`);
     pagesUrl.searchParams.set("fields", "id,name,access_token,instagram_business_account{id,username}");
     pagesUrl.searchParams.set("access_token", longLived.access_token);
     const pagesResponse = await fetchJson<{ data: MetaPage[] }>(pagesUrl.toString());
@@ -231,7 +254,14 @@ export async function GET(request: Request, { params }: RouteParams) {
     return NextResponse.redirect(returnUrl);
   } catch (error) {
     console.error("[Meta OAuth]", error);
-    returnUrl.searchParams.set("oauth", "error");
+    const oauthError = error instanceof MetaApiError
+      ? error.code === 101 && /deleted/i.test(error.message)
+        ? "app_deleted"
+        : error.code === 191
+          ? "redirect_uri_mismatch"
+          : "error"
+      : "error";
+    returnUrl.searchParams.set("oauth", oauthError);
     return NextResponse.redirect(returnUrl);
   }
 }

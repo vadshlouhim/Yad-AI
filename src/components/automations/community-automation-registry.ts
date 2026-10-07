@@ -75,9 +75,9 @@ export const COMMUNITY_AUTOMATION_MODULES: readonly CommunityAutomationModuleDef
   {
     key: "jewish-birthdays",
     href: "/dashboard/jewish-birthdays",
-    label: "Anniversaire juif",
-    shortLabel: "Anniversaire juif",
-    description: "Préparez un message de Mazal Tov depuis vos contacts CRM.",
+    label: "Anniversaires & Yahrzeit",
+    shortLabel: "Anniv. & Yahrzeit",
+    description: "Préparez une proposition Kidouch ou Parnass Hayom depuis le CRM.",
     icon: Cake,
     iconClass: "text-rose-700",
     iconSurfaceClass: "bg-rose-100",

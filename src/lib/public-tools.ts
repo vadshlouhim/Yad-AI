@@ -354,8 +354,8 @@ export const PUBLIC_TOOLS: readonly PublicTool[] = [
   ),
   tool(
     "birthdays",
-    "Anniversaires juifs",
-    "Préparez vos messages de Mazal Tov.",
+    "Anniversaires & Yahrzeit",
+    "Préparez vos propositions de Kidouch ou Parnass Hayom.",
     "Automatiser",
     "/dashboard/jewish-birthdays",
     "David",

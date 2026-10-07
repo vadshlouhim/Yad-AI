@@ -30,6 +30,7 @@ import { Card } from "@/components/ui/card";
 import { FacebookIcon, InstagramIcon, WhatsAppIcon } from "@/components/layout/dashboard-nav";
 import { cn } from "@/lib/utils";
 import { AGENT_IMAGE_URLS } from "@/lib/agents";
+import { rememberSocialComposerDraft, takeSocialComposerDraft } from "@/lib/publishing/social-composer-session";
 
 const AGENTS = [
   {
@@ -844,6 +845,23 @@ export function SocialNetworksClient() {
   }
 
   useEffect(() => {
+    const draft = takeSocialComposerDraft();
+    if (!draft) return;
+
+    contactsSelectionInitialized.current = true;
+    setMessage(draft.message);
+    setMediaUrls(draft.mediaUrls);
+    setMediaNames(draft.mediaNames);
+    setSelectedNetworks(draft.selectedNetworks);
+    setSelectedContacts(draft.selectedContacts);
+    setSuccessMessage(
+      draft.generatedImageAdded
+        ? "Votre image a été ajoutée. Votre message est prêt à être publié."
+        : "Votre brouillon a été restauré."
+    );
+  }, []);
+
+  useEffect(() => {
     loadData();
   }, []);
 
@@ -1099,7 +1117,20 @@ export function SocialNetworksClient() {
                   </label>
                   <div className="grid grid-cols-2 gap-2.5">
                     <Link
-                      href="/dashboard/templates"
+                      href="/dashboard/templates?returnTo=publish"
+                      onClick={(event) => {
+                        const saved = rememberSocialComposerDraft({
+                          message,
+                          mediaUrls,
+                          mediaNames,
+                          selectedNetworks,
+                          selectedContacts,
+                        });
+                        if (!saved) {
+                          event.preventDefault();
+                          alert("Votre brouillon ne peut pas être conservé dans ce navigateur. La banque d’images n’a pas été ouverte afin de ne pas perdre votre message.");
+                        }
+                      }}
                       className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4a1e91] to-[#6530bd] px-3 text-center text-xs font-black text-white shadow-md shadow-violet-200 transition hover:brightness-110"
                     >
                       <ImagePlus className="size-4 shrink-0" />

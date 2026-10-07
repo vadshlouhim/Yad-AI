@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     const [{ data: community }, { data: events }, { data: contacts }] = await Promise.all([
       admin
         .from("Community")
-        .select("name, city, timezone, tone, signature, editorialRules")
+        .select("name, city, timezone, tone, editorialRules")
         .eq("id", profile.communityId)
         .single(),
       admin

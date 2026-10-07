@@ -1,9 +1,8 @@
 import type { Tables } from "@/types/database.types";
 import type { PublishPayload, PublishResult } from "../publisher";
+import { getMetaGraphBaseUrl } from "@/lib/meta/config";
 
 type Channel = Tables<"Channel">;
-
-const GRAPH_API_BASE = "https://graph.facebook.com/v18.0";
 
 export async function publishToFacebook(
   channel: Channel,
@@ -24,13 +23,14 @@ export async function publishToFacebook(
   }
 
   try {
+    const graphApiBase = getMetaGraphBaseUrl();
     const formattedContent = formatFacebookContent(payload);
 
     if (payload.mediaUrls && payload.mediaUrls.length > 0) {
-      return await publishFacebookWithMedia(channel, payload, formattedContent);
+      return await publishFacebookWithMedia(channel, payload, formattedContent, graphApiBase);
     }
 
-    const response = await fetch(`${GRAPH_API_BASE}/${channel.pageId}/feed`, {
+    const response = await fetch(`${graphApiBase}/${channel.pageId}/feed`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -57,7 +57,7 @@ export async function publishToFacebook(
       return { success: false, error: data.error?.message ?? "Erreur API Facebook" };
     }
 
-    const permalink = await loadFacebookPermalink(data.id, channel.accessToken);
+    const permalink = await loadFacebookPermalink(data.id, channel.accessToken, graphApiBase);
 
     return {
       success: true,
@@ -81,13 +81,14 @@ export async function publishToFacebook(
 async function publishFacebookWithMedia(
   channel: Channel,
   payload: PublishPayload,
-  formattedContent: string
+  formattedContent: string,
+  graphApiBase: string,
 ): Promise<PublishResult> {
   try {
     const photoIds: string[] = [];
 
     for (const mediaUrl of payload.mediaUrls ?? []) {
-      const uploadResponse = await fetch(`${GRAPH_API_BASE}/${channel.pageId}/photos`, {
+      const uploadResponse = await fetch(`${graphApiBase}/${channel.pageId}/photos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -100,7 +101,7 @@ async function publishFacebookWithMedia(
       if (uploadData.id) photoIds.push(uploadData.id);
     }
 
-    const response = await fetch(`${GRAPH_API_BASE}/${channel.pageId}/feed`, {
+    const response = await fetch(`${graphApiBase}/${channel.pageId}/feed`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -115,7 +116,7 @@ async function publishFacebookWithMedia(
       return { success: false, error: data.error?.message ?? "Erreur publication" };
     }
 
-    const permalink = await loadFacebookPermalink(data.id, channel.accessToken ?? "");
+    const permalink = await loadFacebookPermalink(data.id, channel.accessToken ?? "", graphApiBase);
 
     return {
       success: true,
@@ -127,10 +128,10 @@ async function publishFacebookWithMedia(
   }
 }
 
-async function loadFacebookPermalink(postId: string, accessToken: string): Promise<string | null> {
+async function loadFacebookPermalink(postId: string, accessToken: string, graphApiBase: string): Promise<string | null> {
   if (!accessToken) return null;
   try {
-    const permalinkUrl = new URL(`${GRAPH_API_BASE}/${postId}`);
+    const permalinkUrl = new URL(`${graphApiBase}/${postId}`);
     permalinkUrl.searchParams.set("fields", "permalink_url");
     permalinkUrl.searchParams.set("access_token", accessToken);
     const response = await fetch(permalinkUrl);

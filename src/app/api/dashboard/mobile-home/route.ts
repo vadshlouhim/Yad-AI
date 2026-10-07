@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { normalizeMobileHomeModules } from "@/lib/mobile-dashboard/modules";
+import { MOBILE_HOME_MAX_MODULES, normalizeMobileHomeModules } from "@/lib/mobile-dashboard/modules";
 
 export async function GET() {
   const supabase = await createClient();
@@ -18,7 +18,7 @@ export async function PUT(request: Request) {
   if (!Array.isArray(body.modules)) return NextResponse.json({ error: "Modules invalides" }, { status: 400 });
   const modules = normalizeMobileHomeModules(body.modules);
   if (modules.length !== new Set(body.modules).size || modules.length !== body.modules.length) {
-    return NextResponse.json({ error: "La sélection contient des modules non autorisés, en double, ou dépasse la limite de 8." }, { status: 400 });
+    return NextResponse.json({ error: `La sélection contient des modules non autorisés, en double, ou dépasse la limite de ${MOBILE_HOME_MAX_MODULES}.` }, { status: 400 });
   }
   const { error } = await supabase.from("profiles").update({ mobileDashboardLayout: modules, updatedAt: new Date().toISOString() }).eq("id", user.id);
   if (error) return NextResponse.json({ error: "Enregistrement impossible" }, { status: 500 });

@@ -432,7 +432,7 @@ export function ShabbatTimesAutoClient({
   function startAiMode() {
     setAiDone(false);
     const detailSentence = templateMode === "detailed"
-      ? "Comme vous avez choisi un visuel avec offices, indiquez aussi les horaires des offices si vous voulez les afficher."
+      ? `Comme vous avez choisi un visuel avec offices, indiquez aussi les horaires des offices si vous voulez les afficher. Souhaitez-vous ajouter « Kiddouch offert par » ? ${fields.kiddouch ? `Nom actuel : ${fields.kiddouch}.` : "Indiquez le nom de la personne ou de la famille."}`
       : "Comme vous avez choisi une affiche simple, je garde uniquement les informations essentielles.";
     setAiMessages([{
       from: "ai",

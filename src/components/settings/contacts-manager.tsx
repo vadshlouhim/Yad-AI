@@ -21,6 +21,8 @@ interface CommunityMember {
   hebrewBirthDay: number | null;
   hebrewBirthMonth: number | null;
   hebrewBirthYear: number | null;
+  birthDate: string | null;
+  birthAfterSunset: boolean;
 }
 
 interface ContactPickerContact {
@@ -38,7 +40,7 @@ interface NavigatorWithContacts extends Navigator {
 type Filter = "all" | "phone" | "email" | "incomplete";
 type Sort = "name" | "recent" | "complete";
 
-const emptyContact = { firstName: "", displayName: "", email: "", phone: "", city: "", profession: "", notes: "", tags: "", hebrewBirthDay: "", hebrewBirthMonth: "", hebrewBirthYear: "" };
+const emptyContact = { firstName: "", displayName: "", email: "", phone: "", city: "", profession: "", notes: "", tags: "", birthDate: "", birthAfterSunset: false, hebrewBirthDay: "", hebrewBirthMonth: "", hebrewBirthYear: "" };
 
 function parseVCard(content: string) {
   return content
@@ -181,6 +183,8 @@ export function ContactsManager() {
       profession: contact.profession ?? "",
       notes: contact.notes ?? "",
       tags: (contact.tags ?? []).join(", "),
+      birthDate: contact.birthDate?.slice(0, 10) ?? "",
+      birthAfterSunset: contact.birthAfterSunset ?? false,
       hebrewBirthDay: contact.hebrewBirthDay ? String(contact.hebrewBirthDay) : "",
       hebrewBirthMonth: contact.hebrewBirthMonth ? String(contact.hebrewBirthMonth) : "",
       hebrewBirthYear: contact.hebrewBirthYear ? String(contact.hebrewBirthYear) : "",
@@ -354,6 +358,8 @@ export function ContactsManager() {
               <input value={form.profession} onChange={(event) => setForm({ ...form, profession: event.target.value })} placeholder="Profession" className="h-11 rounded-xl border border-violet-100 bg-white px-3 text-sm outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100" />
               <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:col-span-2">
                 <div className="flex items-center gap-2"><Cake className="size-5 text-amber-700" /><p className="text-sm font-black text-amber-950">Anniversaire hébraïque</p></div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]"><input type="date" value={form.birthDate} onChange={(event) => setForm({ ...form, birthDate: event.target.value })} aria-label="Date de naissance civile" className="h-11 rounded-xl border border-amber-200 bg-white px-3 text-sm outline-none focus:border-amber-500" /><label className="flex items-center gap-2 rounded-xl border border-amber-200 bg-white px-3 text-xs font-bold text-amber-900"><input type="checkbox" checked={form.birthAfterSunset} onChange={(event) => setForm({ ...form, birthAfterSunset: event.target.checked })} />Après coucher du soleil</label></div>
+                <p className="mt-2 text-[11px] text-amber-800">La date civile est automatiquement convertie en date hébraïque lors de l’enregistrement.</p>
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   <input type="number" min={1} max={30} value={form.hebrewBirthDay} onChange={(event) => setForm({ ...form, hebrewBirthDay: event.target.value })} placeholder="Jour" aria-label="Jour hébraïque" className="h-11 rounded-xl border border-amber-200 bg-white px-3 text-sm outline-none focus:border-amber-500" />
                   <select value={form.hebrewBirthMonth} onChange={(event) => setForm({ ...form, hebrewBirthMonth: event.target.value })} aria-label="Mois hébraïque" className="h-11 rounded-xl border border-amber-200 bg-white px-2 text-sm outline-none focus:border-amber-500"><option value="">Mois</option>{formHebrewMonths.map((month) => <option key={month.value} value={month.value}>{month.label}</option>)}</select>

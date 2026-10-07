@@ -15,12 +15,12 @@ datasource db {
 // ============================================================
 
 model User {
-  id          String   @id @db.Uuid // = auth.users.id (Supabase)
-  email       String   @unique
-  name        String?
-  avatarUrl   String?
-  role        UserRole @default(ADMIN)
-  communityId String?
+  id                    String   @id @db.Uuid // = auth.users.id (Supabase)
+  email                 String   @unique
+  name                  String?
+  avatarUrl             String?
+  role                  UserRole @default(ADMIN)
+  communityId           String?
   mobileDashboardLayout Json?
 
   createdAt DateTime @default(now())
@@ -113,6 +113,8 @@ model Community {
   targetedPage        TargetedPageSettings?
   targetedAutomations TargetedAutomation[]
   preferenceTokens    TargetedPreferenceToken[]
+  integrations        CommunityIntegration[]
+  yahrzeits           MemberYahrzeit[]
 
   @@index([slug])
   @@index([plan])
@@ -132,6 +134,12 @@ model CommunityMember {
   hebrewBirthDay   Int?
   hebrewBirthMonth Int?
   hebrewBirthYear  Int?
+  birthAfterSunset Boolean   @default(false)
+  hebrewFirstName  String?
+  hebrewFatherName String?
+  hebrewMotherName String?
+  externalSource   String?
+  externalId       String?
   address          String?
   city             String?
   familyStatus     String?
@@ -146,11 +154,62 @@ model CommunityMember {
   community               Community                @relation(fields: [communityId], references: [id], onDelete: Cascade)
   targetedSubscriptions   TargetedSubscription[]
   targetedPreferenceToken TargetedPreferenceToken?
+  yahrzeits               MemberYahrzeit[]
 
   @@unique([communityId, phone])
+  @@unique([communityId, externalSource, externalId])
   @@index([communityId])
   @@index([email])
   @@index([phone])
+}
+
+model CommunityIntegration {
+  id              String    @id @default(cuid())
+  communityId     String
+  provider        String
+  encryptedSecret String    @db.Text
+  isActive        Boolean   @default(true)
+  lastSyncAt      DateTime?
+  lastSyncStatus  String?
+  lastSyncError   String?   @db.Text
+  lastSyncReport  Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, provider])
+  @@index([communityId])
+}
+
+model MemberYahrzeit {
+  id                 String    @id @default(cuid())
+  communityId        String
+  memberId           String
+  deceasedName       String
+  deceasedHebrewName String?
+  relationship       String?
+  fatherHebrewName   String?
+  motherHebrewName   String?
+  deathDate          DateTime?
+  deathAfterSunset   Boolean   @default(false)
+  hebrewDeathDay     Int
+  hebrewDeathMonth   Int
+  hebrewDeathYear    Int
+  notes              String?   @db.Text
+  isActive           Boolean   @default(true)
+  externalSource     String?
+  externalId         String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  community Community       @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  member    CommunityMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, memberId, externalSource, externalId])
+  @@index([communityId, isActive])
+  @@index([memberId])
+  @@index([communityId, hebrewDeathMonth, hebrewDeathDay])
 }
 
 // ============================================================

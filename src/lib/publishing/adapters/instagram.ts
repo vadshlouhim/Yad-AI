@@ -1,9 +1,8 @@
 import type { Tables } from "@/types/database.types";
 import type { PublishPayload, PublishResult } from "../publisher";
+import { getMetaGraphBaseUrl } from "@/lib/meta/config";
 
 type Channel = Tables<"Channel">;
-
-const GRAPH_API_BASE = "https://graph.facebook.com/v18.0";
 
 export async function publishToInstagram(
   channel: Channel,
@@ -24,6 +23,7 @@ export async function publishToInstagram(
   }
 
   try {
+    const graphApiBase = getMetaGraphBaseUrl();
     if (!payload.mediaUrls || payload.mediaUrls.length === 0) {
       return {
         success: false,
@@ -39,7 +39,7 @@ export async function publishToInstagram(
 
     const formattedCaption = formatInstagramContent(payload);
 
-    const containerResponse = await fetch(`${GRAPH_API_BASE}/${channel.pageId}/media`, {
+    const containerResponse = await fetch(`${graphApiBase}/${channel.pageId}/media`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -71,7 +71,8 @@ export async function publishToInstagram(
     const containerReady = await waitForContainerReady(
       channel.pageId,
       containerData.id,
-      channel.accessToken
+      channel.accessToken,
+      graphApiBase
     );
 
     if (!containerReady) {
@@ -84,7 +85,7 @@ export async function publishToInstagram(
       };
     }
 
-    const publishResponse = await fetch(`${GRAPH_API_BASE}/${channel.pageId}/media_publish`, {
+    const publishResponse = await fetch(`${graphApiBase}/${channel.pageId}/media_publish`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -99,7 +100,7 @@ export async function publishToInstagram(
       return { success: false, error: publishData.error?.message ?? "Erreur publication Instagram" };
     }
 
-    const permalink = await loadInstagramPermalink(publishData.id, channel.accessToken);
+    const permalink = await loadInstagramPermalink(publishData.id, channel.accessToken, graphApiBase);
 
     return {
       success: true,
@@ -120,9 +121,9 @@ export async function publishToInstagram(
   }
 }
 
-async function loadInstagramPermalink(mediaId: string, accessToken: string): Promise<string | null> {
+async function loadInstagramPermalink(mediaId: string, accessToken: string, graphApiBase: string): Promise<string | null> {
   try {
-    const permalinkUrl = new URL(`${GRAPH_API_BASE}/${mediaId}`);
+    const permalinkUrl = new URL(`${graphApiBase}/${mediaId}`);
     permalinkUrl.searchParams.set("fields", "permalink");
     permalinkUrl.searchParams.set("access_token", accessToken);
     const response = await fetch(permalinkUrl);
@@ -137,12 +138,13 @@ async function waitForContainerReady(
   accountId: string,
   containerId: string,
   accessToken: string,
+  graphApiBase: string,
   maxAttempts = 10
 ): Promise<boolean> {
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const response = await fetch(
-      `${GRAPH_API_BASE}/${containerId}?fields=status_code&access_token=${accessToken}`
+      `${graphApiBase}/${containerId}?fields=status_code&access_token=${accessToken}`
     );
     const data = await response.json();
     if (data.status_code === "FINISHED") return true;

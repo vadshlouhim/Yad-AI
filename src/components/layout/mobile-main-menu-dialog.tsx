@@ -1,22 +1,28 @@
 "use client";
 
-import { useMemo, useRef, useState, type FormEvent, type MutableRefObject, type ReactElement, type ReactNode, type SVGProps } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type MutableRefObject, type ReactElement, type ReactNode, type SVGProps } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  CalendarRange,
+  BookOpen,
+  Cake,
+  Camera,
+  CalendarDays,
   CheckCircle2,
   ChevronRight,
+  Clock3,
   Globe2,
   HandHeart,
   Headphones,
+  Image,
   Mail,
   MessageSquare,
   Plane,
   Settings,
   ShoppingBag,
   Sparkles,
+  Target,
   User,
   X,
   type LucideIcon,
@@ -28,7 +34,21 @@ import {
   type OfficialDashboardMenuSection,
 } from "./dashboard-nav";
 import { DASHBOARD_MENU_COLORS } from "@/components/dashboard/dashboard-module-colors";
-import type { MobileHomeModuleKey } from "@/lib/mobile-dashboard/modules";
+import { MOBILE_HOME_DEFAULT_MODULES, type MobileHomeModuleKey } from "@/lib/mobile-dashboard/modules";
+
+const PERSONALIZABLE_HOME_MODULES = new Set<MobileHomeModuleKey>([
+  "publish",
+  "newsletter-paper",
+  "shabbat-times",
+  "event-reminders",
+  "daily-study",
+  "birthdays-yahrzeit",
+  "visuals",
+  "photo-recap",
+  "torah",
+  "targeted",
+  "email-reviews",
+]);
 
 type ToolGroup = {
   key: string;
@@ -42,6 +62,7 @@ type ToolGroup = {
   wide?: boolean;
   compact?: boolean;
   homeModuleKey?: MobileHomeModuleKey;
+  badge?: string;
 };
 
 type MobileMainMenuDialogProps = {
@@ -54,8 +75,23 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
   const router = useRouter();
   const [activeGroupKey, setActiveGroupKey] = useState<string | null>(null);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [homeModules, setHomeModules] = useState<MobileHomeModuleKey[] | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClickRef = useRef(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/dashboard/mobile-home")
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: { modules?: MobileHomeModuleKey[] } | null) => {
+        if (!active) return;
+        setHomeModules(Array.isArray(data?.modules) ? data.modules : [...MOBILE_HOME_DEFAULT_MODULES]);
+      })
+      .catch(() => {
+        if (active) setHomeModules([...MOBILE_HOME_DEFAULT_MODULES]);
+      });
+    return () => { active = false; };
+  }, []);
 
   function beginAddToHome(key?: MobileHomeModuleKey) {
     if (!key) return;
@@ -73,20 +109,150 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
 
   const menu = useMemo(() => {
     const allItems = sections.flatMap((section) => section.items);
-    const section = (key: string) => sections.find((candidate) => candidate.key === key);
+    const emailSection = sections.find((section) => section.key === "email");
     const item = (href: string, label: string, icon: LucideIcon): OfficialDashboardMenuItem => {
       const existing = allItems.find((candidate) => candidate.href === href);
       return existing ? { ...existing, label } : { href, label, icon };
     };
 
-    const tools: ToolGroup[] = [
+    const primaryTools: ToolGroup[] = [
+      {
+        key: "agenda",
+        title: "Mon agenda",
+        icon: CalendarDays,
+        tone: DASHBOARD_MENU_COLORS["automations"],
+        href: "/dashboard/events",
+        items: [],
+      },
+      {
+        key: "publish",
+        title: "Publier partout en un clic",
+        icon: Sparkles,
+        tone: DASHBOARD_MENU_COLORS.publish,
+        href: "/dashboard/social-networks",
+        items: [],
+        homeModuleKey: "publish",
+      },
+      {
+        key: "newsletter-paper",
+        title: "Newsletter",
+        icon: Mail,
+        tone: DASHBOARD_MENU_COLORS["newsletter-paper"],
+        href: "/dashboard/newsletter",
+        items: [],
+        homeModuleKey: "newsletter-paper",
+      },
+      {
+        key: "shabbat-times",
+        title: "Horaires de Chabbat & Fêtes",
+        icon: Clock3,
+        tone: DASHBOARD_MENU_COLORS["shabbat-times"],
+        href: "/dashboard/shabbat-times-auto",
+        items: [],
+        homeModuleKey: "shabbat-times",
+      },
+      {
+        key: "event-reminders",
+        title: "Automatisations",
+        icon: CalendarDays,
+        tone: DASHBOARD_MENU_COLORS["event-reminders"],
+        href: "/dashboard/event-reminders-auto",
+        items: [],
+        homeModuleKey: "event-reminders",
+      },
+      {
+        key: "daily-study",
+        title: "Hayom Yom & Sefer Hamitsvot",
+        icon: BookOpen,
+        tone: DASHBOARD_MENU_COLORS["daily-study"],
+        href: "/dashboard/hayom-yom-sefer-hamitsvot",
+        items: [],
+        homeModuleKey: "daily-study",
+      },
+      {
+        key: "birthdays-yahrzeit",
+        title: "Anniversaires & Yahrzeit",
+        icon: Cake,
+        tone: DASHBOARD_MENU_COLORS["birthdays-yahrzeit"],
+        href: "/dashboard/jewish-birthdays",
+        items: [],
+        homeModuleKey: "birthdays-yahrzeit",
+      },
+      {
+        key: "visuals",
+        title: "Affiches professionnelles",
+        icon: Image,
+        tone: DASHBOARD_MENU_COLORS.visuals,
+        href: "/dashboard/templates",
+        items: [],
+        homeModuleKey: "visuals",
+      },
+      {
+        key: "photo-recap",
+        title: "Récap photos",
+        icon: Camera,
+        tone: DASHBOARD_MENU_COLORS["photo-recap"],
+        href: "/dashboard/recap-auto",
+        items: [],
+        homeModuleKey: "photo-recap",
+      },
+      {
+        key: "torah",
+        title: "Cours de Torah",
+        icon: BookOpen,
+        tone: DASHBOARD_MENU_COLORS.torah,
+        href: "/dashboard/torah",
+        items: [],
+        homeModuleKey: "torah",
+      },
+      {
+        key: "contacts",
+        title: "CRM intelligent",
+        icon: User,
+        tone: DASHBOARD_MENU_COLORS.contacts,
+        href: "/dashboard/contacts",
+        items: [],
+        homeModuleKey: "contacts",
+        badge: "Connecté",
+      },
+      {
+        key: "whatsapp",
+        title: "WhatsApp automatisé",
+        icon: WhatsAppIcon,
+        tone: DASHBOARD_MENU_COLORS["whatsapp"],
+        items: [],
+        href: "/dashboard/whatsapp",
+        homeModuleKey: "whatsapp",
+        wide: true,
+        description: "Préparez et organisez vos envois WhatsApp avec l’assistance de l’IA.",
+      },
+    ];
+
+    const secondaryTools: ToolGroup[] = [
+      {
+        key: "targeted",
+        title: "Communication ciblée",
+        icon: Target,
+        tone: DASHBOARD_MENU_COLORS.targeted,
+        href: "/dashboard/communication-ciblee",
+        items: [],
+        homeModuleKey: "targeted",
+      },
+      {
+        key: "email-reviews",
+        title: "Email & Avis Google",
+        icon: Mail,
+        tone: DASHBOARD_MENU_COLORS["email-reviews"],
+        items: emailSection?.items ?? [],
+        homeModuleKey: "email-reviews",
+      },
       {
         key: "shop",
-        compact: true,
         title: "Boutique en ligne",
         icon: ShoppingBag,
         tone: DASHBOARD_MENU_COLORS["shop"],
-        items: section("shop_articles")?.items ?? [],
+        href: "https://linktr.ee/Yadshlouhim",
+        items: [],
         homeModuleKey: "shop",
       },
       {
@@ -95,7 +261,6 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         icon: Plane,
         tone: DASHBOARD_MENU_COLORS["assistance"],
         href: "/dashboard/assistance-indemnisation-aerienne",
-        compact: true,
         items: [],
         homeModuleKey: "assistance",
       },
@@ -109,28 +274,6 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         homeModuleKey: "seo",
       },
       {
-        key: "contacts",
-        title: "Contacts",
-        icon: User,
-        tone: DASHBOARD_MENU_COLORS.contacts,
-        href: "/dashboard/contacts",
-        items: [],
-        homeModuleKey: "contacts",
-      },
-    ];
-
-    const comingSoon: ToolGroup[] = [
-      {
-        key: "automations",
-        title: "Automatiser",
-        icon: CalendarRange,
-        tone: DASHBOARD_MENU_COLORS["automations"],
-        items: [],
-        href: "/dashboard/automations",
-        homeModuleKey: "automations",
-        description: "Programmez des communications au bon moment : rappels, horaires de Chabbat, événements et publications récurrentes.",
-      },
-      {
         key: "website",
         title: "Création de site web",
         icon: Globe2,
@@ -138,28 +281,11 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         items: [],
         href: "/dashboard/website",
         homeModuleKey: "website",
-        description: "Creez votre site communautaire et ameliorez sa visibilite sur Google grace a l'IA.",
+        description: "Créez votre site communautaire et améliorez sa visibilité sur Google grâce à l’IA.",
       },
-      {
-        key: "targeted",
-        title: "Communication ciblee",
-        icon: MessageSquare,
-        tone: DASHBOARD_MENU_COLORS["targeted"],
-        items: [],
-        href: "/dashboard/communication-ciblee",
-        homeModuleKey: "targeted",
-        description: "Creez des groupes de contacts et adressez le bon message aux bonnes personnes.",
-      },
-      {
-        key: "whatsapp",
-        title: "WhatsApp",
-        icon: WhatsAppIcon,
-        tone: DASHBOARD_MENU_COLORS["whatsapp"],
-        items: [],
-        href: "/dashboard/whatsapp",
-        homeModuleKey: "whatsapp",
-        description: "Envoyez en masse sur WhatsApp avec une IA qui classe intelligemment les messages et organise l'envoi pour limiter le risque d'etre signale comme spam.",
-      },
+    ];
+
+    const comingSoon: ToolGroup[] = [
       {
         key: "donation",
         title: "Campagne de dons",
@@ -167,7 +293,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         tone: DASHBOARD_MENU_COLORS["torah"],
         items: [],
         comingSoon: true,
-        description: "Preparez une campagne de collecte avec messages, visuels et calendrier de relance assistes par IA.",
+        description: "Préparez une campagne de collecte avec messages, visuels et calendrier de relance assistés par IA.",
       },
       {
         key: "newsletter",
@@ -176,7 +302,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         tone: DASHBOARD_MENU_COLORS["newsletter-paper"],
         items: [],
         comingSoon: true,
-        description: "La newsletter numerique, sa programmation et son envoi automatique arriveront prochainement.",
+        description: "La newsletter numérique, sa programmation et son envoi automatique arriveront prochainement.",
       },
     ];
 
@@ -187,13 +313,21 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
     ];
 
     return {
-      tools: [...tools, ...comingSoon.filter((group) => !group.comingSoon)],
+      tools: [...primaryTools, ...secondaryTools],
+      primaryTools,
+      secondaryTools,
       comingSoon: comingSoon.filter((group) => group.comingSoon),
       account,
     };
   }, [sections]);
 
   const activeGroup = [...menu.tools, ...menu.comingSoon].find((group) => group.key === activeGroupKey) ?? null;
+  const activeHomeModuleKeys = new Set(homeModules ?? []);
+  const removedHomeTools = menu.tools.filter((group) =>
+    group.homeModuleKey
+      && PERSONALIZABLE_HOME_MODULES.has(group.homeModuleKey)
+      && !activeHomeModuleKeys.has(group.homeModuleKey)
+  );
 
   return (
     <>
@@ -256,11 +390,23 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
             <>
 
               <SectionTitle>Tous les modules</SectionTitle>
-              <div className="grid grid-cols-2 gap-3">
-                {menu.tools.map((group) => (
-                  <ToolCard key={group.key} group={group} onOpen={() => setActiveGroupKey(group.key)} onClose={onClose} onLongPressStart={beginAddToHome} onLongPressEnd={clearAddToHome} suppressClickRef={suppressClickRef} />
-                ))}
-              </div>
+              {homeModules === null ? (
+                <div className="rounded-[1.4rem] border border-violet-100 bg-white px-4 py-6 text-center text-sm font-bold normal-case text-slate-500 shadow-sm">
+                  Chargement de vos modulesâ€¦
+                </div>
+              ) : removedHomeTools.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {removedHomeTools.map((group) => (
+                    <ToolCard key={group.key} group={group} onOpen={() => setActiveGroupKey(group.key)} onClose={onClose} onLongPressStart={beginAddToHome} onLongPressEnd={clearAddToHome} suppressClickRef={suppressClickRef} />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-[1.4rem] border border-violet-100 bg-white px-5 py-7 text-center normal-case shadow-sm">
+                  <CheckCircle2 className="mx-auto size-8 text-emerald-600" />
+                  <p className="mt-3 text-sm font-black text-slate-800">Tous vos modules sont sur l’accueil.</p>
+                  <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">Retirez une carte avec sa petite croix pour la retrouver ici.</p>
+                </div>
+              )}
 
               <SectionTitle>À venir</SectionTitle>
               <div className="grid grid-cols-2 gap-3">
@@ -411,7 +557,10 @@ function ToolCard({ group, onOpen, onClose, onLongPressStart, onLongPressEnd, su
   const content = (
     <>
       <Icon className={cn("relative size-10 shrink-0 stroke-[2.1]", group.compact && "size-6")} />
-      <span className={cn("relative max-w-full text-[clamp(0.78rem,3.45vw,1rem)] font-black uppercase leading-[1.13] tracking-[-0.02em]", group.compact && "text-xs tracking-normal")}>{group.title}</span>
+      <span className="relative flex min-w-0 flex-col items-center gap-2">
+        <span className={cn("max-w-full text-[clamp(0.78rem,3.45vw,1rem)] font-black uppercase leading-[1.13] tracking-[-0.02em]", group.compact && "text-xs tracking-normal")}>{group.title}</span>
+        {group.badge ? <span className="rounded-full bg-white px-2.5 py-1 text-[0.62rem] font-black normal-case tracking-normal text-[#075fdf] shadow-sm ring-1 ring-white/80">{group.badge}</span> : null}
+      </span>
     </>
   );
 
@@ -421,6 +570,17 @@ function ToolCard({ group, onOpen, onClose, onLongPressStart, onLongPressEnd, su
     onPointerLeave: onLongPressEnd,
     onPointerCancel: onLongPressEnd,
   };
+
+  if (group.href?.startsWith("http")) return (
+    <a href={group.href} onClick={(event) => {
+      if (suppressClickRef.current) {
+        event.preventDefault();
+        suppressClickRef.current = false;
+        return;
+      }
+      onClose();
+    }} className={className} {...pointerProps}>{content}</a>
+  );
 
   return group.href ? (
     <Link href={group.href} onClick={(event) => {

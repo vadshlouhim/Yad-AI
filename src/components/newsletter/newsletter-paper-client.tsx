@@ -60,7 +60,6 @@ type CommunityInfo = {
   coverUrl: string | null;
   city: string;
   timezone: string;
-  signature: string | null;
   donationUrl: string | null;
   address: string | null;
   phone: string | null;
@@ -152,6 +151,23 @@ function clipText(value: string, maxLength: number) {
   return normalized.length > maxLength ? `${normalized.slice(0, maxLength - 1).trimEnd()}…` : normalized;
 }
 
+function nextPaint() {
+  return new Promise<void>((resolve) => {
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
+  });
+}
+
+async function waitForImages(elements: Array<HTMLElement | null>) {
+  const images = elements.flatMap((element) => element ? Array.from(element.querySelectorAll("img")) : []);
+  await Promise.all(images.map((image) => {
+    if (image.complete) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      image.addEventListener("load", () => resolve(), { once: true });
+      image.addEventListener("error", () => resolve(), { once: true });
+    });
+  }));
+}
+
 function filenamePart(value: string) {
   return value
     .normalize("NFD")
@@ -162,16 +178,14 @@ function filenamePart(value: string) {
     .slice(0, 54);
 }
 
-function initialGenerated(community: CommunityInfo, shabbat: NewsletterShabbat | null): GeneratedNewsletter {
+function initialGenerated(): GeneratedNewsletter {
   return {
     title: "Le Chabaton",
     intro: "Votre feuillet communautaire des activites de la semaine.",
-    ravWord: "Selectionnez un theme puis lancez la generation IA pour preparer le Mot du Rav.",
-    shabbatNote: shabbat?.parasha
-      ? `Un resume de ${shabbat.parasha} sera prepare par l'IA lorsque vous genererez votre feuillet.`
-      : "Generez le feuillet pour recevoir un resume clair de la Paracha de la semaine.",
-    eventIntro: "Les rendez-vous importants des prochains jours sont rassembles ici pour une lecture claire avant Chabbat.",
-    restaurantAd: "Votre partenaire cacher de la semaine vous souhaite Chabbat Chalom.",
+    ravWord: "",
+    shabbatNote: "",
+    eventIntro: "",
+    restaurantAd: "",
     sichaTitle: "",
     sichaExcerpt: "",
     sichaUrl: "",
@@ -195,6 +209,7 @@ export function NewsletterPaperClient({
   const versoRef = useRef<HTMLDivElement>(null);
   const pdfRectoRef = useRef<HTMLDivElement>(null);
   const pdfVersoRef = useRef<HTMLDivElement>(null);
+  const preparedFingerprintRef = useRef<string | null>(null);
   const [enabled, setEnabled] = useState<Record<ModuleKey, boolean>>(() => ({ ...DEFAULT_ENABLED, support: Boolean(community.donationUrl) }));
   const [editorStep, setEditorStep] = useState<EditorStep>("modules");
   const [mobilePreviewPage, setMobilePreviewPage] = useState<"front" | "back">("front");
@@ -213,7 +228,8 @@ export function NewsletterPaperClient({
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [generated, setGenerated] = useState<GeneratedNewsletter>(() => initialGenerated(community, initialShabbat));
+  const [preparingAction, setPreparingAction] = useState<"preview" | "print" | "pdf" | null>(null);
+  const [generated, setGenerated] = useState<GeneratedNewsletter>(() => initialGenerated());
   const [error, setError] = useState<string | null>(null);
 
   const activeCount = useMemo(() => Object.values(enabled).filter(Boolean).length, [enabled]);
@@ -222,6 +238,31 @@ export function NewsletterPaperClient({
   const visiblePosters = posters.slice(0, 3);
   const visiblePartnerAds = partnerAds.slice(0, 2);
   const previewCommunity = { ...community, donationUrl };
+  const outputEnabled = useMemo<Record<ModuleKey, boolean>>(() => ({
+    ravWord: enabled.ravWord && Boolean(generated.ravWord.trim()),
+    sicha: enabled.sicha && Boolean(generated.sichaTitle.trim() || generated.sichaExcerpt.trim()),
+    photos: enabled.photos && visiblePhotos.length > 0,
+    posters: enabled.posters && visiblePosters.length > 0,
+    parness: enabled.parness && Boolean(parnessText.trim()),
+    birthdays: enabled.birthdays && initialBirthdays.length > 0,
+    kiddush: enabled.kiddush && Boolean(kiddushText.trim()),
+    events: enabled.events && visibleEvents.length > 0,
+    restaurantAd: enabled.restaurantAd && visiblePartnerAds.length > 0,
+    support: enabled.support && Boolean(donationUrl.trim()),
+    shabbat: enabled.shabbat && Boolean(initialShabbat),
+  }), [donationUrl, enabled, generated.ravWord, generated.sichaExcerpt, generated.sichaTitle, initialBirthdays.length, initialShabbat, kiddushText, parnessText, visibleEvents.length, visiblePartnerAds.length, visiblePhotos.length, visiblePosters.length]);
+  const hasBackPage = outputEnabled.photos || outputEnabled.events || outputEnabled.posters || outputEnabled.birthdays || outputEnabled.restaurantAd || outputEnabled.support;
+  const totalPages = hasBackPage ? 2 : 1;
+  const generationFingerprint = useMemo(() => JSON.stringify({
+    title: generated.title.trim(),
+    ravWord: enabled.ravWord,
+    ravTheme: ravTheme.trim(),
+    shabbat: enabled.shabbat && Boolean(initialShabbat),
+    events: enabled.events && visibleEvents.length > 0,
+    birthdays: enabled.birthdays && initialBirthdays.length > 0,
+    photos: enabled.photos && visiblePhotos.length > 0,
+    photoCount: visiblePhotos.length,
+  }), [enabled.birthdays, enabled.events, enabled.photos, enabled.ravWord, enabled.shabbat, generated.title, initialBirthdays.length, initialShabbat, ravTheme, visibleEvents.length, visiblePhotos.length]);
 
   function toggleModule(key: ModuleKey) {
     if (key === "shabbat") return;
@@ -348,12 +389,13 @@ export function NewsletterPaperClient({
     }
   }
 
-  async function generateNewsletter() {
+  async function generateNewsletter({ force = false }: { force?: boolean } = {}) {
     if (!generated.title.trim()) {
       setError("Donnez un titre à votre newsletter avant de continuer.");
       setEditorStep("modules");
-      return;
+      return false;
     }
+    if (!force && preparedFingerprintRef.current === generationFingerprint) return true;
     setGenerating(true);
     setError(null);
     try {
@@ -362,32 +404,42 @@ export function NewsletterPaperClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: generated.title,
-          modules: enabled,
+          modules: {
+            ...enabled,
+            photos: enabled.photos && visiblePhotos.length > 0,
+            events: enabled.events && visibleEvents.length > 0,
+            birthdays: enabled.birthdays && initialBirthdays.length > 0,
+            restaurantAd: enabled.restaurantAd && visiblePartnerAds.length > 0,
+          },
           ravTheme,
           parnessText,
           kiddushText,
           restaurantText: "",
-          photoCount: photos.length,
+          photoCount: visiblePhotos.length,
           tone,
         }),
       });
       const data = await response.json().catch(() => ({})) as Partial<GeneratedNewsletter> & { error?: string };
       if (!response.ok) throw new Error(data.error ?? "Generation impossible.");
-      setGenerated((current) => ({
-        title: data.title || current.title,
-        intro: data.intro || current.intro,
-        ravWord: data.ravWord || current.ravWord,
-        shabbatNote: data.shabbatNote || current.shabbatNote,
-        eventIntro: data.eventIntro || current.eventIntro,
-        restaurantAd: data.restaurantAd || current.restaurantAd,
-        sichaTitle: current.sichaTitle,
-        sichaExcerpt: current.sichaExcerpt,
-        sichaUrl: current.sichaUrl,
+      const nextGenerated: GeneratedNewsletter = {
+        title: data.title || generated.title,
+        intro: data.intro || generated.intro,
+        ravWord: data.ravWord || generated.ravWord,
+        shabbatNote: data.shabbatNote || generated.shabbatNote,
+        eventIntro: data.eventIntro || generated.eventIntro,
+        restaurantAd: data.restaurantAd || generated.restaurantAd,
+        sichaTitle: generated.sichaTitle,
+        sichaExcerpt: generated.sichaExcerpt,
+        sichaUrl: generated.sichaUrl,
         proofreadNote: data.proofreadNote || "Relu et adapte a l'impression.",
         warnings: Array.isArray(data.warnings) ? data.warnings : [],
-      }));
+      };
+      setGenerated(nextGenerated);
+      preparedFingerprintRef.current = generationFingerprint;
+      return true;
     } catch (generateError) {
       setError(generateError instanceof Error ? generateError.message : "Generation impossible.");
+      return false;
     } finally {
       setGenerating(false);
     }
@@ -450,7 +502,7 @@ export function NewsletterPaperClient({
     }
   }
 
-  async function downloadPdf() {
+  async function exportPdf() {
     if (!generated.title.trim()) {
       setError("Donnez un titre à votre newsletter avant de télécharger le PDF.");
       setEditorStep("modules");
@@ -467,6 +519,7 @@ export function NewsletterPaperClient({
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       for (const [index, page] of pages.entries()) {
+        await waitForImages([page]);
         const printable = page.firstElementChild as HTMLElement | null;
         if (
           page.scrollWidth > exportWidth + 1
@@ -502,6 +555,22 @@ export function NewsletterPaperClient({
     }
   }
 
+  async function prepareOutput(action: "preview" | "print" | "pdf") {
+    if (preparingAction || exporting) return;
+    setPreparingAction(action);
+    try {
+      const ready = await generateNewsletter();
+      if (!ready) return;
+      setEditorStep("preview");
+      await nextPaint();
+      await waitForImages([rectoRef.current, versoRef.current, pdfRectoRef.current, pdfVersoRef.current]);
+      if (action === "print") window.print();
+      if (action === "pdf") await exportPdf();
+    } finally {
+      setPreparingAction(null);
+    }
+  }
+
   return (
     <div className="mx-auto w-full max-w-7xl space-y-5 bg-[#fffaf4] pb-48 md:pb-28 sm:px-6 sm:pt-6">
       <section className={NEWSLETTER_HEADER_CLASS}>
@@ -518,7 +587,7 @@ export function NewsletterPaperClient({
 
       <nav className="mx-4 grid grid-cols-3 gap-2 sm:mx-0 print:hidden" aria-label="Étapes de création">
         {([ ["modules", "1", "Composer", LayoutList], ["content", "2", "Personnaliser", PenLine], ["preview", "3", "Aperçu", Eye] ] as const).map(([step, number, label, Icon]) => (
-          <button key={step} type="button" onClick={() => setEditorStep(step)} className={cn("flex min-h-14 items-center justify-center gap-1.5 rounded-2xl px-2 text-[11px] font-black transition sm:text-sm", editorStep === step ? "bg-[#421388] text-white shadow-[0_10px_24px_rgba(66,19,136,0.22)]" : "border border-violet-100 bg-white text-slate-600 hover:bg-violet-50")}>
+          <button key={step} type="button" onClick={() => step === "preview" ? void prepareOutput("preview") : setEditorStep(step)} disabled={preparingAction !== null} className={cn("flex min-h-14 items-center justify-center gap-1.5 rounded-2xl px-2 text-[11px] font-black transition disabled:cursor-wait disabled:opacity-60 sm:text-sm", editorStep === step ? "bg-[#421388] text-white shadow-[0_10px_24px_rgba(66,19,136,0.22)]" : "border border-violet-100 bg-white text-slate-600 hover:bg-violet-50")}>
             <span className={cn("flex size-6 items-center justify-center rounded-lg text-[10px]", editorStep === step ? "bg-[#ffcd32] text-[#28104f]" : "bg-violet-50 text-[#421388]")}>{number}</span><Icon className="size-3.5" />{label}
           </button>
         ))}
@@ -690,15 +759,15 @@ export function NewsletterPaperClient({
           ) : null}
 
           <div className="hidden grid-cols-1 gap-2 sm:grid-cols-3 xl:grid-cols-1">
-            <Button type="button" onClick={() => void generateNewsletter()} loading={generating} className="h-12 rounded-2xl bg-[#17253f] px-2 font-black text-white hover:bg-[#0f1c2e] xl:px-4">
+            <Button type="button" onClick={() => void generateNewsletter({ force: true })} loading={generating} className="h-12 rounded-2xl bg-[#17253f] px-2 font-black text-white hover:bg-[#0f1c2e] xl:px-4">
               <Sparkles className="size-4" />
               Generer avec l&apos;IA
             </Button>
-            <Button type="button" variant="outline" onClick={() => window.print()} className="h-12 rounded-2xl border-slate-200 px-3 font-black xl:px-4">
+            <Button type="button" variant="outline" onClick={() => void prepareOutput("print")} loading={preparingAction === "print"} className="h-12 rounded-2xl border-slate-200 px-3 font-black xl:px-4">
               <Printer className="size-4" />
               Imprimer le feuillet
             </Button>
-            <Button type="button" variant="outline" onClick={() => void downloadPdf()} loading={exporting} className="h-12 rounded-2xl border-[#36506d]/20 px-3 font-black text-[#17253f] hover:bg-[#f5f7fc] xl:px-4">
+            <Button type="button" variant="outline" onClick={() => void prepareOutput("pdf")} loading={preparingAction === "pdf" || exporting} className="h-12 rounded-2xl border-[#36506d]/20 px-3 font-black text-[#17253f] hover:bg-[#f5f7fc] xl:px-4">
               <Download className="size-4" />
               Telecharger le PDF
             </Button>
@@ -707,15 +776,15 @@ export function NewsletterPaperClient({
         </aside>
 
         {editorStep === "preview" ? <main className="min-w-0 xl:col-span-2">
-          <div className="mb-3 grid grid-cols-2 gap-2 sm:hidden print:hidden">
+          {hasBackPage ? <div className="mb-3 grid grid-cols-2 gap-2 sm:hidden print:hidden">
             <button type="button" onClick={() => { setMobilePreviewPage("front"); rectoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className={cn("min-h-11 rounded-xl text-sm font-black", mobilePreviewPage === "front" ? "bg-[#17253f] text-white" : "border border-[#e6dcc7] bg-white text-[#17253f]")}>Recto</button>
             <button type="button" onClick={() => { setMobilePreviewPage("back"); versoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className={cn("min-h-11 rounded-xl text-sm font-black", mobilePreviewPage === "back" ? "bg-[#17253f] text-white" : "border border-[#e6dcc7] bg-white text-[#17253f]")}>Verso</button>
-          </div>
+          </div> : null}
           <div className="overflow-hidden rounded-[1.65rem] bg-[#e8eef6] p-2 shadow-inner sm:overflow-auto sm:p-3 print:overflow-visible print:rounded-none print:bg-white print:p-0 print:shadow-none">
             <article ref={rectoRef} className="mx-auto min-h-[760px] w-full max-w-[794px] bg-[#fffdf7] text-slate-950 shadow-2xl sm:min-h-[1122px] print:min-h-screen print:w-full print:shadow-none">
               <NewsletterPreview
                 community={previewCommunity}
-                enabled={enabled}
+                enabled={outputEnabled}
                 generated={generated}
                 ravTheme={ravTheme}
                 parnessText={parnessText}
@@ -728,12 +797,13 @@ export function NewsletterPaperClient({
                 posters={visiblePosters}
                 bannerPhotoUrl={bannerPhotoUrl}
                 page="front"
+                totalPages={totalPages}
               />
             </article>
-            <article ref={versoRef} className="mx-auto mt-4 min-h-[760px] w-full max-w-[794px] bg-[#fffdf7] text-slate-950 shadow-2xl sm:min-h-[1122px] print:mt-0 print:min-h-screen print:w-full print:break-before-page print:shadow-none">
+            {hasBackPage ? <article ref={versoRef} className="mx-auto mt-4 min-h-[760px] w-full max-w-[794px] bg-[#fffdf7] text-slate-950 shadow-2xl sm:min-h-[1122px] print:mt-0 print:min-h-screen print:w-full print:break-before-page print:shadow-none">
               <NewsletterPreview
                 community={previewCommunity}
-                enabled={enabled}
+                enabled={outputEnabled}
                 generated={generated}
                 ravTheme={ravTheme}
                 parnessText={parnessText}
@@ -746,8 +816,9 @@ export function NewsletterPaperClient({
                 posters={visiblePosters}
                 bannerPhotoUrl={bannerPhotoUrl}
                 page="back"
+                totalPages={totalPages}
               />
-            </article>
+            </article> : null}
           </div>
         </main> : null}
       </div>
@@ -755,7 +826,7 @@ export function NewsletterPaperClient({
         <article ref={pdfRectoRef} className="h-[1123px] w-[794px] overflow-hidden bg-[#fffdf7] text-slate-950">
           <NewsletterPreview
             community={previewCommunity}
-            enabled={enabled}
+            enabled={outputEnabled}
             generated={generated}
             ravTheme={ravTheme}
             parnessText={parnessText}
@@ -769,12 +840,13 @@ export function NewsletterPaperClient({
             bannerPhotoUrl={bannerPhotoUrl}
             page="front"
             exportMode
+            totalPages={totalPages}
           />
         </article>
-        <article ref={pdfVersoRef} className="h-[1123px] w-[794px] overflow-hidden bg-[#fffdf7] text-slate-950">
+        {hasBackPage ? <article ref={pdfVersoRef} className="h-[1123px] w-[794px] overflow-hidden bg-[#fffdf7] text-slate-950">
           <NewsletterPreview
             community={previewCommunity}
-            enabled={enabled}
+            enabled={outputEnabled}
             generated={generated}
             ravTheme={ravTheme}
             parnessText={parnessText}
@@ -788,8 +860,9 @@ export function NewsletterPaperClient({
             bannerPhotoUrl={bannerPhotoUrl}
             page="back"
             exportMode
+            totalPages={totalPages}
           />
-        </article>
+        </article> : null}
       </div>
       <div className="fixed inset-x-0 bottom-[calc(5.9rem+env(safe-area-inset-bottom))] z-20 border-t border-violet-100 bg-[#fffaf4]/95 p-3 backdrop-blur print:hidden md:bottom-0 md:z-40">
         <div className={cn("mx-auto grid max-w-3xl gap-2", editorStep === "preview" ? "grid-cols-3" : editorStep === "content" ? "grid-cols-2" : "grid-cols-1")}>
@@ -799,13 +872,13 @@ export function NewsletterPaperClient({
             </Button>
           ) : null}
           {editorStep === "content" ? <>
-            <Button type="button" onClick={() => void generateNewsletter()} loading={generating} className="min-h-13 rounded-2xl bg-[#421388] px-2 text-xs font-black text-white hover:bg-[#32106d] sm:text-sm"><Sparkles className="size-4" />Créer avec l’IA</Button>
-            <Button type="button" variant="outline" onClick={() => setEditorStep("preview")} className="min-h-13 rounded-2xl border-violet-200 bg-white px-2 text-xs font-black text-[#421388] sm:text-sm"><Eye className="size-4" />Voir l’aperçu</Button>
+            <Button type="button" onClick={() => void generateNewsletter({ force: true })} loading={generating} className="min-h-13 rounded-2xl bg-[#421388] px-2 text-xs font-black text-white hover:bg-[#32106d] sm:text-sm"><Sparkles className="size-4" />Créer avec l’IA</Button>
+            <Button type="button" variant="outline" onClick={() => void prepareOutput("preview")} loading={preparingAction === "preview"} className="min-h-13 rounded-2xl border-violet-200 bg-white px-2 text-xs font-black text-[#421388] sm:text-sm"><Eye className="size-4" />Voir l’aperçu</Button>
           </> : null}
           {editorStep === "preview" ? <>
             <Button type="button" variant="outline" onClick={() => setEditorStep("content")} className="min-h-12 rounded-2xl border-violet-200 bg-white px-2 text-xs font-black text-[#421388] sm:text-sm"><PenLine className="size-4" />Modifier</Button>
-            <Button type="button" variant="outline" onClick={() => window.print()} className="min-h-12 rounded-2xl border-violet-200 bg-white px-2 text-xs font-black text-[#421388] sm:text-sm"><Printer className="size-4" />Imprimer</Button>
-            <Button type="button" onClick={() => void downloadPdf()} loading={exporting} className="min-h-12 rounded-2xl bg-[#ffcd32] px-2 text-xs font-black text-[#28104f] hover:bg-[#f2bd16] sm:text-sm"><Download className="size-4" />PDF A4</Button>
+            <Button type="button" variant="outline" onClick={() => void prepareOutput("print")} loading={preparingAction === "print"} className="min-h-12 rounded-2xl border-violet-200 bg-white px-2 text-xs font-black text-[#421388] sm:text-sm"><Printer className="size-4" />Imprimer</Button>
+            <Button type="button" onClick={() => void prepareOutput("pdf")} loading={preparingAction === "pdf" || exporting} className="min-h-12 rounded-2xl bg-[#ffcd32] px-2 text-xs font-black text-[#28104f] hover:bg-[#f2bd16] sm:text-sm"><Download className="size-4" />PDF A4</Button>
           </> : null}
         </div>
       </div>
@@ -837,6 +910,7 @@ function NewsletterPreview({
   posters,
   bannerPhotoUrl,
   page,
+  totalPages,
   exportMode = false,
 }: {
   community: CommunityInfo;
@@ -853,6 +927,7 @@ function NewsletterPreview({
   posters: UploadedPhoto[];
   bannerPhotoUrl: string;
   page: "front" | "back";
+  totalPages: number;
   exportMode?: boolean;
 }) {
   const displayTitle = clipText(generated.title || "Newsletter de Chabbat", 70);
@@ -864,6 +939,16 @@ function NewsletterPreview({
   const displayShabbatNote = clipText(generated.shabbatNote, 430);
   const displayEventIntro = clipText(generated.eventIntro, 220);
   const displaySicha = clipText(generated.sichaExcerpt, 620);
+  const leftBlockCount = page === "front"
+    ? Number(enabled.ravWord) + Number(enabled.sicha)
+    : Number(enabled.photos) + Number(enabled.events) + Number(enabled.posters);
+  const rightBlockCount = page === "front"
+    ? Number(enabled.shabbat) + Number(enabled.parness) + Number(enabled.kiddush)
+    : Number(enabled.birthdays) + Number(enabled.restaurantAd) + Number(enabled.support);
+  const hasLeftColumn = leftBlockCount > 0;
+  const hasRightColumn = rightBlockCount > 0;
+  const singleColumn = !hasLeftColumn || !hasRightColumn;
+  const spacious = leftBlockCount + rightBlockCount <= 2;
 
   return (
     <div className={cn("flex flex-col", exportMode ? "h-[1123px] overflow-hidden p-8" : "min-h-[760px] p-5 sm:min-h-[1122px] sm:p-10 print:min-h-screen")}>
@@ -897,120 +982,116 @@ function NewsletterPreview({
         {community.logoUrl ? <img src={community.logoUrl} alt={community.name} className="size-14 rounded-full object-contain ring-2 ring-[#36506d]/20" /> : <span className="text-xl font-black text-[#17253f]">ב&quot;ה</span>}
       </header>}
 
-      <div className={cn("grid min-h-0 flex-1 grid-cols-1 gap-4 py-4 sm:grid-cols-[1.35fr_0.9fr] sm:gap-6 sm:py-6", exportMode && "!grid-cols-[1.35fr_0.9fr] !gap-4 !py-4")}>
-        <div className={cn("space-y-5", exportMode && "!space-y-3")}>
+      <div className={cn(
+        "grid min-h-0 flex-1 grid-cols-1 gap-4 py-4 sm:gap-6 sm:py-6",
+        singleColumn ? "sm:grid-cols-1" : "sm:grid-cols-[1.35fr_0.9fr]",
+        exportMode && (singleColumn ? "!grid-cols-1 !gap-4 !py-4" : "!grid-cols-[1.35fr_0.9fr] !gap-4 !py-4"),
+      )}>
+        {hasLeftColumn ? <div className={cn("space-y-5", spacious && "flex flex-col justify-evenly", exportMode && "!space-y-3")}>
           {page === "front" && enabled.ravWord ? (
-            <PrintBlock icon={BookOpen} title="Mot du Rav" accent="navy" dense={exportMode}>
+            <PrintBlock icon={BookOpen} title="Mot du Rav" accent="navy" dense={exportMode} spacious={spacious}>
               {ravTheme ? <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-[#52648e]">Theme: {ravTheme}</p> : null}
-              <p className={cn("text-[14px] leading-[1.62] text-slate-700", exportMode && "text-[13px] leading-[1.5]")}>{displayRavWord}</p>
+              <p className={cn("text-[14px] leading-[1.62] text-slate-700", spacious && "text-[17px] leading-[1.75]", exportMode && !spacious && "text-[13px] leading-[1.5]")}>{displayRavWord}</p>
             </PrintBlock>
           ) : null}
 
           {page === "front" && enabled.sicha ? (
-            <PrintBlock icon={BookOpen} title="Siha du Rabbi" accent="gold" compact dense={exportMode}>
+            <PrintBlock icon={BookOpen} title="Siha du Rabbi" accent="gold" compact dense={exportMode} spacious={spacious}>
               {generated.sichaTitle ? <p className="text-[14px] font-black leading-5 text-slate-900">{generated.sichaTitle}</p> : null}
-              <p className="mt-2 text-[12px] leading-5 text-slate-700">{displaySicha || "Ajoutez le lien officiel Chabad.org pour importer le résumé de la Siha, sans modification."}</p>
+              {displaySicha ? <p className={cn("mt-2 text-[12px] leading-5 text-slate-700", spacious && "text-[16px] leading-7")}>{displaySicha}</p> : null}
               {generated.sichaUrl ? <p className="mt-2 break-all text-[9px] font-bold text-[#52648e]">Source : {generated.sichaUrl}</p> : null}
             </PrintBlock>
           ) : null}
 
           {page === "back" && enabled.photos ? (
-            <PrintBlock icon={ImagePlus} title="Photos de la semaine" accent="slate" dense={exportMode}>
-              {photos.length > 0 ? (
-                <div className={cn("grid gap-2", exportMode ? "grid-cols-3" : photos.length >= 5 ? "grid-cols-6" : "grid-cols-2")}>
-                  {photos.map((photo, index) => (
-                    <img
-                      key={photo.id}
-                      src={photo.url}
-                      alt={photo.name}
-                      className={cn("h-32 w-full rounded-xl object-cover sm:h-36", exportMode ? "!h-28" : photos.length >= 5 && index < 2 ? "col-span-3" : photos.length >= 5 ? "col-span-2" : "")}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {[1, 2, 3].map((item) => (
-                    <div key={item} className="flex h-28 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-xs font-bold text-slate-400">
-                      Photo {item}
-                    </div>
-                  ))}
-                </div>
-              )}
+            <PrintBlock icon={ImagePlus} title="Photos de la semaine" accent="slate" dense={exportMode} spacious={spacious}>
+              <div className={cn("grid gap-2", exportMode ? "grid-cols-3" : photos.length >= 5 ? "grid-cols-6" : photos.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
+                {photos.map((photo, index) => (
+                  <img
+                    key={photo.id}
+                    src={photo.url}
+                    alt={photo.name}
+                    className={cn(
+                      "h-32 w-full rounded-xl object-cover sm:h-36",
+                      spacious && "h-64 sm:h-[420px]",
+                      exportMode && !spacious ? "!h-28" : photos.length >= 5 && index < 2 ? "col-span-3" : photos.length >= 5 ? "col-span-2" : "",
+                    )}
+                  />
+                ))}
+              </div>
             </PrintBlock>
           ) : null}
 
           {page === "back" && enabled.events ? (
-            <PrintBlock icon={CalendarDays} title="Activites et evenements a venir" accent="violet" dense={exportMode}>
-              <p className="mb-3 text-[13px] leading-5 text-slate-600">{displayEventIntro}</p>
+            <PrintBlock icon={CalendarDays} title="Activites et evenements a venir" accent="violet" dense={exportMode} spacious={spacious}>
+              {displayEventIntro ? <p className={cn("mb-3 text-[13px] leading-5 text-slate-600", spacious && "text-[16px] leading-7")}>{displayEventIntro}</p> : null}
               <div className="space-y-2">
-                {events.length > 0 ? events.map((event) => (
+                {events.map((event) => (
                   <div key={event.id} className="rounded-xl border border-[#d9e0f1] bg-[#f5f7fc] px-3 py-2">
                     <p className="text-[13px] font-black text-slate-950">{event.title}</p>
                     <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#52648e]">{formatDate(event.startDate, community.timezone)}{event.location ? ` · ${event.location}` : ""}</p>
                   </div>
-                )) : <p className="text-sm text-slate-500">Aucun evenement renseigne pour le moment.</p>}
+                ))}
               </div>
             </PrintBlock>
           ) : null}
 
           {page === "back" && enabled.posters ? (
-            <PrintBlock icon={ImagePlus} title="Affiches a venir" accent="slate" dense={exportMode}>
-              {posters.length > 0 ? <div className={cn("space-y-3", exportMode && "grid grid-cols-3 gap-2 space-y-0")}>
-                {posters.map((poster) => <img key={poster.id} src={poster.url} alt={poster.name} className={cn("h-48 w-full rounded-xl bg-slate-100 object-contain shadow-sm sm:h-56", exportMode && "!h-36")} />)}
-              </div> : <p className="text-sm text-slate-500">Ajoutez les affiches des prochains rendez-vous.</p>}
+            <PrintBlock icon={ImagePlus} title="Affiches a venir" accent="slate" dense={exportMode} spacious={spacious}>
+              <div className={cn("space-y-3", exportMode && "grid grid-cols-3 gap-2 space-y-0")}>
+                {posters.map((poster) => <img key={poster.id} src={poster.url} alt={poster.name} className={cn("h-48 w-full rounded-xl bg-slate-100 object-contain shadow-sm sm:h-56", spacious && "h-72 sm:h-[520px]", exportMode && !spacious && "!h-36")} />)}
+              </div>
             </PrintBlock>
           ) : null}
-        </div>
+        </div> : null}
 
-        <aside className={cn("grid grid-cols-1 gap-4 sm:block sm:space-y-5", exportMode && "!block !space-y-3")}>
+        {hasRightColumn ? <aside className={cn("grid grid-cols-1 gap-4 sm:block sm:space-y-5", spacious && "sm:flex sm:flex-col sm:justify-evenly sm:space-y-0", exportMode && "!block !space-y-3")}>
           {page === "front" && enabled.shabbat ? (
-            <PrintBlock icon={Clock3} title="Resume de la Paracha" accent="navy" compact dense={exportMode}>
-              <p className="text-[13px] leading-5 text-slate-700">{displayShabbatNote}</p>
+            <PrintBlock icon={Clock3} title="Resume de la Paracha" accent="navy" compact dense={exportMode} spacious={spacious}>
+              <p className={cn("text-[13px] leading-5 text-slate-700", spacious && "text-[17px] leading-8")}>{displayShabbatNote}</p>
             </PrintBlock>
           ) : null}
 
           {page === "front" && enabled.parness ? (
-            <PrintBlock icon={HeartHandshake} title="Parness Hayom" accent="gold" compact dense={exportMode}>
-              <p className="text-[13px] font-bold leading-5 text-slate-700">{parnessText || "Leylouy Nichmat / Refoua Chelema / soutien de la semaine"}</p>
+            <PrintBlock icon={HeartHandshake} title="Parness Hayom" accent="gold" compact dense={exportMode} spacious={spacious}>
+              <p className={cn("text-[13px] font-bold leading-5 text-slate-700", spacious && "text-[18px] leading-8")}>{parnessText}</p>
             </PrintBlock>
           ) : null}
 
           {page === "front" && enabled.kiddush ? (
-            <PrintBlock icon={Gift} title="Kidouch offert par" accent="violet" compact dense={exportMode}>
-              <p className="text-[16px] font-black leading-6 text-slate-900">{kiddushText || "A completer"}</p>
+            <PrintBlock icon={Gift} title="Kidouch offert par" accent="violet" compact dense={exportMode} spacious={spacious}>
+              <p className={cn("text-[16px] font-black leading-6 text-slate-900", spacious && "text-[22px] leading-9")}>{kiddushText}</p>
             </PrintBlock>
           ) : null}
 
           {page === "back" && enabled.birthdays ? (
-            <PrintBlock icon={Cake} title="Anniversaires de la semaine" accent="rose" compact dense={exportMode}>
-              {birthdays.length > 0 ? (
-                <div className="space-y-2">
-                  {birthdays.slice(0, exportMode ? 6 : 8).map((birthday) => (
-                    <div key={birthday.id} className="flex items-start justify-between gap-2 rounded-lg bg-[#f5f7fc] px-2.5 py-2">
-                      <p className="text-[12px] font-black text-slate-900">{birthday.name}</p>
-                      <p className="shrink-0 text-right text-[10px] font-bold text-[#52648e]">{formatShortDate(birthday.gregorianDate)}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : <p className="text-[13px] leading-5 text-slate-500">Aucun anniversaire juif renseigne cette semaine.</p>}
+            <PrintBlock icon={Cake} title="Anniversaires de la semaine" accent="rose" compact dense={exportMode} spacious={spacious}>
+              <div className="space-y-2">
+                {birthdays.slice(0, exportMode ? 6 : 8).map((birthday) => (
+                  <div key={birthday.id} className={cn("flex items-start justify-between gap-2 rounded-lg bg-[#f5f7fc] px-2.5 py-2", spacious && "px-4 py-4")}>
+                    <p className={cn("text-[12px] font-black text-slate-900", spacious && "text-[16px]")}>{birthday.name}</p>
+                    <p className={cn("shrink-0 text-right text-[10px] font-bold text-[#52648e]", spacious && "text-[13px]")}>{formatShortDate(birthday.gregorianDate)}</p>
+                  </div>
+                ))}
+              </div>
             </PrintBlock>
           ) : null}
 
           {page === "back" && enabled.restaurantAd ? (
-            <PrintBlock icon={Store} title="Pub partenaire" accent="slate" compact dense={exportMode}>
-              {partnerAds.length > 0 ? <div className={cn("grid grid-cols-1 gap-2", exportMode && "grid-cols-2")}>
-                {partnerAds.map((ad) => <img key={ad.id} src={ad.url} alt={ad.name} className={cn("h-28 w-full rounded-xl bg-slate-100 object-contain", exportMode && "!h-24")} />)}
-              </div> : <p className="text-[13px] leading-5 text-slate-500">Ajoutez jusqu&apos;a 3 visuels de partenaires.</p>}
+            <PrintBlock icon={Store} title="Pub partenaire" accent="slate" compact dense={exportMode} spacious={spacious}>
+              <div className={cn("grid grid-cols-1 gap-2", exportMode && !spacious && "grid-cols-2")}>
+                {partnerAds.map((ad) => <img key={ad.id} src={ad.url} alt={ad.name} className={cn("h-28 w-full rounded-xl bg-slate-100 object-contain", spacious && "h-72", exportMode && !spacious && "!h-24")} />)}
+              </div>
             </PrintBlock>
           ) : null}
 
           {page === "back" && enabled.support ? (
-            <PrintBlock icon={HandHeart} title="Nous soutenir" accent="gold" compact dense={exportMode}>
+            <PrintBlock icon={HandHeart} title="Nous soutenir" accent="gold" compact dense={exportMode} spacious={spacious}>
               <p className="text-[13px] font-bold leading-5 text-slate-700">Soutenez les actions de {community.name}.</p>
-              <p className="mt-2 break-all text-[11px] font-black text-amber-800">{community.donationUrl || "Lien de dons a renseigner dans vos parametres."}</p>
+              <p className={cn("mt-2 break-all text-[11px] font-black text-amber-800", spacious && "text-[16px] leading-7")}>{community.donationUrl}</p>
             </PrintBlock>
           ) : null}
-        </aside>
+        </aside> : null}
       </div>
 
       <footer className={cn("mt-6 flex items-center justify-between gap-3 border-t border-slate-200 pt-4 text-[9px] font-bold text-slate-500 sm:mt-auto sm:text-[11px]", exportMode && "!mt-auto !text-[11px]")}>
@@ -1018,10 +1099,10 @@ function NewsletterPreview({
           {community.logoUrl ? <img src={community.logoUrl} alt="" className="size-9 shrink-0 rounded-full object-contain" /> : null}
           <p className="leading-4">
             <span className="block break-words text-[11px] font-black text-slate-700">{community.name}{community.city ? ` · ${community.city}` : ""}</span>
-            {[community.address, community.city, community.signature ? `Rabbin / responsable : ${community.signature}` : null, community.phone, community.email, community.website].filter(Boolean).join(" · ")}
+            {[community.address, community.city, community.phone, community.email, community.website].filter(Boolean).join(" · ")}
           </p>
         </div>
-        <span className="inline-flex shrink-0 items-center gap-1"><FileText className="size-3" />Page {page === "front" ? "1" : "2"}/2</span>
+        <span className="inline-flex shrink-0 items-center gap-1"><FileText className="size-3" />Page {page === "front" ? "1" : "2"}/{totalPages}</span>
       </footer>
     </div>
   );
@@ -1042,6 +1123,7 @@ function PrintBlock({
   accent,
   compact = false,
   dense = false,
+  spacious = false,
   children,
 }: {
   icon: LucideIcon;
@@ -1049,6 +1131,7 @@ function PrintBlock({
   accent: "navy" | "violet" | "gold" | "rose" | "slate";
   compact?: boolean;
   dense?: boolean;
+  spacious?: boolean;
   children: ReactNode;
 }) {
   const styles = {
@@ -1060,12 +1143,12 @@ function PrintBlock({
   }[accent];
 
   return (
-    <section className={cn("break-inside-avoid rounded-2xl border p-4", styles, compact && "p-3.5", dense && "!rounded-xl !p-3")}>
-      <div className={cn("mb-3 flex items-center gap-2", dense && "!mb-2")}>
-        <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm", dense && "size-7 rounded-lg")}>
-          <Icon className="size-4" />
+    <section className={cn("break-inside-avoid rounded-2xl border p-4", styles, compact && "p-3.5", dense && "!rounded-xl !p-3", spacious && "flex min-h-0 flex-1 flex-col justify-center !rounded-3xl !p-7")}>
+      <div className={cn("mb-3 flex items-center gap-2", dense && "!mb-2", spacious && "!mb-5 !gap-3")}>
+        <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm", dense && "size-7 rounded-lg", spacious && "!size-11 !rounded-2xl")}>
+          <Icon className={cn("size-4", spacious && "size-6")} />
         </span>
-        <h2 className="text-[15px] font-black tracking-normal">{title}</h2>
+        <h2 className={cn("text-[15px] font-black tracking-normal", spacious && "text-[22px]")}>{title}</h2>
       </div>
       {children}
     </section>

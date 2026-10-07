@@ -10,6 +10,7 @@ export interface MemberInput {
   profession?: string | null;
   age?: number | string | null;
   birthDate?: string | null;
+  birthAfterSunset?: boolean;
   hebrewBirthDay?: number | string | null;
   hebrewBirthMonth?: number | string | null;
   hebrewBirthYear?: number | string | null;
@@ -53,6 +54,7 @@ export function buildMemberRow(communityId: string, member: MemberInput) {
     profession: member.profession?.trim() || null,
     age: normalizeAge(member.age),
     birthDate: member.birthDate || null,
+    birthAfterSunset: Boolean(member.birthAfterSunset),
     hebrewBirthDay: member.hebrewBirthDay ? Number(member.hebrewBirthDay) : null,
     hebrewBirthMonth: member.hebrewBirthMonth ? Number(member.hebrewBirthMonth) : null,
     hebrewBirthYear: member.hebrewBirthYear ? Number(member.hebrewBirthYear) : null,

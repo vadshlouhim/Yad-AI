@@ -3,6 +3,8 @@ import { runAutomationEngine } from "@/lib/automation/engine";
 import { runDailyEmailAiClassification } from "@/lib/email/daily-ai";
 import { processScheduledPublications } from "@/lib/publishing/scheduled";
 import { runTargetedCommunication } from "@/lib/targeted-communication/runner";
+import { runPersonalDateReminders } from "@/lib/contacts/personal-date-reminders";
+import { syncAllUnisoftCommunities } from "@/lib/unisoft/sync";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -16,6 +18,8 @@ export async function GET(request: Request) {
 
     const startTime = Date.now();
     await runAutomationEngine();
+    const unisoft = await syncAllUnisoftCommunities();
+    const personalDates = await runPersonalDateReminders();
     const targeted = await runTargetedCommunication();
     const scheduled = await processScheduledPublications();
     await runDailyEmailAiClassification();
@@ -28,6 +32,8 @@ export async function GET(request: Request) {
       duration,
       scheduled,
       targeted,
+      unisoft,
+      personalDates,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

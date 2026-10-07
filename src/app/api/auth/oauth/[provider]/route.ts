@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createHmac } from "crypto";
+import { getMetaOAuthDialogUrl } from "@/lib/meta/config";
 
 type RouteParams = { params: Promise<{ provider: string }> };
 
@@ -12,7 +13,6 @@ const META_SCOPES = {
     "pages_manage_posts",
   ],
   instagram: [
-    "business_management",
     "pages_show_list",
     "pages_read_engagement",
     "pages_manage_posts",
@@ -84,7 +84,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   });
 
   const redirectUri = new URL(`/api/auth/oauth/${provider}/callback`, getOAuthBaseUrl(url)).toString();
-  const dialogUrl = new URL("https://www.facebook.com/v20.0/dialog/oauth");
+  const dialogUrl = new URL(getMetaOAuthDialogUrl());
   dialogUrl.searchParams.set("client_id", appId);
   dialogUrl.searchParams.set("redirect_uri", redirectUri);
   dialogUrl.searchParams.set("state", state);

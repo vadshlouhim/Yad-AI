@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildMemberRow, type MemberInput } from "@/lib/contacts/normalize";
-import { hebrewBirthdayToGregorianISO, validateHebrewBirthday } from "@/lib/contacts/hebrew-birthday";
+import { gregorianToHebrew, hebrewBirthdayToGregorianISO, validateHebrewBirthday } from "@/lib/contacts/hebrew-birthday";
 
 async function getCommunityId() {
   const supabase = await createClient();
@@ -47,7 +47,13 @@ export async function POST(request: Request) {
   const members: MemberInput[] = Array.isArray(body.members) ? body.members : [body];
   const normalizedMembers: MemberInput[] = [];
   for (const member of members) {
+    const converted = member.birthDate ? gregorianToHebrew(member.birthDate, Boolean(member.birthAfterSunset)) : null;
+    const hasCompleteHebrewBirthday = Boolean(member.hebrewBirthDay && member.hebrewBirthMonth && member.hebrewBirthYear);
     const hasHebrewBirthday = member.hebrewBirthDay !== undefined || member.hebrewBirthMonth !== undefined || member.hebrewBirthYear !== undefined;
+    if (converted && !hasCompleteHebrewBirthday) {
+      normalizedMembers.push({ ...member, hebrewBirthDay: converted.day, hebrewBirthMonth: converted.month, hebrewBirthYear: converted.year });
+      continue;
+    }
     if (!hasHebrewBirthday) {
       normalizedMembers.push(member);
       continue;
@@ -62,7 +68,7 @@ export async function POST(request: Request) {
       hebrewBirthYear: Number(member.hebrewBirthYear),
     });
     if (!birthday) return NextResponse.json({ error: "Date d’anniversaire hébraïque invalide." }, { status: 400 });
-    normalizedMembers.push({ ...member, ...birthday, birthDate: hebrewBirthdayToGregorianISO(birthday) });
+    normalizedMembers.push({ ...member, ...birthday, birthDate: member.birthDate || hebrewBirthdayToGregorianISO(birthday) });
   }
   const candidateRows = normalizedMembers
     .map((member) => buildMemberRow(communityId, member))

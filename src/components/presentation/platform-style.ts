@@ -1,6 +1,6 @@
 // Presentation-only tokens shared with the mobile dashboard. No data loaders.
 export const MOBILE_HOME_HEADER_CLASS =
-  "relative overflow-hidden rounded-b-[46%_2.4rem] bg-[radial-gradient(circle_at_68%_9%,#6822b5_0%,#421388_38%,#210763_100%)] px-5 pb-9 pt-[max(1.2rem,env(safe-area-inset-top))] text-white shadow-[0_18px_35px_rgba(43,8,104,0.2)]";
+  "relative overflow-hidden rounded-b-[46%_2rem] bg-[radial-gradient(circle_at_68%_9%,#6822b5_0%,#421388_38%,#210763_100%)] px-5 pb-5 pt-[max(0.8rem,env(safe-area-inset-top))] text-white shadow-[0_18px_35px_rgba(43,8,104,0.2)]";
 export const MOBILE_ACTION_CARD_CLASS =
   "relative flex min-h-[118px] items-center gap-2 overflow-hidden rounded-[1.8rem] border border-white/25 px-3 py-5 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.12),0_14px_28px_rgba(30,41,59,0.16)] transition-[transform,box-shadow] duration-200 active:scale-[0.975] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_5px_12px_rgba(30,41,59,0.16)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#36506d]/25 max-[520px]:min-h-[132px] max-[520px]:flex-col max-[520px]:justify-center max-[520px]:gap-2.5 max-[520px]:text-center";
 export const MODULE_COLORS = {
