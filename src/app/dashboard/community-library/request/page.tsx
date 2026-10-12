@@ -18,7 +18,7 @@ export default async function RequestResourcePage() {
     .single();
 
   if (!community || community.plan === "FREE_TRIAL") {
-    redirect("/dashboard/community-library");
+    redirect("/dashboard/boutique/communautaire");
   }
 
   return <RequestResourceClient />;

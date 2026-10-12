@@ -1,13 +1,14 @@
 export const MOBILE_HOME_DEFAULT_MODULES = [
   "publish",
   "newsletter-paper",
-  "shabbat-times",
-  "event-reminders",
-  "daily-study",
   "birthdays-yahrzeit",
+  "shabbat-times",
   "visuals",
-  "photo-recap",
   "torah",
+  "shop",
+  "event-reminders",
+  "photo-recap",
+  "daily-study",
 ] as const;
 export const MOBILE_HOME_MAX_MODULES = 11;
 
@@ -34,7 +35,7 @@ export const MOBILE_HOME_MODULES: ReadonlyArray<{ key: MobileHomeModuleKey; titl
   { key: "whatsapp", title: "WhatsApp automatisé", href: "/dashboard/whatsapp" },
   { key: "website", title: "Création de site web", href: "/dashboard/website" },
   { key: "seo", title: "Référencement IA", href: "/dashboard/referencement" },
-  { key: "shop", title: "Boutique en ligne", href: "https://linktr.ee/Yadshlouhim" },
+  { key: "shop", title: "La Boutique d’EasyCom-AI", href: "/dashboard/boutique" },
   { key: "assistance", title: "Assistance indemnisation", href: "/dashboard/assistance-indemnisation-aerienne" },
 ];
 
@@ -46,6 +47,8 @@ const LEGACY_DEFAULT_LAYOUTS: ReadonlyArray<ReadonlyArray<string>> = [
   ["publish", "newsletter-paper", "automations", "visuals", "torah", "email-reviews"],
   ["publish", "newsletter-paper", "shabbat-times", "visuals", "daily-study", "birthdays-yahrzeit", "event-reminders", "photo-recap", "targeted", "torah", "email-reviews"],
   ["publish", "newsletter-paper", "shabbat-times", "event-reminders", "daily-study", "birthdays-yahrzeit", "visuals", "photo-recap", "torah", "targeted", "email-reviews"],
+  ["publish", "newsletter-paper", "shabbat-times", "birthdays-yahrzeit", "visuals", "shop", "event-reminders", "photo-recap", "torah"],
+  ["publish", "newsletter-paper", "birthdays-yahrzeit", "visuals", "shabbat-times", "torah", "shop", "event-reminders", "photo-recap"],
 ];
 
 function sameLayout(value: unknown[], expected: ReadonlyArray<string>) {
@@ -55,7 +58,24 @@ function sameLayout(value: unknown[], expected: ReadonlyArray<string>) {
 export function normalizeMobileHomeModules(value: unknown): MobileHomeModuleKey[] {
   if (!Array.isArray(value)) return [...MOBILE_HOME_DEFAULT_MODULES];
   if (LEGACY_DEFAULT_LAYOUTS.some((layout) => sameLayout(value, layout))) return [...MOBILE_HOME_DEFAULT_MODULES];
-  const migrated = value.map((key) => key === "automations" ? "shabbat-times" : key);
+  const migrated = value.map((key) => {
+    if (key === "automations") return "shabbat-times";
+    return key;
+  });
   const unique = migrated.filter((key): key is MobileHomeModuleKey => typeof key === "string" && allowedModuleKeys.has(key));
-  return Array.from(new Set(unique)).slice(0, MOBILE_HOME_MAX_MODULES);
+  const normalized = Array.from(new Set(unique)).slice(0, MOBILE_HOME_MAX_MODULES);
+  const dashboardOrder: MobileHomeModuleKey[] = [
+    "publish",
+    "newsletter-paper",
+    "birthdays-yahrzeit",
+    "shabbat-times",
+    "visuals",
+    "torah",
+    "shop",
+    "event-reminders",
+    "photo-recap",
+    "daily-study",
+  ];
+  const ordered = dashboardOrder.filter((key) => normalized.includes(key));
+  return [...ordered, ...normalized.filter((key) => !dashboardOrder.includes(key))];
 }

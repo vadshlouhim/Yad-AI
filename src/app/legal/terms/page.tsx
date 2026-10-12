@@ -19,8 +19,22 @@ export default function TermsPage() {
           L’utilisateur reste responsable des informations saisies, des validations finales et
           des publications envoyées vers ses canaux.
         </p>
+        <section className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-5">
+          <h2 className="text-xl font-bold">Annonces et ventes entre utilisateurs</h2>
+          <p className="leading-7 text-slate-600">
+            La rubrique communautaire met directement en relation des utilisateurs particuliers.
+            Le vendeur est responsable de son annonce, de ses droits sur le contenu, du prix, du
+            paiement, de la remise ou de l’expédition et, le cas échéant, du remboursement.
+            EasyCom-AI ne collecte pas le paiement et n’est pas partie à la transaction.
+          </p>
+          <p className="leading-7 text-slate-600">
+            Les contenus interdits, illicites, trompeurs ou portant atteinte aux droits d’un tiers
+            peuvent être signalés et retirés. La vente professionnelle n’est pas autorisée dans
+            cette première version du service.
+          </p>
+        </section>
         <p className="leading-7 text-slate-600">
-          Pour toute question contractuelle ou demande spécifique, contactez l’équipe à{" "}
+          Pour toute question contractuelle, signalement ou demande spécifique, contactez l’équipe à{" "}
           <a className="font-semibold text-blue-600 underline" href="mailto:contact@easycom-AI.com">
             contact@easycom-AI.com
           </a>

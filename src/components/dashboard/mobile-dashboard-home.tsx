@@ -43,10 +43,7 @@ import { MOBILE_ACTION_CARD_CLASS, MOBILE_HOME_HEADER_CLASS } from "@/components
 import { HOME_EASYCOM_AGENTS, type EasyComAgent } from "@/lib/agents";
 import {
   getOfficialDashboardMenuSections,
-  FacebookIcon,
-  InstagramIcon,
   OFFICIAL_MENU_SECTION_STYLES,
-  WhatsAppIcon,
   type OfficialDashboardMenuSection,
 } from "@/components/layout/dashboard-nav";
 import { MOBILE_HOME_DEFAULT_MODULES, MOBILE_HOME_MODULES, MOBILE_HOME_MAX_MODULES, type MobileHomeModuleKey } from "@/lib/mobile-dashboard/modules";
@@ -67,6 +64,7 @@ type ActionCard = {
   title: string;
   icon: typeof Megaphone;
   className: string;
+  iconClassName?: string;
   href?: string;
   sectionKey?: string;
   columns?: 2 | 3 | 6;
@@ -91,9 +89,10 @@ const ACTION_CARDS: ActionCard[] = [
     key: "shabbat-times",
     title: "Horaires de Chabbat & Fêtes",
     icon: Clock3,
-    className: DASHBOARD_MODULE_COLORS["shabbat-times"],
+    className: "bg-[#0b9ba0] text-white",
+    iconClassName: "text-[#2f7e88]",
     href: "/dashboard/shabbat-times-auto",
-    badge: "Préremplis et publiés automatiquement",
+    badge: "Publication automatique",
     badgeClassName: "text-[#8a2d22]",
     columns: 3,
     density: "slim",
@@ -102,20 +101,23 @@ const ACTION_CARDS: ActionCard[] = [
     key: "publish",
     title: "Publier partout en un clic",
     icon: Megaphone,
-    className: DASHBOARD_MODULE_COLORS["publish"],
+    className: "bg-[#1261df] text-white",
+    iconClassName: "text-[#2962ff]",
     href: "/dashboard/social-networks",
+    badge: "Tous vos réseaux",
+    badgeClassName: "text-[#1746a2]",
     columns: 3,
   },
   {
     key: "torah",
     title: "Cours de Torah",
     icon: BookOpen,
-    className: DASHBOARD_MODULE_COLORS["torah"],
+    className: "bg-[#ee9400] text-white",
+    iconClassName: "text-[#ea580c]",
     href: "/dashboard/torah",
     badge: "Sources fiables",
     badgeClassName: "text-[#9a3412]",
-    columns: 2,
-    density: "compact",
+    columns: 3,
   },
   {
     key: "email-reviews",
@@ -126,13 +128,13 @@ const ACTION_CARDS: ActionCard[] = [
     badge: "Intelligents, triés et notifiés",
     badgeClassName: "text-[#334155]",
     columns: 3,
-    density: "compact",
   },
   {
     key: "newsletter-paper",
     title: "Newsletter",
     icon: FileText,
-    className: DASHBOARD_MODULE_COLORS["newsletter-paper"],
+    className: "bg-[#5a1a96] text-white",
+    iconClassName: "text-[#7b61ff]",
     href: "/dashboard/newsletter",
     badge: "Imprimable pour Chabbat",
     badgeClassName: "text-[#5b20bc]",
@@ -152,24 +154,34 @@ const ACTION_CARDS: ActionCard[] = [
     key: "visuals",
     title: "Affiches professionnelles",
     icon: ImageIcon,
-    className: DASHBOARD_MODULE_COLORS["visuals"],
+    className: "bg-[#d92c75] text-white",
+    iconClassName: "text-[#bd1e68]",
     sectionKey: "visuals",
     badge: "+ de 195 modèles",
     badgeClassName: "text-[#5b21b6]",
-    columns: 2,
-    density: "compact",
+    columns: 3,
   },
-  { key: "daily-study", title: "Hayom Yom & Sefer Hamitsvot", icon: BookOpen, className: DASHBOARD_MODULE_COLORS["daily-study"], href: "/dashboard/hayom-yom-sefer-hamitsvot", columns: 3 },
-  { key: "birthdays-yahrzeit", title: "Anniversaires & Yahrzeit", icon: Cake, className: DASHBOARD_MODULE_COLORS["birthdays-yahrzeit"], href: "/dashboard/jewish-birthdays", badge: "Intelligent et automatique", badgeClassName: "text-[#1e3a8a]", columns: 3 },
-  { key: "event-reminders", title: "Automatisations", icon: CalendarRange, className: DASHBOARD_MODULE_COLORS["event-reminders"], href: "/dashboard/event-reminders-auto", badge: "J-10 / J-5 / J-J", badgeClassName: "text-[#701a75]", columns: 3, density: "slim" },
-  { key: "photo-recap", title: "Récap photos", icon: Camera, className: DASHBOARD_MODULE_COLORS["photo-recap"], href: "/dashboard/recap-auto", columns: 2, density: "compact" },
-  { key: "targeted", title: "Communication ciblée", icon: Target, className: DASHBOARD_MODULE_COLORS["targeted"], href: "/dashboard/communication-ciblee", badge: "Ciblage intelligent", badgeClassName: "text-[#155e75]", columns: 3, density: "compact" },
+  { key: "daily-study", title: "Hayom Yom & Sefer Hamitsvot", icon: BookOpen, className: "bg-[#168a68] text-white", iconClassName: "text-[#087457]", href: "/dashboard/hayom-yom-sefer-hamitsvot", columns: 3 },
+  { key: "birthdays-yahrzeit", title: "Anniversaires & Yahrzeit", icon: Cake, className: "bg-[#f13f53] text-white", iconClassName: "text-[#e73549]", href: "/dashboard/jewish-birthdays", badge: "Intelligent et automatique", badgeClassName: "text-[#1e3a8a]", columns: 3 },
+  { key: "event-reminders", title: "Automatisations", icon: CalendarRange, className: "bg-[#4f168e] text-white", iconClassName: "text-[#57199a]", href: "/dashboard/event-reminders-auto", badge: "J-10 / J-5 / J-J", badgeClassName: "text-[#701a75]", columns: 3 },
+  { key: "photo-recap", title: "Récap photos", icon: Camera, className: "bg-[#0b9ba0] text-white", iconClassName: "text-[#087c82]", href: "/dashboard/recap-auto", badge: "Vos temps forts", badgeClassName: "text-[#155e75]", columns: 3 },
+  { key: "targeted", title: "Communication ciblée", icon: Target, className: DASHBOARD_MODULE_COLORS["targeted"], href: "/dashboard/communication-ciblee", badge: "Ciblage intelligent", badgeClassName: "text-[#155e75]", columns: 3 },
   { key: "email", title: "Email", icon: Mail, className: DASHBOARD_MODULE_COLORS["email"], href: "/dashboard/email" },
   { key: "reviews", title: "Avis Google", icon: Star, className: DASHBOARD_MODULE_COLORS["reviews"], href: "/dashboard/google-reviews" },
   { key: "whatsapp", title: "WhatsApp automatisé", icon: MessageSquare, className: DASHBOARD_MODULE_COLORS["whatsapp"], href: "/dashboard/whatsapp" },
   { key: "website", title: "Création de site web", icon: Globe2, className: DASHBOARD_MODULE_COLORS["website"], href: "/dashboard/website" },
   { key: "seo", title: "Référencement IA", icon: Search, className: DASHBOARD_MODULE_COLORS["seo"], href: "/dashboard/referencement" },
-  { key: "shop", title: "Boutique en ligne", icon: ShoppingBag, className: DASHBOARD_MODULE_COLORS["shop"], href: "https://linktr.ee/Yadshlouhim" },
+  {
+    key: "shop",
+    title: "La Boutique d’EasyCom-AI",
+    icon: ShoppingBag,
+    className: "bg-[#421388] text-white",
+    iconClassName: "text-[#421388]",
+    href: "/dashboard/boutique",
+    badge: "Marketplace juive n° 1",
+    badgeClassName: "text-white",
+    columns: 6,
+  },
   { key: "assistance", title: "Assistance indemnisation", icon: Plane, className: DASHBOARD_MODULE_COLORS["assistance"], href: "/dashboard/assistance-indemnisation-aerienne" },
 ];
 
@@ -334,7 +346,8 @@ export function MobileDashboardHome({
   }
 
   function moveHomeModule(from: MobileHomeModuleKey, to: MobileHomeModuleKey) {
-    if (from === to) return;
+    const fixedModules: MobileHomeModuleKey[] = ["shop", "event-reminders", "photo-recap", "torah"];
+    if (from === to || fixedModules.includes(from) || fixedModules.includes(to)) return;
     const fromIndex = homeModules.indexOf(from);
     const toIndex = homeModules.indexOf(to);
     if (fromIndex < 0 || toIndex < 0) return;
@@ -515,74 +528,86 @@ export function MobileDashboardHome({
 
       </section>
 
-      <section className="px-5 pb-4 pt-4">
+      <section className="mx-auto w-full max-w-[52rem] px-3 pb-5 pt-4 sm:px-6 sm:pb-7 sm:pt-6">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2.5 text-[clamp(1.55rem,7vw,2rem)] font-black leading-tight tracking-[-0.045em]">
-          <Sparkles className="size-7 fill-[#ffb20b] text-[#ffb20b]" />
-          Que souhaitez-vous faire ?
+          <h2 className="text-xl font-black leading-tight tracking-tight text-slate-950 sm:text-2xl">
+            Que souhaitez-vous faire ?
           </h2>
           {editMode ? <button type="button" onClick={() => setEditMode(false)} className="min-h-10 rounded-full bg-[#421388] px-4 text-xs font-black text-white shadow-sm">Terminé</button> : null}
         </div>
         {editMode ? <p className="mt-2 text-xs font-semibold text-slate-500">Maintenez et faites glisser un module pour changer son ordre. Touchez × pour le retirer.</p> : null}
 
-        <div className="mt-4 grid grid-cols-6 gap-3">
+        <div className="mt-4 grid grid-cols-6 items-stretch gap-2.5 sm:gap-3">
           {visibleActions.map((action) => {
             const Icon = action.icon;
+            const isBottomThree = action.key === "event-reminders" || action.key === "photo-recap" || action.key === "daily-study";
+            const isFixedCard = action.key === "shop" || action.key === "torah" || isBottomThree;
             const content = (
               <>
-                {action.key === "publish" ? (
-                  <span className="relative flex items-center justify-center gap-2" aria-label="Facebook, Instagram et WhatsApp">
-                    <span className="flex size-[clamp(2.7rem,11vw,3.5rem)] items-center justify-center rounded-[1rem] bg-white shadow-[0_8px_18px_rgba(10,36,90,0.2)] ring-1 ring-white/80">
-                      <FacebookIcon className="size-[clamp(1.55rem,6vw,2rem)]" />
+                {action.key === "shop" ? (
+                  <>
+                    <span className={cn("relative flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white shadow-lg sm:size-11", action.iconClassName)}>
+                      <ShoppingBag className="size-5 stroke-[2.2] sm:size-[22px]" />
                     </span>
-                    <span className="flex size-[clamp(2.7rem,11vw,3.5rem)] items-center justify-center rounded-[1rem] bg-white shadow-[0_8px_18px_rgba(10,36,90,0.2)] ring-1 ring-white/80">
-                      <InstagramIcon className="size-[clamp(1.55rem,6vw,2rem)]" />
+                    <span className="relative min-w-0 flex-1 text-left">
+                      <span className="block truncate text-sm font-black leading-tight tracking-[-0.02em] sm:text-base">{action.title}</span>
+                      <span className="mt-1 block truncate text-[0.64rem] font-bold leading-tight text-violet-100 sm:text-xs">{action.badge}</span>
                     </span>
-                    <span className="flex size-[clamp(2.7rem,11vw,3.5rem)] items-center justify-center rounded-[1rem] bg-white shadow-[0_8px_18px_rgba(10,36,90,0.2)] ring-1 ring-white/80">
-                      <WhatsAppIcon className="size-[clamp(1.55rem,6vw,2rem)]" />
+                    <span className="relative flex size-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white ring-1 ring-white/15 sm:size-9">
+                      <ArrowRight className="size-4" />
                     </span>
-                  </span>
-                ) : <Icon className={cn(
-                  "relative shrink-0 stroke-[2]",
-                  action.density === "compact"
-                    ? "size-[clamp(1.7rem,7vw,2.3rem)]"
-                    : action.density === "slim"
-                      ? "size-[clamp(2rem,8vw,3rem)]"
-                      : "size-[clamp(2.25rem,10vw,4rem)]",
-                )} />}
-                <span className={cn(
-                  "relative min-w-0 max-w-full whitespace-normal text-[clamp(1rem,4.2vw,1.4rem)] font-black leading-[1.15] tracking-[-0.02em]",
-                  action.density === "compact" && "text-[clamp(0.72rem,3vw,0.9rem)] leading-[1.08]",
-                )}>
-                  {action.badge ? (
-                    <span className="inline-flex flex-col items-center justify-center gap-2">
-                      <span>{action.title}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className={cn(
+                      "relative flex shrink-0 items-center justify-center bg-white shadow-lg",
+                      isBottomThree ? "size-10 rounded-xl sm:size-11 sm:rounded-2xl" : "size-11 rounded-2xl sm:size-12",
+                      action.iconClassName ?? "text-slate-800",
+                    )}>
+                      <Icon className={cn("stroke-[2.15]", isBottomThree ? "size-5 sm:size-6" : "size-6")} />
+                    </span>
+                    <span className="relative block min-w-0 max-w-full text-center">
                       <span className={cn(
-                        "inline-flex max-w-full rounded-xl bg-white px-2.5 py-1.5 text-center text-[clamp(0.6rem,2.55vw,0.76rem)] font-black leading-tight tracking-[-0.01em] shadow-[0_7px_16px_rgba(44,10,101,0.16)] ring-1 ring-white/80",
-                        action.badgeClassName,
+                        "block font-black tracking-[-0.02em]",
+                        action.key === "daily-study" ? "line-clamp-3" : "line-clamp-2",
+                        isBottomThree ? "text-xs leading-[1.12] sm:text-sm" : "text-sm leading-tight sm:text-base",
                       )}>
-                        {action.badge}
+                        {action.title}
                       </span>
+                      {action.badge && !isBottomThree ? (
+                        <span className={cn(
+                          "mt-1 block line-clamp-2 text-[0.64rem] font-bold leading-tight text-white/75 sm:text-xs",
+                        )}>
+                          {action.badge}
+                        </span>
+                      ) : null}
                     </span>
-                  ) : action.title}
-                </span>
+                  </>
+                )}
               </>
             );
             const layoutClassName = cn(
               "relative",
-              action.columns === 2
-                ? "col-span-2 max-[359px]:col-span-3"
-                : action.columns === 6
-                  ? "col-span-6"
-                  : "col-span-3",
+              action.key === "shop" ? "col-span-6" : isBottomThree ? "col-span-2" : "col-span-3",
+              action.key === "publish" && "col-start-1 row-start-1",
+              action.key === "newsletter-paper" && "col-start-4 row-start-1",
+              action.key === "birthdays-yahrzeit" && "col-start-1 row-start-2",
+              action.key === "shabbat-times" && "col-start-4 row-start-2",
+              action.key === "visuals" && "col-start-1 row-start-3",
+              action.key === "torah" && "col-start-4 row-start-3",
+              action.key === "shop" && "col-start-1 row-start-4",
+              action.key === "event-reminders" && "col-start-1 row-start-5",
+              action.key === "photo-recap" && "col-start-3 row-start-5",
+              action.key === "daily-study" && "col-start-5 row-start-5",
               editMode && "animate-[pulse_1.4s_ease-in-out_infinite]"
             );
             const cardClassName = cn(
               MOBILE_ACTION_CARD_CLASS,
-              "h-full w-full shadow-[0_8px_20px_rgba(35,20,80,0.1)]",
+              "h-full w-full !min-h-[116px] !flex-col !justify-center !gap-2 rounded-[1.65rem] !border-0 px-3 py-3 !text-center shadow-[0_16px_30px_-18px_rgba(15,23,42,0.5)] sm:!min-h-[126px] sm:!gap-3 sm:p-4",
               action.className,
-              action.density === "compact" && "!min-h-[98px] px-2 py-3 max-[520px]:!min-h-[108px] max-[520px]:gap-1.5",
-              action.density === "slim" && "!min-h-[104px] py-3.5 max-[520px]:!min-h-[112px]"
+              isBottomThree && "!min-h-[104px] !gap-2 rounded-[1.4rem] px-1.5 py-2.5 sm:!min-h-[118px] sm:!gap-2.5 sm:px-3",
+              action.key === "shop" && "!min-h-[72px] !flex-row !justify-start !gap-3 rounded-[1.45rem] px-3.5 py-3 !text-left shadow-[0_16px_30px_-18px_rgba(66,19,136,0.65)] sm:!min-h-[80px] sm:px-5",
+              editMode && action.key === "shop" && "pr-12"
             );
 
             const sharedProps = {
@@ -600,10 +625,10 @@ export function MobileDashboardHome({
               onPointerCancel: () => setDraggingKey(null),
             };
             const cardContent = <>
-              {editMode ? <span className="absolute left-2 top-2 z-20 flex size-7 items-center justify-center rounded-full bg-black/15 text-white"><GripVertical className="size-4" /></span> : null}
+              {editMode && !isFixedCard ? <span className="absolute left-2 top-2 z-20 flex size-7 items-center justify-center rounded-full bg-black/15 text-white"><GripVertical className="size-4" /></span> : null}
               {content}
             </>;
-            const removeButton = <button type="button" onClick={() => removeHomeModule(action.key)} className="absolute right-1.5 top-1.5 z-20 flex size-8 items-center justify-center text-white/65 transition hover:text-white active:scale-90 focus-visible:rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" aria-label={`Retirer ${action.title} de mon accueil`}><X className="size-3.5 drop-shadow-sm" /></button>;
+            const removeButton = editMode && !isFixedCard ? <button type="button" onClick={() => removeHomeModule(action.key)} className="absolute right-1.5 top-1.5 z-20 flex size-8 items-center justify-center text-white/65 transition hover:text-white active:scale-90 focus-visible:rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" aria-label={`Retirer ${action.title} de mon accueil`}><X className="size-3.5 drop-shadow-sm" /></button> : null;
 
             if (action.href?.startsWith("http")) {
               return (

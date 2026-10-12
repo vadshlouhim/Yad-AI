@@ -48,6 +48,7 @@ const PERSONALIZABLE_HOME_MODULES = new Set<MobileHomeModuleKey>([
   "torah",
   "targeted",
   "email-reviews",
+  "shop",
 ]);
 
 type ToolGroup = {
@@ -161,15 +162,6 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         homeModuleKey: "event-reminders",
       },
       {
-        key: "daily-study",
-        title: "Hayom Yom & Sefer Hamitsvot",
-        icon: BookOpen,
-        tone: DASHBOARD_MENU_COLORS["daily-study"],
-        href: "/dashboard/hayom-yom-sefer-hamitsvot",
-        items: [],
-        homeModuleKey: "daily-study",
-      },
-      {
         key: "birthdays-yahrzeit",
         title: "Anniversaires & Yahrzeit",
         icon: Cake,
@@ -230,6 +222,15 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
 
     const secondaryTools: ToolGroup[] = [
       {
+        key: "daily-study",
+        title: "Hayom Yom & Sefer Hamitsvot",
+        icon: BookOpen,
+        tone: DASHBOARD_MENU_COLORS["daily-study"],
+        href: "/dashboard/hayom-yom-sefer-hamitsvot",
+        items: [],
+        homeModuleKey: "daily-study",
+      },
+      {
         key: "targeted",
         title: "Communication ciblée",
         icon: Target,
@@ -248,12 +249,13 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
       },
       {
         key: "shop",
-        title: "Boutique en ligne",
+        title: "La Boutique d’EasyCom-AI",
         icon: ShoppingBag,
-        tone: DASHBOARD_MENU_COLORS["shop"],
-        href: "https://linktr.ee/Yadshlouhim",
+        tone: "border border-[#eadcb8] bg-[linear-gradient(135deg,#fffdf7_0%,#fff3d3_100%)] !text-[#321451]",
+        href: "/dashboard/boutique",
         items: [],
         homeModuleKey: "shop",
+        badge: "Marketplace juive n° 1",
       },
       {
         key: "compensation",

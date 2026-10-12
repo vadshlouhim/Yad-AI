@@ -30,7 +30,7 @@ export default async function NewsletterPage() {
   const [{ data: community }, { data: events }, { data: contacts }] = await Promise.all([
     admin
       .from("Community")
-      .select("name, logoUrl, coverUrl, city, timezone, communityType, religiousStream, vocabulary, address, phone, email, website")
+      .select("id, name, logoUrl, coverUrl, city, timezone, communityType, religiousStream, vocabulary, address, phone, email, website")
       .eq("id", profile.communityId)
       .single(),
     admin
@@ -106,6 +106,7 @@ export default async function NewsletterPage() {
   return (
     <NewsletterPaperClient
       community={{
+        id: community?.id ?? profile.communityId,
         name: community?.name ?? "Votre communaute",
         logoUrl: community?.logoUrl ?? null,
         coverUrl: community?.coverUrl ?? null,

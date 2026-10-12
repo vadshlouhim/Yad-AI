@@ -944,6 +944,18 @@ export function AdminConsoleClient({
                 </span>
                 <span className={`rounded-full px-2 py-0.5 text-[10px] ${isDark ? "bg-white/10" : "bg-slate-100"}`}>CMS</span>
               </Link>
+              <Link
+                href="/admin/marketplace"
+                className={`flex w-full items-center justify-between rounded-2xl px-3 py-3 text-left text-sm font-bold transition ${
+                  isDark ? "text-slate-300 hover:bg-white/10" : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <AlertTriangle className="size-4" />
+                  Signalements boutique
+                </span>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] ${isDark ? "bg-white/10" : "bg-slate-100"}`}>Modération</span>
+              </Link>
               {navItems.map((item) => {
                 const active = activeSection === item.id;
                 return (

@@ -11,8 +11,11 @@ import {
   Download,
   Edit3,
   ExternalLink,
+  Gift,
   ImageIcon,
+  Loader2,
   MapPin,
+  MessageSquareText,
   Send,
   Sparkles,
   X,
@@ -69,6 +72,8 @@ type FormState = {
   parasha: string;
   entry: string;
   exit: string;
+  kiddouch: string;
+  aiInstructions: string;
   logoUrl: string;
 };
 
@@ -109,6 +114,7 @@ function buildCaption(fields: FormState) {
     fields.parasha ? `Paracha : ${fields.parasha}` : "",
     `Entrée de Chabbat : ${fields.entry}`,
     `Sortie de Chabbat : ${fields.exit}`,
+    fields.kiddouch ? `Kiddouch offert par : ${fields.kiddouch}` : "",
     fields.city ? `📍 ${fields.city}` : "",
   ];
   return `${lines.filter(Boolean).join("\n")}\n\n#ChabbatChalom`;
@@ -346,6 +352,8 @@ export function ShabbatTimesSimpleClient({
     parasha: shabbat?.parasha || "",
     entry: shabbat?.entry || "",
     exit: shabbat?.exit || "",
+    kiddouch: stringValue(savedFields.kiddouch),
+    aiInstructions: stringValue(savedFields.aiInstructions),
     logoUrl: stringValue(savedFields.logoUrl) || community.logoUrl || "",
   }));
   const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
@@ -462,11 +470,19 @@ export function ShabbatTimesSimpleClient({
         { id: "parasha", text: times.parasha, role: "parasha", priority: "main" },
         { id: "entry", text: times.entry, role: "entry time", priority: "important" },
         { id: "exit", text: times.exit, role: "exit time", priority: "important" },
+        ...(form.kiddouch.trim() ? [{ id: "kiddouch", text: `Kiddouch offert par : ${form.kiddouch.trim()}`, role: "Kiddouch", priority: "complementary" }] : []),
       ];
       const response = await fetch("/api/templates/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId: selectedTemplate.id, sourceMediaId, shabbat: true, textBlocks, logoUrl: form.logoUrl || null }),
+        body: JSON.stringify({
+          templateId: selectedTemplate.id,
+          sourceMediaId,
+          shabbat: true,
+          textBlocks,
+          logoUrl: form.logoUrl || null,
+          customInstructions: form.aiInstructions.trim(),
+        }),
       });
       const data = await response.json().catch(() => ({})) as { imageUrl?: string; mediaId?: string; error?: string };
       if (!response.ok || !data.imageUrl) throw new Error(data.error ?? "L’affiche n’a pas pu être créée.");
@@ -728,15 +744,52 @@ export function ShabbatTimesSimpleClient({
                     <div className="mt-4 grid gap-4 sm:grid-cols-2">
                       <Field label="Nom de la structure" value={form.structureName} onChange={(value) => updateForm("structureName", value)} placeholder="Ex. Beth Habad" required icon={Edit3} />
                       <Field label="Ville" value={form.city} onChange={(value) => updateForm("city", value)} placeholder="Ex. Paris" required icon={MapPin} />
-                      <Field label="Paracha" value={form.parasha} onChange={(value) => updateForm("parasha", value)} placeholder="Calcul automatique" readOnly required icon={Sparkles} />
-                      <Field label="Entrée de Chabbat" value={form.entry} onChange={(value) => updateForm("entry", value)} placeholder="Selon la ville" readOnly required icon={Clock3} />
-                      <Field label="Sortie de Chabbat" value={form.exit} onChange={(value) => updateForm("exit", value)} placeholder="Selon la ville" readOnly required icon={Clock3} />
                     </div>
 
-                    <div className="mt-4 rounded-xl bg-violet-50 px-3 py-2.5 text-xs font-bold text-violet-900">
-                      {weekDate ? `Horaires du ${new Date(`${weekDate}T12:00:00Z`).toLocaleDateString("fr-FR", { timeZone: "UTC" })} · ${form.city}` : "Recherche automatique des horaires…"}
+                    <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/70 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#421388]">Prérempli automatiquement</p>
+                        {loadingTimes ? <Loader2 className="size-4 animate-spin text-[#421388]" /> : <CheckCircle2 className="size-4 text-emerald-600" />}
+                      </div>
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        {[
+                          ["Paracha", form.parasha || "—"],
+                          ["Entrée", form.entry || "—"],
+                          ["Sortie", form.exit || "—"],
+                        ].map(([label, value]) => (
+                          <div key={label} className="min-w-0 rounded-xl bg-white px-2.5 py-2 text-center shadow-sm ring-1 ring-violet-100">
+                            <p className="text-[9px] font-black uppercase tracking-wide text-slate-400">{label}</p>
+                            <p className="mt-1 truncate text-xs font-black text-slate-900 sm:text-sm">{value}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="mt-2 text-[11px] font-bold text-violet-800">
+                        {weekDate ? `Horaires du ${new Date(`${weekDate}T12:00:00Z`).toLocaleDateString("fr-FR", { timeZone: "UTC" })} · ${form.city}` : "Recherche automatique des horaires…"}
+                      </p>
                       {cityCandidates.map((city) => <Button key={city} type="button" variant="outline" className="mt-2" onClick={() => void refreshShabbatTimes(city)}>{city}</Button>)}
                     </div>
+
+                    <details className="group mt-4 rounded-2xl border border-slate-200 bg-slate-50 open:bg-white">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-black text-slate-800">
+                        <span className="flex items-center gap-2"><Sparkles className="size-4 text-[#421388]" />Ajouter un Kiddouch ou une consigne</span>
+                        <span className="text-lg text-slate-400 transition group-open:rotate-45">+</span>
+                      </summary>
+                      <div className="space-y-4 border-t border-slate-100 px-4 pb-4 pt-3">
+                        <Field label="Kiddouch offert par (facultatif)" value={form.kiddouch} onChange={(value) => updateForm("kiddouch", value)} placeholder="Ex. Famille Cohen" icon={Gift} />
+                        <label className="block text-sm font-bold text-slate-800">
+                          <span className="flex items-center gap-2"><MessageSquareText className="size-4 text-[#421388]" />Consigne particulière pour l’IA (facultatif)</span>
+                          <textarea
+                            value={form.aiInstructions}
+                            onChange={(event) => updateForm("aiInstructions", event.target.value)}
+                            maxLength={800}
+                            rows={3}
+                            placeholder="Ex. Mettre le Kiddouch très visible, conserver une présentation sobre…"
+                            className="mt-2 w-full resize-y rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium leading-5 text-slate-950 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-[#421388] focus:ring-4 focus:ring-violet-100"
+                          />
+                          <span className="mt-1 block text-right text-[10px] font-bold text-slate-400">{form.aiInstructions.length}/800</span>
+                        </label>
+                      </div>
+                    </details>
                     <CommunityLogoPicker value={form.logoUrl || null} onChange={(url) => updateForm("logoUrl", url)} onBusyChange={setUploadingLogo} onError={setError} />
 
                     <Button type="button" size="xl" className="mt-5 w-full rounded-2xl bg-[#d92d7c] font-black shadow-lg shadow-pink-950/20 hover:bg-[#c5236e]" loading={generating} disabled={uploadingLogo || loadingTimes || generating} onClick={() => void generatePoster()}>

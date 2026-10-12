@@ -85,6 +85,8 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({})) as GenerateBody;
     const modules = body.modules ?? {};
+    const activeModuleCount = Object.values(modules).filter(Boolean).length;
+    const sparseLayout = activeModuleCount <= 5;
     const requestedTitle = safeText(body.title, 70) || "Le Chabaton";
     const now = new Date();
     const [{ data: community }, { data: events }, { data: contacts }] = await Promise.all([
@@ -139,11 +141,14 @@ export async function POST(request: Request) {
       "Tu prepares une newsletter papier A4 professionnelle pour Chabbat, en francais, pour une synagogue ou Beth Habad.",
       "Retourne uniquement un JSON valide avec les cles: title, intro, ravWord, shabbatNote, eventIntro, restaurantAd, proofreadNote.",
       body.mode === "rav" ? "Tu retravailles uniquement le Mot du Rav. Garde les autres champs courts ou vides, mais renvoie toujours un JSON valide." : `Le titre doit rester exactement : ${requestedTitle}. L'introduction doit etre courte, accueillante et tenir sur deux lignes maximum.`,
+      sparseLayout
+        ? "La maquette contient peu de rubriques. Equilibre intelligemment la page en enrichissant les textes actifs avec du contenu utile, sans repetition et sans remplissage artificiel, afin d'eviter de grandes zones vides."
+        : "La maquette contient plusieurs rubriques. Reste concis pour conserver une composition aeree et reguliere.",
       "Style: chaleureux, clair, tres professionnel, adapte a l'impression papier. Pas d'emojis. Pas de Markdown.",
       `Communaute: ${community?.name ?? "Communaute"}. Ville: ${city}. Ton souhaite: ${safeText(body.tone, 80) || community?.tone || "professionnel"}.`,
       shabbat ? `Chabbat: ${shabbat.parasha ?? "Chabbat"}, date hebraique ${shabbat.hebrewDate ?? ""}, entree ${shabbat.entry ?? ""}, sortie ${shabbat.exit ?? ""}.` : "Horaires de Chabbat indisponibles.",
-      modules.ravWord ? `Mot du Rav actif. Theme demande: ${safeText(body.ravTheme, 240) || "message court de Torah pour la semaine"}. Redige un mot de Torah original, inspire de la Paracha, de 90 a 130 mots maximum.` : "Mot du Rav inactif: laisse ravWord vide.",
-      modules.shabbat ? "Pour shabbatNote, redige un resume accessible et fidele de la Paracha de la semaine, entre 55 et 75 mots, sans inventer de details." : "Resume de Paracha inactif: laisse shabbatNote vide.",
+      modules.ravWord ? `Mot du Rav actif. Theme demande: ${safeText(body.ravTheme, 240) || "message court de Torah pour la semaine"}. Redige un mot de Torah original, inspire de la Paracha, de ${sparseLayout ? "115 a 140" : "90 a 130"} mots maximum.` : "Mot du Rav inactif: laisse ravWord vide.",
+      modules.shabbat ? `Pour shabbatNote, redige un resume accessible et fidele de la Paracha de la semaine, entre ${sparseLayout ? "75 et 95" : "55 et 75"} mots, sans inventer de details.` : "Resume de Paracha inactif: laisse shabbatNote vide.",
       modules.parness ? `Parness Hayom: ${safeText(body.parnessText, 220) || "a completer"}.` : "Parness Hayom inactif.",
       modules.kiddush ? `Kidouch: ${safeText(body.kiddushText, 220) || "a completer"}.` : "Kidouch inactif.",
       modules.restaurantAd ? `Pub restaurant active. Base: ${safeText(body.restaurantText, 260) || "restaurant cacher partenaire"}. Redige une annonce courte et elegante.` : "Pub restaurant inactive: laisse restaurantAd vide.",
@@ -164,7 +169,7 @@ export async function POST(request: Request) {
       title: requestedTitle,
       intro: parsed?.intro?.trim().slice(0, 180) || "Votre feuillet communautaire des activites de la semaine.",
       ravWord: parsed?.ravWord?.trim().slice(0, 850) || "",
-      shabbatNote: parsed?.shabbatNote?.trim().slice(0, 430) || `Retrouvez les grands enseignements de ${shabbat?.parasha ?? "la Paracha de la semaine"} et partagez-les en famille pendant Chabbat.`,
+      shabbatNote: parsed?.shabbatNote?.trim().slice(0, 620) || `Retrouvez les grands enseignements de ${shabbat?.parasha ?? "la Paracha de la semaine"} et partagez-les en famille pendant Chabbat.`,
       eventIntro: parsed?.eventIntro?.trim().slice(0, 220) || "Voici les principaux rendez-vous a noter pour les prochains jours.",
       restaurantAd: parsed?.restaurantAd?.trim().slice(0, 220) || "",
       proofreadNote: parsed?.proofreadNote?.trim().slice(0, 180) || "Texte relu et adapte a un support papier.",

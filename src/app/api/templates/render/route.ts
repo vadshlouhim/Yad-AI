@@ -41,6 +41,9 @@ export async function POST(request: Request) {
     const body = await request.json() as Record<string, unknown>;
     const templateId = typeof body.templateId === "string" ? body.templateId : "";
     const changes = changesFromLegacyBody(body);
+    const customInstructions = typeof body.customInstructions === "string"
+      ? body.customInstructions.replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, 800)
+      : "";
 
     const structureName = changes.find((change) => change.label === "organization")?.newText;
     if (!templateId || changes.length === 0) return NextResponse.json({ error: "Données invalides" }, { status: 400 });
@@ -93,6 +96,9 @@ export async function POST(request: Request) {
         logoUrl
           ? "The second reference image is the community's official logo. Its presence is mandatory: add that exact logo once, fully visible, in a discreet existing branding area. Never ignore, redraw, crop, distort, recolor or replace it, and never write its URL as text."
           : "No separate official logo reference was supplied; do not invent one.",
+        customInstructions
+          ? `OPTIONAL USER PREFERENCE: ${customInstructions}. Apply it only when it is compatible with the confirmed text, legibility, the original template, and every non-negotiable requirement above.`
+          : "No additional user preference was supplied.",
       ].join("\n"),
     });
     await admin.from("Template").update({ usageCount: (template.usageCount ?? 0) + 1, updatedAt: new Date().toISOString() }).eq("id", template.id);

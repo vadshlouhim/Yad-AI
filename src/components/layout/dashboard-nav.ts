@@ -3,7 +3,6 @@ import {
   Bell,
   BookOpen,
   Bot,
-  Cake,
   CalendarClock,
   CalendarDays,
   CalendarRange,
@@ -11,7 +10,6 @@ import {
   Clock3,
   House,
   Globe,
-  Gift,
   HandHeart,
   HelpCircle,
   History,
@@ -428,7 +426,7 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       icon: BookOpen,
       items: [
         { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
-        { href: "/dashboard/community-library", label: "Bibliothèque partagée", icon: Library },
+        { href: "/dashboard/boutique/communautaire", label: "Annonces & Ressources", icon: Library },
       ],
     },
     {
@@ -457,12 +455,7 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       subtitle: "",
       icon: ShoppingBag,
       items: [
-        { href: "/dashboard/boutique/calendrier-horaires-tichri", label: "Calendrier de Tichri", icon: CalendarDays },
-        { href: "/dashboard/boutique/magnets-chabbat", label: "Magnets de Chabbat", icon: Gift },
-        { href: "/dashboard/boutique/birkat-hachana", label: "Birkat Hachana", icon: Camera },
-        { href: "/dashboard/boutique/box-tehilim", label: "Box de Tehilim", icon: BookOpen },
-        { href: "/dashboard/boutique/anniversaire-juif", label: "Anniversaire juif", icon: Cake },
-        { href: "/dashboard/boutique/plaquette-teffilin", label: "Plaquette Teffilin en 6 étapes", icon: BookOpen },
+        { href: "/dashboard/boutique", label: "La Boutique d’EasyCom-AI", icon: ShoppingBag },
       ],
     },
     {
@@ -556,7 +549,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     section: "COURS DE TORAH",
     items: [
       { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
-      { href: "/dashboard/community-library", label: "Bibliothèque partagée", icon: Library },
+      { href: "/dashboard/boutique/communautaire", label: "Annonces & Ressources", icon: Library },
     ],
   },
   {
@@ -569,12 +562,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "BOUTIQUES ET ARTICLES",
     items: [
-      { href: "/dashboard/boutique/calendrier-horaires-tichri", label: "Calendrier de Tichri", icon: CalendarDays },
-      { href: "/dashboard/boutique/magnets-chabbat", label: "Magnets de Chabbat", icon: Gift },
-      { href: "/dashboard/boutique/birkat-hachana", label: "Birkat Hachana", icon: Camera },
-      { href: "/dashboard/boutique/box-tehilim", label: "Box de Tehilim", icon: BookOpen },
-      { href: "/dashboard/boutique/anniversaire-juif", label: "Anniversaire juif", icon: Cake },
-      { href: "/dashboard/boutique/plaquette-teffilin", label: "Plaquette Teffilin en 6 étapes", icon: BookOpen },
+      { href: "/dashboard/boutique", label: "La Boutique d’EasyCom-AI", icon: ShoppingBag },
     ],
   },
   {
@@ -678,12 +666,7 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     section: "BOUTIQUES ET ARTICLES",
     icon: ShoppingBag,
     items: [
-      { href: "/dashboard/boutique/calendrier-horaires-tichri", label: "Calendrier de Tichri", icon: CalendarDays },
-      { href: "/dashboard/boutique/magnets-chabbat", label: "Magnets de Chabbat", icon: Gift },
-      { href: "/dashboard/boutique/birkat-hachana", label: "Birkat Hachana", icon: Camera },
-      { href: "/dashboard/boutique/box-tehilim", label: "Box de Tehilim", icon: BookOpen },
-      { href: "/dashboard/boutique/anniversaire-juif", label: "Anniversaire juif", icon: Cake },
-      { href: "/dashboard/boutique/plaquette-teffilin", label: "Plaquette Teffilin en 6 étapes", icon: BookOpen },
+      { href: "/dashboard/boutique", label: "La Boutique d’EasyCom-AI", icon: ShoppingBag },
     ],
   },
   {
@@ -733,7 +716,7 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     icon: BookOpen,
     items: [
       { href: "/dashboard/torah", label: "Cours de Torah IA", icon: BookOpen },
-      { href: "/dashboard/community-library", label: "Bibliothèque partagée", icon: Library },
+      { href: "/dashboard/boutique/communautaire", label: "Annonces & Ressources", icon: Library },
     ],
   },
   {

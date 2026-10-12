@@ -1,14 +1,16 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { type ChangeEvent, type ReactNode, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { jsPDF } from "jspdf";
 import {
   BookOpen,
   CalendarDays,
   Cake,
+  CheckCircle2,
   Clock3,
+  CloudOff,
   Download,
   Eye,
   FileText,
@@ -55,6 +57,7 @@ export type NewsletterShabbat = {
 };
 
 type CommunityInfo = {
+  id: string;
   name: string;
   logoUrl: string | null;
   coverUrl: string | null;
@@ -97,6 +100,25 @@ type GeneratedNewsletter = {
   sichaUrl: string;
   proofreadNote: string;
   warnings: string[];
+};
+
+type NewsletterDraft = {
+  version: 1;
+  savedAt: number;
+  title: string;
+  enabled: Record<ModuleKey, boolean>;
+  editorStep: EditorStep;
+  mobilePreviewPage: "front" | "back";
+  ravTheme: string;
+  parnessText: string;
+  kiddushText: string;
+  sichaUrl: string;
+  partnerAds: UploadedPhoto[];
+  donationUrl: string;
+  photos: UploadedPhoto[];
+  posters: UploadedPhoto[];
+  bannerPhotoUrl: string;
+  generated: GeneratedNewsletter;
 };
 
 const MODULES: ModuleConfig[] = [
@@ -194,6 +216,68 @@ function initialGenerated(): GeneratedNewsletter {
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function draftText(value: unknown, fallback = "") {
+  return typeof value === "string" ? value : fallback;
+}
+
+function draftUploads(value: unknown, max: number): UploadedPhoto[] {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, max).flatMap((item) => {
+    if (!isRecord(item) || typeof item.url !== "string" || !item.url.trim()) return [];
+    return [{
+      id: typeof item.id === "string" ? item.id : crypto.randomUUID(),
+      url: item.url,
+      name: typeof item.name === "string" ? item.name : "Image",
+    }];
+  });
+}
+
+function parseNewsletterDraft(value: unknown, donationDefault: string): NewsletterDraft | null {
+  if (!isRecord(value) || value.version !== 1) return null;
+  const enabledValue = isRecord(value.enabled) ? value.enabled : {};
+  const generatedValue = isRecord(value.generated) ? value.generated : {};
+  const defaults = initialGenerated();
+  const editorStep: EditorStep = value.editorStep === "content" || value.editorStep === "preview" ? value.editorStep : "modules";
+
+  return {
+    version: 1,
+    savedAt: typeof value.savedAt === "number" ? value.savedAt : 0,
+    title: draftText(value.title, defaults.title),
+    enabled: Object.fromEntries(MODULES.map((module) => [
+      module.key,
+      module.locked ? true : typeof enabledValue[module.key] === "boolean" ? enabledValue[module.key] : module.key === "support" ? Boolean(donationDefault) : DEFAULT_ENABLED[module.key],
+    ])) as Record<ModuleKey, boolean>,
+    editorStep,
+    mobilePreviewPage: value.mobilePreviewPage === "back" ? "back" : "front",
+    ravTheme: draftText(value.ravTheme),
+    parnessText: draftText(value.parnessText),
+    kiddushText: draftText(value.kiddushText),
+    sichaUrl: draftText(value.sichaUrl),
+    partnerAds: draftUploads(value.partnerAds, 3),
+    donationUrl: draftText(value.donationUrl, donationDefault),
+    photos: draftUploads(value.photos, 9),
+    posters: draftUploads(value.posters, 3),
+    bannerPhotoUrl: draftText(value.bannerPhotoUrl),
+    generated: {
+      title: draftText(generatedValue.title, draftText(value.title, defaults.title)),
+      intro: draftText(generatedValue.intro, defaults.intro),
+      ravWord: draftText(generatedValue.ravWord),
+      shabbatNote: draftText(generatedValue.shabbatNote),
+      eventIntro: draftText(generatedValue.eventIntro),
+      restaurantAd: draftText(generatedValue.restaurantAd),
+      sichaTitle: draftText(generatedValue.sichaTitle),
+      sichaExcerpt: draftText(generatedValue.sichaExcerpt),
+      sichaUrl: draftText(generatedValue.sichaUrl),
+      proofreadNote: draftText(generatedValue.proofreadNote, defaults.proofreadNote),
+      warnings: Array.isArray(generatedValue.warnings) ? generatedValue.warnings.filter((item): item is string => typeof item === "string").slice(0, 10) : [],
+    },
+  };
+}
+
 export function NewsletterPaperClient({
   community,
   initialEvents,
@@ -210,6 +294,7 @@ export function NewsletterPaperClient({
   const pdfRectoRef = useRef<HTMLDivElement>(null);
   const pdfVersoRef = useRef<HTMLDivElement>(null);
   const preparedFingerprintRef = useRef<string | null>(null);
+  const draftSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [enabled, setEnabled] = useState<Record<ModuleKey, boolean>>(() => ({ ...DEFAULT_ENABLED, support: Boolean(community.donationUrl) }));
   const [editorStep, setEditorStep] = useState<EditorStep>("modules");
   const [mobilePreviewPage, setMobilePreviewPage] = useState<"front" | "back">("front");
@@ -231,6 +316,8 @@ export function NewsletterPaperClient({
   const [preparingAction, setPreparingAction] = useState<"preview" | "print" | "pdf" | null>(null);
   const [generated, setGenerated] = useState<GeneratedNewsletter>(() => initialGenerated());
   const [error, setError] = useState<string | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
+  const [draftStatus, setDraftStatus] = useState<"restoring" | "saving" | "saved" | "offline">("restoring");
 
   const activeCount = useMemo(() => Object.values(enabled).filter(Boolean).length, [enabled]);
   const visibleEvents = initialEvents.slice(0, 4);
@@ -263,6 +350,119 @@ export function NewsletterPaperClient({
     photos: enabled.photos && visiblePhotos.length > 0,
     photoCount: visiblePhotos.length,
   }), [enabled.birthdays, enabled.events, enabled.photos, enabled.ravWord, enabled.shabbat, generated.title, initialBirthdays.length, initialShabbat, ravTheme, visibleEvents.length, visiblePhotos.length]);
+  const localDraftKey = useMemo(() => `easycom.newsletter.draft.${community.id}`, [community.id]);
+  const draftSnapshot = useMemo<NewsletterDraft>(() => ({
+    version: 1,
+    savedAt: Date.now(),
+    title: generated.title,
+    enabled,
+    editorStep,
+    mobilePreviewPage,
+    ravTheme,
+    parnessText,
+    kiddushText,
+    sichaUrl,
+    partnerAds,
+    donationUrl,
+    photos,
+    posters,
+    bannerPhotoUrl,
+    generated,
+  }), [bannerPhotoUrl, donationUrl, editorStep, enabled, generated, kiddushText, mobilePreviewPage, parnessText, partnerAds, photos, posters, ravTheme, sichaUrl]);
+
+  useEffect(() => {
+    let active = true;
+
+    const applyDraft = (draft: NewsletterDraft) => {
+      setEnabled(draft.enabled);
+      setEditorStep(draft.editorStep);
+      setMobilePreviewPage(draft.mobilePreviewPage);
+      setRavTheme(draft.ravTheme);
+      setParnessText(draft.parnessText);
+      setKiddushText(draft.kiddushText);
+      setSichaUrl(draft.sichaUrl);
+      setPartnerAds(draft.partnerAds);
+      setDonationUrl(draft.donationUrl);
+      setPhotos(draft.photos);
+      setPosters(draft.posters);
+      setBannerPhotoUrl(draft.bannerPhotoUrl);
+      setGenerated(draft.generated);
+    };
+
+    let localDraft: NewsletterDraft | null = null;
+    try {
+      localDraft = parseNewsletterDraft(JSON.parse(window.localStorage.getItem(localDraftKey) ?? "null"), community.donationUrl ?? "");
+      if (localDraft) applyDraft(localDraft);
+    } catch {
+      localDraft = null;
+    }
+
+    fetch("/api/newsletter/draft", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: { draft?: unknown } | null) => {
+        if (!active) return;
+        const serverDraft = parseNewsletterDraft(data?.draft, community.donationUrl ?? "");
+        if (serverDraft && (!localDraft || serverDraft.savedAt > localDraft.savedAt)) applyDraft(serverDraft);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!active) return;
+        setDraftReady(true);
+        setDraftStatus("saved");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [community.donationUrl, localDraftKey]);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    const serialized = JSON.stringify(draftSnapshot);
+    try {
+      window.localStorage.setItem(localDraftKey, serialized);
+    } catch {
+      setDraftStatus("offline");
+    }
+
+    setDraftStatus("saving");
+    if (draftSaveTimerRef.current) clearTimeout(draftSaveTimerRef.current);
+    draftSaveTimerRef.current = setTimeout(() => {
+      void fetch("/api/newsletter/draft", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ draft: draftSnapshot }),
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error("save");
+          setDraftStatus("saved");
+        })
+        .catch(() => setDraftStatus("offline"));
+    }, 700);
+
+    return () => {
+      if (draftSaveTimerRef.current) clearTimeout(draftSaveTimerRef.current);
+    };
+  }, [draftReady, draftSnapshot, localDraftKey]);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    const saveBeforeLeaving = () => {
+      try {
+        window.localStorage.setItem(localDraftKey, JSON.stringify(draftSnapshot));
+      } catch {
+        // The server-side keepalive below remains the fallback.
+      }
+      void fetch("/api/newsletter/draft", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ draft: draftSnapshot }),
+        keepalive: true,
+      });
+    };
+    window.addEventListener("pagehide", saveBeforeLeaving);
+    return () => window.removeEventListener("pagehide", saveBeforeLeaving);
+  }, [draftReady, draftSnapshot, localDraftKey]);
 
   function toggleModule(key: ModuleKey) {
     if (key === "shabbat") return;
@@ -592,6 +792,16 @@ export function NewsletterPaperClient({
           </button>
         ))}
       </nav>
+
+      <div className="mx-4 flex min-h-8 items-center justify-end sm:mx-0 print:hidden" aria-live="polite">
+        <span className={cn(
+          "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold",
+          draftStatus === "offline" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700",
+        )}>
+          {draftStatus === "restoring" || draftStatus === "saving" ? <Loader2 className="size-3.5 animate-spin" /> : draftStatus === "offline" ? <CloudOff className="size-3.5" /> : <CheckCircle2 className="size-3.5" />}
+          {draftStatus === "restoring" ? "Reprise du brouillon…" : draftStatus === "saving" ? "Sauvegarde…" : draftStatus === "offline" ? "Sauvegardé sur cet appareil" : "Brouillon sauvegardé automatiquement"}
+        </span>
+      </div>
 
       <div className="grid gap-5 px-4 sm:px-0 xl:grid-cols-[minmax(320px,420px)_minmax(0,1fr)]">
         <aside className="space-y-4 print:hidden">
@@ -936,7 +1146,7 @@ function NewsletterPreview({
     : "text-[clamp(1.8rem,8vw,3rem)]";
   const displayIntro = clipText(generated.intro, 180);
   const displayRavWord = clipText(generated.ravWord, 850);
-  const displayShabbatNote = clipText(generated.shabbatNote, 430);
+  const displayShabbatNote = clipText(generated.shabbatNote, 620);
   const displayEventIntro = clipText(generated.eventIntro, 220);
   const displaySicha = clipText(generated.sichaExcerpt, 620);
   const leftBlockCount = page === "front"
@@ -987,7 +1197,11 @@ function NewsletterPreview({
         singleColumn ? "sm:grid-cols-1" : "sm:grid-cols-[1.35fr_0.9fr]",
         exportMode && (singleColumn ? "!grid-cols-1 !gap-4 !py-4" : "!grid-cols-[1.35fr_0.9fr] !gap-4 !py-4"),
       )}>
-        {hasLeftColumn ? <div className={cn("space-y-5", spacious && "flex flex-col justify-evenly", exportMode && "!space-y-3")}>
+        {hasLeftColumn ? <div className={cn(
+          "space-y-5",
+          spacious && "flex flex-col justify-evenly",
+          exportMode && "!flex !h-full !flex-col !gap-3 !space-y-0 [&>section]:min-h-0 [&>section]:flex-1",
+        )}>
           {page === "front" && enabled.ravWord ? (
             <PrintBlock icon={BookOpen} title="Mot du Rav" accent="navy" dense={exportMode} spacious={spacious}>
               {ravTheme ? <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-[#52648e]">Theme: {ravTheme}</p> : null}
@@ -1045,7 +1259,11 @@ function NewsletterPreview({
           ) : null}
         </div> : null}
 
-        {hasRightColumn ? <aside className={cn("grid grid-cols-1 gap-4 sm:block sm:space-y-5", spacious && "sm:flex sm:flex-col sm:justify-evenly sm:space-y-0", exportMode && "!block !space-y-3")}>
+        {hasRightColumn ? <aside className={cn(
+          "grid grid-cols-1 gap-4 sm:block sm:space-y-5",
+          spacious && "sm:flex sm:flex-col sm:justify-evenly sm:space-y-0",
+          exportMode && "!flex !h-full !flex-col !gap-3 !space-y-0 [&>section]:min-h-0 [&>section]:flex-1",
+        )}>
           {page === "front" && enabled.shabbat ? (
             <PrintBlock icon={Clock3} title="Resume de la Paracha" accent="navy" compact dense={exportMode} spacious={spacious}>
               <p className={cn("text-[13px] leading-5 text-slate-700", spacious && "text-[17px] leading-8")}>{displayShabbatNote}</p>
@@ -1139,7 +1357,7 @@ function PrintBlock({
     violet: "border-violet-100 bg-[#f7f2ff] text-[#421388]",
     gold: "border-amber-100 bg-[#fffaf0] text-[#744d00]",
     rose: "border-rose-100 bg-[#fff5f8] text-[#8b2850]",
-    slate: "border-slate-200 bg-white text-slate-900",
+    slate: "border-slate-200 bg-[#f8fafc] text-slate-900",
   }[accent];
 
   return (

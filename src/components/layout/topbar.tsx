@@ -68,13 +68,15 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
     if (pathname.startsWith("/dashboard/google-reviews")) return "Avis Google";
     if (pathname.startsWith("/dashboard/daily-assistant")) return "Assistant du quotidien";
     if (pathname.startsWith("/dashboard/events")) return "Mon Agenda";
+    if (pathname.startsWith("/dashboard/boutique/communautaire/publier")) return "Publier une annonce";
+    if (pathname.startsWith("/dashboard/boutique/communautaire")) return "Annonces & Ressources";
     if (pathname.startsWith("/dashboard/boutique/calendrier-horaires-tichri")) return "Calendrier de Tichri";
     if (pathname.startsWith("/dashboard/boutique/magnets-chabbat")) return "Magnets de Chabbat";
     if (pathname.startsWith("/dashboard/boutique/birkat-hachana")) return "Birkat Hachana";
     if (pathname.startsWith("/dashboard/boutique/box-tehilim")) return "Box de Tehilim";
     if (pathname.startsWith("/dashboard/boutique/anniversaire-juif")) return "Anniversaire juif";
     if (pathname.startsWith("/dashboard/boutique/plaquette-teffilin")) return "Plaquette Teffilin en 6 étapes";
-    if (pathname.startsWith("/dashboard/boutique")) return "Boutique";
+    if (pathname.startsWith("/dashboard/boutique")) return "La Boutique d’EasyCom-AI";
     if (pathname.startsWith("/dashboard/articles")) return "Articles";
     if (pathname.startsWith("/dashboard/referencement")) return "Referencement";
     if (pathname.startsWith("/dashboard/shabbat-times-auto")) return "Horaire de Chabbat";
