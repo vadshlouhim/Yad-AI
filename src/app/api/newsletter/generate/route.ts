@@ -2,6 +2,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 import { NextResponse } from "next/server";
+import { newsletterGeneratedText } from "@/lib/newsletter/generated-text";
 import { getUpcomingShabbatTimes } from "@/lib/automation/hebcal";
 import { generateContent } from "@/lib/ai/engine";
 import { getBirthdayOccurrence, getCurrentHebrewDate, validateHebrewBirthday } from "@/lib/contacts/hebrew-birthday";
@@ -167,12 +168,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       title: requestedTitle,
-      intro: parsed?.intro?.trim().slice(0, 180) || "Votre feuillet communautaire des activites de la semaine.",
-      ravWord: parsed?.ravWord?.trim().slice(0, 850) || "",
-      shabbatNote: parsed?.shabbatNote?.trim().slice(0, 620) || `Retrouvez les grands enseignements de ${shabbat?.parasha ?? "la Paracha de la semaine"} et partagez-les en famille pendant Chabbat.`,
-      eventIntro: parsed?.eventIntro?.trim().slice(0, 220) || "Voici les principaux rendez-vous a noter pour les prochains jours.",
-      restaurantAd: parsed?.restaurantAd?.trim().slice(0, 220) || "",
-      proofreadNote: parsed?.proofreadNote?.trim().slice(0, 180) || "Texte relu et adapte a un support papier.",
+      intro: newsletterGeneratedText(parsed?.intro, "Votre feuillet communautaire des activités de la semaine."),
+      ravWord: newsletterGeneratedText(parsed?.ravWord),
+      shabbatNote: newsletterGeneratedText(parsed?.shabbatNote, `Retrouvez les grands enseignements de ${shabbat?.parasha ?? "la Paracha de la semaine"} et partagez-les en famille pendant Chabbat.`),
+      eventIntro: newsletterGeneratedText(parsed?.eventIntro, "Voici les principaux rendez-vous à noter pour les prochains jours."),
+      restaurantAd: newsletterGeneratedText(parsed?.restaurantAd),
+      proofreadNote: newsletterGeneratedText(parsed?.proofreadNote, "Texte relu et adapté à un support papier."),
       warnings: [
         ...(eventLines.length === 0 && modules.events ? ["Aucun evenement a venir trouve dans l'agenda."] : []),
         ...(birthdays.length === 0 && modules.birthdays ? ["Aucun anniversaire juif trouve sur les 7 prochains jours."] : []),

@@ -212,7 +212,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
   async function saveCommunity() {
     setSaving(true);
     try {
-      await fetch("/api/community/settings", {
+      const response = await fetch("/api/community/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -222,6 +222,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
           logoUrl: logoUrl || null,
         }),
       });
+      if (!response.ok) throw new Error("Échec de l’enregistrement de l’établissement.");
       router.refresh();
     } catch {
       alert("Erreur lors de la sauvegarde.");

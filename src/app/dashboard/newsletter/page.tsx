@@ -105,6 +105,8 @@ export default async function NewsletterPage() {
 
   return (
     <NewsletterPaperClient
+      key={`${profile.id}:${profile.communityId}`}
+      userId={profile.id}
       community={{
         id: community?.id ?? profile.communityId,
         name: community?.name ?? "Votre communaute",
