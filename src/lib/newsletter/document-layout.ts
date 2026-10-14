@@ -1,5 +1,4 @@
 import type { CommunityInfo, GeneratedNewsletter, ModuleKey, NewsletterBirthday, NewsletterEvent, NewsletterShabbat, UploadedPhoto } from "@/components/newsletter/newsletter-paper-client";
-import { newsletterImagesPerRow } from "./limits";
 import { newsletterShabbatDate, type NewsletterStudy } from "./shabbat-study";
 
 export const PAPER = { width: 794, height: 1123, margin: 42, gap: 18 };
@@ -123,7 +122,7 @@ function heading(text: string, compact = false, fontSize = 11) {
 export function renderDocumentBlock(block: DocumentBlock, fontSize: number) {
   const section = element("section", undefined, { breakInside: "avoid", minWidth: "0" });
   section.dataset.blockId = block.id;
-  if (block.title) section.append(heading(block.title, block.kind === "text" && block.compact, fontSize));
+  if (block.title) section.append(heading(block.title + (block.kind === "text" && block.continuation ? " — suite" : ""), block.kind === "text" && block.compact));
   if (block.kind === "text") {
     const text = element("div", block.text, {
       whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: block.compact ? "Arial, sans-serif" : "Georgia, 'Times New Roman', serif",
@@ -339,40 +338,6 @@ export function fitNewsletterWholeBlocks(blocks: DocumentBlock[], capacities: nu
   throw new Error(`Les rubriques ${largest.map((block) => `« ${block.title || "Introduction"} »`).join(", ")} ne tiennent pas entières sur une A4 recto verso à 8 points. Raccourcissez-les manuellement ou retirez un visuel ; aucun texte n’a été coupé.`);
 }
 
-type MediaRow = { images: DocumentImage[]; height: number; minimum: number };
-function mediaRows(images: DocumentImage[], perRow: number, minimum: number, maximum: number): MediaRow[] {
-  const rows: MediaRow[] = [];
-  for (let i = 0; i < images.length; i += perRow) {
-    const group = images.slice(i, i + perRow);
-    const natural = (CONTENT_WIDTH - (group.length - 1) * 16) / group.reduce((sum, img) => sum + img.width / img.height, 0);
-    rows.push({ images: group, height: Math.min(maximum, natural), minimum: Math.min(minimum, natural) });
-  }
-  return rows;
-}
-
-function renderMedia(rows: MediaRow[], title: string, available?: number, maxImageWidth = CONTENT_WIDTH) {
-  const section = element("section", undefined, { flexShrink: "0", minWidth: "0" });
-  if (title) section.append(heading(title));
-  const natural = rows.reduce((sum, row) => sum + row.height, 0);
-  const minimum = rows.reduce((sum, row) => sum + row.minimum, 0);
-  const room = available === undefined ? natural : available - (title ? 48 : 0) - Math.max(0, rows.length - 1) * 16;
-  if (room < minimum - 1) throw new Error("Les visuels sont trop nombreux pour une A4 recto verso lisible. Retirez une affiche, une publicité ou des photos dans « Composer ». Aucun visuel n’a été supprimé.");
-  const fraction = Math.min(1, Math.max(0, (room - minimum) / Math.max(1, natural - minimum)));
-  for (const [index, row] of rows.entries()) {
-    const height = row.minimum + (row.height - row.minimum) * fraction;
-    const ratios = row.images.map(img => img.width / img.height);
-    const actual = Math.min(height, (CONTENT_WIDTH - (row.images.length - 1) * 16) / ratios.reduce((a, b) => a + b, 0), row.images.length === 1 ? maxImageWidth / ratios[0] : height);
-    const line = element("div", undefined, { display: "flex", justifyContent: "center", alignItems: "center", gap: "16px", height: `${actual}px`, marginTop: index ? "16px" : "0" });
-    row.images.forEach((source, i) => {
-      const img = element("img") as HTMLImageElement;
-      img.src = source.url; img.alt = source.name;
-      Object.assign(img.style, { width: `${actual * ratios[i]}px`, height: `${actual}px`, objectFit: "contain", border: "0", borderRadius: "0", boxShadow: "none", flexShrink: "0", display: "block" });
-      line.append(img);
-    });
-    section.append(line);
-  }
-  return section;
-}
 
 function paper(data: NewsletterDocumentData, index: number) {
   const article = element("article", undefined, { boxSizing: "border-box", width: `${PAPER.width}px`, height: `${PAPER.height}px`, padding: `${PAPER.margin}px`, background: IVORY, color: INK, display: "flex", flexDirection: "column", fontFamily: "Arial, sans-serif", overflowWrap: "anywhere", position: "relative", isolation: "isolate" });
@@ -387,132 +352,303 @@ function paper(data: NewsletterDocumentData, index: number) {
   return article;
 }
 
-/** One measured composition shared by preview, print and PDF; never add a third page. */
+type Gallery = { id: string; title: string; images: DocumentImage[] };
+type GalleryPlan = { gallery: Gallery; rows: Array<{ images: DocumentImage[]; height: number }>; height: number; area: number };
+type Zone = { x: number; y: number; width: number; height: number; blocks?: DocumentBlock[]; notice?: boolean; galleries?: GalleryPlan[] };
+type SheetPlan = { zones: Zone[]; score: number; mode: string };
+const ZONE_GAP = 16;
+const COLUMN_GAP = 24;
+const COLUMN_WIDTH = (CONTENT_WIDTH - COLUMN_GAP) / 2;
+const NORMAL_FONTS = [11, 11.5, 12, 10.5, 10];
+const DENSE_FONTS = [9.5, 9, 8.5, 8];
+
+/** Contiguous row partitions retain upload order and at most four images. */
+function rowPartitions(images: DocumentImage[]): DocumentImage[][][] {
+  if (!images.length) return [[]];
+  // Legacy drafts may exceed today's upload limits: preserve them without an
+  // exponential search over an unbounded number of image partitions.
+  if (images.length > 12) return [1, 2, 3, 4].map(count =>
+    Array.from({ length: Math.ceil(images.length / count) }, (_, i) => images.slice(i * count, (i + 1) * count)));
+  const result: DocumentImage[][][] = [];
+  for (let count = 1; count <= Math.min(4, images.length); count++) {
+    for (const rest of rowPartitions(images.slice(count))) result.push([images.slice(0, count), ...rest]);
+  }
+  return result;
+}
+
+function renderNotice(blocks: DocumentBlock[], font: number) {
+  const node = element("aside", undefined, { padding: "10px 12px", background: "#edf1ec", borderLeft: "3px solid " + GOLD, boxSizing: "border-box" });
+  node.dataset.newsletterNotice = "true";
+  blocks.forEach((block, index) => {
+    const section = renderDocumentBlock(block, font);
+    if (index) section.style.marginTop = "10px";
+    node.append(section);
+  });
+  return node;
+}
+
+function renderGallery(plan: GalleryPlan, width: number) {
+  const node = element("section", undefined, { width: width + "px" });
+  node.dataset.gallery = plan.gallery.id;
+  node.append(heading(plan.gallery.title, width < CONTENT_WIDTH));
+  plan.rows.forEach((row, index) => {
+    const line = element("div", undefined, { display: "flex", justifyContent: "center", gap: "12px", height: row.height + "px", marginTop: index ? "12px" : "0" });
+    line.dataset.imageRow = "true";
+    for (const source of row.images) {
+      const img = element("img") as HTMLImageElement;
+      img.src = source.url; img.alt = source.name;
+      Object.assign(img.style, { display: "block", flexShrink: "0", width: (row.height * source.width / source.height) + "px", height: row.height + "px", objectFit: "contain" });
+      line.append(img);
+    }
+    node.append(line);
+  });
+  return node;
+}
+
+/** Measured zones shared unchanged by preview, browser print and PDF export. */
 export async function composeNewsletter(data: NewsletterDocumentData): Promise<string[]> {
   await document.fonts.ready;
   const blocks = await makeBlocks(data);
-  const text = blocks.filter(block => block.kind === "text");
-  const introduction = text.filter(block => block.id === "intro");
-  const stories = text.filter(block => block.id !== "intro");
-  const photos = blocks.flatMap(block => block.kind === "images" && block.id.startsWith("photos-") ? block.images : []);
-  const visuals = blocks.flatMap(block => block.kind === "images" && block.poster ? block.images : []);
-  const partners = blocks.flatMap(block => block.kind === "images" && block.id.startsWith("partner-") ? block.images : []);
-  const photosPerRow = newsletterImagesPerRow(photos.length);
-  const root = element("div", undefined, { position: "fixed", left: "-20000px", top: "0", width: `${CONTENT_WIDTH}px`, fontFamily: "Arial, sans-serif", color: INK, visibility: "hidden" });
+  const texts = blocks.filter(block => block.kind === "text");
+  const intro = texts.filter(block => block.id === "intro");
+  const notices = texts.filter(block => ["dedications", "support"].includes(block.id));
+  const stories = texts.filter(block => !["intro", "dedications", "support"].includes(block.id));
+  const gallery = (id: string, title: string, predicate: (block: DocumentBlock) => boolean): Gallery => ({
+    id, title, images: blocks.flatMap(block => block.kind === "images" && predicate(block) ? block.images : []),
+  });
+  const photos = gallery("photos", "Photos de la semaine", block => block.id.startsWith("photos-"));
+  const posters = gallery("posters", "Affiches & événements à venir…", block => block.kind === "images" && Boolean(block.poster));
+  const partners = gallery("partners", "Nos partenaires", block => block.id.startsWith("partner-"));
+  const frontMedia = [photos].filter(g => g.images.length);
+  const backMedia = [posters, partners].filter(g => g.images.length);
+  const partitionCache = new Map<Gallery, DocumentImage[][][]>();
+  for (const g of [...frontMedia, ...backMedia]) partitionCache.set(g, rowPartitions(g.images));
+  const root = element("div", undefined, { position: "fixed", left: "-20000px", top: "0", width: CONTENT_WIDTH + "px", fontFamily: "Arial, sans-serif", color: INK, visibility: "hidden", direction: "ltr" });
   document.body.append(root);
   try {
-    const heightOf = (node: HTMLElement, width = CONTENT_WIDTH) => { root.style.width = `${width}px`; root.replaceChildren(node); return node.getBoundingClientRect().height; };
+    const heightOf = (node: HTMLElement, width = CONTENT_WIDTH) => {
+      root.style.width = width + "px"; root.replaceChildren(node);
+      return node.getBoundingClientRect().height;
+    };
+    const measureCache = new Map<string, number>();
+    const measure = (block: DocumentBlock, font: number, width: number) => {
+      const key = JSON.stringify([block, font, width]);
+      if (!measureCache.has(key)) measureCache.set(key, heightOf(renderDocumentBlock(block, font), width));
+      return measureCache.get(key)!;
+    };
+    const textHeight = (items: DocumentBlock[], font: number, width: number) =>
+      items.reduce((sum, block) => sum + measure(block, font, width), Math.max(0, items.length - 1) * ZONE_GAP);
     const footHeight = heightOf(footer(data, 0, 2)) + 16;
-    const capacities = [true, false].map(first => PAPER.height - PAPER.margin * 2 - heightOf(header(data, first)) - footHeight - 3);
-    if (Math.min(...capacities) < 180) throw new Error("Le titre ou les coordonnées sont trop longs pour une A4 recto verso. Raccourcissez-les avant l’export.");
-    const intro = element("div", undefined, { padding: "0 0 14px", fontStyle: "italic" });
-    introduction.forEach(block => intro.append(renderDocumentBlock(block, 12)));
-    const measuredIntro = introduction.length ? heightOf(intro) : 0;
-    const introInColumns = measuredIntro > Math.min(110, capacities[0] * 0.15);
-    if (introInColumns) stories.unshift(...introduction);
-    const introHeight = introInColumns ? 0 : measuredIntro;
-    const columnWidth = (CONTENT_WIDTH - 28) / 2;
-    const measure: Measure = (block, font) => heightOf(renderDocumentBlock(block, font), columnWidth);
-    const hasBackSections = visuals.length > 0 || partners.length > 0;
-    let selected: { columns: DocumentPage[]; capacities: number[]; photos: HTMLElement | null; posters: HTMLElement | null; partners: HTMLElement | null } | null = null;
-    for (const imageScale of [1, 0.85, 0.7, 0.6]) {
-        // Both faces participate in adaptation; photos must not reserve a fixed
-        // height that prevents the text fitter from ever being reached.
-        const photoRows = mediaRows(photos, photosPerRow, 110 * imageScale, (photos.length <= 4 ? 255 : 190) * imageScale);
-        const photosNode = photos.length ? renderMedia(photoRows, "Photos de la semaine") : null;
-        const photosHeight = photosNode ? heightOf(photosNode) + 18 : 0;
-        const frontSpace = capacities[0] - introHeight - photosHeight;
-        if (frontSpace < 100 && stories.length) continue;
-        const postersPerRow = newsletterImagesPerRow(visuals.length);
-        const posterMaxHeight = visuals.length <= 2 ? 315 : visuals.length === 3 ? 275 : visuals.length === 4 ? 245 : 220;
-        const posterRows = visuals.length ? mediaRows(visuals, postersPerRow, 110 * imageScale, posterMaxHeight * imageScale) : [];
-        const partnerRows = partners.length ? mediaRows(partners, newsletterImagesPerRow(partners.length), 65 * imageScale, 115 * imageScale) : [];
-        const posterSection = posterRows.length ? renderMedia(posterRows, "Affiches & événements à venir...", undefined, 400) : null;
-        const partnerSection = partnerRows.length ? renderMedia(partnerRows, "Nos partenaires", undefined, 220) : null;
-        const sections = [posterSection, partnerSection].filter((section): section is HTMLElement => Boolean(section));
-        const reserved = sections.reduce((sum, section) => sum + heightOf(section), 0) + Math.max(0, sections.length - 1) * 12;
-        const backSpace = capacities[1] - reserved - (sections.length ? 12 : 0);
-        if (backSpace < 0) continue;
-        const available = backSpace >= 100 ? [frontSpace, frontSpace, backSpace, backSpace] : [frontSpace, frontSpace];
-        try {
-          let candidate: DocumentPage[];
-          try {
-            candidate = fitNewsletterWholeBlocks(stories, available, measure, hasBackSections && backSpace >= 200);
-          } catch {
-            // A long source study can continue in the next column, without
-            // dropping or rewriting a single character.
-            candidate = fitNewsletterColumns(stories, available, measure);
-          }
-          if (candidate.length <= available.length) {
-            selected = { columns: candidate, capacities: available, photos: photosNode, posters: posterSection, partners: partnerSection };
-            break;
-          }
-        } catch { /* Try a smaller, still readable composition. */ }
-    }
-    if (!selected) throw new Error("Le contenu dépasse une A4 recto verso même à 8 points. Réduisez manuellement une rubrique ou retirez un visuel ; aucun texte ni image n’a été supprimé.");
-    const { columns } = selected;
-    // One dense article must not force every other column into small print.
-    // Re-measure complete columns, retaining a restrained 8–13 pt body scale.
-    columns.forEach((column, index) => {
-      if (!column.blocks.length) return;
-      const capacity = selected!.capacities[index];
-      for (const font of TEXT_SIZES) {
-        if (font < column.fontSize) break;
-        const height = column.blocks.reduce((sum, block) => sum + measure(block, font), 0)
-          + Math.max(0, column.blocks.length - 1) * blockGap(font);
-        if (height <= capacity) { column.fontSize = font; break; }
-      }
-    });
-    const total = hasBackSections || columns.length > 2 ? 2 : 1;
-    const result: string[] = [];
-    for (let index = 0; index < total; index++) {
-      const article = paper(data, index);
-      const content = element("div", undefined, { display: "flex", flexDirection: "column", flex: "1", minHeight: "0", gap: index ? "12px" : "0", justifyContent: "start" });
-      content.dataset.newsletterContent = "true";
-      if (!index && introduction.length && !introInColumns) content.append(intro);
-      const pageColumns = columns.slice(index * 2, index * 2 + 2).filter(column => column.blocks.length > 0);
-      if (pageColumns.length) {
-        const grid = element("div", undefined, { display: "grid", gridTemplateColumns: pageColumns.length === 1 ? "1fr" : "1fr 1fr", gap: "28px", minHeight: "0", alignContent: "start" });
-        for (const column of pageColumns) {
-          const node = element("div", undefined, { display: "flex", flexDirection: "column", gap: `${blockGap(column.fontSize)}px`, minWidth: "0" });
-          column.blocks.forEach(block => node.append(renderDocumentBlock(block, column.fontSize)));
-          grid.append(node);
+    const capacities = [true, false].map(first => PAPER.height - PAPER.margin * 2 - heightOf(header(data, first)) - footHeight - 4);
+    const titleHeights = new Map<string, number>();
+    const galleryCache = new Map<string, GalleryPlan | null>();
+    const fitGallery = (g: Gallery, width: number, room: number): GalleryPlan | null => {
+      const key = g.id + ":" + width + ":" + Math.floor(room);
+      if (galleryCache.has(key)) return galleryCache.get(key)!;
+      const titleKey = g.id + ":" + width;
+      if (!titleHeights.has(titleKey)) titleHeights.set(titleKey, heightOf(heading(g.title, width < CONTENT_WIDTH), width) + 10);
+      const titleHeight = titleHeights.get(titleKey)!;
+      let best: GalleryPlan | null = null;
+      let bestScore = -Infinity;
+      for (const partition of partitionCache.get(g)!) {
+        const available = room - titleHeight - (partition.length - 1) * 12;
+        if (available <= 0) continue;
+        const maxHeight = g.id === "partners" ? 240 : g.id === "photos" ? 340 : 440;
+        const rowWidths = partition.map(row => Math.min(maxHeight, (width - (row.length - 1) * 12) / row.reduce((sum, img) => sum + img.width / img.height, 0)));
+        // Avoid a lone image dwarfing the other rows merely because it can grow.
+        const comparable = Math.max(...rowWidths) <= Math.min(...rowWidths) * 3;
+        const natural = rowWidths.map(height => comparable ? Math.min(height, Math.min(...rowWidths) * 1.25) : height);
+        const scale = Math.min(1, available / natural.reduce((a, b) => a + b, 0));
+        const rows = partition.map((images, i) => ({ images, height: natural[i] * scale }));
+        if (rows.some(row => row.images.some(img => {
+          const ratio = img.width / img.height;
+          const shortest = Math.min(row.height, row.height * ratio);
+          const minimum = g.id === "posters" && g.images.length <= 4 ? 110 : 65;
+          return shortest < Math.min(minimum, width * Math.min(1, 1 / ratio), maxHeight * Math.min(1, ratio)) - 0.1;
+        }))) continue;
+        const areas = rows.flatMap(row => row.images.map(img => row.height ** 2 * img.width / img.height));
+        const area = areas.reduce((a, b) => a + b, 0);
+        const score = area + Math.min(...areas) * areas.length * 0.7
+          - (Math.max(...areas) - Math.min(...areas)) * 0.35;
+        if (score > bestScore) {
+          bestScore = score;
+          best = { gallery: g, rows, height: titleHeight + rows.reduce((sum, row) => sum + row.height, 0) + (rows.length - 1) * 12, area };
         }
-        content.append(grid);
       }
-      if (!index && selected.photos) { selected.photos.style.marginTop = "18px"; content.append(selected.photos); }
-      if (index && selected.posters) content.append(selected.posters);
-      if (index && selected.partners) content.append(selected.partners);
-      article.append(content, footer(data, index, total));
-      root.style.width = `${PAPER.width}px`; root.replaceChildren(article);
-      // Give spare space to whole images, rather than spreading sections with
-      // huge blank gaps. Never exceed the width available to a row.
-      const rows = Array.from(content.querySelectorAll<HTMLElement>("section > div")).filter(node =>
-        node.children.length > 0 && Array.from(node.children).every(child => child.tagName === "IMG"));
-      const lastContent = content.lastElementChild?.getBoundingClientRect();
-      let spare = lastContent ? Math.max(0, content.getBoundingClientRect().bottom - lastContent.bottom - 3) : 0;
-      const growable = rows.map(row => {
-        const images = Array.from(row.children) as HTMLImageElement[];
-        const ratios = images.map(img => Number.parseFloat(img.style.width) / Number.parseFloat(img.style.height));
-        const height = Number.parseFloat(row.style.height);
-        const maximum = Math.min(340, (CONTENT_WIDTH - (images.length - 1) * 16) / ratios.reduce((sum, ratio) => sum + ratio, 0));
-        return { row, images, ratios, height, room: Math.max(0, maximum - height) };
-      });
-      const totalRoom = growable.reduce((sum, row) => sum + row.room, 0);
-      spare = Math.min(spare, totalRoom);
-      for (const item of growable) {
-        const height = item.height + (totalRoom ? spare * item.room / totalRoom : 0);
-        item.row.style.height = `${height}px`;
-        item.images.forEach((img, i) => { img.style.height = `${height}px`; img.style.width = `${height * item.ratios[i]}px`; });
+      galleryCache.set(key, best);
+      return best;
+    };
+    const fitGalleries = (items: Gallery[], width: number, room: number): GalleryPlan[] | null => {
+      if (!items.length) return [];
+      if (items.length === 1) { const result = fitGallery(items[0], width, room); return result ? [result] : null; }
+      let best: GalleryPlan[] | null = null, score = -Infinity;
+      for (const share of [0.35, 0.5, 0.65, 0.75, 0.85]) {
+        const first = fitGallery(items[0], width, (room - ZONE_GAP) * share);
+        if (!first) continue;
+        const second = fitGallery(items[1], width, room - ZONE_GAP - first.height);
+        if (!second) continue;
+        // Detailed event posters get priority over enlarging a partner mark.
+        const area = first.area * 2 + second.area * 0.5;
+        if (area > score) { best = [first, second]; score = area; }
       }
+      return best;
+    };
+    const buildPage = (items: DocumentBlock[], pageNotices: DocumentBlock[], media: Gallery[], capacity: number, font: number, allowSplit: boolean): SheetPlan | null => {
+      let best: SheetPlan | null = null;
+      const consider = (zones: Zone[], mode: string) => {
+        if (zones.some(z => z.y + z.height > capacity + 0.5 || z.height < 0)) return;
+        if (zones.some((a, i) => zones.slice(i + 1).some(b =>
+          Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x) > 0.5 &&
+          Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y) > 0.5))) return;
+        const occupied = zones.reduce((sum, z) => sum + (z.galleries
+          ? z.galleries.reduce((a, g) => a + g.area, 0)
+          : z.width * z.height), 0);
+        const bottoms = [0, COLUMN_WIDTH + COLUMN_GAP].map(x => Math.max(0, ...zones.filter(z => z.x <= x && z.x + z.width > x).map(z => z.y + z.height)));
+        const hole = Math.max(...bottoms) - Math.min(...bottoms);
+        const continuations = zones.flatMap(z => z.blocks ?? []).filter(b => b.kind === "text" && b.continuation).length;
+        const score = capacity * CONTENT_WIDTH - occupied + hole * COLUMN_WIDTH * 0.6 + continuations * 30000;
+        if (!best || score < best.score) best = { zones, score, mode };
+      };
+      const noticeHeight = (width: number) => pageNotices.length ? heightOf(renderNotice(pageNotices, font), width) : 0;
+      const appendTail = (base: Zone[], width: number, x: number, top: number, withNotices: boolean) => {
+        const zones = [...base];
+        let y = top;
+        if (withNotices && pageNotices.length) {
+          if (y) y += ZONE_GAP;
+          const h = noticeHeight(width);
+          zones.push({ x, y, width, height: h, blocks: pageNotices, notice: true }); y += h;
+        }
+        if (media.length) {
+          if (y) y += ZONE_GAP;
+          const fitted = fitGalleries(media, width, capacity - y);
+          if (!fitted) return null;
+          const h = fitted.reduce((sum, g) => sum + g.height, (fitted.length - 1) * ZONE_GAP);
+          zones.push({ x, y, width, height: h, galleries: fitted });
+        }
+        return zones;
+      };
+      const fullHeight = textHeight(items, font, CONTENT_WIDTH);
+      const full = appendTail(items.length ? [{ x: 0, y: 0, width: CONTENT_WIDTH, height: fullHeight, blocks: items }] : [], CONTENT_WIDTH, 0, fullHeight, true);
+      if (full) consider(full, "full");
+      const partitions: DocumentBlock[][][] = [];
+      for (let split = 1; split < items.length; split++) partitions.push([items.slice(0, split), items.slice(split)]);
+      if (items.length && allowSplit) {
+        for (const fraction of [1, 0.7, 0.5]) {
+          try {
+            const columns = paginateNewsletter(items, () => capacity * fraction, (b, f) => measure(b, f, COLUMN_WIDTH), font);
+            if (columns.length === 2) partitions.push(columns.map(c => c.blocks));
+          } catch { /* A different measured zone may fit. */ }
+        }
+      }
+      for (const pair of partitions) {
+        const heights = pair.map(group => textHeight(group, font, COLUMN_WIDTH));
+        if (heights.some(h => h > capacity)) continue;
+        const zones = pair.map((group, i) => ({ x: i * (COLUMN_WIDTH + COLUMN_GAP), y: 0, width: COLUMN_WIDTH, height: heights[i], blocks: group }));
+        const tail = appendTail(zones, CONTENT_WIDTH, 0, Math.max(...heights), true);
+        if (tail) consider(tail, "columns");
+        for (const side of [0, 1]) {
+          // A small notice can use the short column while the gallery below
+          // both columns still benefits from the entire page width.
+          if (pageNotices.length) {
+            const h = noticeHeight(COLUMN_WIDTH);
+            const notice: Zone = { x: side * (COLUMN_WIDTH + COLUMN_GAP), y: heights[side] + ZONE_GAP, width: COLUMN_WIDTH, height: h, blocks: pageNotices, notice: true };
+            const below = appendTail([...zones, notice], CONTENT_WIDTH, 0, Math.max(heights[1 - side], notice.y + h), false);
+            if (below) consider(below, "columns");
+          }
+          const mixed = appendTail(zones, COLUMN_WIDTH, side * (COLUMN_WIDTH + COLUMN_GAP), heights[side], true);
+          if (mixed) consider(mixed, "mixed");
+        }
+      }
+      if (items.length && (media.length || pageNotices.length)) {
+        const h = textHeight(items, font, COLUMN_WIDTH);
+        const mixed = appendTail([{ x: 0, y: 0, width: COLUMN_WIDTH, height: h, blocks: items }], COLUMN_WIDTH, COLUMN_WIDTH + COLUMN_GAP, 0, true);
+        if (mixed) consider(mixed, "mixed");
+      }
+      return best;
+    };
+    let selected: { pages: SheetPlan[]; font: number; introHeight: number; score: number } | null = null;
+    const search = (editorial: DocumentBlock[], fonts: number[], allowSplit = false) => {
+      for (const font of fonts) {
+        const introHeight = intro.length ? textHeight(intro, font, CONTENT_WIDTH) + ZONE_GAP : 0;
+        for (let split = 0; split <= editorial.length; split++) {
+          const front = editorial.slice(0, split), back = editorial.slice(split);
+          const hasBack = back.length > 0 || backMedia.length > 0;
+          const frontNotices = hasBack ? notices.filter(b => b.id === "dedications") : notices;
+          const backNotices = hasBack ? notices.filter(b => b.id === "support") : [];
+          const a = buildPage(front, frontNotices, frontMedia, capacities[0] - introHeight, font, allowSplit);
+          if (!a) continue;
+          const b = hasBack ? buildPage(back, backNotices, backMedia, capacities[1], font, allowSplit) : null;
+          if (hasBack && !b) continue;
+          if (!front.length && back.length) continue;
+          const editorialPenalty = front.filter(block => !["rav", "parasha"].includes(block.id)).length * 500_000
+            + back.filter(block => ["rav", "parasha"].includes(block.id)).length * 20_000_000;
+          const continuationPenalty = [...front, ...back].filter(block => block.kind === "text" && block.continuation).length * 12000;
+          // Typography preference precedes whitespace optimization. Do not make
+          // the body smaller solely to maximize image area.
+          const fontRank = [...NORMAL_FONTS, ...DENSE_FONTS].indexOf(font);
+          const score = a.score + (b?.score ?? 0) + editorialPenalty + continuationPenalty + fontRank * 2_000_000;
+          if (!selected || score < selected.score) selected = { pages: b ? [a, b] : [a], font, introHeight, score };
+        }
+      }
+    };
+    search(stories, NORMAL_FONTS);
+    if (!selected) search(stories, NORMAL_FONTS, true);
+    if (!selected) {
+      for (const font of NORMAL_FONTS) {
+        try {
+          const columns = paginateNewsletter(stories, () => Math.min(...capacities) * 0.65, (b, f) => measure(b, f, COLUMN_WIDTH), font);
+          search(columns.flatMap(c => c.blocks), [font], true);
+        } catch { /* Denser type is considered only after layout alternatives. */ }
+      }
+    }
+    if (!selected) search(stories, DENSE_FONTS);
+    if (!selected) search(stories, DENSE_FONTS, true);
+    if (!selected) {
+      for (const font of DENSE_FONTS) {
+        try {
+          const columns = paginateNewsletter(stories, () => Math.min(...capacities) * 0.65, (b, f) => measure(b, f, COLUMN_WIDTH), font);
+          search(columns.flatMap(c => c.blocks), [font], true);
+        } catch { /* Never truncate a draft that still cannot fit. */ }
+      }
+    }
+    if (!selected) throw new Error("Le contenu dépasse une A4 recto verso même après réorganisation. Ajustez manuellement une rubrique ou un visuel ; aucun texte ni image n’a été supprimé.");
+    const choice = selected as { pages: SheetPlan[]; font: number; introHeight: number; score: number };
+    return choice.pages.map((plan, index) => {
+      const article = paper(data, index);
+      article.dataset.composition = plan.mode;
+      article.dataset.bodyFont = String(choice.font);
+      const content = element("div", undefined, { position: "relative", flex: "1", minHeight: "0" });
+      content.dataset.newsletterContent = "true";
+      if (!index && intro.length) {
+        const node = element("div", undefined, { fontStyle: "italic" });
+        intro.forEach(block => node.append(renderDocumentBlock(block, choice.font)));
+        content.append(node);
+      }
+      for (const zone of plan.zones) {
+        const node = element("div", undefined, { position: "absolute", left: zone.x + "px", top: (zone.y + (index ? 0 : choice.introHeight)) + "px", width: zone.width + "px" });
+        node.dataset.newsletterZone = "true";
+        if (zone.notice) node.append(renderNotice(zone.blocks!, choice.font));
+        else zone.blocks?.forEach((block, i) => {
+          const section = renderDocumentBlock(block, choice.font);
+          if (i) section.style.marginTop = ZONE_GAP + "px";
+          node.append(section);
+        });
+        zone.galleries?.forEach((g, i) => {
+          const section = renderGallery(g, zone.width);
+          if (i) section.style.marginTop = ZONE_GAP + "px";
+          node.append(section);
+        });
+        content.append(node);
+      }
+      article.append(content, footer(data, index, choice.pages.length));
+      root.style.width = PAPER.width + "px"; root.replaceChildren(article);
       const bounds = content.getBoundingClientRect();
-      const overflow = Array.from(content.querySelectorAll<HTMLElement>("section, [data-newsletter-text], img")).some(node => {
+      const nodes = Array.from(content.querySelectorAll<HTMLElement>("[data-newsletter-zone], section, [data-newsletter-text], img"));
+      if (nodes.some(node => {
         const r = node.getBoundingClientRect();
         return r.bottom > bounds.bottom + 1 || r.right > bounds.right + 1 || r.left < bounds.left - 1;
-      });
-      if (overflow || content.scrollHeight > content.clientHeight + 1) throw new Error(`Le ${index ? "verso" : "recto"} est trop chargé. Raccourcissez une rubrique ou retirez un visuel. Aucun contenu n’a été masqué.`);
-      result.push(article.outerHTML);
-    }
-    return result;
+      })) throw new Error("La composition dépasse la zone imprimable. Aucun contenu n’a été masqué.");
+      return article.outerHTML;
+    });
   } finally { root.remove(); }
 }
