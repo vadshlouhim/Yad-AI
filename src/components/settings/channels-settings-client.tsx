@@ -130,7 +130,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expandedChannel, setExpandedChannel] = useState<string | null>(null);
   const [tokenInput, setTokenInput] = useState<Record<string, string>>({});
-  const [oauthPopupProvider, setOauthPopupProvider] = useState<string | null>(null);
+  const [oauthPopupProvider] = useState<string | null>(null);
 
   const channelMap = Object.fromEntries(channels.map((c) => [c.type, c]));
   const oauthStatus = searchParams.get("oauth");
@@ -269,9 +269,6 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
             <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100 sm:text-[15px]">
               Rassemblez vos connexions de publication dans un espace clair, moderne et coherent avec le reste du dashboard.
             </p>
-            <p className="hidden">
-              Connectez vos réseaux sociaux pour publier directement depuis EasyCom IA
-            </p>
           </div>
         </div>
       </div>
@@ -314,15 +311,6 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
       </div>
 
       {/* ── Info ─────────────────────────────────────────────── */}
-      <div className="hidden rounded-2xl border border-blue-100 bg-blue-50/60 p-4 flex gap-3">
-        <Info className="size-4 text-blue-500 flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-blue-700 leading-relaxed">
-          Les canaux <strong>Instagram</strong> et <strong>Facebook</strong> se connectent via Meta OAuth en un clic.
-          Pour <strong>Telegram</strong> et <strong>Email</strong>, renseignez votre clé API.
-          <strong> WhatsApp</strong> fonctionne en mode copier-coller guidé.
-        </p>
-      </div>
-
       {/* ── Liste des canaux ──────────────────────────────────── */}
       <div className="space-y-3">
         {CHANNEL_ORDER.map((type) => {

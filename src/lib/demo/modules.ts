@@ -63,7 +63,6 @@ export const DEMO_MODULES: Record<string, DemoModuleConfig> = {
     action: "Voir un exemple",
     highlights: ["Contenu quotidien", "Formats courts", "Calendrier hébraïque"],
     items: ["Hayom Yom du jour", "Sefer Hamitsvot", "Citation partageable"],
-    future: true,
   },
   "jewish-holidays-auto": {
     title: "Fêtes juives et hassidiques",
@@ -143,7 +142,6 @@ export const DEMO_MODULES: Record<string, DemoModuleConfig> = {
     action: "Composer un aperçu",
     highlights: ["Blocs automatiques", "Agenda intégré", "Responsive email"],
     items: ["Édito du rabbin", "Agenda du mois", "Retour en images"],
-    future: true,
   },
   boutique: {
     title: "Boutique",

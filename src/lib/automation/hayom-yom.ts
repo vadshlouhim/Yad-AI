@@ -175,10 +175,33 @@ async function fetchSource(url: string) {
   return response.text();
 }
 
-export async function fetchDailyStudy(dateISO: string): Promise<DailyStudy> {
+function studyListUrl(dateISO: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) throw new Error("Date d'étude invalide.");
+  const parsed = new Date(`${dateISO}T12:00:00Z`);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== dateISO) throw new Error("Date d'étude invalide.");
   const [year, month, day] = dateISO.split("-");
-  if (!year || !month || !day) throw new Error("Date d'étude invalide.");
-  const listUrl = `${HAYOM_YOM_SOURCE}/index.php?option=com_jevents&view=day&layout=listevents&Itemid=247&year=${year}&month=${month}&day=${day}`;
+  return `${HAYOM_YOM_SOURCE}/index.php?option=com_jevents&view=day&layout=listevents&Itemid=247&year=${year}&month=${month}&day=${day}`;
+}
+
+function seferText(html: string) {
+  return ["event-desc", "jitem-heading", "jitem-introtext"].map(name => classContent(html, name)).filter(Boolean).join("\n\n");
+}
+
+/** Same source/parser as daily study, independent of the Hayom Yom availability. */
+export async function fetchSeferHamitsvot(dateISO: string) {
+  const listHtml = await fetchSource(studyListUrl(dateISO));
+  const sourceUrl = eventUrl(listHtml, "sefer-hamitsvot");
+  const html = await fetchSource(sourceUrl);
+  const [year, month, day] = dateISO.split("-");
+  if (!html.includes(`${month}.${day}.${year}`)) throw new Error("Le Sefer Hamitsvot ne correspond pas à la date demandée.");
+  const text = seferText(html);
+  if (!text) throw new Error("Le Sefer Hamitsvot est indisponible pour cette date.");
+  return { text, sourceUrl };
+}
+
+export async function fetchDailyStudy(dateISO: string): Promise<DailyStudy> {
+  const listUrl = studyListUrl(dateISO);
+  const [year, month, day] = dateISO.split("-");
   const listHtml = await fetchSource(listUrl);
   const hayomYomUrl = eventUrl(listHtml, "hayom-yom");
   const seferHamitsvotUrl = eventUrl(listHtml, "sefer-hamitsvot");
@@ -195,17 +218,12 @@ export async function fetchDailyStudy(dateISO: string): Promise<DailyStudy> {
     classContent(hayomHtml, "jitem-hayomyom-tanya"),
     classContent(hayomHtml, "jitem-fulltext"),
   ].filter(Boolean);
-  const seferParts = [
-    classContent(seferHtml, "event-desc"),
-    classContent(seferHtml, "jitem-heading"),
-    classContent(seferHtml, "jitem-introtext"),
-  ].filter(Boolean);
-  if (!dateLabel || hayomParts.length === 0 || seferParts.length === 0) {
+  const seferHamitsvot = seferText(seferHtml);
+  if (!dateLabel || hayomParts.length === 0 || !seferHamitsvot) {
     throw new Error("Le contenu des études du jour est incomplet.");
   }
 
   const hayomYom = hayomParts.join("\n\n");
-  const seferHamitsvot = seferParts.join("\n\n");
   const facebookText = [
     "📖 HAYOM YOM",
     dateLabel,

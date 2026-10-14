@@ -374,7 +374,7 @@ function InstagramPublishClient({ channelId, isConnected, communityName }: Props
       }
       if (data.redirectToPosters) {
         alert(data.redirectMessage ?? "Pour creer un visuel, rendez-vous dans Affiches.");
-        router.push("/dashboard/affiches");
+        router.push("/dashboard/templates");
         return;
       }
       setCaption(data.body ?? "");
@@ -579,11 +579,6 @@ function InstagramPublishClient({ channelId, isConnected, communityName }: Props
                 </div>
 
                 <div className="px-3 py-3">
-                  <div className="hidden">
-                    <span className="text-xl">♡</span>
-                    <span className="text-xl">◯</span>
-                    <span className="text-xl">➤</span>
-                  </div>
                   <div className="mb-3 flex items-center gap-4 text-slate-900">
                     <Heart className="size-6" />
                     <MessageCircle className="size-6" />
@@ -799,7 +794,7 @@ function FacebookPublishClient({ channelId, isConnected, communityName }: Props)
       }
       if (data.redirectToPosters) {
         alert(data.redirectMessage ?? "Pour creer une affiche, je vous redirige vers la page Affiches.");
-        router.push("/dashboard/affiches");
+        router.push("/dashboard/templates");
         return;
       }
       setMessage(data.body ?? "");
@@ -1234,7 +1229,7 @@ function TelegramPublishClient({ channelId, isConnected, communityName }: Props)
       }
       if (data.redirectToPosters) {
         alert(data.redirectMessage ?? "Pour creer une affiche, je vous redirige vers la page Affiches.");
-        router.push("/dashboard/affiches");
+        router.push("/dashboard/templates");
         return;
       }
       setMessage(data.body ?? "");

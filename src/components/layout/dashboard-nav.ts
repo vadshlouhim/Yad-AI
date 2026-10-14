@@ -10,7 +10,6 @@ import {
   Clock3,
   House,
   Globe,
-  HandHeart,
   HelpCircle,
   History,
   Image,
@@ -459,16 +458,6 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       ],
     },
     {
-      key: "donation",
-      section: "CAMPAGNE DE DONS",
-      subtitle: "Pilotez vos campagnes de collecte de A a Z",
-      icon: HandHeart,
-      items: [
-        { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart, badge: "Bientot disponible" },
-        { href: "/dashboard/donation-campaign/visuals", label: "Visuels & publications", icon: Share2, badge: "Bientot disponible" },
-      ],
-    },
-    {
       key: "newsletter",
       section: "NEWSLETTER IA",
       subtitle: "Créez et programmez vos newsletters avec l'IA",
@@ -584,13 +573,6 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
     ],
   },
   {
-    section: "CAMPAGNE DE DONS",
-    items: [
-      { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart, badge: "Bientot disponible" },
-      { href: "/dashboard/donation-campaign/visuals", label: "Visuels & Publications", icon: Share2, badge: "Bientot disponible" },
-    ],
-  },
-  {
     section: "NEWSLETTER IA",
     items: [
       { href: "/dashboard/newsletter", label: "Newsletter papier Chabbat", icon: Mail },
@@ -694,14 +676,6 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     icon: Target,
     items: [
       { href: "/dashboard/communication-ciblee", label: "Communication ciblée", icon: Target },
-    ],
-  },
-  {
-    section: "CAMPAGNE DE DONS",
-    icon: HandHeart,
-    items: [
-      { href: "/dashboard/donation-campaign", label: "Campagne de dons", icon: HandHeart, badge: "Bientot disponible" },
-      { href: "/dashboard/donation-campaign/visuals", label: "Visuels & Publications", icon: Share2, badge: "Bientot disponible" },
     ],
   },
   {

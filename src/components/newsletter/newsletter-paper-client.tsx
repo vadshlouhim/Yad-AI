@@ -6,6 +6,8 @@ import { NewsletterDocument, type NewsletterDocumentHandle } from "@/components/
 import type { NewsletterDocumentData } from "@/lib/newsletter/document-layout";
 import { NEWSLETTER_IMAGE_ACCEPT, uploadNewsletterBatch, uploadNewsletterImage } from "@/lib/newsletter/media";
 import { createDraftSaveQueue } from "@/lib/newsletter/save-queue";
+import { NEWSLETTER_MEDIA_LIMIT } from "@/lib/newsletter/limits";
+import type { NewsletterStudy } from "@/lib/newsletter/shabbat-study";
 import {
   BookOpen,
   CalendarDays,
@@ -73,7 +75,7 @@ export type CommunityInfo = {
   isBethHabad: boolean;
 };
 
-export type ModuleKey = "ravWord" | "photos" | "posters" | "parness" | "birthdays" | "kiddush" | "events" | "restaurantAd" | "support" | "shabbat";
+export type ModuleKey = "ravWord" | "photos" | "posters" | "parness" | "birthdays" | "kiddush" | "events" | "restaurantAd" | "support" | "shabbat" | "seferHamitsvot";
 type EditorStep = "modules" | "content" | "preview";
 
 type ModuleConfig = {
@@ -118,6 +120,7 @@ type NewsletterDraft = {
 };
 
 const MODULES: ModuleConfig[] = [
+  { key: "seferHamitsvot", title: "Sefer Hamitsvot du Chabbat", icon: BookOpen },
   { key: "ravWord", title: "Mot du Rav", icon: BookOpen },
   { key: "photos", title: "Photos de la semaine", icon: ImagePlus },
   { key: "posters", title: "Affiches & événements à venir...", icon: ImagePlus },
@@ -135,6 +138,7 @@ const ESSENTIAL_MODULES = MODULES.filter((module) => ESSENTIAL_MODULE_KEYS.has(m
 const OPTIONAL_MODULES = MODULES.filter((module) => !ESSENTIAL_MODULE_KEYS.has(module.key));
 
 const DEFAULT_ENABLED: Record<ModuleKey, boolean> = {
+  seferHamitsvot: false,
   ravWord: true,
   photos: true,
   posters: false,
@@ -204,9 +208,9 @@ function draftText(value: unknown, fallback = "") {
   return typeof value === "string" ? value : fallback;
 }
 
-function draftUploads(value: unknown, max: number): UploadedPhoto[] {
+function draftUploads(value: unknown): UploadedPhoto[] {
   if (!Array.isArray(value)) return [];
-  return value.slice(0, max).flatMap((item) => {
+  return value.flatMap((item) => {
     if (!isRecord(item) || typeof item.url !== "string" || !item.url.trim()) return [];
     return [{
       id: typeof item.id === "string" ? item.id : crypto.randomUUID(),
@@ -243,10 +247,10 @@ function parseNewsletterDraft(value: unknown, donationDefault: string): Newslett
     mobilePreviewPage: value.mobilePreviewPage === "back" ? "back" : "front",
     parnessText: draftText(value.parnessText),
     kiddushText: draftText(value.kiddushText),
-    partnerAds: draftUploads(value.partnerAds, 3),
+    partnerAds: draftUploads(value.partnerAds),
     donationUrl: draftText(value.donationUrl, donationDefault),
-    photos: draftUploads(value.photos, 9),
-    posters: draftUploads(value.posters, 5),
+    photos: draftUploads(value.photos),
+    posters: draftUploads(value.posters),
     bannerPhotoUrl: draftText(value.bannerPhotoUrl),
     generated: {
       title: draftText(generatedValue.title, draftText(value.title, defaults.title)),
@@ -271,12 +275,14 @@ export function NewsletterPaperClient({
   initialEvents,
   initialBirthdays,
   initialShabbat,
+  initialSeferHamitsvot = null,
 }: {
   userId: string;
   community: CommunityInfo;
   initialEvents: NewsletterEvent[];
   initialBirthdays: NewsletterBirthday[];
   initialShabbat: NewsletterShabbat | null;
+  initialSeferHamitsvot?: NewsletterStudy | null;
 }) {
   const documentRef = useRef<NewsletterDocumentHandle>(null);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -292,6 +298,7 @@ export function NewsletterPaperClient({
   const [editorStep, setEditorStep] = useState<EditorStep>("modules");
   const [parashaOpen, setParashaOpen] = useState(false);
   const [agendaOpen, setAgendaOpen] = useState(false);
+  const [seferHamitsvotOpen, setSeferHamitsvotOpen] = useState(false);
   // Retain the legacy field so version-1 drafts remain compatible.
   const mobilePreviewPage = "front" as const;
   const [parnessText, setParnessText] = useState("");
@@ -323,11 +330,12 @@ export function NewsletterPaperClient({
   const activeCount = useMemo(() => Object.values(enabled).filter(Boolean).length, [enabled]);
   const mayContainLegacyCuts = [[generated.intro, 180], [generated.ravWord, 850], [generated.shabbatNote, 620], [generated.eventIntro, 220]].some(([text, limit]) => typeof text === "string" && text.length === limit && !/[.!?…]$/.test(text.trim()));
   const visibleEvents = initialEvents;
-  const visiblePhotos = photos.slice(0, 9);
-  const visiblePosters = posters.slice(0, 5);
-  const visiblePartnerAds = partnerAds.slice(0, 3);
+  const visiblePhotos = photos;
+  const visiblePosters = posters;
+  const visiblePartnerAds = partnerAds;
   const previewCommunity = { ...community, donationUrl };
   const outputEnabled = useMemo<Record<ModuleKey, boolean>>(() => ({
+    seferHamitsvot: enabled.seferHamitsvot,
     ravWord: enabled.ravWord && Boolean(generated.ravWord.trim()),
     photos: enabled.photos && visiblePhotos.length > 0,
     posters: enabled.posters && visiblePosters.length > 0,
@@ -343,6 +351,7 @@ export function NewsletterPaperClient({
     community: previewCommunity, enabled: outputEnabled, generated, parnessText, kiddushText,
     photos: visiblePhotos, posters: visiblePosters, partnerAds: visiblePartnerAds,
     events: visibleEvents, birthdays: initialBirthdays, shabbat: initialShabbat, bannerPhotoUrl,
+    seferHamitsvot: initialSeferHamitsvot,
   };
   const localDraftKey = useMemo(() => `easycom.newsletter.draft.${community.id}.${userId}`, [community.id, userId]);
   const draftSnapshot = useMemo<NewsletterDraft>(() => ({
@@ -586,7 +595,7 @@ export function NewsletterPaperClient({
     const selected = Array.from(event.currentTarget.files ?? []);
     event.currentTarget.value = "";
     if (uploadBusyRef.current || !selected.length) return;
-    const remaining = target === "photos" ? 9 - photos.length : target === "posters" ? 5 - posters.length : target === "partnerAds" ? 3 - partnerAds.length : 1;
+    const remaining = Math.max(0, target === "photos" ? NEWSLETTER_MEDIA_LIMIT - photos.length : target === "posters" ? NEWSLETTER_MEDIA_LIMIT - posters.length : target === "partnerAds" ? 3 - partnerAds.length : 1);
     const files = selected.slice(0, remaining);
     if (!files.length) { setError("Limite atteinte. Retirez une image avant d’en ajouter une autre."); return; }
     uploadBusyRef.current = true;
@@ -595,9 +604,9 @@ export function NewsletterPaperClient({
     try {
       const errors = await uploadNewsletterBatch(files, uploadNewsletterImage, (uploaded) => {
         if (target === "banner") setBannerPhotoUrl(uploaded.url);
-        else if (target === "photos") setPhotos((current) => [...current, uploaded].slice(0, 9));
-        else if (target === "posters") setPosters((current) => [...current, uploaded].slice(0, 5));
-        else setPartnerAds((current) => [...current, uploaded].slice(0, 3));
+        else if (target === "photos") setPhotos((current) => [...current, uploaded]);
+        else if (target === "posters") setPosters((current) => [...current, uploaded]);
+        else setPartnerAds((current) => [...current, uploaded]);
       }, (completed, total) => setUploadProgress(`Importation : ${completed}/${total} fichier(s)`));
       if (selected.length > remaining) errors.push(`Seuls les ${remaining} premiers fichiers ont été traités : limite de la rubrique atteinte.`);
       if (errors.length) setError(errors.join("\n"));
@@ -829,6 +838,23 @@ export function NewsletterPaperClient({
             <h2 className="mt-1 text-xl font-black text-slate-950">Personnalisez l’essentiel</h2>
             <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">Vos textes seront repris tels quels.</p>
             <div className="mt-4 space-y-3">
+              {enabled.seferHamitsvot ? <section className="overflow-hidden rounded-2xl border border-teal-100 bg-teal-50">
+                <h3>
+                  <button type="button" aria-expanded={seferHamitsvotOpen} aria-controls="newsletter-sefer-hamitsvot-panel" onClick={() => setSeferHamitsvotOpen((open) => !open)} className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-900"><BookOpen className="size-5" aria-hidden="true" /></span>
+                    <span className="min-w-0 flex-1"><span className="block text-sm font-black text-teal-900">Sefer Hamitsvot du Chabbat</span><span className="block text-xs font-medium text-slate-600">{seferHamitsvotOpen ? "Refermer le texte" : "Ouvrir pour consulter le texte"}</span></span>
+                    <ChevronDown aria-hidden="true" className={cn("size-5 shrink-0 text-teal-800 transition-transform", seferHamitsvotOpen && "rotate-180")} />
+                  </button>
+                </h3>
+                <div id="newsletter-sefer-hamitsvot-panel" hidden={!seferHamitsvotOpen} className="border-t border-teal-100 px-4 pb-4 pt-3">
+                {initialSeferHamitsvot ? <>
+                  <p className="mt-1 text-xs font-bold text-teal-800">{initialSeferHamitsvot.dateLabel}{initialShabbat?.hebrewDate ? ` · ${initialShabbat.hebrewDate}` : ""}</p>
+                  <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{initialSeferHamitsvot.text}</p>
+                  <a className="mt-2 inline-block text-xs underline" href={initialSeferHamitsvot.sourceUrl} target="_blank" rel="noreferrer">Source : Beth Loubavitch</a>
+                  <p className="mt-2 text-xs text-slate-600">Texte repris intégralement pour le samedi, sans réécriture par IA.</p>
+                </> : <p className="mt-2 text-sm text-amber-800">L’étude de ce Chabbat n’a pas pu être chargée. Rechargez la page pour réessayer, ou désactivez cette rubrique pour continuer sans elle.</p>}
+                </div>
+              </section> : null}
               <TextArea label="Introduction du feuillet" value={generated.intro} onChange={(intro) => setGenerated((current) => ({ ...current, intro }))} />
               {enabled.ravWord ? (
                 <section className="rounded-2xl border border-[#cfe6d9] bg-[#f5fbf7] p-3 text-sm font-bold text-slate-700">
@@ -935,16 +961,17 @@ export function NewsletterPaperClient({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-[#005572]">Photos de la semaine</p>
-                <p className="mt-1 text-sm text-slate-500">{photos.length}/9 photo(s) ajoutee(s)</p>
+                <p className="mt-1 text-sm text-slate-500">{photos.length}/{NEWSLETTER_MEDIA_LIMIT} photos · 4 maximum par ligne · images entières, sans recadrage</p>
+                {photos.length > NEWSLETTER_MEDIA_LIMIT ? <p className="mt-1 text-sm text-amber-700">Ce brouillon dépasse la nouvelle limite. Choisissez les 8 photos à conserver ; aucune n’a été retirée automatiquement.</p> : null}
               </div>
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#36506d] px-3 py-2 text-xs font-black text-white transition hover:bg-[#17253f]">
                 {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                 Ajouter
-                <input type="file" accept={NEWSLETTER_IMAGE_ACCEPT} multiple className="sr-only" onChange={(event) => void uploadMedia(event, "photos")} disabled={uploading || photos.length >= 9} />
+                <input type="file" accept={NEWSLETTER_IMAGE_ACCEPT} multiple className="sr-only" onChange={(event) => void uploadMedia(event, "photos")} disabled={uploading || photos.length >= NEWSLETTER_MEDIA_LIMIT} />
               </label>
             </div>
             {photos.length > 0 ? (
-              <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {photos.map((photo) => (
                   <div key={photo.id} className="group relative overflow-hidden rounded-xl bg-slate-100">
                     <img src={photo.url} alt={photo.name} className="aspect-square w-full object-contain" />
@@ -963,15 +990,16 @@ export function NewsletterPaperClient({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-900">Affiches &amp; événements à venir...</p>
-                <p className="mt-1 text-sm text-slate-500">{posters.length}/5 affiche(s) ajoutée(s)</p>
+                <p className="mt-1 text-sm text-slate-500">{posters.length}/{NEWSLETTER_MEDIA_LIMIT} affiches · 4 maximum par ligne · images entières, sans recadrage</p>
+                {posters.length > NEWSLETTER_MEDIA_LIMIT ? <p className="mt-1 text-sm text-amber-700">Ce brouillon dépasse la nouvelle limite. Choisissez les 8 affiches à conserver ; aucune n’a été retirée automatiquement.</p> : null}
               </div>
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#18264d] px-3 py-2 text-xs font-black text-white transition hover:bg-[#101b37]">
                 {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                 Ajouter
-                <input type="file" accept={NEWSLETTER_IMAGE_ACCEPT} multiple className="sr-only" onChange={(event) => void uploadMedia(event, "posters")} disabled={uploading || posters.length >= 5} />
+                <input type="file" accept={NEWSLETTER_IMAGE_ACCEPT} multiple className="sr-only" onChange={(event) => void uploadMedia(event, "posters")} disabled={uploading || posters.length >= NEWSLETTER_MEDIA_LIMIT} />
               </label>
             </div>
-            {posters.length > 0 ? <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-5">
+            {posters.length > 0 ? <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {posters.map((poster) => <div key={poster.id} className="group relative overflow-hidden rounded-xl bg-slate-100">
                 <img src={poster.url} alt={poster.name} className="aspect-[3/4] w-full object-contain" />
                 <button type="button" onClick={() => setPosters((current) => current.filter((item) => item.id !== poster.id))} className="absolute right-1 top-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-black text-slate-700 shadow transition hover:bg-white focus-visible:ring-2 focus-visible:ring-violet-600">Retirer</button>

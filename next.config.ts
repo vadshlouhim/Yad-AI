@@ -9,6 +9,9 @@ const supabaseImageHostname = (() => {
 })();
 
 const nextConfig: NextConfig = {
+  experimental: {
+    preloadEntriesOnStart: false,
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

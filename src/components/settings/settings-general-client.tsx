@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Save, Building2, User, Palette, ChevronRight, ShieldCheck, Users, Smartphone, Trash2, Share2, Bot, SlidersHorizontal, Image as ImageIcon, Loader2, Upload, CreditCard, ArrowLeft } from "lucide-react";
+import { Save, Building2, User, Palette, ShieldCheck, Users, Share2, Bot, SlidersHorizontal, Image as ImageIcon, Loader2, Upload, CreditCard, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels";
@@ -53,34 +53,6 @@ interface Props {
 }
 
 type SettingsSection = "community" | "contacts" | "editorial" | "profile" | "interface";
-
-interface CommunityMember {
-  id: string;
-  displayName: string;
-  email: string | null;
-  phone: string | null;
-  profession: string | null;
-  age: number | null;
-  city: string | null;
-  familyStatus: string | null;
-  notes: string | null;
-  source: string;
-}
-
-interface ContactPickerContact {
-  name?: string[];
-  email?: string[];
-  tel?: string[];
-}
-
-interface NavigatorWithContacts extends Navigator {
-  contacts?: {
-    select: (
-      properties: Array<"name" | "email" | "tel">,
-      options?: { multiple?: boolean }
-    ) => Promise<ContactPickerContact[]>;
-  };
-}
 
 const TONE_OPTIONS = [
   { value: "MODERN", label: "Moderne", description: "Accessible et contemporain" },
@@ -170,18 +142,6 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
-  const [members, setMembers] = useState<CommunityMember[]>([]);
-  const [membersLoading, setMembersLoading] = useState(false);
-  const [memberName, setMemberName] = useState("");
-  const [memberEmail, setMemberEmail] = useState("");
-  const [memberPhone, setMemberPhone] = useState("");
-  const [memberProfession, setMemberProfession] = useState("");
-  const [memberAge, setMemberAge] = useState("");
-  const [memberCity, setMemberCity] = useState("");
-  const [memberFamilyStatus, setMemberFamilyStatus] = useState("");
-  const [memberNotes, setMemberNotes] = useState("");
-  const [memberError, setMemberError] = useState<string | null>(null);
-
   const [googleConnected, setGoogleConnected] = useState(false);
   const [googleEmailAddress, setGoogleEmailAddress] = useState("");
 
@@ -343,92 +303,6 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
     }
   }
 
-  async function loadMembers() {
-    setMembersLoading(true);
-    try {
-      const response = await fetch("/api/community/members");
-      if (response.ok) setMembers(await response.json());
-    } finally {
-      setMembersLoading(false);
-    }
-  }
-
-  async function addMember() {
-    setMemberError(null);
-    if (!memberName.trim() && !memberEmail.trim() && !memberPhone.trim()) {
-      setMemberError("Ajoutez au moins un nom, email ou téléphone.");
-      return;
-    }
-
-    const response = await fetch("/api/community/members", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        displayName: memberName,
-        email: memberEmail,
-        phone: memberPhone,
-        profession: memberProfession,
-        age: memberAge,
-        city: memberCity,
-        familyStatus: memberFamilyStatus,
-        notes: memberNotes,
-        source: "manual",
-      }),
-    });
-
-    if (!response.ok) {
-      const data = await response.json();
-      setMemberError(data.error ?? "Impossible d'ajouter ce membre.");
-      return;
-    }
-
-    setMemberName("");
-    setMemberEmail("");
-    setMemberPhone("");
-    setMemberProfession("");
-    setMemberAge("");
-    setMemberCity("");
-    setMemberFamilyStatus("");
-    setMemberNotes("");
-    await loadMembers();
-  }
-
-  async function importPhoneContacts() {
-    setMemberError(null);
-    const contactsApi = (navigator as NavigatorWithContacts).contacts;
-    if (!contactsApi?.select) {
-      setMemberError("L'import des contacts du smartphone n'est pas disponible sur ce navigateur.");
-      return;
-    }
-
-    const contacts = await contactsApi.select(["name", "email", "tel"], { multiple: true });
-    const response = await fetch("/api/community/members", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        members: contacts.map((contact) => ({
-          displayName: contact.name?.[0] ?? "",
-          email: contact.email?.[0] ?? null,
-          phone: contact.tel?.[0] ?? null,
-          source: "phone_contacts",
-        })),
-      }),
-    });
-
-    if (!response.ok) {
-      const data = await response.json();
-      setMemberError(data.error ?? "Import impossible.");
-      return;
-    }
-
-    await loadMembers();
-  }
-
-  async function deleteMember(id: string) {
-    await fetch(`/api/community/members/${id}`, { method: "DELETE" });
-    setMembers((current) => current.filter((member) => member.id !== id));
-  }
-
   const authProviders = profile.authProviders.length > 0 ? profile.authProviders : ["email"];
 
   const navItems = [
@@ -449,42 +323,6 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
 
   return (
     <div className="space-y-6">
-      <div className="hidden">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Paramètres</h1>
-          <p className="text-slate-500 mt-1">Gérez ici vos réseaux sociaux, votre quotidien, vos contacts, la FAQ et le support.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {profile.canAccessAdmin && (
-            <Link href="/admin">
-              <Button variant="outline" size="sm">
-                <ShieldCheck className="size-4" />
-                Admin global
-                <ChevronRight className="size-3.5 ml-1" />
-              </Button>
-            </Link>
-          )}
-          <Link href="/dashboard/settings/billing">
-            <Button variant="outline" size="sm">
-              <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", PLAN_LABELS[community.plan]?.color)}>
-                {PLAN_LABELS[community.plan]?.label ?? community.plan}
-              </span>
-              Paiement
-              <ChevronRight className="size-3.5 ml-1" />
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      <div className="hidden grid-cols-1 gap-2 sm:grid-cols-2 md:grid lg:grid-cols-3 [&>*]:border-emerald-100 [&>*]:font-semibold [&>*]:shadow-sm [&>*]:transition [&>*]:hover:-translate-y-0.5 [&>*]:hover:border-emerald-200 [&>*]:hover:bg-emerald-50">
-        <Link href="/dashboard/settings/channels" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">Connexion réseaux sociaux</Link>
-        {profile.canAccessAdmin && (
-          <Link href="/admin" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 hover:bg-emerald-100">
-            Admin global
-          </Link>
-        )}
-      </div>
-
       {mobileSettingsHome && (
         <section className="md:hidden">
           <h2 className="mb-4 text-xl font-black tracking-tight text-slate-950">Que souhaitez-vous régler ?</h2>
@@ -735,148 +573,6 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
           )}
 
           {activeSection === "contacts" && <ContactsManager />}
-          {false && (
-            <Card className={settingsCardClass}>
-              <CardHeader className={settingsHeaderClass}>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Users className="size-4" />
-                  Contacts de la communauté
-                </CardTitle>
-              </CardHeader>
-              <CardContent className={settingsContentClass}>
-                <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
-                  Ces contacts sont les membres destinataires des messages WhatsApp et emails.
-                  Ils ne sont pas administrateurs et n&apos;ont pas accès au dashboard. Vous pouvez
-                  aussi renseigner leur profession, âge, ville et notes pour mieux personnaliser les communications.
-                </div>
-
-                {memberError && (
-                  <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                    {memberError}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-                  <input
-                    type="text"
-                    value={memberName}
-                    onChange={(event) => setMemberName(event.target.value)}
-                    placeholder="Nom du membre"
-                    className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                  <input
-                    type="email"
-                    value={memberEmail}
-                    onChange={(event) => setMemberEmail(event.target.value)}
-                    placeholder="Email"
-                    className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                  <input
-                    type="tel"
-                    value={memberPhone}
-                    onChange={(event) => setMemberPhone(event.target.value)}
-                    placeholder="Téléphone WhatsApp"
-                    className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                  <input
-                    type="text"
-                    value={memberProfession}
-                    onChange={(event) => setMemberProfession(event.target.value)}
-                    placeholder="Profession"
-                    className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    value={memberAge}
-                    onChange={(event) => setMemberAge(event.target.value)}
-                    placeholder="Âge"
-                    className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                  <input
-                    type="text"
-                    value={memberCity}
-                    onChange={(event) => setMemberCity(event.target.value)}
-                    placeholder="Ville"
-                    className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  />
-                  <input
-                    type="text"
-                    value={memberFamilyStatus}
-                    onChange={(event) => setMemberFamilyStatus(event.target.value)}
-                    placeholder="Statut familial"
-                    className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 lg:col-span-1"
-                  />
-                  <textarea
-                    value={memberNotes}
-                    onChange={(event) => setMemberNotes(event.target.value)}
-                    placeholder="Notes utiles : centres d'intérêt, préférences, informations de suivi..."
-                    rows={2}
-                    className="rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 lg:col-span-2"
-                  />
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={addMember}>
-                    <Users className="size-4" />
-                    Ajouter le membre
-                  </Button>
-                  <Button variant="outline" onClick={importPhoneContacts}>
-                    <Smartphone className="size-4" />
-                    Importer depuis le smartphone
-                  </Button>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200">
-                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                    <p className="text-sm font-semibold text-slate-900">
-                      {members.length} membre{members.length > 1 ? "s" : ""}
-                    </p>
-                    {membersLoading && <span className="text-xs text-slate-400">Chargement...</span>}
-                  </div>
-                  <div className="divide-y divide-slate-100">
-                    {members.length === 0 && !membersLoading ? (
-                      <p className="px-4 py-8 text-center text-sm text-slate-400">
-                        Aucun contact enregistré pour le moment.
-                      </p>
-                    ) : (
-                      members.map((member) => (
-                        <div key={member.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-slate-900">{member.displayName}</p>
-                            <p className="truncate text-xs text-slate-500">
-                              {[member.email, member.phone].filter(Boolean).join(" · ") || "Contact sans canal"}
-                            </p>
-                            <p className="mt-1 line-clamp-2 text-xs text-slate-400">
-                              {[member.profession, member.age ? `${member.age} ans` : null, member.city, member.familyStatus]
-                                .filter(Boolean)
-                                .join(" · ") || "Profil à compléter"}
-                              {member.notes ? ` - ${member.notes}` : ""}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-[10px]">
-                              {member.source === "phone_contacts" ? "Smartphone" : "Manuel"}
-                            </Badge>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                              onClick={() => deleteMember(member.id)}
-                            >
-                              <Trash2 className="size-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Section éditoriale */}
           {activeSection === "editorial" && (
             <Card className={settingsCardClass}>
               <CardHeader className={settingsHeaderClass}>

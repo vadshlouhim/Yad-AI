@@ -9,7 +9,6 @@ import {
   Copy,
   FileImage,
   ImageIcon,
-  Layout,
   Mail,
   MessageCircle,
   Play,
@@ -22,7 +21,7 @@ import {
 import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
 import { AGENT_IMAGE_URLS } from "@/lib/agents";
 import type { DonationCampaign, CampaignStep, CampaignAsset, StepStatus } from "@/lib/donation-campaign";
-import { ASSET_TYPE_LABELS, STEP_TYPE_LABELS } from "@/lib/donation-campaign";
+import { ASSET_TYPE_LABELS } from "@/lib/donation-campaign";
 import { FacebookIcon, InstagramIcon } from "@/components/layout/dashboard-nav";
 
 interface Props {
@@ -31,31 +30,6 @@ interface Props {
   steps: CampaignStep[];
   assets: CampaignAsset[];
 }
-
-interface GeneratedContent {
-  type: "whatsapp" | "sms";
-  stepId: string;
-  stepLabel: string;
-  text: string;
-}
-
-const ASSET_SECTION_ICONS = {
-  square_poster: FileImage,
-  banner: Layout,
-  whatsapp_text: MessageCircle,
-  sms_text: Smartphone,
-  email_content: Mail,
-  social_post: Share2,
-};
-
-const STEP_TYPE_COLORS: Record<string, string> = {
-  launch: "bg-orange-100 text-orange-700",
-  reminder: "bg-blue-100 text-blue-700",
-  relay: "bg-amber-100 text-amber-700",
-  final_push: "bg-rose-100 text-rose-700",
-  closing: "bg-emerald-100 text-emerald-700",
-  thank_you: "bg-teal-100 text-teal-700",
-};
 
 function TextAssetCard({
   step,
@@ -355,9 +329,7 @@ function TextAssetCard({
   );
 }
 
-export function DonationCampaignVisualsClient({ community, campaign, steps, assets }: Props) {
-  const [activeSection, setActiveSection] = useState<"all" | "posters" | "messages" | "email" | "sms">("all");
-
+export function DonationCampaignVisualsClient({ campaign, steps, assets }: Props) {
   if (!campaign) {
     return (
       <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-12 text-center sm:px-6">
@@ -401,26 +373,6 @@ export function DonationCampaignVisualsClient({ community, campaign, steps, asse
         tone="rose"
         flat
       />
-
-      {/* Hero */}
-      <section className="hidden overflow-hidden rounded-[2rem] border border-orange-900/30 bg-[linear-gradient(135deg,#431407,#7C2D12,#EA580C)] p-[1px]">
-        <div className="relative rounded-[calc(2rem-1px)] bg-[linear-gradient(135deg,rgba(67,20,7,0.97),rgba(124,45,18,0.95),rgba(234,88,12,0.92))] px-6 py-7 text-white sm:px-8">
-          <div className="absolute right-6 top-5 font-serif text-xl font-bold text-white/40">ב&quot;ה</div>
-          <Link
-            href="/dashboard/donation-campaign"
-            className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-orange-300 hover:text-orange-100"
-          >
-            <ArrowLeft className="size-3.5" /> Retour au pilotage
-          </Link>
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-orange-200">
-            <Share2 className="size-3.5" /> Visuels &amp; Publications
-          </div>
-          <h1 className="mt-3 text-2xl font-black">Visuels &amp; Publications</h1>
-          <p className="mt-1 text-sm text-orange-100/80">
-            Retrouvez tous les supports créés pour votre campagne de dons.
-          </p>
-        </div>
-      </section>
 
       {/* 3 encarts */}
       <div className="grid gap-4 sm:grid-cols-3">

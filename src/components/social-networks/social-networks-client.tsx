@@ -8,8 +8,6 @@ import {
   AlertTriangle,
   CalendarClock,
   CheckCircle2,
-  ChevronDown,
-  Edit3,
   ExternalLink,
   History,
   ImagePlus,
@@ -20,7 +18,6 @@ import {
   Send,
   Share2,
   Sparkles,
-  Trash2,
   Upload,
   X,
 } from "lucide-react";
@@ -127,82 +124,6 @@ type SocialNetworksData = {
   whatsappContacts: WhatsAppContact[];
   publications: Publication[];
 };
-
-type HistoryItem = {
-  key: string;
-  ids: string[];
-  content: string;
-  date: string | null;
-  createdAt: string;
-  status: string;
-  networks: NetworkType[];
-};
-
-function statusLabel(status: string) {
-  const labels: Record<string, string> = {
-    SCHEDULED: "Programme",
-    PUBLISHED: "Envoye",
-    PUBLISHING: "En cours",
-    PENDING: "En attente",
-    FAILED: "Echoue",
-    CANCELLED: "Annule",
-    FALLBACK_READY: "Pret a copier",
-  };
-  return labels[status] ?? status;
-}
-
-function historyBadgeVariant(status: string) {
-  if (status === "PUBLISHED") return "published";
-  if (status === "SCHEDULED") return "scheduled";
-  if (status === "FAILED") return "failed";
-  if (status === "CANCELLED") return "archived";
-  return "secondary";
-}
-
-function groupPublications(publications: Publication[]): HistoryItem[] {
-  const groups = new Map<string, HistoryItem>();
-
-  for (const publication of publications) {
-    const key = publication.draftId
-      ? `${publication.draftId}:${publication.scheduledAt ?? "immediate"}`
-      : publication.id;
-    const existing = groups.get(key);
-    if (existing) {
-      existing.ids.push(publication.id);
-      existing.networks.push(publication.channelType);
-      if (publication.status === "FAILED") existing.status = "FAILED";
-      if (publication.status === "SCHEDULED" && existing.status !== "FAILED") existing.status = "SCHEDULED";
-      continue;
-    }
-
-    groups.set(key, {
-      key,
-      ids: [publication.id],
-      content: publication.content,
-      date: publication.scheduledAt,
-      createdAt: publication.createdAt,
-      status: publication.status,
-      networks: [publication.channelType],
-    });
-  }
-
-  return Array.from(groups.values()).sort((a, b) => {
-    const aDate = new Date(a.date ?? a.createdAt).getTime();
-    const bDate = new Date(b.date ?? b.createdAt).getTime();
-    return bDate - aDate;
-  });
-}
-
-function formatDate(value: string | null) {
-  if (!value) return "Publication immediate";
-  return new Date(value).toLocaleString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function SocialNetworksBanner() {
   return (
@@ -777,14 +698,9 @@ export function SocialNetworksClient() {
   const [publishRequirementIssues, setPublishRequirementIssues] = useState<string[] | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [publishSuccess, setPublishSuccess] = useState<Partial<Record<NetworkType, ImmediatePublishResult>> | null>(null);
-  const [editing, setEditing] = useState<HistoryItem | null>(null);
-  const [editText, setEditText] = useState("");
-  const [editScheduledAt, setEditScheduledAt] = useState("");
-  const [historyOpen, setHistoryOpen] = useState(false);
   const contactsSelectionInitialized = useRef(false);
 
   const channelsByType = useMemo(() => new Map(data.channels.map((channel) => [channel.type, channel])), [data.channels]);
-  const history = useMemo(() => groupPublications(data.publications), [data.publications]);
   const selectedDisconnected = selectedNetworks.filter((type) => {
     const channel = channelsByType.get(type);
     return !channel?.isConnected || !channel?.isActive;
@@ -1033,57 +949,6 @@ export function SocialNetworksClient() {
     }
 
     void submit(true);
-  }
-
-  async function cancelHistoryItem(item: HistoryItem) {
-    setPublishing(true);
-    try {
-      const response = await fetch(`/api/social-networks?ids=${encodeURIComponent(item.ids.join(","))}`, {
-        method: "DELETE",
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Annulation impossible.");
-      await loadData();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Annulation impossible.");
-    } finally {
-      setPublishing(false);
-    }
-  }
-
-  function startEdit(item: HistoryItem) {
-    setEditing(item);
-    setEditText(item.content);
-    setEditScheduledAt(item.date ? item.date.slice(0, 16) : "");
-  }
-
-  async function saveEdit() {
-    if (!editing) return;
-    if (!editText.trim()) {
-      alert("Le texte ne peut pas etre vide.");
-      return;
-    }
-
-    setPublishing(true);
-    try {
-      const response = await fetch("/api/social-networks", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          publicationIds: editing.ids,
-          content: editText,
-          scheduledAt: editScheduledAt ? new Date(editScheduledAt).toISOString() : editing.date,
-        }),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Modification impossible.");
-      setEditing(null);
-      await loadData();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Modification impossible.");
-    } finally {
-      setPublishing(false);
-    }
   }
 
   return (
@@ -1387,117 +1252,6 @@ export function SocialNetworksClient() {
         <span className="flex min-w-0 items-center gap-3"><span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/16 ring-1 ring-white/25"><History className="size-5" /></span><span className="min-w-0"><span className="block text-base font-black">Historique des publications</span><span className="mt-0.5 block text-sm font-semibold text-white/75">Retrouvez toutes vos publications envoyées et programmées.</span></span></span>
         <ExternalLink className="size-5 shrink-0 text-white/85 transition group-hover:translate-x-0.5" />
       </Link>
-
-      <Card aria-hidden="true" className="hidden overflow-hidden rounded-2xl border-slate-200 p-0">
-        <button
-          type="button"
-          onClick={() => setHistoryOpen((open) => !open)}
-          className="flex w-full items-center justify-between gap-4 p-5 text-left transition hover:bg-slate-50"
-          aria-expanded={historyOpen}
-          aria-controls="social-publication-history"
-        >
-          <span className="flex min-w-0 items-center gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-300">
-              <History className="size-5" />
-            </span>
-            <span className="min-w-0">
-              <span className="flex items-center gap-2 text-base font-black text-slate-950">
-                Historique
-                {!loading && history.length > 0 ? <Badge variant="secondary">{history.length}</Badge> : null}
-              </span>
-              <span className="mt-1 block text-sm text-slate-500">Date, reseaux utilises et texte de vos dernieres publications.</span>
-            </span>
-          </span>
-          <ChevronDown className={cn("size-5 shrink-0 text-slate-500 transition-transform duration-200", historyOpen && "rotate-180")} />
-        </button>
-
-        {historyOpen ? (
-          <div id="social-publication-history" className="border-t border-slate-200 p-5">
-            <div className="mb-4 flex justify-end">
-              <Button variant="outline" onClick={loadData} disabled={loading} className="rounded-xl">
-                <RefreshCw className={cn("size-4", loading && "animate-spin")} />
-                Actualiser
-              </Button>
-            </div>
-            {loading ? (
-              <p className="text-sm text-slate-500">Chargement de l&apos;historique...</p>
-            ) : history.length === 0 ? (
-              <p className="text-sm text-slate-500">Aucune publication pour le moment.</p>
-            ) : (
-              <div className="space-y-3">
-                {history.map((item) => (
-              <article key={item.key} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <Badge variant={historyBadgeVariant(item.status)}>{statusLabel(item.status)}</Badge>
-                      <span className="text-xs font-semibold text-slate-500">{formatDate(item.date)}</span>
-                      {item.networks.map((network) => (
-                        <span key={network} className="rounded-full bg-white px-2 py-1 text-[11px] font-black text-slate-600">
-                          {network}
-                        </span>
-                      ))}
-                    </div>
-                    <p className="line-clamp-3 text-sm leading-6 text-slate-700">{item.content}</p>
-                  </div>
-                  {item.status === "SCHEDULED" ? (
-                    <div className="flex shrink-0 gap-2">
-                      <Button size="sm" variant="outline" onClick={() => startEdit(item)} className="rounded-lg">
-                        <Edit3 className="size-4" />
-                        Modifier
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => cancelHistoryItem(item)} disabled={publishing} className="rounded-lg text-rose-600 hover:bg-rose-50">
-                        <Trash2 className="size-4" />
-                        Annuler
-                      </Button>
-                    </div>
-                  ) : null}
-                </div>
-              </article>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : null}
-      </Card>
-
-      {editing ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/50 px-4 py-6 backdrop-blur-sm">
-          <section role="dialog" aria-modal="true" className="w-full max-w-xl rounded-2xl border border-white/70 bg-white p-5 shadow-[0_30px_100px_rgba(15,23,42,0.34)]">
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-black text-slate-950">Modifier la publication programmee</h2>
-                <p className="mt-1 text-sm text-slate-500">La modification s&apos;applique aux reseaux de cette publication.</p>
-              </div>
-              <Button size="icon" variant="ghost" onClick={() => setEditing(null)} className="rounded-lg">
-                <X className="size-4" />
-              </Button>
-            </div>
-            <div className="space-y-3">
-              <textarea
-                rows={7}
-                value={editText}
-                onChange={(event) => setEditText(event.target.value)}
-                className="w-full rounded-xl border border-slate-200 p-4 text-sm leading-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              />
-              <input
-                type="datetime-local"
-                value={editScheduledAt}
-                onChange={(event) => setEditScheduledAt(event.target.value)}
-                className="h-11 w-full rounded-xl border border-slate-200 px-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setEditing(null)} className="rounded-xl">
-                  Fermer
-                </Button>
-                <Button onClick={saveEdit} disabled={publishing} className="rounded-xl bg-blue-600 text-white hover:bg-blue-700">
-                  Enregistrer
-                </Button>
-              </div>
-            </div>
-          </section>
-        </div>
-      ) : null}
 
       {publishSuccess ? (
         <SocialPublishSuccessDialog

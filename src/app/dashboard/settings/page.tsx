@@ -73,18 +73,6 @@ export default async function SettingsPage({
         </div>
       </section>
 
-      <section className="hidden overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-700 shadow-[0_20px_48px_rgba(6,95,70,0.16)] sm:rounded-[1.75rem]">
-        <div className="bg-[linear-gradient(135deg,#047857,#059669,#10b981)] px-4 py-5 text-white sm:px-8 sm:py-7">
-          <div className="max-w-3xl">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-50">Paramètres</p>
-            <h1 className="mt-2 text-2xl font-black tracking-tight sm:mt-3 sm:text-3xl">Paramètres</h1>
-            <p className="mt-3 text-sm leading-6 text-emerald-50">
-              Gérez ici vos réseaux sociaux, votre quotidien, vos contacts, la FAQ et le support.
-            </p>
-          </div>
-        </div>
-      </section>
-
       <SettingsGeneralClient
         community={{
           ...community,

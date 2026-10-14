@@ -20,7 +20,7 @@ const NAVIGATION_TARGETS: Record<string, { href: string; label: string }> = {
   reviews: { href: "/dashboard/google-reviews", label: "Avis Google" },
   whatsapp: { href: "/dashboard/whatsapp", label: "WhatsApp" },
   boutique: { href: "/dashboard/boutique", label: "Boutique" },
-  help: { href: "/dashboard/help", label: "Aide & support" },
+  help: { href: "/help", label: "Aide & support" },
   contact_support: { href: "/contact", label: "Contacter le support" },
   torah_course: { href: "/dashboard/torah", label: "Cours de Torah IA" },
   torah_library: { href: "/dashboard/community-library", label: "Bibliothèque partagée" },

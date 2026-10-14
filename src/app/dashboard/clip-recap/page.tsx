@@ -26,24 +26,6 @@ export default function ClipRecapPage() {
         tone="rose"
       />
 
-      <section className="hidden overflow-hidden rounded-3xl border border-[#c97a85] bg-gradient-to-br from-[#6c1829] via-[#8c2339] to-[#b03b52] p-6 shadow-[0_24px_60px_-32px_rgba(127,29,29,0.45)]">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-          <div className="max-w-3xl">
-            <div className="mb-4 h-1.5 w-12 rounded-full bg-rose-200/90" />
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">CLIP VIDEO</h1>
-              <Badge className="border-white/20 bg-white/14 text-white">A venir</Badge>
-            </div>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-rose-50/90">
-              Bientot, vous pourrez televerser vos photos et videos, donner vos instructions a l&apos;IA, et recevoir un clip pret a publier sur vos reseaux.
-            </p>
-          </div>
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-white shadow-inner shadow-rose-950/20">
-            <Video className="size-7" />
-          </div>
-        </div>
-      </section>
-
       <div className="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">
         <Card className="rounded-3xl border border-rose-100 bg-white shadow-[0_18px_48px_rgba(127,29,29,0.07)]">
           <CardHeader className="space-y-2 border-b border-slate-100 pb-5">

@@ -3,8 +3,23 @@ import { createDraftSaveQueue } from "../src/lib/newsletter/save-queue";
 import { MAX_SOURCE_BYTES, prepareNewsletterImage, uploadNewsletterBatch } from "../src/lib/newsletter/media";
 import { paginateNewsletter, fitNewsletterColumns, fitNewsletterWholeBlocks, supportCommunityName, type DocumentBlock } from "../src/lib/newsletter/document-layout";
 import { newsletterGeneratedText } from "../src/lib/newsletter/generated-text";
+import { NEWSLETTER_MEDIA_LIMIT, newsletterImagesPerRow } from "../src/lib/newsletter/limits";
+import { newsletterShabbatDate, newsletterStudyDateLabel } from "../src/lib/newsletter/shabbat-study";
 
 async function main() {
+  assert.equal(newsletterShabbatDate("2026-10-16"), "2026-10-17");
+  assert.equal(newsletterShabbatDate("2027-12-31"), "2028-01-01");
+  assert.equal(newsletterShabbatDate("2024-03-29"), "2024-03-30");
+  assert.match(newsletterStudyDateLabel("2026-10-17"), /samedi 17 octobre 2026/);
+  assert.throws(() => newsletterShabbatDate("2026-10-17"));
+  assert.throws(() => newsletterShabbatDate("2026-02-31"));
+  assert.equal(NEWSLETTER_MEDIA_LIMIT, 8);
+  assert.equal(newsletterImagesPerRow(8), 4);
+  assert.equal(newsletterImagesPerRow(5), 3);
+  for (let count = 0; count <= 40; count++) {
+    assert.ok(newsletterImagesPerRow(count) >= 1 && newsletterImagesPerRow(count) <= 4,
+      "Even legacy galleries must never exceed four whole images per row");
+  }
   assert.equal(supportCommunityName("Beth Habad Vanves"), "du Beth Habad Vanves");
   assert.equal(supportCommunityName("Le Beth Habad Vanves"), "du Beth Habad Vanves");
   assert.equal(supportCommunityName("Synagogue Vanves"), "de la Synagogue Vanves");

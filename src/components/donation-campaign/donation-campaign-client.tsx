@@ -5,17 +5,13 @@ import Link from "next/link";
 import {
   ArrowRight,
   Bot,
-  Calendar,
   FileText,
   CalendarDays,
   CheckCircle,
   ChevronRight,
-  ExternalLink,
   HandHeart,
   ImageIcon,
   LayoutGrid,
-  MessageCircle,
-  Pencil,
   Play,
   SendHorizonal,
   Share2,
@@ -382,16 +378,6 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
     setSteps((s) => s.map((st) => (st.id === stepId ? { ...st, status: action } : st)));
   };
 
-  const handleModifyPlan = () => {
-    const modifyMsg: ConversationMessage = {
-      role: "assistant",
-      content: "Que souhaitez-vous modifier dans le plan ? Vous pouvez me demander d'ajouter, déplacer ou supprimer des étapes.",
-    };
-    setMessages((m) => [...m, modifyMsg]);
-    setPlanReady(false);
-    setView("assistant");
-  };
-
   const campaignPreview = useMemo(
     () => extractPreviewFromMessages(messages, briefAccum),
     [messages, briefAccum]
@@ -425,22 +411,6 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
           tone="rose"
           flat
         />
-
-        {/* Hero */}
-        <section className="hidden overflow-hidden rounded-[2rem] border border-orange-900/30 bg-[linear-gradient(135deg,#431407,#7C2D12,#EA580C)] p-[1px] shadow-[0_24px_60px_rgba(234,88,12,0.22)]">
-          <div className="relative rounded-[calc(2rem-1px)] bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.09),transparent_30%),linear-gradient(135deg,rgba(67,20,7,0.97),rgba(124,45,18,0.95),rgba(234,88,12,0.92))] px-6 py-10 text-white sm:px-10">
-            <div className="absolute right-6 top-5 font-serif text-2xl font-bold text-white/50">ב&quot;ה</div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-orange-200">
-              <HandHeart className="size-3.5" /> Campagne de dons
-            </div>
-            <h1 className="mt-4 text-2xl font-black tracking-tight sm:text-3xl">
-              Centre de pilotage complet de campagne de dons
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-orange-100/90">
-              Construisez, pilotez et diffusez toute votre campagne de dons depuis un seul espace intelligent.
-            </p>
-          </div>
-        </section>
 
         {/* 4 étapes */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -996,40 +966,6 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
           icon={LayoutGrid}
           tone="purple"
         />
-
-        {/* Mini hero */}
-        <section className="hidden overflow-hidden rounded-2xl border border-orange-900/30 bg-[linear-gradient(135deg,#431407,#C2410C)] p-[1px]">
-          <div className="relative rounded-[calc(0.75rem-1px)] bg-[linear-gradient(135deg,rgba(67,20,7,0.96),rgba(194,65,12,0.90))] px-6 py-6 text-white">
-            <div className="absolute right-5 top-4 font-serif text-xl font-bold text-white/40">ב&quot;ה</div>
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-orange-300">Plan de campagne</p>
-                <h1 className="mt-1 text-xl font-black">{campaign?.title ?? "Votre campagne de dons"}</h1>
-                {campaign?.slogan && <p className="mt-1 text-sm italic text-orange-200">{campaign.slogan}</p>}
-                <div className="mt-2 flex flex-wrap gap-2 text-xs text-orange-200">
-                  {campaign?.start_date && (
-                    <span className="flex items-center gap-1">
-                      <Calendar className="size-3" />
-                      {new Date(campaign.start_date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
-                      {campaign.end_date && ` → ${new Date(campaign.end_date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}`}
-                    </span>
-                  )}
-                  {campaign?.channels?.map((ch) => (
-                    <span key={ch} className="inline-flex items-center gap-1"><ChannelIcon channel={ch} /> {ch}</span>
-                  ))}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleModifyPlan}
-                  className="flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/20"
-                >
-                  <Pencil className="size-3.5" /> Modifier le plan
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
 
         {/* Tableau du plan */}
         <div className="overflow-hidden rounded-3xl border border-rose-100 bg-white shadow-[0_18px_48px_rgba(138,24,77,0.10)]">

@@ -5,6 +5,8 @@ import { getUpcomingShabbatTimes } from "@/lib/automation/hebcal";
 import { requireAuth } from "@/lib/auth";
 import { getBirthdayOccurrence, getCurrentHebrewDate, validateHebrewBirthday } from "@/lib/contacts/hebrew-birthday";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchSeferHamitsvot } from "@/lib/automation/hayom-yom";
+import { newsletterShabbatDate, newsletterStudyDateLabel, type NewsletterStudy } from "@/lib/newsletter/shabbat-study";
 
 export const metadata: Metadata = { title: "Newsletter papier Chabbat - EasyCom IA" };
 
@@ -72,6 +74,17 @@ export default async function NewsletterPage() {
     : null;
 
   const birthdayWindowStart = startOfDay(now);
+  let seferHamitsvot: NewsletterStudy | null = null;
+  if (shabbatData) {
+    try {
+      const date = newsletterShabbatDate(shabbatData.date);
+      const study = await fetchSeferHamitsvot(date);
+      seferHamitsvot = { ...study, date, dateLabel: newsletterStudyDateLabel(date) };
+    } catch (error) {
+      // Optional study must not make the entire editor unavailable.
+      console.error("[Newsletter Sefer Hamitsvot]", error);
+    }
+  }
   const birthdayWindowEnd = startOfDay(weekEnd);
   const currentHebrewYear = getCurrentHebrewDate(timezone, now).getFullYear();
   const birthdays: NewsletterBirthday[] = (contacts ?? [])
@@ -124,6 +137,7 @@ export default async function NewsletterPage() {
       initialEvents={eventItems}
       initialBirthdays={birthdays}
       initialShabbat={shabbatData}
+      initialSeferHamitsvot={seferHamitsvot}
     />
   );
 }

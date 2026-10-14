@@ -11,7 +11,7 @@ import {
   Plus, MessageSquare, Pencil, MoreHorizontal, PanelLeftOpen, Share2,
   X, SlidersHorizontal, PlayCircle, PauseCircle,
   Power, ExternalLink, Zap, CalendarDays, BookOpen, Gift, HeartHandshake,
-  Lightbulb, Clock3, Mail, ChevronDown, User, Settings, LogOut,
+  Lightbulb, Clock3, ChevronDown, User, Settings, LogOut,
   Mic, FileText, FileDown, Loader2, ArrowLeft, Grid2X2,
 } from "lucide-react";
 import { CHANNEL_LABELS, cn } from "@/lib/utils";
@@ -19,7 +19,6 @@ import { createClient } from "@/lib/supabase/client";
 import { formatArticlePrice } from "@/lib/articles/shared";
 import { startArticleCheckout } from "@/lib/articles/checkout-client";
 import { AUTOMATION_PRESETS, type AutomationPresetKey } from "@/lib/automation/presets";
-import { DASHBOARD_NAV_ITEMS } from "@/components/layout/dashboard-nav";
 import { DailyRoutineWizard } from "./daily-routine-wizard";
 import { UpgradeModal } from "@/components/billing/upgrade-modal";
 import { AssistantDataPanel, type PanelActionPayload } from "./assistant-data-panel";
@@ -260,19 +259,6 @@ function getFirstPersonAgentDescription(description: string) {
 }
 const AGENTS_IMAGE_URL = AGENTS_GROUP_IMAGE;
 
-const EASYCOM_FULL_MESSAGE =
-  "Les agents intelligents vous aident à gérer toute votre communication depuis un seul espace intelligent.\n\n" +
-  "* Programmez vos publications sur WhatsApp, Instagram et Facebook, puis recevez une notification au bon moment avant validation.\n" +
-  "* Enregistrez vos contacts, organisez vos groupes et envoyez des messages bien rédigés, structurés et adaptés aux bonnes personnes.\n" +
-  "* Gérez vos emails intelligemment : l'IA trie les messages importants, repère les urgences et vous propose des réponses prêtes à envoyer.\n" +
-  "* Suivez vos avis Google : l'IA détecte les avis prioritaires, vous alerte et prépare une réponse professionnelle.\n" +
-  "* Utilisez l'Assistant du quotidien pour dire à l'IA un événement, une tâche ou un rappel, et il l'ajoute automatiquement dans votre Agenda IA.\n" +
-  "* Centralisez vos automatisations, publications prévues, rappels et événements dans votre Agenda IA avec des notifications au bon moment.\n" +
-  "* Créez des clips vidéo IA à partir de vos photos et vidéos, prêts à être publiés sur vos réseaux.\n" +
-  "* Notez vos ressources personnelles, organisez-les dans votre espace, puis publiez-les ou partagez-les en un clic.\n\n" +
-  "Les agents intelligents préparent, organisent et automatisent vos actions tout en vous laissant le contrôle : l'IA propose, vous validez, puis elle agit.\n\n" +
-  "Cliquez dans le menu ou demandez aux agents intelligents ce que vous souhaitez.";
-
 function AssistantAvatar({
   className,
   imageClassName,
@@ -497,7 +483,6 @@ export function AssistantClient({
   const [dailyRoutineMode, setDailyRoutineMode] = useState(false);
   const [savingRoutine, setSavingRoutine] = useState(false);
   const [showDailyRoutineBubble, setShowDailyRoutineBubble] = useState(true);
-  const [showAllFeaturesMobile, setShowAllFeaturesMobile] = useState(false);
   const [bubblePosition, setBubblePosition] = useState({ x: 24, y: 24 });
   const [hasStartedPromptEntry, setHasStartedPromptEntry] = useState(false);
   // Pièces jointes (images / documents) en attente d'envoi avec le prochain message.
@@ -1139,106 +1124,10 @@ export function AssistantClient({
       .replace(/\n/g, "<br />");
   }
 
-  function sendEasycomOverviewMessage() {
-    setHasStartedPromptEntry(true);
-    setMessages([
-      {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: EASYCOM_FULL_MESSAGE,
-        timestamp: new Date(),
-      },
-    ]);
-  }
-
-  function setAssistantExperience(mode: "simple" | "detailed") {
-    if (typeof window !== "undefined" && window.innerWidth < 768) {
-      setAssistantExperienceState("simple");
-      window.localStorage.setItem("easycom-assistant-experience", "simple");
-      return;
-    }
-    if (mode === "simple") {
-      setHistoryOpen(false);
-      setMenuId(null);
-    }
-    setAssistantExperienceState(mode);
-    window.localStorage.setItem("easycom-assistant-experience", mode);
-  }
-
   const groupedConversations = groupByDate(conversations);
   const quickPrompts = seasonalPrompts.length >= 4
     ? seasonalPrompts.slice(0, 4)
     : [...seasonalPrompts, ...QUICK_PROMPTS].slice(0, 4);
-  const detailedMenuItems = DASHBOARD_NAV_ITEMS.flatMap((section) => section.items);
-  const simpleMainButtons = [
-    { label: "Créer des automatisations", href: "/dashboard/automations", icon: Zap, accent: "bg-blue-500", iconTone: "text-blue-600", iconBg: "bg-blue-50", mobileOnly: false },
-    { label: "Assistant du quotidien", href: "/dashboard/events", icon: CalendarDays, accent: "bg-violet-500", iconTone: "text-violet-600", iconBg: "bg-violet-50", mobileOnly: false },
-    { label: "Gérer mes email", href: "/dashboard/email", icon: Mail, accent: "bg-cyan-500", iconTone: "text-cyan-600", iconBg: "bg-cyan-50", mobileOnly: false },
-    { label: "Voir mes avis Google", href: "/dashboard/google-reviews", icon: Sparkles, accent: "bg-cyan-500", iconTone: "text-cyan-600", iconBg: "bg-cyan-50", mobileOnly: false },
-    { label: "Créer un clip vidéo", href: "/dashboard/clip-recap", icon: PlayCircle, accent: "bg-rose-500", iconTone: "text-rose-600", iconBg: "bg-rose-50", mobileOnly: true },
-  ] as const;
-  const mobileQuickFeatureConfigs = [
-    { href: "/dashboard/automations", label: "Mes automatisations" },
-    { href: "/dashboard/events", label: "Mon agenda IA" },
-    { href: "/dashboard/email", label: "Email & Avis" },
-    { href: "/dashboard/torah", label: "Cours de Torah IA" },
-    { href: "/dashboard/templates", label: "Affiches" },
-    { href: "https://boutique.easycom-ia.com", label: "Boutiques" },
-  ];
-  const mobileSimpleFeatures = mobileQuickFeatureConfigs
-    .map(({ href, label }) => {
-      const item = detailedMenuItems.find((entry) => entry.href === href);
-      return item ? { ...item, label } : null;
-    })
-    .filter((item): item is NonNullable<typeof item> => Boolean(item));
-  const mobileCircleColors = [
-    "from-blue-500 to-cyan-500",
-    "from-emerald-500 to-green-500",
-    "from-violet-500 to-purple-500",
-    "from-amber-500 to-orange-500",
-    "from-sky-500 to-blue-500",
-    "from-cyan-500 to-teal-500",
-    "from-lime-500 to-emerald-500",
-    "from-indigo-500 to-blue-600",
-    "from-fuchsia-500 to-violet-600",
-  ];
-  const mobileFeatureCardTones = [
-    {
-      ring: "border-cyan-200/80",
-      glow: "shadow-[0_14px_30px_rgba(34,211,238,0.16)]",
-      iconWrap: "from-cyan-500 via-sky-500 to-blue-500",
-      iconGlow: "shadow-[0_10px_20px_rgba(14,165,233,0.26)]",
-      badge: "text-cyan-700",
-    },
-    {
-      ring: "border-emerald-200/80",
-      glow: "shadow-[0_14px_30px_rgba(16,185,129,0.14)]",
-      iconWrap: "from-emerald-500 via-teal-500 to-cyan-500",
-      iconGlow: "shadow-[0_10px_20px_rgba(16,185,129,0.22)]",
-      badge: "text-emerald-700",
-    },
-    {
-      ring: "border-violet-200/80",
-      glow: "shadow-[0_14px_30px_rgba(139,92,246,0.16)]",
-      iconWrap: "from-violet-500 via-fuchsia-500 to-indigo-500",
-      iconGlow: "shadow-[0_10px_20px_rgba(139,92,246,0.24)]",
-      badge: "text-violet-700",
-    },
-    {
-      ring: "border-amber-200/80",
-      glow: "shadow-[0_14px_30px_rgba(245,158,11,0.14)]",
-      iconWrap: "from-amber-500 via-orange-500 to-rose-500",
-      iconGlow: "shadow-[0_10px_20px_rgba(249,115,22,0.22)]",
-      badge: "text-amber-700",
-    },
-  ];
-  const mobileDetailedSections = DASHBOARD_NAV_ITEMS
-    .map((section) => ({
-      ...section,
-      items: section.items.filter((item) => item.href !== "/dashboard/assistant"),
-    }))
-    .filter((section) => section.items.length > 0);
-
   function clampBubblePosition(x: number, y: number) {
     if (typeof window === "undefined") return { x, y };
     const maxX = Math.max(16, window.innerWidth - 260);
@@ -2253,16 +2142,6 @@ export function AssistantClient({
                 <PanelLeftOpen className="size-4" />
               </button>
             )}
-            {assistantExperience === "simple" && (
-              <button
-                type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent("dashboard:open-main-menu"))}
-                className="hidden items-center gap-2 rounded-full border border-slate-200 bg-gradient-to-r from-white to-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:from-blue-50 hover:to-sky-50 hover:text-blue-700"
-              >
-                <PanelLeftOpen className="size-4" />
-                <span>Menu</span>
-              </button>
-            )}
             <AssistantAvatar
               iconOnly
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#421388]/10 bg-white shadow-sm shadow-[#421388]/10"
@@ -2368,28 +2247,6 @@ export function AssistantClient({
                   </div>
                 </>
               )}
-            </div>
-            <div className="hidden items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
-            {assistantExperience === "detailed" && (
-              <button
-                type="button"
-                onClick={() => setAssistantExperience("simple")}
-                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:text-slate-800"
-              >
-                <Bot className="size-3.5" />
-                Simple
-              </button>
-            )}
-            {assistantExperience === "detailed" && (
-              <button
-                type="button"
-                onClick={() => setAssistantExperience("detailed")}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm transition"
-              >
-                <SlidersHorizontal className="size-3.5" />
-                Mode détaillé
-              </button>
-            )}
             </div>
           </div>
         </div>
@@ -2538,48 +2395,6 @@ export function AssistantClient({
                 </h2>
               </div>
             )}
-            <div className={cn(
-              "hidden",
-              assistantExperience === "simple" ? "rounded-full" : "rounded-2xl"
-            )}>
-              <Sparkles className="size-8 text-white" />
-            </div>
-            <div className="hidden">
-              <h2 className="mb-2 text-center text-2xl font-black text-slate-900">
-                Bienvenue
-              </h2>
-                <p className="mb-8 max-w-md text-center text-sm text-slate-500">
-                  Je prépare vos publications automatiquement <strong className="font-semibold text-slate-700">(J-10, J-5, J-1)</strong>,
-                  vos rappels et vos contenus. Vous validez, puis je <strong className="font-semibold text-slate-700">publie en un clic</strong>.
-                  Je vous aide aussi à organiser <strong className="font-semibold text-slate-700">votre quotidien</strong> et à rester régulier.
-                </p>
-            </div>
-            <h2 className="hidden mb-2 text-center text-2xl font-black text-slate-900 md:hidden">
-              Bienvenue
-            </h2>
-              <p className="hidden mb-8 max-w-md text-center text-sm text-slate-500 md:hidden">
-                Je prépare vos publications automatiquement <strong className="font-semibold text-slate-700">(J-10, J-5, J-1)</strong>,
-                vos rappels et vos contenus. Vous validez, puis je <strong className="font-semibold text-slate-700">publie en un clic</strong>.
-                Je vous aide aussi à organiser <strong className="font-semibold text-slate-700">votre quotidien</strong> et à rester régulier.
-              </p>
-            <div className="hidden">
-              <h2 className="mb-2 text-center text-xl font-bold text-slate-900 sm:text-2xl">
-                <span className="font-black">Bienvenue</span>
-              </h2>
-                <p className="mb-8 max-w-md text-center text-sm text-slate-500">
-                  Je prépare vos publications automatiquement <strong className="font-semibold text-slate-700">(J-10, J-5, J-1)</strong>,
-                  vos rappels et vos contenus. Vous validez, puis je <strong className="font-semibold text-slate-700">publie en un clic</strong>.
-                  Je vous aide aussi à organiser <strong className="font-semibold text-slate-700">votre quotidien</strong> et à rester régulier.
-                </p>
-            </div>
-            <h2 className="hidden">
-              
-            </h2>
-            <p className="hidden">
-              Je prépare vos publications automatiquement (J-10, J-5, J-1), vos rappels et vos contenus.
-              Vous validez, puis je publie en un clic. Je vous aide aussi à organiser votre quotidien et à rester régulier.
-            </p>
-
             {assistantExperience === "simple" && (
               <div className="mb-6 hidden w-full max-w-4xl px-5 py-2 text-center sm:px-8 md:block">
                 <div className="relative mx-auto mb-4 flex w-fit items-center justify-center">
@@ -2597,189 +2412,6 @@ export function AssistantClient({
                 </p>
               </div>
             )}
-
-            {false && assistantExperience === "simple" && (
-              <div className="mb-6 w-full max-w-4xl px-5 py-2 text-center sm:px-8">
-                <div className="mb-2 text-3xl leading-none">ðŸ‘‹</div>
-                <h2 className="text-2xl font-black text-slate-900 sm:text-3xl">
-                  Bienvenue sur votre espace personnel
-                </h2>
-                <p className="mx-auto mt-2 max-w-3xl text-sm leading-7 text-slate-600 sm:text-[15px]">
-                  Votre temps est précieux — concentrez-vous sur l&apos;essentiel. Les agents intelligents s&apos;occupent du reste !
-                </p>
-                <p className="mx-auto mt-0.5 max-w-3xl text-sm leading-7 text-slate-500 sm:text-[15px]">
-                  (Publications récurrentes et automatisées, mail et Avis Google, agenda IA, assistant du quotidien, ressources communautaires)
-                </p>
-              </div>
-            )}
-
-            {assistantExperience === "simple" && false && (
-              <div className="mb-6 w-full max-w-3xl md:hidden">
-                <h3 className="mb-4 text-center text-base font-bold text-slate-900">
-                  Actions rapides
-                </h3>
-                <div className="rounded-[1.8rem] border border-slate-200/80 bg-white p-4 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
-                  <div className="grid grid-cols-3 gap-x-4 gap-y-6">
-                    {mobileSimpleFeatures.map((item, index) => {
-                      const Icon = item.icon;
-                      const color = mobileCircleColors[index % mobileCircleColors.length];
-                      const isExternal = item.external || item.href.startsWith("mailto");
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          target={isExternal ? "_blank" : undefined}
-                          rel={isExternal ? "noopener noreferrer" : undefined}
-                          className="flex flex-col items-center gap-2 text-center"
-                        >
-                          <span className={cn(
-                            "flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br text-white shadow-[0_10px_22px_rgba(15,23,42,0.16)] transition duration-200 hover:-translate-y-0.5",
-                            color
-                          )}>
-                            {Icon ? <Icon className="size-6" /> : <Sparkles className="size-6" />}
-                          </span>
-                          <span className="text-xs font-semibold leading-4 text-slate-700">
-                            {item.label}
-                          </span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-            {assistantExperience === "simple" && false && (
-              <div className="mb-6 w-full max-w-3xl md:hidden">
-                <div className="flex justify-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowAllFeaturesMobile((prev) => !prev)}
-                    className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-[#1E88E5] via-[#009688] to-[#00897B] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(15,23,42,0.18)] transition hover:opacity-95"
-                  >
-                    Toutes les fonctionnalités
-                  </button>
-                </div>
-                {showAllFeaturesMobile && (
-                  <div className="animate-fade-in mt-4 rounded-[1.8rem] border border-slate-200/80 bg-white/95 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.1)] backdrop-blur-sm">
-                    <div className="space-y-5">
-                      {mobileDetailedSections.map((section, sectionIndex) => (
-                        <div key={section.section}>
-                          <p className="mb-2.5 px-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-                            {section.section}
-                          </p>
-                          <div className="grid grid-cols-2 gap-2.5">
-                            {section.items.map((item, itemIndex) => {
-                              const Icon = item.icon ?? Sparkles;
-                              const isExternal = item.external || item.href.startsWith("mailto");
-                              const tone = mobileFeatureCardTones[(sectionIndex + itemIndex) % mobileFeatureCardTones.length];
-                              return (
-                                <Link
-                                  key={`${section.section}-${item.href}`}
-                                  href={item.href}
-                                  target={isExternal ? "_blank" : undefined}
-                                  rel={isExternal ? "noopener noreferrer" : undefined}
-                                  className={cn(
-                                    "animate-mobile-feature-card-in group relative flex min-h-[96px] flex-col items-start rounded-[1.1rem] border bg-white px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition duration-200",
-                                    "hover:-translate-y-0.5 hover:bg-white active:scale-[0.99]",
-                                    tone.ring,
-                                    tone.glow
-                                  )}
-                                  style={{ animationDelay: `${sectionIndex * 70 + itemIndex * 55}ms` }}
-                                >
-                                  <span className="pointer-events-none absolute inset-0 rounded-[1.1rem] bg-[linear-gradient(135deg,rgba(255,255,255,0.78),rgba(255,255,255,0.18))]" />
-                                  <span className={cn(
-                                    "relative z-10 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br text-white",
-                                    tone.iconWrap,
-                                    tone.iconGlow
-                                  )}>
-                                    <Icon className="size-[18px]" />
-                                  </span>
-                                  <span className="relative z-10 mt-2.5 line-clamp-3 min-h-[2.5rem] text-[13px] font-semibold leading-5 text-slate-700">
-                                    {item.label}
-                                  </span>
-                                  {isExternal && <ExternalLink className={cn("absolute right-3 top-3 z-10 size-3.5", tone.badge)} />}
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {assistantExperience === "simple" && false && (
-              <div className="mb-5 hidden w-full max-w-3xl grid-cols-1 gap-3 text-left md:grid md:grid-cols-3">
-                {[
-                  {
-                    title: "Communication",
-                    description: "posts, affiches, emails, WhatsApp",
-                    icon: Share2,
-                    accent: "bg-blue-500",
-                    surface: "bg-blue-50/60",
-                    iconTone: "text-blue-600",
-                  },
-                  {
-                    title: "Organisation",
-                    description: "quotidien, rappels, automatisations",
-                    icon: CalendarDays,
-                    accent: "bg-amber-500",
-                    surface: "bg-amber-50/60",
-                    iconTone: "text-amber-600",
-                  },
-                  {
-                    title: "Pilotage",
-                    description: "réseaux, publications, actions à valider",
-                    icon: SlidersHorizontal,
-                    accent: "bg-emerald-500",
-                    surface: "bg-emerald-50/60",
-                    iconTone: "text-emerald-600",
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.title}
-                    className="group rounded-[1.6rem] border border-slate-200/80 bg-white p-4 shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.09)]"
-                  >
-                    <div className={cn("mb-4 h-1 w-10 rounded-full", item.accent)} />
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-[15px] font-semibold tracking-tight text-slate-950">{item.title}</p>
-                        <p className="mt-1.5 max-w-[11rem] text-xs leading-5 text-slate-500">{item.description}</p>
-                      </div>
-                      <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", item.surface, item.iconTone)}>
-                        <item.icon className="size-5" />
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {assistantExperience === "simple" && false && (
-              <div className="mb-5 hidden w-full max-w-3xl grid-cols-1 gap-2 md:grid md:grid-cols-2 lg:grid-cols-4">
-                {[
-                  { label: "Plan Chabbat", icon: Sparkles, prompt: "Prépare-moi un plan complet pour Chabbat cette semaine : message WhatsApp, post Instagram, affiche si disponible et rappel à programmer." },
-                  { label: "Mes automatisations", icon: Zap, prompt: "Combien ai-je d'automatisations en cours ? Affiche uniquement celles déjà présentes sur mon Beth Habad." },
-                  { label: "Définir quotidien", icon: Power, prompt: "Je veux définir mon quotidien et créer les routines utiles." },
-                  { label: "Diagnostic compte", icon: SlidersHorizontal, prompt: "Fais un diagnostic simple de mon compte : automatisations, réseaux, quotidien, contenus et prochaines actions." },
-                ].map((item) => (
-                  <button
-                    key={item.label}
-                    type="button"
-                    onClick={() => item.label === "Définir quotidien" ? setDailyRoutineMode(true) : sendMessage(item.prompt)}
-                    className="flex min-h-20 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
-                  >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-                      <item.icon className="size-4" />
-                    </span>
-                    <span className="text-sm font-bold text-slate-800">{item.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
 
             {assistantExperience === "detailed" && (
               <div className="grid w-full max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">

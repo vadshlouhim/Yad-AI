@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent, type MutableRefObject, type ReactElement, type ReactNode, type SVGProps } from "react";
+import { useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactElement, type ReactNode, type SVGProps } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,11 +13,9 @@ import {
   ChevronRight,
   Clock3,
   Globe2,
-  HandHeart,
   Headphones,
   Image,
   Mail,
-  MessageSquare,
   Plane,
   Settings,
   ShoppingBag,
@@ -75,7 +73,6 @@ type MobileMainMenuDialogProps = {
 export function MobileMainMenuDialog({ communityName, sections, onClose }: MobileMainMenuDialogProps) {
   const router = useRouter();
   const [activeGroupKey, setActiveGroupKey] = useState<string | null>(null);
-  const [supportOpen, setSupportOpen] = useState(false);
   const [homeModules, setHomeModules] = useState<MobileHomeModuleKey[] | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClickRef = useRef(false);
@@ -287,30 +284,11 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
       },
     ];
 
-    const comingSoon: ToolGroup[] = [
-      {
-        key: "donation",
-        title: "Campagne de dons",
-        icon: HandHeart,
-        tone: DASHBOARD_MENU_COLORS["torah"],
-        items: [],
-        comingSoon: true,
-        description: "Préparez une campagne de collecte avec messages, visuels et calendrier de relance assistés par IA.",
-      },
-      {
-        key: "newsletter",
-        title: "Newsletter IA",
-        icon: Mail,
-        tone: DASHBOARD_MENU_COLORS["newsletter-paper"],
-        items: [],
-        comingSoon: true,
-        description: "La newsletter numérique, sa programmation et son envoi automatique arriveront prochainement.",
-      },
-    ];
+    const comingSoon: ToolGroup[] = [];
 
     const account = [
       item("/dashboard/settings", "Paramètres", Settings),
-      item("/support-and-suggestions", "Support et suggestions", Headphones),
+      item("/help", "Support et suggestions", Headphones),
       item("/dashboard/settings?section=profile", "Profil", User),
     ];
 
@@ -350,12 +328,11 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
           <span className="pointer-events-none absolute -right-10 -top-12 size-36 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
           <div className="relative flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
-              {(activeGroup || supportOpen) && (
+              {activeGroup && (
                 <button
                   type="button"
                   onClick={() => {
                     setActiveGroupKey(null);
-                    setSupportOpen(false);
                   }}
                   className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   aria-label="Retour aux autres outils"
@@ -366,7 +343,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
               <div className="min-w-0">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/65">EasyCom IA</p>
                 <h1 id="mobile-tools-title" className="mt-0.5 text-[clamp(1.25rem,6vw,1.65rem)] font-black leading-tight tracking-[-0.035em]">
-                  {supportOpen ? "SUPPORT ET SUGGESTIONS" : (activeGroup?.title ?? "AUTRES OUTILS").toUpperCase()}
+                  {(activeGroup?.title ?? "AUTRES OUTILS").toUpperCase()}
                 </h1>
               </div>
             </div>
@@ -380,13 +357,11 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
               <X className="size-5" />
             </button>
           </div>
-          {!activeGroup && !supportOpen && <p className="relative mt-1 truncate text-xs font-medium text-white/70">{communityName}</p>}
+          {!activeGroup && <p className="relative mt-1 truncate text-xs font-medium text-white/70">{communityName}</p>}
         </header>
 
         <div className="flex-1 overflow-y-auto px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5">
-          {supportOpen ? (
-            <SupportSuggestionForm />
-          ) : activeGroup ? (
+          {activeGroup ? (
             activeGroup.comingSoon ? <ComingSoonDetail group={activeGroup} /> : <Submenu group={activeGroup} onClose={onClose} />
           ) : (
             <>
@@ -410,18 +385,21 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
                 </div>
               )}
 
-              <SectionTitle>À venir</SectionTitle>
-              <div className="grid grid-cols-2 gap-3">
-                {menu.comingSoon.map((group) => (
-                  <ComingSoonCard key={group.key} group={group} onOpen={() => setActiveGroupKey(group.key)} />
-                ))}
-              </div>
+              {menu.comingSoon.length > 0 ? (
+                <>
+                  <SectionTitle>À venir</SectionTitle>
+                  <div className="grid grid-cols-2 gap-3">
+                    {menu.comingSoon.map((group) => (
+                      <ComingSoonCard key={group.key} group={group} onOpen={() => setActiveGroupKey(group.key)} />
+                    ))}
+                  </div>
+                </>
+              ) : null}
 
               <SectionTitle>Mon compte</SectionTitle>
               <div className="overflow-hidden rounded-[1.4rem] border border-slate-200 bg-white shadow-[0_8px_22px_rgba(35,24,70,0.05)]">
                 {menu.account.map((entry, index) => {
                   const Icon = entry.icon;
-                  const isSupport = entry.href === "/support-and-suggestions";
                   const rowClass = cn(
                     "flex min-h-14 w-full items-center gap-3 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-violet-50 active:bg-violet-100",
                     index > 0 && "border-t border-slate-100"
@@ -435,14 +413,6 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
                       <ChevronRight className="size-4 text-slate-300" />
                     </>
                   );
-
-                  if (isSupport) {
-                    return (
-                      <button key={entry.href} type="button" onClick={() => setSupportOpen(true)} className={rowClass}>
-                        {content}
-                      </button>
-                    );
-                  }
 
                   return (
                     <Link
@@ -461,83 +431,6 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         </div>
       </section>
     </>
-  );
-}
-
-function SupportSuggestionForm() {
-  const [message, setMessage] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState(false);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    setSubmitting(true);
-
-    try {
-      const response = await fetch("/api/support-suggestions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setError(typeof payload.error === "string" ? payload.error : "Impossible d’envoyer votre message.");
-        return;
-      }
-      setMessage("");
-      setSent(true);
-    } catch {
-      setError("Le serveur est injoignable. Réessayez dans un instant.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (sent) {
-    return (
-      <div className="flex min-h-full flex-col items-center justify-center px-3 text-center normal-case">
-        <span className="flex size-20 items-center justify-center rounded-[1.7rem] bg-emerald-100 text-emerald-700"><CheckCircle2 className="size-10" /></span>
-        <h2 className="mt-5 text-2xl font-black text-slate-950">Message envoyé</h2>
-        <p className="mt-2 max-w-sm text-sm font-medium leading-6 text-slate-600">Votre message a bien été transmis à l’équipe EasyCom IA.</p>
-        <button type="button" onClick={() => setSent(false)} className="mt-6 min-h-12 rounded-2xl bg-[#421388] px-6 text-sm font-black text-white shadow-lg">
-          Envoyer un autre message
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="normal-case">
-      <div className="rounded-[1.7rem] bg-[#421388] p-5 text-white shadow-[0_18px_38px_-24px_rgba(66,19,136,0.8)]">
-        <div className="flex size-12 items-center justify-center rounded-2xl bg-white text-[#421388]"><MessageSquare className="size-6" /></div>
-        <h2 className="mt-4 text-xl font-black">Comment pouvons-nous vous aider ?</h2>
-        <p className="mt-2 text-sm font-medium leading-6 text-violet-100">Signalez un problème ou partagez une suggestion pour améliorer EasyCom IA.</p>
-      </div>
-
-      <label htmlFor="support-suggestion-message" className="mt-5 block text-sm font-black text-slate-800">Votre message</label>
-      <textarea
-        id="support-suggestion-message"
-        value={message}
-        onChange={(event) => setMessage(event.target.value)}
-        minLength={10}
-        maxLength={5000}
-        rows={7}
-        required
-        placeholder="Expliquez-nous votre besoin, votre problème ou votre idée…"
-        className="mt-2 w-full resize-none rounded-[1.4rem] border border-violet-100 bg-white p-4 text-sm leading-6 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#421388] focus:ring-4 focus:ring-violet-100"
-      />
-      <div className="mt-2 flex justify-between gap-3 text-[11px] font-bold text-slate-400"><span>10 caractères minimum</span><span>{message.length}/5000</span></div>
-      {error && <p role="alert" className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{error}</p>}
-      <button
-        type="submit"
-        disabled={submitting || message.trim().length < 10}
-        className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 rounded-[1.25rem] bg-[#421388] px-5 text-sm font-black text-white shadow-[0_16px_30px_-18px_rgba(66,19,136,0.8)] transition hover:bg-[#35106f] disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {submitting ? "Envoi en cours…" : "Envoyer le message"}
-      </button>
-    </form>
   );
 }
 
