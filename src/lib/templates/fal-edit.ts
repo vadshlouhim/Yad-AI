@@ -5,6 +5,7 @@ import { resolveTemplateAssetUrl } from "./shared";
 import { mergePosterChanges, type PosterEditState } from "./edit-state";
 import type { Json } from "@/types/database.types";
 import { assertPosterEditSchema } from "./edit-source";
+import { overlayOfficialLogoFromUrl } from "./logo-overlay";
 
 export const FAL_POSTER_EDIT_MODEL = "xai/grok-imagine-image/quality/edit";
 
@@ -112,6 +113,7 @@ export async function editTemplatePosterWithFal(params: {
   resolution?: "1k" | "2k";
   sourceImageUrl?: string;
   editState?: PosterEditState;
+  overlayLogoUrl?: string;
 }) {
   const falKey = process.env.FAL_KEY?.trim();
   if (!falKey) throw new Error("FAL_KEY n’est pas configurée sur le serveur.");
@@ -140,7 +142,11 @@ export async function editTemplatePosterWithFal(params: {
   const remoteUrl = output.images?.[0]?.url;
   if (!remoteUrl) throw new Error("fal.ai n’a renvoyé aucune image.");
 
-  const buffer = await downloadFalImage(remoteUrl);
+  const generatedBuffer = await downloadFalImage(remoteUrl);
+  const overlaid = params.overlayLogoUrl
+    ? await overlayOfficialLogoFromUrl(generatedBuffer, params.overlayLogoUrl)
+    : null;
+  const buffer = overlaid?.buffer ?? generatedBuffer;
   const storagePath = `generated-ai/${params.communityId}/${Date.now()}-${crypto.randomUUID()}.png`;
   const upload = await params.admin.storage.from("templates").upload(storagePath, buffer, {
     contentType: "image/png",
@@ -166,8 +172,8 @@ export async function editTemplatePosterWithFal(params: {
       type: "IMAGE",
       mimeType: "image/png",
       size: buffer.length,
-      width: output.images?.[0]?.width ?? null,
-      height: output.images?.[0]?.height ?? null,
+      width: overlaid?.width ?? output.images?.[0]?.width ?? null,
+      height: overlaid?.height ?? output.images?.[0]?.height ?? null,
       tags: ["generated", "personal-library"],
       altText: params.changes.map((change) => `${change.label}: ${change.newText}`).join("; ").slice(0, 500),
       updatedAt: new Date().toISOString(),
@@ -179,8 +185,8 @@ export async function editTemplatePosterWithFal(params: {
     mediaId,
     storagePath,
     size: buffer.length,
-    width: output.images?.[0]?.width ?? null,
-    height: output.images?.[0]?.height ?? null,
+    width: overlaid?.width ?? output.images?.[0]?.width ?? null,
+    height: overlaid?.height ?? output.images?.[0]?.height ?? null,
     prompt,
     revisedPrompt: output.revised_prompt ?? null,
   };

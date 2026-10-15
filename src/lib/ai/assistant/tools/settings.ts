@@ -3,6 +3,7 @@ import { getDailyRoutine, saveDailyRoutine, type DailyRoutineItem } from "@/lib/
 import type { AssistantToolDef } from "../types";
 import type { PanelField } from "../panels";
 import { panelId, truncate } from "./shared";
+import { isSupportedCountry, normalizeSupportedCountry, SUPPORTED_COUNTRIES } from "@/lib/community/countries";
 
 // Réglages : lecture/écriture des paramètres de la communauté (hors vocabulary/logo),
 // profil utilisateur, routine quotidienne.
@@ -69,6 +70,11 @@ export const getCommunitySettings: AssistantToolDef = {
         base.options = [...TONE_VALUES];
         base.value = value;
       }
+      if (key === "country") {
+        base.inputType = "select";
+        base.options = SUPPORTED_COUNTRIES.map((country) => country.value);
+        base.value = normalizeSupportedCountry(value);
+      }
       return base;
     });
 
@@ -110,7 +116,7 @@ export const updateCommunitySettings: AssistantToolDef = {
           name: { type: "string" },
           description: { type: "string" },
           city: { type: "string" },
-          country: { type: "string" },
+          country: { type: "string", enum: SUPPORTED_COUNTRIES.map((country) => country.value) },
           timezone: { type: "string" },
           phone: { type: "string" },
           email: { type: "string" },
@@ -133,6 +139,7 @@ export const updateCommunitySettings: AssistantToolDef = {
       const value = payload[key];
       if (value === undefined || value === null || value === "") continue;
       if (key === "tone" && !TONE_VALUES.includes(String(value) as (typeof TONE_VALUES)[number])) continue;
+      if (key === "country" && !isSupportedCountry(value)) continue;
       if ((key === "hashtags" || key === "mentions") && !Array.isArray(value)) continue;
       update[key] = value;
     }

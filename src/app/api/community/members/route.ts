@@ -29,14 +29,22 @@ export async function GET() {
     from: (table: string) => ReturnType<ReturnType<typeof createAdminClient>["from"]>;
   };
 
-  const { data, error } = await admin
-    .from("CommunityMember")
-    .select("*")
-    .eq("communityId", communityId)
-    .order("displayName", { ascending: true });
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data ?? []);
+  // The public response remains an array. Read all batches before client-side
+  // filtering/pagination rather than silently stopping at Supabase's row limit.
+  const batch = (offset: number) => admin.from("CommunityMember").select("*")
+    .eq("communityId", communityId).order("displayName", { ascending: true })
+    .order("id", { ascending: true }).range(offset, offset + 999);
+  const first = await batch(0);
+  if (first.error) return NextResponse.json({ error: first.error.message }, { status: 500 });
+  const members = first.data ?? [];
+  let size = members.length;
+  while (size === 1000) {
+    const next = await batch(members.length);
+    if (next.error) return NextResponse.json({ error: next.error.message }, { status: 500 });
+    size = next.data?.length ?? 0;
+    members.push(...(next.data ?? []));
+  }
+  return NextResponse.json(members);
 }
 
 export async function POST(request: Request) {

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { buildDisplayName, normalizeAge, normalizeEmail, normalizePhone, type MemberInput } from "@/lib/contacts/normalize";
-import { gregorianToHebrew, hebrewBirthdayToGregorianISO, validateHebrewBirthday } from "@/lib/contacts/hebrew-birthday";
+import { buildMemberPatch } from "@/lib/contacts/member-patch";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -31,12 +30,13 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     from: (table: string) => ReturnType<ReturnType<typeof createAdminClient>["from"]>;
   };
 
-  await admin
+  const { error } = await admin
     .from("CommunityMember")
     .delete()
     .eq("id", id)
     .eq("communityId", communityId);
 
+  if (error) return NextResponse.json({ error: "Suppression impossible." }, { status: 500 });
   return NextResponse.json({ success: true });
 }
 
@@ -51,58 +51,24 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   if (!communityId) return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
 
   const { id } = await params;
-  const input = await request.json() as MemberInput;
+  const input = await request.json().catch(() => null);
   const admin = createAdminClient() as ReturnType<typeof createAdminClient> & {
     from: (table: string) => ReturnType<ReturnType<typeof createAdminClient>["from"]>;
   };
 
   const { data: existing } = await admin
     .from("CommunityMember")
-    .select("id, source, tags, optInEmail, optInWhatsapp, birthDate, birthAfterSunset, hebrewBirthDay, hebrewBirthMonth, hebrewBirthYear")
+    .select("*")
     .eq("id", id)
     .eq("communityId", communityId)
     .maybeSingle();
   if (!existing) return NextResponse.json({ error: "Contact introuvable" }, { status: 404 });
 
-  const email = normalizeEmail(input.email);
-  const phone = normalizePhone(input.phone);
-  const civilBirthday = input.birthDate ? gregorianToHebrew(input.birthDate, Boolean(input.birthAfterSunset)) : null;
-  const birthdayTouched = input.hebrewBirthDay !== undefined || input.hebrewBirthMonth !== undefined || input.hebrewBirthYear !== undefined || Boolean(civilBirthday);
-  const birthdayCleared = birthdayTouched && !civilBirthday && !input.hebrewBirthDay && !input.hebrewBirthMonth && !input.hebrewBirthYear;
-  const birthday = birthdayTouched && !birthdayCleared ? validateHebrewBirthday({
-    hebrewBirthDay: Number(civilBirthday?.day ?? input.hebrewBirthDay),
-    hebrewBirthMonth: Number(civilBirthday?.month ?? input.hebrewBirthMonth),
-    hebrewBirthYear: Number(civilBirthday?.year ?? input.hebrewBirthYear),
-  }) : null;
-  if (birthdayTouched && !birthdayCleared && !birthday) {
-    return NextResponse.json({ error: "Date d’anniversaire hébraïque invalide." }, { status: 400 });
-  }
-  const update = {
-    firstName: input.firstName?.trim() || null,
-    lastName: input.lastName?.trim() || null,
-    displayName: buildDisplayName(input),
-    email,
-    phone,
-    profession: input.profession?.trim() || null,
-    age: normalizeAge(input.age),
-    birthDate: input.birthDate || (birthday ? hebrewBirthdayToGregorianISO(birthday) : birthdayCleared ? null : existing.birthDate),
-    birthAfterSunset: input.birthAfterSunset ?? existing.birthAfterSunset,
-    hebrewBirthDay: birthday?.hebrewBirthDay ?? (birthdayCleared ? null : existing.hebrewBirthDay),
-    hebrewBirthMonth: birthday?.hebrewBirthMonth ?? (birthdayCleared ? null : existing.hebrewBirthMonth),
-    hebrewBirthYear: birthday?.hebrewBirthYear ?? (birthdayCleared ? null : existing.hebrewBirthYear),
-    address: input.address?.trim() || null,
-    city: input.city?.trim() || null,
-    familyStatus: input.familyStatus?.trim() || null,
-    notes: input.notes?.trim() || null,
-    source: input.source?.trim() || existing.source,
-    tags: input.tags ?? existing.tags,
-    optInEmail: email ? existing.optInEmail : false,
-    optInWhatsapp: phone ? existing.optInWhatsapp : false,
-    updatedAt: new Date().toISOString(),
-  };
-
-  if (!update.displayName && !email && !phone) {
-    return NextResponse.json({ error: "Ajoutez au moins un nom, un email ou un téléphone." }, { status: 400 });
+  let update;
+  try {
+    update = buildMemberPatch(existing, input);
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Modification invalide." }, { status: 400 });
   }
 
   const { data, error } = await admin

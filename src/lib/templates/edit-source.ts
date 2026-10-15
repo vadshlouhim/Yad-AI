@@ -38,6 +38,28 @@ export function trustedCommunityLogo(value: unknown, communityId: string): strin
   } catch { return null; }
 }
 
+export function trustedStoredCommunityLogo(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const url = new URL(value);
+    const origin = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "");
+    const path = decodeURIComponent(url.pathname);
+    const storagePrefix = "/storage/v1/object/public/community-assets/";
+    const assetPath = path.slice(storagePrefix.length);
+    return !url.username
+      && !url.password
+      && !path.split("/").some((part) => part === "." || part === "..")
+      && url.protocol === origin.protocol
+      && url.host === origin.host
+      && path.startsWith(storagePrefix)
+      && assetPath.includes("/")
+      ? url.toString()
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export function logoEditInstructions(logoUrl: string | null): string {
   return logoUrl ? "The second reference image is the official community logo. Replace any previous community logo with this exact logo once in the existing branding area. Keep it fully visible, never redraw, crop, distort or recolor it. This explicit logo replacement is the only permitted graphical change. Never print its URL." : "Preserve the existing logo. Do not invent a logo.";
 }

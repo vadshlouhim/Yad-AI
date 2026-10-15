@@ -1,6 +1,17 @@
+import { newsletterExportImageUrl } from "./media-path";
+
 export const NEWSLETTER_IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp,.jpg,.jpeg,.png,.webp,.gif,.avif,.bmp";
 export const MAX_SOURCE_BYTES = 20 * 1024 * 1024;
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+
+export function resolveNewsletterBanner(
+  customBannerUrl: unknown,
+  communityLogoUrl: string | null,
+) {
+  return typeof customBannerUrl === "string" && customBannerUrl.trim()
+    ? customBannerUrl.trim()
+    : communityLogoUrl ?? "";
+}
 
 /** Decode before uploading: unsupported/corrupt files must never become broken images. */
 export async function prepareNewsletterImage(file: File): Promise<File> {
@@ -78,4 +89,46 @@ export async function uploadNewsletterBatch<T>(
     onProgress(index + 1, files.length);
   }
   return errors;
+}
+
+function blobAsDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Impossible d’intégrer une image au PDF."));
+    reader.onload = () => typeof reader.result === "string"
+      ? resolve(reader.result)
+      : reject(new Error("Impossible d’intégrer une image au PDF."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+/** Embed every exported image so html-to-image cannot silently drop remote media. */
+export async function inlineNewsletterExportImages(root: HTMLElement) {
+  const images = Array.from(root.querySelectorAll<HTMLImageElement>("img"));
+  const cache = new Map<string, string>();
+
+  // Sequential conversion keeps peak memory predictable with several phone photos.
+  for (const image of images) {
+    const source = image.currentSrc || image.src;
+    if (!source || source.startsWith("data:")) continue;
+
+    let dataUrl = cache.get(source);
+    if (!dataUrl) {
+      const response = await fetch(newsletterExportImageUrl(source), {
+        cache: "no-store",
+        credentials: "same-origin",
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!response.ok) throw new Error(`Image indisponible : ${image.alt || "visuel du feuillet"}. Réimportez-la avant l’export.`);
+      const blob = await response.blob();
+      if (!blob.type.startsWith("image/") || !blob.size) throw new Error(`Image invalide : ${image.alt || "visuel du feuillet"}.`);
+      dataUrl = await blobAsDataUrl(blob);
+      cache.set(source, dataUrl);
+    }
+
+    image.removeAttribute("srcset");
+    image.src = dataUrl;
+    if (typeof image.decode === "function") await image.decode();
+    if (!image.complete || !image.naturalWidth) throw new Error(`Image non intégrée : ${image.alt || "visuel du feuillet"}.`);
+  }
 }

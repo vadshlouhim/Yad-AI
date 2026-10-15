@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeCityName } from "./shabbat-times";
+import { countryCodeForName } from "@/lib/community/countries";
 
 export type ShabbatLocation = { cityName: string; latitude: number; longitude: number; timezone: string; countryCode: string };
 export class CityResolutionError extends Error {
@@ -15,8 +16,7 @@ export async function resolveShabbatLocation(city?: string | null, country?: str
   const { Location } = await import("@hebcal/core");
   const aliases: Record<string, string> = { marseille: "Marseilles", jerusalem: "Jerusalem", londres: "London", "tel aviv": "Tel Aviv", "new york": "New York", montreal: "Montreal", paris: "Paris" };
   const known = Location.lookup(aliases[normalized] ?? name);
-  const countries: Record<string, string> = { france: "FR", israel: "IL", canada: "CA", "royaume uni": "GB", "united kingdom": "GB", "etats unis": "US", "united states": "US" };
-  const cc = country ? countries[normalizeCityName(country)] ?? country.toUpperCase() : null;
+  const cc = countryCodeForName(country) ?? (country ? country.toUpperCase() : null);
   if (known && (!cc || known.getCountryCode() === cc)) return {
     cityName: known.getShortName() ?? name, latitude: known.getLatitude(), longitude: known.getLongitude(), timezone: known.getTzid(), countryCode: known.getCountryCode() ?? "FR",
   };

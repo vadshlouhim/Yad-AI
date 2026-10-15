@@ -1,5 +1,6 @@
 ﻿import { getPosterSource, trustedCommunityLogo, logoEditInstructions } from "@/lib/templates/edit-source";
 import { readPosterEditState } from "@/lib/templates/edit-state";
+import { trustedStoredCommunityLogo } from "@/lib/templates/edit-source";
 import { buildShabbatPosterChanges, buildShabbatCaption } from "./shabbat-poster";
 import type { ShabbatTimes } from "./hebcal";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -115,7 +116,8 @@ async function renderShabbatPosterImage(params: {
   try {
     const source = await getPosterSource(params.supabase, params.communityId, posterConfig.sourceMediaId);
     const previous = readPosterEditState(source?.editState);
-    const logoUrl = trustedCommunityLogo(params.logoUrl || savedFields.logoUrl, params.communityId);
+    const logoUrl = trustedStoredCommunityLogo(params.logoUrl)
+      ?? trustedCommunityLogo(savedFields.logoUrl, params.communityId);
     const changes = buildShabbatPosterChanges({ ...savedFields, officeTimes: typeof posterConfig.officeTimes === "string" ? posterConfig.officeTimes : savedFields.officeTimes }, params.shabbatTimes, previous?.changes);
     if (changes.length === 0) return null;
     const rendered = await editTemplatePosterWithFal({
@@ -124,8 +126,10 @@ async function renderShabbatPosterImage(params: {
       communityId: params.communityId,
       changes,
       sourceImageUrl: source && source.templateId === template.id ? source.url : undefined,
-      referenceImageUrls: logoUrl ? [logoUrl] : undefined,
-      editInstructions: logoEditInstructions(logoUrl),
+      overlayLogoUrl: logoUrl ?? undefined,
+      editInstructions: logoUrl
+        ? "Do not draw, recreate or add the official community logo. Preserve the top-right branding area because the exact logo will be composited there after generation."
+        : logoEditInstructions(null),
       editState: { version: 1, templateId: template.id, sourceMediaId: source?.id ?? null, changes: previous?.changes ?? [], textsToRemove: [], logoUrl, shabbatDate: params.shabbatTimes.date },
     });
     return rendered.imageUrl;

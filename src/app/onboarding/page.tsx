@@ -3,13 +3,26 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { OnboardingWizard, type OnboardingData } from "@/components/onboarding/onboarding-wizard";
 import { getPublicToolDestination } from "@/lib/public-tools";
+import {
+  DEFAULT_COUNTRY,
+  isSupportedCountry,
+  normalizeSupportedCountry,
+} from "@/lib/community/countries";
 
-export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ callbackUrl?: string }> }) {
-  const { profile } = await requireAuth();
-  const destination = getPublicToolDestination((await searchParams).callbackUrl) ?? "/dashboard";
+export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ callbackUrl?: string; country?: string }> }) {
+  const { profile, supabaseUser } = await requireAuth();
+  const params = await searchParams;
+  const destination = getPublicToolDestination(params.callbackUrl) ?? "/dashboard";
+  const registrationCountry = isSupportedCountry(params.country)
+    ? params.country
+    : isSupportedCountry(supabaseUser.country)
+      ? supabaseUser.country
+      : DEFAULT_COUNTRY;
 
   const admin = createAdminClient();
-  let initialData: Partial<OnboardingData> | undefined;
+  let initialData: Partial<OnboardingData> | undefined = {
+    country: registrationCountry,
+  };
 
   if (profile.communityId) {
     const { data: community } = await admin
@@ -26,7 +39,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
       initialData = {
         communityName: community.name ?? "",
         city: community.city ?? "",
-        country: community.country ?? "France",
+        country: normalizeSupportedCountry(community.country),
         phone: community.phone ?? "",
         email: community.email ?? "",
         website: community.website ?? "",

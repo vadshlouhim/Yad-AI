@@ -12,6 +12,7 @@ import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels"
 import { enablePushNotifications } from "@/lib/push/client";
 import { ContactsManager } from "@/components/settings/contacts-manager";
 import { PushNotificationsCard } from "@/components/settings/push-notifications-card";
+import { normalizeSupportedCountry, SUPPORTED_COUNTRIES } from "@/lib/community/countries";
 
 interface Community {
   id: string;
@@ -105,7 +106,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
   const [name, setName] = useState(community.name);
   const [description, setDescription] = useState(community.description ?? "");
   const [city, setCity] = useState(community.city ?? "");
-  const [country, setCountry] = useState(community.country);
+  const [country, setCountry] = useState(() => normalizeSupportedCountry(community.country));
   const [timezone] = useState(community.timezone);
   const [phone, setPhone] = useState(community.phone ?? "");
   const [email, setEmail] = useState(community.email ?? "");
@@ -182,10 +183,11 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
           logoUrl: logoUrl || null,
         }),
       });
-      if (!response.ok) throw new Error("Échec de l’enregistrement de l’établissement.");
+      const result = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(result.error ?? "Échec de l’enregistrement de l’établissement.");
       router.refresh();
-    } catch {
-      alert("Erreur lors de la sauvegarde.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Erreur lors de la sauvegarde.");
     } finally {
       setSaving(false);
     }
@@ -334,6 +336,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                   key={item.id}
                   type="button"
                   onClick={() => {
+                    if (!window.dispatchEvent(new Event("contacts:before-navigate", { cancelable: true }))) return;
                     setActiveSection(item.id);
                     setMobileSettingsHome(false);
                   }}
@@ -365,7 +368,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
       {!mobileSettingsHome && (
         <button
           type="button"
-          onClick={() => setMobileSettingsHome(true)}
+          onClick={() => { if (window.dispatchEvent(new Event("contacts:before-navigate", { cancelable: true }))) setMobileSettingsHome(true); }}
           className="flex min-h-12 w-full items-center gap-3 rounded-2xl border border-violet-100 bg-white px-4 text-left text-sm font-black text-[#421388] shadow-sm md:hidden"
         >
           <span className="flex size-8 items-center justify-center rounded-xl bg-violet-100"><ArrowLeft className="size-4" /></span>
@@ -378,7 +381,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
           {navItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveSection(item.id)}
+              onClick={() => { if (item.id === activeSection || window.dispatchEvent(new Event("contacts:before-navigate", { cancelable: true }))) setActiveSection(item.id); }}
               className={cn(
                 "flex min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-center text-xs font-medium transition-colors sm:text-sm lg:w-full lg:justify-start lg:px-3 lg:text-left",
                 activeSection === item.id
@@ -520,13 +523,19 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Pays</label>
-                    <input
-                      type="text"
+                    <label className="text-sm font-medium text-slate-700">
+                      Pays <span className="text-red-500">*</span>
+                    </label>
+                    <select
                       value={country}
-                      onChange={(e) => setCountry(e.target.value)}
+                      onChange={(e) => setCountry(normalizeSupportedCountry(e.target.value))}
+                      required
                       className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                    />
+                    >
+                      {SUPPORTED_COUNTRIES.map((option) => (
+                        <option key={option.code} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 

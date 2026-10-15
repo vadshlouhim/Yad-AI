@@ -6,18 +6,28 @@ import { getPublicToolDestination, getToolOnboardingPath } from "@/lib/public-to
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import {
+  DEFAULT_COUNTRY,
+  isSupportedCountry,
+  normalizeSupportedCountry,
+  SUPPORTED_COUNTRIES,
+  type SupportedCountry,
+  withRegistrationCountry,
+} from "@/lib/community/countries";
+import {
   buildAuthCallbackUrl,
   DEFAULT_POST_REGISTER_PATH,
 } from "@/lib/supabase/auth-redirect";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Eye, EyeOff, Mail, Lock, User, Globe } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Globe, MapPin } from "lucide-react";
 
 export function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toolDestination = getPublicToolDestination(searchParams.get("callbackUrl"));
   const onboardingPath = getToolOnboardingPath(toolDestination);
+  const [country, setCountry] = useState<SupportedCountry>(DEFAULT_COUNTRY);
+  const registrationPath = withRegistrationCountry(onboardingPath, country);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,6 +44,12 @@ export function RegisterForm() {
     setLoading(true);
     setError(null);
 
+    if (!isSupportedCountry(country)) {
+      setError("Veuillez sélectionner un pays valide.");
+      setLoading(false);
+      return;
+    }
+
     if (password.length < 8) {
       setError("Le mot de passe doit contenir au moins 8 caractères.");
       setLoading(false);
@@ -46,10 +62,10 @@ export function RegisterForm() {
         email,
         password,
         options: {
-          data: { full_name: name },
+          data: { full_name: name, country },
           emailRedirectTo: buildAuthCallbackUrl(
             window.location.origin,
-            onboardingPath,
+            registrationPath,
             DEFAULT_POST_REGISTER_PATH
           ),
         },
@@ -70,7 +86,7 @@ export function RegisterForm() {
     }
 
     if (data?.session && toolDestination) {
-      router.replace(onboardingPath);
+      router.replace(registrationPath);
       router.refresh();
       return;
     }
@@ -79,6 +95,11 @@ export function RegisterForm() {
   }
 
   async function handleGoogleLogin() {
+    setError(null);
+    if (!isSupportedCountry(country)) {
+      setError("Veuillez sélectionner un pays valide.");
+      return;
+    }
     setGoogleLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth
@@ -87,7 +108,7 @@ export function RegisterForm() {
         options: {
           redirectTo: buildAuthCallbackUrl(
             window.location.origin,
-            onboardingPath,
+            registrationPath,
             DEFAULT_POST_REGISTER_PATH
           ),
           queryParams: { prompt: "select_account" },
@@ -127,6 +148,34 @@ export function RegisterForm() {
           dans <code>NEXT_PUBLIC_SUPABASE_URL</code>.
         </div>
       )}
+
+      <div className="space-y-1.5">
+        <label
+          className="text-sm font-medium text-slate-700"
+          htmlFor="register-country"
+        >
+          Pays <span className="text-red-500">*</span>
+        </label>
+        <div className="relative">
+          <MapPin className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <select
+            id="register-country"
+            value={country}
+            onChange={(event) =>
+              setCountry(normalizeSupportedCountry(event.target.value))
+            }
+            required
+            disabled={!supabaseConfigured || loading || googleLoading}
+            className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          >
+            {SUPPORTED_COUNTRIES.map((option) => (
+              <option key={option.code} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       <Button
         type="button"

@@ -8,6 +8,7 @@ import {
   Building2, MapPin, Phone, Mail, Globe, HandHeart, ChevronRight,
   Image as ImageIcon, Loader2, Upload,
 } from "lucide-react";
+import { isSupportedCountry, SUPPORTED_COUNTRIES } from "@/lib/community/countries";
 
 interface Props {
   data: OnboardingData;
@@ -22,15 +23,17 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
   const [logoError, setLogoError] = useState<string | null>(null);
   const [continuing, setContinuing] = useState(false);
   const [continueError, setContinueError] = useState<string | null>(null);
-  const isValid = data.communityName.trim().length >= 2 && data.city.trim().length >= 2;
+  const isValid = data.communityName.trim().length >= 2
+    && data.city.trim().length >= 2
+    && isSupportedCountry(data.country);
 
   async function handleContinue() {
     setContinueError(null);
     setContinuing(true);
     try {
       await onNext();
-    } catch {
-      setContinueError("Impossible d'enregistrer vos informations, réessayez.");
+    } catch (error) {
+      setContinueError(error instanceof Error ? error.message : "Impossible d'enregistrer vos informations, réessayez.");
     } finally {
       setContinuing(false);
     }
@@ -155,18 +158,18 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700">Pays</label>
+            <label className="text-sm font-medium text-slate-700">
+              Pays <span className="text-red-500">*</span>
+            </label>
             <select
               value={data.country}
               onChange={(e) => updateData({ country: e.target.value })}
+              required
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             >
-              <option value="France">France</option>
-              <option value="Belgium">Belgique</option>
-              <option value="Switzerland">Suisse</option>
-              <option value="Canada">Canada</option>
-              <option value="Luxembourg">Luxembourg</option>
-              <option value="Other">Autre</option>
+              {SUPPORTED_COUNTRIES.map((country) => (
+                <option key={country.code} value={country.value}>{country.label}</option>
+              ))}
             </select>
           </div>
         </div>

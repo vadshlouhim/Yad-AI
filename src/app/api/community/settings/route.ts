@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { COMMUNITY_SETTINGS_FIELDS } from "@/lib/community/settings-fields";
+import { isSupportedCountry } from "@/lib/community/countries";
 
 export async function PATCH(request: Request) {
   const supabase = await createClient();
@@ -21,6 +22,9 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json();
+  if ("country" in body && !isSupportedCountry(body.country)) {
+    return NextResponse.json({ error: "Sélectionnez un pays valide." }, { status: 400 });
+  }
 
   const data: Record<string, unknown> = { updatedAt: new Date().toISOString() };
   for (const key of COMMUNITY_SETTINGS_FIELDS) {

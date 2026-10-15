@@ -4,7 +4,7 @@
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NewsletterDocument, type NewsletterDocumentHandle } from "@/components/newsletter/newsletter-document";
 import type { NewsletterDocumentData } from "@/lib/newsletter/document-layout";
-import { NEWSLETTER_IMAGE_ACCEPT, uploadNewsletterBatch, uploadNewsletterImage } from "@/lib/newsletter/media";
+import { inlineNewsletterExportImages, NEWSLETTER_IMAGE_ACCEPT, resolveNewsletterBanner, uploadNewsletterBatch, uploadNewsletterImage } from "@/lib/newsletter/media";
 import { createDraftSaveQueue } from "@/lib/newsletter/save-queue";
 import { NEWSLETTER_MEDIA_LIMIT } from "@/lib/newsletter/limits";
 import type { NewsletterStudy } from "@/lib/newsletter/shabbat-study";
@@ -229,7 +229,11 @@ function draftRequestError(status: number, loading = false) {
   return `${action} serveur indisponible (${status}). ${loading ? "Réessayez le chargement." : "Votre brouillon reste sur cet appareil."}`;
 }
 
-function parseNewsletterDraft(value: unknown, donationDefault: string): NewsletterDraft | null {
+function parseNewsletterDraft(
+  value: unknown,
+  donationDefault: string,
+  bannerDefault: string,
+): NewsletterDraft | null {
   if (!isRecord(value) || value.version !== 1) return null;
   const enabledValue = isRecord(value.enabled) ? value.enabled : {};
   const generatedValue = isRecord(value.generated) ? value.generated : {};
@@ -251,7 +255,7 @@ function parseNewsletterDraft(value: unknown, donationDefault: string): Newslett
     donationUrl: draftText(value.donationUrl, donationDefault),
     photos: draftUploads(value.photos),
     posters: draftUploads(value.posters),
-    bannerPhotoUrl: draftText(value.bannerPhotoUrl),
+    bannerPhotoUrl: resolveNewsletterBanner(value.bannerPhotoUrl, bannerDefault),
     generated: {
       title: draftText(generatedValue.title, draftText(value.title, defaults.title)),
       intro: draftText(generatedValue.intro, defaults.intro),
@@ -308,7 +312,7 @@ export function NewsletterPaperClient({
   const [savingDonationUrl, setSavingDonationUrl] = useState(false);
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [posters, setPosters] = useState<UploadedPhoto[]>([]);
-  const [bannerPhotoUrl, setBannerPhotoUrl] = useState(community.coverUrl ?? "");
+  const [bannerPhotoUrl, setBannerPhotoUrl] = useState(community.logoUrl ?? "");
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
   const [exporting, setExporting] = useState(false);
@@ -467,7 +471,11 @@ export function NewsletterPaperClient({
     let active = true;
     let localDraft: NewsletterDraft | null = null;
     try {
-      localDraft = parseNewsletterDraft(JSON.parse(window.localStorage.getItem(localDraftKey) ?? "null"), community.donationUrl ?? "");
+      localDraft = parseNewsletterDraft(
+        JSON.parse(window.localStorage.getItem(localDraftKey) ?? "null"),
+        community.donationUrl ?? "",
+        community.logoUrl ?? "",
+      );
       if (!loadedOnceRef.current && localDraft) applyDraft(localDraft);
     } catch {
       localDraft = null;
@@ -482,7 +490,11 @@ export function NewsletterPaperClient({
       .then((data) => {
         if (!active) return;
         loadedOnceRef.current = true;
-        const serverDraft = parseNewsletterDraft(data?.draft, community.donationUrl ?? "");
+        const serverDraft = parseNewsletterDraft(
+          data?.draft,
+          community.donationUrl ?? "",
+          community.logoUrl ?? "",
+        );
         const previousServerRevision = serverUpdatedAtRef.current;
         serverUpdatedAtRef.current = data.updatedAt ?? null;
         if (serverDraft && localDraft && !sameDraftContent(serverDraft, localDraft) && (conflictRef.current || (!firstLoad && data.updatedAt !== previousServerRevision))) {
@@ -514,7 +526,7 @@ export function NewsletterPaperClient({
       });
 
     return () => { active = false; };
-  }, [applyDraft, community.donationUrl, localDraftKey, retryLoadCount]);
+  }, [applyDraft, community.donationUrl, community.logoUrl, localDraftKey, retryLoadCount]);
 
   useEffect(() => {
     if (!draftReady) return;
@@ -659,6 +671,7 @@ export function NewsletterPaperClient({
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const stablePages = Array.from(snapshot.children) as HTMLElement[];
       for (const [index, page] of stablePages.entries()) {
+        await inlineNewsletterExportImages(page);
         await waitForImages([page]);
         const printable = page.firstElementChild as HTMLElement | null;
         if (
@@ -670,6 +683,7 @@ export function NewsletterPaperClient({
         }
         const dataUrl = await toPng(page, {
           cacheBust: true,
+          includeQueryParams: true,
           pixelRatio: 2,
           width: exportWidth,
           height: exportHeight,
@@ -922,17 +936,17 @@ export function NewsletterPaperClient({
                 </div>
               </label>
               <section className="text-sm font-bold text-slate-700">
-                <p>Photo de bannière (synagogue / Beth Habad)</p>
+                <p>Logo de la bannière</p>
                 <div className="mt-1.5 flex min-w-0 items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-2">
-                  {bannerPhotoUrl ? <img src={bannerPhotoUrl} alt="Photo de bannière ajoutée" className="size-16 shrink-0 rounded-lg bg-white object-contain ring-1 ring-slate-200" /> : <span className="flex size-16 shrink-0 items-center justify-center rounded-lg bg-white text-slate-400 ring-1 ring-slate-200"><ImagePlus className="size-6" /></span>}
+                  {bannerPhotoUrl ? <img src={bannerPhotoUrl} alt="Logo affiché dans la bannière" className="size-16 shrink-0 rounded-lg bg-white object-contain ring-1 ring-slate-200" /> : <span className="flex size-16 shrink-0 items-center justify-center rounded-lg bg-white text-slate-400 ring-1 ring-slate-200"><ImagePlus className="size-6" /></span>}
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-slate-600">{bannerPhotoUrl ? "Photo ajoutée au feuillet" : "Photo optionnelle"}</p>
+                    <p className="text-xs font-semibold text-slate-600">{bannerPhotoUrl === community.logoUrl && community.logoUrl ? "Logo de votre communauté utilisé par défaut" : bannerPhotoUrl ? "Image personnalisée utilisée" : "Aucun logo téléversé"}</p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       <label className="inline-flex min-h-10 cursor-pointer items-center rounded-lg bg-white px-3 text-xs font-bold text-[#36506d] shadow-sm ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-violet-600">
-                        {bannerPhotoUrl ? "Remplacer" : "Choisir"}
+                        {bannerPhotoUrl ? "Téléverser une autre image" : "Choisir une image"}
                         <input type="file" accept={NEWSLETTER_IMAGE_ACCEPT} className="sr-only" disabled={uploading} onChange={(event) => void uploadMedia(event, "banner")} />
                       </label>
-                      {bannerPhotoUrl ? <button type="button" onClick={() => setBannerPhotoUrl("")} className="min-h-10 rounded-lg px-3 text-xs font-bold text-slate-600 underline">Retirer</button> : null}
+                      {community.logoUrl && bannerPhotoUrl !== community.logoUrl ? <button type="button" onClick={() => setBannerPhotoUrl(community.logoUrl ?? "")} className="min-h-10 rounded-lg px-3 text-xs font-bold text-slate-600 underline">Revenir au logo par défaut</button> : null}
                     </div>
                   </div>
                 </div>

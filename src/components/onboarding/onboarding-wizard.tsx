@@ -8,6 +8,7 @@ import { WelcomeAnimation } from "./welcome-animation";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 import { getPublicToolDestination } from "@/lib/public-tools";
+import { normalizeSupportedCountry } from "@/lib/community/countries";
 
 const STEPS = [
   { id: 0, label: "Identité", description: "Votre structure" },
@@ -129,7 +130,10 @@ export function OnboardingWizard({
 }: Props) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(Math.min(initialStep, STEPS.length - 1));
-  const [data, setData] = useState<OnboardingData>(() => ({ ...defaultData, ...initialData }));
+  const [data, setData] = useState<OnboardingData>(() => {
+    const restored = { ...defaultData, ...initialData };
+    return { ...restored, country: normalizeSupportedCountry(restored.country) };
+  });
   const [communityId, setCommunityId] = useState<string | undefined>(initialCommunityId);
   const [saving, setSaving] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -160,11 +164,11 @@ export function OnboardingWizard({
       body: JSON.stringify({ userId, data }),
     });
 
-    if (!res.ok) {
-      throw new Error("Erreur lors de l'enregistrement du brouillon");
+    const json = await res.json().catch(() => ({})) as { communityId?: string; error?: string };
+    if (!res.ok || !json.communityId) {
+      throw new Error(json.error ?? "Erreur lors de l'enregistrement du brouillon");
     }
 
-    const json = await res.json();
     setCommunityId(json.communityId);
     goNext();
   }

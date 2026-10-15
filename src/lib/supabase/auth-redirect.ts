@@ -44,10 +44,35 @@ export function getPostAuthDestination(
   if (toolDestination)
     return hasCommunity
       ? toolDestination
-      : getToolOnboardingPath(toolDestination);
+      : preserveOnboardingRegistrationParams(next, toolDestination);
+  if (!hasCommunity) {
+    const normalizedNext = normalizeAuthNextPath(
+      next,
+      DEFAULT_POST_REGISTER_PATH,
+    );
+    const url = new URL(normalizedNext, "https://auth.local");
+    if (url.pathname === "/onboarding") return normalizedNext;
+  }
   return hasCommunity
     ? normalizeAuthNextPath(next)
     : DEFAULT_POST_REGISTER_PATH;
+}
+
+function preserveOnboardingRegistrationParams(
+  next: string,
+  toolDestination: string,
+): string {
+  const destination = new URL(
+    getToolOnboardingPath(toolDestination),
+    "https://auth.local",
+  );
+  const requested = new URL(
+    normalizeAuthNextPath(next, DEFAULT_POST_REGISTER_PATH),
+    "https://auth.local",
+  );
+  const country = requested.searchParams.get("country");
+  if (country) destination.searchParams.set("country", country);
+  return `${destination.pathname}${destination.search}`;
 }
 
 export function normalizeAuthNextPath(

@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 export const maxDuration = 180;
 
 import { getShabbatTimes } from "@/lib/automation/hebcal";
-import { getPosterSource, trustedCommunityLogo, logoEditInstructions } from "@/lib/templates/edit-source";
+import { getPosterSource, trustedCommunityLogo, trustedStoredCommunityLogo, logoEditInstructions } from "@/lib/templates/edit-source";
 import { readPosterEditState } from "@/lib/templates/edit-state";
 import { NextResponse } from "next/server";
 import { FREE_POSTER_LIMIT, getBillingGate, getBillingUsage, paywallResponse } from "@/lib/billing";
@@ -62,8 +62,22 @@ export async function POST(request: Request) {
     if (!template) return NextResponse.json({ error: "Template introuvable" }, { status: 404 });
     const source = await getPosterSource(admin, gate.communityId, body.sourceMediaId);
     if (source && source.templateId !== template.id) return NextResponse.json({ error: "Modèle source incompatible." }, { status: 400 });
-    const logoUrl = trustedCommunityLogo(body.logoUrl, gate.communityId);
-    if (body.logoUrl && !logoUrl) return NextResponse.json({ error: "Logo inaccessible." }, { status: 400 });
+    const requestedLogoUrl = trustedCommunityLogo(body.logoUrl, gate.communityId);
+    const { data: communityIdentity } = await admin
+      .from("Community")
+      .select("logoUrl")
+      .eq("id", gate.communityId)
+      .single();
+    const storedLogoUrl = trustedStoredCommunityLogo(communityIdentity?.logoUrl);
+    const isExactStoredLogo = typeof body.logoUrl === "string"
+      && body.logoUrl === communityIdentity?.logoUrl
+      && Boolean(storedLogoUrl);
+    if (body.logoUrl && !requestedLogoUrl && !isExactStoredLogo) {
+      return NextResponse.json({ error: "Logo inaccessible." }, { status: 400 });
+    }
+    const logoUrl = body.shabbat === true
+      ? storedLogoUrl ?? requestedLogoUrl
+      : requestedLogoUrl;
     let shabbatDate: string | undefined;
     if (body.shabbat === true) {
       const { data: community } = await admin.from("Community").select("city, country, timezone").eq("id", gate.communityId).single();
@@ -86,14 +100,19 @@ export async function POST(request: Request) {
       changes,
       sourceImageUrl: source?.url,
       editState: { version: 1, templateId: template.id, sourceMediaId: source?.id ?? null, changes: previous?.changes ?? [], textsToRemove: [], logoUrl, shabbatDate },
-      referenceImageUrls: logoUrl ? [logoUrl] : undefined,
+      referenceImageUrls: body.shabbat !== true && logoUrl ? [logoUrl] : undefined,
+      overlayLogoUrl: body.shabbat === true && logoUrl ? logoUrl : undefined,
       editInstructions: [
         "NON-NEGOTIABLE BRANDING REQUIREMENTS:",
-        logoEditInstructions(logoUrl),
+        body.shabbat === true && logoUrl
+          ? "Do not draw, recreate or add the official community logo. Preserve the top-right branding area because the exact logo will be composited there after generation."
+          : logoEditInstructions(logoUrl),
         structureName
           ? `The official organization name is "${structureName}". It is mandatory: reproduce it exactly, clearly and legibly once on the final poster. Never omit, abbreviate, translate or alter it.`
           : "The organization name provided in the confirmed content is mandatory and must never be omitted or altered.",
-        logoUrl
+        body.shabbat === true && logoUrl
+          ? "The official logo is applied after image generation. Do not invent, redraw or duplicate it."
+          : logoUrl
           ? "The second reference image is the community's official logo. Its presence is mandatory: add that exact logo once, fully visible, in a discreet existing branding area. Never ignore, redraw, crop, distort, recolor or replace it, and never write its URL as text."
           : "No separate official logo reference was supplied; do not invent one.",
         customInstructions

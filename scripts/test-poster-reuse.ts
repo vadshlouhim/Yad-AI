@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../src/types/database.types";
 import { mergePosterChanges, readPosterEditState } from "../src/lib/templates/edit-state";
-import { getPosterSource, trustedCommunityLogo, logoEditInstructions } from "../src/lib/templates/edit-source";
+import { getPosterSource, trustedCommunityLogo, trustedStoredCommunityLogo, logoEditInstructions } from "../src/lib/templates/edit-source";
 import { buildFalPosterEditPrompt } from "../src/lib/templates/fal-edit";
 import { getNextFriday, getUpcomingShabbatTimes } from "../src/lib/automation/hebcal";
 import { resolveShabbatLocation } from "../src/lib/automation/city-location";
 import { buildShabbatPosterChanges, buildShabbatCaption } from "../src/lib/automation/shabbat-poster";
+import { compositeOfficialLogo } from "../src/lib/templates/logo-overlay";
+import sharp from "sharp";
 
 async function main() {
   const previous = [
@@ -25,11 +27,35 @@ async function main() {
   process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
   const logo = "https://example.supabase.co/storage/v1/object/public/community-assets/ours/logo.png";
   assert.equal(trustedCommunityLogo(logo, "ours"), logo);
+  const onboardingLogo = "https://example.supabase.co/storage/v1/object/public/community-assets/user-before-community/logo.png";
+  assert.equal(trustedCommunityLogo(onboardingLogo, "ours"), null);
+  assert.equal(trustedStoredCommunityLogo(onboardingLogo), onboardingLogo);
+  assert.equal(trustedStoredCommunityLogo("https://evil.test/community-assets/logo.png"), null);
   assert.equal(trustedCommunityLogo(logo, "other"), null);
   assert.equal(trustedCommunityLogo("https://example.supabase.co.evil.test/logo.png", "ours"), null);
   assert.equal(trustedCommunityLogo("https://example.supabase.co/storage/v1/object/public/community-assets/ours/%2e%2e/other/logo.png", "ours"), null);
   assert.equal(trustedCommunityLogo("https://example.supabase.co/storage/v1/object/public/community-assets/ours/%2e%2e%2fother/logo.png", "ours"), null);
   assert.match(buildFalPosterEditPrompt([], { editInstructions: logoEditInstructions(logo) }), /official logo replacement/);
+
+  const posterBuffer = await sharp({
+    create: { width: 1000, height: 1200, channels: 3, background: "#b91c1c" },
+  }).png().toBuffer();
+  const logoBuffer = await sharp({
+    create: { width: 240, height: 120, channels: 4, background: "#1d4ed8" },
+  }).png().toBuffer();
+  const composited = await compositeOfficialLogo(posterBuffer, logoBuffer);
+  assert.equal(composited.width, 1000);
+  assert.equal(composited.height, 1200);
+  const renderedMetadata = await sharp(composited.buffer).metadata();
+  assert.equal(renderedMetadata.format, "png");
+  const topRightPixel = await sharp(composited.buffer)
+    .extract({ left: 900, top: 45, width: 1, height: 1 })
+    .raw()
+    .toBuffer();
+  assert.ok(
+    topRightPixel[2] > topRightPixel[0],
+    "The exact blue logo must be composited in the top-right area",
+  );
 
   const filters = new Map<string, unknown>();
   const builder = {

@@ -8,7 +8,7 @@ type Profile = Tables<"profiles">;
 // Récupère l'utilisateur Supabase + son profil
 // Redirige vers /auth/login si non connecté
 export async function requireAuth(): Promise<{
-  supabaseUser: { id: string; email: string };
+  supabaseUser: { id: string; email: string; country?: string };
   profile: Profile;
 }> {
   const supabase = await createClient();
@@ -63,11 +63,28 @@ export async function requireAuth(): Promise<{
     }
 
     redirect("/onboarding");
-    return { supabaseUser: { id: authUser.id, email: authUser.email! }, profile: newProfile };
+    return {
+      supabaseUser: {
+        id: authUser.id,
+        email: authUser.email!,
+        country:
+          typeof authUser.user_metadata?.country === "string"
+            ? authUser.user_metadata.country
+            : undefined,
+      },
+      profile: newProfile,
+    };
   }
 
   return {
-    supabaseUser: { id: authUser.id, email: authUser.email! },
+    supabaseUser: {
+      id: authUser.id,
+      email: authUser.email!,
+      country:
+        typeof authUser.user_metadata?.country === "string"
+          ? authUser.user_metadata.country
+          : undefined,
+    },
     profile,
   };
 }

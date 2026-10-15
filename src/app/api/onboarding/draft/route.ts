@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { slugifyUnique, defaultCommunityType } from "@/lib/onboarding/community-draft";
+import { isSupportedCountry } from "@/lib/community/countries";
 
 /**
  * Crée (ou met à jour) la fiche Community "brouillon" dès la fin de l'étape Identité,
@@ -24,8 +25,8 @@ export async function POST(request: Request) {
 
     const communityName = typeof data?.communityName === "string" ? data.communityName.trim() : "";
     const city = typeof data?.city === "string" ? data.city.trim() : "";
-    if (communityName.length < 2 || city.length < 2) {
-      return NextResponse.json({ error: "Nom et ville requis" }, { status: 400 });
+    if (communityName.length < 2 || city.length < 2 || !isSupportedCountry(data?.country)) {
+      return NextResponse.json({ error: "Nom, ville et pays valide requis" }, { status: 400 });
     }
 
     const admin = createAdminClient();
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
     const fields = {
       name: communityName,
       city,
-      country: data.country || "France",
+      country: data.country,
       timezone: data.timezone || "Europe/Paris",
       phone: data.phone || null,
       email: data.email || null,

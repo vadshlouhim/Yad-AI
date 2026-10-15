@@ -1,12 +1,26 @@
 import assert from "node:assert/strict";
 import { createDraftSaveQueue } from "../src/lib/newsletter/save-queue";
-import { MAX_SOURCE_BYTES, prepareNewsletterImage, uploadNewsletterBatch } from "../src/lib/newsletter/media";
+import { MAX_SOURCE_BYTES, prepareNewsletterImage, resolveNewsletterBanner, uploadNewsletterBatch } from "../src/lib/newsletter/media";
 import { paginateNewsletter, fitNewsletterColumns, fitNewsletterWholeBlocks, supportCommunityName, type DocumentBlock } from "../src/lib/newsletter/document-layout";
 import { newsletterGeneratedText } from "../src/lib/newsletter/generated-text";
 import { NEWSLETTER_MEDIA_LIMIT, newsletterImagesPerRow } from "../src/lib/newsletter/limits";
+import { isNewsletterStoragePathOwnedBy, newsletterExportImageUrl, newsletterStoragePathFromPublicUrl } from "../src/lib/newsletter/media-path";
 import { newsletterShabbatDate, newsletterStudyDateLabel } from "../src/lib/newsletter/shabbat-study";
 
 async function main() {
+  const supabaseUrl = "https://project.supabase.co";
+  const storedImage = `${supabaseUrl}/storage/v1/object/public/community-assets/chat-attachments/community-1/photo.jpg?v=123`;
+  assert.equal(newsletterStoragePathFromPublicUrl(storedImage, supabaseUrl), "chat-attachments/community-1/photo.jpg");
+  assert.equal(newsletterExportImageUrl(storedImage, supabaseUrl), "/api/newsletter/image?path=chat-attachments%2Fcommunity-1%2Fphoto.jpg");
+  assert.equal(newsletterExportImageUrl("https://example.com/photo.jpg", supabaseUrl), "https://example.com/photo.jpg");
+  assert.equal(newsletterStoragePathFromPublicUrl(`${supabaseUrl}/storage/v1/object/public/community-assets/community-1/../secret.jpg`, supabaseUrl), null);
+  assert.equal(isNewsletterStoragePathOwnedBy("community-1/logo.png", "community-1"), true);
+  assert.equal(isNewsletterStoragePathOwnedBy("chat-attachments/community-1/photo.jpg", "community-1"), true);
+  assert.equal(isNewsletterStoragePathOwnedBy("chat-attachments/community-2/photo.jpg", "community-1"), false);
+  assert.equal(isNewsletterStoragePathOwnedBy("community-1/../community-2/photo.jpg", "community-1"), false);
+  assert.equal(resolveNewsletterBanner(undefined, "https://cdn.test/logo.png"), "https://cdn.test/logo.png");
+  assert.equal(resolveNewsletterBanner("", "https://cdn.test/logo.png"), "https://cdn.test/logo.png");
+  assert.equal(resolveNewsletterBanner("https://cdn.test/custom.png", "https://cdn.test/logo.png"), "https://cdn.test/custom.png");
   assert.equal(newsletterShabbatDate("2026-10-16"), "2026-10-17");
   assert.equal(newsletterShabbatDate("2027-12-31"), "2028-01-01");
   assert.equal(newsletterShabbatDate("2024-03-29"), "2024-03-30");

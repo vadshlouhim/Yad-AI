@@ -7,6 +7,7 @@ import {
   isDefaultAutomationPublicationId,
 } from "@/lib/automation/suggested-publications";
 import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels";
+import { isSupportedCountry } from "@/lib/community/countries";
 
 export async function POST(request: Request) {
   try {
@@ -22,6 +23,9 @@ export async function POST(request: Request) {
 
     if (userId !== user.id) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
+    }
+    if (!isSupportedCountry(data?.country)) {
+      return NextResponse.json({ error: "Sélectionnez un pays valide." }, { status: 400 });
     }
 
     const admin = createAdminClient();
@@ -45,7 +49,7 @@ export async function POST(request: Request) {
       name: data.communityName,
       description: data.description || null,
       city: data.city || null,
-      country: data.country || "France",
+      country: data.country,
       timezone: data.timezone || "Europe/Paris",
       phone: data.phone || null,
       email: data.email || null,
@@ -240,7 +244,7 @@ export async function POST(request: Request) {
           communityType,
           description: data.description || null,
           city: data.city || null,
-          country: data.country || "France",
+          country: data.country,
         },
         updatedAt: new Date().toISOString(),
       },
