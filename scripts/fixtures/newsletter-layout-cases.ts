@@ -57,5 +57,14 @@ export function newsletterLayoutCases() {
   const long = structuredClone(a);
   long.generated.ravWord = "TrèsLongMotSansEspace".repeat(65);
   cases.push({ name: "long-unbroken-text", data: long });
+  const captions = structuredClone(a);
+  captions.photos = captions.photos.map((photo, i) => ({ ...photo,
+    caption: i === 0 ? "Les enfants préparent la fête de l’école." : i === 4 ? "Merci aux bénévoles pour leur aide et leur présence." : "",
+    ...(i < 4 ? { captionGroup: "school", groupCaption: "Kermesse des enfants de l’école — une belle journée partagée en famille." } : {}),
+  }));
+  cases.push({ name: "captions", data: captions });
+  const moved = structuredClone(b);
+  moved.layout = { photoSide: "back", order: ["parasha", "rav"], composition: "full" };
+  cases.push({ name: "ai-reordered", data: moved });
   return cases;
 }

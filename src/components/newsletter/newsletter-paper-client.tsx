@@ -3,6 +3,9 @@
 
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NewsletterDocument, type NewsletterDocumentHandle } from "@/components/newsletter/newsletter-document";
+import { NewsletterRevision } from "./newsletter-revision";
+import { PhotoCaptions } from "./photo-captions";
+import { parseLayoutPreferences, type NewsletterLayoutPreferences, type NewsletterRevision as Revision } from "@/lib/newsletter/revision";
 import type { NewsletterDocumentData } from "@/lib/newsletter/document-layout";
 import { inlineNewsletterExportImages, NEWSLETTER_IMAGE_ACCEPT, resolveNewsletterBanner, uploadNewsletterBatch, uploadNewsletterImage } from "@/lib/newsletter/media";
 import { createDraftSaveQueue } from "@/lib/newsletter/save-queue";
@@ -24,7 +27,6 @@ import {
   ImagePlus,
   LayoutList,
   Loader2,
-  Printer,
   PenLine,
   ArrowUpRight,
   Store,
@@ -89,6 +91,9 @@ export type UploadedPhoto = {
   id: string;
   url: string;
   name: string;
+  caption?: string;
+  captionGroup?: string;
+  groupCaption?: string;
 };
 
 export type GeneratedNewsletter = {
@@ -117,7 +122,10 @@ type NewsletterDraft = {
   posters: UploadedPhoto[];
   bannerPhotoUrl: string;
   generated: GeneratedNewsletter;
+  layout?: NewsletterLayoutPreferences;
+  previousRevision?: RevisionSnapshot | null;
 };
+type RevisionSnapshot = Pick<NewsletterDraft, "generated" | "parnessText" | "kiddushText" | "photos" | "layout">;
 
 const MODULES: ModuleConfig[] = [
   { key: "seferHamitsvot", title: "Sefer Hamitsvot du Chabbat", icon: BookOpen },
@@ -216,6 +224,9 @@ function draftUploads(value: unknown): UploadedPhoto[] {
       id: typeof item.id === "string" ? item.id : crypto.randomUUID(),
       url: item.url,
       name: typeof item.name === "string" ? item.name : "Image",
+      caption: draftText(item.caption),
+      captionGroup: draftText(item.captionGroup),
+      groupCaption: draftText(item.groupCaption),
     }];
   });
 }
@@ -238,9 +249,12 @@ function parseNewsletterDraft(
   const enabledValue = isRecord(value.enabled) ? value.enabled : {};
   const generatedValue = isRecord(value.generated) ? value.generated : {};
   const defaults = initialGenerated();
+  const previous = isRecord(value.previousRevision) ? parseNewsletterDraft({ ...value.previousRevision, version: 1, previousRevision: undefined }, donationDefault, bannerDefault) : null;
   const editorStep: EditorStep = value.editorStep === "content" || value.editorStep === "preview" ? value.editorStep : "modules";
   return {
     version: 1,
+    layout: parseLayoutPreferences(value.layout),
+    previousRevision: previous ? { generated: previous.generated, parnessText: previous.parnessText, kiddushText: previous.kiddushText, photos: previous.photos, layout: previous.layout } : null,
     savedAt: typeof value.savedAt === "number" ? value.savedAt : 0,
     title: draftText(value.title, defaults.title),
     enabled: Object.fromEntries(MODULES.map((module) => [
@@ -322,6 +336,10 @@ export function NewsletterPaperClient({
   const [ravSuggestionError, setRavSuggestionError] = useState<string | null>(null);
   const [ravSuggestionLoading, setRavSuggestionLoading] = useState(false);
   const ravSuggestionBusyRef = useRef(false);
+  const [layout, setLayout] = useState<NewsletterLayoutPreferences>({});
+  const [previousRevision, setPreviousRevision] = useState<RevisionSnapshot | null>(null);
+  const [revisionBusy, setRevisionBusy] = useState(false);
+  const [preparedRevision, setPreparedRevision] = useState<{ key: string; pages: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draftReady, setDraftReady] = useState(false);
   const [draftStatus, setDraftStatus] = useState<"restoring" | "saving" | "saved" | "offline" | "error">("restoring");
@@ -356,12 +374,14 @@ export function NewsletterPaperClient({
     photos: visiblePhotos, posters: visiblePosters, partnerAds: visiblePartnerAds,
     events: visibleEvents, birthdays: initialBirthdays, shabbat: initialShabbat, bannerPhotoUrl,
     seferHamitsvot: initialSeferHamitsvot,
+    layout,
   };
   const localDraftKey = useMemo(() => `easycom.newsletter.draft.${community.id}.${userId}`, [community.id, userId]);
   const draftSnapshot = useMemo<NewsletterDraft>(() => ({
     version: 1,
     savedAt: Date.now(),
     title: generated.title,
+    layout, previousRevision,
     enabled,
     editorStep,
     mobilePreviewPage,
@@ -373,9 +393,12 @@ export function NewsletterPaperClient({
     posters,
     bannerPhotoUrl,
     generated,
-  }), [bannerPhotoUrl, donationUrl, editorStep, enabled, generated, kiddushText, mobilePreviewPage, parnessText, partnerAds, photos, posters]);
+  }), [bannerPhotoUrl, donationUrl, editorStep, enabled, generated, kiddushText, mobilePreviewPage, parnessText, partnerAds, photos, posters, layout, previousRevision]);
 
   const applyDraft = useCallback((draft: NewsletterDraft) => {
+    setLayout(draft.layout ?? {});
+    setPreviousRevision(draft.previousRevision ?? null);
+    setPreparedRevision(null);
     setEnabled(draft.enabled);
     setEditorStep(draft.editorStep);
     setParnessText(draft.parnessText);
@@ -389,6 +412,29 @@ export function NewsletterPaperClient({
     setRavSuggestion("");
     setRavSuggestionError(null);
   }, []);
+
+  function applyRevision(revision: Revision, pages: string[], key: string) {
+    setPreviousRevision({ generated, parnessText, kiddushText, photos, layout });
+    const { parnessText: parness, kiddushText: kiddush, ...texts } = revision.changes;
+    setGenerated(current => ({ ...current, ...texts }));
+    if (parness !== undefined) setParnessText(parness);
+    if (kiddush !== undefined) setKiddushText(kiddush);
+    setLayout(current => ({ ...current, ...revision.layout }));
+    setPreparedRevision({ pages, key });
+    setError(null);
+  }
+
+  function undoRevision() {
+    if (!previousRevision) return;
+    setGenerated(previousRevision.generated);
+    setParnessText(previousRevision.parnessText);
+    setKiddushText(previousRevision.kiddushText);
+    setPhotos(previousRevision.photos);
+    setLayout(previousRevision.layout ?? {});
+    setPreparedRevision(null);
+    setPreviousRevision(null);
+    setError(null);
+  }
 
   async function requestRavSuggestion() {
     if (ravSuggestionBusyRef.current) return;
@@ -671,6 +717,10 @@ export function NewsletterPaperClient({
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const stablePages = Array.from(snapshot.children) as HTMLElement[];
       for (const [index, page] of stablePages.entries()) {
+        // Rasterize each sheet at the same origin; off-viewport stacked sheets
+        // can produce clipped headers in Chromium's SVG/foreignObject capture.
+        snapshot.replaceChildren(page);
+        await nextPaint();
         await inlineNewsletterExportImages(page);
         await waitForImages([page]);
         const printable = page.firstElementChild as HTMLElement | null;
@@ -741,7 +791,7 @@ export function NewsletterPaperClient({
   }
 
   return (
-    <fieldset disabled={!draftReady || uploading || preparingAction !== null || exporting} className="mx-auto min-w-0 w-full max-w-7xl space-y-5 overflow-x-clip bg-[#f7faf8] pb-[calc(12rem+env(safe-area-inset-bottom))] sm:px-6 sm:pt-6 md:pb-28">
+    <fieldset disabled={!draftReady || uploading || preparingAction !== null || exporting || revisionBusy} className="mx-auto min-w-0 w-full max-w-7xl space-y-5 overflow-x-clip bg-[#f7faf8] pb-[calc(12rem+env(safe-area-inset-bottom))] sm:px-6 sm:pt-6 md:pb-28">
       <section className="relative overflow-hidden rounded-b-[2.4rem] bg-[radial-gradient(circle_at_82%_10%,#1d8276_0%,#164960_44%,#112b45_100%)] px-5 pb-7 pt-7 text-white shadow-[0_20px_42px_rgba(17,43,69,0.18)] sm:rounded-[2rem] sm:px-8">
         <span className="pointer-events-none absolute -right-14 top-12 size-48 rounded-full bg-[#a2e2c8]/20 blur-3xl" />
         <span className="pointer-events-none absolute -left-10 bottom-0 size-36 rounded-full bg-[#b7dcec]/20 blur-2xl" />
@@ -763,7 +813,7 @@ export function NewsletterPaperClient({
           {([
             ["modules", "01", "Composer", "Choisir les rubriques", LayoutList, "bg-[#164960] text-white shadow-[0_10px_24px_rgba(17,43,69,0.16)]", "border-[#dce9e5] bg-[#f2f8f6] text-[#164960] hover:bg-[#e6f2ed]"],
             ["content", "02", "Personnaliser", "Ajouter vos contenus", PenLine, "bg-[#0f766e] text-white shadow-[0_10px_24px_rgba(15,118,110,0.16)]", "border-[#dce9e5] bg-[#f2f8f6] text-[#164960] hover:bg-[#e6f2ed]"],
-            ["preview", "03", "Feuillet", "Vérifier et imprimer", Eye, "bg-[#d7a95b] text-[#2f291d] shadow-[0_10px_24px_rgba(146,105,41,0.16)]", "border-[#dce9e5] bg-[#f2f8f6] text-[#164960] hover:bg-[#e6f2ed]"],
+            ["preview", "03", "Feuillet", "Vérifier et télécharger", Eye, "bg-[#d7a95b] text-[#2f291d] shadow-[0_10px_24px_rgba(146,105,41,0.16)]", "border-[#dce9e5] bg-[#f2f8f6] text-[#164960] hover:bg-[#e6f2ed]"],
           ] as const).map(([step, number, label, detail, Icon, activeClass, idleClass]) => (
             <button key={step} type="button" aria-current={editorStep === step ? "step" : undefined} onClick={() => step === "preview" ? void prepareOutput("preview") : setEditorStep(step)} disabled={preparingAction !== null} className={cn("group flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1 rounded-[1.2rem] border border-transparent px-1 py-2 text-center transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 sm:min-h-[78px] sm:flex-row sm:justify-start sm:gap-3 sm:px-4 sm:text-left", editorStep === step ? activeClass : idleClass)}>
               <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-lg bg-white/85 text-[10px] font-black shadow-sm sm:size-10 sm:rounded-xl sm:text-sm", editorStep === step && step !== "preview" ? "text-[#164960]" : "text-current")}>{number}</span>
@@ -985,16 +1035,7 @@ export function NewsletterPaperClient({
               </label>
             </div>
             {photos.length > 0 ? (
-              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {photos.map((photo) => (
-                  <div key={photo.id} className="group relative overflow-hidden rounded-xl bg-slate-100">
-                    <img src={photo.url} alt={photo.name} className="aspect-square w-full object-contain" />
-                    <button type="button" onClick={() => setPhotos((current) => current.filter((item) => item.id !== photo.id))} className="absolute right-1 top-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-black text-slate-700 shadow transition hover:bg-white focus-visible:ring-2 focus-visible:ring-violet-600">
-                      Retirer
-                    </button>
-                  </div>
-                ))}
-              </div>
+              <PhotoCaptions photos={photos} onChange={setPhotos} />
             ) : (
               <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">Aucune photo ajoutée</div>
             )}
@@ -1031,11 +1072,12 @@ export function NewsletterPaperClient({
         </aside>
 
         <main ref={previewRef} className={cn("min-w-0 rounded-[1.8rem] border border-amber-100 bg-gradient-to-b from-[#fffdf8] to-[#f7f2e7] p-3 shadow-[0_16px_42px_rgba(95,68,22,0.1)] sm:p-5 xl:col-span-2", editorStep !== "preview" && "hidden")}>
-          {draftReady ? <NewsletterDocument ref={documentRef} data={documentData} visible={editorStep === "preview"} onError={setError} /> : null}
+          {draftReady ? <NewsletterRevision data={documentData} onApply={applyRevision} onUndo={undoRevision} canUndo={Boolean(previousRevision)} onBusy={setRevisionBusy} /> : null}
+          {draftReady ? <NewsletterDocument prepared={preparedRevision} ref={documentRef} data={documentData} visible={editorStep === "preview"} onError={setError} /> : null}
         </main>
       </div>
       <div className={cn("fixed inset-x-0 bottom-[calc(5.95rem+env(safe-area-inset-bottom))] z-20 border-t border-[#dce9e5] bg-[#f7faf8]/95 px-3 py-2 backdrop-blur print:hidden md:bottom-0 md:z-40 md:py-3", keyboardOpen && "max-md:hidden")}>
-        <div className={cn("mx-auto grid max-w-3xl gap-2", editorStep === "preview" ? "grid-cols-3" : "grid-cols-1")}>
+        <div className={cn("mx-auto grid max-w-3xl gap-2", "grid-cols-1")}>
           {editorStep === "modules" ? (
             <Button type="button" onClick={() => { if (generated.title.trim()) { setError(null); setEditorStep("content"); } else { setError("Donnez un titre à votre newsletter avant de continuer."); } }} className="min-h-13 rounded-2xl bg-[#164960] px-5 font-black text-white shadow-[0_10px_22px_rgba(17,43,69,0.18)] hover:bg-[#113d50]">
               Continuer <PenLine className="size-4" />
@@ -1043,8 +1085,6 @@ export function NewsletterPaperClient({
           ) : null}
           {editorStep === "content" ? <Button type="button" onClick={() => void prepareOutput("preview")} loading={preparingAction === "preview"} className="min-h-13 rounded-2xl bg-[#164960] px-5 font-black text-white shadow-[0_10px_22px_rgba(17,43,69,0.18)] hover:bg-[#113d50]">Continuer <Eye className="size-4" /></Button> : null}
           {editorStep === "preview" ? <>
-            <Button type="button" variant="outline" onClick={() => setEditorStep("content")} className="min-h-12 rounded-2xl border-violet-200 bg-white px-2 text-xs font-black text-[#421388] sm:text-sm"><PenLine className="size-4" />Modifier</Button>
-            <Button type="button" variant="outline" onClick={() => void prepareOutput("print")} loading={preparingAction === "print"} className="min-h-12 rounded-2xl border-violet-200 bg-white px-2 text-xs font-black text-[#421388] sm:text-sm"><Printer className="size-4" />Imprimer</Button>
             <Button type="button" onClick={() => void prepareOutput("pdf")} loading={preparingAction === "pdf" || exporting} className="min-h-12 rounded-2xl bg-[#ffcd32] px-2 text-xs font-black text-[#28104f] hover:bg-[#f2bd16] sm:text-sm"><Download className="size-4" />PDF A4</Button>
           </> : null}
         </div>

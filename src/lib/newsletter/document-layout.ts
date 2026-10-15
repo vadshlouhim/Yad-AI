@@ -1,5 +1,6 @@
 import type { CommunityInfo, GeneratedNewsletter, ModuleKey, NewsletterBirthday, NewsletterEvent, NewsletterShabbat, UploadedPhoto } from "@/components/newsletter/newsletter-paper-client";
 import { newsletterShabbatDate, type NewsletterStudy } from "./shabbat-study";
+import type { NewsletterLayoutPreferences } from "./revision";
 
 export const PAPER = { width: 794, height: 1123, margin: 42, gap: 18 };
 const CONTENT_WIDTH = PAPER.width - PAPER.margin * 2;
@@ -22,6 +23,7 @@ export type NewsletterDocumentData = {
   birthdays: NewsletterBirthday[];
   shabbat: NewsletterShabbat | null;
   seferHamitsvot?: NewsletterStudy | null;
+  layout?: NewsletterLayoutPreferences;
 };
 
 export type DocumentImage = UploadedPhoto & { width: number; height: number };
@@ -353,7 +355,7 @@ function paper(data: NewsletterDocumentData, index: number) {
 }
 
 type Gallery = { id: string; title: string; images: DocumentImage[] };
-type GalleryPlan = { gallery: Gallery; rows: Array<{ images: DocumentImage[]; height: number }>; height: number; area: number };
+type GalleryPlan = { gallery: Gallery; rows: Array<{ images: DocumentImage[]; height: number; captionHeight?: number; groupCaption?: string }>; height: number; area: number };
 type Zone = { x: number; y: number; width: number; height: number; blocks?: DocumentBlock[]; notice?: boolean; galleries?: GalleryPlan[] };
 type SheetPlan = { zones: Zone[]; score: number; mode: string };
 const ZONE_GAP = 16;
@@ -392,17 +394,33 @@ function renderGallery(plan: GalleryPlan, width: number) {
   node.dataset.gallery = plan.gallery.id;
   node.append(heading(plan.gallery.title, width < CONTENT_WIDTH));
   plan.rows.forEach((row, index) => {
-    const line = element("div", undefined, { display: "flex", justifyContent: "center", gap: "12px", height: row.height + "px", marginTop: index ? "12px" : "0" });
+    const line = element("div", undefined, { display: "flex", justifyContent: "center", gap: "12px", height: (row.height + (row.captionHeight ?? 0)) + "px", marginTop: index ? "12px" : "0" });
     line.dataset.imageRow = "true";
     for (const source of row.images) {
       const img = element("img") as HTMLImageElement;
       img.src = source.url; img.alt = source.name;
       Object.assign(img.style, { display: "block", flexShrink: "0", width: (row.height * source.width / source.height) + "px", height: row.height + "px", objectFit: "contain" });
-      line.append(img);
+      const figure = element("figure", undefined, { margin: "0", width: img.style.width, flexShrink: "0" });
+      figure.append(img);
+      if (source.caption) {
+        const caption = renderCaption(source.caption);
+        caption.dataset.photoCaption = source.id;
+        figure.append(caption);
+      }
+      line.append(figure);
     }
     node.append(line);
+    if (row.groupCaption) {
+      const caption = renderCaption(row.groupCaption);
+      caption.dataset.photoGroupCaption = row.images.at(-1)?.captionGroup ?? "";
+      node.append(caption);
+    }
   });
   return node;
+}
+
+function renderCaption(text: string) {
+  return element("figcaption", text, { margin: "6px 0 0", fontFamily: "Arial, sans-serif", fontSize: "12px", lineHeight: "1.3", color: INK, textAlign: "center", whiteSpace: "pre-wrap", overflowWrap: "anywhere" });
 }
 
 /** Measured zones shared unchanged by preview, browser print and PDF export. */
@@ -419,10 +437,10 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
   const photos = gallery("photos", "Photos de la semaine", block => block.id.startsWith("photos-"));
   const posters = gallery("posters", "Affiches & événements à venir…", block => block.kind === "images" && Boolean(block.poster));
   const partners = gallery("partners", "Nos partenaires", block => block.id.startsWith("partner-"));
-  const frontMedia = [photos].filter(g => g.images.length);
-  const backMedia = [posters, partners].filter(g => g.images.length);
+  let frontMedia = [photos].filter(g => g.images.length);
+  let backMedia = [posters, partners].filter(g => g.images.length);
   const partitionCache = new Map<Gallery, DocumentImage[][][]>();
-  for (const g of [...frontMedia, ...backMedia]) partitionCache.set(g, rowPartitions(g.images));
+  for (const g of [...frontMedia, ...backMedia]) partitionCache.set(g, rowPartitions(g.images).filter(rows => rows.every(row => new Set(row.map(image => image.captionGroup || "")).size <= 1)));
   const root = element("div", undefined, { position: "fixed", left: "-20000px", top: "0", width: CONTENT_WIDTH + "px", fontFamily: "Arial, sans-serif", color: INK, visibility: "hidden", direction: "ltr" });
   document.body.append(root);
   try {
@@ -451,15 +469,35 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
       let best: GalleryPlan | null = null;
       let bestScore = -Infinity;
       for (const partition of partitionCache.get(g)!) {
-        const available = room - titleHeight - (partition.length - 1) * 12;
+        const groupCaptions = partition.map(row => {
+          const last = row.at(-1)!;
+          const following = g.images[g.images.indexOf(last) + 1];
+          return last.captionGroup && following?.captionGroup !== last.captionGroup ? last.groupCaption : undefined;
+        });
+        const captionMeasure = (text: string, w: number) => {
+          const key = "caption:" + text + ":" + w.toFixed(2);
+          if (!measureCache.has(key)) measureCache.set(key, heightOf(renderCaption(text), w) + 6);
+          return measureCache.get(key)!;
+        };
+        const groupHeight = groupCaptions.reduce((sum, text) => sum + (text ? captionMeasure(text, width) : 0), 0);
+        const available = room - titleHeight - (partition.length - 1) * 12 - groupHeight;
         if (available <= 0) continue;
         const maxHeight = g.id === "partners" ? 240 : g.id === "photos" ? 340 : 440;
         const rowWidths = partition.map(row => Math.min(maxHeight, (width - (row.length - 1) * 12) / row.reduce((sum, img) => sum + img.width / img.height, 0)));
-        // Avoid a lone image dwarfing the other rows merely because it can grow.
         const comparable = Math.max(...rowWidths) <= Math.min(...rowWidths) * 3;
         const natural = rowWidths.map(height => comparable ? Math.min(height, Math.min(...rowWidths) * 1.25) : height);
-        const scale = Math.min(1, available / natural.reduce((a, b) => a + b, 0));
-        const rows = partition.map((images, i) => ({ images, height: natural[i] * scale }));
+        const naturalTotal = natural.reduce((a, b) => a + b, 0);
+        let scale = Math.min(1, available / naturalTotal);
+        let captionHeights = partition.map(() => 0);
+        // Captions are measured at each image's actual width, never clipped.
+        for (let attempt = 0; attempt < 12; attempt++) {
+          captionHeights = partition.map((images, i) => Math.max(0, ...images.map(img => img.caption ? captionMeasure(img.caption, Math.max(1, natural[i] * scale * img.width / img.height)) : 0)));
+          const total = naturalTotal * scale + captionHeights.reduce((a, b) => a + b, 0);
+          if (total <= available + 0.1) break;
+          scale = Math.max(0, scale - (total - available + 1) / naturalTotal);
+        }
+        if (scale <= 0 || naturalTotal * scale + captionHeights.reduce((a, b) => a + b, 0) > available + 0.1) continue;
+        const rows = partition.map((images, i) => ({ images, height: natural[i] * scale, captionHeight: captionHeights[i], groupCaption: groupCaptions[i] }));
         if (rows.some(row => row.images.some(img => {
           const ratio = img.width / img.height;
           const shortest = Math.min(row.height, row.height * ratio);
@@ -472,7 +510,7 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
           - (Math.max(...areas) - Math.min(...areas)) * 0.35;
         if (score > bestScore) {
           bestScore = score;
-          best = { gallery: g, rows, height: titleHeight + rows.reduce((sum, row) => sum + row.height, 0) + (rows.length - 1) * 12, area };
+          best = { gallery: g, rows, height: titleHeight + rows.reduce((sum, row) => sum + row.height + row.captionHeight, 0) + groupHeight + (rows.length - 1) * 12, area };
         }
       }
       galleryCache.set(key, best);
@@ -485,15 +523,15 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
       for (const share of [0.35, 0.5, 0.65, 0.75, 0.85]) {
         const first = fitGallery(items[0], width, (room - ZONE_GAP) * share);
         if (!first) continue;
-        const second = fitGallery(items[1], width, room - ZONE_GAP - first.height);
-        if (!second) continue;
+        const rest = fitGalleries(items.slice(1), width, room - ZONE_GAP - first.height);
+        if (!rest) continue;
         // Detailed event posters get priority over enlarging a partner mark.
-        const area = first.area * 2 + second.area * 0.5;
-        if (area > score) { best = [first, second]; score = area; }
+        const area = first.area * 2 + rest.reduce((sum, item) => sum + item.area, 0) * 0.5;
+        if (area > score) { best = [first, ...rest]; score = area; }
       }
       return best;
     };
-    const buildPage = (items: DocumentBlock[], pageNotices: DocumentBlock[], media: Gallery[], capacity: number, font: number, allowSplit: boolean): SheetPlan | null => {
+    const buildPage = (items: DocumentBlock[], pageNotices: DocumentBlock[], media: Gallery[], capacity: number, font: number): SheetPlan | null => {
       let best: SheetPlan | null = null;
       const consider = (zones: Zone[], mode: string) => {
         if (zones.some(z => z.y + z.height > capacity + 0.5 || z.height < 0)) return;
@@ -505,8 +543,10 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
           : z.width * z.height), 0);
         const bottoms = [0, COLUMN_WIDTH + COLUMN_GAP].map(x => Math.max(0, ...zones.filter(z => z.x <= x && z.x + z.width > x).map(z => z.y + z.height)));
         const hole = Math.max(...bottoms) - Math.min(...bottoms);
+        const bottomGap = Math.max(0, capacity - Math.max(...bottoms));
         const continuations = zones.flatMap(z => z.blocks ?? []).filter(b => b.kind === "text" && b.continuation).length;
-        const score = capacity * CONTENT_WIDTH - occupied + hole * COLUMN_WIDTH * 0.6 + continuations * 30000;
+        const preferencePenalty = data.layout?.composition && data.layout.composition !== "auto" && mode !== data.layout.composition ? 250_000 : 0;
+        const score = capacity * CONTENT_WIDTH - occupied + hole * COLUMN_WIDTH * 0.6 + bottomGap ** 2 * 5 + continuations * 30000 + preferencePenalty;
         if (!best || score < best.score) best = { zones, score, mode };
       };
       const noticeHeight = (width: number) => pageNotices.length ? heightOf(renderNotice(pageNotices, font), width) : 0;
@@ -532,14 +572,6 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
       if (full) consider(full, "full");
       const partitions: DocumentBlock[][][] = [];
       for (let split = 1; split < items.length; split++) partitions.push([items.slice(0, split), items.slice(split)]);
-      if (items.length && allowSplit) {
-        for (const fraction of [1, 0.7, 0.5]) {
-          try {
-            const columns = paginateNewsletter(items, () => capacity * fraction, (b, f) => measure(b, f, COLUMN_WIDTH), font);
-            if (columns.length === 2) partitions.push(columns.map(c => c.blocks));
-          } catch { /* A different measured zone may fit. */ }
-        }
-      }
       for (const pair of partitions) {
         const heights = pair.map(group => textHeight(group, font, COLUMN_WIDTH));
         if (heights.some(h => h > capacity)) continue;
@@ -567,51 +599,57 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
       return best;
     };
     let selected: { pages: SheetPlan[]; font: number; introHeight: number; score: number } | null = null;
-    const search = (editorial: DocumentBlock[], fonts: number[], allowSplit = false) => {
+    // Try different whole-article orders and page allocations, never continuations.
+    const preferred = data.layout?.order ?? [];
+    const ranked = [...stories].sort((a, b) => {
+      const ai = preferred.indexOf(a.id), bi = preferred.indexOf(b.id);
+      return (ai < 0 ? 1000 : ai) - (bi < 0 ? 1000 : bi);
+    });
+    const orders = [ranked, stories, [...ranked].reverse(),
+      ...ranked.map((block, i) => [block, ...ranked.filter((_, j) => i !== j)])]
+      .filter((order, index, all) => all.findIndex(other => other.map(b => b.id).join("|") === order.map(b => b.id).join("|")) === index);
+    const pageCache = new Map<string, SheetPlan | null>();
+    const cachedPage = (items: DocumentBlock[], notes: DocumentBlock[], media: Gallery[], capacity: number, font: number) => {
+      const key = JSON.stringify([items.map(b => b.id), notes.map(b => b.id), media.map(g => g.id), capacity, font]);
+      if (!pageCache.has(key)) pageCache.set(key, buildPage(items, notes, media, capacity, font));
+      return pageCache.get(key)!;
+    };
+    const search = (fonts: number[]) => {
       for (const font of fonts) {
         const introHeight = intro.length ? textHeight(intro, font, CONTENT_WIDTH) + ZONE_GAP : 0;
-        for (let split = 0; split <= editorial.length; split++) {
+        for (const editorial of orders) for (let split = 0; split <= editorial.length; split++) {
           const front = editorial.slice(0, split), back = editorial.slice(split);
           const hasBack = back.length > 0 || backMedia.length > 0;
           const frontNotices = hasBack ? notices.filter(b => b.id === "dedications") : notices;
           const backNotices = hasBack ? notices.filter(b => b.id === "support") : [];
-          const a = buildPage(front, frontNotices, frontMedia, capacities[0] - introHeight, font, allowSplit);
+          const a = cachedPage(front, frontNotices, frontMedia, capacities[0] - introHeight, font);
           if (!a) continue;
-          const b = hasBack ? buildPage(back, backNotices, backMedia, capacities[1], font, allowSplit) : null;
+          const b = hasBack ? cachedPage(back, backNotices, backMedia, capacities[1], font) : null;
           if (hasBack && !b) continue;
-          if (!front.length && back.length) continue;
-          const editorialPenalty = front.filter(block => !["rav", "parasha"].includes(block.id)).length * 500_000
-            + back.filter(block => ["rav", "parasha"].includes(block.id)).length * 20_000_000;
-          const continuationPenalty = [...front, ...back].filter(block => block.kind === "text" && block.continuation).length * 12000;
-          // Typography preference precedes whitespace optimization. Do not make
-          // the body smaller solely to maximize image area.
-          const fontRank = [...NORMAL_FONTS, ...DENSE_FONTS].indexOf(font);
-          const score = a.score + (b?.score ?? 0) + editorialPenalty + continuationPenalty + fontRank * 2_000_000;
+          if (!front.length && back.length && !frontMedia.length) continue;
+          const editorialPenalty = front.filter(block => !["rav", "parasha"].includes(block.id)).length * 100_000
+            + back.filter(block => ["rav", "parasha"].includes(block.id)).length * 250_000;
+          const orderPenalty = editorial.reduce((sum, block, index) => sum + (preferred.includes(block.id) ? Math.abs(index - preferred.indexOf(block.id)) * 400_000 : 0), 0);
+          const fontRank = data.layout?.fontSize ? Math.abs(font - data.layout.fontSize) : [...NORMAL_FONTS, ...DENSE_FONTS].indexOf(font);
+          const preferredSide = data.layout?.photoSide ?? "auto";
+          const sidePenalty = preferredSide === "auto" ? (frontMedia.length ? 0 : 50_000) : (preferredSide === "front") !== Boolean(frontMedia.length) ? 1_000_000 : 0;
+          const score = a.score + (b?.score ?? 0) + editorialPenalty + orderPenalty + sidePenalty + fontRank * 2_000_000;
           if (!selected || score < selected.score) selected = { pages: b ? [a, b] : [a], font, introHeight, score };
         }
       }
     };
-    search(stories, NORMAL_FONTS);
-    if (!selected) search(stories, NORMAL_FONTS, true);
-    if (!selected) {
-      for (const font of NORMAL_FONTS) {
-        try {
-          const columns = paginateNewsletter(stories, () => Math.min(...capacities) * 0.65, (b, f) => measure(b, f, COLUMN_WIDTH), font);
-          search(columns.flatMap(c => c.blocks), [font], true);
-        } catch { /* Denser type is considered only after layout alternatives. */ }
+    for (const fonts of [NORMAL_FONTS, DENSE_FONTS]) {
+      frontMedia = [photos].filter(g => g.images.length);
+      backMedia = [posters, partners].filter(g => g.images.length);
+      search(fonts);
+      if (photos.images.length) {
+        frontMedia = [];
+        backMedia = [photos, posters, partners].filter(g => g.images.length);
+        search(fonts);
       }
+      if (selected) break;
     }
-    if (!selected) search(stories, DENSE_FONTS);
-    if (!selected) search(stories, DENSE_FONTS, true);
-    if (!selected) {
-      for (const font of DENSE_FONTS) {
-        try {
-          const columns = paginateNewsletter(stories, () => Math.min(...capacities) * 0.65, (b, f) => measure(b, f, COLUMN_WIDTH), font);
-          search(columns.flatMap(c => c.blocks), [font], true);
-        } catch { /* Never truncate a draft that still cannot fit. */ }
-      }
-    }
-    if (!selected) throw new Error("Le contenu dépasse une A4 recto verso même après réorganisation. Ajustez manuellement une rubrique ou un visuel ; aucun texte ni image n’a été supprimé.");
+    if (!selected) throw new Error("Les rubriques ne tiennent pas entières sur une A4 recto verso, même après réorganisation. Raccourcissez explicitement un texte ou retirez un visuel. Aucun texte n’a été coupé ni supprimé.");
     const choice = selected as { pages: SheetPlan[]; font: number; introHeight: number; score: number };
     return choice.pages.map((plan, index) => {
       const article = paper(data, index);
@@ -643,7 +681,7 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
       article.append(content, footer(data, index, choice.pages.length));
       root.style.width = PAPER.width + "px"; root.replaceChildren(article);
       const bounds = content.getBoundingClientRect();
-      const nodes = Array.from(content.querySelectorAll<HTMLElement>("[data-newsletter-zone], section, [data-newsletter-text], img"));
+      const nodes = Array.from(content.querySelectorAll<HTMLElement>("[data-newsletter-zone], section, [data-newsletter-text], img, figcaption"));
       if (nodes.some(node => {
         const r = node.getBoundingClientRect();
         return r.bottom > bounds.bottom + 1 || r.right > bounds.right + 1 || r.left < bounds.left - 1;

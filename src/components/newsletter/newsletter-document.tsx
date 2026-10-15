@@ -16,7 +16,8 @@ export const NewsletterDocument = forwardRef<NewsletterDocumentHandle, {
   data: NewsletterDocumentData;
   visible: boolean;
   onError: (error: string) => void;
-}>(function NewsletterDocument({ data, visible, onError }, ref) {
+  prepared?: { key: string; pages: string[] } | null;
+}>(function NewsletterDocument({ data, visible, onError, prepared }, ref) {
   const key = JSON.stringify(data);
   const [rendered, setRendered] = useState<{ key: string; pages: string[] } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -39,7 +40,7 @@ export const NewsletterDocument = forwardRef<NewsletterDocumentHandle, {
     setBusy(true);
     try {
       if (pending.current?.key !== key) {
-        pending.current = { key, promise: composeNewsletter(JSON.parse(key) as NewsletterDocumentData) };
+        pending.current = { key, promise: prepared?.key === key ? Promise.resolve(prepared.pages) : composeNewsletter(JSON.parse(key) as NewsletterDocumentData) };
       }
       const job = pending.current;
       const pages = await job.promise;
@@ -55,7 +56,7 @@ export const NewsletterDocument = forwardRef<NewsletterDocumentHandle, {
     } finally {
       if (alive.current) setBusy(false);
     }
-  }, [key]);
+  }, [key, prepared]);
 
   useImperativeHandle(ref, () => ({ prepare }), [prepare]);
   useEffect(() => {

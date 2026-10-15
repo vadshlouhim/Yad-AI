@@ -9,6 +9,14 @@ const sources = data => [...(data.enabled.photos ? data.photos : []), ...(data.e
 function validate(data, pages, name) {
   check(pages.length >= 1 && pages.length <= 2, name + ': page count');
   const root = document.createElement('div'); root.innerHTML = pages.join(''); document.body.append(root);
+  const textIds = [...root.querySelectorAll('[data-newsletter-text]')].map(node => node.dataset.newsletterText);
+  check(new Set(textIds).size === textIds.length, name + ': article split between zones or pages');
+  check(![...root.querySelectorAll('h2')].some(node => node.textContent.includes('— suite')), name + ': continuation label');
+  for (const photo of data.photos) if (photo.caption) check(root.querySelector('[data-photo-caption="' + photo.id + '"]')?.textContent === photo.caption, name + ': missing caption');
+  for (const group of new Set(data.photos.map(photo => photo.captionGroup).filter(Boolean))) {
+    const nodes = root.querySelectorAll('[data-photo-group-caption="' + group + '"]');
+    check(nodes.length === 1 && nodes[0].textContent === data.photos.find(photo => photo.captionGroup === group).groupCaption, name + ': group caption repeated/missing');
+  }
   const text = id => [...root.querySelectorAll('[data-newsletter-text="' + id + '"]')].map(node => node.textContent).join('');
   check(text('intro') === data.generated.intro, name + ': introduction changed');
   if (data.enabled.ravWord) check(text('rav') === data.generated.ravWord, name + ': Rav text changed');
@@ -34,7 +42,7 @@ function validate(data, pages, name) {
     const source = originals.find(item => item.name === img.alt);
     check(source && source.url === img.getAttribute('src'), name + ': changed image');
     check(img.style.objectFit === 'contain', name + ': cropped image');
-    check(img.parentElement.querySelectorAll('img').length <= 4, name + ': more than four per row');
+    check(img.closest('[data-image-row]').querySelectorAll('img').length <= 4, name + ': more than four per row');
     const svg = new DOMParser().parseFromString(decodeURIComponent(source.url.split(',')[1]), 'image/svg+xml').documentElement;
     const ratio = Number(svg.getAttribute('width')) / Number(svg.getAttribute('height'));
     check(Math.abs(parseFloat(img.style.width) / parseFloat(img.style.height) - ratio) < 0.001, name + ': deformed image');
@@ -85,6 +93,8 @@ function validate(data, pages, name) {
         const [{ toPng }, { jsPDF }] = await Promise.all([import('html-to-image'), import('jspdf')]);
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
         for (const [i, article] of [...document.querySelectorAll('article')].entries()) {
+          document.body.replaceChildren(article);
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
           const png = await toPng(article, { pixelRatio: 2, width: 794, height: 1123, backgroundColor: '#faf7f0' });
           if (i) pdf.addPage('a4', 'portrait');
           pdf.addImage(png, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight(), undefined, 'FAST');
