@@ -1,8 +1,7 @@
 import { newsletterExportImageUrl } from "./media-path";
 
-export const NEWSLETTER_IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp,.jpg,.jpeg,.png,.webp,.gif,.avif,.bmp";
+export const NEWSLETTER_IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.avif,.bmp,.heic,.heif";
 export const MAX_SOURCE_BYTES = 20 * 1024 * 1024;
-const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 export function resolveNewsletterBanner(
   customBannerUrl: unknown,
@@ -17,43 +16,19 @@ export function resolveNewsletterBanner(
 export async function prepareNewsletterImage(file: File): Promise<File> {
   if (!file.size) throw new Error("Ce fichier est vide.");
   if (file.size > MAX_SOURCE_BYTES) throw new Error("Image trop volumineuse : maximum 20 Mo.");
-  if (!/\.(jpe?g|png|webp|gif|avif|bmp)$/i.test(file.name) && !/^image\/(jpeg|png|webp|gif|avif|bmp)$/.test(file.type)) {
-    throw new Error("Utilisez une image JPG, PNG, WebP, GIF, AVIF ou BMP. Exportez les PDF et les photos HEIC en JPG ou PNG.");
+  if (!/\.(jpe?g|png|webp|gif|avif|bmp|heic|heif)$/i.test(file.name) && !/^image\/(jpeg|png|webp|gif|avif|bmp|heic|heif)$/.test(file.type)) {
+    throw new Error("Utilisez une image JPG, PNG, WebP, GIF, AVIF, BMP, HEIC ou HEIF. Les PDF ne sont pas acceptés.");
   }
-  const objectUrl = URL.createObjectURL(file);
-  const image = new Image();
+  return file;
+}
+
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, timeoutMs: number) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
-    await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("Lecture de l’image trop longue. Réessayez avec une image JPG ou PNG.")), 15_000);
-      image.onload = () => { clearTimeout(timer); resolve(); };
-      image.onerror = () => { clearTimeout(timer); reject(new Error("Image illisible. Exportez-la en JPG ou PNG puis réessayez.")); };
-      image.src = objectUrl;
-    });
-    const scale = Math.min(1, 2400 / Math.max(image.naturalWidth, image.naturalHeight));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
-    canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
-    try {
-      const context = canvas.getContext("2d");
-      if (!context) throw new Error("Votre navigateur ne peut pas préparer cette image.");
-      context.fillStyle = "#ffffff";
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-      const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(
-        (result) => result ? resolve(result) : reject(new Error("Conversion de l’image impossible.")),
-        "image/jpeg", 0.9,
-      ));
-      if (blob.size > MAX_UPLOAD_BYTES) throw new Error("Cette image reste trop lourde. Réduisez sa résolution puis réessayez.");
-      return new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.jpg`, { type: "image/jpeg" });
-    } finally {
-      canvas.width = 0;
-      canvas.height = 0;
-    }
+    return await fetch(input, { ...init, signal: controller.signal });
   } finally {
-    image.onload = null;
-    image.onerror = null;
-    image.src = "";
-    URL.revokeObjectURL(objectUrl);
+    window.clearTimeout(timer);
   }
 }
 
@@ -61,14 +36,14 @@ export async function uploadNewsletterImage(file: File) {
   const prepared = await prepareNewsletterImage(file);
   const form = new FormData();
   form.append("file", prepared);
-  const response = await fetch("/api/uploads/attachment", {
-    method: "POST", body: form, signal: AbortSignal.timeout(60_000),
-  });
-  const data = await response.json().catch(() => ({})) as { url?: string; error?: string };
+  const response = await fetchWithTimeout("/api/newsletter/image-upload", {
+    method: "POST", body: form,
+  }, 90_000);
+  const data = await response.json().catch(() => ({})) as { url?: string; name?: string; error?: string; code?: string };
   if (response.status === 401) throw new Error("Votre session a expiré. Reconnectez-vous pour ajouter des images.");
   if (response.status === 413) throw new Error("Image refusée car trop volumineuse. Réduisez sa résolution.");
   if (!response.ok || !data.url) throw new Error(data.error || "Envoi impossible. Vérifiez votre connexion puis réessayez.");
-  return { id: crypto.randomUUID(), url: data.url, name: file.name };
+  return { id: crypto.randomUUID(), url: data.url, name: data.name || file.name };
 }
 
 /** Sequential uploads bound memory usage and preserve partial successes. */
@@ -114,11 +89,10 @@ export async function inlineNewsletterExportImages(root: HTMLElement) {
 
     let dataUrl = cache.get(source);
     if (!dataUrl) {
-      const response = await fetch(newsletterExportImageUrl(source), {
+      const response = await fetchWithTimeout(newsletterExportImageUrl(source), {
         cache: "no-store",
         credentials: "same-origin",
-        signal: AbortSignal.timeout(30_000),
-      });
+      }, 30_000);
       if (!response.ok) throw new Error(`Image indisponible : ${image.alt || "visuel du feuillet"}. Réimportez-la avant l’export.`);
       const blob = await response.blob();
       if (!blob.type.startsWith("image/") || !blob.size) throw new Error(`Image invalide : ${image.alt || "visuel du feuillet"}.`);

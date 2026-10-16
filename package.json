@@ -32,6 +32,7 @@
   "dependencies": {
     "@fal-ai/client": "^1.10.0",
     "@hebcal/core": "^6.3.3",
+    "@keeratita/heic-converter": "0.5.2",
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
     "@radix-ui/react-dialog": "^1.1.15",

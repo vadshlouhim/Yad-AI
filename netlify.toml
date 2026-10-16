@@ -8,7 +8,7 @@
 
 [functions]
   node_bundler = "esbuild"
-  included_files = ["src/**"]
+  included_files = ["src/**", "node_modules/@keeratita/heic-converter/dist/**"]
 
 [functions."automations-cron"]
   schedule = "* * * * *"

@@ -8,6 +8,7 @@ import { ArrowRight, LogIn, Menu, X } from "lucide-react";
 const NAV_LINKS = [
   { href: "/", label: "Accueil" },
   { href: "/#fonctionnalites", label: "Outils" },
+  { href: "/fonctionnalites-a-venir", label: "À venir" },
   { href: "/method", label: "Notre méthode" },
   { href: "/affiches", label: "Affiches" },
   { href: "/blog", label: "Blog" },

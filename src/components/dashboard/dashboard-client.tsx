@@ -26,6 +26,7 @@ import {
 } from "@/components/layout/dashboard-nav";
 import { getCommunityProfileLabel } from "@/lib/community/profile-labels";
 import { MobileDashboardHome } from "@/components/dashboard/mobile-dashboard-home";
+import { ComingSoonBanner } from "@/components/coming-soon/coming-soon-banner";
 
 interface Props {
   basePath?: "/dashboard" | "/demo";
@@ -301,6 +302,7 @@ export function DashboardClient({
           icon={Settings2}
         />
       </section>
+      {basePath === "/dashboard" ? <ComingSoonBanner /> : null}
       </div>
     </>
   );

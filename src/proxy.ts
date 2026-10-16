@@ -19,6 +19,7 @@ const PUBLIC_ROUTES = [
   "/contact",
   "/blog",
   "/tarification",
+  "/fonctionnalites-a-venir",
   "/privacy",
   "/data-deletion",
   "/help",

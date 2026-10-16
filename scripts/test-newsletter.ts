@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import sharp from "sharp";
 import { createDraftSaveQueue } from "../src/lib/newsletter/save-queue";
 import { MAX_SOURCE_BYTES, prepareNewsletterImage, resolveNewsletterBanner, uploadNewsletterBatch } from "../src/lib/newsletter/media";
 import { paginateNewsletter, fitNewsletterColumns, fitNewsletterWholeBlocks, supportCommunityName, type DocumentBlock } from "../src/lib/newsletter/document-layout";
@@ -6,6 +7,9 @@ import { newsletterGeneratedText } from "../src/lib/newsletter/generated-text";
 import { NEWSLETTER_MEDIA_LIMIT, newsletterImagesPerRow } from "../src/lib/newsletter/limits";
 import { isNewsletterStoragePathOwnedBy, newsletterExportImageUrl, newsletterStoragePathFromPublicUrl } from "../src/lib/newsletter/media-path";
 import { newsletterShabbatDate, newsletterStudyDateLabel } from "../src/lib/newsletter/shabbat-study";
+import { DEFAULT_NEWSLETTER_LABELS, parseNewsletterLabels, resolveNewsletterLabels } from "../src/lib/newsletter/labels";
+import { parseNewsletterDraft } from "../src/components/newsletter/newsletter-paper-client";
+import { NEWSLETTER_OUTPUT_BYTES, normalizeNewsletterImage } from "../src/lib/newsletter/server-image";
 
 async function main() {
   const supabaseUrl = "https://project.supabase.co";
@@ -16,8 +20,18 @@ async function main() {
   assert.equal(newsletterStoragePathFromPublicUrl(`${supabaseUrl}/storage/v1/object/public/community-assets/community-1/../secret.jpg`, supabaseUrl), null);
   assert.equal(isNewsletterStoragePathOwnedBy("community-1/logo.png", "community-1"), true);
   assert.equal(isNewsletterStoragePathOwnedBy("chat-attachments/community-1/photo.jpg", "community-1"), true);
+  assert.equal(isNewsletterStoragePathOwnedBy("newsletter/community-1/photo.jpg", "community-1"), true);
   assert.equal(isNewsletterStoragePathOwnedBy("chat-attachments/community-2/photo.jpg", "community-1"), false);
   assert.equal(isNewsletterStoragePathOwnedBy("community-1/../community-2/photo.jpg", "community-1"), false);
+  assert.deepEqual(parseNewsletterLabels({ parness: "  Pour l’élévation de l’âme  ", unknown: "interdit", agenda: "" }), { parness: "Pour l’élévation de l’âme" });
+  assert.equal(resolveNewsletterLabels({ agenda: "Nos rendez-vous" }, { parness: "Dédicace du jour" }).agenda, "Nos rendez-vous");
+  assert.equal(resolveNewsletterLabels({ agenda: "Nos rendez-vous" }, { parness: "Dédicace du jour" }).parness, "Dédicace du jour");
+  assert.equal(resolveNewsletterLabels({}, {}).photos, DEFAULT_NEWSLETTER_LABELS.photos);
+  const migratedDraft = parseNewsletterDraft({ version: 1, title: "Ancien feuillet", enabled: {}, generated: { title: "Ancien feuillet" } }, "", "");
+  assert.equal(migratedDraft?.version, 2);
+  assert.deepEqual(migratedDraft?.manualBirthdays, []);
+  assert.equal(migratedDraft?.specificEventText, "");
+  assert.deepEqual(migratedDraft?.labelOverrides, {});
   assert.equal(resolveNewsletterBanner(undefined, "https://cdn.test/logo.png"), "https://cdn.test/logo.png");
   assert.equal(resolveNewsletterBanner("", "https://cdn.test/logo.png"), "https://cdn.test/logo.png");
   assert.equal(resolveNewsletterBanner("https://cdn.test/custom.png", "https://cdn.test/logo.png"), "https://cdn.test/custom.png");
@@ -54,7 +68,18 @@ async function main() {
 
   await assert.rejects(prepareNewsletterImage(new File([], "empty.png")), /vide/);
   await assert.rejects(prepareNewsletterImage(new File(["pdf"], "poster.pdf")), /PDF/);
+  assert.equal((await prepareNewsletterImage(new File(["heic"], "iphone.heic", { type: "image/heic" }))).name, "iphone.heic");
   await assert.rejects(prepareNewsletterImage(new File([new Uint8Array(MAX_SOURCE_BYTES + 1)], "huge.jpg")), /20 Mo/);
+  const sourceImage = await sharp({ create: { width: 3200, height: 1800, channels: 3, background: "#336699" } }).png().toBuffer();
+  const normalizedImage = await normalizeNewsletterImage(sourceImage);
+  const normalizedMetadata = await sharp(normalizedImage).metadata();
+  assert.equal(normalizedMetadata.format, "jpeg");
+  assert.equal(Math.max(normalizedMetadata.width ?? 0, normalizedMetadata.height ?? 0), 2400);
+  assert.ok(normalizedImage.length <= NEWSLETTER_OUTPUT_BYTES);
+  const invalidHeic = Buffer.alloc(32);
+  invalidHeic.write("ftyp", 4, "ascii");
+  invalidHeic.write("heic", 8, "ascii");
+  await assert.rejects(normalizeNewsletterImage(invalidHeic), /HEIC|decode|failed|Image/i);
 
   const saved: number[] = [];
   let release!: () => void;

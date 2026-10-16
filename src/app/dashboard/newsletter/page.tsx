@@ -7,6 +7,7 @@ import { getBirthdayOccurrence, getCurrentHebrewDate, validateHebrewBirthday } f
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchSeferHamitsvot } from "@/lib/automation/hayom-yom";
 import { newsletterShabbatDate, newsletterStudyDateLabel, type NewsletterStudy } from "@/lib/newsletter/shabbat-study";
+import { parseNewsletterLabels } from "@/lib/newsletter/labels";
 
 export const metadata: Metadata = { title: "Newsletter papier Chabbat - EasyCom IA" };
 
@@ -62,6 +63,7 @@ export default async function NewsletterPage() {
       ? vocabulary.donationUrl
       : null
     : null;
+  const newsletterLabels = parseNewsletterLabels(vocabulary?.newsletterLabels);
   const shabbat = (await getUpcomingShabbatTimes({ city, timezone, count: 1 }))[0] ?? null;
   const shabbatData: NewsletterShabbat | null = shabbat
     ? {
@@ -128,6 +130,7 @@ export default async function NewsletterPage() {
         city,
         timezone,
         donationUrl,
+        newsletterLabels,
         address: community?.address ?? null,
         phone: community?.phone ?? null,
         email: community?.email ?? null,

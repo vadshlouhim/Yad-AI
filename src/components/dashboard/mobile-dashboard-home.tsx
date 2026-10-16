@@ -41,6 +41,7 @@ import { cn } from "@/lib/utils";
 import { DASHBOARD_MODULE_COLORS } from "./dashboard-module-colors";
 import { MOBILE_ACTION_CARD_CLASS, MOBILE_HOME_HEADER_CLASS } from "@/components/presentation/platform-style";
 import { HOME_EASYCOM_AGENTS, type EasyComAgent } from "@/lib/agents";
+import { ComingSoonBanner } from "@/components/coming-soon/coming-soon-banner";
 import {
   getOfficialDashboardMenuSections,
   OFFICIAL_MENU_SECTION_STYLES,
@@ -658,6 +659,7 @@ export function MobileDashboardHome({
         </div>
         {undoModule ? <div className="fixed bottom-[6.5rem] left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl bg-slate-950 px-4 py-3 text-xs font-bold text-white shadow-xl"><span>Module retiré</span><button type="button" onClick={restoreHomeModule} className="text-[#f2c75c]">Annuler</button></div> : null}
         {homeNotice ? <button type="button" onClick={() => setHomeNotice(null)} className="fixed bottom-[6.5rem] left-1/2 z-50 w-[calc(100%-2rem)] -translate-x-1/2 rounded-2xl bg-slate-950 px-4 py-3 text-left text-xs font-bold text-white shadow-xl">{homeNotice}</button> : null}
+        {basePath === "/dashboard" ? <div className="mt-5"><ComingSoonBanner /></div> : null}
       </section>
 
       <ModuleDialog

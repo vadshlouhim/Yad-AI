@@ -27,5 +27,5 @@ export function newsletterExportImageUrl(value: string, supabaseUrl?: string) {
 
 export function isNewsletterStoragePathOwnedBy(path: string, ownerId: string) {
   if (!path || !ownerId || path.startsWith("/") || path.split("/").some((part) => !part || part === "." || part === "..")) return false;
-  return path.startsWith(`${ownerId}/`) || path.startsWith(`chat-attachments/${ownerId}/`);
+  return path.startsWith(`${ownerId}/`) || path.startsWith(`chat-attachments/${ownerId}/`) || path.startsWith(`newsletter/${ownerId}/`);
 }

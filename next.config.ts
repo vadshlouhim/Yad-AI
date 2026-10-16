@@ -9,6 +9,7 @@ const supabaseImageHostname = (() => {
 })();
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["@keeratita/heic-converter"],
   experimental: {
     preloadEntriesOnStart: false,
   },

@@ -27,6 +27,7 @@ import {
   Users,
   Zap,
   Sparkles,
+  Rocket,
 } from "lucide-react";
 import React from "react";
 import { getCommunityProfileLabel } from "@/lib/community/profile-labels";
@@ -368,6 +369,15 @@ export const OFFICIAL_MENU_SECTION_STYLES: Record<
     itemHover: "hover:bg-slate-50 hover:text-slate-900",
     itemActive: "bg-slate-100 text-slate-950 ring-1 ring-slate-200",
   },
+  roadmap: {
+    accentBar: "bg-amber-400",
+    iconSurface: "bg-amber-50",
+    titleClass: "text-amber-800",
+    descriptionClass: "text-slate-500",
+    itemIcon: "text-amber-700",
+    itemHover: "hover:bg-amber-50/70 hover:text-amber-950",
+    itemActive: "bg-amber-50 text-amber-950 ring-1 ring-amber-200",
+  },
 };
 
 function getStructureTypeLabel(communityType?: string | null) {
@@ -484,6 +494,15 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       icon: Users,
       items: [
         { href: "/dashboard/contacts", label: "CRM Inteligent IA", icon: Users },
+      ],
+    },
+    {
+      key: "roadmap",
+      section: "FONCTIONNALITÉS À VENIR",
+      subtitle: "Découvrez les prochains outils EasyCom AI",
+      icon: Rocket,
+      items: [
+        { href: "/dashboard/fonctionnalites-a-venir", label: "Voir les nouveautés à venir", icon: Sparkles },
       ],
     },
     {

@@ -17,6 +17,7 @@ import {
   Image,
   Mail,
   Plane,
+  Rocket,
   Settings,
   ShoppingBag,
   Sparkles,
@@ -287,6 +288,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
     const comingSoon: ToolGroup[] = [];
 
     const account = [
+      item("/dashboard/fonctionnalites-a-venir", "Fonctionnalités à venir", Rocket),
       item("/dashboard/settings", "Paramètres", Settings),
       item("/help", "Support et suggestions", Headphones),
       item("/dashboard/settings?section=profile", "Profil", User),

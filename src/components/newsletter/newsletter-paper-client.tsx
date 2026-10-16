@@ -10,6 +10,7 @@ import type { NewsletterDocumentData } from "@/lib/newsletter/document-layout";
 import { inlineNewsletterExportImages, NEWSLETTER_IMAGE_ACCEPT, resolveNewsletterBanner, uploadNewsletterBatch, uploadNewsletterImage } from "@/lib/newsletter/media";
 import { createDraftSaveQueue } from "@/lib/newsletter/save-queue";
 import { NEWSLETTER_MEDIA_LIMIT } from "@/lib/newsletter/limits";
+import { NEWSLETTER_LABEL_EDITOR, parseNewsletterLabels, resolveNewsletterLabels, type NewsletterLabels } from "@/lib/newsletter/labels";
 import type { NewsletterStudy } from "@/lib/newsletter/shabbat-study";
 import {
   BookOpen,
@@ -28,6 +29,10 @@ import {
   LayoutList,
   Loader2,
   PenLine,
+  Plus,
+  RotateCcw,
+  Save,
+  Trash2,
   ArrowUpRight,
   Store,
   Sparkles,
@@ -75,9 +80,10 @@ export type CommunityInfo = {
   email: string | null;
   website: string | null;
   isBethHabad: boolean;
+  newsletterLabels?: Partial<NewsletterLabels>;
 };
 
-export type ModuleKey = "ravWord" | "photos" | "posters" | "parness" | "birthdays" | "kiddush" | "events" | "restaurantAd" | "support" | "shabbat" | "seferHamitsvot";
+export type ModuleKey = "ravWord" | "photos" | "posters" | "parness" | "birthdays" | "kiddush" | "events" | "specificEvent" | "restaurantAd" | "support" | "shabbat" | "seferHamitsvot";
 type EditorStep = "modules" | "content" | "preview";
 
 type ModuleConfig = {
@@ -96,6 +102,22 @@ export type UploadedPhoto = {
   groupCaption?: string;
 };
 
+export type NewsletterManualBirthday = {
+  id: string;
+  name: string;
+  dateLabel: string;
+};
+
+type UploadTarget = "photos" | "posters" | "partnerAds" | "banner";
+type UploadQueueItem = {
+  id: string;
+  file: File;
+  target: UploadTarget;
+  name: string;
+  status: "queued" | "uploading" | "success" | "error";
+  error?: string;
+};
+
 export type GeneratedNewsletter = {
   title: string;
   intro: string;
@@ -107,8 +129,8 @@ export type GeneratedNewsletter = {
   warnings: string[];
 };
 
-type NewsletterDraft = {
-  version: 1;
+export type NewsletterDraft = {
+  version: 2;
   savedAt: number;
   title: string;
   enabled: Record<ModuleKey, boolean>;
@@ -116,6 +138,9 @@ type NewsletterDraft = {
   mobilePreviewPage: "front" | "back";
   parnessText: string;
   kiddushText: string;
+  manualBirthdays: NewsletterManualBirthday[];
+  specificEventText: string;
+  labelOverrides: Partial<NewsletterLabels>;
   partnerAds: UploadedPhoto[];
   donationUrl: string;
   photos: UploadedPhoto[];
@@ -135,6 +160,7 @@ const MODULES: ModuleConfig[] = [
   { key: "parness", title: "Parness Hayom", icon: HeartHandshake },
   { key: "birthdays", title: "Anniversaires", icon: Cake },
   { key: "kiddush", title: "Kidouch offert", icon: Gift },
+  { key: "specificEvent", title: "Événement spécifique", icon: CalendarDays },
   { key: "events", title: "Événements à venir", icon: CalendarDays },
   { key: "restaurantAd", title: "Pub partenaire", icon: Store },
   { key: "support", title: "Nous soutenir", icon: HandHeart },
@@ -154,6 +180,7 @@ const DEFAULT_ENABLED: Record<ModuleKey, boolean> = {
   birthdays: true,
   kiddush: true,
   events: true,
+  specificEvent: false,
   restaurantAd: false,
   support: true,
   shabbat: true,
@@ -231,6 +258,17 @@ function draftUploads(value: unknown): UploadedPhoto[] {
   });
 }
 
+function draftManualBirthdays(value: unknown): NewsletterManualBirthday[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!isRecord(item)) return [];
+    const name = draftText(item.name).slice(0, 120);
+    const dateLabel = draftText(item.dateLabel).slice(0, 80);
+    if (!name.trim() && !dateLabel.trim()) return [];
+    return [{ id: draftText(item.id, crypto.randomUUID()), name, dateLabel }];
+  }).slice(0, 20);
+}
+
 function draftRequestError(status: number, loading = false) {
   const action = loading ? "Chargement" : "Sauvegarde";
   if (status === 401) return "Session expirée. Reconnectez-vous pour reprendre votre brouillon.";
@@ -240,19 +278,19 @@ function draftRequestError(status: number, loading = false) {
   return `${action} serveur indisponible (${status}). ${loading ? "Réessayez le chargement." : "Votre brouillon reste sur cet appareil."}`;
 }
 
-function parseNewsletterDraft(
+export function parseNewsletterDraft(
   value: unknown,
   donationDefault: string,
   bannerDefault: string,
 ): NewsletterDraft | null {
-  if (!isRecord(value) || value.version !== 1) return null;
+  if (!isRecord(value) || (value.version !== 1 && value.version !== 2)) return null;
   const enabledValue = isRecord(value.enabled) ? value.enabled : {};
   const generatedValue = isRecord(value.generated) ? value.generated : {};
   const defaults = initialGenerated();
-  const previous = isRecord(value.previousRevision) ? parseNewsletterDraft({ ...value.previousRevision, version: 1, previousRevision: undefined }, donationDefault, bannerDefault) : null;
+  const previous = isRecord(value.previousRevision) ? parseNewsletterDraft({ ...value.previousRevision, version: 2, previousRevision: undefined }, donationDefault, bannerDefault) : null;
   const editorStep: EditorStep = value.editorStep === "content" || value.editorStep === "preview" ? value.editorStep : "modules";
   return {
-    version: 1,
+    version: 2,
     layout: parseLayoutPreferences(value.layout),
     previousRevision: previous ? { generated: previous.generated, parnessText: previous.parnessText, kiddushText: previous.kiddushText, photos: previous.photos, layout: previous.layout } : null,
     savedAt: typeof value.savedAt === "number" ? value.savedAt : 0,
@@ -265,6 +303,9 @@ function parseNewsletterDraft(
     mobilePreviewPage: value.mobilePreviewPage === "back" ? "back" : "front",
     parnessText: draftText(value.parnessText),
     kiddushText: draftText(value.kiddushText),
+    manualBirthdays: draftManualBirthdays(value.manualBirthdays),
+    specificEventText: draftText(value.specificEventText).slice(0, 1200),
+    labelOverrides: parseNewsletterLabels(value.labelOverrides),
     partnerAds: draftUploads(value.partnerAds),
     donationUrl: draftText(value.donationUrl, donationDefault),
     photos: draftUploads(value.photos),
@@ -321,6 +362,11 @@ export function NewsletterPaperClient({
   const mobilePreviewPage = "front" as const;
   const [parnessText, setParnessText] = useState("");
   const [kiddushText, setKiddushText] = useState("");
+  const [manualBirthdays, setManualBirthdays] = useState<NewsletterManualBirthday[]>([]);
+  const [specificEventText, setSpecificEventText] = useState("");
+  const [communityLabelDefaults, setCommunityLabelDefaults] = useState<Partial<NewsletterLabels>>(community.newsletterLabels ?? {});
+  const [labelOverrides, setLabelOverrides] = useState<Partial<NewsletterLabels>>({});
+  const [savingLabels, setSavingLabels] = useState(false);
   const [partnerAds, setPartnerAds] = useState<UploadedPhoto[]>([]);
   const [donationUrl, setDonationUrl] = useState(community.donationUrl ?? "");
   const [savingDonationUrl, setSavingDonationUrl] = useState(false);
@@ -329,6 +375,7 @@ export function NewsletterPaperClient({
   const [bannerPhotoUrl, setBannerPhotoUrl] = useState(community.logoUrl ?? "");
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
+  const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
   const [exporting, setExporting] = useState(false);
   const [preparingAction, setPreparingAction] = useState<"preview" | "print" | "pdf" | null>(null);
   const [generated, setGenerated] = useState<GeneratedNewsletter>(() => initialGenerated());
@@ -355,6 +402,8 @@ export function NewsletterPaperClient({
   const visiblePhotos = photos;
   const visiblePosters = posters;
   const visiblePartnerAds = partnerAds;
+  const communityResolvedLabels = useMemo(() => resolveNewsletterLabels(communityLabelDefaults), [communityLabelDefaults]);
+  const resolvedLabels = useMemo(() => resolveNewsletterLabels(communityLabelDefaults, labelOverrides), [communityLabelDefaults, labelOverrides]);
   const previewCommunity = { ...community, donationUrl };
   const outputEnabled = useMemo<Record<ModuleKey, boolean>>(() => ({
     seferHamitsvot: enabled.seferHamitsvot,
@@ -362,23 +411,24 @@ export function NewsletterPaperClient({
     photos: enabled.photos && visiblePhotos.length > 0,
     posters: enabled.posters && visiblePosters.length > 0,
     parness: enabled.parness && Boolean(parnessText.trim()),
-    birthdays: enabled.birthdays && initialBirthdays.length > 0,
+    birthdays: enabled.birthdays && (initialBirthdays.length > 0 || manualBirthdays.some((birthday) => birthday.name.trim())),
     kiddush: enabled.kiddush && Boolean(kiddushText.trim()),
     events: enabled.events && visibleEvents.length > 0,
+    specificEvent: enabled.specificEvent && Boolean(specificEventText.trim()),
     restaurantAd: enabled.restaurantAd && visiblePartnerAds.length > 0,
     support: enabled.support && Boolean(donationUrl.trim()),
     shabbat: enabled.shabbat && Boolean(initialShabbat),
-  }), [donationUrl, enabled, generated.ravWord, initialBirthdays.length, initialShabbat, kiddushText, parnessText, visibleEvents.length, visiblePartnerAds.length, visiblePhotos.length, visiblePosters.length]);
+  }), [donationUrl, enabled, generated.ravWord, initialBirthdays.length, initialShabbat, kiddushText, manualBirthdays, parnessText, specificEventText, visibleEvents.length, visiblePartnerAds.length, visiblePhotos.length, visiblePosters.length]);
   const documentData: NewsletterDocumentData = {
     community: previewCommunity, enabled: outputEnabled, generated, parnessText, kiddushText,
     photos: visiblePhotos, posters: visiblePosters, partnerAds: visiblePartnerAds,
-    events: visibleEvents, birthdays: initialBirthdays, shabbat: initialShabbat, bannerPhotoUrl,
+    events: visibleEvents, birthdays: initialBirthdays, manualBirthdays, specificEventText, labels: resolvedLabels, shabbat: initialShabbat, bannerPhotoUrl,
     seferHamitsvot: initialSeferHamitsvot,
     layout,
   };
   const localDraftKey = useMemo(() => `easycom.newsletter.draft.${community.id}.${userId}`, [community.id, userId]);
   const draftSnapshot = useMemo<NewsletterDraft>(() => ({
-    version: 1,
+    version: 2,
     savedAt: Date.now(),
     title: generated.title,
     layout, previousRevision,
@@ -387,13 +437,16 @@ export function NewsletterPaperClient({
     mobilePreviewPage,
     parnessText,
     kiddushText,
+    manualBirthdays,
+    specificEventText,
+    labelOverrides,
     partnerAds,
     donationUrl,
     photos,
     posters,
     bannerPhotoUrl,
     generated,
-  }), [bannerPhotoUrl, donationUrl, editorStep, enabled, generated, kiddushText, mobilePreviewPage, parnessText, partnerAds, photos, posters, layout, previousRevision]);
+  }), [bannerPhotoUrl, donationUrl, editorStep, enabled, generated, kiddushText, labelOverrides, manualBirthdays, mobilePreviewPage, parnessText, partnerAds, photos, posters, layout, previousRevision, specificEventText]);
 
   const applyDraft = useCallback((draft: NewsletterDraft) => {
     setLayout(draft.layout ?? {});
@@ -403,6 +456,9 @@ export function NewsletterPaperClient({
     setEditorStep(draft.editorStep);
     setParnessText(draft.parnessText);
     setKiddushText(draft.kiddushText);
+    setManualBirthdays(draft.manualBirthdays);
+    setSpecificEventText(draft.specificEventText);
+    setLabelOverrides(draft.labelOverrides);
     setPartnerAds(draft.partnerAds);
     setDonationUrl(draft.donationUrl);
     setPhotos(draft.photos);
@@ -649,18 +705,32 @@ export function NewsletterPaperClient({
     );
   }
 
-  async function uploadMedia(event: ChangeEvent<HTMLInputElement>, target: "photos" | "posters" | "partnerAds" | "banner") {
+  async function uploadMedia(event: ChangeEvent<HTMLInputElement>, target: UploadTarget) {
     const selected = Array.from(event.currentTarget.files ?? []);
     event.currentTarget.value = "";
     if (uploadBusyRef.current || !selected.length) return;
     const remaining = Math.max(0, target === "photos" ? NEWSLETTER_MEDIA_LIMIT - photos.length : target === "posters" ? NEWSLETTER_MEDIA_LIMIT - posters.length : target === "partnerAds" ? 3 - partnerAds.length : 1);
     const files = selected.slice(0, remaining);
     if (!files.length) { setError("Limite atteinte. Retirez une image avant d’en ajouter une autre."); return; }
+    const queueItems: UploadQueueItem[] = files.map((file) => ({ id: crypto.randomUUID(), file, target, name: file.name, status: "queued" }));
+    setUploadQueue(queueItems);
     uploadBusyRef.current = true;
     setUploading(true);
     setError(null);
     try {
-      const errors = await uploadNewsletterBatch(files, uploadNewsletterImage, (uploaded) => {
+      const errors = await uploadNewsletterBatch(files, async (file) => {
+        const item = queueItems.find((queued) => queued.file === file)!;
+        setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "uploading", error: undefined } : queued));
+        try {
+          const uploaded = await uploadNewsletterImage(file);
+          setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "success", error: undefined } : queued));
+          return uploaded;
+        } catch (uploadError) {
+          const message = uploadError instanceof Error ? uploadError.message : "Envoi impossible.";
+          setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "error", error: message } : queued));
+          throw uploadError;
+        }
+      }, (uploaded) => {
         if (target === "banner") setBannerPhotoUrl(uploaded.url);
         else if (target === "photos") setPhotos((current) => [...current, uploaded]);
         else if (target === "posters") setPosters((current) => [...current, uploaded]);
@@ -668,6 +738,36 @@ export function NewsletterPaperClient({
       }, (completed, total) => setUploadProgress(`Importation : ${completed}/${total} fichier(s)`));
       if (selected.length > remaining) errors.push(`Seuls les ${remaining} premiers fichiers ont été traités : limite de la rubrique atteinte.`);
       if (errors.length) setError(errors.join("\n"));
+    } finally {
+      uploadBusyRef.current = false;
+      setUploading(false);
+      setUploadProgress("");
+    }
+  }
+
+  async function retryUpload(item: UploadQueueItem) {
+    if (uploadBusyRef.current || item.status !== "error") return;
+    const remaining = item.target === "photos" ? NEWSLETTER_MEDIA_LIMIT - photos.length : item.target === "posters" ? NEWSLETTER_MEDIA_LIMIT - posters.length : item.target === "partnerAds" ? 3 - partnerAds.length : 1;
+    if (item.target !== "banner" && remaining <= 0) {
+      setError("La rubrique est maintenant pleine. Retirez une image avant de réessayer.");
+      return;
+    }
+    uploadBusyRef.current = true;
+    setUploading(true);
+    setError(null);
+    setUploadProgress(`Nouvelle tentative : ${item.name}`);
+    setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "uploading", error: undefined } : queued));
+    try {
+      const uploaded = await uploadNewsletterImage(item.file);
+      if (item.target === "banner") setBannerPhotoUrl(uploaded.url);
+      else if (item.target === "photos") setPhotos((current) => [...current, uploaded]);
+      else if (item.target === "posters") setPosters((current) => [...current, uploaded]);
+      else setPartnerAds((current) => [...current, uploaded]);
+      setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "success", error: undefined } : queued));
+    } catch (uploadError) {
+      const message = uploadError instanceof Error ? uploadError.message : "Envoi impossible.";
+      setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "error", error: message } : queued));
+      setError(`${item.name} : ${message}`);
     } finally {
       uploadBusyRef.current = false;
       setUploading(false);
@@ -692,6 +792,39 @@ export function NewsletterPaperClient({
     } finally {
       setSavingDonationUrl(false);
     }
+  }
+
+  async function saveDefaultLabels() {
+    setSavingLabels(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/newsletter/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newsletterLabels: resolvedLabels }),
+      });
+      const data = await response.json().catch(() => ({})) as { newsletterLabels?: unknown; error?: string };
+      if (!response.ok) throw new Error(data.error ?? "Enregistrement impossible.");
+      const saved = parseNewsletterLabels(data.newsletterLabels);
+      setCommunityLabelDefaults(saved);
+      setLabelOverrides({});
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Enregistrement impossible.");
+    } finally {
+      setSavingLabels(false);
+    }
+  }
+
+  function addManualBirthday() {
+    setManualBirthdays((current) => current.length >= 20 ? current : [...current, { id: crypto.randomUUID(), name: "", dateLabel: "" }]);
+  }
+
+  function resetLabelOverride(key: keyof NewsletterLabels) {
+    setLabelOverrides((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
   }
 
   async function exportPdf(pages: HTMLElement[]) {
@@ -862,6 +995,20 @@ export function NewsletterPaperClient({
         </div>
       </div> : null}
       {uploading ? <p role="status" className="mx-4 rounded-xl bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-800 sm:mx-0">{uploadProgress}</p> : null}
+      {uploadQueue.length ? <section className="mx-4 rounded-2xl border border-sky-100 bg-white p-3 shadow-sm sm:mx-0 print:hidden" aria-label="État des importations">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-black uppercase tracking-[0.12em] text-[#005572]">Importation des images</p>
+          {!uploading ? <button type="button" onClick={() => setUploadQueue([])} className="text-xs font-bold text-slate-500 underline">Masquer</button> : null}
+        </div>
+        <div className="mt-2 space-y-2">
+          {uploadQueue.map((item) => <div key={item.id} className="flex min-w-0 items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs">
+            {item.status === "uploading" ? <Loader2 className="size-4 shrink-0 animate-spin text-sky-700" /> : item.status === "success" ? <CheckCircle2 className="size-4 shrink-0 text-emerald-700" /> : item.status === "error" ? <CloudOff className="size-4 shrink-0 text-red-600" /> : <Clock3 className="size-4 shrink-0 text-slate-500" />}
+            <span className="min-w-0 flex-1"><span className="block truncate font-bold text-slate-800">{item.name}</span>{item.error ? <span className="block text-red-700">{item.error}</span> : null}</span>
+            <span className="shrink-0 font-bold text-slate-500">{item.status === "queued" ? "En attente" : item.status === "uploading" ? "Envoi…" : item.status === "success" ? "Ajoutée" : "Échec"}</span>
+            {item.status === "error" ? <button type="button" onClick={() => void retryUpload(item)} className="min-h-9 shrink-0 rounded-lg bg-[#164960] px-2 font-black text-white">Réessayer</button> : null}
+          </div>)}
+        </div>
+      </section> : null}
       <div className="grid gap-5 px-4 sm:px-0 xl:grid-cols-[minmax(320px,420px)_minmax(0,1fr)]">
         <aside className="space-y-4 print:hidden">
           <section className={cn("rounded-[1.8rem] border border-[#dce9e5] bg-white p-4 shadow-[0_14px_34px_rgba(17,43,69,0.06)]", editorStep !== "modules" && "hidden")}>
@@ -976,6 +1123,23 @@ export function NewsletterPaperClient({
                 </div>
                 <div id="newsletter-agenda-panel" hidden={!agendaOpen} className="border-t border-amber-100 px-4 pb-4 pt-3"><TextArea label="Texte avant les événements" value={generated.eventIntro} onChange={(eventIntro) => setGenerated((current) => ({ ...current, eventIntro }))} /></div>
               </section> : null}
+              {enabled.birthdays ? <section className="rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 to-white p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div><p className="text-sm font-black text-slate-900">Anniversaires</p><p className="text-xs text-slate-600">{initialBirthdays.length} anniversaire(s) automatique(s) cette semaine</p></div>
+                  <button type="button" onClick={addManualBirthday} disabled={manualBirthdays.length >= 20} className="inline-flex min-h-10 items-center gap-1 rounded-xl bg-rose-700 px-3 text-xs font-black text-white disabled:opacity-50"><Plus className="size-4" />Ajouter un nom</button>
+                </div>
+                {initialBirthdays.length ? <div className="mt-3 rounded-xl bg-white px-3 py-2 text-xs text-slate-700 ring-1 ring-rose-100">{initialBirthdays.map((birthday) => <p key={birthday.id}><strong>{birthday.name}</strong> · {birthday.hebrewDate || birthday.gregorianDate}</p>)}</div> : <p className="mt-3 text-xs font-medium text-slate-600">Aucun anniversaire automatique : vous pouvez tout de même ajouter des noms manuellement.</p>}
+                {manualBirthdays.length ? <div className="mt-3 space-y-2">{manualBirthdays.map((birthday, index) => <div key={birthday.id} className="grid gap-2 rounded-xl bg-white p-2 ring-1 ring-rose-100 sm:grid-cols-[1fr_0.8fr_auto]">
+                  <input aria-label={`Nom de l’anniversaire ${index + 1}`} value={birthday.name} maxLength={120} onChange={(event) => setManualBirthdays((current) => current.map((item) => item.id === birthday.id ? { ...item, name: event.target.value } : item))} placeholder="Nom" className="min-h-10 rounded-lg border border-slate-200 px-3 text-base outline-none focus:border-rose-500 sm:text-sm" />
+                  <input aria-label={`Date ou mention de l’anniversaire ${index + 1}`} value={birthday.dateLabel} maxLength={80} onChange={(event) => setManualBirthdays((current) => current.map((item) => item.id === birthday.id ? { ...item, dateLabel: event.target.value } : item))} placeholder="Date ou mention (facultatif)" className="min-h-10 rounded-lg border border-slate-200 px-3 text-base outline-none focus:border-rose-500 sm:text-sm" />
+                  <button type="button" onClick={() => setManualBirthdays((current) => current.filter((item) => item.id !== birthday.id))} aria-label={`Supprimer ${birthday.name || `l’anniversaire ${index + 1}`}`} className="flex min-h-10 items-center justify-center rounded-lg px-3 text-red-700 hover:bg-red-50"><Trash2 className="size-4" /></button>
+                </div>)}</div> : null}
+              </section> : null}
+              {enabled.specificEvent ? <section className="rounded-2xl border border-cyan-100 bg-gradient-to-br from-cyan-50 to-white p-3">
+                <TextArea label="Événement spécifique" value={specificEventText} onChange={(value) => setSpecificEventText(value.slice(0, 1200))} maxLength={1200} />
+                <p className="mt-1 text-right text-[10px] font-bold text-slate-400">{specificEventText.length}/1200</p>
+                <p className="mt-1 text-xs text-slate-600">Ce texte reste uniquement dans ce feuillet et n’est pas ajouté à l’Agenda.</p>
+              </section> : null}
               {enabled.parness ? <TextInput label="Parness Hayom" value={parnessText} onChange={setParnessText} placeholder="Ex. Leylouy Nichmat..." /> : null}
               {enabled.kiddush ? <TextInput label="Kidouch offert par" value={kiddushText} onChange={setKiddushText} placeholder="Ex. Famille Cohen" /> : null}
               <label className="block text-sm font-bold text-slate-700">
@@ -1001,6 +1165,22 @@ export function NewsletterPaperClient({
                   </div>
                 </div>
               </section>
+              <details className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-3">
+                <summary className="cursor-pointer text-sm font-black text-violet-950">Personnaliser les intitulés</summary>
+                <p className="mt-2 text-xs text-slate-600">Ces changements s’appliquent à ce feuillet. Vous pouvez aussi les enregistrer comme défauts de la communauté.</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {NEWSLETTER_LABEL_EDITOR.map(({ key, description }) => <label key={key} className="text-xs font-bold text-slate-700">{description}
+                    <span className="mt-1 flex gap-1">
+                      <input value={Object.prototype.hasOwnProperty.call(labelOverrides, key) ? labelOverrides[key] ?? "" : communityResolvedLabels[key]} maxLength={80} onChange={(event) => setLabelOverrides((current) => ({ ...current, [key]: event.target.value }))} className="min-h-10 min-w-0 flex-1 rounded-lg border border-violet-100 bg-white px-3 text-base font-medium outline-none focus:border-violet-600 sm:text-sm" />
+                      <button type="button" onClick={() => resetLabelOverride(key)} aria-label={`Réinitialiser l’intitulé ${description}`} title="Revenir au défaut de la communauté" className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white text-violet-900 ring-1 ring-violet-100"><RotateCcw className="size-3.5" /></button>
+                    </span>
+                  </label>)}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" onClick={() => void saveDefaultLabels()} disabled={savingLabels} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-violet-800 px-3 text-xs font-black text-white disabled:opacity-60">{savingLabels ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}{savingLabels ? "Enregistrement…" : "Enregistrer comme défauts"}</button>
+                  <button type="button" onClick={() => setLabelOverrides({})} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-white px-3 text-xs font-bold text-violet-900 ring-1 ring-violet-200"><RotateCcw className="size-4" />Réinitialiser ce feuillet</button>
+                </div>
+              </details>
               {enabled.restaurantAd ? <section className="text-sm font-bold text-slate-700">
                 <div className="flex items-center justify-between gap-3">
                   <span>Pub partenaire</span>
@@ -1102,8 +1282,8 @@ function TextInput({ label, value, onChange, placeholder }: { label: string; val
   );
 }
 
-function TextArea({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+function TextArea({ label, value, onChange, maxLength }: { label: string; value: string; onChange: (value: string) => void; maxLength?: number }) {
   return <label className="block text-sm font-bold text-slate-700">{label}
-    <textarea value={value} onChange={(event) => onChange(event.target.value)} rows={4} className="mt-1.5 w-full resize-y rounded-xl border border-violet-100 px-3 py-2 text-base font-medium leading-6 outline-none focus:border-violet-700 focus:ring-2 focus:ring-violet-100 sm:text-sm" />
+    <textarea value={value} maxLength={maxLength} onChange={(event) => onChange(event.target.value)} rows={4} className="mt-1.5 w-full resize-y rounded-xl border border-violet-100 px-3 py-2 text-base font-medium leading-6 outline-none focus:border-violet-700 focus:ring-2 focus:ring-violet-100 sm:text-sm" />
   </label>;
 }

@@ -34,6 +34,7 @@ const TOOLS = [
 type HomeTool = (typeof TOOLS)[number];
 const NAV = [
   { href: "#fonctionnalites", label: "Fonctionnalités" },
+  { href: "/fonctionnalites-a-venir", label: "À venir", nextLink: true },
   { href: "#demo", label: "Démo" },
   { href: "#tarifs", label: "Tarifs" },
   { href: "#faq", label: "FAQ", desktop: true },
@@ -90,7 +91,7 @@ function HomeHeader() {
   return <header className="home-header">
     <div className="home-container home-header-inner">
       <Brand />
-      <nav className="home-desktop-nav" aria-label="Navigation principale">{NAV.map(link => <a key={link.href} href={link.href}>{link.label}</a>)}</nav>
+      <nav className="home-desktop-nav" aria-label="Navigation principale">{NAV.map(link => link.nextLink ? <Link key={link.href} href={link.href}>{link.label}</Link> : <a key={link.href} href={link.href}>{link.label}</a>)}</nav>
       <div className="home-header-actions">
         <Link href="/auth/login" prefetch={false} className="home-login">Connexion</Link>
         <Link href="/auth/register" prefetch={false} className="home-header-trial">Essayer gratuitement</Link>
@@ -100,7 +101,7 @@ function HomeHeader() {
     {open && <>
       <button type="button" className="home-menu-backdrop" aria-label="Fermer le menu" onClick={() => { setOpen(false); toggle.current?.focus(); }} />
       <nav ref={mobileMenu} id="home-mobile-menu" className="home-mobile-menu" aria-label="Navigation mobile">
-        {NAV.filter(link => !link.desktop).map(link => <a key={link.href} href={link.href} onClick={() => setOpen(false)}>{link.label}<ArrowRight size={16} /></a>)}
+        {NAV.filter(link => !link.desktop).map(link => link.nextLink ? <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>{link.label}<ArrowRight size={16} /></Link> : <a key={link.href} href={link.href} onClick={() => setOpen(false)}>{link.label}<ArrowRight size={16} /></a>)}
         <Link href="/contact" onClick={() => setOpen(false)}>Contact<ArrowRight size={16} /></Link>
         <Link href="/auth/login" prefetch={false} onClick={() => setOpen(false)}>Connexion<ArrowRight size={16} /></Link>
       </nav>
@@ -113,6 +114,11 @@ function Hero() {
       <h1 id="home-title"><span className="home-title-line">Toute la communication</span>{" "}<span className="home-title-line">de votre synagogue.</span>{" "}<span className="home-title-accent">Au même endroit.</span></h1>
       <p className="home-hero-subtitle">Publiez, créez, automatisez. Vos agents IA s’occupent du reste.</p>
       <div className="home-hero-buttons"><TrialLink /><DemoLink /></div>
+      <Link href="/fonctionnalites-a-venir" className="home-coming-soon-chip">
+        <span className="home-coming-soon-rocket" aria-hidden="true">🚀</span>
+        <span>Découvrir les nouveautés à venir</span>
+        <small>NEW</small>
+      </Link>
     </div>
     <div className="home-hero-art" aria-label="Dov Ber, votre agent de communication">
       <div className="home-hero-portrait"><Image src={HOME_AGENT_IMAGES.dovBer} alt="Dov Ber, votre agent de communication" width={899} height={1100} sizes="(max-width: 767px) 44vw, 520px" preload /></div>
@@ -362,7 +368,7 @@ export function EasyComHome() {
       </div>
     </main>
     <footer className="home-container home-footer">
-      <div className="home-footer-top"><Brand /><nav aria-label="Navigation de pied de page">{NAV.map(link => <a key={link.href} href={link.href} className={link.desktop ? "home-footer-faq" : ""}>{link.label}</a>)}<Link href="/contact" className="home-footer-contact">Contact</Link></nav></div>
+      <div className="home-footer-top"><Brand /><nav aria-label="Navigation de pied de page">{NAV.map(link => link.nextLink ? <Link key={link.href} href={link.href} className={link.desktop ? "home-footer-faq" : ""}>{link.label}</Link> : <a key={link.href} href={link.href} className={link.desktop ? "home-footer-faq" : ""}>{link.label}</a>)}<Link href="/contact" className="home-footer-contact">Contact</Link></nav></div>
       <div className="home-footer-bottom"><p>© {new Date().getFullYear()} EasyCom AI. Tous droits réservés.</p><nav aria-label="Liens légaux">{LEGAL.map(link => <Link key={link.href} href={link.href}>{link.label}</Link>)}</nav></div>
     </footer>
     <WhatsAppBubble />

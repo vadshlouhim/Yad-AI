@@ -1,6 +1,7 @@
-import type { CommunityInfo, GeneratedNewsletter, ModuleKey, NewsletterBirthday, NewsletterEvent, NewsletterShabbat, UploadedPhoto } from "@/components/newsletter/newsletter-paper-client";
+import type { CommunityInfo, GeneratedNewsletter, ModuleKey, NewsletterBirthday, NewsletterEvent, NewsletterManualBirthday, NewsletterShabbat, UploadedPhoto } from "@/components/newsletter/newsletter-paper-client";
 import { newsletterShabbatDate, type NewsletterStudy } from "./shabbat-study";
 import type { NewsletterLayoutPreferences } from "./revision";
+import { resolveNewsletterLabels, type NewsletterLabels } from "./labels";
 
 export const PAPER = { width: 794, height: 1123, margin: 42, gap: 18 };
 const CONTENT_WIDTH = PAPER.width - PAPER.margin * 2;
@@ -21,6 +22,9 @@ export type NewsletterDocumentData = {
   bannerPhotoUrl: string;
   events: NewsletterEvent[];
   birthdays: NewsletterBirthday[];
+  manualBirthdays?: NewsletterManualBirthday[];
+  specificEventText?: string;
+  labels?: Partial<NewsletterLabels>;
   shabbat: NewsletterShabbat | null;
   seferHamitsvot?: NewsletterStudy | null;
   layout?: NewsletterLayoutPreferences;
@@ -182,30 +186,34 @@ export function supportCommunityName(name: string) {
 
 async function makeBlocks(data: NewsletterDocumentData): Promise<DocumentBlock[]> {
   const { generated: g, enabled: e } = data;
+  const labels = resolveNewsletterLabels(undefined, data.labels);
   if (e.seferHamitsvot && (!data.shabbat || !data.seferHamitsvot || data.seferHamitsvot.date !== newsletterShabbatDate(data.shabbat.date))) {
     throw new Error("Le Sefer Hamitsvot de ce Chabbat n’est pas disponible. Rechargez la page ou désactivez cette rubrique ; aucune étude d’une autre date ne sera utilisée.");
   }
   const blocks: DocumentBlock[] = [
     ...textBlock("intro", "", g.intro),
-    ...(e.ravWord ? textBlock("rav", "Mot du Rav", g.ravWord) : []),
-    ...(e.shabbat ? textBlock("parasha", "La Paracha de la semaine", g.shabbatNote) : []),
-    ...textBlock("dedications", "Dans notre communauté", [e.parness && data.parnessText.trim() ? `Parness Hayom · ${data.parnessText}` : "", e.kiddush && data.kiddushText.trim() ? `Kidouch offert par ${data.kiddushText}` : ""].filter(Boolean).join("\n"), true),
+    ...(e.ravWord ? textBlock("rav", labels.ravWord, g.ravWord) : []),
+    ...(e.shabbat ? textBlock("parasha", labels.parasha, g.shabbatNote) : []),
+    ...textBlock("dedications", labels.community, [e.parness && data.parnessText.trim() ? `${labels.parness} · ${data.parnessText}` : "", e.kiddush && data.kiddushText.trim() ? `${labels.kiddush} ${data.kiddushText}` : ""].filter(Boolean).join("\n"), true),
   ];
   if (e.seferHamitsvot && data.seferHamitsvot) {
     const study = data.seferHamitsvot;
-    blocks.push(...textBlock("sefer-hamitsvot", "Sefer Hamitsvot", `${study.dateLabel}${data.shabbat?.hebrewDate ? ` · ${data.shabbat.hebrewDate}` : ""}\n\n${study.text}\n\nSource : Beth Loubavitch — ${study.sourceUrl}`, true));
+    blocks.push(...textBlock("sefer-hamitsvot", labels.seferHamitsvot, `${study.dateLabel}${data.shabbat?.hebrewDate ? ` · ${data.shabbat.hebrewDate}` : ""}\n\n${study.text}\n\nSource : Beth Loubavitch — ${study.sourceUrl}`, true));
   }
   if (e.events) {
-    blocks.push(...textBlock("events-intro", "À l’agenda", g.eventIntro));
+    blocks.push(...textBlock("events-intro", labels.agenda, g.eventIntro));
     for (const event of data.events) {
       const date = new Intl.DateTimeFormat("fr-FR", { dateStyle: "full", timeStyle: "short", timeZone: data.community.timezone }).format(new Date(event.startDate));
       blocks.push(...textBlock(`event-${event.id}`, event.title, [date, event.location, event.description].filter(Boolean).join("\n"), true));
     }
   }
+  if (e.specificEvent) blocks.push(...textBlock("specific-event", labels.specificEvent, data.specificEventText ?? "", true));
   if (e.birthdays) {
-    blocks.push(...textBlock("birthdays", "Les anniversaires de la semaine", data.birthdays.map((b) => `${b.name} · ${b.hebrewDate || b.gregorianDate}`).join("\n"), true));
+    const automatic = data.birthdays.map((birthday) => `${birthday.name} · ${birthday.hebrewDate || birthday.gregorianDate}`);
+    const manual = (data.manualBirthdays ?? []).filter((birthday) => birthday.name.trim()).map((birthday) => `${birthday.name.trim()}${birthday.dateLabel.trim() ? ` · ${birthday.dateLabel.trim()}` : ""}`);
+    blocks.push(...textBlock("birthdays", labels.birthdays, [...automatic, ...manual].join("\n"), true));
   }
-  if (e.support) blocks.push(...textBlock("support", "Nous soutenir", `Soutenez les actions ${supportCommunityName(data.community.name)}.\n${data.community.donationUrl || ""}`, true));
+  if (e.support) blocks.push(...textBlock("support", labels.support, `Soutenez les actions ${supportCommunityName(data.community.name)}.\n${data.community.donationUrl || ""}`, true));
   if (e.photos) {
     const photos: DocumentImage[] = [];
     // Decode sequentially so large phone photos do not spike memory together.
@@ -214,11 +222,11 @@ async function makeBlocks(data: NewsletterDocumentData): Promise<DocumentBlock[]
       const count = photos.length - index === 3 ? 3 : Math.min(2, photos.length - index);
       const images = photos.slice(index, index + count);
       const maxHeight = (CONTENT_WIDTH - (count - 1) * 12) / images.reduce((sum, image) => sum + image.width / image.height, 0);
-      blocks.push({ kind: "images", id: `photos-${index}`, title: index === 0 ? "La semaine en images" : "", images, height: Math.min(230, maxHeight), maxHeight: Math.min(430, maxHeight) });
+      blocks.push({ kind: "images", id: `photos-${index}`, title: index === 0 ? labels.photos : "", images, height: Math.min(230, maxHeight), maxHeight: Math.min(430, maxHeight) });
       index += count;
     }
   }
-  for (const [kind, images, label] of [["partner", e.restaurantAd ? data.partnerAds : [], "Nos partenaires"], ["poster", e.posters ? data.posters : [], "Affiches & événements à venir..."]] as const) {
+  for (const [kind, images, label] of [["partner", e.restaurantAd ? data.partnerAds : [], labels.partners], ["poster", e.posters ? data.posters : [], labels.posters]] as const) {
     for (const image of images) {
       const sized = await imageDimensions(image);
       const maxHeight = Math.min(850, CONTENT_WIDTH * sized.height / sized.width);
@@ -426,6 +434,7 @@ function renderCaption(text: string) {
 /** Measured zones shared unchanged by preview, browser print and PDF export. */
 export async function composeNewsletter(data: NewsletterDocumentData): Promise<string[]> {
   await document.fonts.ready;
+  const labels = resolveNewsletterLabels(undefined, data.labels);
   const blocks = await makeBlocks(data);
   const texts = blocks.filter(block => block.kind === "text");
   const intro = texts.filter(block => block.id === "intro");
@@ -434,9 +443,9 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
   const gallery = (id: string, title: string, predicate: (block: DocumentBlock) => boolean): Gallery => ({
     id, title, images: blocks.flatMap(block => block.kind === "images" && predicate(block) ? block.images : []),
   });
-  const photos = gallery("photos", "Photos de la semaine", block => block.id.startsWith("photos-"));
-  const posters = gallery("posters", "Affiches & événements à venir…", block => block.kind === "images" && Boolean(block.poster));
-  const partners = gallery("partners", "Nos partenaires", block => block.id.startsWith("partner-"));
+  const photos = gallery("photos", labels.photos, block => block.id.startsWith("photos-"));
+  const posters = gallery("posters", labels.posters, block => block.kind === "images" && Boolean(block.poster));
+  const partners = gallery("partners", labels.partners, block => block.id.startsWith("partner-"));
   let frontMedia = [photos].filter(g => g.images.length);
   let backMedia = [posters, partners].filter(g => g.images.length);
   const partitionCache = new Map<Gallery, DocumentImage[][][]>();

@@ -10,7 +10,7 @@ export function baseNewsletter(): NewsletterDocumentData {
   return {
     community: { id: "fixture", name: "Beth Habad de Vanves", city: "Vanves", timezone: "Europe/Paris", address: null, phone: null, email: "contact@example.org", website: null, logoUrl: null, coverUrl: null, isBethHabad: true, donationUrl: "https://www.allodons.fr/exemple" },
     generated: { title: "Le Chabaton", intro: "Chers amis de la communauté, un Chabbat rempli de sérénité et d’inspiration vous attend à Vanves. Venez partager ces moments précieux avec nous.", ravWord: "Un message de paix et de partage. ".repeat(15), shabbatNote: "Cette semaine, partageons un moment ensemble. ".repeat(8), eventIntro: "Retrouvons-nous dimanche.", restaurantAd: "", proofreadNote: "", warnings: [] },
-    enabled: { ravWord: true, shabbat: true, photos: true, posters: true, parness: true, kiddush: true, events: true, birthdays: true, restaurantAd: true, seferHamitsvot: true, support: true },
+    enabled: { ravWord: true, shabbat: true, photos: true, posters: true, parness: true, kiddush: true, events: true, specificEvent: false, birthdays: true, restaurantAd: true, seferHamitsvot: true, support: true },
     parnessText: "Famille Cohen", kiddushText: "Famille Levy", bannerPhotoUrl: "",
     events: [{ id: "1", title: "Rencontre communautaire", startDate: "2026-10-18T10:00:00Z", endDate: null, location: null, category: null, description: "Nous vous attendons nombreux." }],
     birthdays: [{ id: "1", name: "David", hebrewDate: "10 Tichri", gregorianDate: "2026-10-18" }],
