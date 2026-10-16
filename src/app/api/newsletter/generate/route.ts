@@ -9,6 +9,7 @@ import { getBirthdayOccurrence, getCurrentHebrewDate, validateHebrewBirthday } f
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { assertPaidFeature } from "@/lib/billing";
+import { limitNewsletterText, NEWSLETTER_RAV_WORD_LIMIT } from "@/lib/newsletter/limits";
 
 type ModuleKey = "ravWord" | "photos" | "parness" | "birthdays" | "kiddush" | "events" | "restaurantAd" | "shabbat";
 
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
     const modules = body.modules ?? {};
     const activeModuleCount = Object.values(modules).filter(Boolean).length;
     const sparseLayout = activeModuleCount <= 5;
-    const requestedTitle = safeText(body.title, 70) || "Le Chabaton";
+    const requestedTitle = safeText(body.title, 70) || "Le Chabbat Mag";
     const now = new Date();
     const [{ data: community }, { data: events }, { data: contacts }] = await Promise.all([
       admin
@@ -148,7 +149,7 @@ export async function POST(request: Request) {
       "Style: chaleureux, clair, tres professionnel, adapte a l'impression papier. Pas d'emojis. Pas de Markdown.",
       `Communaute: ${community?.name ?? "Communaute"}. Ville: ${city}. Ton souhaite: ${safeText(body.tone, 80) || community?.tone || "professionnel"}.`,
       shabbat ? `Chabbat: ${shabbat.parasha ?? "Chabbat"}, date hebraique ${shabbat.hebrewDate ?? ""}, entree ${shabbat.entry ?? ""}, sortie ${shabbat.exit ?? ""}.` : "Horaires de Chabbat indisponibles.",
-      modules.ravWord ? `Mot du Rav actif. Theme demande: ${safeText(body.ravTheme, 240) || "message court de Torah pour la semaine"}. Redige un mot de Torah original, inspire de la Paracha, de ${sparseLayout ? "115 a 140" : "90 a 130"} mots maximum.` : "Mot du Rav inactif: laisse ravWord vide.",
+      modules.ravWord ? `Mot du Rav actif. Theme demande: ${safeText(body.ravTheme, 240) || "message court de Torah pour la semaine"}. Redige un mot de Torah original, inspire de la Paracha, sans jamais depasser ${NEWSLETTER_RAV_WORD_LIMIT} caracteres, espaces compris.` : "Mot du Rav inactif: laisse ravWord vide.",
       modules.shabbat ? `Pour shabbatNote, redige un resume accessible et fidele de la Paracha de la semaine, entre ${sparseLayout ? "75 et 95" : "55 et 75"} mots, sans inventer de details.` : "Resume de Paracha inactif: laisse shabbatNote vide.",
       modules.parness ? `Parness Hayom: ${safeText(body.parnessText, 220) || "a completer"}.` : "Parness Hayom inactif.",
       modules.kiddush ? `Kidouch: ${safeText(body.kiddushText, 220) || "a completer"}.` : "Kidouch inactif.",
@@ -169,7 +170,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       title: requestedTitle,
       intro: newsletterGeneratedText(parsed?.intro, "Votre feuillet communautaire des activités de la semaine."),
-      ravWord: newsletterGeneratedText(parsed?.ravWord),
+      ravWord: limitNewsletterText(newsletterGeneratedText(parsed?.ravWord), NEWSLETTER_RAV_WORD_LIMIT),
       shabbatNote: newsletterGeneratedText(parsed?.shabbatNote, `Retrouvez les grands enseignements de ${shabbat?.parasha ?? "la Paracha de la semaine"} et partagez-les en famille pendant Chabbat.`),
       eventIntro: newsletterGeneratedText(parsed?.eventIntro, "Voici les principaux rendez-vous à noter pour les prochains jours."),
       restaurantAd: newsletterGeneratedText(parsed?.restaurantAd),

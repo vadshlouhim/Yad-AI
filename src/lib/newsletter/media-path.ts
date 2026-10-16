@@ -2,7 +2,7 @@ const COMMUNITY_ASSETS_PUBLIC_PREFIX = "/storage/v1/object/public/community-asse
 
 export function newsletterStoragePathFromPublicUrl(
   value: string,
-  supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+  supabaseUrl = typeof process === "undefined" ? "" : process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
 ) {
   try {
     const source = new URL(value);
@@ -23,6 +23,11 @@ export function newsletterStoragePathFromPublicUrl(
 export function newsletterExportImageUrl(value: string, supabaseUrl?: string) {
   const path = newsletterStoragePathFromPublicUrl(value, supabaseUrl);
   return path ? `/api/newsletter/image?path=${encodeURIComponent(path)}` : value;
+}
+
+export function newsletterLogoImageUrl(value: string, supabaseUrl?: string) {
+  const path = newsletterStoragePathFromPublicUrl(value, supabaseUrl);
+  return path ? `/api/newsletter/image?path=${encodeURIComponent(path)}&variant=logo` : value;
 }
 
 export function isNewsletterStoragePathOwnedBy(path: string, ownerId: string) {

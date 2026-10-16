@@ -72,6 +72,7 @@ export default async function NewsletterPage() {
         parasha: shabbat.parasha ?? null,
         entry: shabbat.entry ?? null,
         exit: shabbat.exit ?? null,
+        sourceUrl: shabbat.sourceUrl ?? null,
       }
     : null;
 

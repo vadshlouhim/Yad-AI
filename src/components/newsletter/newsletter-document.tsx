@@ -44,7 +44,6 @@ export const NewsletterDocument = forwardRef<NewsletterDocumentHandle, {
       }
       const job = pending.current;
       const pages = await job.promise;
-      if (pages.length > 2) throw new Error("Une A4 recto verso maximum : allégez le contenu avant l’export.");
       if (!alive.current || latestKey.current !== key) throw new Error("Le contenu a changé. Relancez l’aperçu.");
       setRendered({ key, pages });
       await paint();
@@ -74,14 +73,16 @@ export const NewsletterDocument = forwardRef<NewsletterDocumentHandle, {
   }, [visible]);
 
   const pages = rendered?.key === key ? rendered.pages : [];
+  const parashaOmitted = pages.some((html) => html.includes('data-parasha-omitted="true"'));
   return <>
     {visible ? <div ref={container} className="min-w-0 w-full" aria-busy={busy}>
       <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden" aria-label="Pages du feuillet">
-        {pages.map((_, index) => <button key={index} type="button" onClick={() => {
+        {pages.map((html, index) => <button key={index} type="button" onClick={() => {
           setSelectedPage(index);
           previewRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }} aria-current={selectedPage === index ? "page" : undefined} className="rounded-lg border border-[#bb8a36]/40 bg-[#faf7f0] px-3 py-2 text-sm font-semibold text-[#005572] aria-[current=page]:bg-[#005572] aria-[current=page]:text-white">{index === 0 ? "Recto" : "Verso"}</button>)}
-        {busy ? <span role="status" className="text-sm text-slate-600">Composition du recto verso…</span> : <span className="text-sm text-slate-600">A4 recto verso · 2 pages maximum · aperçu identique au PDF</span>}
+        }} aria-current={selectedPage === index ? "page" : undefined} className="rounded-lg border border-[#bb8a36]/40 bg-[#faf7f0] px-3 py-2 text-sm font-semibold text-[#005572] aria-[current=page]:bg-[#005572] aria-[current=page]:text-white">{index === 0 ? "Recto" : index === 1 ? "Verso" : html.includes('data-composition="support-page"') ? "Nous soutenir" : `Affiches ${index + 1}`}</button>)}
+        {busy ? <span role="status" className="text-sm text-slate-600">Composition des pages…</span> : <span className="text-sm text-slate-600">A4 adaptatif · {pages.length} page{pages.length > 1 ? "s" : ""} · aperçu identique au PDF</span>}
+        {parashaOmitted ? <span role="status" className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">Le Résumé de la Paracha a été retiré uniquement de cette composition pour garantir une mise en page lisible.</span> : null}
       </div>
       {pages.map((html, index) => <div key={index} ref={(node) => { previewRefs.current[index] = node; }} className="mx-auto mb-6 scroll-mt-6 bg-white shadow-lg" style={{ width: PAPER.width * scale, height: PAPER.height * scale }}>
         <div style={{ width: PAPER.width, height: PAPER.height, transform: `scale(${scale})`, transformOrigin: "top left" }}><PageMarkup html={html} /></div>

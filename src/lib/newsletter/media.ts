@@ -32,10 +32,11 @@ async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, tim
   }
 }
 
-export async function uploadNewsletterImage(file: File) {
+export async function uploadNewsletterImage(file: File, target: "image" | "logo" = "image") {
   const prepared = await prepareNewsletterImage(file);
   const form = new FormData();
   form.append("file", prepared);
+  form.append("target", target);
   const response = await fetchWithTimeout("/api/newsletter/image-upload", {
     method: "POST", body: form,
   }, 90_000);

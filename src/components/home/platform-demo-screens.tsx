@@ -322,7 +322,7 @@ export function NewsletterDemoScreen({ phase, progress }: DemoScreenProps) {
           Votre feuillet communautaire
         </p>
         <h3 className="mt-2 text-3xl font-black leading-none tracking-tight">
-          Le Chabaton{" "}
+          Le Chabbat Mag{" "}
           <span className="rounded-lg bg-[#e9c76a] px-2 py-1 align-middle text-[10px] text-[#17253f]">
             PDF
           </span>
@@ -373,7 +373,7 @@ export function NewsletterDemoScreen({ phase, progress }: DemoScreenProps) {
         ) : phase === 1 ? (
           <div className="space-y-3 rounded-[1.65rem] border border-[#e6dcc7] bg-white p-4">
             <h3 className="text-lg font-black">Les détails</h3>
-            <DemoField label="Titre" value="Le Chabatone" />
+            <DemoField label="Titre" value="Le Chabbat Mag" />
             <DemoField
               label="Événement"
               value={"Repas communautaire de Chabbat".slice(
@@ -401,7 +401,7 @@ export function NewsletterDemoScreen({ phase, progress }: DemoScreenProps) {
                 Feuillet hebdomadaire de Chabbat
               </p>
               <h4 className="mt-3 text-3xl font-black tracking-tight text-slate-950">
-                Le Chabatone
+                Le Chabbat Mag
               </h4>
               <p className="mt-2 text-xs font-semibold leading-5">
                 Votre feuillet communautaire des activités de la semaine.

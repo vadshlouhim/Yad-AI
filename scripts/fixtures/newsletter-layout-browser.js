@@ -1,13 +1,14 @@
 /* global document, location, DOMParser */
 import { composeNewsletter } from '../../src/lib/newsletter/document-layout';
 import { newsletterLayoutCases, baseNewsletter } from './newsletter-layout-cases';
+import { formatKiddushSponsor } from '../../src/lib/newsletter/kiddush';
 const check = (condition, message) => { if (!condition) throw new Error(message); };
 const cases = newsletterLayoutCases();
 const params = new URLSearchParams(location.search);
 const selected = params.get('preview') || params.get('pdf');
 const sources = data => [...(data.enabled.photos ? data.photos : []), ...(data.enabled.posters ? data.posters : []), ...(data.enabled.restaurantAd ? data.partnerAds : [])];
 function validate(data, pages, name) {
-  check(pages.length >= 1 && pages.length <= 2, name + ': page count');
+  check(pages.length >= 1 && pages.length <= 2 + data.posters.length, name + ': page count');
   const root = document.createElement('div'); root.innerHTML = pages.join(''); document.body.append(root);
   const textIds = [...root.querySelectorAll('[data-newsletter-text]')].map(node => node.dataset.newsletterText);
   check(new Set(textIds).size === textIds.length, name + ': article split between zones or pages');
@@ -20,13 +21,28 @@ function validate(data, pages, name) {
   const text = id => [...root.querySelectorAll('[data-newsletter-text="' + id + '"]')].map(node => node.textContent).join('');
   check(text('intro') === data.generated.intro, name + ': introduction changed');
   if (data.enabled.ravWord) check(text('rav') === data.generated.ravWord, name + ': Rav text changed');
-  if (data.enabled.shabbat) check(text('parasha') === data.generated.shabbatNote, name + ': Paracha text changed');
+  if (data.enabled.shabbat) {
+    const omitted = Boolean(root.querySelector('[data-parasha-omitted="true"]'));
+    check(omitted ? !text('parasha') : text('parasha') === data.generated.shabbatNote, name + ': Paracha text changed or incorrectly omitted');
+  }
   if (data.enabled.seferHamitsvot) {
     check(text('sefer-hamitsvot') === data.seferHamitsvot.dateLabel + (data.shabbat?.hebrewDate ? ' · ' + data.shabbat.hebrewDate : '') + '\n\n' + data.seferHamitsvot.text + '\n\nSource : Beth Loubavitch — ' + data.seferHamitsvot.sourceUrl, name + ': study text changed');
   }
   if (data.enabled.parness) check(text('dedications').includes(data.parnessText), name + ': missing dedication');
-  if (data.enabled.kiddush) check(text('dedications').includes(data.kiddushText), name + ': missing kiddush');
-  if (data.enabled.support) check(text('support').includes(data.community.donationUrl), name + ': missing support');
+  if (data.enabled.kiddush) {
+    check(text('dedications').includes(formatKiddushSponsor(data.kiddushText)), name + ': missing kiddush');
+    check(root.querySelector('[data-newsletter-decoration="challot"]'), name + ': missing challot illustration');
+  }
+  if (data.enabled.support) {
+    check(text('support').includes(data.community.donationUrl), name + ': missing support');
+    const articles = [...root.querySelectorAll('article')];
+    const support = root.querySelector('[data-newsletter-text="support"]');
+    const supportZone = support?.closest('[data-newsletter-zone]');
+    const content = articles.at(-1)?.querySelector('[data-newsletter-content]');
+    check(support?.closest('article') === articles.at(-1), name + ': support is not on the last page');
+    const bottomGap = supportZone && content ? content.getBoundingClientRect().bottom - supportZone.getBoundingClientRect().bottom : Infinity;
+    check(Math.abs(bottomGap) <= 1, name + ': support is not anchored at the bottom (' + bottomGap + 'px)');
+  }
   if (data.enabled.events) for (const event of data.events) {
     const date = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'full', timeStyle: 'short', timeZone: data.community.timezone }).format(new Date(event.startDate));
     check(text('event-' + event.id) === [date, event.location, event.description].filter(Boolean).join('\n'), name + ': event text changed');
@@ -36,13 +52,14 @@ function validate(data, pages, name) {
     check(JSON.stringify(rendered) === JSON.stringify(items.map(item => item.name)), name + ': reordered or duplicated images');
   }
   const originals = sources(data);
-  const images = [...root.querySelectorAll('[data-newsletter-content] img')];
+  const images = [...root.querySelectorAll('[data-newsletter-content] img:not([data-newsletter-decoration])')];
   check(images.length === originals.length, name + ': missing image');
   for (const img of images) {
     const source = originals.find(item => item.name === img.alt);
     check(source && source.url === img.getAttribute('src'), name + ': changed image');
     check(img.style.objectFit === 'contain', name + ': cropped image');
-    check(img.closest('[data-image-row]').querySelectorAll('img').length <= 4, name + ': more than four per row');
+    const rowLimit = img.closest('[data-gallery="posters"]') ? 2 : 4;
+    check(img.closest('[data-image-row]').querySelectorAll('img').length <= rowLimit, name + ': too many images per row');
     const svg = new DOMParser().parseFromString(decodeURIComponent(source.url.split(',')[1]), 'image/svg+xml').documentElement;
     const ratio = Number(svg.getAttribute('width')) / Number(svg.getAttribute('height'));
     check(Math.abs(parseFloat(img.style.width) / parseFloat(img.style.height) - ratio) < 0.001, name + ': deformed image');
@@ -66,6 +83,12 @@ function validate(data, pages, name) {
     check(sizes.every(size => size >= 8 && size <= 12), name + ': body font outside range');
     check(Math.max(...sizes) - Math.min(...sizes) <= 1 || !sizes.length, name + ': inconsistent body type');
   }
+  for (const frame of root.querySelectorAll('[data-gallery-frame]')) {
+    check(!frame.style.background.includes('gradient'), name + ': gallery gradient must not be used');
+    check(frame.querySelectorAll(':scope > span').length >= 2, name + ': modern gallery decorations missing');
+  }
+  check([...root.querySelectorAll('[data-gallery="posters"] img')].every(img =>
+    Math.min(img.getBoundingClientRect().width, img.getBoundingClientRect().height) >= 239), name + ': poster below hard readability size');
   if (name === 'single-article') {
     const article = root.querySelector('[data-block-id="rav"]');
     check(article.getBoundingClientRect().width > 600, 'Single article must use full width');
@@ -76,7 +99,9 @@ function validate(data, pages, name) {
     const notice = root.querySelector('[data-newsletter-text="support"]').closest('[data-newsletter-notice]');
     check(notice && notice.getBoundingClientRect().height < 200, name + ': oversized support');
     check([...root.querySelectorAll('article')].every(page => Number(page.dataset.bodyFont) >= 10), name + ': unnecessarily small body type');
-    check([...root.querySelectorAll('[data-gallery="posters"] img')].every(img => Math.min(img.getBoundingClientRect().width, img.getBoundingClientRect().height) >= 109), name + ': posters too small');
+    const posterArea = Math.max(...[...root.querySelectorAll('[data-gallery="posters"] img')].map(img => img.getBoundingClientRect().width * img.getBoundingClientRect().height));
+    const photoArea = Math.max(...[...root.querySelectorAll('[data-gallery="photos"] img')].map(img => img.getBoundingClientRect().width * img.getBoundingClientRect().height));
+    check(posterArea >= photoArea, name + ': poster is not prioritized over photos');
   }
   root.remove();
 }
@@ -92,10 +117,24 @@ function validate(data, pages, name) {
       if (params.has('pdf')) {
         const [{ toPng }, { jsPDF }] = await Promise.all([import('html-to-image'), import('jspdf')]);
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-        for (const [i, article] of [...document.querySelectorAll('article')].entries()) {
-          document.body.replaceChildren(article);
+        let snapshot = document.createElement('div');
+        const markup = [...document.querySelectorAll('article')].map(article => article.outerHTML);
+        for (const [i, html] of markup.entries()) {
+          snapshot.remove();
+          snapshot = document.createElement('div');
+          Object.assign(snapshot.style, { position: 'fixed', left: '0', top: '0', zIndex: '-2147483647', width: '794px', pointerEvents: 'none' });
+          snapshot.innerHTML = html;
+          document.body.append(snapshot);
+          window.scrollTo(0, 0);
+          const page = snapshot.firstElementChild;
           await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-          const png = await toPng(article, { pixelRatio: 2, width: 794, height: 1123, backgroundColor: '#faf7f0' });
+          const png = await toPng(page, {
+            pixelRatio: 2,
+            width: 794,
+            height: 1123,
+            backgroundColor: '#faf7f0',
+            style: { boxSizing: 'border-box', width: '794px', minWidth: '794px', maxWidth: '794px', height: '1123px', minHeight: '1123px', margin: '0' },
+          });
           if (i) pdf.addPage('a4', 'portrait');
           pdf.addImage(png, 'PNG', 0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight(), undefined, 'FAST');
         }
@@ -116,5 +155,11 @@ function validate(data, pages, name) {
   rejected = false;
   try { await composeNewsletter(impossible); } catch { rejected = true; }
   check(rejected, 'Impossible content must not be silently truncated');
+  const parashaFallback = baseNewsletter();
+  parashaFallback.generated.shabbatNote = 'Resume volontairement trop long. '.repeat(1000);
+  const fallbackPages = await composeNewsletter(parashaFallback);
+  validate(parashaFallback, fallbackPages, 'parasha-fallback');
+  check(fallbackPages.join('').includes('data-parasha-omitted="true"'), 'Oversized Paracha must be omitted only as a layout fallback');
+  total++;
   document.body.textContent = 'PASS: ' + total + ' browser layouts';
-})().catch(error => { document.body.textContent = 'FAIL: ' + error.message; });
+})().catch(error => { document.body.textContent = 'FAIL: ' + (error?.stack || error?.message || String(error)); });

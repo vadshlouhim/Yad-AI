@@ -85,42 +85,46 @@ async function main() {
   assert.equal(getNextFriday(new Date("2026-12-31T23:30:00Z"), "Europe/Paris").toISOString().slice(0, 10), "2027-01-01");
 
   const originalFetch = globalThis.fetch;
-  let requestUrl = "";
+  let shabbatRequestUrl = "";
+  const torahRequestUrls: string[] = [];
   globalThis.fetch = async (input) => {
-    requestUrl = String(input);
-    return Response.json({ items: [
-      { category: "candles", date: "2026-09-18T19:39:00+02:00" },
-      { category: "parashat", date: "2026-09-19", title: "Haazinou", hdate: "8 Tichri 5787" },
-      { category: "havdalah", date: "2026-09-19T20:46:00+02:00" },
-      { category: "candles", date: "2026-09-20T19:35:00+02:00" },
-      { category: "havdalah", date: "2026-09-21T20:42:00+02:00" },
-      { category: "candles", date: "2026-09-25T19:24:00+02:00" },
-      { category: "holiday", date: "2026-09-26", title: "Soukkot", hdate: "15 Tichri 5787", yomtov: true },
-      { category: "candles", date: "2026-09-26T20:27:00+02:00" },
-    ] });
+    const requestUrl = String(input);
+    if (requestUrl.includes("loubavitch.fr/templates/loubavitch_v2/helpers/torah.php")) {
+      torahRequestUrls.push(requestUrl);
+      const day = new URL(requestUrl).searchParams.get("day");
+      return Response.json(day === "8" ? "Haazinouh, Chabbat Shuva" : "");
+    }
+    shabbatRequestUrl = requestUrl;
+    return new Response(`document.write('<div class="CLdate">Friday, September 18, 2026</div><div class="CLTime">Allumer les bougies à&nbsp;19:39</div>');
+      document.write('<div class="CLdate">Shabbat, September 19, 2026</div><div class="CLTime">Fin du Chabbat à&nbsp;20:46</div>');
+      document.write('<div class="CLdate">Friday, September 25, 2026</div><div class="CLTime">Allumer les bougies à&nbsp;19:24</div>');
+      document.write('<div class="CLdate">Shabbat, September 26, 2026</div><div class="CLTime">Fin du Chabbat à&nbsp;20:27</div>');`);
   };
   try {
     const weeks = await getUpcomingShabbatTimes({ city: "Paris", date: new Date("2026-09-16T12:00:00Z"), count: 2 });
     assert.equal(weeks.length, 2, "Holiday weekday candles must not become a Shabbat");
-    assert.equal(weeks[0].parasha, "Haazinou");
+    assert.equal(weeks[0].parasha, "Haazinouh, Chabbat Shuva");
     assert.equal(weeks[0].exit, "20:46");
-    assert.equal(weeks[1].parasha, "Soukkot", "Festival Shabbat must not keep last week's parasha");
+    assert.equal(weeks[1].parasha, "Souccot", "Festival Shabbat must not keep last week's parasha");
     assert.equal(weeks[1].exit, "20:27");
-    const query = new URL(requestUrl).searchParams;
-    assert.equal(query.get("m"), "63");
-    assert.equal(query.get("b"), "18");
-    assert.equal(query.get("tzid"), "Europe/Paris");
+    const query = new URL(shabbatRequestUrl).searchParams;
+    assert.equal(query.get("weeks"), "2");
+    assert.equal(query.get("ln"), "2");
+    assert.equal(query.get("tzname"), "Europe/Paris");
+    assert.ok(torahRequestUrls.some((url) => new URL(url).searchParams.get("month") === "1"), "Loubavitch month numbering must start at Tichri");
     const fields = { structureName: "Beth Habad", city: "Paris", kiddouch: "Offert par la famille Lévy", officeTimes: "Office vendredi à 19:00" };
     const edits = buildShabbatPosterChanges(fields, weeks[1]);
-    assert.equal(edits.find((change) => change.label === "parasha")?.newText, "Soukkot");
+    assert.equal(edits.find((change) => change.label === "parasha")?.newText, "Souccot");
     assert.equal(edits.find((change) => change.label === "Kiddouch")?.newText, fields.kiddouch);
     assert.equal(edits.find((change) => change.label === "Offices")?.newText, fields.officeTimes);
+    assert.equal(edits.find((change) => change.label === "source")?.newText, "Shabbat times provided by Chabad.org/ShabbatTimes");
     const caption = buildShabbatCaption(fields, weeks[1]);
-    assert.match(caption, /Soukkot/);
-    assert.doesNotMatch(caption, /Haazinou/);
+    assert.match(caption, /Souccot/);
+    assert.doesNotMatch(caption, /Haazinouh/);
     assert.match(caption, /Office vendredi/);
+    assert.match(caption, /Shabbat times provided by Chabad\.org\/ShabbatTimes/);
     await getUpcomingShabbatTimes({ latitude: 0, longitude: 0, timezone: "UTC", date: new Date("2026-09-16T12:00:00Z"), count: 1 });
-    assert.equal(new URL(requestUrl).searchParams.get("longitude"), "0", "Zero coordinates must be accepted");
+    assert.equal(new URL(shabbatRequestUrl).searchParams.get("coords"), "0,0", "Zero coordinates must be accepted");
   } finally { globalThis.fetch = originalFetch; }
   console.log("Poster reuse, logo access, timezone boundaries and weekly Shabbat scenarios: passed");
 }

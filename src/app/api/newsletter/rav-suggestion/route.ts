@@ -4,6 +4,7 @@ import { getUpcomingShabbatTimes } from "@/lib/automation/hebcal";
 import { assertPaidFeature } from "@/lib/billing";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { limitNewsletterText, NEWSLETTER_RAV_WORD_LIMIT } from "@/lib/newsletter/limits";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -45,13 +46,13 @@ export async function POST() {
       customInstructions: [
         `Rédige uniquement une proposition de Mot du Rav pour la Paracha ${parasha}, Chabbat suivant le vendredi ${shabbat.date}.`,
         "Le contenu est destiné à être relu et validé par un humain avant impression.",
-        "En français, 90 à 120 mots, chaleureux et sobre, sans titre, hashtag, emoji ni appel à l’action.",
+        `En français, chaleureux et sobre, sans titre, hashtag, emoji ni appel à l’action, avec ${NEWSLETTER_RAV_WORD_LIMIT} caractères maximum espaces compris.`,
         "N’invente ni citation, ni verset, ni histoire, ni détail précis de la Paracha non vérifié.",
         "Si tu ne peux pas vérifier un détail, formule une réflexion générale sans l’affirmer comme un fait.",
         "Place uniquement le Mot du Rav dans la propriété JSON body ; laisse les autres propriétés vides.",
       ].join("\n"),
     });
-    const suggestion = result.body.trim();
+    const suggestion = limitNewsletterText(result.body, NEWSLETTER_RAV_WORD_LIMIT);
     if (!suggestion) return NextResponse.json({ error: "Aucune proposition reçue. Réessayez." }, { status: 502 });
 
     return NextResponse.json({ suggestion, parasha }, { headers: { "Cache-Control": "no-store" } });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isNewsletterStoragePathOwnedBy } from "@/lib/newsletter/media-path";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeNewsletterLogo } from "@/lib/newsletter/server-image";
 
 export const runtime = "nodejs";
 
@@ -13,7 +14,9 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-  const path = new URL(request.url).searchParams.get("path") ?? "";
+  const searchParams = new URL(request.url).searchParams;
+  const path = searchParams.get("path") ?? "";
+  const logoVariant = searchParams.get("variant") === "logo";
   const admin = createAdminClient();
   const { data: profile } = await admin
     .from("profiles")
@@ -30,11 +33,23 @@ export async function GET(request: Request) {
   if (!data.type.startsWith("image/")) return NextResponse.json({ error: "Fichier image invalide" }, { status: 415 });
   if (data.size > MAX_IMAGE_BYTES) return NextResponse.json({ error: "Image trop volumineuse" }, { status: 413 });
 
-  return new Response(await data.arrayBuffer(), {
+  let body: Buffer = Buffer.from(await data.arrayBuffer());
+  let contentType = data.type;
+  if (logoVariant) {
+    try {
+      body = await normalizeNewsletterLogo(body);
+      contentType = "image/png";
+    } catch {
+      return NextResponse.json({ error: "Logo impossible à préparer" }, { status: 422 });
+    }
+  }
+
+  const responseBody = Uint8Array.from(body);
+  return new Response(responseBody, {
     headers: {
       "Cache-Control": "private, max-age=300",
-      "Content-Type": data.type,
-      "Content-Length": String(data.size),
+      "Content-Type": contentType,
+      "Content-Length": String(body.length),
       "X-Content-Type-Options": "nosniff",
     },
   });

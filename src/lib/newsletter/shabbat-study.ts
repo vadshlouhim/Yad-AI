@@ -1,6 +1,6 @@
 export type NewsletterStudy = { date: string; dateLabel: string; text: string; sourceUrl: string };
 
-/** Hebcal's newsletter key is Friday's candle-lighting date, not Saturday. */
+/** The newsletter stores Friday's candle-lighting date, not Saturday. */
 export function newsletterShabbatDate(friday: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(friday)) throw new Error("Date du Chabbat invalide.");
   const date = new Date(`${friday}T12:00:00Z`);

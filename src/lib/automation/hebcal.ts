@@ -1,9 +1,5 @@
+import { HDate, getSedra } from "@hebcal/core";
 import { resolveShabbatLocation } from "./city-location";
-// ============================================================
-// EasyCom IA — Intégration Hebcal
-// Calendrier hébraïque, horaires Chabbat, fêtes
-// API gratuite : https://www.hebcal.com/home/195/jewish-calendar-rest-api
-// ============================================================
 
 export interface ShabbatTimes {
   cityName?: string;
@@ -16,6 +12,7 @@ export interface ShabbatTimes {
   exit: string;          // Heure de sortie (HH:mm)
   candleLighting: string; // Allumage des bougies
   havdalah: string;       // Havdalah
+  sourceUrl?: string;
 }
 
 export type UpcomingShabbatTimes = ShabbatTimes;
@@ -37,7 +34,115 @@ export interface HolidayTimes {
 }
 
 const HEBCAL_API = process.env.HEBCAL_API_URL ?? "https://www.hebcal.com/hebcal";
+const CHABAD_WIDGET_URL = "https://fr.chabad.org/tools/shared/candlelighting/candlelighting.js.asp";
+const LOUBAVITCH_TORAH_URL = "https://www.loubavitch.fr/templates/loubavitch_v2/helpers/torah.php";
 const HAVDALAH_MINUTES = 63;
+
+const ENGLISH_MONTHS: Record<string, string> = {
+  January: "01", February: "02", March: "03", April: "04", May: "05", June: "06",
+  July: "07", August: "08", September: "09", October: "10", November: "11", December: "12",
+};
+
+const CHABAD_HEBREW_MONTHS: Record<string, string> = {
+  Nisan: "Nissan", Iyyar: "Iyar", Sivan: "Sivan", Tamuz: "Tamouz", Av: "Av", Elul: "Eloul",
+  Tishrei: "Tichri", Cheshvan: "'Hechvan", Kislev: "Kislev", Tevet: "Tévet", "Sh'vat": "Chevat",
+  "Adar I": "Adar I", "Adar II": "Adar II", Adar: "Adar",
+};
+
+const CHABAD_PARASHIOT: Record<string, string> = {
+  Bereshit: "Béréchit", Noach: "Noa'h", "Lech-Lecha": "Lekh Lekha", Vayera: "Vayéra",
+  "Chayei Sara": "'Hayé Sarah", Toldot: "Toldot", Vayetzei: "Vayétsé", Vayishlach: "Vayichla'h",
+  Vayeshev: "Vayéchev", Miketz: "Mikets", Vayigash: "Vayigach", Vayechi: "Vayé'hi",
+  Shemot: "Chémot", Vaera: "Vaéra", Bo: "Bo", Beshalach: "Bechala'h", Yitro: "Yitro",
+  Mishpatim: "Michpatim", Terumah: "Terouma", Tetzaveh: "Tétsavé", "Ki Tisa": "Ki Tissa",
+  Vayakhel: "Vayakhel", Pekudei: "Pékoudei", Vayikra: "Vayikra", Tzav: "Tsav", Shmini: "Chemini",
+  Tazria: "Tazria", Metzora: "Metsora", "Achrei Mot": "A'harei Mot", Kedoshim: "Kedochim",
+  Emor: "Emor", Behar: "Behar", Bechukotai: "Be'houkotaï", Bamidbar: "Bamidbar", Nasso: "Nasso",
+  "Beha'alotcha": "Behaalotekha", "Sh'lach": "Chela'h", Korach: "Kora'h", Chukat: "'Houkat", Balak: "Balak",
+  Pinchas: "Pin'has", Matot: "Matot", Masei: "Massé", Devarim: "Devarim", Vaetchanan: "Vaet'hanane",
+  Eikev: "Ekev", "Re'eh": "Reé", Shoftim: "Choftim", "Ki Teitzei": "Ki Tetsé", "Ki Tavo": "Ki Tavo",
+  Nitzavim: "Nitsavim", Vayeilech: "Vayélekh", "Ha'azinu": "Haazinou", "Vezot Haberakhah": "Vezot Haberakha",
+  "Pesach Shabbat Chol ha-Moed": "Chabbat 'Hol Hamoëd Pessa'h", Shavuot: "Chavouot",
+  "Rosh Hashana": "Roch Hachana", Sukkot: "Souccot", "Shmini Atzeret": "Chemini Atsérète",
+};
+
+type ChabadWidgetEvent = { kind: "friday" | "shabbat"; date: string; time: string };
+
+function decodeChabadText(value: string) {
+  return value.replace(/<[^>]+>/g, " ").replace(/&nbsp;|&#160;/gi, " ").replace(/&amp;/gi, "&").replace(/\\'/g, "'").replace(/\s+/g, " ").trim();
+}
+
+function parseChabadEnglishDate(value: string) {
+  const match = value.match(/^(Friday|Shabbat),\s+([A-Za-z]+)\s+(\d{1,2}),\s+(\d{4})$/);
+  const month = match ? ENGLISH_MONTHS[match[2]] : null;
+  return match && month ? `${match[4]}-${month}-${match[3].padStart(2, "0")}` : null;
+}
+
+export function parseChabadShabbatWidget(script: string): ChabadWidgetEvent[] {
+  const events: ChabadWidgetEvent[] = [];
+  const pattern = /<div class="CLdate">\s*([^<]+)[\s\S]*?<div class="CLTime">([\s\S]*?)<\/div>/gi;
+  for (const match of script.matchAll(pattern)) {
+    const label = decodeChabadText(match[1]);
+    const date = parseChabadEnglishDate(label);
+    const time = decodeChabadText(match[2]).match(/(\d{1,2}:\d{2})(?!.*\d{1,2}:\d{2})/)?.[1];
+    if (date && time) events.push({ kind: label.startsWith("Friday") ? "friday" : "shabbat", date, time });
+  }
+  return events;
+}
+
+function nextDay(date: string) {
+  const value = new Date(`${date}T12:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + 1);
+  return value.toISOString().slice(0, 10);
+}
+
+function hdate(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  return new HDate(new Date(year, month - 1, day, 12));
+}
+
+function chabadHebrewDate(date: string) {
+  const value = hdate(date);
+  return `${value.getDate()} ${CHABAD_HEBREW_MONTHS[value.getMonthName()] ?? value.getMonthName()} ${value.getFullYear()}`;
+}
+
+function frenchParashaFallback(date: string, israel: boolean) {
+  const value = hdate(date);
+  return getSedra(value.getFullYear(), israel).lookup(value).parsha.map((name) => CHABAD_PARASHIOT[name] ?? name).join("-");
+}
+
+function loubavitchMonth(value: HDate) {
+  const month = value.getMonth();
+  const leapYear = (7 * value.getFullYear() + 1) % 19 < 7;
+  return month >= 7 ? month - 6 : month + (leapYear ? 7 : 6);
+}
+
+async function loubavitchParasha(date: string, israel: boolean) {
+  const fallback = frenchParashaFallback(date, israel);
+  if (israel) return fallback;
+  try {
+    const value = hdate(date);
+    const query = new URLSearchParams({
+      day: String(value.getDate()),
+      month: String(loubavitchMonth(value)),
+      year: String(value.getFullYear()),
+    });
+    const response = await fetch(`${LOUBAVITCH_TORAH_URL}?${query.toString()}`, {
+      headers: { "Accept-Language": "fr-FR,fr;q=0.9", "User-Agent": "EasyCom-IA French Torah reading reader" },
+      next: { revalidate: 86_400 },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok) return fallback;
+    const result = await response.json() as unknown;
+    return typeof result === "string" && result.trim() ? result.trim() : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function chabadSourceUrl(latitude: number, longitude: number, city: string, timezone: string) {
+  return `https://fr.chabad.org/calendar/candlelighting_cdo/coords/${encodeURIComponent(`${latitude},${longitude}`)}/n/${encodeURIComponent(city)}/tzname/${encodeURIComponent(timezone)}/jewish/Candle-Lighting.htm`;
+}
 
 // ============================================================
 // HORAIRES CHABBAT
@@ -50,9 +155,8 @@ export async function getShabbatTimes(params: {
 }
 
 /**
- * Charge les prochains horaires de Chabbat directement depuis l'API REST Hebcal.
- * La source locale peut ensuite servir de secours, mais les heures affichées restent
- * ainsi à jour pour la ville configurée par la communauté.
+ * Source unique : module officiel Chabad.org personnalisé avec les coordonnées de
+ * la ville. Aucun repli silencieux vers un calcul différent n'est autorisé.
  */
 export async function getUpcomingShabbatTimes(params: {
   city?: string;
@@ -67,81 +171,57 @@ export async function getUpcomingShabbatTimes(params: {
     const { city, latitude, longitude, timezone = "Europe/Paris", date = new Date(), count = 8 } = params;
     const explicitCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
     const location = explicitCoordinates ? { latitude: latitude!, longitude: longitude!, timezone, cityName: city ?? "Coordonnées choisies", countryCode: params.country === "IL" ? "IL" : "FR" } : await resolveShabbatLocation(city, params.country);
-    const friday = getNextFriday(date, location.timezone);
-    const end = new Date(friday);
-    end.setDate(end.getDate() + Math.max(count * 8, 14));
-
-    const searchParams = new URLSearchParams({
-      v: "1",
-      cfg: "json",
-      maj: "on",
-      min: "off",
-      mod: "off",
-      nx: "off",
-      ss: "on",
-      c: "on",
-      s: "on",
-      D: "on",
-      b: "18",
-      m: HAVDALAH_MINUTES.toString(),
-      i: location.countryCode === "IL" ? "on" : "off",
-      lg: "fr",
-      start: friday.toISOString().slice(0, 10),
-      end: end.toISOString().slice(0, 10),
-    });
-
-    searchParams.set("geo", "pos");
-    searchParams.set("latitude", location.latitude.toString());
-    searchParams.set("longitude", location.longitude.toString());
-    searchParams.set("tzid", location.timezone);
-
-    const response = await fetch(`${HEBCAL_API}?${searchParams.toString()}`, {
-      next: { revalidate: 3600 },
-    });
-    if (!response.ok) return [];
-
-    const data = await response.json() as {
-      items?: Array<{ category?: string; date?: string; title?: string; hdate?: string; yomtov?: boolean }>;
-    };
-    const entries = new Map<string, { candleLighting?: string; havdalah?: string; parasha?: string; hebrewDate?: string }>();
-    const getEntry = (key: string) => {
-      const current = entries.get(key) ?? {};
-      entries.set(key, current);
-      return current;
-    };
-
-    for (const item of data.items ?? []) {
-      if (!item.date) continue;
-      const itemDate = item.date.slice(0, 10);
-      const day = new Date(`${itemDate}T12:00:00Z`).getUTCDay();
-      if (item.category === "candles" && day === 5) getEntry(itemDate).candleLighting = formatTime(item.date, location.timezone);
-      if (day !== 6) continue;
-      const entry = getEntry(previousDay(itemDate));
-      // On a Saturday leading into Yom Tov, the after-nightfall candles mark the transition, not the end of the festival.
-      if (item.category === "havdalah" || item.category === "candles") entry.havdalah = formatTime(item.date, location.timezone);
-      if (item.hdate) entry.hebrewDate = item.hdate;
-      if (item.category === "parashat") entry.parasha = item.title;
-      else if (item.category === "holiday" && item.yomtov && !entry.parasha) entry.parasha = item.title;
-    }
-
-    return Array.from(entries.entries())
-      .filter(([, entry]) => Boolean(entry.candleLighting))
-      .sort(([left], [right]) => left.localeCompare(right))
-      .slice(0, count)
-      .map(([dateKey, entry]) => ({
-        date: dateKey,
+    const firstFriday = getNextFriday(date, location.timezone);
+    const requestedCount = Math.max(1, Math.min(count, 12));
+    const responses = await Promise.all(Array.from({ length: Math.ceil(requestedCount / 4) }, (_, index) => {
+      const batchDate = new Date(firstFriday);
+      batchDate.setUTCDate(batchDate.getUTCDate() + index * 28);
+      const query = new URLSearchParams({
+        coords: `${location.latitude},${location.longitude}`,
+        n: location.cityName,
+        tzname: location.timezone,
+        ln: "2",
+        weeks: String(Math.min(4, requestedCount - index * 4)),
+        mid: "4194",
+        lang: "fr",
+        tdate: `${batchDate.getUTCMonth() + 1}/${batchDate.getUTCDate()}/${batchDate.getUTCFullYear()}`,
+      });
+      return fetch(`${CHABAD_WIDGET_URL}?${query.toString()}`, {
+        headers: { "Accept-Language": "fr-FR,fr;q=0.9", "User-Agent": "EasyCom-IA Chabbat times reader" },
+        next: { revalidate: 3600 },
+        signal: AbortSignal.timeout(8_000),
+      });
+    }));
+    if (responses.some((response) => !response.ok)) return [];
+    const events = (await Promise.all(responses.map((response) => response.text()))).flatMap(parseChabadShabbatWidget);
+    const sourceUrl = chabadSourceUrl(location.latitude, location.longitude, location.cityName, location.timezone);
+    const entries = events.flatMap((event, index) => {
+      if (event.kind !== "friday") return [];
+      const saturday = events.slice(index + 1).find((candidate) => candidate.kind === "shabbat" && candidate.date === nextDay(event.date));
+      if (!saturday) return [];
+      return [{
+        date: event.date,
         cityName: location.cityName,
         timezone: location.timezone,
         countryCode: location.countryCode,
-        hebrewDate: entry.hebrewDate ?? "",
-        parasha: entry.parasha ?? "",
-        entry: entry.candleLighting ?? "",
-        exit: entry.havdalah ?? "",
-        candleLighting: entry.candleLighting ?? "",
-        havdalah: entry.havdalah ?? "",
-      }));
+        hebrewDate: chabadHebrewDate(saturday.date),
+        parasha: frenchParashaFallback(saturday.date, location.countryCode === "IL"),
+        entry: event.time,
+        exit: saturday.time,
+        candleLighting: event.time,
+        havdalah: saturday.time,
+        sourceUrl,
+      }];
+    });
+    const uniqueEntries = Array.from(new Map(entries.map((entry) => [entry.date, entry])).values())
+      .sort((left, right) => left.date.localeCompare(right.date))
+      .slice(0, requestedCount);
+    return Promise.all(uniqueEntries.map(async (entry) => ({
+      ...entry,
+      parasha: await loubavitchParasha(nextDay(entry.date), location.countryCode === "IL"),
+    })));
   } catch (error) {
-    console.error("[Hebcal] Erreur getUpcomingShabbatTimes:", error);
+    console.error("[Chabad.org] Erreur getUpcomingShabbatTimes:", error);
     return [];
   }
 }
@@ -349,10 +429,4 @@ function formatTime(isoDateTime: string, timezone = "Europe/Paris"): string {
     minute: "2-digit",
     timeZone: timezone,
   });
-}
-
-function previousDay(date: string) {
-  const value = new Date(`${date}T12:00:00Z`);
-  value.setUTCDate(value.getUTCDate() - 1);
-  return value.toISOString().slice(0, 10);
 }

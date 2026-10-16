@@ -6,10 +6,7 @@ import { ShabbatTimesSimpleClient } from "@/components/shabbat-times/shabbat-tim
 import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getShabbatTimes } from "@/lib/automation/hebcal";
-import {
-  filterShabbatTemplatesByMode,
-  type ShabbatCardItem,
-} from "@/lib/automation/shabbat-times";
+import type { ShabbatCardItem } from "@/lib/automation/shabbat-times";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 
 export const metadata: Metadata = { title: "Horaires Chabbat et Fêtes — EasyCom IA" };
@@ -77,7 +74,7 @@ export default async function ShabbatTimesAutoPage({ searchParams }: { searchPar
     timezone: community?.timezone ?? "Europe/Paris",
   });
 
-  // Source unique : API REST Hebcal.
+  // Source unique des horaires : Chabad.org, personnalisé avec la ville de l'affiche.
   const shabbat: ShabbatCardItem | null = liveShabbat
     ? {
         cityName: liveShabbat.cityName ?? community?.city ?? null,
@@ -89,10 +86,9 @@ export default async function ShabbatTimesAutoPage({ searchParams }: { searchPar
       }
     : null;
 
-  const simpleTemplates = filterShabbatTemplatesByMode(hydratedTemplates, "simple");
   return (
     <ShabbatTimesSimpleClient
-      templates={simpleTemplates as Parameters<typeof ShabbatTimesSimpleClient>[0]["templates"]}
+      templates={hydratedTemplates as Parameters<typeof ShabbatTimesSimpleClient>[0]["templates"]}
       community={community!}
       shabbat={shabbat}
       key={source?.id ?? "shabbat"}

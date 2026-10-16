@@ -19,7 +19,7 @@ export type NewsletterLabels = Record<NewsletterLabelKey, string>;
 
 export const DEFAULT_NEWSLETTER_LABELS: NewsletterLabels = {
   ravWord: "Mot du Rav",
-  parasha: "La Paracha de la semaine",
+  parasha: "Résumé de la Paracha",
   community: "Dans notre communauté",
   parness: "Parness Hayom",
   kiddush: "Kidouch offert par",

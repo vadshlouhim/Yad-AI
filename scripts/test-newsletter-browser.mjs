@@ -2,7 +2,7 @@ import { build } from "esbuild";
 import { createServer } from "node:http";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { waitForNewsletterPdf } from "./lib/newsletter-pdf-browser.mjs";
@@ -23,6 +23,9 @@ const server = createServer(async (req, res) => {
       for await (const chunk of req) chunks.push(chunk);
       await writeFile(path.join(artifactDir, req.url.split("/").at(-1) + ".pdf"), Buffer.concat(chunks));
       res.end("ok");
+    } else if (req.url === "/newsletter/challot-icon.png") {
+      res.setHeader("Content-Type", "image/png");
+      res.end(await readFile("public/newsletter/challot-icon.png"));
     } else if (req.url === "/test.js") {
       res.setHeader("Content-Type", "application/javascript");
       res.end(bundled.outputFiles[0].text);
@@ -34,11 +37,11 @@ const server = createServer(async (req, res) => {
 });
 await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
 const url = "http://127.0.0.1:" + server.address().port;
-const run = args => promisify(execFile)(chrome, ["--headless", "--no-sandbox", "--disable-gpu", "--disable-background-timer-throttling", "--run-all-compositor-stages-before-draw", "--virtual-time-budget=120000", ...args], { windowsHide: true, timeout: 60000, maxBuffer: 8 * 1024 * 1024 });
+const run = args => promisify(execFile)(chrome, ["--headless", "--no-sandbox", "--disable-gpu", "--disable-background-timer-throttling", "--run-all-compositor-stages-before-draw", "--virtual-time-budget=120000", ...args], { windowsHide: true, timeout: 120000, maxBuffer: 8 * 1024 * 1024 });
 try {
   const { stdout } = await run(["--dump-dom", url]);
-  assert.match(stdout, /PASS: 25 browser layouts/, stdout);
-  console.log("Newsletter: 25 Chromium layouts passed; whole articles, exact text/captions, whole images, no overlap, consistent fonts, 0–8 images, two-page maximum.");
+  assert.match(stdout, /PASS: 26 browser layouts/, stdout);
+  console.log("Newsletter: 26 Chromium layouts passed; whole articles, exact text/captions, Paracha fallback, bottom-anchored support, whole images, no overlap, consistent fonts, and large posters on adaptive pages.");
   if (process.env.NEWSLETTER_SCREENSHOT) {
     await run(["--hide-scrollbars", "--window-size=1600,1130", "--screenshot=" + process.env.NEWSLETTER_SCREENSHOT, url + "/?preview=" + (process.env.NEWSLETTER_CASE || "provided-a")]);
   }

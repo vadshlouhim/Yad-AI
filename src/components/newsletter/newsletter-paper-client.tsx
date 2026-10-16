@@ -9,8 +9,10 @@ import { parseLayoutPreferences, type NewsletterLayoutPreferences, type Newslett
 import type { NewsletterDocumentData } from "@/lib/newsletter/document-layout";
 import { inlineNewsletterExportImages, NEWSLETTER_IMAGE_ACCEPT, resolveNewsletterBanner, uploadNewsletterBatch, uploadNewsletterImage } from "@/lib/newsletter/media";
 import { createDraftSaveQueue } from "@/lib/newsletter/save-queue";
-import { NEWSLETTER_MEDIA_LIMIT } from "@/lib/newsletter/limits";
+import { limitNewsletterText, NEWSLETTER_PHOTO_LIMIT, NEWSLETTER_POSTER_LIMIT, NEWSLETTER_RAV_WORD_LIMIT } from "@/lib/newsletter/limits";
+import { newsletterLogoImageUrl } from "@/lib/newsletter/media-path";
 import { NEWSLETTER_LABEL_EDITOR, parseNewsletterLabels, resolveNewsletterLabels, type NewsletterLabels } from "@/lib/newsletter/labels";
+import { NEWSLETTER_CHALLOT_ICON_URL } from "@/lib/newsletter/kiddush";
 import type { NewsletterStudy } from "@/lib/newsletter/shabbat-study";
 import {
   BookOpen,
@@ -65,6 +67,7 @@ export type NewsletterShabbat = {
   parasha: string | null;
   entry: string | null;
   exit: string | null;
+  sourceUrl?: string | null;
 };
 
 export type CommunityInfo = {
@@ -164,7 +167,7 @@ const MODULES: ModuleConfig[] = [
   { key: "events", title: "Événements à venir", icon: CalendarDays },
   { key: "restaurantAd", title: "Pub partenaire", icon: Store },
   { key: "support", title: "Nous soutenir", icon: HandHeart },
-  { key: "shabbat", title: "Repère Chabbat", icon: Clock3, locked: true },
+  { key: "shabbat", title: "Résumé de la Paracha", icon: Clock3 },
 ];
 
 const ESSENTIAL_MODULE_KEYS = new Set<ModuleKey>(["shabbat", "ravWord", "events", "photos"]);
@@ -224,7 +227,7 @@ function filenamePart(value: string) {
 
 function initialGenerated(): GeneratedNewsletter {
   return {
-    title: "Le Chabaton",
+    title: "Le Chabbat Mag",
     intro: "",
     ravWord: "",
     shabbatNote: "",
@@ -314,7 +317,7 @@ export function parseNewsletterDraft(
     generated: {
       title: draftText(generatedValue.title, draftText(value.title, defaults.title)),
       intro: draftText(generatedValue.intro, defaults.intro),
-      ravWord: draftText(generatedValue.ravWord),
+      ravWord: limitNewsletterText(draftText(generatedValue.ravWord), NEWSLETTER_RAV_WORD_LIMIT),
       shabbatNote: draftText(generatedValue.shabbatNote),
       eventIntro: draftText(generatedValue.eventIntro),
       restaurantAd: draftText(generatedValue.restaurantAd),
@@ -422,7 +425,7 @@ export function NewsletterPaperClient({
   const documentData: NewsletterDocumentData = {
     community: previewCommunity, enabled: outputEnabled, generated, parnessText, kiddushText,
     photos: visiblePhotos, posters: visiblePosters, partnerAds: visiblePartnerAds,
-    events: visibleEvents, birthdays: initialBirthdays, manualBirthdays, specificEventText, labels: resolvedLabels, shabbat: initialShabbat, bannerPhotoUrl,
+    events: visibleEvents, birthdays: initialBirthdays, manualBirthdays, specificEventText, labels: resolvedLabels, shabbat: initialShabbat, bannerPhotoUrl: newsletterLogoImageUrl(bannerPhotoUrl),
     seferHamitsvot: initialSeferHamitsvot,
     layout,
   };
@@ -472,7 +475,11 @@ export function NewsletterPaperClient({
   function applyRevision(revision: Revision, pages: string[], key: string) {
     setPreviousRevision({ generated, parnessText, kiddushText, photos, layout });
     const { parnessText: parness, kiddushText: kiddush, ...texts } = revision.changes;
-    setGenerated(current => ({ ...current, ...texts }));
+    setGenerated(current => ({
+      ...current,
+      ...texts,
+      ...(texts.ravWord !== undefined ? { ravWord: limitNewsletterText(texts.ravWord, NEWSLETTER_RAV_WORD_LIMIT) } : {}),
+    }));
     if (parness !== undefined) setParnessText(parness);
     if (kiddush !== undefined) setKiddushText(kiddush);
     setLayout(current => ({ ...current, ...revision.layout }));
@@ -503,7 +510,7 @@ export function NewsletterPaperClient({
       const payload = await response.json().catch(() => null) as { suggestion?: unknown; error?: unknown } | null;
       if (!response.ok) throw new Error(typeof payload?.error === "string" ? payload.error : "Impossible de préparer une proposition pour le moment.");
       if (typeof payload?.suggestion !== "string" || !payload.suggestion.trim()) throw new Error("Aucune proposition reçue. Réessayez.");
-      setRavSuggestion(payload.suggestion);
+      setRavSuggestion(limitNewsletterText(payload.suggestion, NEWSLETTER_RAV_WORD_LIMIT));
     } catch (requestError) {
       setRavSuggestionError(requestError instanceof Error ? requestError.message : "La proposition IA est indisponible.");
     } finally {
@@ -670,7 +677,6 @@ export function NewsletterPaperClient({
   }, [draftReady, draftSnapshot, localDraftKey]);
 
   function toggleModule(key: ModuleKey) {
-    if (key === "shabbat") return;
     setEnabled((current) => ({ ...current, [key]: !current[key] }));
   }
 
@@ -709,7 +715,7 @@ export function NewsletterPaperClient({
     const selected = Array.from(event.currentTarget.files ?? []);
     event.currentTarget.value = "";
     if (uploadBusyRef.current || !selected.length) return;
-    const remaining = Math.max(0, target === "photos" ? NEWSLETTER_MEDIA_LIMIT - photos.length : target === "posters" ? NEWSLETTER_MEDIA_LIMIT - posters.length : target === "partnerAds" ? 3 - partnerAds.length : 1);
+    const remaining = Math.max(0, target === "photos" ? NEWSLETTER_PHOTO_LIMIT - photos.length : target === "posters" ? NEWSLETTER_POSTER_LIMIT - posters.length : target === "partnerAds" ? 3 - partnerAds.length : 1);
     const files = selected.slice(0, remaining);
     if (!files.length) { setError("Limite atteinte. Retirez une image avant d’en ajouter une autre."); return; }
     const queueItems: UploadQueueItem[] = files.map((file) => ({ id: crypto.randomUUID(), file, target, name: file.name, status: "queued" }));
@@ -722,7 +728,7 @@ export function NewsletterPaperClient({
         const item = queueItems.find((queued) => queued.file === file)!;
         setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "uploading", error: undefined } : queued));
         try {
-          const uploaded = await uploadNewsletterImage(file);
+          const uploaded = await uploadNewsletterImage(file, target === "banner" ? "logo" : "image");
           setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "success", error: undefined } : queued));
           return uploaded;
         } catch (uploadError) {
@@ -747,7 +753,7 @@ export function NewsletterPaperClient({
 
   async function retryUpload(item: UploadQueueItem) {
     if (uploadBusyRef.current || item.status !== "error") return;
-    const remaining = item.target === "photos" ? NEWSLETTER_MEDIA_LIMIT - photos.length : item.target === "posters" ? NEWSLETTER_MEDIA_LIMIT - posters.length : item.target === "partnerAds" ? 3 - partnerAds.length : 1;
+    const remaining = item.target === "photos" ? NEWSLETTER_PHOTO_LIMIT - photos.length : item.target === "posters" ? NEWSLETTER_POSTER_LIMIT - posters.length : item.target === "partnerAds" ? 3 - partnerAds.length : 1;
     if (item.target !== "banner" && remaining <= 0) {
       setError("La rubrique est maintenant pleine. Retirez une image avant de réessayer.");
       return;
@@ -758,7 +764,7 @@ export function NewsletterPaperClient({
     setUploadProgress(`Nouvelle tentative : ${item.name}`);
     setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "uploading", error: undefined } : queued));
     try {
-      const uploaded = await uploadNewsletterImage(item.file);
+      const uploaded = await uploadNewsletterImage(item.file, item.target === "banner" ? "logo" : "image");
       if (item.target === "banner") setBannerPhotoUrl(uploaded.url);
       else if (item.target === "photos") setPhotos((current) => [...current, uploaded]);
       else if (item.target === "posters") setPosters((current) => [...current, uploaded]);
@@ -834,7 +840,6 @@ export function NewsletterPaperClient({
       return;
     }
     if (pages.length === 0) return;
-    if (pages.length > 2) throw new Error("Le feuillet est limité à une A4 recto verso (2 pages maximum).");
     setExporting(true);
     setError(null);
     const snapshot = document.createElement("div");
@@ -907,7 +912,6 @@ export function NewsletterPaperClient({
       await nextPaint();
       const pages = await documentRef.current?.prepare();
       if (!pages?.length) throw new Error("Composition du feuillet impossible.");
-      if (pages.length > 2) throw new Error("Le feuillet est limité à une A4 recto verso (2 pages maximum).");
       if (action === "preview") {
         previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         return;
@@ -1086,10 +1090,11 @@ export function NewsletterPaperClient({
                     id="newsletter-rav-word"
                     value={generated.ravWord}
                     onChange={(event) => setGenerated((current) => ({ ...current, ravWord: event.target.value }))}
+                    maxLength={NEWSLETTER_RAV_WORD_LIMIT}
                     rows={6}
                     className="mt-3 w-full resize-y rounded-xl border border-[#cfe6d9] bg-white px-3 py-2 text-base font-medium leading-6 outline-none focus:border-[#087e55] focus:ring-4 focus:ring-emerald-100 sm:text-sm"
                   />
-                  <span className="mt-1 block text-right text-[10px] font-bold text-slate-400">{generated.ravWord.length} caractères</span>
+                  <span className="mt-1 block text-right text-[10px] font-bold text-slate-500">{generated.ravWord.length}/{NEWSLETTER_RAV_WORD_LIMIT} caractères maximum</span>
                   <div id="newsletter-rav-suggestion" aria-live="polite">
                     {!initialShabbat?.parasha?.trim() ? <p className="mt-2 text-xs font-medium text-amber-800">La Paracha doit être disponible pour créer une proposition.</p> : null}
                     {ravSuggestionError ? <p role="alert" className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{ravSuggestionError}</p> : null}
@@ -1141,7 +1146,7 @@ export function NewsletterPaperClient({
                 <p className="mt-1 text-xs text-slate-600">Ce texte reste uniquement dans ce feuillet et n’est pas ajouté à l’Agenda.</p>
               </section> : null}
               {enabled.parness ? <TextInput label="Parness Hayom" value={parnessText} onChange={setParnessText} placeholder="Ex. Leylouy Nichmat..." /> : null}
-              {enabled.kiddush ? <TextInput label="Kidouch offert par" value={kiddushText} onChange={setKiddushText} placeholder="Ex. Famille Cohen" /> : null}
+              {enabled.kiddush ? <TextInput label="Kidouch offert par" iconSrc={NEWSLETTER_CHALLOT_ICON_URL} value={kiddushText} onChange={setKiddushText} placeholder="Ex. Famille Cohen" /> : null}
               <label className="block text-sm font-bold text-slate-700">
                 Lien de la page de dons
                 <div className="mt-1.5 flex flex-col gap-2 sm:flex-row">
@@ -1152,7 +1157,7 @@ export function NewsletterPaperClient({
               <section className="text-sm font-bold text-slate-700">
                 <p>Logo de la bannière</p>
                 <div className="mt-1.5 flex min-w-0 items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-2">
-                  {bannerPhotoUrl ? <img src={bannerPhotoUrl} alt="Logo affiché dans la bannière" className="size-16 shrink-0 rounded-lg bg-white object-contain ring-1 ring-slate-200" /> : <span className="flex size-16 shrink-0 items-center justify-center rounded-lg bg-white text-slate-400 ring-1 ring-slate-200"><ImagePlus className="size-6" /></span>}
+                  {bannerPhotoUrl ? <img src={newsletterLogoImageUrl(bannerPhotoUrl)} alt="Logo affiché dans la bannière" className="size-24 shrink-0 object-contain drop-shadow-sm" /> : <span className="flex size-24 shrink-0 items-center justify-center rounded-2xl bg-white/70 text-slate-400 ring-1 ring-slate-200"><ImagePlus className="size-7" /></span>}
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-semibold text-slate-600">{bannerPhotoUrl === community.logoUrl && community.logoUrl ? "Logo de votre communauté utilisé par défaut" : bannerPhotoUrl ? "Image personnalisée utilisée" : "Aucun logo téléversé"}</p>
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -1205,13 +1210,13 @@ export function NewsletterPaperClient({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-[#005572]">Photos de la semaine</p>
-                <p className="mt-1 text-sm text-slate-500">{photos.length}/{NEWSLETTER_MEDIA_LIMIT} photos · 4 maximum par ligne · images entières, sans recadrage</p>
-                {photos.length > NEWSLETTER_MEDIA_LIMIT ? <p className="mt-1 text-sm text-amber-700">Ce brouillon dépasse la nouvelle limite. Choisissez les 8 photos à conserver ; aucune n’a été retirée automatiquement.</p> : null}
+                <p className="mt-1 text-sm text-slate-500">{photos.length}/{NEWSLETTER_PHOTO_LIMIT} photos · 4 maximum par ligne · images entières, sans recadrage</p>
+                {photos.length > NEWSLETTER_PHOTO_LIMIT ? <p className="mt-1 text-sm text-amber-700">Ce brouillon dépasse la nouvelle limite. Choisissez les 6 photos à conserver ; aucune n’a été retirée automatiquement.</p> : null}
               </div>
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#36506d] px-3 py-2 text-xs font-black text-white transition hover:bg-[#17253f]">
                 {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                 Ajouter
-                <input type="file" accept={NEWSLETTER_IMAGE_ACCEPT} multiple className="sr-only" onChange={(event) => void uploadMedia(event, "photos")} disabled={uploading || photos.length >= NEWSLETTER_MEDIA_LIMIT} />
+                <input type="file" accept={NEWSLETTER_IMAGE_ACCEPT} multiple className="sr-only" onChange={(event) => void uploadMedia(event, "photos")} disabled={uploading || photos.length >= NEWSLETTER_PHOTO_LIMIT} />
               </label>
             </div>
             {photos.length > 0 ? (
@@ -1225,13 +1230,13 @@ export function NewsletterPaperClient({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-900">Affiches &amp; événements à venir...</p>
-                <p className="mt-1 text-sm text-slate-500">{posters.length}/{NEWSLETTER_MEDIA_LIMIT} affiches · 4 maximum par ligne · images entières, sans recadrage</p>
-                {posters.length > NEWSLETTER_MEDIA_LIMIT ? <p className="mt-1 text-sm text-amber-700">Ce brouillon dépasse la nouvelle limite. Choisissez les 8 affiches à conserver ; aucune n’a été retirée automatiquement.</p> : null}
+                <p className="mt-1 text-sm text-slate-500">{posters.length}/{NEWSLETTER_POSTER_LIMIT} affiches · 2 maximum par page · images entières, sans recadrage</p>
+                {posters.length > NEWSLETTER_POSTER_LIMIT ? <p className="mt-1 text-sm text-amber-700">Ce brouillon dépasse la nouvelle limite. Choisissez les 3 affiches à conserver ; aucune n’a été retirée automatiquement.</p> : null}
               </div>
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#18264d] px-3 py-2 text-xs font-black text-white transition hover:bg-[#101b37]">
                 {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
                 Ajouter
-                <input type="file" accept={NEWSLETTER_IMAGE_ACCEPT} multiple className="sr-only" onChange={(event) => void uploadMedia(event, "posters")} disabled={uploading || posters.length >= NEWSLETTER_MEDIA_LIMIT} />
+                <input type="file" accept={NEWSLETTER_IMAGE_ACCEPT} multiple className="sr-only" onChange={(event) => void uploadMedia(event, "posters")} disabled={uploading || posters.length >= NEWSLETTER_POSTER_LIMIT} />
               </label>
             </div>
             {posters.length > 0 ? <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -1273,10 +1278,13 @@ export function NewsletterPaperClient({
   );
 }
 
-function TextInput({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
+function TextInput({ label, iconSrc, value, onChange, placeholder }: { label: string; iconSrc?: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
   return (
     <label className="block text-sm font-bold text-slate-700">
-      {label}
+      <span className="inline-flex items-center gap-2">
+        {iconSrc ? <img src={iconSrc} alt="" className="h-8 w-10 object-contain" /> : null}
+        {label}
+      </span>
       <input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2 text-base outline-none focus:border-[#36506d] focus:ring-2 focus:ring-[#dfe8f3] sm:text-sm" />
     </label>
   );

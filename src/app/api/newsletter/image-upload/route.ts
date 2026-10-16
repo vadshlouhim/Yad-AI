@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { MAX_SOURCE_BYTES } from "@/lib/newsletter/media";
-import { normalizeNewsletterImage } from "@/lib/newsletter/server-image";
+import { normalizeNewsletterImage, normalizeNewsletterLogo } from "@/lib/newsletter/server-image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -22,6 +22,7 @@ export async function POST(request: Request) {
 
     const form = await request.formData();
     const file = form.get("file");
+    const target = form.get("target") === "logo" ? "logo" : "image";
     if (!(file instanceof File)) return uploadError("Fichier manquant", "FILE_MISSING");
     if (!file.size) return uploadError("Ce fichier est vide.", "EMPTY_FILE");
     if (file.size > MAX_SOURCE_BYTES) return uploadError("Image trop lourde, maximum 20 Mo.", "SOURCE_TOO_LARGE", 413);
@@ -32,7 +33,8 @@ export async function POST(request: Request) {
 
     let body: Buffer;
     try {
-      body = await normalizeNewsletterImage(Buffer.from(await file.arrayBuffer()));
+      const input = Buffer.from(await file.arrayBuffer());
+      body = target === "logo" ? await normalizeNewsletterLogo(input) : await normalizeNewsletterImage(input);
     } catch (error) {
       const tooLarge = error instanceof Error && error.message === "output_too_large";
       console.warn("[Newsletter Image]", { requestId, stage: "convert", status: "failed", inputBytes: file.size, mime: file.type || "unknown" });
@@ -43,16 +45,18 @@ export async function POST(request: Request) {
     }
 
     const safeBase = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 45) || "photo";
-    const storagePath = `newsletter/${profile.communityId}/${crypto.randomUUID()}-${safeBase}.jpg`;
+    const extension = target === "logo" ? "png" : "jpg";
+    const contentType = target === "logo" ? "image/png" : "image/jpeg";
+    const storagePath = `newsletter/${profile.communityId}/${crypto.randomUUID()}-${safeBase}.${extension}`;
     let { error: storageError } = await admin.storage.from(BUCKET).upload(storagePath, body, {
-      contentType: "image/jpeg",
+      contentType,
       cacheControl: "31536000",
       upsert: false,
     });
     if (storageError?.message.toLowerCase().includes("bucket")) {
       await admin.storage.createBucket(BUCKET, { public: true });
       storageError = (await admin.storage.from(BUCKET).upload(storagePath, body, {
-        contentType: "image/jpeg",
+        contentType,
         cacheControl: "31536000",
         upsert: false,
       })).error;
@@ -64,7 +68,7 @@ export async function POST(request: Request) {
 
     const { data } = admin.storage.from(BUCKET).getPublicUrl(storagePath);
     console.info("[Newsletter Image]", { requestId, stage: "complete", status: "ok", inputBytes: file.size, outputBytes: body.length, mime: file.type || "unknown" });
-    return NextResponse.json({ url: data.publicUrl, path: storagePath, type: "image/jpeg", name: file.name, requestId });
+    return NextResponse.json({ url: data.publicUrl, path: storagePath, type: contentType, name: file.name, requestId });
   } catch (error) {
     console.error("[Newsletter Image]", { requestId, stage: "request", status: "failed", error });
     return uploadError("Importation impossible. Réessayez.", "UPLOAD_FAILED", 500);

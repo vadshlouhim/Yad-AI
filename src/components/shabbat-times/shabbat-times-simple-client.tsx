@@ -26,6 +26,8 @@ import { cn } from "@/lib/utils";
 import type { Json } from "@/types/database.types";
 import { ScheduleHubNav } from "@/components/templates/schedule-hub-nav";
 import { CanvaLogo } from "@/components/templates/template-actions";
+import { CHABAD_SHABBAT_ATTRIBUTION } from "@/lib/automation/shabbat-poster";
+import { inferShabbatTimesVariant } from "@/lib/templates/taxonomy";
 
 type Template = {
   id: string;
@@ -36,6 +38,8 @@ type Template = {
   isPremium: boolean;
   supportsAi?: boolean;
   canvaUrl?: string | null;
+  subCategory?: string | null;
+  tags?: string[] | null;
 };
 
 type Community = {
@@ -116,6 +120,7 @@ function buildCaption(fields: FormState) {
     `Sortie de Chabbat : ${fields.exit}`,
     fields.kiddouch ? `Kiddouch offert par : ${fields.kiddouch}` : "",
     fields.city ? `📍 ${fields.city}` : "",
+    CHABAD_SHABBAT_ATTRIBUTION,
   ];
   return `${lines.filter(Boolean).join("\n")}\n\n#ChabbatChalom`;
 }
@@ -367,12 +372,17 @@ export function ShabbatTimesSimpleClient({
   const [automationTime, setAutomationTime] = useState("10:00");
   const [automationActive, setAutomationActive] = useState(Boolean(initialAutomation?.isActive));
   const [savingAutomation, setSavingAutomation] = useState(false);
+  const selectedTemplateMode = selectedTemplate && inferShabbatTimesVariant(selectedTemplate) === "with-offices" ? "detailed" : "simple";
 
   useEffect(() => () => {
     if (cityRefreshTimer.current) clearTimeout(cityRefreshTimer.current);
   }, []);
 
   const isPaid = community.plan !== "FREE_TRIAL";
+  const templateCounts = useMemo(() => {
+    const withOffices = templates.filter((template) => inferShabbatTimesVariant(template) === "with-offices").length;
+    return { withOffices, simple: templates.length - withOffices };
+  }, [templates]);
 
   const connectedChannels = useMemo(
     () => new Set(
@@ -471,6 +481,7 @@ export function ShabbatTimesSimpleClient({
         { id: "entry", text: times.entry, role: "entry time", priority: "important" },
         { id: "exit", text: times.exit, role: "exit time", priority: "important" },
         ...(form.kiddouch.trim() ? [{ id: "kiddouch", text: `Kiddouch offert par : ${form.kiddouch.trim()}`, role: "Kiddouch", priority: "complementary" }] : []),
+        { id: "source", text: CHABAD_SHABBAT_ATTRIBUTION, role: "source", priority: "complementary" },
       ];
       const response = await fetch("/api/templates/render", {
         method: "POST",
@@ -496,7 +507,7 @@ export function ShabbatTimesSimpleClient({
         body: JSON.stringify({
           mode: "save-config",
           templateId: selectedTemplate.id,
-          templateMode: "simple",
+          templateMode: selectedTemplateMode,
           config: {
             fields: { ...savedFields, ...form, ...times },
             draftSourceMediaId: data.mediaId,
@@ -593,7 +604,7 @@ export function ShabbatTimesSimpleClient({
         body: JSON.stringify({
           mode: "activate",
           templateId: selectedTemplate.id,
-          templateMode: "simple",
+          templateMode: selectedTemplateMode,
           config: {
             fields: { ...savedFields, ...form },
             sourceMediaId: resultImageUrl ? sourceMediaId : savedPoster.sourceMediaId,
@@ -642,7 +653,9 @@ export function ShabbatTimesSimpleClient({
         <div className="flex items-end justify-between gap-4">
           <div>
             <h2 className="text-2xl font-black tracking-tight text-slate-950">Choisissez votre affiche</h2>
-            <p className="mt-1 text-sm text-slate-500">Sélectionnez simplement le visuel qui vous plaît.</p>
+            <p className="mt-1 text-sm text-slate-500">
+              {templateCounts.simple} sans offices · {templateCounts.withOffices} avec offices
+            </p>
           </div>
           <span className="hidden rounded-full bg-violet-50 px-3 py-2 text-xs font-black text-[#421388] sm:inline-flex">
             {templates.length} modèle{templates.length > 1 ? "s" : ""}
@@ -659,6 +672,7 @@ export function ShabbatTimesSimpleClient({
           <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
             {templates.map((template, index) => {
               const locked = !isPaid && index > 0;
+              const withOffices = inferShabbatTimesVariant(template) === "with-offices";
               return (
                 <article key={template.id} className="group flex min-w-0 flex-col overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white p-1.5 text-left shadow-sm transition duration-200 hover:-translate-y-1 hover:border-violet-300 hover:shadow-xl hover:shadow-violet-950/10">
                 <button
@@ -670,6 +684,12 @@ export function ShabbatTimesSimpleClient({
                     <TemplateImage template={template} className="h-full w-full transition duration-300 group-hover:scale-[1.02]" />
                     <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-black text-slate-700 shadow-sm backdrop-blur">
                       {index === 0 ? "Offert" : "Premium"}
+                    </span>
+                    <span className={cn(
+                      "absolute bottom-2 right-2 z-10 rounded-full px-2.5 py-1 text-[10px] font-black shadow-sm backdrop-blur",
+                      withOffices ? "bg-[#421388]/95 text-white" : "bg-emerald-50/95 text-emerald-800",
+                    )}>
+                      {withOffices ? "Avec offices" : "Horaires simples"}
                     </span>
                     {locked && (
                       <div className="absolute inset-0 flex items-center justify-center bg-slate-950/48 backdrop-blur-[1px]">
@@ -766,6 +786,7 @@ export function ShabbatTimesSimpleClient({
                       <p className="mt-2 text-[11px] font-bold text-violet-800">
                         {weekDate ? `Horaires du ${new Date(`${weekDate}T12:00:00Z`).toLocaleDateString("fr-FR", { timeZone: "UTC" })} · ${form.city}` : "Recherche automatique des horaires…"}
                       </p>
+                      <p className="mt-1 text-[10px] font-semibold text-slate-500">Source : Chabad.org/ShabbatTimes</p>
                       {cityCandidates.map((city) => <Button key={city} type="button" variant="outline" className="mt-2" onClick={() => void refreshShabbatTimes(city)}>{city}</Button>)}
                     </div>
 

@@ -4,18 +4,20 @@ import { createDraftSaveQueue } from "../src/lib/newsletter/save-queue";
 import { MAX_SOURCE_BYTES, prepareNewsletterImage, resolveNewsletterBanner, uploadNewsletterBatch } from "../src/lib/newsletter/media";
 import { paginateNewsletter, fitNewsletterColumns, fitNewsletterWholeBlocks, supportCommunityName, type DocumentBlock } from "../src/lib/newsletter/document-layout";
 import { newsletterGeneratedText } from "../src/lib/newsletter/generated-text";
-import { NEWSLETTER_MEDIA_LIMIT, newsletterImagesPerRow } from "../src/lib/newsletter/limits";
-import { isNewsletterStoragePathOwnedBy, newsletterExportImageUrl, newsletterStoragePathFromPublicUrl } from "../src/lib/newsletter/media-path";
+import { limitNewsletterText, NEWSLETTER_PHOTO_LIMIT, NEWSLETTER_POSTER_LIMIT, NEWSLETTER_RAV_WORD_LIMIT, newsletterImagesPerRow } from "../src/lib/newsletter/limits";
+import { isNewsletterStoragePathOwnedBy, newsletterExportImageUrl, newsletterLogoImageUrl, newsletterStoragePathFromPublicUrl } from "../src/lib/newsletter/media-path";
 import { newsletterShabbatDate, newsletterStudyDateLabel } from "../src/lib/newsletter/shabbat-study";
 import { DEFAULT_NEWSLETTER_LABELS, parseNewsletterLabels, resolveNewsletterLabels } from "../src/lib/newsletter/labels";
 import { parseNewsletterDraft } from "../src/components/newsletter/newsletter-paper-client";
-import { NEWSLETTER_OUTPUT_BYTES, normalizeNewsletterImage } from "../src/lib/newsletter/server-image";
+import { NEWSLETTER_OUTPUT_BYTES, normalizeNewsletterImage, normalizeNewsletterLogo } from "../src/lib/newsletter/server-image";
+import { formatKiddushSponsor, NEWSLETTER_CHALLOT_ICON_URL } from "../src/lib/newsletter/kiddush";
 
 async function main() {
   const supabaseUrl = "https://project.supabase.co";
   const storedImage = `${supabaseUrl}/storage/v1/object/public/community-assets/chat-attachments/community-1/photo.jpg?v=123`;
   assert.equal(newsletterStoragePathFromPublicUrl(storedImage, supabaseUrl), "chat-attachments/community-1/photo.jpg");
   assert.equal(newsletterExportImageUrl(storedImage, supabaseUrl), "/api/newsletter/image?path=chat-attachments%2Fcommunity-1%2Fphoto.jpg");
+  assert.equal(newsletterLogoImageUrl(storedImage, supabaseUrl), "/api/newsletter/image?path=chat-attachments%2Fcommunity-1%2Fphoto.jpg&variant=logo");
   assert.equal(newsletterExportImageUrl("https://example.com/photo.jpg", supabaseUrl), "https://example.com/photo.jpg");
   assert.equal(newsletterStoragePathFromPublicUrl(`${supabaseUrl}/storage/v1/object/public/community-assets/community-1/../secret.jpg`, supabaseUrl), null);
   assert.equal(isNewsletterStoragePathOwnedBy("community-1/logo.png", "community-1"), true);
@@ -32,6 +34,9 @@ async function main() {
   assert.deepEqual(migratedDraft?.manualBirthdays, []);
   assert.equal(migratedDraft?.specificEventText, "");
   assert.deepEqual(migratedDraft?.labelOverrides, {});
+  const configurableDraft = parseNewsletterDraft({ version: 2, enabled: { shabbat: false }, generated: { ravWord: "x".repeat(900) } }, "", "");
+  assert.equal(configurableDraft?.enabled.shabbat, false, "Le RÃ©sumÃ© de la Paracha doit pouvoir Ãªtre retirÃ© dans Composer");
+  assert.equal(configurableDraft?.generated.ravWord.length, NEWSLETTER_RAV_WORD_LIMIT, "Les anciens Mots du Rav sont ramenÃ©s Ã  la limite de 700 caractÃ¨res");
   assert.equal(resolveNewsletterBanner(undefined, "https://cdn.test/logo.png"), "https://cdn.test/logo.png");
   assert.equal(resolveNewsletterBanner("", "https://cdn.test/logo.png"), "https://cdn.test/logo.png");
   assert.equal(resolveNewsletterBanner("https://cdn.test/custom.png", "https://cdn.test/logo.png"), "https://cdn.test/custom.png");
@@ -41,7 +46,10 @@ async function main() {
   assert.match(newsletterStudyDateLabel("2026-10-17"), /samedi 17 octobre 2026/);
   assert.throws(() => newsletterShabbatDate("2026-10-17"));
   assert.throws(() => newsletterShabbatDate("2026-02-31"));
-  assert.equal(NEWSLETTER_MEDIA_LIMIT, 8);
+  assert.equal(NEWSLETTER_PHOTO_LIMIT, 6);
+  assert.equal(NEWSLETTER_POSTER_LIMIT, 3);
+  assert.equal(NEWSLETTER_RAV_WORD_LIMIT, 700);
+  assert.ok(limitNewsletterText("mot ".repeat(300), NEWSLETTER_RAV_WORD_LIMIT).length <= NEWSLETTER_RAV_WORD_LIMIT);
   assert.equal(newsletterImagesPerRow(8), 4);
   assert.equal(newsletterImagesPerRow(5), 3);
   for (let count = 0; count <= 40; count++) {
@@ -51,6 +59,11 @@ async function main() {
   assert.equal(supportCommunityName("Beth Habad Vanves"), "du Beth Habad Vanves");
   assert.equal(supportCommunityName("Le Beth Habad Vanves"), "du Beth Habad Vanves");
   assert.equal(supportCommunityName("Synagogue Vanves"), "de la Synagogue Vanves");
+  assert.equal(formatKiddushSponsor("Famille Cohen"), "la famille Cohen");
+  assert.equal(formatKiddushSponsor("la famille Cohen"), "la famille Cohen");
+  assert.equal(formatKiddushSponsor("David Cohen"), "David Cohen");
+  assert.equal(formatKiddushSponsor("Communauté séfarade"), "la communauté séfarade");
+  assert.equal(NEWSLETTER_CHALLOT_ICON_URL, "/newsletter/challot-icon.png");
   const files = ["a.jpg", "broken.jpg", "b.jpg"].map((name) => new File(["image"], name));
   const uploaded: string[] = [];
   const progress: number[] = [];
@@ -76,6 +89,14 @@ async function main() {
   assert.equal(normalizedMetadata.format, "jpeg");
   assert.equal(Math.max(normalizedMetadata.width ?? 0, normalizedMetadata.height ?? 0), 2400);
   assert.ok(normalizedImage.length <= NEWSLETTER_OUTPUT_BYTES);
+  const logoSource = await sharp(Buffer.from('<svg width="200" height="120"><rect width="200" height="120" fill="white"/><circle cx="100" cy="60" r="50" fill="#123f34"/><circle cx="100" cy="60" r="18" fill="white"/></svg>')).png().toBuffer();
+  const normalizedLogo = await normalizeNewsletterLogo(logoSource);
+  const { data: logoPixels, info: logoInfo } = await sharp(normalizedLogo).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  assert.equal((await sharp(normalizedLogo).metadata()).format, "png");
+  assert.ok(logoInfo.width < 200 && logoInfo.height < 120, "Le fond blanc du logo doit être rogné.");
+  assert.equal(logoPixels[3], 0, "Le fond relié aux bords doit devenir transparent.");
+  const logoCenter = (Math.floor(logoInfo.height / 2) * logoInfo.width + Math.floor(logoInfo.width / 2)) * 4;
+  assert.equal(logoPixels[logoCenter + 3], 255, "Les détails blancs enfermés dans le logo doivent rester opaques.");
   const invalidHeic = Buffer.alloc(32);
   invalidHeic.write("ftyp", 4, "ascii");
   invalidHeic.write("heic", 8, "ascii");

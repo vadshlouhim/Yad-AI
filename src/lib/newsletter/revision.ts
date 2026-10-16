@@ -1,3 +1,5 @@
+import { NEWSLETTER_RAV_WORD_LIMIT } from "./limits";
+
 export const REVISION_FIELDS = ["title", "intro", "ravWord", "shabbatNote", "eventIntro", "parnessText", "kiddushText"] as const;
 export type RevisionField = typeof REVISION_FIELDS[number];
 export type NewsletterLayoutPreferences = {
@@ -29,7 +31,8 @@ export function validateNewsletterRevision(raw: unknown, allowed: RevisionField[
     if (!value.changes || typeof value.changes !== "object" || Array.isArray(value.changes)) throw new Error("Modifications IA invalides.");
     for (const [key, text] of Object.entries(value.changes)) {
       if (!allowed.includes(key as RevisionField) || !REVISION_FIELDS.includes(key as RevisionField)) throw new Error("L’IA a proposé une modification d’un texte protégé. Le feuillet précédent est conservé.");
-      if (typeof text !== "string" || !text.trim() || text.length > (key === "title" ? 100 : 12000)) throw new Error("Le texte proposé est vide ou trop long. Le feuillet précédent est conservé.");
+      const maxLength = key === "title" ? 100 : key === "ravWord" ? NEWSLETTER_RAV_WORD_LIMIT : 12000;
+      if (typeof text !== "string" || !text.trim() || text.length > maxLength) throw new Error("Le texte proposé est vide ou trop long. Le feuillet précédent est conservé.");
       changes[key as RevisionField] = text;
     }
   }
