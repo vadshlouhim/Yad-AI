@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { buildAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
 import { Mail } from "lucide-react";
 
 export function ForgotPasswordForm() {
@@ -21,7 +22,10 @@ export function ForgotPasswordForm() {
     const supabase = createClient();
     const { error } = await supabase.auth
       .resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: buildAuthCallbackUrl(
+          window.location.origin,
+          "/auth/reset-password",
+        ),
       })
       .catch(() => ({
         error: new Error("Auth service unreachable"),

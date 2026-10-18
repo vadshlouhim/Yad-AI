@@ -7,6 +7,8 @@ import { SettingsGeneralClient } from "@/components/settings/settings-general-cl
 import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
 import { Settings2, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 
 export const metadata: Metadata = { title: "Paramètres - EasyCom IA" };
 
@@ -25,6 +27,7 @@ export default async function SettingsPage({
   searchParams: Promise<{ section?: string | string[] }>;
 }) {
   const { section } = await searchParams;
+  const t = await getTranslations("languageSwitcher");
   const initialSection = getSettingsSection(section);
   const { profile } = await requireAuth();
   if (!profile.communityId) {
@@ -71,6 +74,14 @@ export default async function SettingsPage({
             <h1 className="mt-1 text-3xl font-black tracking-tight">Paramètres</h1>
           </div>
         </div>
+      </section>
+
+      <section className="flex flex-col gap-4 rounded-3xl border border-amber-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div>
+          <h2 className="text-sm font-black text-slate-950">{t("settingsTitle")}</h2>
+          <p className="mt-1 text-sm text-slate-500">{t("settingsDescription")}</p>
+        </div>
+        <LanguageSwitcher className="shrink-0 self-start sm:self-auto" />
       </section>
 
       <SettingsGeneralClient

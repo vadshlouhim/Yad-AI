@@ -50,6 +50,11 @@ export function LoginForm() {
       return;
     }
 
+    await fetch("/api/auth/sync-locale", {
+      method: "POST",
+      cache: "no-store",
+    }).catch(() => null);
+
     router.push(callbackUrl);
     router.refresh();
   }

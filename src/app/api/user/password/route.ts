@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { syncLocaleOnLogin } from "@/lib/i18n/sync-locale-on-login";
 import { createClient } from "@/lib/supabase/server";
 
 export async function PATCH(request: Request) {
@@ -44,9 +46,21 @@ export async function PATCH(request: Request) {
     );
   }
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     success: true,
     message:
       "Votre mot de passe a été enregistré. Vous pouvez désormais vous connecter avec votre email et ce mot de passe.",
   });
+
+  try {
+    await syncLocaleOnLogin({
+      supabase,
+      requestCookies: await cookies(),
+      responseCookies: response.cookies,
+    });
+  } catch (localeError) {
+    console.error("[Auth] Synchronisation de langue impossible:", localeError);
+  }
+
+  return response;
 }

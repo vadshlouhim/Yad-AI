@@ -1,5 +1,8 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -227,6 +230,7 @@ export function MobileDashboardHome({
   unreadNotifications,
   basePath = "/dashboard",
 }: MobileDashboardHomeProps) {
+  const t = useTranslations("dashboard");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -470,9 +474,12 @@ export function MobileDashboardHome({
           </div>
         </div>
 
-        <h1 className="relative mt-2.5 text-[clamp(1.7rem,7.8vw,2.3rem)] font-black leading-none tracking-[-0.045em]">
-          Bienvenue, {firstName}
-        </h1>
+        <div className="relative mt-2.5 flex items-end justify-between gap-3">
+          <h1 className="min-w-0 text-[clamp(1.7rem,7.8vw,2.3rem)] font-black leading-none tracking-[-0.045em]">
+            {t("welcome", { name: firstName })}
+          </h1>
+          <LanguageSwitcher compact className="shrink-0" />
+        </div>
 
         <div className="relative mt-4">
           <div className="flex items-center justify-between gap-3">

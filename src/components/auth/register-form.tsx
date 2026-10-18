@@ -85,10 +85,17 @@ export function RegisterForm() {
       return;
     }
 
-    if (data?.session && toolDestination) {
-      router.replace(registrationPath);
-      router.refresh();
-      return;
+    if (data?.session) {
+      await fetch("/api/auth/sync-locale", {
+        method: "POST",
+        cache: "no-store",
+      }).catch(() => null);
+
+      if (toolDestination) {
+        router.replace(registrationPath);
+        router.refresh();
+        return;
+      }
     }
     setSuccess(true);
     setLoading(false);

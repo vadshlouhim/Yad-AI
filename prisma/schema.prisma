@@ -22,6 +22,7 @@ model User {
   role                  UserRole @default(ADMIN)
   communityId           String?
   mobileDashboardLayout Json?
+  locale                String   @default("fr")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

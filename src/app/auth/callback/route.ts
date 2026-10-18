@@ -8,6 +8,7 @@ import {
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { cookies } from "next/headers";
+import { syncLocaleOnLogin } from "@/lib/i18n/sync-locale-on-login";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -84,6 +85,16 @@ export async function GET(request: NextRequest) {
       authCookies.forEach(({ name, value, options }) => {
         redirectResponse.cookies.set(name, value, options);
       });
+
+      try {
+        await syncLocaleOnLogin({
+          supabase,
+          requestCookies: cookieStore,
+          responseCookies: redirectResponse.cookies,
+        });
+      } catch (localeError) {
+        console.error("[Auth] Synchronisation de langue impossible:", localeError);
+      }
 
       return redirectResponse;
     }

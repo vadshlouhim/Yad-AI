@@ -1,8 +1,19 @@
 import type { Metadata, Viewport } from "next";
+import { Heebo } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
+import { LocaleCookieSync } from "@/components/i18n/locale-cookie-sync";
 import { DisableSpellcheck } from "@/components/ui/disable-spellcheck";
+import { getLocaleDirection, type Locale } from "@/i18n/config";
 import { absoluteUrl, SITE_URL } from "@/lib/site-url";
 import "./globals.css";
 import "@/components/presentation/home-tool-colors.css";
+
+const heebo = Heebo({
+  subsets: ["hebrew"],
+  variable: "--font-hebrew",
+  display: "swap",
+});
 
 const SITE_NAME = "EasyCom IA";
 const SITE_TITLE = "EasyCom IA - Communication communautaire assistée par IA";
@@ -78,22 +89,32 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = (await getLocale()) as Locale;
+  const messages = await getMessages();
+
   return (
-    <html lang="fr" className="h-full antialiased">
+    <html
+      lang={locale}
+      dir={getLocaleDirection(locale)}
+      className={`h-full antialiased ${heebo.variable}`}
+    >
       <body className="min-h-full bg-slate-50" spellCheck={false}>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(STRUCTURED_DATA).replace(/</g, "\\u003c"),
-          }}
-        />
-        <DisableSpellcheck />
-        {children}
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <LocaleCookieSync locale={locale} />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(STRUCTURED_DATA).replace(/</g, "\\u003c"),
+            }}
+          />
+          <DisableSpellcheck />
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );

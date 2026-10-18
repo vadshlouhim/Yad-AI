@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import {
   ArrowLeft, ArrowRight, BookOpen, CalendarClock, Check, FileText, Image as ImageIcon, Menu,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import { PUBLIC_TOOLS, type PublicTool } from "@/lib/public-tools";
 import { ToolIcon } from "@/components/presentation/tool-visual";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { HOME_AGENT_IMAGES, MAIN_VIDEO_URL, homeVideoSource } from "./home-media";
 import "./easycom-home.css";
 
@@ -33,11 +35,11 @@ const TOOLS = [
 ] as const;
 type HomeTool = (typeof TOOLS)[number];
 const NAV = [
-  { href: "#fonctionnalites", label: "Fonctionnalités" },
-  { href: "/fonctionnalites-a-venir", label: "À venir", nextLink: true },
-  { href: "#demo", label: "Démo" },
-  { href: "#tarifs", label: "Tarifs" },
-  { href: "#faq", label: "FAQ", desktop: true },
+  { href: "#fonctionnalites", label: "features" },
+  { href: "/fonctionnalites-a-venir", label: "comingSoon", nextLink: true },
+  { href: "#demo", label: "demo" },
+  { href: "#tarifs", label: "pricingShort" },
+  { href: "#faq", label: "faq", desktop: true },
 ];
 const LEGAL = [
   { href: "/privacy", label: "Politique de confidentialité" },
@@ -47,14 +49,16 @@ const LEGAL = [
 ];
 
 function Brand() {
-  return <Link href="/" className="home-brand" aria-label="EasyCom AI — Accueil">
+  const t = useTranslations("nav");
+  return <Link href="/" className="home-brand" aria-label={t("brandHome")}>
     <Image src={`${MEDIA}easycom-brand-mark.webp`} width={40} height={30} alt="" />
     <span>EasyCom AI</span>
   </Link>;
 }
 function TrialLink({ yellow = false }: { yellow?: boolean }) {
+  const t = useTranslations("nav");
   return <Link href="/auth/register" prefetch={false} className={`home-button home-button-primary${yellow ? " home-button-yellow" : ""}`}>
-    Essayer gratuitement <ArrowRight size={20} aria-hidden="true" />
+    {t("tryFree")} <ArrowRight className="rtl-mirror" size={20} aria-hidden="true" />
   </Link>;
 }
 function HomeToolIcon({ id }: { id: string }) {
@@ -70,6 +74,7 @@ function DemoLink() {
 }
 function HomeHeader() {
   const [open, setOpen] = useState(false);
+  const t = useTranslations("nav");
   const toggle = useRef<HTMLButtonElement>(null);
   const mobileMenu = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -91,19 +96,21 @@ function HomeHeader() {
   return <header className="home-header">
     <div className="home-container home-header-inner">
       <Brand />
-      <nav className="home-desktop-nav" aria-label="Navigation principale">{NAV.map(link => link.nextLink ? <Link key={link.href} href={link.href}>{link.label}</Link> : <a key={link.href} href={link.href}>{link.label}</a>)}</nav>
+      <nav className="home-desktop-nav" aria-label={t("primaryLabel")}>{NAV.map(link => link.nextLink ? <Link key={link.href} href={link.href}>{t(link.label)}</Link> : <a key={link.href} href={link.href}>{t(link.label)}</a>)}</nav>
       <div className="home-header-actions">
-        <Link href="/auth/login" prefetch={false} className="home-login">Connexion</Link>
-        <Link href="/auth/register" prefetch={false} className="home-header-trial">Essayer gratuitement</Link>
-        <button ref={toggle} type="button" className="home-menu-toggle" aria-label={open ? "Fermer le menu" : "Ouvrir le menu"} aria-expanded={open} aria-controls="home-mobile-menu" onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button>
+        <span className="home-language-desktop"><LanguageSwitcher compact /></span>
+        <Link href="/auth/login" prefetch={false} className="home-login">{t("loginShort")}</Link>
+        <Link href="/auth/register" prefetch={false} className="home-header-trial">{t("tryFree")}</Link>
+        <button ref={toggle} type="button" className="home-menu-toggle" aria-label={open ? t("closeMenu") : t("openMenu")} aria-expanded={open} aria-controls="home-mobile-menu" onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button>
       </div>
     </div>
     {open && <>
-      <button type="button" className="home-menu-backdrop" aria-label="Fermer le menu" onClick={() => { setOpen(false); toggle.current?.focus(); }} />
-      <nav ref={mobileMenu} id="home-mobile-menu" className="home-mobile-menu" aria-label="Navigation mobile">
-        {NAV.filter(link => !link.desktop).map(link => link.nextLink ? <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>{link.label}<ArrowRight size={16} /></Link> : <a key={link.href} href={link.href} onClick={() => setOpen(false)}>{link.label}<ArrowRight size={16} /></a>)}
-        <Link href="/contact" onClick={() => setOpen(false)}>Contact<ArrowRight size={16} /></Link>
-        <Link href="/auth/login" prefetch={false} onClick={() => setOpen(false)}>Connexion<ArrowRight size={16} /></Link>
+      <button type="button" className="home-menu-backdrop" aria-label={t("closeMenu")} onClick={() => { setOpen(false); toggle.current?.focus(); }} />
+      <nav ref={mobileMenu} id="home-mobile-menu" className="home-mobile-menu" aria-label={t("mobileLabel")}>
+        <div className="home-language-mobile"><LanguageSwitcher /></div>
+        {NAV.filter(link => !link.desktop).map(link => link.nextLink ? <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>{t(link.label)}<ArrowRight className="rtl-mirror" size={16} /></Link> : <a key={link.href} href={link.href} onClick={() => setOpen(false)}>{t(link.label)}<ArrowRight className="rtl-mirror" size={16} /></a>)}
+        <Link href="/contact" onClick={() => setOpen(false)}>{t("contact")}<ArrowRight className="rtl-mirror" size={16} /></Link>
+        <Link href="/auth/login" prefetch={false} onClick={() => setOpen(false)}>{t("loginShort")}<ArrowRight className="rtl-mirror" size={16} /></Link>
       </nav>
     </>}
   </header>;

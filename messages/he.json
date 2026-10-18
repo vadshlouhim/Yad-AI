@@ -1,0 +1,43 @@
+{
+  "common": { "comingSoon": "בקרוב" },
+  "nav": {
+    "home": "דף הבית",
+    "features": "תכונות",
+    "tools": "כלים",
+    "comingSoon": "בקרוב",
+    "method": "השיטה שלנו",
+    "posters": "מודעות",
+    "demo": "הדגמה",
+    "blog": "בלוג",
+    "pricing": "תמחור",
+    "pricingShort": "מחירים",
+    "faq": "שאלות נפוצות",
+    "contact": "יצירת קשר",
+    "login": "התחברות",
+    "loginShort": "התחברות",
+    "tryFree": "נסו בחינם",
+    "try": "נסו",
+    "brandHome": "EasyCom IA, דף הבית",
+    "primaryLabel": "ניווט ראשי",
+    "mobileLabel": "ניווט בנייד",
+    "menuLabel": "תפריט ניווט",
+    "openMenu": "פתיחת התפריט",
+    "closeMenu": "סגירת התפריט"
+  },
+  "languageSwitcher": {
+    "label": "בחירת שפת הממשק",
+    "french": "צרפתית",
+    "hebrew": "עברית",
+    "english": "אנגלית",
+    "selectFrench": "הצגת הממשק בצרפתית",
+    "selectHebrew": "הצגת הממשק בעברית",
+    "englishUnavailable": "אנגלית — בקרוב",
+    "settingsTitle": "שפת הממשק",
+    "settingsDescription": "בחרו את השפה שבה תנווטו ב־EasyCom IA."
+  },
+  "dashboard": {
+    "welcome": "ברוכים הבאים, {name}",
+    "mainMenu": "תפריט ראשי",
+    "smartCrm": "CRM חכם"
+  }
+}

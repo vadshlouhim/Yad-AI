@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Suspense } from "react";
+import { useTranslations } from "next-intl";
 import type { ComponentType, SVGProps } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -27,6 +28,7 @@ import {
 import { getCommunityProfileLabel } from "@/lib/community/profile-labels";
 import { MobileDashboardHome } from "@/components/dashboard/mobile-dashboard-home";
 import { ComingSoonBanner } from "@/components/coming-soon/coming-soon-banner";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 
 interface Props {
   basePath?: "/dashboard" | "/demo";
@@ -132,6 +134,7 @@ export function DashboardClient({
   stats,
   notifications,
 }: Props) {
+  const t = useTranslations("dashboard");
   const resolveHref = (href: string) => href.startsWith("/dashboard") ? href.replace("/dashboard", basePath) : href;
   const firstName = userName.split(" ")[0] || "vous";
   const structureLabel = getCommunityProfileLabel(community.communityType, "plural");
@@ -168,19 +171,22 @@ export function DashboardClient({
               <span className="flex size-11 items-center justify-center rounded-2xl bg-amber-100 text-2xl shadow-sm shadow-amber-100">
                 👋
               </span>
-              <span>Bienvenue, {firstName}</span>
+              <span>{t("welcome", { name: firstName })}</span>
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
               Votre Assistant IA concu specialement pour les {structureLabel}
             </p>
           </div>
 
-          <Button asChild className="h-12 rounded-2xl bg-blue-950 px-5 text-white shadow-sm shadow-blue-950/20 hover:bg-blue-900">
-            <Link href={resolveHref("/dashboard/assistant")}>
-              <Zap className="size-4" />
-              Ouvrir l&apos;assistant IA
-            </Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <LanguageSwitcher />
+            <Button asChild className="h-12 rounded-2xl bg-blue-950 px-5 text-white shadow-sm shadow-blue-950/20 hover:bg-blue-900">
+              <Link href={resolveHref("/dashboard/assistant")}>
+                <Zap className="size-4" />
+                Ouvrir l&apos;assistant IA
+              </Link>
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -284,7 +290,7 @@ export function DashboardClient({
             <Waves className="size-4" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-bold text-slate-950">Menu principal</span>
+            <span className="block text-sm font-bold text-slate-950">{t("mainMenu")}</span>
             <span className="mt-1 block text-xs leading-5 text-slate-500">Ouvrir la navigation complete du dashboard.</span>
           </span>
           <ArrowRight className="mt-1 size-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-500" />

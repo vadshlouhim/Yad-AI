@@ -928,6 +928,7 @@ export type Database = {
           createdAt: string
           email: string
           id: string
+          locale: string
           name: string | null
           mobileDashboardLayout: Json | null
           role: Database["public"]["Enums"]["UserRole"]
@@ -939,6 +940,7 @@ export type Database = {
           createdAt?: string
           email: string
           id: string
+          locale?: string
           name?: string | null
           mobileDashboardLayout?: Json | null
           role?: Database["public"]["Enums"]["UserRole"]
@@ -950,6 +952,7 @@ export type Database = {
           createdAt?: string
           email?: string
           id?: string
+          locale?: string
           name?: string | null
           mobileDashboardLayout?: Json | null
           role?: Database["public"]["Enums"]["UserRole"]
@@ -1202,7 +1205,12 @@ export type Database = {
       }
     }
     Views: { [_ in never]: never }
-    Functions: { [_ in never]: never }
+    Functions: {
+      set_my_locale: {
+        Args: { new_locale: string }
+        Returns: undefined
+      }
+    }
     Enums: {
       AIMemoryType: "EDITORIAL_PREFERENCE" | "EVENT_PATTERN" | "CONTENT_STYLE" | "CHANNEL_PREFERENCE" | "VOCABULARY" | "RECURRING_CONTENT" | "USER_FEEDBACK"
       AutomationRunStatus: "RUNNING" | "SUCCESS" | "PARTIAL_SUCCESS" | "FAILED" | "SKIPPED"

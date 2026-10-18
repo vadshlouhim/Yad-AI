@@ -274,3 +274,11 @@ canvas {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+html[lang="he"] body {
+  font-family: var(--font-hebrew), Arial, sans-serif;
+}
+
+[dir="rtl"] .rtl-mirror {
+  transform: scaleX(-1);
+}

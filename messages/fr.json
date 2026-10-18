@@ -1,0 +1,43 @@
+{
+  "common": { "comingSoon": "Bientôt disponible" },
+  "nav": {
+    "home": "Accueil",
+    "features": "Fonctionnalités",
+    "tools": "Outils",
+    "comingSoon": "À venir",
+    "method": "Notre méthode",
+    "posters": "Affiches",
+    "demo": "Démo",
+    "blog": "Blog",
+    "pricing": "Tarification",
+    "pricingShort": "Tarifs",
+    "faq": "FAQ",
+    "contact": "Contact",
+    "login": "Se connecter",
+    "loginShort": "Connexion",
+    "tryFree": "Essayer gratuitement",
+    "try": "Essayer",
+    "brandHome": "EasyCom IA, accueil",
+    "primaryLabel": "Navigation principale",
+    "mobileLabel": "Navigation mobile",
+    "menuLabel": "Menu de navigation",
+    "openMenu": "Ouvrir le menu",
+    "closeMenu": "Fermer le menu"
+  },
+  "languageSwitcher": {
+    "label": "Choisir la langue de l’interface",
+    "french": "Français",
+    "hebrew": "Hébreu",
+    "english": "Anglais",
+    "selectFrench": "Afficher l’interface en français",
+    "selectHebrew": "Afficher l’interface en hébreu",
+    "englishUnavailable": "Anglais — bientôt disponible",
+    "settingsTitle": "Langue de l’interface",
+    "settingsDescription": "Choisissez la langue utilisée pour naviguer dans EasyCom IA."
+  },
+  "dashboard": {
+    "welcome": "Bienvenue, {name}",
+    "mainMenu": "Menu principal",
+    "smartCrm": "CRM intelligent"
+  }
+}
