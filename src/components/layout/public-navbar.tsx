@@ -72,7 +72,7 @@ export function PublicNavbar({ platformStyle = false }: { platformStyle?: boolea
             />
             <div className="min-w-0 leading-tight">
               <p className="truncate text-sm font-bold tracking-tight text-slate-950">EasyCom IA</p>
-              <p className="hidden truncate text-xs font-medium text-slate-500 sm:block">Communication communautaire</p>
+              <p className="hidden truncate text-xs font-medium text-slate-500 sm:block">{t("tagline")}</p>
             </div>
           </Link>
 

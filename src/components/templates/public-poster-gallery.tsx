@@ -10,12 +10,14 @@ import {
   type PosterGalleryTemplate,
 } from "./poster-gallery";
 import { CanvaLogo } from "./template-actions";
+import { useLocale } from "next-intl";
 
 interface Props {
   templates: PosterGalleryTemplate[];
 }
 
 export function PublicPosterGallery({ templates }: Props) {
+  const he = useLocale() === "he";
   const [selectedTemplate, setSelectedTemplate] = useState<PosterGalleryTemplate | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -84,10 +86,13 @@ export function PublicPosterGallery({ templates }: Props) {
           setSelectedTemplate(template);
         }}
         getStatus={(template) => ({
-          label: template.supportsAi && template.hasCanva ? "Choisir IA ou Canva" : template.hasCanva ? "Ouvrir dans Canva" : "Voir et personnaliser",
+          label: he ? (template.supportsAi && template.hasCanva ? "בחירה בין AI ל־Canva" : template.hasCanva ? "פתיחה ב־Canva" : "צפייה והתאמה") : (template.supportsAi && template.hasCanva ? "Choisir IA ou Canva" : template.hasCanva ? "Ouvrir dans Canva" : "Voir et personnaliser"),
           className: template.hasCanva && !template.supportsAi ? "text-blue-700" : "text-[#d92d7c]",
         })}
-        gallerySubtitle="Parcourez toutes nos affiches. Ouvrez un modèle pour le voir en grand."
+        galleryTitle={he ? "מאגר מודעות" : undefined}
+        gallerySubtitle={he ? "עברו על כל המודעות. פתחו תבנית כדי לצפות בה בגדול." : "Parcourez toutes nos affiches. Ouvrez un modèle pour le voir en grand."}
+        emptyTitle={he ? "לא נמצאו מודעות" : undefined}
+        emptyDescription={he ? "שנו את החיפוש או בחרו קטגוריה אחרת." : undefined}
       />
 
       {selectedTemplate ? (
@@ -109,9 +114,9 @@ export function PublicPosterGallery({ templates }: Props) {
               ref={closeButtonRef}
               type="button"
               onClick={closePreview}
-              className="absolute right-3 top-3 z-20 inline-flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-700 shadow-lg transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
-              aria-label="Fermer l'aperçu"
-              title="Fermer"
+              className="absolute end-3 top-3 z-20 inline-flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-700 shadow-lg transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
+              aria-label={he ? "סגירת התצוגה" : "Fermer l’aperçu"}
+              title={he ? "סגירה" : "Fermer"}
             >
               <X className="size-5" aria-hidden="true" />
             </button>
@@ -124,13 +129,13 @@ export function PublicPosterGallery({ templates }: Props) {
                   className="max-h-[64dvh] w-full object-contain lg:max-h-[calc(100dvh-6rem)]"
                 />
               ) : (
-                <p className="text-sm font-semibold text-slate-500">Aucun aperçu disponible.</p>
+                <p className="text-sm font-semibold text-slate-500">{he ? "אין תצוגה מקדימה." : "Aucun aperçu disponible."}</p>
               )}
             </div>
 
-            <div className="flex flex-col justify-center border-t border-slate-200 bg-white p-5 sm:p-8 lg:border-l lg:border-t-0">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-violet-700">Affiche sélectionnée</p>
-              <h2 id="public-poster-title" className="mt-2 pr-10 text-2xl font-black text-slate-950 sm:text-3xl">
+            <div className="flex flex-col justify-center border-t border-slate-200 bg-white p-5 sm:p-8 lg:border-s lg:border-t-0">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-violet-700">{he ? "מודעה שנבחרה" : "Affiche sélectionnée"}</p>
+              <h2 id="public-poster-title" className="mt-2 pe-10 text-2xl font-black text-slate-950 sm:text-3xl">
                 {selectedTemplate.name}
               </h2>
               {selectedTemplate.description ? (
@@ -138,8 +143,8 @@ export function PublicPosterGallery({ templates }: Props) {
               ) : null}
               <p id="public-poster-description" className="mt-6 text-base font-semibold leading-7 text-slate-700">
                 {selectedTemplate.supportsAi && selectedTemplate.hasCanva
-                  ? "Cette affiche est disponible avec EasyCom IA et dans Canva. Choisissez l’outil qui vous convient."
-                  : "Connectez-vous ou créez un compte EasyCom IA pour personnaliser automatiquement cette affiche."}
+                  ? (he ? "המודעה זמינה ב־EasyCom IA וב־Canva. בחרו את הכלי שמתאים לכם." : "Cette affiche est disponible avec EasyCom IA et dans Canva. Choisissez l’outil qui vous convient.")
+                  : (he ? "התחברו או צרו חשבון EasyCom IA כדי להתאים את המודעה אוטומטית." : "Connectez-vous ou créez un compte EasyCom IA pour personnaliser automatiquement cette affiche.")}
               </p>
 
               <div className="mt-7 grid gap-3">
@@ -149,14 +154,14 @@ export function PublicPosterGallery({ templates }: Props) {
                     className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#421388] px-4 text-sm font-black text-white transition hover:bg-[#35106d] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
                   >
                     <LogIn className="size-4" aria-hidden="true" />
-                    Personnaliser avec l’IA
+                    {he ? "התאמה בעזרת AI" : "Personnaliser avec l’IA"}
                   </Link>
                   <Link
                     href={`/auth/register?callbackUrl=${encodeURIComponent(callbackUrl)}`}
                     className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 text-sm font-black text-violet-800 transition hover:bg-violet-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-200"
                   >
                     <UserPlus className="size-4" aria-hidden="true" />
-                    Créer un compte
+                    {he ? "יצירת חשבון" : "Créer un compte"}
                   </Link>
                 </> : null}
                 {selectedTemplate.hasCanva ? (
@@ -167,7 +172,7 @@ export function PublicPosterGallery({ templates }: Props) {
                     className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#1778f2] px-4 text-sm font-black text-white transition hover:bg-[#1268d7] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
                   >
                     <CanvaLogo className="h-5 brightness-0 invert" />
-                    Ouvrir dans Canva
+                    {he ? "פתיחה ב־Canva" : "Ouvrir dans Canva"}
                   </a>
                 ) : null}
               </div>

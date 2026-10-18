@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicNavbar } from "@/components/layout/public-navbar";
 import { ArrowRight, CheckCircle2, Headphones, Loader2, Mail, MapPin, MessageSquare, Send } from "lucide-react";
+import { useLocale } from "next-intl";
 
 const CONTACT_POINTS = [
   { icon: Mail, label: "Email", value: "Remplissez le formulaire", color: "text-blue-700", bg: "bg-blue-50" },
@@ -13,6 +14,21 @@ const CONTACT_POINTS = [
 ];
 
 export default function ContactPage() {
+  const he = useLocale() === "he";
+  const contactPoints = he ? [
+    { ...CONTACT_POINTS[0], value: "מלאו את הטופס" },
+    { ...CONTACT_POINTS[1], label: "תמיכה", value: "זמינה דרך היישום" },
+    { ...CONTACT_POINTS[2], label: "משרדים", value: "פריז, צרפת" },
+  ] : CONTACT_POINTS;
+  const faqs = he ? [
+    { q: "מה זמן המענה שלכם?", a: "בדרך כלל אנחנו עונים בתוך פחות מ־24 שעות עבודה." },
+    { q: "האם אתם מציעים הדגמות חיות?", a: "כן. ציינו זאת בהודעה ונקבע זמן מתאים." },
+    { q: "היכן אתם נמצאים?", a: "הצוות שלנו נמצא בפריז ומלווה גם מרחוק." },
+  ] : [
+    { q: "Quels sont vos délais de réponse ?", a: "Nous répondons généralement en moins de 24h ouvrées." },
+    { q: "Proposez-vous des démos en direct ?", a: "Oui. Indiquez-le dans votre message et nous conviendrons d’un créneau." },
+    { q: "Où êtes-vous basés ?", a: "Notre équipe est basée à Paris, avec un accompagnement à distance." },
+  ];
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [error, setError] = useState("");
   const [form, setForm] = useState({
@@ -40,14 +56,14 @@ export default function ContactPage() {
       });
       const payload = await response.json();
       if (!response.ok && response.status !== 202) {
-        throw new Error(payload.error ?? "Impossible d'envoyer votre message.");
+        throw new Error(payload.error ?? (he ? "לא ניתן לשלוח את ההודעה." : "Impossible d'envoyer votre message."));
       }
       setStatus("success");
       setForm({ name: "", email: "", phone: "", organization: "", subject: "", message: "" });
       setTimeout(() => setStatus("idle"), 3000);
     } catch (submitError) {
       setStatus("error");
-      setError(submitError instanceof Error ? submitError.message : "Impossible d'envoyer votre message.");
+      setError(submitError instanceof Error ? submitError.message : (he ? "לא ניתן לשלוח את ההודעה." : "Impossible d'envoyer votre message."));
     }
   };
 
@@ -59,18 +75,18 @@ export default function ContactPage() {
         <div className="mx-auto max-w-4xl">
           <p className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-blue-700">
             <Headphones className="size-4" />
-            Contact EasyCom IA
+            {he ? "יצירת קשר עם EasyCom IA" : "Contact EasyCom IA"}
           </p>
           <h1 className="mx-auto mt-5 max-w-4xl text-[clamp(2.35rem,7vw,4.5rem)] font-black leading-[1.02] tracking-tight">
-            Parlons de votre communication
+            {he ? "בואו נדבר על התקשורת שלכם" : "Parlons de votre communication"}
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-            Une question, une démo, un besoin de configuration ? Envoyez-nous un message et on vous répond rapidement.
+            {he ? "שאלה, הדגמה או עזרה בהגדרה? שלחו לנו הודעה ונחזור אליכם במהירות." : "Une question, une démo, un besoin de configuration ? Envoyez-nous un message et on vous répond rapidement."}
           </p>
         </div>
 
         <div className="mx-auto mt-10 grid max-w-5xl gap-4 md:grid-cols-3">
-          {CONTACT_POINTS.map((item) => (
+          {contactPoints.map((item) => (
             <article key={item.label} className="rounded-3xl border border-slate-200 bg-white p-5 text-center shadow-sm">
               <div className={`mx-auto flex size-12 items-center justify-center rounded-2xl ${item.bg}`}>
                 <item.icon className={`size-6 ${item.color}`} />
@@ -89,28 +105,28 @@ export default function ContactPage() {
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
                 <CheckCircle2 className="size-8" />
               </div>
-              <h2 className="text-2xl font-black text-slate-950">Message envoyé !</h2>
-              <p className="text-slate-600">Merci de nous avoir contactés. Notre équipe vous répondra sous 24h.</p>
+              <h2 className="text-2xl font-black text-slate-950">{he ? "ההודעה נשלחה!" : "Message envoyé !"}</h2>
+              <p className="text-slate-600">{he ? "תודה שפניתם אלינו. הצוות יחזור אליכם בתוך 24 שעות." : "Merci de nous avoir contactés. Notre équipe vous répondra sous 24h."}</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-6 sm:grid-cols-2">
-                <Field label="Nom" value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} required placeholder="Jean Dupont" />
+                <Field label={he ? "שם" : "Nom"} value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} required placeholder={he ? "ישראל ישראלי" : "Jean Dupont"} />
                 <Field label="Email" type="email" value={form.email} onChange={(value) => setForm((current) => ({ ...current, email: value }))} required placeholder="jean@exemple.com" />
               </div>
               <div className="grid gap-6 sm:grid-cols-2">
-                <Field label="Téléphone" type="tel" value={form.phone} onChange={(value) => setForm((current) => ({ ...current, phone: value }))} placeholder="+33 6 12 34 56 78" />
-                <Field label="Organisation" value={form.organization} onChange={(value) => setForm((current) => ({ ...current, organization: value }))} placeholder="Association, synagogue, commerce..." />
+                <Field label={he ? "טלפון" : "Téléphone"} type="tel" value={form.phone} onChange={(value) => setForm((current) => ({ ...current, phone: value }))} placeholder="+33 6 12 34 56 78" />
+                <Field label={he ? "ארגון" : "Organisation"} value={form.organization} onChange={(value) => setForm((current) => ({ ...current, organization: value }))} placeholder={he ? "עמותה, בית כנסת, עסק..." : "Association, synagogue, commerce..."} />
               </div>
-              <Field label="Sujet" value={form.subject} onChange={(value) => setForm((current) => ({ ...current, subject: value }))} required placeholder="Comment pouvons-nous vous aider ?" />
-              <div className="space-y-2 text-left">
-                <label className="text-sm font-black text-slate-700">Message</label>
+              <Field label={he ? "נושא" : "Sujet"} value={form.subject} onChange={(value) => setForm((current) => ({ ...current, subject: value }))} required placeholder={he ? "איך נוכל לעזור?" : "Comment pouvons-nous vous aider ?"} />
+              <div className="space-y-2 text-start">
+                <label className="text-sm font-black text-slate-700">{he ? "הודעה" : "Message"}</label>
                 <textarea
                   required
                   rows={5}
                   value={form.message}
                   onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
-                  placeholder="Votre message ici..."
+                  placeholder={he ? "כתבו כאן את ההודעה..." : "Votre message ici..."}
                   className="w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
                 />
               </div>
@@ -126,7 +142,7 @@ export default function ContactPage() {
                 {status === "loading" ? (
                   <Loader2 className="size-5 animate-spin" />
                 ) : (
-                  <>Envoyer le message <Send className="ml-2 size-5" /></>
+                  <>{he ? "שליחת ההודעה" : "Envoyer le message"} <Send className="ms-2 size-5" /></>
                 )}
               </button>
             </form>
@@ -136,14 +152,10 @@ export default function ContactPage() {
 
       <section className="px-4 py-16 text-center sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
-          <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-700">FAQ Contact & Support</p>
-          <h2 className="mt-3 text-3xl font-black">Avant de nous écrire</h2>
+          <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-700">{he ? "שאלות על קשר ותמיכה" : "FAQ Contact & Support"}</p>
+          <h2 className="mt-3 text-3xl font-black">{he ? "לפני שכותבים לנו" : "Avant de nous écrire"}</h2>
           <div className="mt-10 space-y-4">
-            {[
-              { q: "Quels sont vos délais de réponse ?", a: "Nous répondons généralement en moins de 24h ouvrées." },
-              { q: "Proposez-vous des démos en direct ?", a: "Oui. Indiquez-le dans votre message et nous conviendrons d’un créneau." },
-              { q: "Où êtes-vous basés ?", a: "Notre équipe est basée à Paris, avec un accompagnement à distance." },
-            ].map((faq) => (
+            {faqs.map((faq) => (
               <article key={faq.q} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h3 className="font-black text-slate-950">{faq.q}</h3>
                 <p className="mt-2 text-sm leading-7 text-slate-600">{faq.a}</p>
@@ -151,7 +163,7 @@ export default function ContactPage() {
             ))}
           </div>
           <Link href="/tarification" className="mt-8 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-6 py-3 text-sm font-black text-blue-900 transition hover:bg-blue-100">
-            Voir les offres <ArrowRight className="size-4" />
+            {he ? "צפייה בהצעות" : "Voir les offres"} <ArrowRight className="rtl-mirror size-4" />
           </Link>
         </div>
       </section>
@@ -177,7 +189,7 @@ function Field({
   required?: boolean;
 }) {
   return (
-    <div className="space-y-2 text-left">
+    <div className="space-y-2 text-start">
       <label className="text-sm font-black text-slate-700">{label}</label>
       <input
         required={required}

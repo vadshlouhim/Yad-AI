@@ -9,6 +9,7 @@ import {
   Image as ImageIcon, Loader2, Upload,
 } from "lucide-react";
 import { isSupportedCountry, SUPPORTED_COUNTRIES } from "@/lib/community/countries";
+import { useLocale } from "next-intl";
 
 interface Props {
   data: OnboardingData;
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export function StepIdentity({ data, updateData, onNext, simulationMode = false }: Props) {
+  const he = useLocale() === "he";
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoError, setLogoError] = useState<string | null>(null);
   const [continuing, setContinuing] = useState(false);
@@ -33,7 +35,7 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
     try {
       await onNext();
     } catch (error) {
-      setContinueError(error instanceof Error ? error.message : "Impossible d'enregistrer vos informations, réessayez.");
+      setContinueError(error instanceof Error ? error.message : (he ? "לא ניתן לשמור את הפרטים. נסו שוב." : "Impossible d'enregistrer vos informations, réessayez."));
     } finally {
       setContinuing(false);
     }
@@ -59,13 +61,13 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
       const result = await response.json();
 
       if (!response.ok) {
-        setLogoError(result.error ?? "Impossible de téléverser le logo.");
+        setLogoError(result.error ?? (he ? "לא ניתן להעלות את הלוגו." : "Impossible de téléverser le logo."));
         return;
       }
 
       updateData({ logoUrl: result.logoUrl });
     } catch {
-      setLogoError("Impossible de téléverser le logo.");
+      setLogoError(he ? "לא ניתן להעלות את הלוגו." : "Impossible de téléverser le logo.");
     } finally {
       setLogoUploading(false);
     }
@@ -77,9 +79,9 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-100 to-sky-100 flex items-center justify-center mb-3">
           <Building2 className="size-6 text-blue-600" />
         </div>
-        <CardTitle className="text-xl">Identité de votre structure</CardTitle>
+        <CardTitle className="text-xl">{he ? "זהות הארגון שלכם" : "Identité de votre structure"}</CardTitle>
         <CardDescription>
-          Ces informations permettent à EasyCom IA de comprendre votre identité et de personnaliser vos contenus automatiquement.
+          {he ? "הפרטים האלה עוזרים ל־EasyCom IA להכיר את הארגון ולהתאים את התוכן באופן אוטומטי." : "Ces informations permettent à EasyCom IA de comprendre votre identité et de personnaliser vos contenus automatiquement."}
         </CardDescription>
       </CardHeader>
 
@@ -88,13 +90,13 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
         {/* Nom */}
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700">
-            Nom de votre structure <span className="text-red-500">*</span>
+            {he ? "שם הארגון" : "Nom de votre structure"} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={data.communityName}
             onChange={(e) => updateData({ communityName: e.target.value })}
-            placeholder="Ex. Association Sportive de Bordeaux"
+            placeholder={he ? "לדוגמה: בית חב״ד פריז" : "Ex. Association Sportive de Bordeaux"}
             className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           />
         </div>
@@ -105,22 +107,22 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
               <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white">
                 {data.logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={data.logoUrl} alt="Logo de votre structure" className="h-full w-full object-contain p-2" />
+                  <img src={data.logoUrl} alt={he ? "לוגו הארגון" : "Logo de votre structure"} className="h-full w-full object-contain p-2" />
                 ) : (
                   <ImageIcon className="size-7 text-slate-400" />
                 )}
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900">Logo votre structure</p>
+                <p className="text-sm font-semibold text-slate-900">{he ? "לוגו הארגון" : "Logo votre structure"}</p>
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  Ajoutez votre logo pour personnaliser vos contenus et votre espace.
+                  {he ? "הוסיפו לוגו כדי להתאים את התוכן והמרחב שלכם." : "Ajoutez votre logo pour personnaliser vos contenus et votre espace."}
                 </p>
               </div>
             </div>
 
             <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
               {logoUploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-              {logoUploading ? "Téléversement..." : simulationMode ? "Simuler un logo" : "Choisir un logo"}
+              {logoUploading ? (he ? "מעלה..." : "Téléversement...") : simulationMode ? (he ? "הדמיית לוגו" : "Simuler un logo") : (he ? "בחירת לוגו" : "Choisir un logo")}
               <input
                 type="file"
                 accept="image/*"
@@ -147,7 +149,7 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700 flex items-center gap-1">
               <MapPin className="size-3.5 text-slate-400" />
-              Ville <span className="text-red-500">*</span>
+              {he ? "עיר" : "Ville"} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -159,7 +161,7 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700">
-              Pays <span className="text-red-500">*</span>
+              {he ? "מדינה" : "Pays"} <span className="text-red-500">*</span>
             </label>
             <select
               value={data.country}
@@ -177,13 +179,13 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
         {/* Contacts - facultatif */}
         <div className="space-y-3">
           <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-            Contacts
-            <span className="text-xs font-normal text-slate-400 border border-slate-200 rounded-full px-2 py-0.5">Facultatif</span>
+            {he ? "פרטי קשר" : "Contacts"}
+            <span className="text-xs font-normal text-slate-400 border border-slate-200 rounded-full px-2 py-0.5">{he ? "רשות" : "Facultatif"}</span>
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <p className="text-xs text-slate-500 flex items-center gap-1">
-                <Phone className="size-3" /> Téléphone
+                <Phone className="size-3" /> {he ? "טלפון" : "Téléphone"}
               </p>
               <input
                 type="tel"
@@ -195,7 +197,7 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
             </div>
             <div className="space-y-1">
               <p className="text-xs text-slate-500 flex items-center gap-1">
-                <Mail className="size-3" /> Email public
+                <Mail className="size-3" /> {he ? "אימייל ציבורי" : "Email public"}
               </p>
               <input
                 type="email"
@@ -208,7 +210,7 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
           </div>
           <div className="space-y-1">
             <p className="text-xs text-slate-500 flex items-center gap-1">
-              <Globe className="size-3" /> Site web
+              <Globe className="size-3" /> {he ? "אתר" : "Site web"}
             </p>
             <input
               type="url"
@@ -220,7 +222,7 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
           </div>
           <div className="space-y-1">
             <p className="text-xs text-slate-500 flex items-center gap-1">
-              <HandHeart className="size-3" /> Page de dons
+              <HandHeart className="size-3" /> {he ? "עמוד תרומות" : "Page de dons"}
             </p>
             <input
               type="url"
@@ -229,7 +231,7 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
               placeholder="https://allodons.fr/votre-structure"
               className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             />
-            <p className="text-xs leading-5 text-slate-400">Il sera propose automatiquement dans votre Newsletter Papier Chabbat.</p>
+            <p className="text-xs leading-5 text-slate-400">{he ? "הקישור יוצע אוטומטית בעלון השבת המודפס." : "Il sera proposé automatiquement dans votre Newsletter Papier Chabbat."}</p>
           </div>
         </div>
 
@@ -241,12 +243,12 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
             size="lg"
             className="w-full"
           >
-            {continuing ? <Loader2 className="size-4 animate-spin" /> : <ChevronRight className="size-4" />}
-            Continuer
+            {continuing ? <Loader2 className="size-4 animate-spin" /> : <ChevronRight className="rtl-mirror size-4" />}
+            {he ? "המשך" : "Continuer"}
           </Button>
           {!simulationMode && !isValid && (
             <p className="text-xs text-slate-400 text-center mt-2">
-              Renseignez le nom et la ville pour continuer.
+              {he ? "הזינו שם ועיר כדי להמשיך." : "Renseignez le nom et la ville pour continuer."}
             </p>
           )}
           {continueError && (

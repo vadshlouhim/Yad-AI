@@ -2,11 +2,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ChevronLeft, HelpCircle, Mail, MessageCircle, Sparkles } from "lucide-react";
 import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
+import { getLocale } from "next-intl/server";
 
-export const metadata: Metadata = {
-  title: "FAQ - EasyCom IA",
-  description: "Foire aux questions courantes et support EasyCom IA",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const he = (await getLocale()) === "he";
+  return { title: he ? "שאלות נפוצות - EasyCom IA" : "FAQ - EasyCom IA", description: he ? "שאלות נפוצות ותמיכה של EasyCom IA" : "Foire aux questions courantes et support EasyCom IA", openGraph: { locale: he ? "he_IL" : "fr_FR" } };
+}
 
 const FAQ_ITEMS = [
   {
@@ -90,8 +91,28 @@ const FAQ_ITEMS = [
       "Si vous avez une demande precise, vous pouvez nous ecrire directement par email afin d'obtenir un accompagnement plus cible.",
   },
 ];
+const HE_FAQ_ITEMS = [
+  ["איך מחברים את הרשתות החברתיות?", "בהגדרות, בחרו בחיבור רשתות חברתיות, בחרו ערוץ ופעלו לפי ההנחיות לאישור EasyCom IA."],
+  ["למה משמשות האוטומציות?", "הן מכינות מראש תוכן חוזר, תזכורות, הודעות ופרסומים וחוסכות זמן."],
+  ["האם הפרסומים נשלחים אוטומטית?", "בהתאם לערוץ ולהגדרה, EasyCom IA יכול להכין, לתזמן או לפרסם. בחלק מהערוצים נדרש אישור."],
+  ["איך רואים התראות חשובות?", "פתחו את אזור ההתראות בתפריט כדי לראות תוכן מוכן, אזהרות ופעולות שמחכות לכם."],
+  ["איך משנים את פרטי הקהילה?", "בהגדרות, פתחו את פרטי הקהילה ועדכנו שם, עיר, אימייל, טלפון, אתר וסוג קהילה."],
+  ["איך מוסיפים ומארגנים אנשי קשר?", "בהגדרות > אנשי קשר אפשר להוסיף חברים ידנית, לייבא מהטלפון ולהוסיף הערות."],
+  ["למה משמש העוזר היומי?", "הוא עוזר לארגן יומן, תזכורות, משימות קהילתיות וסדרי עדיפויות."],
+  ["מה אפשר לבקש מעוזר ה־AI?", "אפשר לבקש ניסוח אימייל, הכנת פרסום, הצעת אוטומציות, מענה לביקורת Google, ארגון שבוע או הכנת עיצוב."],
+  ["איך עונים לביקורת Google?", "באזור ביקורות Google העוזר מציע תשובה מהירה, מנומסת ומתאימה להקשר."],
+  ["אפשר להכין תוכן ל־WhatsApp, Facebook ו־Instagram?", "כן. EasyCom IA מתאים את אותו מסר לכל ערוץ עם סגנון ומבנה מתאימים."],
+  ["איך מוצאים את המשאבים שלי?", "באזור המשאבים אפשר למצוא תוכן, מסמכים וחומרים שימושיים לפרסום מהיר."],
+  ["איך פועל מאגר העיצובים?", "המאגר מרכז מודעות, חומרי פרסום ועיצובים שאפשר להתאים לצרכים הקהילתיים."],
+  ["למה חלק מהעמודים דורשים התחברות?", "עמודי לוח הבקרה מציגים את נתוני החשבון והקהילה ולכן דורשים חיבור פעיל."],
+  ["מה עושים כשערוץ מתנתק?", "חוזרים להגדרות > חיבור רשתות חברתיות ומחברים מחדש את הערוץ."],
+  ["אפשר להשתמש ב־EasyCom IA מהטלפון?", "כן. הממשק מותאם לנייד ולטאבלט כדי לעקוב אחר פעולות, התראות ותוכן."],
+  ["איך מקבלים עזרה נוספת?", "אפשר לשלוח לנו בקשה מדויקת דרך טופס יצירת הקשר ולקבל ליווי ממוקד."],
+].map(([question, answer]) => ({ question, answer }));
 
-export default function HelpPage() {
+export default async function HelpPage() {
+  const he = (await getLocale()) === "he";
+  const faqItems = he ? HE_FAQ_ITEMS : FAQ_ITEMS;
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:px-6 sm:py-10">
       <div className="mx-auto max-w-5xl space-y-6">
@@ -99,20 +120,20 @@ export default function HelpPage() {
           href="/dashboard/overview"
           className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 transition hover:text-blue-800"
         >
-          <ChevronLeft className="size-4" />
-          Retour a l&apos;accueil
+          <ChevronLeft className="rtl-mirror size-4" />
+          {he ? "חזרה לדף הבית" : "Retour à l’accueil"}
         </Link>
 
         <AgentPageBanner
-          eyebrow="Centre d’aide"
+          eyebrow={he ? "מרכז עזרה" : "Centre d’aide"}
           title="FAQ"
-          description="Retrouvez les réponses essentielles pour utiliser EasyCom IA, connecter vos outils et comprendre les principales rubriques du dashboard."
+          description={he ? "כל התשובות החשובות לשימוש ב־EasyCom IA, לחיבור הכלים ולהכרת אזורי לוח הבקרה." : "Retrouvez les réponses essentielles pour utiliser EasyCom IA, connecter vos outils et comprendre les principales rubriques du dashboard."}
           icon={HelpCircle}
           tone="purple"
         />
 
         <section className="grid gap-4 md:grid-cols-2">
-          {FAQ_ITEMS.map((item, index) => (
+          {faqItems.map((item, index) => (
             <article
               key={item.question}
               className="rounded-[1.5rem] border border-slate-200/90 bg-white p-5 shadow-[0_14px_34px_rgba(15,23,42,0.05)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
@@ -136,14 +157,14 @@ export default function HelpPage() {
         </section>
 
         <section className="rounded-[1.6rem] border border-blue-100 bg-white p-5 shadow-[0_14px_34px_rgba(15,23,42,0.05)]">
-          <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+          <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-start">
             <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
               <Mail className="size-4.5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-base font-bold tracking-tight text-slate-900">Besoin d&apos;une aide supplementaire ?</p>
+              <p className="text-base font-bold tracking-tight text-slate-900">{he ? "צריכים עזרה נוספת?" : "Besoin d’une aide supplémentaire ?"}</p>
               <p className="mt-2 text-sm leading-7 text-slate-600">
-                Envoyez-nous votre demande depuis le formulaire de contact afin que l’équipe puisse vous répondre proprement.
+                {he ? "שלחו לנו את הבקשה דרך טופס יצירת הקשר והצוות יחזור אליכם בצורה מסודרת." : "Envoyez-nous votre demande depuis le formulaire de contact afin que l’équipe puisse vous répondre proprement."}
               </p>
             </div>
             <Link
@@ -151,7 +172,7 @@ export default function HelpPage() {
               className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#421388] px-5 py-3 text-sm font-bold text-white shadow-[0_14px_30px_rgba(66,19,136,0.18)] transition hover:-translate-y-0.5 hover:bg-[#35106f] sm:w-auto"
             >
               <MessageCircle className="size-4" />
-              Contacter l’équipe
+              {he ? "יצירת קשר עם הצוות" : "Contacter l’équipe"}
             </Link>
           </div>
         </section>

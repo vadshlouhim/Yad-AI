@@ -1,9 +1,10 @@
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 import type { Metadata } from "next";
+import { getLocale } from "next-intl/server";
 
-export const metadata: Metadata = {
-  title: "Mot de passe oublié - EasyCom IA",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getLocale()) === "he" ? "שכחתם סיסמה? — EasyCom IA" : "Mot de passe oublié — EasyCom IA" };
+}
 
 export default function ForgotPasswordPage() {
   return (

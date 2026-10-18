@@ -558,3 +558,33 @@ export function getToolOnboardingPath(
     ? `/onboarding?callbackUrl=${encodeURIComponent(destination)}`
     : "/onboarding";
 }
+
+const HE_PUBLIC_TOOL_COPY: Record<string, Partial<PublicTool>> = {
+  publish: { name: "פרסום בכל הערוצים", description: "מסר אחד, כמה רשתות.", category: "Diffuser", benefits: ["מרחב פרסום אחד", "תוכן מותאם", "האישור נשאר בידיכם"] },
+  newsletter: { name: "עלון שבת מודפס", description: "השבוע שלכם בעיתון להדפסה.", category: "Créer", benefits: ["תוכן מרוכז", "הכנה בסיוע AI", "תוצאה להדפסה"] },
+  posters: { name: "מודעות ופליירים", description: "נותנים לאירועים שלכם מראה מתאים.", category: "Créer", benefits: ["תבניות יצירה", "עיצובים להתאמה", "אתם בוחרים את התוצאה"] },
+  automations: { name: "אוטומציות", description: "מארגנים את התקשורת החוזרת.", category: "Automatiser", benefits: ["תרחישים מרוכזים", "קצב מותאם", "בחירת רמת האישור"] },
+  reminders: { name: "תזכורות לאירועים", description: "משאירים את האירועים בתודעה.", category: "Automatiser", benefits: ["תזכורות מראש", "קמפיינים להתאמה", "אתם בוחרים את הקצב"] },
+  contacts: { name: "CRM קהילתי", description: "מוצאים את חברי הקהילה.", category: "Organiser", benefits: ["אנשי קשר מרוכזים", "קבוצות מאורגנות", "תקשורת ממוקדת יותר"] },
+  shabbat: { name: "זמני שבת וחגים", description: "מכינים את המפגשים השבועיים.", category: "Automatiser", benefits: ["עיר להתאמה", "מסר מוכן", "בדיקת הזמנים לפני הפרסום"] },
+  torah: { name: "שיעורי תורה בעזרת AI", description: "מכינים חומרי עזר לשיעורים.", category: "Créer", benefits: ["הכנה מלווה", "חומרים מובנים", "בדיקה לפני השימוש"] },
+  email: { name: "אימייל", description: "כל ההתכתבויות מרוכזות בפלטפורמה.", category: "Diffuser", benefits: ["התכתבויות מרוכזות", "סיוע בניסוח", "אתם מאשרים את ההודעות"] },
+};
+
+export function getLocalizedPublicTool(tool: PublicTool, locale: string): PublicTool {
+  if (locale !== "he") return tool;
+  const copy = HE_PUBLIC_TOOL_COPY[tool.id];
+  if (!copy) return tool;
+  const benefits = copy.benefits as PublicTool["benefits"] | undefined;
+  return {
+    ...tool,
+    ...copy,
+    benefits: benefits ?? tool.benefits,
+    scenes: tool.scenes.map((scene, index) => ({
+      ...scene,
+      label: ["הצורך שלכם", "התצוגה המקדימה", "בקצב שלכם"][index],
+      title: copy.name ?? scene.title,
+      lines: index === 0 ? [copy.description ?? scene.lines[0], "קהילה לדוגמה"] : (benefits ?? scene.lines),
+    })) as unknown as PublicTool["scenes"],
+  };
+}

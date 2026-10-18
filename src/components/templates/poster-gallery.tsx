@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { POSTER_HEADER_CLASS } from "@/components/presentation/platform-style";
 import { CanvaLogo } from "@/components/templates/template-actions";
 import { HOLIDAY_THEMES } from "@/lib/templates/taxonomy";
+import { useLocale } from "next-intl";
 
 export interface PosterGalleryTemplate {
   id: string;
@@ -87,6 +88,9 @@ export function PosterGallery({
   emptyTitle = "Aucune affiche trouvée",
   emptyDescription = "Modifiez votre recherche ou choisissez une autre catégorie.",
 }: Props) {
+  const he = useLocale() === "he";
+  const title = he && galleryTitle === "BANQUE D'AFFICHES" ? "מאגר מודעות" : galleryTitle;
+  const subtitle = he && gallerySubtitle === "Choisissez une affiche et décrivez simplement les textes à modifier." ? "בחרו מודעה ותארו בפשטות את הטקסטים שתרצו לשנות." : gallerySubtitle;
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [subCategoryPath, setSubCategoryPath] = useState<string[]>([]);
@@ -127,13 +131,13 @@ export function PosterGallery({
             <Paintbrush className="size-6" />
           </span>
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-white/70">Banque visuelle</p>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-white/70">{he ? "מאגר עיצובים" : "Banque visuelle"}</p>
             <h1 className="mt-1 text-[clamp(1.8rem,8vw,2.6rem)] font-black leading-none tracking-[-0.04em]">
-              {galleryTitle}
+              {title}
             </h1>
-            <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-white/80">{gallerySubtitle}</p>
+            <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-white/80">{subtitle}</p>
             <span className="mt-4 inline-flex rounded-full bg-white/15 px-3 py-1.5 text-xs font-black ring-1 ring-white/20">
-              {templates.length} affiches disponibles
+              {he ? `${templates.length} מודעות זמינות` : `${templates.length} affiches disponibles`}
             </span>
           </div>
         </div>
@@ -143,17 +147,17 @@ export function PosterGallery({
         <Card className="overflow-hidden rounded-[2rem] border-violet-100 bg-[#fffaf4] shadow-[0_16px_42px_rgba(66,19,136,0.08)]">
           <CardContent className="space-y-5 p-4 sm:p-6">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#d92d7c]">Explorez les thèmes</p>
-              <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">Trouvez l&apos;affiche idéale</h2>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#d92d7c]">{he ? "גלו נושאים" : "Explorez les thèmes"}</p>
+              <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">{he ? "מצאו את המודעה המתאימה" : "Trouvez l’affiche idéale"}</h2>
             </div>
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Rechercher une affiche..."
-                aria-label="Rechercher une affiche"
-                className="w-full rounded-2xl border border-violet-100 bg-white py-3.5 pl-10 pr-4 text-sm shadow-sm outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                placeholder={he ? "חיפוש מודעה..." : "Rechercher une affiche..."}
+                aria-label={he ? "חיפוש מודעה" : "Rechercher une affiche"}
+                className="w-full rounded-2xl border border-violet-100 bg-white py-3.5 ps-10 pe-4 text-sm shadow-sm outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
               />
             </div>
             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
@@ -167,7 +171,7 @@ export function PosterGallery({
                     : "border-violet-200 bg-white text-violet-700 hover:bg-violet-50"
                 )}
               >
-                Toutes <span className="ml-1 opacity-70">{templates.length}</span>
+                {he ? "הכול" : "Toutes"} <span className="ms-1 opacity-70">{templates.length}</span>
               </button>
               {categories.map((item, index) => (
                 <button
@@ -192,9 +196,9 @@ export function PosterGallery({
               <div className="rounded-[1.5rem] border border-violet-100 bg-white p-3.5 shadow-sm">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-xs font-black uppercase tracking-[0.13em] text-violet-700">
-                    {subCategoryPath.length ? subCategoryPath.join(" · ") : "Choisissez un thème"}
+                    {subCategoryPath.length ? subCategoryPath.join(" · ") : (he ? "בחרו נושא" : "Choisissez un thème")}
                   </p>
-                  {subCategoryPath.length > 0 ? <button type="button" onClick={() => setSubCategoryPath((path) => path.slice(0, -1))} className="inline-flex items-center gap-1 rounded-xl bg-violet-50 px-2.5 py-1.5 text-xs font-black text-violet-700 hover:bg-violet-100"><ArrowLeft className="size-3.5" />Retour</button> : null}
+                  {subCategoryPath.length > 0 ? <button type="button" onClick={() => setSubCategoryPath((path) => path.slice(0, -1))} className="inline-flex items-center gap-1 rounded-xl bg-violet-50 px-2.5 py-1.5 text-xs font-black text-violet-700 hover:bg-violet-100"><ArrowLeft className="rtl-mirror size-3.5" />{he ? "חזרה" : "Retour"}</button> : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {nextSubCategories.map((item, index) => <button key={item} type="button" onClick={() => setSubCategoryPath((path) => [...path, item])} className={cn("min-h-11 rounded-2xl border px-3.5 text-sm font-black transition hover:-translate-y-0.5", CATEGORY_TONES[(index + 1) % CATEGORY_TONES.length])}>{item}<span className="ml-1.5 opacity-65">{templates.filter((template) => template.category === category && [...subCategoryPath, item].every((part, pathIndex) => splitSubCategory(template.subCategory)[pathIndex] === part)).length}</span></button>)}
@@ -221,9 +225,9 @@ export function PosterGallery({
             return (
               <article
                 key={template.id}
-                className="group flex min-w-0 flex-col overflow-hidden rounded-[1.4rem] border border-violet-100 bg-white text-left shadow-[0_10px_28px_rgba(66,19,136,0.08)] transition hover:-translate-y-1 hover:border-violet-300 hover:shadow-[0_18px_38px_rgba(66,19,136,0.14)] sm:rounded-[1.6rem]"
+                className="group flex min-w-0 flex-col overflow-hidden rounded-[1.4rem] border border-violet-100 bg-white text-start shadow-[0_10px_28px_rgba(66,19,136,0.08)] transition hover:-translate-y-1 hover:border-violet-300 hover:shadow-[0_18px_38px_rgba(66,19,136,0.14)] sm:rounded-[1.6rem]"
               >
-                <button type="button" onClick={() => onSelect(template)} className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-violet-300">
+                <button type="button" onClick={() => onSelect(template)} className="min-w-0 text-start focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-violet-300">
                 <div className="aspect-[3/4] overflow-hidden bg-[#f7f3ee] p-1.5 sm:p-2">
                   {image ? (
                     <img

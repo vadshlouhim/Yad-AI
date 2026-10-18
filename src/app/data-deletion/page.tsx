@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { PublicFooter } from "@/components/layout/public-footer";
+import { LegalLanguageNotice } from "@/components/i18n/legal-language-notice";
 
 export const metadata: Metadata = {
   title: "Suppression des données",
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 export default function DataDeletionPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-800 sm:px-6 lg:px-8">
+      <LegalLanguageNotice />
       <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <Link href="/" className="text-sm font-medium text-blue-600 hover:underline">
           Retour à l&apos;accueil

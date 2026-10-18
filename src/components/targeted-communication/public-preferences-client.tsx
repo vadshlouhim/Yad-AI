@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Check, CheckCircle2, Clipboard, LoaderCircle, MessageCircle, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useLocale } from "next-intl";
 
 interface PublicData {
   active: boolean;
@@ -30,6 +31,7 @@ function contrastColor(hex: string) {
 }
 
 export function PublicPreferencesClient({ slug, token }: { slug: string; token: string }) {
+  const he = useLocale() === "he";
   const [data, setData] = useState<PublicData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -45,7 +47,7 @@ export function PublicPreferencesClient({ slug, token }: { slug: string; token: 
     fetch(`/api/communication-ciblee/public/${encodeURIComponent(slug)}${query}`, { signal: controller.signal })
       .then(async (response) => {
         const payload = await response.json();
-        if (!response.ok) throw new Error(payload.error ?? "Page indisponible.");
+        if (!response.ok) throw new Error(payload.error ?? (he ? "העמוד אינו זמין." : "Page indisponible."));
         return payload as PublicData;
       })
       .then((payload) => {
@@ -59,12 +61,12 @@ export function PublicPreferencesClient({ slug, token }: { slug: string; token: 
       })
       .catch((loadError) => {
         if (loadError.name !== "AbortError") {
-          setError(loadError instanceof Error ? loadError.message : "Page indisponible.");
+          setError(loadError instanceof Error ? loadError.message : (he ? "העמוד אינו זמין." : "Page indisponible."));
         }
       })
       .finally(() => setLoading(false));
     return () => controller.abort();
-  }, [slug, token]);
+  }, [he, slug, token]);
 
   function toggle(id: string) {
     setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
@@ -75,7 +77,7 @@ export function PublicPreferencesClient({ slug, token }: { slug: string; token: 
     event.preventDefault();
     setError("");
     if (!token && selected.length === 0) {
-      setError("Choisissez au moins une catégorie.");
+      setError(he ? "בחרו לפחות קטגוריה אחת." : "Choisissez au moins une catégorie.");
       return;
     }
     try {
@@ -86,12 +88,12 @@ export function PublicPreferencesClient({ slug, token }: { slug: string; token: 
         body: JSON.stringify(token ? { token, categoryIds: selected } : { ...form, categoryIds: selected }),
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Enregistrement impossible.");
+      if (!response.ok) throw new Error(payload.error ?? (he ? "לא ניתן לשמור." : "Enregistrement impossible."));
       setManagementUrl(payload.managementUrl ?? "");
       setSaved(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Enregistrement impossible.");
+      setError(submitError instanceof Error ? submitError.message : (he ? "לא ניתן לשמור." : "Enregistrement impossible."));
     } finally {
       setSaving(false);
     }
@@ -101,20 +103,20 @@ export function PublicPreferencesClient({ slug, token }: { slug: string; token: 
     return (
       <main className="flex min-h-dvh items-center justify-center bg-slate-50">
         <LoaderCircle className="size-7 animate-spin text-[#421388]" />
-        <span className="ml-3 text-sm font-bold text-slate-600">Chargement…</span>
+        <span className="ms-3 text-sm font-bold text-slate-600">{he ? "בטעינה…" : "Chargement…"}</span>
       </main>
     );
   }
 
   if (error && !data) {
-    return <StatusPage icon={MessageCircle} title="Lien indisponible" description={error} tone="red" />;
+    return <StatusPage icon={MessageCircle} title={he ? "הקישור אינו זמין" : "Lien indisponible"} description={error} tone="red" />;
   }
   if (!data) return null;
   if (token && data.tokenValid === false) {
-    return <StatusPage icon={ShieldCheck} title="Lien personnel invalide ou expiré" description="Demandez un nouveau lien à votre communauté." tone="amber" />;
+    return <StatusPage icon={ShieldCheck} title={he ? "הקישור האישי אינו תקין או פג תוקף" : "Lien personnel invalide ou expiré"} description={he ? "בקשו קישור חדש מהקהילה שלכם." : "Demandez un nouveau lien à votre communauté."} tone="amber" />;
   }
   if (!data.active && !token) {
-    return <StatusPage icon={MessageCircle} title="Inscriptions momentanément fermées" description="Cette page sera bientôt de nouveau disponible." tone="slate" />;
+    return <StatusPage icon={MessageCircle} title={he ? "ההרשמה סגורה כרגע" : "Inscriptions momentanément fermées"} description={he ? "העמוד יחזור להיות זמין בקרוב." : "Cette page sera bientôt de nouveau disponible."} tone="slate" />;
   }
 
   const primaryText = contrastColor(data.primaryColor);
@@ -143,10 +145,10 @@ export function PublicPreferencesClient({ slug, token }: { slug: string; token: 
             )}
             <p className="text-sm font-bold opacity-80">{data.community.name}</p>
             <h1 className="mt-2 text-2xl font-black leading-tight sm:text-3xl">
-              {token ? "Mes préférences" : data.title}
+              {token ? (he ? "ההעדפות שלי" : "Mes préférences") : data.title}
             </h1>
             <p className="mx-auto mt-3 max-w-md text-sm leading-6 opacity-85">
-              {token ? "Choisissez uniquement les sujets qui vous intéressent." : data.introduction}
+              {token ? (he ? "בחרו רק את הנושאים שמעניינים אתכם." : "Choisissez uniquement les sujets qui vous intéressent.") : data.introduction}
             </p>
           </header>
 
@@ -154,16 +156,16 @@ export function PublicPreferencesClient({ slug, token }: { slug: string; token: 
             {saved && (
               <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
                 <CheckCircle2 className="mx-auto size-8 text-emerald-600" />
-                <h2 className="mt-2 font-black text-emerald-950">Préférences enregistrées</h2>
-                <p className="mt-1 text-sm text-emerald-800">Vous recevrez uniquement les sujets sélectionnés.</p>
+                <h2 className="mt-2 font-black text-emerald-950">{he ? "ההעדפות נשמרו" : "Préférences enregistrées"}</h2>
+                <p className="mt-1 text-sm text-emerald-800">{he ? "תקבלו רק את הנושאים שבחרתם." : "Vous recevrez uniquement les sujets sélectionnés."}</p>
                 {managementUrl && (
                   <button
                     type="button"
-                    onClick={() => { void navigator.clipboard.writeText(managementUrl); toast.success("Lien personnel copié"); }}
+                    onClick={() => { void navigator.clipboard.writeText(managementUrl); toast.success(he ? "הקישור האישי הועתק" : "Lien personnel copié"); }}
                     className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-black shadow-sm"
                     style={{ color: data.primaryColor }}
                   >
-                    <Clipboard className="size-4" /> Conserver mon lien personnel
+                    <Clipboard className="size-4" /> {he ? "שמירת הקישור האישי" : "Conserver mon lien personnel"}
                   </button>
                 )}
               </div>
@@ -171,12 +173,12 @@ export function PublicPreferencesClient({ slug, token }: { slug: string; token: 
 
             <fieldset>
               <legend className="text-base font-black text-slate-950">
-                {token ? "Mes sujets" : "Que souhaitez-vous recevoir ?"}
+                {token ? (he ? "הנושאים שלי" : "Mes sujets") : (he ? "מה תרצו לקבל?" : "Que souhaitez-vous recevoir ?")}
               </legend>
-              <p className="mt-1 text-sm text-slate-500">Vous pouvez faire plusieurs choix.</p>
+              <p className="mt-1 text-sm text-slate-500">{he ? "אפשר לבחור כמה אפשרויות." : "Vous pouvez faire plusieurs choix."}</p>
               {data.categories.length === 0 ? (
                 <p className="mt-5 rounded-2xl bg-slate-50 p-5 text-center text-sm text-slate-500">
-                  Aucun sujet disponible pour le moment.
+                  {he ? "אין נושאים זמינים כרגע." : "Aucun sujet disponible pour le moment."}
                 </p>
               ) : (
                 <div className="mt-5 grid gap-3">
@@ -210,13 +212,13 @@ export function PublicPreferencesClient({ slug, token }: { slug: string; token: 
 
             {!token && (
               <fieldset className="mt-7 border-t border-slate-100 pt-6">
-                <legend className="text-base font-black text-slate-950">Vos coordonnées WhatsApp</legend>
+                <legend className="text-base font-black text-slate-950">{he ? "פרטי ה־WhatsApp שלכם" : "Vos coordonnées WhatsApp"}</legend>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <PublicField label="Prénom" value={form.firstName} onChange={(value) => setForm({ ...form, firstName: value })} autoComplete="given-name" />
-                  <PublicField label="Nom" value={form.lastName} onChange={(value) => setForm({ ...form, lastName: value })} autoComplete="family-name" />
+                  <PublicField label={he ? "שם פרטי" : "Prénom"} value={form.firstName} onChange={(value) => setForm({ ...form, firstName: value })} autoComplete="given-name" />
+                  <PublicField label={he ? "שם משפחה" : "Nom"} value={form.lastName} onChange={(value) => setForm({ ...form, lastName: value })} autoComplete="family-name" />
                 </div>
                 <div className="mt-3">
-                  <PublicField label="Numéro WhatsApp" value={form.phone} onChange={(value) => setForm({ ...form, phone: value })} autoComplete="tel" type="tel" placeholder="06 12 34 56 78" />
+                  <PublicField label={he ? "מספר WhatsApp" : "Numéro WhatsApp"} value={form.phone} onChange={(value) => setForm({ ...form, phone: value })} autoComplete="tel" type="tel" placeholder="06 12 34 56 78" />
                 </div>
               </fieldset>
             )}
@@ -230,14 +232,14 @@ export function PublicPreferencesClient({ slug, token }: { slug: string; token: 
               style={{ backgroundColor: data.primaryColor, color: primaryText, boxShadow: `0 14px 30px ${data.primaryColor}32` }}
             >
               {saving ? <LoaderCircle className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
-              {token ? "Enregistrer mes choix" : "Valider mes choix"}
+              {token ? (he ? "שמירת הבחירות" : "Enregistrer mes choix") : (he ? "אישור הבחירות" : "Valider mes choix")}
             </button>
             <p className="mt-5 flex items-center justify-center gap-2 text-center text-xs leading-5 text-slate-500">
-              <ShieldCheck className="size-4 shrink-0" /> Votre numéro sert uniquement aux sujets choisis.
+              <ShieldCheck className="size-4 shrink-0" /> {he ? "המספר משמש רק לנושאים שבחרתם." : "Votre numéro sert uniquement aux sujets choisis."}
             </p>
           </form>
         </section>
-        <p className="py-5 text-center text-xs font-semibold text-slate-400">Propulsé par EasyCom IA</p>
+        <p className="py-5 text-center text-xs font-semibold text-slate-400">{he ? "מופעל על ידי EasyCom IA" : "Propulsé par EasyCom IA"}</p>
       </div>
     </main>
   );

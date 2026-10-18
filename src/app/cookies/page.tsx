@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicFooter } from "@/components/layout/public-footer";
+import { LegalLanguageNotice } from "@/components/i18n/legal-language-notice";
 
 export const metadata: Metadata = {
   title: "Politique cookies",
@@ -10,6 +11,8 @@ export const metadata: Metadata = {
 
 export default function CookiesPage() {
   return (
+    <>
+      <LegalLanguageNotice />
     <main className="min-h-screen bg-white text-slate-950">
       <section className="border-b border-slate-200 bg-gradient-to-b from-blue-50 to-white px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl">
@@ -52,5 +55,6 @@ export default function CookiesPage() {
       </section>
       <PublicFooter />
     </main>
+    </>
   );
 }

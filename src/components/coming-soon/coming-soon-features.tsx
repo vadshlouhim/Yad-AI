@@ -17,6 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { useLocale } from "next-intl";
 import styles from "./coming-soon-features.module.css";
 
 type Feature = {
@@ -42,6 +43,14 @@ export const COMING_SOON_FEATURES: Feature[] = [
   { id: "easybanque", title: "EasyBanque", eyebrow: "Ressources juives", summary: "Vendez et achetez des ressources, études et créations communautaires.", description: "Une banque de ressources juives pour partager ou proposer des études, supports pédagogiques, créations et outils.", highlights: ["Études et contenus", "Créations communautaires", "Achat, vente et partage"], icon: BookOpen, from: "#a78bfa", to: "#6d28d9", color: "#6d28d9", soft: "#f3eeff", shadow: "rgba(109,40,217,.35)" },
   { id: "campagnes-dons", title: "Campagnes de dons", eyebrow: "Mobilisation solidaire", summary: "Créez des campagnes claires, belles et faciles à partager.", description: "Lancez une campagne avec un objectif, une histoire et une page dédiée, puis suivez sa progression et remerciez vos donateurs.", highlights: ["Page de campagne personnalisée", "Objectif et progression visibles", "Remerciements facilités"], icon: Heart, from: "#fb7185", to: "#e11d48", color: "#be123c", soft: "#fff0f3", shadow: "rgba(225,29,72,.35)" },
 ];
+const HE_FEATURE_COPY: Record<string, Pick<Feature, "eyebrow" | "summary" | "description" | "highlights">> = {
+  easystore: { eyebrow: "שוק קהילתי", summary: "שוק היד השנייה היהודי הראשון.", description: "מרחב אמין למכירה, מסירה או קנייה של פריטי יד שנייה בתוך הקהילה, בפשטות ובקרבת מקום.", highlights: ["פרסום מודעות פשוט", "חיפוש לפי עיר וקטגוריה", "חיבורים קהילתיים קלים יותר"] },
+  "newsletter-email": { eyebrow: "תקשורת קבועה", summary: "יוצרים ניוזלטרים יפים ומוכנים לשליחה.", description: "מרכזים חדשות, אירועים והודעות קהילתיות בניוזלטר ברור, מקצועי ובסגנון שלכם.", highlights: ["עיצוב בסיוע המערכת", "הצעות תוכן בעזרת AI", "תזמון שליחות"] },
+  "email-intelligent": { eyebrow: "שיפור עבירות האימייל", summary: "שולחים את המסר הנכון בלי להציף את אנשי הקשר.", description: "EasyCom יעזור להתאים מסרים, לבחור קצב נכון ולכבד את ההעדפות של כל איש קשר.", highlights: ["שליחות ממוקדות יותר", "שליטה בקצב השליחה", "כיבוד העדפות אנשי הקשר"] },
+  "whatsapp-masse": { eyebrow: "מסרים ממוקדים", summary: "מעדכנים קבוצות בדיוק רב יותר ועם פחות רעש.", description: "קמפיינים מפולחים, מותאמים ומתוזמנים ב־WhatsApp, עם הגנות מפני הודעות חוזרות.", highlights: ["קבוצות אנשי קשר ממוקדות", "מסרים מותאמים", "תזמון ומעקב"] },
+  easybanque: { eyebrow: "משאבים יהודיים", summary: "מוכרים וקונים משאבים, לימודים ויצירות קהילתיות.", description: "מאגר משאבים יהודיים לשיתוף או להצעה של לימודים, חומרי הוראה, יצירות וכלים.", highlights: ["לימודים ותוכן", "יצירה קהילתית", "קנייה, מכירה ושיתוף"] },
+  "campagnes-dons": { eyebrow: "גיוס קהילתי", summary: "יוצרים קמפיינים ברורים, יפים וקלים לשיתוף.", description: "משיקים קמפיין עם יעד, סיפור ועמוד ייעודי, עוקבים אחר ההתקדמות ומודים לתורמים.", highlights: ["עמוד קמפיין מותאם", "יעד והתקדמות גלויים", "תודות בקלות"] },
+};
 
 type FeatureStyle = CSSProperties & Record<`--feature-${string}`, string>;
 const WHATSAPP_NUMBER = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "33668508898").replace(/\D/g, "");
@@ -52,6 +61,9 @@ function featureStyle(feature: Feature): FeatureStyle {
 }
 
 export function ComingSoonFeatures({ dashboard = false }: { dashboard?: boolean }) {
+  const locale = useLocale();
+  const he = locale === "he";
+  const features = COMING_SOON_FEATURES.map((feature) => he ? { ...feature, ...HE_FEATURE_COPY[feature.id] } : feature);
   const [selected, setSelected] = useState<Feature | null>(null);
   const [open, setOpen] = useState(false);
   const understandButtonRef = useRef<HTMLButtonElement>(null);
@@ -77,48 +89,48 @@ export function ComingSoonFeatures({ dashboard = false }: { dashboard?: boolean 
     dragDistance.current = 0;
   }
 
-  const whatsappHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
+  const whatsappHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(he ? "שלום EasyCom IA 👋 יש לי רעיון לתכונה חדשה: " : WHATSAPP_MESSAGE)}`;
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <div className={`${styles.page} ${dashboard ? styles.dashboard : ""}`}>
         {!dashboard ? (
           <header className={styles.header}>
-            <Link href="/" className={styles.brand} aria-label="EasyCom IA, accueil">
+            <Link href="/" className={styles.brand} aria-label={he ? "EasyCom IA, דף הבית" : "EasyCom IA, accueil"}>
               <Image src="/easycom-ai-logo.png" alt="" width={34} height={34} priority />
-              <span><strong>EasyCom IA</strong><small>Communication communautaire</small></span>
+              <span><strong>EasyCom IA</strong><small>{he ? "תקשורת קהילתית" : "Communication communautaire"}</small></span>
             </Link>
-            <Link href="/auth/login" className={styles.notification} aria-label="Se connecter et voir les notifications"><Bell aria-hidden="true" /><span aria-hidden="true" /></Link>
+            <Link href="/auth/login" className={styles.notification} aria-label={he ? "התחברות וצפייה בהתראות" : "Se connecter et voir les notifications"}><Bell aria-hidden="true" /><span aria-hidden="true" /></Link>
           </header>
         ) : null}
 
         <main className={styles.main}>
           <section className={styles.hero} aria-labelledby="coming-soon-title">
             <span className={styles.goldHalo} aria-hidden="true" />
-            <div className={styles.heroBadge}><span aria-hidden="true" />La suite d’EasyCom IA</div>
-            <h1 id="coming-soon-title">Fonctionnalités<span>à venir…</span></h1>
-            <p>De nouveaux outils pour simplifier les échanges, les ressources et les projets de toute la communauté.</p>
-            <div className={styles.stats} aria-label="Résumé des nouveautés">
-              <div><strong>6</strong><span>nouveaux outils</span></div>
-              <div><strong>IA</strong><span>au cœur de chaque outil</span></div>
-              <div><strong aria-hidden="true">🔔</strong><span>bientôt disponibles</span></div>
+            <div className={styles.heroBadge}><span aria-hidden="true" />{he ? "ההמשך של EasyCom IA" : "La suite d’EasyCom IA"}</div>
+            <h1 id="coming-soon-title">{he ? "תכונות" : "Fonctionnalités"}<span>{he ? "בקרוב…" : "à venir…"}</span></h1>
+            <p>{he ? "כלים חדשים שיפשטו את התקשורת, המשאבים והמיזמים של הקהילה כולה." : "De nouveaux outils pour simplifier les échanges, les ressources et les projets de toute la communauté."}</p>
+            <div className={styles.stats} aria-label={he ? "סיכום החידושים" : "Résumé des nouveautés"}>
+              <div><strong>6</strong><span>{he ? "כלים חדשים" : "nouveaux outils"}</span></div>
+              <div><strong>IA</strong><span>{he ? "בלב כל כלי" : "au cœur de chaque outil"}</span></div>
+              <div><strong aria-hidden="true">🔔</strong><span>{he ? "זמינים בקרוב" : "bientôt disponibles"}</span></div>
             </div>
           </section>
 
           <section className={styles.features} aria-labelledby="features-title">
-            <div className={styles.sectionHeading}><div><p>En préparation</p><h2 id="features-title">Les prochains outils</h2></div><span>Touchez une carte</span></div>
+            <div className={styles.sectionHeading}><div><p>{he ? "בהכנה" : "En préparation"}</p><h2 id="features-title">{he ? "הכלים הבאים" : "Les prochains outils"}</h2></div><span>{he ? "לחצו על כרטיס" : "Touchez une carte"}</span></div>
             <div className={styles.grid}>
-              {COMING_SOON_FEATURES.map((feature, index) => {
+              {features.map((feature, index) => {
                 const Icon = feature.icon;
                 return (
-                  <button key={feature.id} type="button" className={styles.card} style={{ ...featureStyle(feature), "--entry-delay": `${100 + index * 60}ms` } as FeatureStyle} onClick={() => openFeature(feature)} aria-haspopup="dialog" aria-label={`En savoir plus sur ${feature.title}`}>
+                  <button key={feature.id} type="button" className={styles.card} style={{ ...featureStyle(feature), "--entry-delay": `${100 + index * 60}ms` } as FeatureStyle} onClick={() => openFeature(feature)} aria-haspopup="dialog" aria-label={`${he ? "מידע נוסף על" : "En savoir plus sur"} ${feature.title}`}>
                     <span className={styles.cardGlow} aria-hidden="true" />
                     <span className={styles.icon}><Icon aria-hidden="true" /></span>
                     <span className={styles.cardCopy}>
                       <span className={styles.eyebrow}>{feature.eyebrow}</span>
                       <strong>{feature.title}</strong>
                       <span className={styles.summary}>{feature.summary}</span>
-                      <span className={styles.cardFooter}><span>Bientôt</span><b>En savoir plus <ArrowRight aria-hidden="true" /></b></span>
+                      <span className={styles.cardFooter}><span>{he ? "בקרוב" : "Bientôt"}</span><b>{he ? "למידע נוסף" : "En savoir plus"} <ArrowRight className="rtl-mirror" aria-hidden="true" /></b></span>
                     </span>
                   </button>
                 );
@@ -128,9 +140,9 @@ export function ComingSoonFeatures({ dashboard = false }: { dashboard?: boolean 
 
           <section className={styles.idea}>
             <Lightbulb className={styles.ideaIcon} aria-hidden="true" />
-            <h2>Une idée pour la suite ?</h2>
-            <p>Dites-nous quelle fonctionnalité vous serait la plus utile : vos retours fixent nos priorités.</p>
-            <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className={styles.ideaButton}><MessageCircle aria-hidden="true" />Partager mon idée<ArrowRight aria-hidden="true" /></a>
+            <h2>{he ? "יש לכם רעיון להמשך?" : "Une idée pour la suite ?"}</h2>
+            <p>{he ? "ספרו לנו איזו תכונה תהיה שימושית ביותר עבורכם — המשוב שלכם קובע את סדר העדיפויות שלנו." : "Dites-nous quelle fonctionnalité vous serait la plus utile : vos retours fixent nos priorités."}</p>
+            <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className={styles.ideaButton}><MessageCircle aria-hidden="true" />{he ? "שיתוף הרעיון" : "Partager mon idée"}<ArrowRight className="rtl-mirror" aria-hidden="true" /></a>
           </section>
         </main>
       </div>
@@ -142,11 +154,11 @@ export function ComingSoonFeatures({ dashboard = false }: { dashboard?: boolean 
             <div className={styles.handle} aria-hidden="true" />
             <div className={styles.sheetHeader}>
               <span className={styles.sheetIcon}>{(() => { const Icon = selected.icon; return <Icon aria-hidden="true" />; })()}</span>
-              <div><span className={styles.available}><i aria-hidden="true" />Bientôt disponible</span><Dialog.Title>{selected.title}</Dialog.Title></div>
+              <div><span className={styles.available}><i aria-hidden="true" />{he ? "זמין בקרוב" : "Bientôt disponible"}</span><Dialog.Title>{selected.title}</Dialog.Title></div>
             </div>
             <Dialog.Description>{selected.description}</Dialog.Description>
             <ul className={styles.benefits}>{selected.highlights.map((highlight) => <li key={highlight}><span><Check aria-hidden="true" /></span>{highlight}</li>)}</ul>
-            <Dialog.Close ref={understandButtonRef} className={styles.closeButton}>J’ai compris</Dialog.Close>
+            <Dialog.Close ref={understandButtonRef} className={styles.closeButton}>{he ? "הבנתי" : "J’ai compris"}</Dialog.Close>
           </Dialog.Content>
         </Dialog.Portal>
       ) : null}

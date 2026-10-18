@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { PublicFooter } from "@/components/layout/public-footer";
+import { LegalLanguageNotice } from "@/components/i18n/legal-language-notice";
 
 export const metadata: Metadata = {
   title: "Conditions d’utilisation - EasyCom IA",
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
+      <LegalLanguageNotice />
       <div className="mx-auto max-w-3xl space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
         <Link href="/" className="text-sm font-medium text-blue-600 hover:underline">
           Retour à l’accueil

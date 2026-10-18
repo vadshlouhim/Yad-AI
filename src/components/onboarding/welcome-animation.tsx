@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
+import { useLocale } from "next-intl";
 
 interface Props {
   onComplete: () => void;
@@ -22,6 +23,7 @@ interface Props {
 const COUNTS: Record<number, string> = { 1: "3", 2: "2", 3: "1" };
 
 export function WelcomeAnimation({ onComplete }: Props) {
+  const he = useLocale() === "he";
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
@@ -102,7 +104,7 @@ export function WelcomeAnimation({ onComplete }: Props) {
               animation: "wSlide 0.65s cubic-bezier(0.22, 1, 0.36, 1) both",
             }}
           >
-            Bienvenue sur
+            {he ? "ברוכים הבאים אל" : "Bienvenue sur"}
           </p>
 
           {/* "EasyCom IA" */}
@@ -148,7 +150,7 @@ export function WelcomeAnimation({ onComplete }: Props) {
                   className="size-3.5"
                   style={{ animation: "wGlow 1.5s 0.4s ease-in-out infinite" }}
                 />
-                <span>Votre espace est prêt</span>
+                <span>{he ? "המרחב שלכם מוכן" : "Votre espace est prêt"}</span>
                 <Sparkles
                   className="size-3.5"
                   style={{ animation: "wGlow 1.5s 0.6s ease-in-out infinite" }}

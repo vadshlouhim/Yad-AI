@@ -20,8 +20,11 @@ import {
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Eye, EyeOff, Mail, Lock, User, Globe, MapPin } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 export function RegisterForm() {
+  const t = useTranslations("auth");
+  const he = useLocale() === "he";
   const router = useRouter();
   const searchParams = useSearchParams();
   const toolDestination = getPublicToolDestination(searchParams.get("callbackUrl"));
@@ -45,13 +48,13 @@ export function RegisterForm() {
     setError(null);
 
     if (!isSupportedCountry(country)) {
-      setError("Veuillez sélectionner un pays valide.");
+      setError(he ? "בחרו מדינה תקינה." : "Veuillez sélectionner un pays valide.");
       setLoading(false);
       return;
     }
 
     if (password.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caractères.");
+      setError(he ? "הסיסמה חייבת להכיל לפחות 8 תווים." : "Le mot de passe doit contenir au moins 8 caractères.");
       setLoading(false);
       return;
     }
@@ -77,9 +80,9 @@ export function RegisterForm() {
 
     if (error) {
       if (error.message.includes("already registered")) {
-        setError("Un compte existe déjà avec cet email.");
+        setError(he ? "כבר קיים חשבון עם כתובת האימייל הזו." : "Un compte existe déjà avec cet email.");
       } else {
-        setError("Une erreur est survenue. Veuillez réessayer.");
+        setError(he ? "אירעה שגיאה. נסו שוב." : "Une erreur est survenue. Veuillez réessayer.");
       }
       setLoading(false);
       return;
@@ -104,7 +107,7 @@ export function RegisterForm() {
   async function handleGoogleLogin() {
     setError(null);
     if (!isSupportedCountry(country)) {
-      setError("Veuillez sélectionner un pays valide.");
+      setError(he ? "בחרו מדינה תקינה." : "Veuillez sélectionner un pays valide.");
       return;
     }
     setGoogleLoading(true);
@@ -125,7 +128,7 @@ export function RegisterForm() {
         error: new Error("Auth service unreachable"),
       }));
     if (error) {
-      setError("Impossible de se connecter avec Google.");
+      setError(he ? "לא ניתן להתחבר עם Google." : "Impossible de se connecter avec Google.");
       setGoogleLoading(false);
     }
   }
@@ -138,10 +141,9 @@ export function RegisterForm() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h3 className="font-semibold text-emerald-900">Vérifiez votre email</h3>
+        <h3 className="font-semibold text-emerald-900">{t("checkEmail")}</h3>
         <p className="text-sm text-emerald-700">
-          Un lien de confirmation a été envoyé à <strong>{email}</strong>.
-          Cliquez dessus pour activer votre compte et démarrer l&apos;onboarding.
+          {he ? <>קישור אישור נשלח אל <strong><bdi dir="ltr">{email}</bdi></strong>. לחצו עליו כדי להפעיל את החשבון ולהתחיל.</> : <>Un lien de confirmation a été envoyé à <strong>{email}</strong>. Cliquez dessus pour activer votre compte et démarrer l&apos;onboarding.</>}
         </p>
       </div>
     );
@@ -151,8 +153,7 @@ export function RegisterForm() {
     <div className="space-y-6">
       {!supabaseConfigured && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          Configuration Supabase invalide. Renseignez la vraie URL du projet
-          dans <code>NEXT_PUBLIC_SUPABASE_URL</code>.
+          {he ? "הגדרת Supabase אינה תקינה." : <>Configuration Supabase invalide. Renseignez la vraie URL du projet dans <code>NEXT_PUBLIC_SUPABASE_URL</code>.</>}
         </div>
       )}
 
@@ -161,10 +162,10 @@ export function RegisterForm() {
           className="text-sm font-medium text-slate-700"
           htmlFor="register-country"
         >
-          Pays <span className="text-red-500">*</span>
+          {he ? "מדינה" : "Pays"} <span className="text-red-500">*</span>
         </label>
         <div className="relative">
-          <MapPin className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <MapPin className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
           <select
             id="register-country"
             value={country}
@@ -173,7 +174,7 @@ export function RegisterForm() {
             }
             required
             disabled={!supabaseConfigured || loading || googleLoading}
-            className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           >
             {SUPPORTED_COUNTRIES.map((option) => (
               <option key={option.code} value={option.value}>
@@ -194,7 +195,7 @@ export function RegisterForm() {
         disabled={!supabaseConfigured}
       >
         <Globe className="size-4" />
-        Continuer avec Google
+        {t("google")}
       </Button>
 
       <div className="relative">
@@ -202,7 +203,7 @@ export function RegisterForm() {
           <span className="w-full border-t border-slate-200" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-slate-50 px-3 text-slate-400">ou</span>
+          <span className="bg-slate-50 px-3 text-slate-400">{t("or")}</span>
         </div>
       </div>
 
@@ -215,30 +216,30 @@ export function RegisterForm() {
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700" htmlFor="name">
-            Votre nom
+            {t("name")}
           </label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+            <User className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
               id="name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Prénom Nom"
+              placeholder={he ? "שם פרטי ומשפחה" : "Prénom Nom"}
               required
               autoComplete="name"
               disabled={!supabaseConfigured}
-              className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
+              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700" htmlFor="email">
-            Adresse email
+            {t("email")}
           </label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+            <Mail className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
               id="email"
               type="email"
@@ -248,32 +249,32 @@ export function RegisterForm() {
               required
               autoComplete="email"
               disabled={!supabaseConfigured}
-              className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
+              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700" htmlFor="password">
-            Mot de passe
+            {t("password")}
           </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+            <Lock className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
               id="password"
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="8 caractères minimum"
+              placeholder={he ? "לפחות 8 תווים" : "8 caractères minimum"}
               required
               autoComplete="new-password"
               disabled={!supabaseConfigured}
-              className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
+              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             >
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
@@ -297,26 +298,26 @@ export function RegisterForm() {
         </div>
 
         <Button type="submit" size="lg" className="w-full" loading={loading} disabled={!supabaseConfigured}>
-          Créer mon compte
+          {t("register")}
         </Button>
 
         <p className="text-xs text-slate-400 text-center leading-relaxed">
-          En créant un compte, vous acceptez nos{" "}
+          {he ? "ביצירת חשבון אתם מסכימים ל" : "En créant un compte, vous acceptez nos"}{" "}
           <Link href="/legal/terms" className="text-blue-600 hover:underline">
-            conditions d&apos;utilisation
+            {he ? "תנאי השימוש" : "conditions d’utilisation"}
           </Link>{" "}
-          et notre{" "}
+          {he ? " ול" : "et notre"}{" "}
           <Link href="/privacy" className="text-blue-600 hover:underline">
-            politique de confidentialité
+            {he ? "מדיניות הפרטיות" : "politique de confidentialité"}
           </Link>
           .
         </p>
       </form>
 
       <p className="text-center text-sm text-slate-500">
-        Déjà un compte ?{" "}
+        {t("hasAccount")}{" "}
         <Link href={toolDestination ? `/auth/login?callbackUrl=${encodeURIComponent(toolDestination)}` : "/auth/login"} className="text-blue-600 hover:underline font-medium">
-          Se connecter
+          {t("login")}
         </Link>
       </p>
     </div>

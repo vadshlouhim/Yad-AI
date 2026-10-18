@@ -9,6 +9,7 @@ import {
   Radio, ChevronRight, ChevronLeft, CheckCircle2, Info, ExternalLink, Loader2, Unlink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocale } from "next-intl";
 
 interface Props {
   data: OnboardingData;
@@ -91,6 +92,7 @@ export function StepSocial({
   simulationMode = false,
   saving = false,
 }: Props) {
+  const he = useLocale() === "he";
   const searchParams = useSearchParams();
   const [connecting, setConnecting] = useState<string | null>(null);
   const [oauthNotice, setOauthNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -245,11 +247,11 @@ export function StepSocial({
             <Radio className="size-6 text-blue-600" />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="text-xl">Connectez vos canaux</CardTitle>
-            <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">Facultatif</span>
+            <CardTitle className="text-xl">{he ? "חיבור הערוצים שלכם" : "Connectez vos canaux"}</CardTitle>
+            <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">{he ? "רשות" : "Facultatif"}</span>
           </div>
           <CardDescription>
-            Connectez Instagram, Facebook ou votre boîte Gmail maintenant. Vous pourrez aussi le faire plus tard depuis les Paramètres.
+            {he ? "חברו עכשיו את Instagram, Facebook או Gmail. אפשר לעשות זאת גם מאוחר יותר בהגדרות." : "Connectez Instagram, Facebook ou votre boîte Gmail maintenant. Vous pourrez aussi le faire plus tard depuis les Paramètres."}
           </CardDescription>
         </CardHeader>
 
@@ -299,11 +301,11 @@ export function StepSocial({
                           </p>
                           {isConnected && (
                             <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                              Connecté ✓
+                              {he ? "מחובר ✓" : "Connecté ✓"}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-500">{channel.description}</p>
+                        <p className="text-xs text-slate-500">{he ? (channel.type === "INSTAGRAM" ? "פרסומים וסטוריז" : channel.type === "FACEBOOK" ? "פוסטים בעמוד שלכם" : "שליחה מתיבת Gmail שלכם") : channel.description}</p>
                       </div>
                     </div>
 
@@ -316,7 +318,7 @@ export function StepSocial({
                             className="flex items-center gap-1 text-xs text-slate-400 hover:text-red-500 transition-colors"
                           >
                             <Unlink className="size-3.5" />
-                            Déconnecter
+                            {he ? "ניתוק" : "Déconnecter"}
                           </button>
                         ) : (
                           <Button
@@ -332,7 +334,7 @@ export function StepSocial({
                             disabled={isConnecting}
                           >
                             {isConnecting ? <Loader2 className="size-3.5 animate-spin" /> : <ExternalLink className="size-3.5" />}
-                            {isConnecting ? (simulationMode ? "Simulation..." : "Connexion...") : simulationMode ? "Simuler" : "Se connecter"}
+                            {isConnecting ? (simulationMode ? (he ? "הדמיה..." : "Simulation...") : (he ? "מתחבר..." : "Connexion...")) : simulationMode ? (he ? "הדמיה" : "Simuler") : (he ? "התחברות" : "Se connecter")}
                           </Button>
                         )
                       ) : (
@@ -367,15 +369,15 @@ export function StepSocial({
           </div>
 
           <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2.5 text-center text-xs leading-relaxed text-blue-800">
-            Cette étape est entièrement facultative. Vous pourrez connecter vos canaux à tout moment depuis les Paramètres.
+            {he ? "השלב הזה אופציונלי לחלוטין. אפשר לחבר ערוצים בכל עת דרך ההגדרות." : "Cette étape est entièrement facultative. Vous pourrez connecter vos canaux à tout moment depuis les Paramètres."}
           </div>
         </CardContent>
       </Card>
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row">
         <Button variant="outline" size="lg" onClick={onPrev} className="w-full sm:w-auto" disabled={saving}>
-          <ChevronLeft className="size-4" />
-          Retour
+          <ChevronLeft className="rtl-mirror size-4" />
+          {he ? "חזרה" : "Retour"}
         </Button>
         <Button
           size="lg"
@@ -383,8 +385,8 @@ export function StepSocial({
           onClick={() => void onNext()}
           disabled={saving || connecting !== null}
         >
-          {saving ? <Loader2 className="size-4 animate-spin" /> : <ChevronRight className="size-4" />}
-          {saving ? "Ouverture de votre espace..." : "Accéder à EasyCom IA"}
+          {saving ? <Loader2 className="size-4 animate-spin" /> : <ChevronRight className="rtl-mirror size-4" />}
+          {saving ? (he ? "פותח את המרחב..." : "Ouverture de votre espace...") : (he ? "כניסה ל־EasyCom IA" : "Accéder à EasyCom IA")}
         </Button>
       </div>
     </div>

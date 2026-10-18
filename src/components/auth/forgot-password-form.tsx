@@ -6,8 +6,11 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { buildAuthCallbackUrl } from "@/lib/supabase/auth-redirect";
 import { Mail } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 export function ForgotPasswordForm() {
+  const t = useTranslations("auth");
+  const he = useLocale() === "he";
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -34,22 +37,22 @@ export function ForgotPasswordForm() {
     setLoading(false);
 
     if (error) {
-      setError("Impossible d’envoyer l’email de réinitialisation.");
+      setError(he ? "לא ניתן לשלוח את האימייל לאיפוס הסיסמה." : "Impossible d’envoyer l’email de réinitialisation.");
       return;
     }
 
-    setMessage("Si un compte existe avec cet email, un lien de réinitialisation vient d’être envoyé.");
+    setMessage(he ? "אם קיים חשבון עם הכתובת הזו, נשלח אליו קישור לאיפוס." : "Si un compte existe avec cet email, un lien de réinitialisation vient d’être envoyé.");
   }
 
   return (
     <main className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-md flex-col justify-center space-y-6">
       <div>
         <Link href="/auth/login" className="text-sm font-medium text-blue-600 hover:underline">
-          Retour à la connexion
+          {t("backToLogin")}
         </Link>
-        <h1 className="mt-6 text-2xl font-bold text-slate-900">Mot de passe oublié</h1>
+        <h1 className="mt-6 text-2xl font-bold text-slate-900">{t("forgotTitle")}</h1>
         <p className="mt-2 text-sm text-slate-500">
-          Indiquez votre email pour recevoir un lien de réinitialisation.
+          {he ? "הזינו את כתובת האימייל כדי לקבל קישור לאיפוס." : "Indiquez votre email pour recevoir un lien de réinitialisation."}
         </p>
       </div>
 
@@ -66,9 +69,9 @@ export function ForgotPasswordForm() {
         )}
 
         <label className="block space-y-1.5 text-sm font-medium text-slate-700">
-          Adresse email
+          {t("email")}
           <span className="relative block">
-            <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <Mail className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
               type="email"
               value={email}
@@ -76,13 +79,13 @@ export function ForgotPasswordForm() {
               required
               autoComplete="email"
               placeholder="vous@exemple.com"
-              className="w-full rounded-lg border border-slate-200 py-2.5 pl-10 pr-4 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="w-full rounded-lg border border-slate-200 py-2.5 ps-10 pe-4 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
           </span>
         </label>
 
         <Button type="submit" className="w-full" loading={loading}>
-          Envoyer le lien
+          {t("sendLink")}
         </Button>
       </form>
     </main>

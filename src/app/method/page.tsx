@@ -16,6 +16,7 @@ import {
   Sparkles,
   UserCheck,
 } from "lucide-react";
+import { getLocale } from "next-intl/server";
 
 const STEPS = [
   { number: "01", title: "Votre contexte", description: "On pose vos canaux, votre ton, vos habitudes et les publics à informer.", icon: UserCheck, tone: "border-blue-200 bg-blue-50 text-blue-800", line: "bg-blue-700" },
@@ -37,30 +38,41 @@ const COMMUNICATION_CARDS = [
   { label: "Réponses intelligentes", description: "L’IA prépare des réponses utiles, vous gardez le dernier mot.", icon: Sparkles, tone: "border-emerald-200 text-emerald-800 bg-emerald-50", line: "bg-emerald-600" },
 ];
 
-export const metadata: Metadata = {
-  title: "Notre méthode",
-  description:
-    "Découvrez comment EasyCom IA aide les communautés, associations et structures locales à centraliser, préparer et automatiser leur communication.",
-  alternates: { canonical: "/method" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const he = (await getLocale()) === "he";
+  return { title: he ? "השיטה שלנו" : "Notre méthode", description: he ? "גלו איך EasyCom IA עוזר לקהילות לרכז, להכין ולהפוך את התקשורת שלהן לאוטומטית." : "Découvrez comment EasyCom IA aide les communautés, associations et structures locales à centraliser, préparer et automatiser leur communication.", alternates: { canonical: "/method" }, openGraph: { locale: he ? "he_IL" : "fr_FR" } };
+}
 
-export default function MethodPage() {
+export default async function MethodPage() {
+  const he = (await getLocale()) === "he";
+  const steps = he ? [
+    { ...STEPS[0], title: "ההקשר שלכם", description: "מגדירים את הערוצים, הסגנון, ההרגלים והקהל שצריך לעדכן." },
+    { ...STEPS[1], title: "הכול במקום אחד", description: "רשתות, אימיילים, ביקורות, אנשי קשר, משאבים ואירועים מרוכזים יחד." },
+    { ...STEPS[2], title: "הסוכנים מכינים", description: "כל סוכן AI מטפל בתחום שלו ומכין פעולות לאישור." },
+    { ...STEPS[3], title: "אתם מאשרים", description: "מפרסמים, שולחים, מבצעים אוטומציה או מתאימים — תוך שמירה על שליטה." },
+  ] : STEPS;
+  const points = he ? ["AI שלומד את הסגנון ואופן התקשורת שלכם.", "ארגון פשוט בלי לדלג בין כלים.", "תוכן מוכן לפרסום, לבדיקה או לאוטומציה.", "תקשורת קבועה גם בשבועות עמוסים."] : METHOD_POINTS;
+  const cards = he ? [
+    { ...COMMUNICATION_CARDS[0], label: "פרסומים אוטומטיים", description: "הפוסטים והתזכורות החוזרים מוכנים בזמן הנכון." },
+    { ...COMMUNICATION_CARDS[1], label: "תקשורת מרוכזת", description: "Facebook, Instagram, WhatsApp, אימיילים וביקורות במרחב אחד." },
+    { ...COMMUNICATION_CARDS[2], label: "תשובות חכמות", description: "ה־AI מכין תשובות שימושיות, והמילה האחרונה שלכם." },
+  ] : COMMUNICATION_CARDS;
   return (
     <main className="min-h-screen bg-white text-slate-950">
       <PublicNavbar />
 
       <section className="border-b border-slate-200 bg-white px-4 py-16 text-center sm:px-6 lg:px-8 lg:py-20">
         <div className="mx-auto max-w-4xl">
-          <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-700">Notre méthode</p>
+          <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-700">{he ? "השיטה שלנו" : "Notre méthode"}</p>
           <h1 className="mt-4 text-[clamp(2.35rem,7vw,4.7rem)] font-black leading-[1.02] tracking-tight">
-            Une méthode claire pour faire avancer toute votre communication
+            {he ? "שיטה ברורה שמקדמת את כל התקשורת שלכם" : "Une méthode claire pour faire avancer toute votre communication"}
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-            EasyCom IA transforme vos idées, événements et messages importants en actions organisées, prêtes à publier ou à automatiser.
+            {he ? "EasyCom IA הופך רעיונות, אירועים והודעות חשובות לפעולות מאורגנות, מוכנות לפרסום או לאוטומציה." : "EasyCom IA transforme vos idées, événements et messages importants en actions organisées, prêtes à publier ou à automatiser."}
           </p>
           <div className="mt-8 flex justify-center">
             <Link href="/auth/login" className="inline-flex h-12 items-center justify-center rounded-full bg-blue-700 px-7 text-sm font-black text-white shadow-lg shadow-blue-900/20 transition hover:bg-blue-800">
-              Démarrer maintenant <ArrowRight className="ml-2 size-4" />
+              {he ? "מתחילים עכשיו" : "Démarrer maintenant"} <ArrowRight className="rtl-mirror ms-2 size-4" />
             </Link>
           </div>
         </div>
@@ -68,7 +80,7 @@ export default function MethodPage() {
 
       <section className="bg-slate-50 px-4 py-14 text-center sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-5 md:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((step) => (
+          {steps.map((step) => (
             <article key={step.number} className={`rounded-3xl border bg-white p-6 shadow-sm ${step.tone}`}>
               <div className={`mx-auto mb-5 h-1.5 w-12 rounded-full ${step.line}`} />
               <div className="mx-auto flex size-14 items-center justify-center rounded-2xl border bg-white shadow-sm">
@@ -88,16 +100,16 @@ export default function MethodPage() {
           <div className="flex flex-col items-center justify-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 px-3 py-1.5 text-xs font-black text-blue-900">
               <Bot className="size-4" />
-              Une équipe d&apos;agents IA à vos côtés
+              {he ? "צוות סוכני AI לצדכם" : "Une équipe d’agents IA à vos côtés"}
             </div>
             <h2 className="mt-5 max-w-3xl text-[clamp(2rem,8vw,3.75rem)] font-black leading-[1.04] tracking-tight">
-              Votre communication avance, <span className="bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-600 bg-clip-text text-transparent">même quand vous êtes occupé</span>
+              {he ? "התקשורת שלכם מתקדמת, " : "Votre communication avance, "}<span className="bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-600 bg-clip-text text-transparent">{he ? "גם כשאתם עסוקים" : "même quand vous êtes occupé"}</span>
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-              Les agents préparent vos contenus, organisent vos automatisations, suivent vos emails et vos avis, puis vous aident à publier sur les bons canaux.
+              {he ? "הסוכנים מכינים את התוכן, מארגנים אוטומציות, עוקבים אחר אימיילים וביקורות ועוזרים לפרסם בערוצים הנכונים." : "Les agents préparent vos contenus, organisent vos automatisations, suivent vos emails et vos avis, puis vous aident à publier sur les bons canaux."}
             </p>
             <div className="mt-8 grid max-w-2xl gap-4 sm:grid-cols-3">
-              {COMMUNICATION_CARDS.map(({ label, description, icon: Icon, tone, line }) => (
+              {cards.map(({ label, description, icon: Icon, tone, line }) => (
                 <article key={label} className={`rounded-2xl border bg-white p-5 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-xl ${tone}`}>
                   <div className={`mx-auto mb-4 h-1 w-12 rounded-full ${line}`} />
                   <div className={`mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-xl border bg-white ${tone}`}>
@@ -109,8 +121,8 @@ export default function MethodPage() {
               ))}
             </div>
             <Link href="/auth/login" className="animate-home-shimmer mt-8 inline-flex h-12 items-center justify-center rounded-full bg-[linear-gradient(110deg,#172554,#1e3a8a,#2563eb,#1e3a8a,#172554)] bg-[length:220%_100%] px-7 text-sm font-bold text-white shadow-lg shadow-blue-950/30">
-              <LogIn className="mr-2 size-4" />
-              Essayer maintenant
+              <LogIn className="me-2 size-4" />
+              {he ? "לנסות עכשיו" : "Essayer maintenant"}
             </Link>
           </div>
           <div className="relative flex items-center">
@@ -121,12 +133,12 @@ export default function MethodPage() {
 
       <section className="bg-slate-950 px-4 py-16 text-center text-white sm:px-6 lg:px-8">
         <div className="mx-auto max-w-5xl">
-          <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-300">Pourquoi ça change tout</p>
+          <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-300">{he ? "למה זה משנה הכול" : "Pourquoi ça change tout"}</p>
           <h2 className="mx-auto mt-4 max-w-3xl text-3xl font-black sm:text-4xl">
-            Une méthode pensée pour les équipes qui ont peu de temps, mais beaucoup à communiquer
+            {he ? "שיטה לצוותים עם מעט זמן והרבה מה לתקשר" : "Une méthode pensée pour les équipes qui ont peu de temps, mais beaucoup à communiquer"}
           </h2>
           <div className="mt-10 grid gap-4 md:grid-cols-2">
-            {METHOD_POINTS.map((point) => (
+            {points.map((point) => (
               <div key={point} className="rounded-3xl border border-white/10 bg-white/5 p-6">
                 <CheckCircle2 className="mx-auto size-7 text-blue-300" />
                 <p className="mt-4 text-sm font-semibold leading-7 text-slate-200">{point}</p>
@@ -135,18 +147,18 @@ export default function MethodPage() {
           </div>
           <div className="mx-auto mt-8 max-w-2xl rounded-3xl border border-white/10 bg-white/5 p-6">
             <ShieldCheck className="mx-auto size-8 text-emerald-300" />
-            <h3 className="mt-4 text-xl font-black">Votre contrôle reste central</h3>
+            <h3 className="mt-4 text-xl font-black">{he ? "השליטה שלכם נשארת במרכז" : "Votre contrôle reste central"}</h3>
             <p className="mt-3 text-sm leading-7 text-slate-300">
-              L’IA propose, vous validez. Le ton, les délais, les canaux et le niveau d’automatisation restent entre vos mains.
+              {he ? "ה־AI מציע, אתם מאשרים. הסגנון, הזמנים, הערוצים ורמת האוטומציה נשארים בידיים שלכם." : "L’IA propose, vous validez. Le ton, les délais, les canaux et le niveau d’automatisation restent entre vos mains."}
             </p>
           </div>
         </div>
       </section>
 
       <section className="px-4 py-16 text-center sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-black">Prêt à simplifier votre communication ?</h2>
+        <h2 className="text-3xl font-black">{he ? "מוכנים לפשט את התקשורת שלכם?" : "Prêt à simplifier votre communication ?"}</h2>
         <Link href="/auth/login" className="mt-8 inline-flex items-center gap-2 rounded-full bg-blue-700 px-8 py-4 font-black text-white shadow-xl shadow-blue-600/20 transition hover:bg-blue-800">
-          Créer mon compte gratuitement <ArrowRight className="size-5" />
+          {he ? "יצירת חשבון בחינם" : "Créer mon compte gratuitement"} <ArrowRight className="rtl-mirror size-5" />
         </Link>
       </section>
 

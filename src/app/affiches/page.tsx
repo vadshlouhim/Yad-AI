@@ -5,20 +5,16 @@ import { PublicPosterGallery } from "@/components/templates/public-poster-galler
 import type { PosterGalleryTemplate } from "@/components/templates/poster-gallery";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
+import { getLocale } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Affiches et visuels — EasyCom IA",
-  description: "Parcourez la banque publique d'affiches EasyCom IA et découvrez les modèles personnalisables avec l'intelligence artificielle.",
-  alternates: { canonical: "/affiches" },
-  openGraph: {
-    title: "Affiches et visuels — EasyCom IA",
-    description: "Découvrez toutes les affiches publiques disponibles dans la banque visuelle EasyCom IA.",
-    url: "/affiches",
-    type: "website",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const he = (await getLocale()) === "he";
+  const title = he ? "מודעות ופליירים — EasyCom IA" : "Affiches et visuels — EasyCom IA";
+  const description = he ? "גלו את מאגר המודעות הציבורי של EasyCom IA ואת התבניות שאפשר להתאים בעזרת AI." : "Parcourez la banque publique d'affiches EasyCom IA et découvrez les modèles personnalisables avec l'intelligence artificielle.";
+  return { title, description, alternates: { canonical: "/affiches" }, openGraph: { title, description, url: "/affiches", type: "website", locale: he ? "he_IL" : "fr_FR" } };
+}
 
 export default async function PublicPostersPage() {
   const admin = createAdminClient();

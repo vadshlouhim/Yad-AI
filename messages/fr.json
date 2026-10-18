@@ -1,43 +1,81 @@
 {
-  "common": { "comingSoon": "Bientôt disponible" },
+  "common": {
+    "comingSoon": "Bientôt disponible",
+    "back": "Retour",
+    "continue": "Continuer",
+    "cancel": "Annuler",
+    "loading": "Chargement…",
+    "learnMore": "En savoir plus"
+  },
   "nav": {
-    "home": "Accueil",
-    "features": "Fonctionnalités",
-    "tools": "Outils",
-    "comingSoon": "À venir",
-    "method": "Notre méthode",
-    "posters": "Affiches",
-    "demo": "Démo",
-    "blog": "Blog",
-    "pricing": "Tarification",
-    "pricingShort": "Tarifs",
-    "faq": "FAQ",
-    "contact": "Contact",
-    "login": "Se connecter",
-    "loginShort": "Connexion",
-    "tryFree": "Essayer gratuitement",
-    "try": "Essayer",
-    "brandHome": "EasyCom IA, accueil",
-    "primaryLabel": "Navigation principale",
-    "mobileLabel": "Navigation mobile",
-    "menuLabel": "Menu de navigation",
-    "openMenu": "Ouvrir le menu",
-    "closeMenu": "Fermer le menu"
+    "home": "Accueil", "features": "Fonctionnalités", "tools": "Outils", "comingSoon": "À venir",
+    "method": "Notre méthode", "posters": "Affiches", "demo": "Démo", "blog": "Blog",
+    "pricing": "Tarification", "pricingShort": "Tarifs", "faq": "FAQ", "contact": "Contact",
+    "login": "Se connecter", "loginShort": "Connexion", "tryFree": "Essayer gratuitement", "try": "Essayer",
+    "brandHome": "EasyCom IA, accueil", "tagline": "Communication communautaire",
+    "primaryLabel": "Navigation principale", "mobileLabel": "Navigation mobile", "menuLabel": "Menu de navigation",
+    "openMenu": "Ouvrir le menu", "closeMenu": "Fermer le menu"
   },
   "languageSwitcher": {
-    "label": "Choisir la langue de l’interface",
-    "french": "Français",
-    "hebrew": "Hébreu",
-    "english": "Anglais",
-    "selectFrench": "Afficher l’interface en français",
-    "selectHebrew": "Afficher l’interface en hébreu",
-    "englishUnavailable": "Anglais — bientôt disponible",
-    "settingsTitle": "Langue de l’interface",
+    "label": "Choisir la langue de l’interface", "french": "Français", "hebrew": "Hébreu", "english": "Anglais",
+    "selectFrench": "Afficher l’interface en français", "selectHebrew": "Afficher l’interface en hébreu",
+    "englishUnavailable": "Anglais — bientôt disponible", "settingsTitle": "Langue de l’interface",
     "settingsDescription": "Choisissez la langue utilisée pour naviguer dans EasyCom IA."
   },
-  "dashboard": {
-    "welcome": "Bienvenue, {name}",
-    "mainMenu": "Menu principal",
-    "smartCrm": "CRM intelligent"
-  }
+  "footer": {
+    "description": "Assistant IA de communication, automatisation et visibilité.", "siteMap": "Plan du site",
+    "privacy": "Règles de confidentialité", "terms": "Conditions d’utilisation", "cookies": "Cookies",
+    "deleteData": "Suppression des données", "linksLabel": "Liens de pied de page",
+    "rights": "© {year} EasyCom IA. Tous droits réservés.", "madeBy": "Site et projet réalisé par",
+    "responsible": "Communication IA responsable et accompagnée."
+  },
+  "home": {
+    "skip": "Aller au contenu", "previewLoading": "Ouverture de l’aperçu…", "watchVideo": "Regarder la vidéo",
+    "title1": "Toute la communication", "title2": "de votre synagogue.", "title3": "Au même endroit.",
+    "subtitle": "Publiez, créez, automatisez. Vos agents IA s’occupent du reste.",
+    "discoverUpcoming": "Découvrir les nouveautés à venir", "agentAria": "Dov Ber, votre agent de communication",
+    "simpleStart": "Pour commencer simplement", "reassurance1": "Sans engagement",
+    "reassurance2": "Configuration en 5 minutes", "reassurance3": "Support en français",
+    "presentationVideo": "Vidéo de présentation générale d’EasyCom AI", "enableSound": "Activer le son de la vidéo",
+    "disableSound": "Couper le son de la vidéo", "soundOn": "Son activé", "videoLoading": "Chargement de la vidéo…",
+    "videoUnavailable": "La vidéo est momentanément indisponible.", "demoAria": "Démonstration d’EasyCom AI",
+    "demoImageAlt": "Découvrez EasyCom AI en action", "playDemo": "Lire la démonstration d’EasyCom AI",
+    "demoLabel": "Démonstration — données fictives", "whatToDo": "Que souhaitez-vous faire ?",
+    "toolsLabel": "outils", "shop": "Boutique et Articles", "online": "En ligne", "posters": "Affiches & Visuels",
+    "agents": "Vos agents IA", "specializedAgents": "Vos agents IA spécialisés", "tryTitle": "Essayez EasyCom AI",
+    "specialOffer": "Offre spéciale", "gift": "Profitez de deux semaines offertes avec toutes les fonctionnalités !",
+    "firstMonth": "le premier mois", "thenPrice": "Puis 19,99 €/mois sans engagement",
+    "faqTitle": "Questions fréquentes", "faq1q": "EasyCom AI est-il réservé aux Beth Habad ?",
+    "faq1a": "Non. EasyCom AI s’adresse aux synagogues, Beth Habad et associations communautaires qui souhaitent réunir leur communication au même endroit.",
+    "faq2q": "Puis-je arrêter mon abonnement quand je veux ?",
+    "faq2a": "Oui. Votre abonnement est sans engagement et peut être annulé à tout moment depuis l’espace Paiement.",
+    "final1": "Vous vous occupez de votre communauté.", "final2": "EasyCom AI s’occupe de votre communication.",
+    "footerNav": "Navigation de pied de page", "legalLinks": "Liens légaux", "question": "Une question ?",
+    "chat": "Discutez avec nous", "whatsapp": "Contacter EasyCom AI sur WhatsApp"
+  },
+  "auth": {
+    "loginTitle": "Connexion", "registerTitle": "Créer votre compte", "forgotTitle": "Mot de passe oublié",
+    "resetTitle": "Réinitialisation du mot de passe", "errorTitle": "Erreur d’authentification",
+    "email": "Adresse e-mail", "password": "Mot de passe", "name": "Nom complet", "login": "Se connecter",
+    "register": "Créer mon compte", "google": "Continuer avec Google", "forgot": "Mot de passe oublié ?",
+    "noAccount": "Pas encore de compte ?", "hasAccount": "Déjà un compte ?", "createAccount": "Créer un compte",
+    "backToLogin": "Retour à la connexion", "sendLink": "Envoyer le lien", "reset": "Mettre à jour le mot de passe",
+    "checkEmail": "Vérifiez votre email", "or": "ou"
+  },
+  "blog": {
+    "frenchOnly": "Cet article est disponible en français.",
+    "frenchOnlyList": "Les articles sont actuellement disponibles en français.",
+    "alsoRead": "À lire aussi", "back": "Retour au blog"
+  },
+  "legal": { "frenchOnly": "Ce document est actuellement disponible en français." },
+  "glossary": {
+    "shabbat": "Chabbat", "parasha": "Paracha", "shabbatLeaflet": "Feuillet de Chabbat",
+    "rabbiWord": "Mot du Rav", "shabbatTimes": "Horaires de Chabbat", "entry": "Entrée", "exit": "Sortie",
+    "jewishHolidays": "Fêtes juives", "torahClass": "Cours de Torah", "jewishBirthday": "Anniversaire juif",
+    "yahrzeit": "Yahrzeit", "hayomYom": "Hayom Yom", "seferHamitzvot": "Sefer Hamitsvot",
+    "kiddush": "Kidouch", "parnessHayom": "Parness Hayom", "community": "Communauté",
+    "beitChabad": "Beth Habad", "shluchim": "Shlou’him", "posters": "Affiches",
+    "aiAgents": "Agents IA", "dashboard": "Tableau de bord"
+  },
+  "dashboard": { "welcome": "Bienvenue, {name}", "mainMenu": "Menu principal", "smartCrm": "CRM intelligent" }
 }

@@ -7,10 +7,13 @@ import { ArrowRight, FileText, Search, Sparkles } from "lucide-react";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicNavbar } from "@/components/layout/public-navbar";
 import type { BlogArticle } from "@/lib/blog/articles";
+import { useLocale, useTranslations } from "next-intl";
 
 const ARTICLES_PER_PAGE = 6;
 
 export function BlogIndexClient({ articles }: { articles: BlogArticle[] }) {
+  const he = useLocale() === "he";
+  const blog = useTranslations("blog");
   const [query, setQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const normalizedQuery = query.trim().toLowerCase();
@@ -43,30 +46,31 @@ export function BlogIndexClient({ articles }: { articles: BlogArticle[] }) {
   return (
     <main className="min-h-screen bg-white text-slate-950">
       <PublicNavbar />
+      {he ? <p className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-bold text-amber-900">{blog("frenchOnlyList")}</p> : null}
 
       <section className="border-b border-slate-200 bg-white px-4 py-16 text-center sm:px-6 lg:px-8 lg:py-20">
         <div className="mx-auto max-w-4xl">
           <p className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-blue-700">
             <Sparkles className="size-3.5" />
-            Blog EasyCom IA
+            {he ? "הבלוג של EasyCom IA" : "Blog EasyCom IA"}
           </p>
           <h1 className="mx-auto mt-5 max-w-4xl text-[clamp(2.3rem,7vw,4.5rem)] font-black leading-[1.02] tracking-tight">
-            Guides pratiques pour mieux communiquer avec l’IA
+            {he ? "מדריכים מעשיים לתקשורת טובה יותר עם AI" : "Guides pratiques pour mieux communiquer avec l’IA"}
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-            Réseaux sociaux, WhatsApp, email, avis Google, référencement et automatisations : des ressources simples pour communiquer plus régulièrement.
+            {he ? "רשתות חברתיות, WhatsApp, אימייל, ביקורות Google, קידום ואוטומציות: משאבים פשוטים לתקשורת קבועה יותר." : "Réseaux sociaux, WhatsApp, email, avis Google, référencement et automatisations : des ressources simples pour communiquer plus régulièrement."}
           </p>
 
           <label className="relative mx-auto mt-8 block max-w-2xl">
-            <Search className="pointer-events-none absolute left-5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute start-5 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
             <input
               value={query}
               onChange={(event) => {
                 setQuery(event.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Rechercher : WhatsApp, SEO, avis Google..."
-              className="h-14 w-full rounded-full border border-slate-200 bg-white pl-13 pr-5 text-center text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+              placeholder={he ? "חיפוש: WhatsApp, SEO, ביקורות Google..." : "Rechercher : WhatsApp, SEO, avis Google..."}
+              className="h-14 w-full rounded-full border border-slate-200 bg-white ps-13 pe-5 text-center text-sm font-semibold text-slate-800 shadow-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
             />
           </label>
         </div>
@@ -92,7 +96,7 @@ export function BlogIndexClient({ articles }: { articles: BlogArticle[] }) {
                 )}
               </div>
               <article className="flex flex-col items-center justify-center p-6 sm:p-8">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">Article à la une</p>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">{he ? "מאמר מומלץ" : "Article à la une"}</p>
                 <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950">{featuredArticle.title}</h2>
                 <p className="mt-4 text-sm leading-7 text-slate-600">{featuredArticle.excerpt}</p>
                 <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -103,7 +107,7 @@ export function BlogIndexClient({ articles }: { articles: BlogArticle[] }) {
                   ))}
                 </div>
                 <span className="mt-6 inline-flex items-center gap-2 text-sm font-black text-blue-700">
-                  Lire l’article <ArrowRight className="size-4" />
+                  {he ? "קריאת המאמר" : "Lire l’article"} <ArrowRight className="rtl-mirror size-4" />
                 </span>
               </article>
             </Link>
@@ -130,20 +134,20 @@ export function BlogIndexClient({ articles }: { articles: BlogArticle[] }) {
 
           {filteredArticles.length === 0 && (
             <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-10 text-center">
-              <p className="text-lg font-black text-slate-950">Aucun article trouvé</p>
-              <p className="mt-2 text-sm text-slate-500">Essayez une recherche plus large, par exemple “WhatsApp” ou “SEO”.</p>
+              <p className="text-lg font-black text-slate-950">{he ? "לא נמצאו מאמרים" : "Aucun article trouvé"}</p>
+              <p className="mt-2 text-sm text-slate-500">{he ? "נסו חיפוש רחב יותר, למשל WhatsApp או SEO." : "Essayez une recherche plus large, par exemple “WhatsApp” ou “SEO”."}</p>
             </div>
           )}
 
           {filteredArticles.length > ARTICLES_PER_PAGE && (
-            <nav className="mt-10 flex flex-wrap items-center justify-center gap-2" aria-label="Pagination du blog">
+            <nav className="mt-10 flex flex-wrap items-center justify-center gap-2" aria-label={he ? "עמודי הבלוג" : "Pagination du blog"}>
               <button
                 type="button"
                 onClick={() => goToPage(Math.max(1, safeCurrentPage - 1))}
                 disabled={safeCurrentPage === 1}
                 className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Précédent
+                {he ? "הקודם" : "Précédent"}
               </button>
               {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
                 <button
@@ -166,7 +170,7 @@ export function BlogIndexClient({ articles }: { articles: BlogArticle[] }) {
                 disabled={safeCurrentPage === totalPages}
                 className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Suivant
+                {he ? "הבא" : "Suivant"}
               </button>
             </nav>
           )}

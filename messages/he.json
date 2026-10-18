@@ -1,43 +1,73 @@
 {
-  "common": { "comingSoon": "בקרוב" },
+  "common": {
+    "comingSoon": "בקרוב", "back": "חזרה", "continue": "המשך", "cancel": "ביטול",
+    "loading": "בטעינה…", "learnMore": "למידע נוסף"
+  },
   "nav": {
-    "home": "דף הבית",
-    "features": "תכונות",
-    "tools": "כלים",
-    "comingSoon": "בקרוב",
-    "method": "השיטה שלנו",
-    "posters": "מודעות",
-    "demo": "הדגמה",
-    "blog": "בלוג",
-    "pricing": "תמחור",
-    "pricingShort": "מחירים",
-    "faq": "שאלות נפוצות",
-    "contact": "יצירת קשר",
-    "login": "התחברות",
-    "loginShort": "התחברות",
-    "tryFree": "נסו בחינם",
-    "try": "נסו",
-    "brandHome": "EasyCom IA, דף הבית",
-    "primaryLabel": "ניווט ראשי",
-    "mobileLabel": "ניווט בנייד",
-    "menuLabel": "תפריט ניווט",
-    "openMenu": "פתיחת התפריט",
-    "closeMenu": "סגירת התפריט"
+    "home": "דף הבית", "features": "תכונות", "tools": "כלים", "comingSoon": "בקרוב",
+    "method": "השיטה שלנו", "posters": "מודעות", "demo": "הדגמה", "blog": "בלוג",
+    "pricing": "תמחור", "pricingShort": "מחירים", "faq": "שאלות נפוצות", "contact": "יצירת קשר",
+    "login": "התחברות", "loginShort": "התחברות", "tryFree": "נסו בחינם", "try": "נסו",
+    "brandHome": "EasyCom IA, דף הבית", "tagline": "תקשורת קהילתית",
+    "primaryLabel": "ניווט ראשי", "mobileLabel": "ניווט בנייד", "menuLabel": "תפריט ניווט",
+    "openMenu": "פתיחת התפריט", "closeMenu": "סגירת התפריט"
   },
   "languageSwitcher": {
-    "label": "בחירת שפת הממשק",
-    "french": "צרפתית",
-    "hebrew": "עברית",
-    "english": "אנגלית",
-    "selectFrench": "הצגת הממשק בצרפתית",
-    "selectHebrew": "הצגת הממשק בעברית",
-    "englishUnavailable": "אנגלית — בקרוב",
-    "settingsTitle": "שפת הממשק",
+    "label": "בחירת שפת הממשק", "french": "צרפתית", "hebrew": "עברית", "english": "אנגלית",
+    "selectFrench": "הצגת הממשק בצרפתית", "selectHebrew": "הצגת הממשק בעברית",
+    "englishUnavailable": "אנגלית — בקרוב", "settingsTitle": "שפת הממשק",
     "settingsDescription": "בחרו את השפה שבה תנווטו ב־EasyCom IA."
   },
-  "dashboard": {
-    "welcome": "ברוכים הבאים, {name}",
-    "mainMenu": "תפריט ראשי",
-    "smartCrm": "CRM חכם"
-  }
+  "footer": {
+    "description": "עוזר AI לתקשורת, אוטומציה ונראות.", "siteMap": "מפת האתר", "privacy": "מדיניות פרטיות",
+    "terms": "תנאי שימוש", "cookies": "עוגיות", "deleteData": "מחיקת נתונים",
+    "linksLabel": "קישורים בתחתית האתר", "rights": "© {year} EasyCom IA. כל הזכויות שמורות.",
+    "madeBy": "האתר והמיזם נוצרו על ידי", "responsible": "תקשורת AI אחראית ומלווה."
+  },
+  "home": {
+    "skip": "מעבר לתוכן", "previewLoading": "התצוגה המקדימה נפתחת…", "watchVideo": "צפייה בסרטון",
+    "title1": "כל התקשורת", "title2": "של בית הכנסת שלכם.", "title3": "במקום אחד.",
+    "subtitle": "מפרסמים, יוצרים ומבצעים אוטומציה. סוכני ה־AI שלכם מטפלים בשאר.",
+    "discoverUpcoming": "לגלות מה חדש ובקרוב", "agentAria": "Dov Ber, סוכן התקשורת שלכם",
+    "simpleStart": "מתחילים בפשטות", "reassurance1": "ללא התחייבות", "reassurance2": "הגדרה בתוך 5 דקות",
+    "reassurance3": "תמיכה בצרפתית", "presentationVideo": "סרטון היכרות עם EasyCom AI",
+    "enableSound": "הפעלת הצליל בסרטון", "disableSound": "השתקת הסרטון", "soundOn": "הצליל מופעל",
+    "videoLoading": "הסרטון נטען…", "videoUnavailable": "הסרטון אינו זמין כרגע.",
+    "demoAria": "הדגמה של EasyCom AI", "demoImageAlt": "EasyCom AI בפעולה",
+    "playDemo": "הפעלת ההדגמה של EasyCom AI", "demoLabel": "הדגמה — נתונים לדוגמה",
+    "whatToDo": "מה תרצו לעשות?", "toolsLabel": "כלים", "shop": "חנות ומוצרים", "online": "באינטרנט",
+    "posters": "מודעות ופליירים", "agents": "סוכני ה־AI שלכם", "specializedAgents": "סוכני ה־AI המקצועיים שלכם",
+    "tryTitle": "נסו את EasyCom AI", "specialOffer": "הצעה מיוחדת",
+    "gift": "קבלו שבועיים במתנה עם כל התכונות!", "firstMonth": "בחודש הראשון",
+    "thenPrice": "לאחר מכן 19.99 € לחודש, ללא התחייבות", "faqTitle": "שאלות נפוצות",
+    "faq1q": "האם EasyCom AI מיועד רק לבתי חב״ד?",
+    "faq1a": "לא. EasyCom AI מיועד לבתי כנסת, בתי חב״ד וארגונים קהילתיים שרוצים לרכז את התקשורת שלהם במקום אחד.",
+    "faq2q": "אפשר לבטל את המנוי בכל עת?",
+    "faq2a": "כן. המנוי ללא התחייבות ואפשר לבטל אותו בכל עת מאזור התשלומים.",
+    "final1": "אתם מטפלים בקהילה שלכם.", "final2": "EasyCom AI מטפל בתקשורת שלכם.",
+    "footerNav": "ניווט בתחתית האתר", "legalLinks": "קישורים משפטיים",
+    "question": "יש לכם שאלה?", "chat": "דברו איתנו", "whatsapp": "יצירת קשר עם EasyCom AI ב־WhatsApp"
+  },
+  "auth": {
+    "loginTitle": "התחברות", "registerTitle": "יצירת החשבון שלכם", "forgotTitle": "שכחתם את הסיסמה?",
+    "resetTitle": "איפוס הסיסמה", "errorTitle": "שגיאת אימות", "email": "כתובת אימייל",
+    "password": "סיסמה", "name": "שם מלא", "login": "התחברות", "register": "יצירת חשבון",
+    "google": "המשך עם Google", "forgot": "שכחתם סיסמה?", "noAccount": "עדיין אין לכם חשבון?",
+    "hasAccount": "כבר יש לכם חשבון?", "createAccount": "יצירת חשבון", "backToLogin": "חזרה להתחברות",
+    "sendLink": "שליחת הקישור", "reset": "עדכון הסיסמה", "checkEmail": "בדקו את תיבת האימייל", "or": "או"
+  },
+  "blog": {
+    "frenchOnly": "המאמר זמין בצרפתית.", "frenchOnlyList": "המאמרים זמינים כעת בצרפתית.",
+    "alsoRead": "כדאי לקרוא גם", "back": "חזרה לבלוג"
+  },
+  "legal": { "frenchOnly": "מסמך זה זמין כרגע בצרפתית." },
+  "glossary": {
+    "shabbat": "שבת", "parasha": "פרשת השבוע", "shabbatLeaflet": "עלון שבת", "rabbiWord": "דבר הרב",
+    "shabbatTimes": "זמני שבת", "entry": "כניסת שבת", "exit": "יציאת שבת", "jewishHolidays": "חגי ישראל",
+    "torahClass": "שיעור תורה", "jewishBirthday": "יום הולדת עברי", "yahrzeit": "יארצייט",
+    "hayomYom": "היום יום", "seferHamitzvot": "ספר המצוות", "kiddush": "קידוש",
+    "parnessHayom": "פרנס היום", "community": "קהילה", "beitChabad": "בית חב״ד", "shluchim": "שלוחים",
+    "posters": "מודעות / פליירים", "aiAgents": "סוכני AI", "dashboard": "לוח בקרה"
+  },
+  "dashboard": { "welcome": "ברוכים הבאים, {name}", "mainMenu": "תפריט ראשי", "smartCrm": "CRM חכם" }
 }

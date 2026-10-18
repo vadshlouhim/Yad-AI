@@ -168,3 +168,20 @@ export const HOME_EASYCOM_AGENTS: readonly EasyComAgent[] = [
 export function getEasyComAgent(slug: string) {
   return EASYCOM_AGENTS.find((agent) => agent.slug === slug);
 }
+
+const HE_AGENT_COPY: Record<string, Pick<EasyComAgent, "role" | "marketingTitle" | "shortDescription" | "description" | "details" | "capabilities">> = {
+  shlomi: { role: "מתאם AI", marketingTitle: "הכול מתקדם יחד.", shortDescription: "הוא מתאם בין הסוכנים ועוזר לנהל את כל התקשורת ממרחב אחד.", description: "Shlomi הוא נקודת הכניסה שלכם. הוא מבין את הצורך, מגייס את הסוכן הנכון ועוזר לעקוב אחר ההתקדמות.", details: "ספרו לו מה תרצו להשיג: הוא יכוון אתכם, יכין תוכנית פעולה ויחבר בין הפעילויות כדי לשמור על תקשורת עקבית.", capabilities: ["מכוון לסוכן הנכון", "מרכז את הפעולות לביצוע", "שומר על תמונה כוללת של התקשורת"] },
+  david: { role: "אוטומציות", marketingTitle: "השגרה שלכם. אוטומטית.", shortDescription: "הוא מגדיר שגרות, תזכורות, פרסומים ופעולות חוזרות בזמן הנכון.", description: "David הופך הרגלי תקשורת לאוטומציות פשוטות ואמינות.", details: "הוא עוזר לתזמן תזכורות לאירועים, פרסומים קבועים ורצפים שימושיים, כך שהפעולות החשובות לא תלויות בזיכרון.", capabilities: ["יוצר שגרות חוזרות", "מתזמן תזכורות ופרסומים", "מאפשר לבחור את רמת האישור"] },
+  dov: { role: "רשתות חברתיות", marketingTitle: "Instagram, בלי מאמץ.", shortDescription: "הוא מכין תוכן שיעזור לכם להישאר נוכחים עם פרסומים עקביים.", description: "Dov הופך רעיון, אירוע או חדשות לתוכן Instagram מוכן לפרסום.", details: "הוא מציע טקסטים, זוויות ופרסומים שמתאימים לעולם שלכם, כדי שתוכלו לתקשר בקביעות בלי להתחיל מאפס.", capabilities: ["מכין פרסומים וכיתובים", "מתאים את הסגנון לארגון", "עוזר לשמור על נוכחות קבועה"] },
+  mendy: { role: "Facebook", marketingTitle: "Facebook, תמיד חי.", shortDescription: "הוא עוזר ליצור ולפרסם תוכן שמתאים לעמוד ה־Facebook שלכם.", description: "Mendy עוזר לתקשר בבהירות עם הקהילה ב־Facebook.", details: "ממידע פשוט הוא מכין מסר מובנה, קל לבדיקה ומוכן לפרסום. המילה האחרונה תמיד שלכם.", capabilities: ["כותב פוסטים ל־Facebook", "מדגיש את החדשות שלכם", "מכין את הפרסום בכמה שלבים"] },
+  israel: { role: "WhatsApp", marketingTitle: "המסר הנכון. בזמן הנכון.", shortDescription: "הוא מכין הודעות, תזכורות ושליחות WhatsApp כדי לשמור על קשר בפשטות.", description: "Israël עוזר לשמור על תקשורת קרובה ב־WhatsApp בלי לבזבז זמן על ניסוח.", details: "הוא מכין הודעות קצרות שמתאימות לכל מצב: מידע חשוב, תזכורת, הזמנה או פנייה חוזרת. אפשר להתאים לפני השליחה.", capabilities: ["מכין הודעות WhatsApp", "עוזר לפנות שוב בזמן הנכון", "מפשט שליחות חוזרות"] },
+  levik: { role: "אימיילים", marketingTitle: "תיבת האימייל שלכם, בשליטה.", shortDescription: "הוא עוזר למיין, לנסח ולשלוח אימיילים תוך שמירה על הסגנון שלכם.", description: "Levik עושה סדר בתקשורת באימייל ועוזר לענות מהר יותר.", details: "הוא מקל על הכנת תשובות, ניסוח הודעות חשובות ומעקב אחר מסרים שדורשים תשומת לב.", capabilities: ["עוזר למיין אימיילים", "מכין תשובות שאפשר להתאים", "מנסח הודעות חשובות"] },
+  barouh: { role: "ביקורות Google", marketingTitle: "כל ביקורת חשובה.", shortDescription: "הוא עוקב אחר ביקורות, מכין תשובות מתאימות ועוזר לטפח את המוניטין.", description: "Barouh עוזר לעקוב אחר המוניטין המקומי ולא להשאיר ביקורת חשובה ללא מענה.", details: "הוא מזהה ביקורות חדשות, מציע תשובות בסגנון שלכם ועוזר לשמור על קשר קשוב עם מי שמגלה אתכם ב־Google.", capabilities: ["מרכז ביקורות Google", "מציע תשובות מתאימות", "עוזר להגן על המוניטין"] },
+  shmouel: { role: "שיעורי תורה", marketingTitle: "מגבירים את ההשפעה של השיעורים.", shortDescription: "הוא הופך רעיונות ושיעורים לתוכן מוכן לשיתוף עם הקהילה.", description: "Shmouel מעצב את השיעורים והתובנות כדי שימשיכו לחיות גם אחרי שנאמרו.", details: "הוא עוזר ליצור סיכומים, הודעות ותוכן מעורר השראה מהרעיונות שלכם, כדי לשתף אותם בקלות.", capabilities: ["הופך רעיון לתוכן", "מכין סיכומים קלים לשיתוף", "תומך בתקשורת סביב השיעורים"] },
+};
+
+export function getLocalizedEasyComAgent(slug: string, locale: string) {
+  const agent = getEasyComAgent(slug);
+  if (!agent || locale !== "he") return agent;
+  return { ...agent, ...HE_AGENT_COPY[slug] };
+}

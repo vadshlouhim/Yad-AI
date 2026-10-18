@@ -4,16 +4,21 @@ import { RegisterForm } from "@/components/auth/register-form";
 import type { Metadata } from "next";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { CheckCircle2, CalendarDays, Sparkles, Share2, Users } from "lucide-react";
+import { getLocale } from "next-intl/server";
 
-export const metadata: Metadata = {
-  title: "Créer un compte — EasyCom IA",
-  description: "Démarrez avec EasyCom IA gratuitement",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const he = (await getLocale()) === "he";
+  return { title: he ? "יצירת חשבון — EasyCom IA" : "Créer un compte — EasyCom IA", description: he ? "מתחילים עם EasyCom IA בחינם" : "Démarrez avec EasyCom IA gratuitement", openGraph: { locale: he ? "he_IL" : "fr_FR" } };
+}
 
-export default function RegisterPage() {
+export default async function RegisterPage() {
   if (!isSupabaseConfigured()) {
     redirect("/");
   }
+  const he = (await getLocale()) === "he";
+  const benefits = he
+    ? [{ icon: Users, text: "פרופיל קהילה מלא" }, { icon: Sparkles, text: "יצירת תוכן AI ללא הגבלה" }, { icon: CalendarDays, text: "תכנון אוטומטי של אירועים" }, { icon: Share2, text: "הפצה ב־Instagram, Facebook, WhatsApp, Telegram ובאימייל" }, { icon: CheckCircle2, text: "תמיכה מועדפת" }]
+    : [{ icon: Users, text: "Profil communauté complet" }, { icon: Sparkles, text: "Génération de contenu IA illimitée" }, { icon: CalendarDays, text: "Planification automatique des événements" }, { icon: Share2, text: "Diffusion sur Instagram, Facebook, WhatsApp, Telegram et Email" }, { icon: CheckCircle2, text: "Support prioritaire" }];
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Panneau gauche — Brand */}
@@ -30,22 +35,16 @@ export default function RegisterPage() {
         <div className="space-y-6">
           <div className="space-y-3">
             <h1 className="text-4xl font-bold leading-tight">
-              Découvrez EasyCom IA
+              {he ? "מגלים את EasyCom IA" : "Découvrez EasyCom IA"}
             </h1>
             <p className="text-blue-200 text-lg leading-relaxed">
-              Explorez l&apos;application et configurez votre communauté en moins de 2 minutes.
+              {he ? "מכירים את היישום ומגדירים את הקהילה בפחות משתי דקות." : "Explorez l’application et configurez votre communauté en moins de 2 minutes."}
             </p>
           </div>
 
           <div className="bg-white/10 rounded-2xl p-6 space-y-3">
-            <p className="font-semibold text-white">Ce que vous obtenez :</p>
-            {[
-              { icon: Users, text: "Profil communauté complet" },
-              { icon: Sparkles, text: "Génération de contenu IA illimitée" },
-              { icon: CalendarDays, text: "Planification automatique des événements" },
-              { icon: Share2, text: "Diffusion sur Instagram, Facebook, WhatsApp, Telegram et Email" },
-              { icon: CheckCircle2, text: "Support prioritaire" },
-            ].map(({ icon: Icon, text }) => (
+            <p className="font-semibold text-white">{he ? "מה תקבלו:" : "Ce que vous obtenez :"}</p>
+            {benefits.map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-2.5">
                 <Icon className="size-4 shrink-0 text-amber-300" />
                 <span className="text-blue-100 text-sm">{text}</span>
@@ -55,7 +54,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="text-blue-300 text-sm">
-          © {new Date().getFullYear()} EasyCom IA — Communication communautaire augmentée
+          © {new Date().getFullYear()} EasyCom IA — {he ? "תקשורת קהילתית חכמה" : "Communication communautaire augmentée"}
         </div>
       </div>
 
@@ -72,8 +71,8 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Créer votre compte</h2>
-            <p className="text-slate-500">Configurez votre communauté en moins de 2 minutes</p>
+            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">{he ? "יצירת החשבון שלכם" : "Créer votre compte"}</h2>
+            <p className="text-slate-500">{he ? "מגדירים את הקהילה בפחות משתי דקות" : "Configurez votre communauté en moins de 2 minutes"}</p>
           </div>
 
           <Suspense fallback={<div className="skeleton h-72 w-full rounded-xl" />}>

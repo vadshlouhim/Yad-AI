@@ -9,8 +9,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Eye, EyeOff, Mail, Lock, Globe } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 export function LoginForm() {
+  const t = useTranslations("auth");
+  const he = useLocale() === "he";
   const router = useRouter();
   const searchParams = useSearchParams();
   const toolDestination = getPublicToolDestination(searchParams.get("callbackUrl"));
@@ -43,8 +46,8 @@ export function LoginForm() {
     if (error) {
       setError(
         error.message === "Invalid login credentials"
-          ? "Email ou mot de passe incorrect."
-          : "Une erreur est survenue. Veuillez réessayer."
+          ? (he ? "כתובת האימייל או הסיסמה שגויות." : "Email ou mot de passe incorrect.")
+          : (he ? "אירעה שגיאה. נסו שוב." : "Une erreur est survenue. Veuillez réessayer.")
       );
       setLoading(false);
       return;
@@ -79,7 +82,7 @@ export function LoginForm() {
       }));
 
     if (error) {
-      setError("Impossible de se connecter avec Google.");
+      setError(he ? "לא ניתן להתחבר עם Google." : "Impossible de se connecter avec Google.");
       setGoogleLoading(false);
     }
   }
@@ -88,8 +91,7 @@ export function LoginForm() {
     <div className="space-y-6">
       {!supabaseConfigured && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          Configuration Supabase invalide. Renseignez la vraie URL du projet
-          dans <code>NEXT_PUBLIC_SUPABASE_URL</code>.
+          {he ? "הגדרת Supabase אינה תקינה." : <>Configuration Supabase invalide. Renseignez la vraie URL du projet dans <code>NEXT_PUBLIC_SUPABASE_URL</code>.</>}
         </div>
       )}
 
@@ -104,7 +106,7 @@ export function LoginForm() {
         disabled={!supabaseConfigured}
       >
         <Globe className="size-4" />
-        Continuer avec Google
+        {t("google")}
       </Button>
 
       {/* Séparateur */}
@@ -113,7 +115,7 @@ export function LoginForm() {
           <span className="w-full border-t border-slate-200" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-slate-50 px-3 text-slate-400">ou</span>
+          <span className="bg-slate-50 px-3 text-slate-400">{t("or")}</span>
         </div>
       </div>
 
@@ -127,10 +129,10 @@ export function LoginForm() {
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700" htmlFor="email">
-            Adresse email
+            {t("email")}
           </label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+            <Mail className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
               id="email"
               type="email"
@@ -140,7 +142,7 @@ export function LoginForm() {
               required
               autoComplete="email"
               disabled={!supabaseConfigured}
-              className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
+              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
             />
           </div>
         </div>
@@ -148,17 +150,17 @@ export function LoginForm() {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label className="text-sm font-medium text-slate-700" htmlFor="password">
-              Mot de passe
+              {t("password")}
             </label>
             <Link
               href="/auth/forgot-password"
               className="text-xs text-blue-600 hover:underline"
             >
-              Mot de passe oublié ?
+              {t("forgot")}
             </Link>
           </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+            <Lock className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
               id="password"
               type={showPassword ? "text" : "password"}
@@ -168,12 +170,12 @@ export function LoginForm() {
               required
               autoComplete="current-password"
               disabled={!supabaseConfigured}
-              className="w-full rounded-lg border border-slate-200 bg-white pl-10 pr-10 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
+              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             >
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
@@ -181,14 +183,14 @@ export function LoginForm() {
         </div>
 
         <Button type="submit" size="lg" className="w-full" loading={loading} disabled={!supabaseConfigured}>
-          Se connecter
+          {t("login")}
         </Button>
       </form>
 
       <p className="text-center text-sm text-slate-500">
-        Pas encore de compte ?{" "}
+        {t("noAccount")}{" "}
         <Link href={toolDestination ? `/auth/register?callbackUrl=${encodeURIComponent(toolDestination)}` : "/auth/register"} className="text-blue-600 hover:underline font-medium">
-          Créer un compte
+          {t("createAccount")}
         </Link>
       </p>
     </div>

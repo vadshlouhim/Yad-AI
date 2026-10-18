@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 import { getPublicToolDestination } from "@/lib/public-tools";
 import { normalizeSupportedCountry } from "@/lib/community/countries";
+import { useLocale } from "next-intl";
 
 const STEPS = [
   { id: 0, label: "Identité", description: "Votre structure" },
@@ -128,8 +129,10 @@ export function OnboardingWizard({
   simulationMode = false,
   returnTo,
 }: Props) {
+  const he = useLocale() === "he";
+  const steps = he ? [{ id: 0, label: "זהות", description: "הארגון שלכם" }, { id: 1, label: "חיבורים", description: "ערוצים לבחירה" }] : STEPS;
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(Math.min(initialStep, STEPS.length - 1));
+  const [currentStep, setCurrentStep] = useState(Math.min(initialStep, steps.length - 1));
   const [data, setData] = useState<OnboardingData>(() => {
     const restored = { ...defaultData, ...initialData };
     return { ...restored, country: normalizeSupportedCountry(restored.country) };
@@ -143,7 +146,7 @@ export function OnboardingWizard({
   }
 
   function goNext() {
-    setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
+    setCurrentStep((s) => Math.min(s + 1, steps.length - 1));
   }
 
   function goPrev() {
@@ -166,7 +169,7 @@ export function OnboardingWizard({
 
     const json = await res.json().catch(() => ({})) as { communityId?: string; error?: string };
     if (!res.ok || !json.communityId) {
-      throw new Error(json.error ?? "Erreur lors de l'enregistrement du brouillon");
+      throw new Error(json.error ?? (he ? "שגיאה בשמירת הטיוטה" : "Erreur lors de l'enregistrement du brouillon"));
     }
 
     setCommunityId(json.communityId);
@@ -190,13 +193,13 @@ export function OnboardingWizard({
         body: JSON.stringify({ userId, data }),
       });
 
-      if (!res.ok) throw new Error("Erreur lors de la sauvegarde");
+      if (!res.ok) throw new Error(he ? "שגיאה בשמירה" : "Erreur lors de la sauvegarde");
 
       router.replace(getPublicToolDestination(returnTo) ?? "/dashboard");
       router.refresh();
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : "Impossible de finaliser votre inscription.");
+      alert(err instanceof Error ? err.message : (he ? "לא ניתן להשלים את ההרשמה." : "Impossible de finaliser votre inscription."));
       setSaving(false);
     }
   }
@@ -207,7 +210,7 @@ export function OnboardingWizard({
         onComplete={() => {
           if (simulationMode) {
             setShowWelcome(false);
-            setCurrentStep(STEPS.length - 1);
+            setCurrentStep(steps.length - 1);
             return;
           }
         }}
@@ -224,17 +227,17 @@ export function OnboardingWizard({
           <div className="relative mx-auto mb-5 h-1.5 w-24 rounded-full bg-gradient-to-r from-white via-sky-200 to-cyan-200" />
           {simulationMode && (
             <div className="relative mx-auto mb-4 inline-flex rounded-full border border-white/30 bg-white/15 px-3 py-1 text-xs font-bold text-white">
-              Simulation UI - aucune donnée n&apos;est enregistrée
+              {he ? "הדמיית ממשק — לא נשמרים נתונים" : "Simulation UI - aucune donnée n’est enregistrée"}
             </div>
           )}
           <p className="relative text-xs font-bold uppercase tracking-[0.22em] text-blue-100">
-            Bienvenue chez EasyCom IA{userName ? `, ${userName.split(" ")[0]}` : ""}
+            {he ? "ברוכים הבאים ל־" : "Bienvenue chez "}EasyCom IA{userName ? `, ${userName.split(" ")[0]}` : ""}
           </p>
           <h1 className="relative mt-3 text-2xl font-black tracking-tight sm:text-4xl">
-            Créons un espace qui vous ressemble
+            {he ? "בואו ניצור מרחב שמתאים לכם" : "Créons un espace qui vous ressemble"}
           </h1>
           <p className="relative mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-blue-50 sm:text-base">
-            En deux étapes rapides, EasyCom IA apprend à connaître votre structure pour personnaliser votre espace.
+            {he ? "בשני שלבים מהירים EasyCom IA מכיר את הארגון ומתאים את המרחב שלכם." : "En deux étapes rapides, EasyCom IA apprend à connaître votre structure pour personnaliser votre espace."}
           </p>
         </div>
 
@@ -243,10 +246,10 @@ export function OnboardingWizard({
             <div className="absolute left-0 right-0 top-4 h-0.5 bg-slate-200 -z-0" />
             <div
               className="absolute left-0 top-4 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-500 transition-all duration-500 -z-0"
-              style={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
+              style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
             />
 
-            {STEPS.map((step) => {
+            {steps.map((step) => {
               const isCompleted = currentStep > step.id;
               const isCurrent = currentStep === step.id;
 

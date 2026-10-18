@@ -1,7 +1,10 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { getLocale } from "next-intl/server";
 
-export const metadata: Metadata = { title: "Erreur d'authentification — EasyCom IA" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getLocale()) === "he" ? "שגיאת אימות — EasyCom IA" : "Erreur d’authentification — EasyCom IA" };
+}
 
 export default async function AuthErrorPage({
   searchParams,
@@ -9,11 +12,12 @@ export default async function AuthErrorPage({
   searchParams: Promise<{ message?: string }>;
 }) {
   const params = await searchParams;
-  const message = params.message ?? "Une erreur est survenue lors de la connexion.";
+  const he = (await getLocale()) === "he";
+  const message = params.message ?? (he ? "אירעה שגיאה בזמן ההתחברות." : "Une erreur est survenue lors de la connexion.");
 
   const messages: Record<string, string> = {
-    auth_callback_failed: "L'authentification OAuth a échoué. Veuillez réessayer.",
-    access_denied: "Accès refusé. Vous avez annulé la connexion.",
+    auth_callback_failed: he ? "אימות OAuth נכשל. נסו שוב." : "L’authentification OAuth a échoué. Veuillez réessayer.",
+    access_denied: he ? "הגישה נדחתה. ביטלתם את ההתחברות." : "Accès refusé. Vous avez annulé la connexion.",
   };
 
   return (
@@ -25,7 +29,7 @@ export default async function AuthErrorPage({
           </svg>
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Erreur d&apos;authentification</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{he ? "שגיאת אימות" : "Erreur d’authentification"}</h1>
           <p className="text-slate-500 mt-2">
             {messages[message] ?? message}
           </p>
@@ -34,7 +38,7 @@ export default async function AuthErrorPage({
           href="/auth/login"
           className="inline-flex items-center justify-center h-10 px-6 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
         >
-          Retour à la connexion
+          {he ? "חזרה להתחברות" : "Retour à la connexion"}
         </Link>
       </div>
     </div>
