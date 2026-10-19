@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Bell, BellOff, CheckCircle2, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { enablePushNotificationsDetailed, getPushPermission, isPushSupported } from "@/lib/push/client";
+import { useLocale } from "next-intl";
 
 type PushNotificationSwitchProps = {
   labelClassName?: string;
@@ -19,6 +20,7 @@ function failureLabel(reason: string, message?: string) {
 }
 
 export function PushNotificationSwitch({ labelClassName, align = "end" }: PushNotificationSwitchProps) {
+  const locale = useLocale();
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">(() => getPushPermission());
   const [requesting, setRequesting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -43,7 +45,7 @@ export function PushNotificationSwitch({ labelClassName, align = "end" }: PushNo
     const result = await enablePushNotificationsDetailed();
     setPermission(getPushPermission());
     window.dispatchEvent(new Event("push-permission-change"));
-    setStatusMessage(result.ok ? "Test envoye" : failureLabel(result.reason, result.message));
+    setStatusMessage(result.ok ? (locale === "he" ? "הבדיקה נשלחה" : "Test envoye") : failureLabel(result.reason, result.message));
     setRequesting(false);
   }
 
@@ -56,7 +58,7 @@ export function PushNotificationSwitch({ labelClassName, align = "end" }: PushNo
         type="button"
         role="switch"
         aria-checked={enabled}
-        aria-label="Activer les notifications sur cet appareil"
+        aria-label={locale === "he" ? "הפעלת התראות במכשיר זה" : "Activer les notifications sur cet appareil"}
         disabled={blocked || !isPushSupported() || requesting}
         onClick={() => void enable()}
         className={cn(
@@ -75,13 +77,14 @@ export function PushNotificationSwitch({ labelClassName, align = "end" }: PushNo
         />
       </button>
       <span className={cn("text-[11px] font-semibold", enabled ? "text-emerald-700" : "text-slate-500", labelClassName)}>
-        {requesting ? "Activation..." : statusMessage ?? (enabled ? "Tester" : blocked ? "Bloquees" : "Activer")}
+        {requesting ? (locale === "he" ? "בהפעלה..." : "Activation...") : statusMessage ?? (locale === "he" ? (enabled ? "בדיקה" : blocked ? "חסום" : "הפעלה") : (enabled ? "Tester" : blocked ? "Bloquees" : "Activer"))}
       </span>
     </div>
   );
 }
 
 export function PushNotificationsCard() {
+  const locale = useLocale();
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">(() => getPushPermission());
 
   useEffect(() => {
@@ -109,20 +112,20 @@ export function PushNotificationsCard() {
             {enabled ? <CheckCircle2 className="size-5" /> : blocked ? <BellOff className="size-5" /> : <Bell className="size-5" />}
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-900">Notifications sur cet appareil</p>
+            <p className="text-sm font-bold text-slate-900">{locale === "he" ? "התראות במכשיר זה" : "Notifications sur cet appareil"}</p>
             <p className="mt-1 text-xs leading-5 text-slate-600">
               {enabled
-                ? "Actives : vous recevrez les alertes meme lorsque l'application est fermee."
+                ? (locale === "he" ? "פעיל: תקבלו התראות גם כשהיישום סגור." : "Actives : vous recevrez les alertes meme lorsque l'application est fermee.")
                 : blocked
-                  ? "Bloquees dans les reglages du navigateur ou du telephone."
+                  ? (locale === "he" ? "חסום בהגדרות הדפדפן או הטלפון." : "Bloquees dans les reglages du navigateur ou du telephone.")
                   : isPushSupported()
-                    ? "Activez-les apres avoir installe l'application sur votre ecran d'accueil."
-                    : "Cet appareil ou navigateur ne prend pas en charge les notifications web."}
+                    ? (locale === "he" ? "הפעילו אותן לאחר התקנת היישום במסך הבית." : "Activez-les apres avoir installe l'application sur votre ecran d'accueil.")
+                    : (locale === "he" ? "המכשיר או הדפדפן אינם תומכים בהתראות אינטרנט." : "Cet appareil ou navigateur ne prend pas en charge les notifications web.")}
             </p>
             {!enabled && (
               <p className="mt-1 text-[11px] text-slate-500">
-                <Smartphone className="mr-1 inline size-3" />
-                Sur iPhone, ouvrez l&apos;app depuis l&apos;ecran d&apos;accueil avant d&apos;activer les notifications.
+                <Smartphone className="me-1 inline size-3" />
+                {locale === "he" ? "ב־iPhone, פתחו את היישום ממסך הבית לפני הפעלת ההתראות." : "Sur iPhone, ouvrez l’app depuis l’ecran d’accueil avant d’activer les notifications."}
               </p>
             )}
           </div>

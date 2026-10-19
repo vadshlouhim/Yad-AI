@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
 import { ChevronDown, LogOut, Settings, User, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -11,9 +12,10 @@ import { AGENT_IMAGE_URLS } from "@/lib/agents";
 import {
   getOfficialDashboardMenuSections,
   OFFICIAL_MENU_SECTION_STYLES,
-  QUICK_ACCESS_ITEMS,
+  getQuickAccessItems,
   type OfficialDashboardMenuSection,
 } from "./dashboard-nav";
+import { useDashboardCopy } from "@/lib/i18n/use-dashboard-copy";
 
 interface SidebarProps {
   community: {
@@ -147,10 +149,13 @@ function AviAgentBubble() {
 export function Sidebar({ community, userAvatar, userName, unreadNotifications = 0, basePath = "/dashboard" }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const locale = useLocale();
+  const tr = useDashboardCopy();
   const [collapsed, setCollapsed] = useState(false);
   const [flyoutSection, setFlyoutSection] = useState<string | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const menuSections = getOfficialDashboardMenuSections(community.communityType);
+  const menuSections = getOfficialDashboardMenuSections(community.communityType, tr);
+  const quickAccessItems = getQuickAccessItems(tr);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(menuSections.map((section) => [section.section, true]))
   );
@@ -192,15 +197,15 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
     if (!section.subtitle) return null;
 
     if (section.key === "social") {
-      return <p className={className}>Publiez et planifiez vos réseaux depuis un seul espace.</p>;
+      return <p className={className}>{tr("Publiez et planifiez vos réseaux depuis un seul espace.")}</p>;
     }
 
     if (section.key === "email") {
-      return <p className={className}>Vos emails et avis Google, classés automatiquement.</p>;
+      return <p className={className}>{tr("Vos emails et avis Google, classés automatiquement.")}</p>;
     }
 
     if (section.key === "torah") {
-      return <p className={className}>Un agent IA pour vos cours et contenus de Torah.</p>;
+      return <p className={className}>{tr("Un agent IA pour vos cours et contenus de Torah.")}</p>;
     }
 
     if (section.key === "donation") {
@@ -208,11 +213,11 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
     }
 
     if (section.key === "newsletter") {
-      return <p className={className}>Créez et programmez vos newsletters.</p>;
+      return <p className={className}>{tr("Créez et programmez vos newsletters.")}</p>;
     }
 
     if (section.key === "visuals") {
-      return <p className={className}>Personnalisez et créez vos visuels.</p>;
+      return <p className={className}>{tr("Personnalisez et créez vos visuels.")}</p>;
     }
 
     return <p className={className}>{section.subtitle}</p>;
@@ -328,7 +333,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
   return (
     <aside
       className={cn(
-        "hidden h-full flex-shrink-0 flex-col border-r border-slate-200 bg-slate-50 text-slate-700 transition-all duration-300 md:flex",
+        "hidden h-full flex-shrink-0 flex-col border-e border-slate-200 bg-slate-50 text-slate-700 transition-all duration-300 md:flex",
         collapsed ? "w-20" : "w-80"
       )}
     >
@@ -337,7 +342,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
           type="button"
           onClick={() => router.push(resolveHref("/dashboard/assistant"))}
           className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-blue-600 shadow-sm ring-1 ring-blue-100 transition-all hover:scale-[1.02]"
-          aria-label="Ouvrir l'assistant"
+          aria-label={tr("Ouvrir l'assistant")}
         >
           {community.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -352,7 +357,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
             <p className="truncate text-sm font-semibold leading-tight text-slate-900">{community.name}</p>
             <div className="mt-0.5 flex items-center gap-1.5">
               <span className={cn("h-1.5 w-1.5 rounded-full", PLAN_COLORS[community.plan] ?? "bg-slate-400")} />
-              <span className="text-xs text-slate-500">{PLAN_LABELS[community.plan] ?? community.plan}</span>
+              <span className="text-xs text-slate-500">{tr(PLAN_LABELS[community.plan] ?? community.plan)}</span>
             </div>
           </div>
         )}
@@ -360,17 +365,17 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
         <button
           type="button"
           onClick={() => setCollapsed((current) => !current)}
-          className="ml-auto flex-shrink-0 text-slate-400 transition-colors hover:text-slate-700"
-          aria-label={collapsed ? "Elargir la navigation" : "Reduire la navigation"}
+          className="ms-auto flex-shrink-0 text-slate-400 transition-colors hover:text-slate-700"
+          aria-label={tr(collapsed ? "Elargir la navigation" : "Reduire la navigation")}
         >
-          <ChevronDown className={cn("size-4 transition-transform", collapsed ? "-rotate-90" : "rotate-90")} />
+          <ChevronDown className={cn("size-4 transition-transform", collapsed ? (locale === "he" ? "rotate-90" : "-rotate-90") : (locale === "he" ? "-rotate-90" : "rotate-90"))} />
         </button>
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-5">
         <div className={cn("mb-4 rounded-[1.35rem] border border-slate-200 bg-white p-2 shadow-[0_10px_24px_rgba(15,23,42,0.05)]", collapsed && "border-0 bg-transparent p-0 shadow-none")}>
           <div className={cn("space-y-1", collapsed && "space-y-2")}>
-            {QUICK_ACCESS_ITEMS.map((item) => {
+            {quickAccessItems.map((item) => {
               const active = isActive(item.href);
               const Icon = item.icon;
 
@@ -395,7 +400,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
                       className={cn(
                         "shrink-0 rounded-full text-[10px] font-bold",
                         collapsed
-                          ? "absolute right-1 top-1 h-4 min-w-4 px-1 leading-4"
+                          ? "absolute end-1 top-1 h-4 min-w-4 px-1 leading-4"
                           : "px-1.5 py-0.5",
                         active ? "bg-white text-blue-700" : "bg-rose-500 text-white"
                       )}
@@ -433,7 +438,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
                         }))
                   }
                   className={cn(
-                    "flex w-full items-start gap-3 rounded-[1.15rem] px-1 py-1.5 text-left transition-all duration-200",
+                    "flex w-full items-start gap-3 rounded-[1.15rem] px-1 py-1.5 text-start transition-all duration-200",
                     collapsed && "justify-center rounded-xl px-0 py-2 hover:bg-slate-100"
                   )}
                   aria-expanded={isOpen}
@@ -499,10 +504,10 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
           type="button"
           onClick={() => setAccountMenuOpen((value) => !value)}
           className={cn(
-            "flex w-full items-center gap-3 rounded-xl px-1 py-1 text-left transition hover:bg-slate-50",
+            "flex w-full items-center gap-3 rounded-xl px-1 py-1 text-start transition hover:bg-slate-50",
             collapsed && "justify-center"
           )}
-          aria-label="Menu du compte"
+          aria-label={tr("Menu du compte")}
         >
           <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-full bg-slate-200">
             {userAvatar ? (
@@ -518,7 +523,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
             <>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-slate-800">{userName}</p>
-                <p className="truncate text-xs text-slate-500">{community?.name ?? "Administrateur"}</p>
+                <p className="truncate text-xs text-slate-500">{community?.name ?? tr("Administrateur")}</p>
               </div>
               <ChevronDown className={cn("size-4 shrink-0 text-slate-400 transition", accountMenuOpen && "rotate-180")} />
             </>
@@ -528,7 +533,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
         {accountMenuOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setAccountMenuOpen(false)} />
-            <div className="absolute bottom-full left-3 z-50 mb-2 w-56 rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+            <div className="absolute bottom-full start-3 z-50 mb-2 w-56 rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
               <div className="border-b border-slate-100 px-4 py-3">
                 <p className="truncate text-sm font-semibold text-slate-800">{userName}</p>
                 <p className="mt-0.5 truncate text-xs text-slate-400">{community?.name}</p>
@@ -539,7 +544,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
                 className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
               >
                 <User className="size-4" />
-                Mon profil
+                {tr("Mon profil")}
               </Link>
               <Link
                 href={resolveHref("/dashboard/settings")}
@@ -547,15 +552,15 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
                 className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
               >
                 <Settings className="size-4" />
-                Parametres
+                {tr("Parametres")}
               </Link>
               <div className="mt-1 border-t border-slate-100 pt-1">
                 <button
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-start text-sm text-red-600 hover:bg-red-50"
                 >
                   <LogOut className="size-4" />
-                  Se deconnecter
+                  {tr("Se deconnecter")}
                 </button>
               </div>
             </div>
@@ -586,7 +591,7 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
                   type="button"
                   onClick={() => setFlyoutSection(null)}
                   className="rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-                  aria-label="Fermer"
+                  aria-label={tr("Fermer")}
                 >
                   <X className="size-4" />
                 </button>

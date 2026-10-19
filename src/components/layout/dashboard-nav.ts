@@ -386,11 +386,14 @@ function getStructureTypeLabel(communityType?: string | null) {
   return `${label.charAt(0).toLowerCase()}${label.slice(1)}`;
 }
 
-export function getOfficialDashboardMenuSections(communityType?: string | null): OfficialDashboardMenuSection[] {
+export function getOfficialDashboardMenuSections(
+  communityType?: string | null,
+  translate: (value: string) => string = (value) => value
+): OfficialDashboardMenuSection[] {
   getStructureTypeLabel(communityType);
   const resourcesSubtitle = "Des outils pratiques pour accompagner votre communauté";
 
-  return [
+  const sections: OfficialDashboardMenuSection[] = [
     {
       key: "social",
       section: "RESEAUX SOCIAUX",
@@ -516,6 +519,19 @@ export function getOfficialDashboardMenuSections(communityType?: string | null):
       ],
     },
   ];
+
+  return sections.map((section) => ({
+    ...section,
+    section: translate(section.section),
+    subtitle: translate(section.subtitle),
+    items: section.items.map((item) => ({
+      ...item,
+      label: translate(item.label),
+      description: item.description ? translate(item.description) : item.description,
+      badge: item.badge ? translate(item.badge) : item.badge,
+      action: item.action ? { ...item.action, label: translate(item.action.label) } : item.action,
+    })),
+  }));
 }
 
 export const DASHBOARD_TOP_ITEM: DashboardNavItem = {
@@ -530,6 +546,10 @@ export const QUICK_ACCESS_ITEMS: ReadonlyArray<Omit<DashboardNavItem, "icon"> & 
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell, notification: true },
   { href: "/dashboard/events", label: "Mon Agenda", icon: CalendarDays },
 ];
+
+export function getQuickAccessItems(translate: (value: string) => string = (value) => value) {
+  return QUICK_ACCESS_ITEMS.map((item) => ({ ...item, label: translate(item.label) }));
+}
 
 export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {

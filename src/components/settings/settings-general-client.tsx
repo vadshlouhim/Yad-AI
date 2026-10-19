@@ -13,6 +13,8 @@ import { enablePushNotifications } from "@/lib/push/client";
 import { ContactsManager } from "@/components/settings/contacts-manager";
 import { PushNotificationsCard } from "@/components/settings/push-notifications-card";
 import { normalizeSupportedCountry, SUPPORTED_COUNTRIES } from "@/lib/community/countries";
+import { useLocale } from "next-intl";
+import { useDashboardCopy } from "@/lib/i18n/use-dashboard-copy";
 
 interface Community {
   id: string;
@@ -95,8 +97,17 @@ const PLAN_LABELS: Record<string, { label: string; color: string }> = {
   ENTERPRISE: { label: "Business", color: "bg-purple-100 text-purple-700" },
 };
 
+const HE_COUNTRY_LABELS: Record<string, string> = {
+  FR: "צרפת", BE: "בלגיה", CH: "שווייץ", CA: "קנדה", LU: "לוקסמבורג", IL: "ישראל",
+  GB: "הממלכה המאוחדת", US: "ארצות הברית", MC: "מונקו", DE: "גרמניה", ES: "ספרד",
+  IT: "איטליה", PT: "פורטוגל", NL: "הולנד", AT: "אוסטריה", IE: "אירלנד", MA: "מרוקו",
+  TN: "תוניסיה", DZ: "אלג׳יריה",
+};
+
 export function SettingsGeneralClient({ community, profile, initialSection = "community" }: Props) {
   const router = useRouter();
+  const locale = useLocale();
+  const tr = useDashboardCopy();
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
   const [mobileSettingsHome, setMobileSettingsHome] = useState(initialSection === "community");
@@ -160,7 +171,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
       setGoogleConnected(false);
       setGoogleEmailAddress("");
     } else {
-      const email = prompt("Saisissez votre adresse email Google :", "chlomitaieb@gmail.com");
+      const email = prompt(locale === "he" ? "הזינו את כתובת האימייל שלכם ב־Google:" : "Saisissez votre adresse email Google :", "chlomitaieb@gmail.com");
       if (email && email.trim() !== "") {
         window.localStorage.setItem("google_email_connected", "true");
         window.localStorage.setItem("google_email_address", email.trim());
@@ -308,16 +319,16 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
   const authProviders = profile.authProviders.length > 0 ? profile.authProviders : ["email"];
 
   const navItems = [
-    { id: "community" as const, label: "Communauté", icon: Building2 },
-    { id: "contacts" as const, label: "Contacts", icon: Users },
-    { id: "editorial" as const, label: "Identité éditoriale", icon: Palette },
-    { id: "profile" as const, label: "Mon profil", icon: User },
+    { id: "community" as const, label: tr("Communauté"), icon: Building2 },
+    { id: "contacts" as const, label: tr("Contacts"), icon: Users },
+    { id: "editorial" as const, label: tr("Identité éditoriale"), icon: Palette },
+    { id: "profile" as const, label: tr("Mon profil"), icon: User },
   ];
   const mobileSettingsItems = [
-    { id: "community" as const, label: "Communauté", icon: Building2, color: "bg-[#075ce5]" },
-    { id: "contacts" as const, label: "Contacts", icon: Users, color: "bg-[#07989c]" },
-    { id: "editorial" as const, label: "Identité éditoriale", icon: Palette, color: "bg-[#ee9d00]" },
-    { id: "profile" as const, label: "Mon profil", icon: User, color: "bg-[#d92c75]" },
+    { id: "community" as const, label: tr("Communauté"), icon: Building2, color: "bg-[#075ce5]" },
+    { id: "contacts" as const, label: tr("Contacts"), icon: Users, color: "bg-[#07989c]" },
+    { id: "editorial" as const, label: tr("Identité éditoriale"), icon: Palette, color: "bg-[#ee9d00]" },
+    { id: "profile" as const, label: tr("Mon profil"), icon: User, color: "bg-[#d92c75]" },
   ];
   const settingsCardClass = "rounded-2xl border border-slate-200/90 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] sm:rounded-[1.9rem]";
   const settingsHeaderClass = "border-b border-slate-100 px-4 pb-4 pt-4 sm:px-6 sm:pb-5 sm:pt-6";
@@ -327,7 +338,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
     <div className="space-y-6">
       {mobileSettingsHome && (
         <section className="md:hidden">
-          <h2 className="mb-4 text-xl font-black tracking-tight text-slate-950">Que souhaitez-vous régler ?</h2>
+          <h2 className="mb-4 text-xl font-black tracking-tight text-slate-950">{locale === "he" ? "מה תרצו להגדיר?" : "Que souhaitez-vous régler ?"}</h2>
           <div className="grid grid-cols-2 gap-3">
             {mobileSettingsItems.map((item) => {
               const Icon = item.icon;
@@ -349,16 +360,16 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
             })}
             <Link href="/dashboard/settings/billing" className="flex min-h-[132px] flex-col items-center justify-center gap-3 rounded-[1.65rem] bg-[#421388] p-4 text-center text-white shadow-[0_16px_30px_-18px_rgba(66,19,136,0.65)] transition active:scale-[0.98]">
               <span className="flex size-12 items-center justify-center rounded-2xl bg-white text-[#421388] shadow-lg"><CreditCard className="size-6" /></span>
-              <span className="text-base font-black leading-tight">Paiement</span>
+              <span className="text-base font-black leading-tight">{tr("Paiement")}</span>
             </Link>
             <Link href="/dashboard/settings/channels" className="flex min-h-[132px] flex-col items-center justify-center gap-3 rounded-[1.65rem] bg-[#ef3f4f] p-4 text-center text-white shadow-[0_16px_30px_-18px_rgba(239,63,79,0.6)] transition active:scale-[0.98]">
               <span className="flex size-12 items-center justify-center rounded-2xl bg-white text-[#ef3f4f] shadow-lg"><Share2 className="size-6" /></span>
-              <span className="text-base font-black leading-tight">Réseaux sociaux</span>
+              <span className="text-base font-black leading-tight">{tr("Réseaux sociaux")}</span>
             </Link>
             {profile.canAccessAdmin && (
               <Link href="/admin" className="col-span-2 flex min-h-20 items-center justify-center gap-3 rounded-[1.65rem] bg-slate-900 p-4 text-white shadow-lg">
                 <span className="flex size-11 items-center justify-center rounded-2xl bg-white text-slate-900"><ShieldCheck className="size-5" /></span>
-                <span className="text-base font-black">Admin global</span>
+                <span className="text-base font-black">{tr("Admin global")}</span>
               </Link>
             )}
           </div>
@@ -369,10 +380,10 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
         <button
           type="button"
           onClick={() => { if (window.dispatchEvent(new Event("contacts:before-navigate", { cancelable: true }))) setMobileSettingsHome(true); }}
-          className="flex min-h-12 w-full items-center gap-3 rounded-2xl border border-violet-100 bg-white px-4 text-left text-sm font-black text-[#421388] shadow-sm md:hidden"
+          className="flex min-h-12 w-full items-center gap-3 rounded-2xl border border-violet-100 bg-white px-4 text-start text-sm font-black text-[#421388] shadow-sm md:hidden"
         >
-          <span className="flex size-8 items-center justify-center rounded-xl bg-violet-100"><ArrowLeft className="size-4" /></span>
-          Retour aux paramètres
+          <span className="flex size-8 items-center justify-center rounded-xl bg-violet-100"><ArrowLeft className="rtl-mirror size-4" /></span>
+          {tr("Retour aux paramètres")}
         </button>
       )}
 
@@ -383,7 +394,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
               key={item.id}
               onClick={() => { if (item.id === activeSection || window.dispatchEvent(new Event("contacts:before-navigate", { cancelable: true }))) setActiveSection(item.id); }}
               className={cn(
-                "flex min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-center text-xs font-medium transition-colors sm:text-sm lg:w-full lg:justify-start lg:px-3 lg:text-left",
+                "flex min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-center text-xs font-medium transition-colors sm:text-sm lg:w-full lg:justify-start lg:px-3 lg:text-start",
                 activeSection === item.id
                   ? "bg-emerald-600 text-white"
                   : "text-slate-600 hover:bg-emerald-50 hover:text-emerald-800"
@@ -395,24 +406,24 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
           ))}
           <Link
             href="/dashboard/settings/billing"
-            aria-label={`Paiement - offre ${PLAN_LABELS[community.plan]?.label ?? community.plan}`}
-            className="flex min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-center text-xs font-medium text-slate-600 transition-colors hover:bg-emerald-50 hover:text-emerald-800 sm:text-sm lg:w-full lg:justify-start lg:px-3 lg:text-left"
+            aria-label={`${tr("Paiement")} - ${locale === "he" ? "תוכנית" : "offre"} ${tr(PLAN_LABELS[community.plan]?.label ?? community.plan)}`}
+            className="flex min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-center text-xs font-medium text-slate-600 transition-colors hover:bg-emerald-50 hover:text-emerald-800 sm:text-sm lg:w-full lg:justify-start lg:px-3 lg:text-start"
           >
             <CreditCard className="size-4 shrink-0" />
-            <span>Paiement</span>
+            <span>{tr("Paiement")}</span>
             <span className={cn(
-              "ml-auto hidden rounded-full px-2 py-0.5 text-[10px] font-semibold lg:inline-flex",
+              "ms-auto hidden rounded-full px-2 py-0.5 text-[10px] font-semibold lg:inline-flex",
               PLAN_LABELS[community.plan]?.color
             )}>
-              {PLAN_LABELS[community.plan]?.label ?? community.plan}
+              {tr(PLAN_LABELS[community.plan]?.label ?? community.plan)}
             </span>
           </Link>
           <Link
             href="/dashboard/settings/channels"
-            className="flex min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-center text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 sm:text-sm lg:w-full lg:justify-start lg:px-3 lg:text-left"
+            className="flex min-w-0 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-center text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100 sm:text-sm lg:w-full lg:justify-start lg:px-3 lg:text-start"
           >
             <Share2 className="size-4" />
-            Réseaux sociaux
+            {tr("Réseaux sociaux")}
           </Link>
         </nav>
 
@@ -423,7 +434,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
               <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
                   <SlidersHorizontal className="size-4" />
-                  Mode d&apos;utilisation
+                  {tr("Mode d'utilisation")}
                 </CardTitle>
               </CardHeader>
               <CardContent className={settingsContentClass}>
@@ -431,13 +442,13 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                   {[
                     {
                       value: "simple" as const,
-                      title: "Mode simplifié",
-                      description: "Assistant conversationnel en page principale, avec boutons d'action sur le compte.",
+                      title: tr("Mode simplifié"),
+                      description: locale === "he" ? "סוכן שיחה בעמוד הראשי, עם כפתורי פעולה בחשבון." : "Assistant conversationnel en page principale, avec boutons d'action sur le compte.",
                     },
                     {
                       value: "detailed" as const,
-                      title: "Mode détaillé",
-                      description: "Interface experte avec historique, sections et réglages complets.",
+                      title: tr("Mode détaillé"),
+                      description: locale === "he" ? "ממשק מתקדם עם היסטוריה, אזורים והגדרות מלאות." : "Interface experte avec historique, sections et réglages complets.",
                     },
                   ].map((option) => (
                     <button
@@ -448,7 +459,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                         window.localStorage.setItem("easycom-assistant-experience", option.value);
                       }}
                       className={cn(
-                        "rounded-xl border p-4 text-left transition",
+                        "rounded-xl border p-4 text-start transition",
                         assistantMode === option.value
                           ? "border-blue-300 bg-blue-50 ring-2 ring-blue-100"
                           : "border-slate-200 bg-white hover:bg-slate-50"
@@ -462,7 +473,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                 <Link href="/dashboard/assistant">
                   <Button size="sm">
                     <Bot className="size-4" />
-                    Ouvrir l&apos;assistant
+                    {tr("Ouvrir l'assistant")}
                   </Button>
                 </Link>
               </CardContent>
@@ -475,13 +486,13 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
               <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Building2 className="size-4" />
-                  Informations de la communauté
+                  {tr("Informations de la communauté")}
                 </CardTitle>
               </CardHeader>
               <CardContent className={settingsContentClass}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Nom</label>
+                    <label className="text-sm font-medium text-slate-700">{tr("Nom")}</label>
                     <input
                       type="text"
                       value={name}
@@ -490,30 +501,30 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Type de structure</label>
+                    <label className="text-sm font-medium text-slate-700">{tr("Type de structure")}</label>
                     <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700">
-                      {communityTypeLabel}
+                      {tr(communityTypeLabel)}
                     </div>
                     <p className="text-xs text-slate-400">
-                      Ce choix est défini à la création du compte et ne peut pas être modifié ici.
+                      {locale === "he" ? "בחירה זו נקבעת בעת יצירת החשבון ולא ניתן לשנות אותה כאן." : "Ce choix est défini à la création du compte et ne peut pas être modifié ici."}
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Description</label>
+                  <label className="text-sm font-medium text-slate-700">{tr("Description")}</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={3}
-                    placeholder="Présentez votre communauté en quelques mots..."
+                    placeholder={locale === "he" ? "הציגו את הקהילה שלכם בכמה מילים..." : "Présentez votre communauté en quelques mots..."}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-y"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Ville</label>
+                    <label className="text-sm font-medium text-slate-700">{tr("Ville")}</label>
                     <input
                       type="text"
                       value={city}
@@ -524,7 +535,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">
-                      Pays <span className="text-red-500">*</span>
+                      {tr("Pays")} <span className="text-red-500">*</span>
                     </label>
                     <select
                       value={country}
@@ -533,7 +544,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                       className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     >
                       {SUPPORTED_COUNTRIES.map((option) => (
-                        <option key={option.code} value={option.value}>{option.label}</option>
+                        <option key={option.code} value={option.value}>{locale === "he" ? HE_COUNTRY_LABELS[option.code] ?? option.label : option.label}</option>
                       ))}
                     </select>
                   </div>
@@ -541,7 +552,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Email</label>
+                    <label className="text-sm font-medium text-slate-700">{tr("Email")}</label>
                     <input
                       type="email"
                       value={email}
@@ -551,7 +562,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Téléphone</label>
+                    <label className="text-sm font-medium text-slate-700">{tr("Téléphone")}</label>
                     <input
                       type="tel"
                       value={phone}
@@ -563,7 +574,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Site web</label>
+                  <label className="text-sm font-medium text-slate-700">{tr("Site web")}</label>
                   <input
                     type="url"
                     value={website}
@@ -575,7 +586,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
 
                 <Button onClick={saveCommunity} loading={saving}>
                   <Save className="size-4" />
-                  Sauvegarder
+                  {tr("Sauvegarder")}
                 </Button>
               </CardContent>
             </Card>
@@ -587,29 +598,29 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
               <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Palette className="size-4" />
-                  Identité éditoriale
+                  {tr("Identité éditoriale")}
                 </CardTitle>
               </CardHeader>
               <CardContent className={settingsContentClass}>
                 {/* Ton */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Ton de communication</label>
+                  <label className="text-sm font-medium text-slate-700">{tr("Ton de communication")}</label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     {TONE_OPTIONS.map((opt) => (
                       <button
                         key={opt.value}
                         onClick={() => setTone(opt.value)}
                         className={cn(
-                          "flex flex-col items-start p-3 rounded-xl border text-left transition-all",
+                          "flex flex-col items-start p-3 rounded-xl border text-start transition-all",
                           tone === opt.value
                             ? "border-blue-500 bg-blue-50"
                             : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                         )}
                       >
                         <span className={cn("text-sm font-medium", tone === opt.value ? "text-blue-700" : "text-slate-700")}>
-                          {opt.label}
+                          {tr(opt.label)}
                         </span>
-                        <span className="text-xs text-slate-400 mt-0.5">{opt.description}</span>
+                        <span className="text-xs text-slate-400 mt-0.5">{tr(opt.description)}</span>
                       </button>
                     ))}
                   </div>
@@ -618,47 +629,47 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                 {/* Signature */}
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">
-                    Signature <span className="text-slate-400 font-normal">(optionnel)</span>
+                    {tr("Signature")} <span className="text-slate-400 font-normal">{locale === "he" ? "(אופציונלי)" : "(optionnel)"}</span>
                   </label>
                   <input
                     type="text"
                     value={signature}
                     onChange={(e) => setSignature(e.target.value)}
-                    placeholder="- Votre communauté"
+                    placeholder={locale === "he" ? "- הקהילה שלכם" : "- Votre communauté"}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
 
                 {/* Hashtags */}
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Hashtags par défaut</label>
+                  <label className="text-sm font-medium text-slate-700">{tr("Hashtags par défaut")}</label>
                   <input
                     type="text"
                     value={hashtags}
                     onChange={(e) => setHashtags(e.target.value)}
-                    placeholder="#shabbat #communauté #judaisme"
+                    placeholder={locale === "he" ? "#שבת #קהילה #יהדות" : "#shabbat #communauté #judaisme"}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
-                  <p className="text-xs text-slate-400">Séparez les hashtags par des espaces</p>
+                  <p className="text-xs text-slate-400">{locale === "he" ? "הפרידו בין ההאשטגים באמצעות רווחים" : "Séparez les hashtags par des espaces"}</p>
                 </div>
 
                 {/* Règles éditoriales */}
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">
-                    Règles éditoriales <span className="text-slate-400 font-normal">(instructions pour l&apos;IA)</span>
+                    {tr("Règles éditoriales")} <span className="text-slate-400 font-normal">{locale === "he" ? "(הנחיות ל־AI)" : "(instructions pour l’IA)"}</span>
                   </label>
                   <textarea
                     value={editorialRules}
                     onChange={(e) => setEditorialRules(e.target.value)}
                     rows={4}
-                    placeholder="Ex : toujours inclure les horaires précis, utiliser le terme 'Chabbat' et non 'Sabbat', ne pas mentionner les billets de loterie..."
+                    placeholder={locale === "he" ? "לדוגמה: לציין תמיד שעות מדויקות ולהשתמש במונחים הקבועים של הקהילה..." : "Ex : toujours inclure les horaires précis, utiliser le terme 'Chabbat' et non 'Sabbat', ne pas mentionner les billets de loterie..."}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 resize-y"
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-700">
-                    Délai de notification avant envoi (en heures)
+                    {locale === "he" ? "זמן ההתראה לפני השליחה (בשעות)" : "Délai de notification avant envoi (en heures)"}
                   </label>
                   <div className="flex max-w-xs items-center gap-2">
                     <input
@@ -669,30 +680,30 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                       onChange={(e) => setNotificationLeadHours(e.target.value)}
                       className="w-28 rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     />
-                    <span className="text-sm text-slate-500">heures avant l&apos;envoi</span>
+                    <span className="text-sm text-slate-500">{locale === "he" ? "שעות לפני השליחה" : "heures avant l'envoi"}</span>
                   </div>
                   <p className="text-xs text-slate-400">
                     {notificationLeadHours === "0" || Number(notificationLeadHours) === 0
-                      ? "Aucune notification d'avance — les automatisations s'exécutent à l'heure exacte sans pré-notification."
-                      : "Choisissez combien d'heures avant l'envoi vous souhaitez être notifié."}
+                      ? locale === "he" ? "ללא התראה מראש — האוטומציות יופעלו בזמן המדויק ללא התראה מוקדמת." : "Aucune notification d'avance — les automatisations s'exécutent à l'heure exacte sans pré-notification."
+                      : locale === "he" ? "בחרו כמה שעות לפני השליחה תרצו לקבל התראה." : "Choisissez combien d'heures avant l'envoi vous souhaitez être notifié."}
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">
-                    Validation des automatisations
+                    {tr("Validation des automatisations")}
                   </label>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {[
                       {
                         value: "manual" as const,
-                        title: "Validation manuelle",
-                        description: "Recommandé : l'IA prépare le message, puis vous validez avant l'envoi.",
+                        title: tr("Validation manuelle"),
+                        description: locale === "he" ? "מומלץ: ה־AI מכין את ההודעה ואתם מאשרים לפני השליחה." : "Recommandé : l'IA prépare le message, puis vous validez avant l'envoi.",
                       },
                       {
                         value: "automatic" as const,
-                        title: "Envoi automatique",
-                        description: "Les automatisations partent seules au bon moment, sans validation manuelle.",
+                        title: tr("Envoi automatique"),
+                        description: locale === "he" ? "האוטומציות נשלחות בזמן הנכון ללא אישור ידני." : "Les automatisations partent seules au bon moment, sans validation manuelle.",
                       },
                     ].map((option) => (
                       <button
@@ -704,7 +715,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                           if (option.value === "manual") void enablePushNotifications();
                         }}
                         className={cn(
-                          "rounded-xl border p-4 text-left transition",
+                          "rounded-xl border p-4 text-start transition",
                           automationValidationMode === option.value
                             ? "border-blue-300 bg-blue-50 ring-2 ring-blue-100"
                             : "border-slate-200 bg-white hover:bg-slate-50"
@@ -719,7 +730,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
 
                 <Button onClick={saveEditorial} loading={saving}>
                   <Save className="size-4" />
-                  Sauvegarder
+                  {tr("Sauvegarder")}
                 </Button>
               </CardContent>
             </Card>
@@ -731,7 +742,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
               <CardHeader className={settingsHeaderClass}>
                 <CardTitle className="text-base flex items-center gap-2">
                   <User className="size-4" />
-                  Mon profil
+                  {tr("Mon profil")}
                 </CardTitle>
               </CardHeader>
               <CardContent className={settingsContentClass}>
@@ -741,22 +752,22 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                       <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white">
                         {logoUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={logoUrl} alt="Logo de la communauté" className="h-full w-full object-contain p-2" />
+                          <img src={logoUrl} alt={tr("Logo de la communauté")} className="h-full w-full object-contain p-2" />
                         ) : (
                           <ImageIcon className="size-7 text-slate-400" />
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-slate-900">Logo de la communauté</p>
+                        <p className="text-sm font-semibold text-slate-900">{tr("Logo de la communauté")}</p>
                         <p className="mt-1 text-sm text-slate-500">
-                          Ce logo sera utilisé pour personnaliser votre profil, vos contenus et votre espace.
+                          {locale === "he" ? "הלוגו ישמש להתאמת הפרופיל, התוכן והמרחב שלכם." : "Ce logo sera utilisé pour personnaliser votre profil, vos contenus et votre espace."}
                         </p>
                       </div>
                     </div>
 
                     <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
                       {logoUploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-                      {logoUploading ? "Téléversement..." : "Changer le logo"}
+                      {tr(logoUploading ? "Téléversement..." : "Changer le logo")}
                       <input
                         type="file"
                         accept="image/*"
@@ -779,21 +790,21 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Méthodes de connexion</label>
+                  <label className="text-sm font-medium text-slate-700">{tr("Méthodes de connexion")}</label>
                   <div className="flex flex-wrap gap-2">
                     {authProviders.map((provider) => (
                       <Badge key={provider} variant="secondary" className="capitalize">
-                        {provider === "email" ? "Email / mot de passe" : provider}
+                        {provider === "email" ? tr("Email / mot de passe") : provider}
                       </Badge>
                     ))}
                   </div>
                   <p className="text-xs text-slate-400">
-                    Si vous utilisez Google, vous pouvez aussi définir un mot de passe ci-dessous pour vous connecter avec la même adresse email.
+                    {locale === "he" ? "אם אתם משתמשים ב־Google, תוכלו גם להגדיר סיסמה כדי להתחבר עם אותה כתובת אימייל." : "Si vous utilisez Google, vous pouvez aussi définir un mot de passe ci-dessous pour vous connecter avec la même adresse email."}
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Nom complet</label>
+                  <label className="text-sm font-medium text-slate-700">{tr("Nom complet")}</label>
                   <input
                     type="text"
                     value={profileName}
@@ -803,7 +814,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Email</label>
+                  <label className="text-sm font-medium text-slate-700">{tr("Email")}</label>
                   <input
                     type="email"
                     value={profile.email}
@@ -811,23 +822,23 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                     className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-500 cursor-not-allowed"
                   />
                   <p className="text-xs text-slate-400">
-                    L&apos;email est géré par votre fournisseur d&apos;authentification.
+                    {locale === "he" ? "האימייל מנוהל על ידי ספק האימות שלכם." : "L’email est géré par votre fournisseur d’authentification."}
                   </p>
                 </div>
 
                 <div className="flex gap-2">
                   <Button onClick={saveProfile} loading={saving}>
                     <Save className="size-4" />
-                    Sauvegarder
+                    {tr("Sauvegarder")}
                   </Button>
                 </div>
 
                 <div className="border-t border-slate-200 pt-4 space-y-4">
                   <PushNotificationsCard />
                   <div className="space-y-1">
-                    <h3 className="text-sm font-semibold text-slate-900">Connexion Google</h3>
+                    <h3 className="text-sm font-semibold text-slate-900">{tr("Connexion Google")}</h3>
                     <p className="text-sm text-slate-500">
-                      Connectez votre compte Google pour centraliser la réception et la gestion de vos e-mails et fiches d&apos;établissement.
+                      {locale === "he" ? "חברו את חשבון Google כדי לרכז את ניהול האימיילים וכרטיסי העסק." : "Connectez votre compte Google pour centraliser la réception et la gestion de vos e-mails et fiches d’établissement."}
                     </p>
                   </div>
                   <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -839,8 +850,8 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                         <p className="text-sm font-semibold text-slate-900">Google Email & Business</p>
                         <p className="text-xs text-slate-500">
                           {googleConnected
-                            ? `Connecté à : ${googleEmailAddress}`
-                            : "Non connecté"}
+                            ? locale === "he" ? `מחובר אל: ${googleEmailAddress}` : `Connecté à : ${googleEmailAddress}`
+                            : tr("Non connecté")}
                         </p>
                       </div>
                     </div>
@@ -849,7 +860,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                       size="sm"
                       onClick={handleConnectGoogle}
                     >
-                      {googleConnected ? "Déconnecter" : "Connecter mon compte Google"}
+                      {tr(googleConnected ? "Déconnecter" : "Connecter mon compte Google")}
                     </Button>
                   </div>
                 </div>
@@ -859,11 +870,11 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="size-4 text-slate-500" />
                       <h3 className="text-sm font-semibold text-slate-900">
-                        Définir ou modifier le mot de passe
+                        {tr("Définir ou modifier le mot de passe")}
                       </h3>
                     </div>
                     <p className="text-sm text-slate-500">
-                      Cela active aussi la connexion par email et mot de passe pour ce compte.
+                      {locale === "he" ? "הפעולה מפעילה גם התחברות באמצעות אימייל וסיסמה לחשבון זה." : "Cela active aussi la connexion par email et mot de passe pour ce compte."}
                     </p>
                   </div>
 
@@ -881,25 +892,25 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium text-slate-700">Nouveau mot de passe</label>
+                      <label className="text-sm font-medium text-slate-700">{tr("Nouveau mot de passe")}</label>
                       <input
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         autoComplete="new-password"
-                        placeholder="8 caractères minimum"
+                        placeholder={locale === "he" ? "לפחות 8 תווים" : "8 caractères minimum"}
                         className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium text-slate-700">Confirmer le mot de passe</label>
+                      <label className="text-sm font-medium text-slate-700">{tr("Confirmer le mot de passe")}</label>
                       <input
                         type="password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         autoComplete="new-password"
-                        placeholder="Répétez le mot de passe"
+                        placeholder={locale === "he" ? "הזינו שוב את הסיסמה" : "Répétez le mot de passe"}
                         className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       />
                     </div>
@@ -907,7 +918,7 @@ export function SettingsGeneralClient({ community, profile, initialSection = "co
 
                   <Button onClick={savePassword} loading={passwordSaving}>
                     <ShieldCheck className="size-4" />
-                    Enregistrer le mot de passe
+                    {tr("Enregistrer le mot de passe")}
                   </Button>
                 </div>
               </CardContent>

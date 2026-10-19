@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useFormatter, useLocale } from "next-intl";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   CheckCircle2, AlertCircle, ExternalLink,
@@ -125,6 +126,8 @@ const OAUTH_MESSAGES: Record<string, { tone: "success" | "error"; text: string }
 
 export function ChannelsSettingsClient({ channels, communityId }: Props) {
   const router = useRouter();
+  const locale = useLocale();
+  const format = useFormatter();
   const searchParams = useSearchParams();
   const [saving, setSaving] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -135,6 +138,13 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
   const channelMap = Object.fromEntries(channels.map((c) => [c.type, c]));
   const oauthStatus = searchParams.get("oauth");
   const oauthMessage = oauthStatus ? OAUTH_MESSAGES[oauthStatus] : null;
+  const channelDescription = (type: string) => locale !== "he" ? CHANNEL_CONFIG[type].description : ({
+    INSTAGRAM: "פרסמו פוסטים וסטוריז בחשבון Instagram העסקי שלכם.",
+    FACEBOOK: "פרסמו בעמוד Facebook שלכם. נדרשת הרשאת מנהל.",
+    WHATSAPP: "חברו את חשבון WhatsApp האישי באמצעות QR או קוד טלפוני.",
+    TELEGRAM: "פרסמו בקבוצות ובערוצי Telegram באמצעות בוט.",
+    EMAIL: "חברו את חשבון Gmail כדי לשלוח אימיילים מתוך EasyCom IA.",
+  }[type] ?? CHANNEL_CONFIG[type].description);
 
   function isChannelConnected(channel: Channel | undefined) {
     return !!channel && (channel.isConnected || (channel.type === "WHATSAPP" && channel.settings?.mode === "personal"));
@@ -231,7 +241,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
   }
 
   async function disconnectChannel(channel: Channel) {
-    if (!confirm(`Déconnecter ${CHANNEL_LABELS[channel.type]} ?`)) return;
+    if (!confirm(locale === "he" ? `לנתק את ${CHANNEL_LABELS[channel.type]}?` : `Déconnecter ${CHANNEL_LABELS[channel.type]} ?`)) return;
     setDeletingId(channel.id);
     try {
       if (channel.type === "WHATSAPP") {
@@ -265,9 +275,9 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
             <Zap className="size-5 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">Canaux de diffusion</h1>
+            <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">{locale === "he" ? "ערוצי הפצה" : "Canaux de diffusion"}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100 sm:text-[15px]">
-              Rassemblez vos connexions de publication dans un espace clair, moderne et coherent avec le reste du dashboard.
+              {locale === "he" ? "רכזו את חיבורי הפרסום במרחב ברור ומודרני שתואם לשאר לוח הבקרה." : "Rassemblez vos connexions de publication dans un espace clair, moderne et coherent avec le reste du dashboard."}
             </p>
           </div>
         </div>
@@ -288,7 +298,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
             "text-sm font-medium",
             oauthMessage.tone === "success" ? "text-emerald-800" : "text-red-800"
           )}>
-            {oauthMessage.text}
+            {locale === "he" ? (oauthMessage.tone === "success" ? "החיבור הצליח והערוץ פעיל כעת." : "החיבור נכשל. נסו להתחבר מחדש.") : oauthMessage.text}
           </p>
         </div>
       )}
@@ -296,9 +306,9 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
       {/* ── Stat bar ─────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { label: "Canaux disponibles", value: CHANNEL_ORDER.length, color: "text-slate-700", bg: "bg-slate-50 border-slate-200" },
-          { label: "Connectés", value: connectedCount, color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
-          { label: "Actifs", value: CHANNEL_ORDER.filter((type) => {
+          { label: locale === "he" ? "ערוצים זמינים" : "Canaux disponibles", value: CHANNEL_ORDER.length, color: "text-slate-700", bg: "bg-slate-50 border-slate-200" },
+          { label: locale === "he" ? "מחוברים" : "Connectés", value: connectedCount, color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
+          { label: locale === "he" ? "פעילים" : "Actifs", value: CHANNEL_ORDER.filter((type) => {
             const channel = channelMap[type];
             return !!channel && channel.isActive && isChannelConnected(channel);
           }).length, color: "text-blue-700", bg: "bg-blue-50 border-blue-200" },
@@ -365,12 +375,12 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                     {isConnected ? (
                       <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
                         <Wifi className="size-3" />
-                        Connecté
+                        {locale === "he" ? "מחובר" : "Connecté"}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full">
                         <WifiOff className="size-3" />
-                        {channel ? "Non connecté" : "Non configuré"}
+                        {locale === "he" ? (channel ? "לא מחובר" : "לא הוגדר") : (channel ? "Non connecté" : "Non configuré")}
                       </span>
                     )}
                   </div>
@@ -380,15 +390,15 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                     <p className="text-xs text-slate-500 mt-0.5">
                       @{channel.handle}
                       {channel.lastSyncAt && (
-                        <span className="ml-2 text-slate-400">
-                          · sync {new Date(channel.lastSyncAt).toLocaleDateString("fr-FR")}
+                        <span className="ms-2 text-slate-400">
+                          · {locale === "he" ? "סנכרון" : "sync"} {format.dateTime(new Date(channel.lastSyncAt), { dateStyle: "short" })}
                         </span>
                       )}
                     </p>
                   )}
 
                   {!isConnected && (
-                    <p className="text-xs text-slate-400 mt-0.5 truncate">{cfg.description}</p>
+                    <p className="text-xs text-slate-400 mt-0.5 truncate">{channelDescription(type)}</p>
                   )}
                 </div>
 
@@ -400,7 +410,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                       onClick={() => toggleChannel(channel!)}
                       disabled={saving === channel?.id}
                       className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 transition-colors disabled:opacity-50"
-                      title={isActive ? "Désactiver" : "Activer"}
+                      title={locale === "he" ? (isActive ? "השבתה" : "הפעלה") : (isActive ? "Désactiver" : "Activer")}
                     >
                       {saving === channel?.id ? (
                         <Loader2 className="size-4 animate-spin" />
@@ -409,7 +419,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                       ) : (
                         <ToggleLeft className="size-5 text-slate-400" />
                       )}
-                      <span className="hidden sm:inline">{isActive ? "Actif" : "Inactif"}</span>
+                      <span className="hidden sm:inline">{locale === "he" ? (isActive ? "פעיל" : "לא פעיל") : (isActive ? "Actif" : "Inactif")}</span>
                     </button>
                   )}
 
@@ -423,7 +433,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                         : "bg-blue-950 border-blue-950 text-white shadow-sm hover:bg-blue-900"
                     )}
                   >
-                    <span>{isConnected ? "Configurer" : "Connecter"}</span>
+                    <span>{locale === "he" ? (isConnected ? "הגדרה" : "חיבור") : (isConnected ? "Configurer" : "Connecter")}</span>
                     {isExpanded
                       ? <ChevronUp className="size-4" />
                       : <ChevronDown className="size-4" />}
@@ -439,7 +449,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                   {cfg.authType === "oauth" && (
                     <div className="space-y-4">
                       <p className="text-sm text-slate-600 leading-relaxed">
-                        {cfg.description} La connexion se fait via le dialogue officiel Meta — aucun mot de passe n&apos;est stocké.
+                        {channelDescription(type)} {locale === "he" ? "החיבור מתבצע בחלון הרשמי של Meta — לא נשמרת סיסמה." : "La connexion se fait via le dialogue officiel Meta — aucun mot de passe n’est stocké."}
                       </p>
 
                       {isConnected ? (
@@ -456,7 +466,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                                 <p className="text-xs text-slate-400">Page ID · {channel.pageId}</p>
                               )}
                             </div>
-                            <CheckCircle2 className="size-4 text-emerald-500 ml-1" />
+                            <CheckCircle2 className="ms-1 size-4 text-emerald-500" />
                           </div>
                           <div className="flex items-center gap-2">
                             <button
@@ -464,7 +474,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                               disabled={oauthPopupProvider === type}
                               className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
                             >
-                              {oauthPopupProvider === type ? "Ouverture..." : "Reconnecter"}
+                              {locale === "he" ? (oauthPopupProvider === type ? "בפתיחה..." : "חיבור מחדש") : (oauthPopupProvider === type ? "Ouverture..." : "Reconnecter")}
                             </button>
                             <button
                               onClick={() => disconnectChannel(channel!)}
@@ -474,7 +484,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                               {deletingId === channel?.id
                                 ? <Loader2 className="size-3 animate-spin" />
                                 : <Unlink className="size-3" />}
-                              Déconnecter
+                              {locale === "he" ? "ניתוק" : "Déconnecter"}
                             </button>
                           </div>
                         </div>
@@ -492,8 +502,8 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                           ) : (
                             <img src={cfg.logo} alt="" className="w-5 h-5 object-contain brightness-0 invert" />
                           )}
-                          {oauthPopupProvider === type ? "Ouverture de la fenetre..." : `Se connecter via ${CHANNEL_LABELS[type]}`}
-                          {oauthPopupProvider !== type && <ExternalLink className="size-4 ml-1 opacity-80" />}
+                          {locale === "he" ? (oauthPopupProvider === type ? "החלון נפתח..." : `חיבור באמצעות ${CHANNEL_LABELS[type]}`) : (oauthPopupProvider === type ? "Ouverture de la fenetre..." : `Se connecter via ${CHANNEL_LABELS[type]}`)}
+                          {oauthPopupProvider !== type && <ExternalLink className="ms-1 size-4 opacity-80" />}
                         </button>
                       )}
                     </div>
@@ -503,7 +513,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                   {cfg.authType === "gmail-oauth" && (
                     <div className="space-y-4">
                       <p className="text-sm text-slate-600 leading-relaxed">
-                        {cfg.description} La connexion passe par le dialogue officiel Google — aucun mot de passe n&apos;est stocké.
+                        {channelDescription(type)} {locale === "he" ? "החיבור מתבצע בחלון הרשמי של Google — לא נשמרת סיסמה." : "La connexion passe par le dialogue officiel Google — aucun mot de passe n’est stocké."}
                       </p>
 
                       {isConnected ? (
@@ -514,18 +524,18 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-slate-900">
-                                {channel?.handle || channel?.pageId || "Compte Gmail"}
+                                {channel?.handle || channel?.pageId || (locale === "he" ? "חשבון Gmail" : "Compte Gmail")}
                               </p>
-                              <p className="text-xs text-emerald-600 font-medium">Connecté via OAuth Google</p>
+                              <p className="text-xs text-emerald-600 font-medium">{locale === "he" ? "מחובר באמצעות Google OAuth" : "Connecté via OAuth Google"}</p>
                             </div>
-                            <CheckCircle2 className="size-4 text-emerald-500 ml-1" />
+                            <CheckCircle2 className="ms-1 size-4 text-emerald-500" />
                           </div>
                           <div className="flex items-center gap-2">
                             <button
                               onClick={connectGmail}
                               className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
                             >
-                              Reconnecter
+                              {locale === "he" ? "חיבור מחדש" : "Reconnecter"}
                             </button>
                             <button
                               onClick={() => channel && disconnectChannel(channel)}
@@ -535,7 +545,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                               {deletingId === channel?.id
                                 ? <Loader2 className="size-3 animate-spin" />
                                 : <Unlink className="size-3" />}
-                              Déconnecter
+                              {locale === "he" ? "ניתוק" : "Déconnecter"}
                             </button>
                           </div>
                         </div>
@@ -545,8 +555,8 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                           className="flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 bg-gradient-to-r from-red-500 to-orange-400"
                         >
                           <img src="/logo/gmail-svgrepo-com.svg" alt="Gmail" className="w-5 h-5 object-contain brightness-0 invert" />
-                          Se connecter avec Gmail
-                          <ExternalLink className="size-4 ml-1 opacity-80" />
+                          {locale === "he" ? "חיבור עם Gmail" : "Se connecter avec Gmail"}
+                          <ExternalLink className="ms-1 size-4 opacity-80" />
                         </button>
                       )}
                     </div>
@@ -558,10 +568,9 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                       <div className="rounded-2xl border border-green-200 bg-green-50 p-4 flex gap-3">
                         <Info className="size-5 text-green-600 flex-shrink-0 mt-0.5" />
                         <div className="space-y-2">
-                          <p className="text-sm font-semibold text-green-900">Connexion WhatsApp personnelle</p>
+                          <p className="text-sm font-semibold text-green-900">{locale === "he" ? "חיבור WhatsApp אישי" : "Connexion WhatsApp personnelle"}</p>
                           <p className="text-xs leading-relaxed text-green-800">
-                            La connexion se fait maintenant depuis la page WhatsApp avec un QR code ou un code telephone.
-                            Vous pouvez renouveler le QR ou le code uniquement sur demande.
+                            {locale === "he" ? "החיבור מתבצע מעמוד WhatsApp באמצעות קוד QR או קוד טלפוני. אפשר לחדש את הקוד רק לפי בקשה." : "La connexion se fait maintenant depuis la page WhatsApp avec un QR code ou un code telephone. Vous pouvez renouveler le QR ou le code uniquement sur demande."}
                           </p>
                         </div>
                       </div>
@@ -572,7 +581,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                           className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-green-700"
                         >
                           <Wifi className="size-4" />
-                          {isConnected ? "Gerer la connexion" : "Connecter par QR ou code"}
+                          {locale === "he" ? (isConnected ? "ניהול החיבור" : "חיבור באמצעות QR או קוד") : (isConnected ? "Gerer la connexion" : "Connecter par QR ou code")}
                         </Link>
                         {channel && isConnected && (
                           <button
@@ -581,7 +590,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                             className="flex items-center gap-1.5 text-sm font-medium text-red-600 border border-red-200 bg-white hover:bg-red-50 rounded-xl px-4 py-2.5 transition-all disabled:opacity-50"
                           >
                             {deletingId === channel.id ? <Loader2 className="size-4 animate-spin" /> : <Unlink className="size-4" />}
-                            Deconnecter
+                            {locale === "he" ? "ניתוק" : "Deconnecter"}
                           </button>
                         )}
                       </div>
@@ -591,28 +600,24 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                   {/* Token (Telegram / Email) */}
                   {cfg.authType === "token" && (
                     <div className="space-y-4">
-                      <p className="text-sm text-slate-600">{cfg.description}</p>
+                      <p className="text-sm text-slate-600">{channelDescription(type)}</p>
 
                       {type === "TELEGRAM" && (
                         <div className="space-y-4">
                           <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 flex gap-3">
                             <Info className="size-5 text-sky-600 flex-shrink-0 mt-0.5" />
                             <div className="space-y-2">
-                              <p className="text-sm font-semibold text-sky-900">Comment connecter Telegram ?</p>
+                              <p className="text-sm font-semibold text-sky-900">{locale === "he" ? "איך מחברים Telegram?" : "Comment connecter Telegram ?"}</p>
                               <div className="space-y-1 text-xs leading-relaxed text-sky-800">
-                                <p>
-                                  <strong>Token du bot :</strong> ouvrez Telegram, cherchez <strong>@BotFather</strong>,
-                                  envoyez <code className="rounded bg-sky-100 px-1">/newbot</code>, puis copiez le token fourni.
-                                </p>
-                                <p>
-                                  <strong>Chat ID :</strong> ajoutez le bot dans votre groupe ou canal, envoyez un message,
-                                  puis ouvrez <code className="rounded bg-sky-100 px-1">https://api.telegram.org/botTOKEN/getUpdates</code>
-                                  en remplaçant <strong>TOKEN</strong> par le token du bot.
-                                </p>
-                                <p>
-                                  Le Chat ID est la valeur <code className="rounded bg-sky-100 px-1">chat.id</code>.
-                                  Pour un groupe ou canal, il commence souvent par <strong>-100</strong>. Gardez le token privé.
-                                </p>
+                                {locale === "he" ? <>
+                                  <p><strong>טוקן הבוט:</strong> פתחו את Telegram, חפשו את <strong>@BotFather</strong>, שלחו <code className="rounded bg-sky-100 px-1">/newbot</code> והעתיקו את הטוקן שהתקבל.</p>
+                                  <p><strong>Chat ID:</strong> הוסיפו את הבוט לקבוצה או לערוץ, שלחו הודעה ואז פתחו את <code className="rounded bg-sky-100 px-1">https://api.telegram.org/botTOKEN/getUpdates</code> והחליפו את <strong>TOKEN</strong> בטוקן של הבוט.</p>
+                                  <p>ה־Chat ID הוא הערך <code className="rounded bg-sky-100 px-1">chat.id</code>. בקבוצה או בערוץ הוא מתחיל בדרך כלל ב־<strong>-100</strong>. שמרו את הטוקן בסוד.</p>
+                                </> : <>
+                                  <p><strong>Token du bot :</strong> ouvrez Telegram, cherchez <strong>@BotFather</strong>, envoyez <code className="rounded bg-sky-100 px-1">/newbot</code>, puis copiez le token fourni.</p>
+                                  <p><strong>Chat ID :</strong> ajoutez le bot dans votre groupe ou canal, envoyez un message, puis ouvrez <code className="rounded bg-sky-100 px-1">https://api.telegram.org/botTOKEN/getUpdates</code> en remplaçant <strong>TOKEN</strong> par le token du bot.</p>
+                                  <p>Le Chat ID est la valeur <code className="rounded bg-sky-100 px-1">chat.id</code>. Pour un groupe ou canal, il commence souvent par <strong>-100</strong>. Gardez le token privé.</p>
+                                </>}
                               </div>
                             </div>
                           </div>
@@ -620,7 +625,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                           <div className="grid gap-3 sm:grid-cols-2">
                             <div className="space-y-1.5">
                               <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
-                                Token du bot
+                                {locale === "he" ? "טוקן של הבוט" : "Token du bot"}
                               </label>
                               <input
                                 type="password"
@@ -672,7 +677,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                           <div className="grid gap-3 sm:grid-cols-2">
                             <div className="space-y-1.5">
                               <label className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
-                                {cfg.botField}
+                                {locale === "he" ? "טוקן הבוט של Telegram" : cfg.botField}
                               </label>
                               <input
                                 type="text"
@@ -728,7 +733,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                           {saving === type
                             ? <Loader2 className="size-4 animate-spin" />
                             : <Save className="size-4" />}
-                          Sauvegarder
+                          {locale === "he" ? "שמירה" : "Sauvegarder"}
                         </button>
                         {isConnected && (
                           <button
@@ -737,7 +742,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
                             className="flex items-center gap-1.5 text-sm font-medium text-red-600 border border-red-200 bg-white hover:bg-red-50 rounded-xl px-4 py-2.5 transition-all disabled:opacity-50"
                           >
                             <Unlink className="size-4" />
-                            Déconnecter
+                            {locale === "he" ? "ניתוק" : "Déconnecter"}
                           </button>
                         )}
                       </div>
@@ -757,10 +762,9 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
           <Info className="size-5" />
         </div>
         <div className="space-y-2">
-          <p className="text-sm font-bold text-slate-900">Besoin d&apos;aide pour configurer un canal ?</p>
+          <p className="text-sm font-bold text-slate-900">{locale === "he" ? "צריכים עזרה בהגדרת ערוץ?" : "Besoin d’aide pour configurer un canal ?"}</p>
           <p className="text-sm leading-6 text-slate-600">
-            Consultez notre documentation ou contactez le support. Pour Instagram et Facebook,
-            assurez-vous d&apos;avoir un <strong>compte professionnel</strong> et d&apos;être <strong>administrateur</strong> de la Page.
+            {locale === "he" ? <>עיינו בתיעוד או פנו לתמיכה. עבור Instagram ו־Facebook, ודאו שיש לכם <strong>חשבון עסקי</strong> ושאתם <strong>מנהלים</strong> של העמוד.</> : <>Consultez notre documentation ou contactez le support. Pour Instagram et Facebook, assurez-vous d’avoir un <strong>compte professionnel</strong> et d’être <strong>administrateur</strong> de la Page.</>}
           </p>
           <Link
             href="https://easycom-ai.com/contact"
@@ -768,7 +772,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
             rel="noopener noreferrer"
             className="mt-1 inline-flex items-center gap-2 rounded-full bg-blue-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-900"
           >
-            Contacter le support
+            {locale === "he" ? "פנייה לתמיכה" : "Contacter le support"}
             <ExternalLink className="size-4" />
           </Link>
         </div>

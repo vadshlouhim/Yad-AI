@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { Suspense } from "react";
+import { useLocale } from "next-intl";
 
 /**
  * Page de clôture OAuth (Meta ou Gmail) ouverte depuis Paramètres > Canaux.
@@ -11,6 +12,7 @@ import { Suspense } from "react";
  * Accédée directement (popup bloqué) → redirige vers Paramètres > Canaux.
  */
 function SettingsOAuthDoneContent() {
+  const locale = useLocale();
   const searchParams = useSearchParams();
   const appOrigin =
     process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
@@ -51,9 +53,9 @@ function SettingsOAuthDoneContent() {
             : <XCircle className="size-8 text-red-500" />}
         </div>
         <h1 className="text-xl font-bold text-slate-900">
-          {isSuccess ? "Connexion réussie !" : "Connexion annulée"}
+          {locale === "he" ? (isSuccess ? "החיבור הצליח!" : "החיבור בוטל") : (isSuccess ? "Connexion réussie !" : "Connexion annulée")}
         </h1>
-        <p className="text-sm text-slate-500">Cette fenêtre va se fermer…</p>
+        <p className="text-sm text-slate-500">{locale === "he" ? "החלון ייסגר…" : "Cette fenêtre va se fermer…"}</p>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Suspense } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { ComponentType, SVGProps } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -29,6 +29,7 @@ import { getCommunityProfileLabel } from "@/lib/community/profile-labels";
 import { MobileDashboardHome } from "@/components/dashboard/mobile-dashboard-home";
 import { ComingSoonBanner } from "@/components/coming-soon/coming-soon-banner";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { useDashboardCopy } from "@/lib/i18n/use-dashboard-copy";
 
 interface Props {
   basePath?: "/dashboard" | "/demo";
@@ -124,6 +125,14 @@ const CHANNEL_BUTTONS: ChannelButton[] = [
   },
 ];
 
+const HE_CHANNEL_SHORT_LABELS: Record<string, string> = {
+  INSTAGRAM: "Insta",
+  FACEBOOK: "FB",
+  WHATSAPP: "WA",
+  TELEGRAM: "TG",
+  EMAIL: "Mail",
+};
+
 export function DashboardClient({
   basePath = "/dashboard",
   userName,
@@ -135,6 +144,8 @@ export function DashboardClient({
   notifications,
 }: Props) {
   const t = useTranslations("dashboard");
+  const locale = useLocale();
+  const tr = useDashboardCopy();
   const resolveHref = (href: string) => href.startsWith("/dashboard") ? href.replace("/dashboard", basePath) : href;
   const firstName = userName.split(" ")[0] || "vous";
   const structureLabel = getCommunityProfileLabel(community.communityType, "plural");
@@ -174,7 +185,7 @@ export function DashboardClient({
               <span>{t("welcome", { name: firstName })}</span>
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              Votre Assistant IA concu specialement pour les {structureLabel}
+              {locale === "he" ? "סוכן ה־AI שלכם, שנבנה במיוחד עבור הקהילה שלכם" : <>Votre Assistant IA concu specialement pour les {structureLabel}</>}
             </p>
           </div>
 
@@ -183,7 +194,7 @@ export function DashboardClient({
             <Button asChild className="h-12 rounded-2xl bg-blue-950 px-5 text-white shadow-sm shadow-blue-950/20 hover:bg-blue-900">
               <Link href={resolveHref("/dashboard/assistant")}>
                 <Zap className="size-4" />
-                Ouvrir l&apos;assistant IA
+                {locale === "he" ? "פתיחת סוכן ה־AI" : "Ouvrir l’assistant IA"}
               </Link>
             </Button>
           </div>
@@ -198,11 +209,11 @@ export function DashboardClient({
           <AlertCircle className="mt-0.5 size-5 shrink-0 text-red-500" />
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-bold">
-              {failedCount} publication{failedCount > 1 ? "s" : ""} en erreur
+              {locale === "he" ? `${failedCount} פרסומים עם שגיאה` : `${failedCount} publication${failedCount > 1 ? "s" : ""} en erreur`}
             </span>
-            <span className="mt-0.5 block text-xs text-red-600">Cliquez pour verifier et relancer.</span>
+            <span className="mt-0.5 block text-xs text-red-600">{locale === "he" ? "לחצו כדי לבדוק ולהפעיל מחדש." : "Cliquez pour verifier et relancer."}</span>
           </span>
-          <ArrowRight className="size-4 shrink-0" />
+          <ArrowRight className="rtl-mirror size-4 shrink-0" />
         </Link>
       )}
 
@@ -211,9 +222,9 @@ export function DashboardClient({
           <CardContent className="p-4 sm:p-5">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-bold text-slate-950">Connexions</p>
+                <p className="text-sm font-bold text-slate-950">{locale === "he" ? "חיבורים" : "Connexions"}</p>
                 <p className="mt-0.5 text-xs text-slate-500">
-                  {connectedCount}/5 comptes connectes
+                  {locale === "he" ? `${connectedCount}/5 חשבונות מחוברים` : `${connectedCount}/5 comptes connectes`}
                 </p>
               </div>
               <Link
@@ -221,7 +232,7 @@ export function DashboardClient({
                 className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
               >
                 <Settings2 className="size-3.5" />
-                Gerer
+                {locale === "he" ? "ניהול" : "Gerer"}
               </Link>
             </div>
 
@@ -241,7 +252,7 @@ export function DashboardClient({
                         ? "border-emerald-500 bg-emerald-500 text-white shadow-sm shadow-emerald-100 hover:bg-emerald-600"
                         : "border-slate-200 bg-slate-50 text-slate-400 hover:border-slate-300 hover:bg-white"
                     )}
-                    title={`${channel.label} - ${isConnected ? "connecte" : "non connecte"}`}
+                    title={`${channel.label} - ${locale === "he" ? (isConnected ? "מחובר" : "לא מחובר") : (isConnected ? "connecte" : "non connecte")}`}
                   >
                     <span
                       className={cn(
@@ -251,8 +262,8 @@ export function DashboardClient({
                     >
                       <Icon className="size-5 sm:size-6" />
                     </span>
-                    <span className="block max-w-full truncate text-[11px] font-bold leading-tight sm:text-sm">
-                      {channel.shortLabel}
+                    <span dir="ltr" className="block w-full max-w-full truncate text-center text-[11px] font-bold leading-tight sm:text-sm">
+                      {locale === "he" ? HE_CHANNEL_SHORT_LABELS[channel.type] : channel.shortLabel}
                     </span>
                   </Link>
                 );
@@ -262,18 +273,18 @@ export function DashboardClient({
         </Card>
 
         <StatusCard
-          title="Publications"
+          title={locale === "he" ? "פרסומים" : "Publications"}
           value={reviewCount}
-          description={reviewCount > 0 ? "Publications a valider ou suivre." : "Rien en attente."}
+          description={locale === "he" ? (reviewCount > 0 ? "פרסומים לבדיקה או למעקב." : "אין פריטים בהמתנה.") : (reviewCount > 0 ? "Publications a valider ou suivre." : "Rien en attente.")}
           href={resolveHref("/dashboard/publications")}
           icon={Clock3}
           tone={reviewCount > 0 ? "amber" : "slate"}
         />
 
         <StatusCard
-          title="Notifications"
+          title={tr("Notifications")}
           value={notifications.length}
-          description={notifications.length > 0 ? "Alertes non lues." : "Tout est a jour."}
+          description={locale === "he" ? (notifications.length > 0 ? "התראות שלא נקראו." : "הכול מעודכן.") : (notifications.length > 0 ? "Alertes non lues." : "Tout est a jour.")}
           href={resolveHref("/dashboard/notifications")}
           icon={Bell}
           tone={notifications.length > 0 ? "blue" : "slate"}
@@ -284,26 +295,26 @@ export function DashboardClient({
         <button
           type="button"
           onClick={openMainMenu}
-          className="group flex h-full items-start gap-3 rounded-3xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200"
+          className="group flex h-full items-start gap-3 rounded-3xl border border-slate-200 bg-white p-4 text-start shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200"
         >
           <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
             <Waves className="size-4" />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-bold text-slate-950">{t("mainMenu")}</span>
-            <span className="mt-1 block text-xs leading-5 text-slate-500">Ouvrir la navigation complete du dashboard.</span>
+            <span className="mt-1 block text-xs leading-5 text-slate-500">{locale === "he" ? "פתיחת הניווט המלא בלוח הבקרה." : "Ouvrir la navigation complete du dashboard."}</span>
           </span>
-          <ArrowRight className="mt-1 size-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-500" />
+          <ArrowRight className="rtl-mirror mt-1 size-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-500" />
         </button>
         <MiniPanel
-          title="Mon agenda"
-          description={nextEvent ? `Prochain element : ${nextEvent.title}` : "Ajouter ou verifier les prochains evenements."}
+          title={tr("Mon agenda")}
+          description={nextEvent ? (locale === "he" ? `האירוע הבא: ${nextEvent.title}` : `Prochain element : ${nextEvent.title}`) : (locale === "he" ? "הוסיפו או בדקו את האירועים הבאים." : "Ajouter ou verifier les prochains evenements.")}
           href={resolveHref("/dashboard/events")}
           icon={CheckCircle2}
         />
         <MiniPanel
-          title="Automatisations"
-          description={`${stats.automations} automatisation${stats.automations > 1 ? "s" : ""} active${stats.automations > 1 ? "s" : ""}.`}
+          title={tr("Automatisations")}
+          description={locale === "he" ? `${stats.automations} אוטומציות פעילות.` : `${stats.automations} automatisation${stats.automations > 1 ? "s" : ""} active${stats.automations > 1 ? "s" : ""}.`}
           href={resolveHref("/dashboard/automations")}
           icon={Settings2}
         />
@@ -344,7 +355,7 @@ function StatusCard({
     <Link href={href} className="group min-w-0">
       <Card
         className={cn(
-          "relative h-full overflow-hidden rounded-[2rem] border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 before:absolute before:bottom-5 before:left-0 before:top-5 before:w-1 before:rounded-r-full",
+          "relative h-full overflow-hidden rounded-[2rem] border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 before:absolute before:bottom-5 before:start-0 before:top-5 before:w-1 before:rounded-e-full",
           sideAccentClass
         )}
       >
@@ -360,7 +371,7 @@ function StatusCard({
           </div>
           <div className="mt-5 flex items-center justify-between gap-3">
             <p className="text-xs leading-5 text-slate-500">{description}</p>
-            <ArrowRight className="size-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-slate-500" />
+            <ArrowRight className="rtl-mirror size-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-slate-500" />
           </div>
         </CardContent>
       </Card>
@@ -389,7 +400,7 @@ function MiniPanel({
           <span className="block text-sm font-bold text-slate-950">{title}</span>
           <span className="mt-1 block text-xs leading-5 text-slate-500">{description}</span>
         </span>
-        <ArrowRight className="mt-1 size-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-500" />
+        <ArrowRight className="rtl-mirror mt-1 size-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-blue-500" />
       </div>
     </Link>
   );

@@ -17,3 +17,26 @@ Décisions terminologiques :
 - « Beth Habad » : **בית חב״ד**.
 - Les noms EasyCom IA, EasyCom AI, EasyStore, EasyBanque et les noms des agents ne sont jamais traduits.
 - Les articles du blog et les documents légaux restent en français et affichent le bandeau hébreu prévu.
+
+## Étape 4 — dashboard
+
+Les formulations suivantes ont été ajoutées pour la structure du dashboard et doivent être relues avant publication :
+
+- Accueil du dashboard : message de bienvenue, sous-titres des cartes, états des connexions et alertes.
+- Navigation : descriptions des catégories, intitulés des outils et fonctionnalités à venir.
+- Notifications : filtres, états vides, dates relatives et actions de suppression.
+- Paramètres : identité éditoriale, automatisations, profil, canaux de diffusion, facturation et messages de confirmation.
+- Contacts : recherche assistée, filtres, édition des dates civiles et hébraïques, import et messages d’erreur.
+- Première visite : installation de l’application et activation des notifications push.
+
+Nouveaux choix terminologiques :
+
+- « Tableau de bord » : **לוח בקרה**.
+- « Paramètres » : **הגדרות**.
+- « Notifications » : **התראות**.
+- « Canaux de diffusion » : **ערוצי הפצה**.
+- « Vue d’ensemble » est rendue selon le contexte par **דף הבית** ou **סקירה כללית**.
+- « CRM intelligent » : **CRM חכם** ; le sigle CRM reste inchangé.
+- « Yahrzeit » : **יארצייט**.
+- Le niveau de forfait descriptif « Business » : **עסקי** (ce n’est pas traité comme une marque).
+- Les marques Google, Facebook, Instagram, WhatsApp, Telegram, Gmail et Unisoft restent inchangées.

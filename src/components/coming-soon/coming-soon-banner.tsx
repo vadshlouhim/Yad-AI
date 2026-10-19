@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { useLocale } from "next-intl";
 
 export function ComingSoonBanner() {
+  const locale = useLocale();
   return (
     <Link
       href="/fonctionnalites-a-venir"
@@ -11,11 +15,11 @@ export function ComingSoonBanner() {
         <Sparkles className="size-6 text-[#FFD66B]" aria-hidden="true" />
       </span>
       <span className="min-w-0 flex-1">
-        <strong className="block text-base font-black leading-tight">Bientôt dans EasyCom IA</strong>
-        <span className="mt-1 block text-xs font-semibold leading-5 text-white/80">6 nouveaux outils arrivent : découvrez-les</span>
+        <strong className="block text-base font-black leading-tight">{locale === "he" ? "בקרוב ב־EasyCom IA" : "Bientôt dans EasyCom IA"}</strong>
+        <span className="mt-1 block text-xs font-semibold leading-5 text-white/80">{locale === "he" ? "6 כלים חדשים בדרך — בואו לגלות אותם" : "6 nouveaux outils arrivent : découvrez-les"}</span>
       </span>
       <span className="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-[#FFD66B] text-[#3B0F8C] shadow-lg transition group-hover:translate-x-0.5">
-        <ArrowRight className="size-[18px] stroke-[2.6]" aria-hidden="true" />
+        <ArrowRight className="rtl-mirror size-[18px] stroke-[2.6]" aria-hidden="true" />
       </span>
     </Link>
   );

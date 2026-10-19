@@ -64,10 +64,10 @@ export function AgentPageBanner({
           : cn("bg-gradient-to-br", toneClasses[tone])
       )}
     >
-      <div className="pointer-events-none absolute -right-12 -top-16 size-56 rounded-full bg-white/10 blur-3xl" aria-hidden />
-      <div className="pointer-events-none absolute -bottom-20 left-10 size-52 rounded-full bg-white/10 blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -end-12 -top-16 size-56 rounded-full bg-white/10 blur-3xl" aria-hidden />
+      <div className="pointer-events-none absolute -bottom-20 start-10 size-52 rounded-full bg-white/10 blur-3xl" aria-hidden />
 
-      <div className="relative grid gap-6 text-center lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:text-left">
+      <div className="relative grid gap-6 text-center lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:text-start">
         <div className="max-w-3xl">
           <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/80 lg:mx-0" />
           <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-white/90">
@@ -112,7 +112,7 @@ export function AgentPageBanner({
             ) : null}
 
             {(bubbleTitle || bubbleText) ? (
-              <div className="relative max-w-sm rounded-2xl bg-white px-5 py-4 text-sm leading-6 text-slate-700 shadow-xl before:absolute before:-top-2 before:left-1/2 before:size-4 before:-translate-x-1/2 before:rotate-45 before:bg-white lg:before:-left-2 lg:before:top-10 lg:before:translate-x-0">
+              <div className="relative max-w-sm rounded-2xl bg-white px-5 py-4 text-sm leading-6 text-slate-700 shadow-xl before:absolute before:-top-2 before:start-1/2 before:size-4 before:-translate-x-1/2 before:rotate-45 before:bg-white lg:before:-start-2 lg:before:top-10 lg:before:translate-x-0">
                 {bubbleTitle ? <p className={cn("font-black text-[#421388]", bubbleTitleClassName)}>{bubbleTitle}</p> : null}
                 {bubbleText ? <p className="mt-1 font-semibold text-slate-600">{bubbleText}</p> : null}
               </div>

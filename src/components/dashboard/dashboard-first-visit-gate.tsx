@@ -14,6 +14,7 @@ import {
   getPushPermission,
   isPushSupported,
 } from "@/lib/push/client";
+import { useLocale } from "next-intl";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -42,20 +43,22 @@ function isStandalone() {
   );
 }
 
-function pushFailureMessage(reason: string, message?: string) {
+function pushFailureMessage(reason: string, locale: string, message?: string) {
   if (reason === "permission-denied") {
-    return "Les notifications sont bloquées. Autorisez-les dans les réglages de votre appareil, puis revenez ici.";
+    return locale === "he" ? "ההתראות חסומות. אפשרו אותן בהגדרות המכשיר וחזרו לכאן." : "Les notifications sont bloquées. Autorisez-les dans les réglages de votre appareil, puis revenez ici.";
   }
   if (reason === "unsupported") {
-    return "Ce navigateur ne permet pas les notifications push. Ouvrez EasyCom IA avec Safari sur iPhone ou Chrome sur Android et ordinateur.";
+    return locale === "he" ? "הדפדפן הזה אינו תומך בהתראות בדחיפה. פתחו את EasyCom IA ב־Safari ב־iPhone או ב־Chrome ב־Android ובמחשב." : "Ce navigateur ne permet pas les notifications push. Ouvrez EasyCom IA avec Safari sur iPhone ou Chrome sur Android et ordinateur.";
   }
   if (reason === "missing-vapid-key") {
-    return "Le service de notifications n'est pas encore configuré. Contactez l'assistance EasyCom IA.";
+    return locale === "he" ? "שירות ההתראות עדיין לא הוגדר. פנו לתמיכת EasyCom IA." : "Le service de notifications n'est pas encore configuré. Contactez l'assistance EasyCom IA.";
   }
-  return message || "L'activation n'a pas abouti. Vérifiez votre connexion puis réessayez.";
+  return message || (locale === "he" ? "ההפעלה לא הושלמה. בדקו את החיבור ונסו שוב." : "L'activation n'a pas abouti. Vérifiez votre connexion puis réessayez.");
 }
 
 export function DashboardFirstVisitGate({ userId }: { userId: string }) {
+  const locale = useLocale();
+  const he = locale === "he";
   const pushSetupKey = `${PUSH_SETUP_KEY}:${userId}`;
   const dismissedSessionKey = `${DISMISSED_SESSION_KEY}:${userId}`;
   const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
@@ -113,7 +116,7 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
 
     if ("serviceWorker" in navigator) {
       void navigator.serviceWorker.register("/sw.js").catch(() => {
-        setMessage("L'installation n'a pas pu être préparée. Vérifiez votre connexion puis rechargez la page.");
+        setMessage(he ? "לא ניתן היה להכין את ההתקנה. בדקו את החיבור וטענו מחדש את הדף." : "L'installation n'a pas pu être préparée. Vérifiez votre connexion puis rechargez la page.");
       });
     }
 
@@ -123,7 +126,7 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
       window.removeEventListener("focus", syncDeviceState);
       document.removeEventListener("visibilitychange", syncDeviceState);
     };
-  }, [pushSetupKey]);
+  }, [he, pushSetupKey]);
 
   async function installApplication() {
     setMessage(null);
@@ -138,7 +141,7 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
     if (choice.outcome === "accepted") {
       setInstalled(true);
     } else {
-      setMessage("L'installation est nécessaire pour recevoir correctement vos alertes importantes.");
+      setMessage(he ? "יש להתקין את האפליקציה כדי לקבל כראוי את ההתראות החשובות שלכם." : "L'installation est nécessaire pour recevoir correctement vos alertes importantes.");
     }
     setInstallPrompt(null);
     setInstalling(false);
@@ -157,7 +160,7 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
       window.localStorage.setItem(pushSetupKey, "complete");
       setPushSetupComplete(true);
     } else {
-      setMessage(pushFailureMessage(result.reason, result.message));
+      setMessage(pushFailureMessage(result.reason, locale, result.message));
     }
     setEnablingPush(false);
   }
@@ -185,9 +188,9 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
         <header className="flex items-center gap-3 bg-gradient-to-br from-[#6d2bc1] to-[#210763] px-4 py-4 text-white">
           <Smartphone className="size-7 shrink-0" aria-hidden="true" />
           <h1 id="first-visit-title" className="flex-1 text-lg font-black leading-tight">
-            Installez EasyCom IA
+            {he ? "התקינו את EasyCom IA" : "Installez EasyCom IA"}
           </h1>
-          <button type="button" onClick={dismiss} aria-label="Fermer" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/12 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+          <button type="button" onClick={dismiss} aria-label={he ? "סגירה" : "Fermer"} className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/12 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
             <X className="size-5" />
           </button>
         </header>
@@ -196,16 +199,16 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
           <article className="rounded-2xl border border-blue-100 bg-white p-3">
             <div className="flex items-center gap-2">
               {installed ? <CheckCircle2 className="size-5 text-emerald-600" /> : <Smartphone className="size-5 text-[#0878ee]" />}
-              <h2 className="text-sm font-bold text-slate-950">Application</h2>
-              {installed && <span className="ml-auto text-xs font-bold text-emerald-700">Installée</span>}
+              <h2 className="text-sm font-bold text-slate-950">{he ? "אפליקציה" : "Application"}</h2>
+              {installed && <span className="ms-auto text-xs font-bold text-emerald-700">{he ? "מותקנת" : "Installée"}</span>}
             </div>
             {!installed && <>
               {!installPrompt && <p className="mt-2 text-xs leading-5 text-slate-600">
-                {platform === "ios" ? "Safari : Partager → Sur l’écran d’accueil." : "Menu du navigateur → Installer l’application."}
+                {he ? (platform === "ios" ? "Safari: שיתוף ← הוספה למסך הבית." : "תפריט הדפדפן ← התקנת האפליקציה.") : (platform === "ios" ? "Safari : Partager → Sur l’écran d’accueil." : "Menu du navigateur → Installer l’application.")}
               </p>}
               <button type="button" onClick={() => void installApplication()} disabled={installing} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#0878ee] px-3 text-sm font-bold text-white hover:bg-[#0668d8] disabled:opacity-60">
                 <ArrowDownToLine className="size-4" />
-                {installing ? "Installation…" : installPrompt ? "Installer l’application" : "Voir comment installer"}
+                {he ? (installing ? "בהתקנה…" : installPrompt ? "התקנת האפליקציה" : "איך מתקינים") : (installing ? "Installation…" : installPrompt ? "Installer l’application" : "Voir comment installer")}
               </button>
             </>}
           </article>
@@ -213,25 +216,25 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
           <article className="rounded-2xl border border-rose-100 bg-white p-3">
             <div className="flex items-center gap-2">
               {pushSetupComplete ? <CheckCircle2 className="size-5 text-emerald-600" /> : <BellRing className="size-5 text-[#d92d7c]" />}
-              <h2 className="text-sm font-bold text-slate-950">Notifications</h2>
-              {pushSetupComplete && <span className="ml-auto text-xs font-bold text-emerald-700">Activées</span>}
+              <h2 className="text-sm font-bold text-slate-950">{he ? "התראות" : "Notifications"}</h2>
+              {pushSetupComplete && <span className="ms-auto text-xs font-bold text-emerald-700">{he ? "פעילות" : "Activées"}</span>}
             </div>
             {!pushSetupComplete && <>
               {(pushBlocked || !isPushSupported() || installationStep) && <p className="mt-2 text-xs leading-5 text-slate-600">
-                {pushBlocked ? "Autorisez-les dans les réglages de votre appareil." : !isPushSupported() ? "Utilisez Safari ou Chrome." : "À activer après l’installation."}
+                {he ? (pushBlocked ? "אפשרו אותן בהגדרות המכשיר." : !isPushSupported() ? "השתמשו ב־Safari או ב־Chrome." : "יש להפעיל לאחר ההתקנה.") : (pushBlocked ? "Autorisez-les dans les réglages de votre appareil." : !isPushSupported() ? "Utilisez Safari ou Chrome." : "À activer après l’installation.")}
               </p>}
               <button type="button" onClick={() => void activatePush()} disabled={installationStep || enablingPush || pushBlocked || !isPushSupported()} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#d92d7c] px-3 text-sm font-bold text-white hover:bg-[#bf256d] disabled:cursor-not-allowed disabled:opacity-45">
                 <BellRing className="size-4" />
-                {enablingPush ? "Activation…" : "Activer les notifications"}
+                {he ? (enablingPush ? "בהפעלה…" : "הפעלת התראות") : (enablingPush ? "Activation…" : "Activer les notifications")}
               </button>
               {pushBlocked && <button type="button" onClick={() => setPermission(getPushPermission())} className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 text-xs font-bold text-slate-500 hover:text-[#d92d7c]">
-                <RefreshCw className="size-4" /> Vérifier à nouveau
+                <RefreshCw className="size-4" /> {he ? "בדיקה חוזרת" : "Vérifier à nouveau"}
               </button>}
             </>}
           </article>
 
           {message && <p role="status" className="rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">{message}</p>}
-          <button type="button" onClick={dismiss} className="flex min-h-11 w-full items-center justify-center rounded-xl text-sm font-bold text-slate-500 hover:bg-white hover:text-[#421388]">Plus tard</button>
+          <button type="button" onClick={dismiss} className="flex min-h-11 w-full items-center justify-center rounded-xl text-sm font-bold text-slate-500 hover:bg-white hover:text-[#421388]">{he ? "מאוחר יותר" : "Plus tard"}</button>
         </div>
       </section>
     </div>

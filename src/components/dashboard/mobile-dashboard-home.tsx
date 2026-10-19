@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 
 import Link from "next/link";
@@ -51,6 +51,7 @@ import {
   type OfficialDashboardMenuSection,
 } from "@/components/layout/dashboard-nav";
 import { MOBILE_HOME_DEFAULT_MODULES, MOBILE_HOME_MODULES, MOBILE_HOME_MAX_MODULES, type MobileHomeModuleKey } from "@/lib/mobile-dashboard/modules";
+import { useDashboardCopy } from "@/lib/i18n/use-dashboard-copy";
 
 type MobileDashboardHomeProps = {
   firstName: string;
@@ -216,8 +217,10 @@ function resolveHref(href: string, basePath: "/dashboard" | "/demo") {
   return href.startsWith("/dashboard") ? href.replace("/dashboard", basePath) : href;
 }
 
-function getAgentPrompt(agent: EasyComAgent) {
-  return `Je souhaite travailler avec ${agent.name}, mon agent spécialisé en ${agent.role.toLowerCase()}. Aide-moi à commencer.`;
+function getAgentPrompt(agent: EasyComAgent, locale: string, translate: (value: string) => string) {
+  return locale === "he"
+    ? `אני רוצה לעבוד עם ${agent.name}, הסוכן שלי בתחום ${translate(agent.role)}. עזור לי להתחיל.`
+    : `Je souhaite travailler avec ${agent.name}, mon agent spécialisé en ${agent.role.toLowerCase()}. Aide-moi à commencer.`;
 }
 
 export function MobileDashboardHome({
@@ -231,6 +234,8 @@ export function MobileDashboardHome({
   basePath = "/dashboard",
 }: MobileDashboardHomeProps) {
   const t = useTranslations("dashboard");
+  const locale = useLocale();
+  const tr = useDashboardCopy();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -244,7 +249,7 @@ export function MobileDashboardHome({
   const agentsScrollerRef = useRef<HTMLDivElement>(null);
   const addedModuleRef = useRef(false);
   const moduleKey = searchParams.get("module");
-  const sections = useMemo(() => getOfficialDashboardMenuSections(communityType), [communityType]);
+  const sections = useMemo(() => getOfficialDashboardMenuSections(communityType, tr), [communityType, tr]);
   const sectionByKey = useMemo(
     () => new Map(sections.map((section) => [section.key, section])),
     [sections]
@@ -254,9 +259,13 @@ export function MobileDashboardHome({
     return sectionByKey.get(moduleKey);
   }, [moduleKey, sectionByKey]);
   const featuredAgents = FEATURED_AGENT_SLUGS.flatMap((slug) =>
-    HOME_EASYCOM_AGENTS.filter((agent) => agent.slug === slug)
+    HOME_EASYCOM_AGENTS.filter((agent) => agent.slug === slug).map((agent) => ({ ...agent, role: tr(agent.role) }))
   );
-  const actionByKey = useMemo(() => new Map(ACTION_CARDS.map((action) => [action.key, action])), []);
+  const actionByKey = useMemo(() => new Map(ACTION_CARDS.map((action) => [action.key, {
+    ...action,
+    title: tr(action.title),
+    badge: action.badge ? tr(action.badge) : action.badge,
+  }])), [tr]);
   const visibleActions = homeModules.flatMap((key) => {
     const action = actionByKey.get(key);
     return action ? [action] : [];
@@ -288,7 +297,7 @@ export function MobileDashboardHome({
     addedModuleRef.current = true;
     if (!moduleToAdd || homeModules.includes(moduleToAdd)) return;
     if (homeModules.length >= MOBILE_HOME_MAX_MODULES) {
-      window.setTimeout(() => setHomeNotice(`Vous avez déjà ${MOBILE_HOME_MAX_MODULES} modules. Retirez-en un avant d’en ajouter un autre.`), 0);
+      window.setTimeout(() => setHomeNotice(locale === "he" ? `כבר יש לכם ${MOBILE_HOME_MAX_MODULES} מודולים. הסירו אחד לפני הוספת מודול חדש.` : `Vous avez déjà ${MOBILE_HOME_MAX_MODULES} modules. Retirez-en un avant d’en ajouter un autre.`), 0);
       return;
     }
     const timer = window.setTimeout(() => {
@@ -302,7 +311,7 @@ export function MobileDashboardHome({
       router.replace(params.toString() ? `${pathname}?${params}` : pathname, { scroll: false });
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [homeLoaded, homeModules, pathname, router, searchParams]);
+  }, [homeLoaded, homeModules, locale, pathname, router, searchParams]);
 
   function openSection(sectionKey: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -386,7 +395,7 @@ export function MobileDashboardHome({
             >
               <span className="relative flex size-7 items-center justify-center rounded-full bg-white/16 ring-1 ring-white/15">
                 <CalendarDays className="size-4.5 stroke-[2.25]" />
-                <span className="absolute -right-1 -top-1 rounded-full bg-[#23c45e] px-1 py-[1px] text-[0.43rem] font-black uppercase leading-none text-white shadow-sm">
+                <span className="absolute -end-1 -top-1 rounded-full bg-[#23c45e] px-1 py-[1px] text-[0.43rem] font-black uppercase leading-none text-white shadow-sm">
                   IA
                 </span>
               </span>
@@ -399,7 +408,7 @@ export function MobileDashboardHome({
             >
               <Bell className="size-6 stroke-[2.2]" />
               {unreadNotifications > 0 && (
-                <span className="absolute right-0.5 top-0.5 size-3 rounded-full border-2 border-[#421388] bg-[#ff534c]" />
+                <span className="absolute end-0.5 top-0.5 size-3 rounded-full border-2 border-[#421388] bg-[#ff534c]" />
               )}
             </Link>
 
@@ -409,7 +418,7 @@ export function MobileDashboardHome({
                 onClick={() => setProfileOpen((open) => !open)}
                 aria-expanded={profileOpen}
                 aria-label="Ouvrir le menu du profil"
-                className="flex h-10 items-center gap-1.5 rounded-full bg-white/10 px-1.5 pr-2.5 text-white ring-1 ring-white/10 backdrop-blur-sm transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="flex h-10 items-center gap-1.5 rounded-full bg-white/10 px-1.5 pe-2.5 text-white ring-1 ring-white/10 backdrop-blur-sm transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <span className="flex size-8 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#a352e2] to-[#6730b6] text-[0.65rem] font-black shadow-inner shadow-white/10">
                   {userAvatar ? (
@@ -426,11 +435,11 @@ export function MobileDashboardHome({
                 <>
                   <button
                     type="button"
-                    aria-label="Fermer le menu du profil"
+                    aria-label={locale === "he" ? "סגירת תפריט הפרופיל" : "Fermer le menu du profil"}
                     className="fixed inset-0 z-40 cursor-default"
                     onClick={() => setProfileOpen(false)}
                   />
-                  <div className="absolute right-0 top-[calc(100%+0.65rem)] z-50 w-60 overflow-hidden rounded-3xl border border-white/20 bg-white p-2 text-slate-700 shadow-2xl shadow-[#1d0752]/30">
+                  <div className="absolute end-0 top-[calc(100%+0.65rem)] z-50 w-60 overflow-hidden rounded-3xl border border-white/20 bg-white p-2 text-slate-700 shadow-2xl shadow-[#1d0752]/30">
                     <div className="border-b border-slate-100 px-3 py-2.5">
                       <p className="truncate text-sm font-bold text-slate-950">{userName}</p>
                       <p className="mt-0.5 truncate text-xs text-slate-500">{communityName}</p>
@@ -438,10 +447,10 @@ export function MobileDashboardHome({
                     <Link
                       href={resolveHref("/dashboard/settings/billing", basePath)}
                       onClick={() => setProfileOpen(false)}
-                      className="mt-1 flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 py-2 text-left text-sm font-semibold transition hover:bg-violet-50 hover:text-[#421388]"
+                      className="mt-1 flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 py-2 text-start text-sm font-semibold transition hover:bg-violet-50 hover:text-[#421388]"
                     >
                       <CreditCard className="size-4" />
-                      Abonnement
+                      {tr("Abonnement")}
                     </Link>
                     <Link
                       href={resolveHref("/dashboard/settings?section=profile", basePath)}
@@ -449,7 +458,7 @@ export function MobileDashboardHome({
                       className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm font-semibold transition hover:bg-violet-50 hover:text-[#421388]"
                     >
                       <User className="size-4" />
-                      Mon profil
+                      {tr("Mon profil")}
                     </Link>
                     <Link
                       href={resolveHref("/dashboard/settings", basePath)}
@@ -457,15 +466,15 @@ export function MobileDashboardHome({
                       className="flex min-h-11 items-center gap-3 rounded-2xl px-3 py-2 text-sm font-semibold transition hover:bg-violet-50 hover:text-[#421388]"
                     >
                       <Settings className="size-4" />
-                      Paramètres
+                      {tr("Paramètres")}
                     </Link>
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 py-2 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                      className="flex min-h-11 w-full items-center gap-3 rounded-2xl px-3 py-2 text-start text-sm font-semibold text-red-600 transition hover:bg-red-50"
                     >
                       <LogOut className="size-4" />
-                      Se déconnecter
+                      {tr("Se déconnecter")}
                     </button>
                   </div>
                 </>
@@ -485,34 +494,34 @@ export function MobileDashboardHome({
           <div className="flex items-center justify-between gap-3">
             <h2 className="flex shrink-0 items-center gap-2 text-[1.12rem] font-extrabold tracking-[-0.025em]">
               <Sparkles className="size-5 shrink-0 fill-[#ffba13] text-[#ffba13]" />
-              <span>Vos agents IA</span>
+              <span>{tr("Vos agents IA")}</span>
             </h2>
             <button
               type="button"
               onClick={scrollAgentsForward}
-              aria-label="Afficher les agents IA suivants"
+              aria-label={locale === "he" ? "הצגת סוכני ה־AI הבאים" : "Afficher les agents IA suivants"}
               className="flex size-9 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/10 backdrop-blur-sm transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              <ArrowRight className="size-5" />
+              <ArrowRight className="rtl-mirror size-5" />
             </button>
           </div>
         </div>
 
         <div
           ref={agentsScrollerRef}
-          className="relative -mr-5 mt-2 snap-x snap-mandatory overflow-x-auto pr-5 scroll-smooth [scrollbar-width:none] motion-reduce:scroll-auto [&::-webkit-scrollbar]:hidden"
+          className="relative -me-5 mt-2 snap-x snap-mandatory overflow-x-auto pe-5 scroll-smooth [scrollbar-width:none] motion-reduce:scroll-auto [&::-webkit-scrollbar]:hidden"
         >
-          <div className="flex w-max gap-3 pr-5">
+          <div className="flex w-max gap-3 pe-5">
             {featuredAgents.map((agent) => {
               const accent = AGENT_ACCENTS[agent.slug] ?? AGENT_ACCENTS.david;
               const AccentIcon = accent.icon;
               return (
                 <Link
                   key={agent.slug}
-                  href={`${resolveHref("/dashboard/assistant", basePath)}?agent=${encodeURIComponent(agent.slug)}&prefill=${encodeURIComponent(getAgentPrompt(agent))}`}
+                  href={`${resolveHref("/dashboard/assistant", basePath)}?agent=${encodeURIComponent(agent.slug)}&prefill=${encodeURIComponent(getAgentPrompt(agent, locale, tr))}`}
                   className="relative h-[112px] w-[150px] shrink-0 snap-start overflow-hidden rounded-[1.35rem] border border-white/20 bg-white/[0.055] shadow-[0_12px_22px_rgba(17,2,58,0.2)] backdrop-blur-sm transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
-                  <span className={cn("absolute right-2.5 top-2.5 z-20 flex size-8 items-center justify-center rounded-full text-white shadow-lg", accent.surface)}>
+                  <span className={cn("absolute end-2.5 top-2.5 z-20 flex size-8 items-center justify-center rounded-full text-white shadow-lg", accent.surface)}>
                     <AccentIcon className="size-4 stroke-[2.4]" />
                   </span>
                   <Image
@@ -522,11 +531,11 @@ export function MobileDashboardHome({
                     sizes="76px"
                     alt=""
                     aria-hidden="true"
-                    className="absolute -bottom-1 left-0 h-[108px] w-[76px] object-contain object-bottom drop-shadow-[0_10px_12px_rgba(8,1,30,0.28)]"
+                    className="absolute -bottom-1 start-0 h-[108px] w-[76px] object-contain object-bottom drop-shadow-[0_10px_12px_rgba(8,1,30,0.28)]"
                   />
-                  <span className="absolute bottom-2.5 left-[71px] right-2 z-10 flex min-h-[46px] flex-col justify-end text-left">
+                  <span className="absolute bottom-2.5 start-[71px] end-2 z-10 flex min-h-[46px] flex-col justify-end text-start">
                     <span className="block text-sm font-black leading-tight">{agent.name}</span>
-                    <span className="mt-0.5 block break-words text-[10px] font-semibold leading-[1.18] text-white/90">{agent.role}</span>
+                    <span className="mt-0.5 block break-words text-[10px] font-semibold leading-[1.18] text-white/90">{tr(agent.role)}</span>
                   </span>
                 </Link>
               );
@@ -539,11 +548,11 @@ export function MobileDashboardHome({
       <section className="mx-auto w-full max-w-[52rem] px-3 pb-5 pt-4 sm:px-6 sm:pb-7 sm:pt-6">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-xl font-black leading-tight tracking-tight text-slate-950 sm:text-2xl">
-            Que souhaitez-vous faire ?
+            {tr("Que souhaitez-vous faire ?")}
           </h2>
-          {editMode ? <button type="button" onClick={() => setEditMode(false)} className="min-h-10 rounded-full bg-[#421388] px-4 text-xs font-black text-white shadow-sm">Terminé</button> : null}
+          {editMode ? <button type="button" onClick={() => setEditMode(false)} className="min-h-10 rounded-full bg-[#421388] px-4 text-xs font-black text-white shadow-sm">{tr("Terminé")}</button> : null}
         </div>
-        {editMode ? <p className="mt-2 text-xs font-semibold text-slate-500">Maintenez et faites glisser un module pour changer son ordre. Touchez × pour le retirer.</p> : null}
+        {editMode ? <p className="mt-2 text-xs font-semibold text-slate-500">{locale === "he" ? "לחצו לחיצה ארוכה וגררו מודול כדי לשנות את הסדר. לחצו על × כדי להסיר אותו." : "Maintenez et faites glisser un module pour changer son ordre. Touchez × pour le retirer."}</p> : null}
 
         <div className="mt-4 grid grid-cols-6 items-stretch gap-2.5 sm:gap-3">
           {visibleActions.map((action) => {
@@ -557,12 +566,12 @@ export function MobileDashboardHome({
                     <span className={cn("relative flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white shadow-lg sm:size-11", action.iconClassName)}>
                       <ShoppingBag className="size-5 stroke-[2.2] sm:size-[22px]" />
                     </span>
-                    <span className="relative min-w-0 flex-1 text-left">
+                    <span className="relative min-w-0 flex-1 text-start">
                       <span className="block truncate text-sm font-black leading-tight tracking-[-0.02em] sm:text-base">{action.title}</span>
                       <span className="mt-1 block truncate text-[0.64rem] font-bold leading-tight text-violet-100 sm:text-xs">{action.badge}</span>
                     </span>
                     <span className="relative flex size-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white ring-1 ring-white/15 sm:size-9">
-                      <ArrowRight className="size-4" />
+                      <ArrowRight className="rtl-mirror size-4" />
                     </span>
                   </>
                 ) : (
@@ -614,8 +623,8 @@ export function MobileDashboardHome({
               "h-full w-full !min-h-[116px] !flex-col !justify-center !gap-2 rounded-[1.65rem] !border-0 px-3 py-3 !text-center shadow-[0_16px_30px_-18px_rgba(15,23,42,0.5)] sm:!min-h-[126px] sm:!gap-3 sm:p-4",
               action.className,
               isBottomThree && "!min-h-[104px] !gap-2 rounded-[1.4rem] px-1.5 py-2.5 sm:!min-h-[118px] sm:!gap-2.5 sm:px-3",
-              action.key === "shop" && "!min-h-[72px] !flex-row !justify-start !gap-3 rounded-[1.45rem] px-3.5 py-3 !text-left shadow-[0_16px_30px_-18px_rgba(66,19,136,0.65)] sm:!min-h-[80px] sm:px-5",
-              editMode && action.key === "shop" && "pr-12"
+              action.key === "shop" && "!min-h-[72px] !flex-row !justify-start !gap-3 rounded-[1.45rem] px-3.5 py-3 !text-start shadow-[0_16px_30px_-18px_rgba(66,19,136,0.65)] sm:!min-h-[80px] sm:px-5",
+              editMode && action.key === "shop" && "pe-12"
             );
 
             const sharedProps = {
@@ -633,10 +642,10 @@ export function MobileDashboardHome({
               onPointerCancel: () => setDraggingKey(null),
             };
             const cardContent = <>
-              {editMode && !isFixedCard ? <span className="absolute left-2 top-2 z-20 flex size-7 items-center justify-center rounded-full bg-black/15 text-white"><GripVertical className="size-4" /></span> : null}
+              {editMode && !isFixedCard ? <span className="absolute start-2 top-2 z-20 flex size-7 items-center justify-center rounded-full bg-black/15 text-white"><GripVertical className="size-4" /></span> : null}
               {content}
             </>;
-            const removeButton = editMode && !isFixedCard ? <button type="button" onClick={() => removeHomeModule(action.key)} className="absolute right-1.5 top-1.5 z-20 flex size-8 items-center justify-center text-white/65 transition hover:text-white active:scale-90 focus-visible:rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" aria-label={`Retirer ${action.title} de mon accueil`}><X className="size-3.5 drop-shadow-sm" /></button> : null;
+            const removeButton = editMode && !isFixedCard ? <button type="button" onClick={() => removeHomeModule(action.key)} className="absolute end-1.5 top-1.5 z-20 flex size-8 items-center justify-center text-white/65 transition hover:text-white active:scale-90 focus-visible:rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" aria-label={locale === "he" ? `הסרת ${action.title} מדף הבית` : `Retirer ${action.title} de mon accueil`}><X className="size-3.5 drop-shadow-sm" /></button> : null;
 
             if (action.href?.startsWith("http")) {
               return (
@@ -664,8 +673,8 @@ export function MobileDashboardHome({
             );
           })}
         </div>
-        {undoModule ? <div className="fixed bottom-[6.5rem] left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl bg-slate-950 px-4 py-3 text-xs font-bold text-white shadow-xl"><span>Module retiré</span><button type="button" onClick={restoreHomeModule} className="text-[#f2c75c]">Annuler</button></div> : null}
-        {homeNotice ? <button type="button" onClick={() => setHomeNotice(null)} className="fixed bottom-[6.5rem] left-1/2 z-50 w-[calc(100%-2rem)] -translate-x-1/2 rounded-2xl bg-slate-950 px-4 py-3 text-left text-xs font-bold text-white shadow-xl">{homeNotice}</button> : null}
+        {undoModule ? <div className="fixed bottom-[6.5rem] left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl bg-slate-950 px-4 py-3 text-xs font-bold text-white shadow-xl"><span>{tr("Module retiré")}</span><button type="button" onClick={restoreHomeModule} className="text-[#f2c75c]">{tr("Annuler")}</button></div> : null}
+        {homeNotice ? <button type="button" onClick={() => setHomeNotice(null)} className="fixed bottom-[6.5rem] left-1/2 z-50 w-[calc(100%-2rem)] -translate-x-1/2 rounded-2xl bg-slate-950 px-4 py-3 text-start text-xs font-bold text-white shadow-xl">{homeNotice}</button> : null}
         {basePath === "/dashboard" ? <div className="mt-5"><ComingSoonBanner /></div> : null}
       </section>
 
@@ -692,6 +701,8 @@ function ModuleDialog({
   basePath: "/dashboard" | "/demo";
   onOpenChange: (open: boolean) => void;
 }) {
+  const locale = useLocale();
+  const tr = useDashboardCopy();
   const isSocialSection = section?.key === "social";
   const isCommunitySection = section?.key === "automations";
   const isCompactGridSection = Boolean(section && ["torah", "visuals", "contacts", "email"].includes(section.key));
@@ -708,12 +719,12 @@ function ModuleDialog({
     : [];
   const compactGridTitle =
     section?.key === "torah"
-      ? "Cours de Torah"
+      ? tr("Cours de Torah")
       : section?.key === "visuals"
-        ? "Affiches"
+        ? locale === "he" ? "מודעות" : "Affiches"
         : section?.key === "contacts"
-          ? "Contacts"
-          : "Email et Avis Google";
+          ? tr("CONTACTS")
+          : locale === "he" ? "אימייל וביקורות Google" : "Email et Avis Google";
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -729,13 +740,13 @@ function ModuleDialog({
                 <div className="min-w-0 flex-1 pt-0.5">
                   <DialogPrimitive.Title className="text-lg font-black uppercase tracking-tight text-white">
                     {isSocialSection
-                      ? "Publier partout en un clic"
+                      ? tr("Publier partout en un clic")
                       : isCommunitySection
-                        ? "Automatiser votre communication"
+                        ? locale === "he" ? "אוטומציה של התקשורת שלכם" : "Automatiser votre communication"
                         : isCompactGridSection
                           ? section.key === "contacts" ? (
                               <span className="inline-flex items-center gap-2">
-                                Contacts
+                                {tr("CONTACTS")}
                                 <span className="inline-flex size-7 items-center justify-center rounded-lg bg-white text-[0.68rem] font-black tracking-normal text-[#075fdf] shadow-sm">
                                   AI
                                 </span>
@@ -744,12 +755,12 @@ function ModuleDialog({
                           : section.section}
                   </DialogPrimitive.Title>
                   <DialogPrimitive.Description className={cn("mt-1 text-sm leading-5 text-white/82", (isSocialSection || isCommunitySection || isCompactGridSection || !section.subtitle) && "sr-only")}>
-                    {section.subtitle || `Choisissez une fonction dans ${section.section.toLowerCase()}.`}
+                    {section.subtitle || (locale === "he" ? `בחרו פעולה מתוך ${section.section}.` : `Choisissez une fonction dans ${section.section.toLowerCase()}.`)}
                   </DialogPrimitive.Description>
                 </div>
                 <DialogPrimitive.Close className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/16 text-white ring-1 ring-white/25 transition hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
                   <X className="size-5" />
-                  <span className="sr-only">Fermer</span>
+                  <span className="sr-only">{tr("Fermer")}</span>
                 </DialogPrimitive.Close>
               </div>
 
@@ -761,13 +772,13 @@ function ModuleDialog({
                       return (
                         <Link
                           href={resolveHref(socialPrimaryItem.href, basePath)}
-                          className="home-tool-publish group relative flex min-h-[92px] items-center gap-4 overflow-hidden rounded-[1.55rem] px-5 py-4 text-left text-white shadow-[0_15px_30px_rgba(6,88,220,0.28)] transition active:scale-[0.985] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300/50"
+                          className="home-tool-publish group relative flex min-h-[92px] items-center gap-4 overflow-hidden rounded-[1.55rem] px-5 py-4 text-start text-white shadow-[0_15px_30px_rgba(6,88,220,0.28)] transition active:scale-[0.985] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300/50"
                         >
                           <span className="relative flex size-13 shrink-0 items-center justify-center rounded-[1.1rem] bg-white/16 ring-1 ring-white/20">
                             {PrimaryIcon ? <PrimaryIcon className="size-6 text-white" /> : null}
                           </span>
-                          <span className="relative min-w-0 flex-1 text-[1.05rem] font-black uppercase leading-tight">Publier sur tous mes réseaux</span>
-                          <ArrowRight className="relative size-5 shrink-0 text-white/80 transition group-hover:translate-x-0.5" />
+                          <span className="relative min-w-0 flex-1 text-[1.05rem] font-black uppercase leading-tight">{tr("Publier sur tous mes réseaux")}</span>
+                          <ArrowRight className="rtl-mirror relative size-5 shrink-0 text-white/80 transition group-hover:translate-x-0.5" />
                         </Link>
                       );
                     })()}
@@ -796,7 +807,7 @@ function ModuleDialog({
                               ) : null}
                             </span>
                             <span className="relative text-sm font-black uppercase leading-tight">
-                              {item.href === "/dashboard/publications" ? "Historique des publications" : item.label}
+                              {item.href === "/dashboard/publications" ? tr("Historique des publications") : item.label}
                             </span>
                           </Link>
                         );
@@ -820,7 +831,7 @@ function ModuleDialog({
                           <span className="relative max-w-full text-[clamp(0.78rem,3.45vw,0.94rem)] font-black leading-[1.18] tracking-[-0.015em] text-slate-900">
                             {item.label}
                           </span>
-                          <ArrowRight className="absolute right-3 top-3 size-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-[#421388]" />
+                          <ArrowRight className="rtl-mirror absolute end-3 top-3 size-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-[#421388]" />
                         </Link>
                       );
                     })}
@@ -832,8 +843,8 @@ function ModuleDialog({
                         className="flex min-h-14 w-full items-center justify-center gap-2 rounded-[1.15rem] bg-[#421388] px-4 py-3 text-sm font-black text-white shadow-[0_12px_26px_rgba(66,19,136,0.28)] transition hover:bg-[#35106f] active:scale-[0.985] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#421388]/25"
                       >
                         <Settings className="size-4.5" />
-                        Automatisations enregistrées
-                        <ArrowRight className="size-4" />
+                        {tr("Automatisations enregistrées")}
+                        <ArrowRight className="rtl-mirror size-4" />
                       </Link>
                     </div>
                   </div>
@@ -877,7 +888,7 @@ function ModuleDialog({
                         <Link
                           key={item.href}
                           href={resolveHref(item.href, basePath)}
-                          className="flex min-h-[62px] items-center gap-3 rounded-[1.25rem] px-3 py-2.5 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#421388]/25"
+                          className="flex min-h-[62px] items-center gap-3 rounded-[1.25rem] px-3 py-2.5 text-start transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#421388]/25"
                         >
                           <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-2xl", item.iconSurfaceClass ?? style.iconSurface)}>
                             {ItemIcon ? <ItemIcon className={cn("size-5", item.iconClass ?? style.itemIcon)} /> : null}
@@ -890,7 +901,7 @@ function ModuleDialog({
                               </span>
                             )}
                           </span>
-                          <ArrowRight className="size-4 shrink-0 text-slate-300" />
+                          <ArrowRight className="rtl-mirror size-4 shrink-0 text-slate-300" />
                         </Link>
                       );
                     })}

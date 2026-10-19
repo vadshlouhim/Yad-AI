@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactElement, type ReactNode, type SVGProps } from "react";
+import { useLocale } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -34,6 +35,7 @@ import {
 } from "./dashboard-nav";
 import { DASHBOARD_MENU_COLORS } from "@/components/dashboard/dashboard-module-colors";
 import { MOBILE_HOME_DEFAULT_MODULES, type MobileHomeModuleKey } from "@/lib/mobile-dashboard/modules";
+import { useDashboardCopy } from "@/lib/i18n/use-dashboard-copy";
 
 const PERSONALIZABLE_HOME_MODULES = new Set<MobileHomeModuleKey>([
   "publish",
@@ -73,6 +75,8 @@ type MobileMainMenuDialogProps = {
 
 export function MobileMainMenuDialog({ communityName, sections, onClose }: MobileMainMenuDialogProps) {
   const router = useRouter();
+  const locale = useLocale();
+  const tr = useDashboardCopy();
   const [activeGroupKey, setActiveGroupKey] = useState<string | null>(null);
   const [homeModules, setHomeModules] = useState<MobileHomeModuleKey[] | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -294,14 +298,22 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
       item("/dashboard/settings?section=profile", "Profil", User),
     ];
 
+    const localizeGroup = (group: ToolGroup): ToolGroup => ({
+      ...group,
+      title: tr(group.title),
+      description: group.description ? tr(group.description) : group.description,
+      badge: group.badge ? tr(group.badge) : group.badge,
+      items: group.items.map((entry) => ({ ...entry, label: tr(entry.label) })),
+    });
+
     return {
-      tools: [...primaryTools, ...secondaryTools],
-      primaryTools,
-      secondaryTools,
-      comingSoon: comingSoon.filter((group) => group.comingSoon),
-      account,
+      tools: [...primaryTools, ...secondaryTools].map(localizeGroup),
+      primaryTools: primaryTools.map(localizeGroup),
+      secondaryTools: secondaryTools.map(localizeGroup),
+      comingSoon: comingSoon.filter((group) => group.comingSoon).map(localizeGroup),
+      account: account.map((entry) => ({ ...entry, label: tr(entry.label) })),
     };
-  }, [sections]);
+  }, [sections, tr]);
 
   const activeGroup = [...menu.tools, ...menu.comingSoon].find((group) => group.key === activeGroupKey) ?? null;
   const activeHomeModuleKeys = new Set(homeModules ?? []);
@@ -317,7 +329,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         type="button"
         className="fixed inset-0 z-[1000] bg-[#16052f]/70 backdrop-blur-[4px] md:hidden"
         onClick={onClose}
-        aria-label="Fermer les autres outils"
+        aria-label={locale === "he" ? "סגירת הכלים האחרים" : "Fermer les autres outils"}
       />
 
       <section
@@ -327,7 +339,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
         className="fixed left-1/2 top-1/2 z-[1001] flex h-[86dvh] max-h-[50rem] w-[calc(100%-1.25rem)] max-w-[27rem] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[2rem] border border-white/20 bg-[#fffaf4] uppercase shadow-[0_32px_90px_rgba(15,3,45,0.5)] md:hidden"
       >
         <header className="relative shrink-0 overflow-hidden bg-[radial-gradient(circle_at_75%_0%,#6d2abd_0%,#421388_48%,#260767_100%)] px-5 pb-5 pt-[max(1.15rem,env(safe-area-inset-top))] text-white">
-          <span className="pointer-events-none absolute -right-10 -top-12 size-36 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
+          <span className="pointer-events-none absolute -end-10 -top-12 size-36 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
           <div className="relative flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
               {activeGroup && (
@@ -337,15 +349,15 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
                     setActiveGroupKey(null);
                   }}
                   className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                  aria-label="Retour aux autres outils"
+                  aria-label={locale === "he" ? "חזרה לכלים האחרים" : "Retour aux autres outils"}
                 >
-                  <ArrowLeft className="size-5" />
+                  <ArrowLeft className="rtl-mirror size-5" />
                 </button>
               )}
               <div className="min-w-0">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/65">EasyCom IA</p>
                 <h1 id="mobile-tools-title" className="mt-0.5 text-[clamp(1.25rem,6vw,1.65rem)] font-black leading-tight tracking-[-0.035em]">
-                  {(activeGroup?.title ?? "AUTRES OUTILS").toUpperCase()}
+                  {(activeGroup?.title ?? (locale === "he" ? "כלים נוספים" : "AUTRES OUTILS")).toUpperCase()}
                 </h1>
               </div>
             </div>
@@ -354,7 +366,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
               autoFocus
               onClick={onClose}
               className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              aria-label="Fermer les autres outils"
+              aria-label={locale === "he" ? "סגירת הכלים האחרים" : "Fermer les autres outils"}
             >
               <X className="size-5" />
             </button>
@@ -368,10 +380,10 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
           ) : (
             <>
 
-              <SectionTitle>Tous les modules</SectionTitle>
+              <SectionTitle>{tr("Tous les modules")}</SectionTitle>
               {homeModules === null ? (
                 <div className="rounded-[1.4rem] border border-violet-100 bg-white px-4 py-6 text-center text-sm font-bold normal-case text-slate-500 shadow-sm">
-                  Chargement de vos modulesâ€¦
+                  {locale === "he" ? "המודולים שלכם נטענים…" : "Chargement de vos modules…"}
                 </div>
               ) : removedHomeTools.length > 0 ? (
                 <div className="grid grid-cols-2 gap-3">
@@ -382,14 +394,14 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
               ) : (
                 <div className="rounded-[1.4rem] border border-violet-100 bg-white px-5 py-7 text-center normal-case shadow-sm">
                   <CheckCircle2 className="mx-auto size-8 text-emerald-600" />
-                  <p className="mt-3 text-sm font-black text-slate-800">Tous vos modules sont sur l’accueil.</p>
-                  <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">Retirez une carte avec sa petite croix pour la retrouver ici.</p>
+                  <p className="mt-3 text-sm font-black text-slate-800">{locale === "he" ? "כל המודולים שלכם נמצאים בדף הבית." : "Tous vos modules sont sur l’accueil."}</p>
+                  <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{locale === "he" ? "הסירו כרטיס באמצעות האיקס הקטן כדי למצוא אותו כאן." : "Retirez une carte avec sa petite croix pour la retrouver ici."}</p>
                 </div>
               )}
 
               {menu.comingSoon.length > 0 ? (
                 <>
-                  <SectionTitle>À venir</SectionTitle>
+                  <SectionTitle>{tr("À venir")}</SectionTitle>
                   <div className="grid grid-cols-2 gap-3">
                     {menu.comingSoon.map((group) => (
                       <ComingSoonCard key={group.key} group={group} onOpen={() => setActiveGroupKey(group.key)} />
@@ -398,7 +410,7 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
                 </>
               ) : null}
 
-              <SectionTitle>Mon compte</SectionTitle>
+              <SectionTitle>{tr("Mon compte")}</SectionTitle>
               <div className="overflow-hidden rounded-[1.4rem] border border-slate-200 bg-white shadow-[0_8px_22px_rgba(35,24,70,0.05)]">
                 {menu.account.map((entry, index) => {
                   const Icon = entry.icon;
@@ -411,8 +423,8 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
                       <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-[#421388]">
                         {Icon ? <Icon className="size-[18px]" /> : null}
                       </span>
-                      <span className="flex-1 text-left uppercase">{entry.label}</span>
-                      <ChevronRight className="size-4 text-slate-300" />
+                      <span className="flex-1 text-start uppercase">{entry.label}</span>
+                      <ChevronRight className="rtl-mirror size-4 text-slate-300" />
                     </>
                   );
 
@@ -497,6 +509,7 @@ function ToolCard({ group, onOpen, onClose, onLongPressStart, onLongPressEnd, su
 }
 
 function ComingSoonCard({ group, onOpen }: { group: ToolGroup; onOpen: () => void }) {
+  const tr = useDashboardCopy();
   const Icon = group.icon;
   return (
     <button
@@ -507,7 +520,7 @@ function ComingSoonCard({ group, onOpen }: { group: ToolGroup; onOpen: () => voi
         group.tone
       )}
     >
-      <span className="absolute right-2.5 top-2.5 rounded-full bg-white/90 px-2 py-1 text-[8px] font-black uppercase tracking-wide text-slate-600">Bientôt</span>
+      <span className="absolute end-2.5 top-2.5 rounded-full bg-white/90 px-2 py-1 text-[8px] font-black uppercase tracking-wide text-slate-600">{tr("Bientôt")}</span>
       <Icon className="size-8" />
       <span className="text-sm font-black uppercase leading-tight">{group.title}</span>
     </button>
@@ -515,24 +528,26 @@ function ComingSoonCard({ group, onOpen }: { group: ToolGroup; onOpen: () => voi
 }
 
 function ComingSoonDetail({ group }: { group: ToolGroup }) {
+  const tr = useDashboardCopy();
   const Icon = group.icon;
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-3 text-center normal-case">
       <span className={cn("flex size-20 items-center justify-center rounded-[1.7rem] text-white shadow-[0_18px_34px_rgba(35,20,80,0.18)]", group.tone)}>
         <Icon className="size-9" />
       </span>
-      <span className="mt-5 rounded-full bg-amber-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-800">Bientot disponible</span>
+      <span className="mt-5 rounded-full bg-amber-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-800">{tr("Bientot disponible")}</span>
       <h2 className="mt-3 text-2xl font-black text-slate-950">{group.title}</h2>
       <p className="mt-3 max-w-sm text-sm font-medium leading-6 text-slate-600">{group.description}</p>
-      <p className="mt-5 text-xs font-bold leading-5 text-slate-400">Cette fonction est en preparation. Elle n&apos;ouvre pas encore son espace de travail.</p>
+      <p className="mt-5 text-xs font-bold leading-5 text-slate-400">{locale === "he" ? "התכונה בהכנה ועדיין אינה פותחת סביבת עבודה." : "Cette fonction est en preparation. Elle n’ouvre pas encore son espace de travail."}</p>
     </div>
   );
 }
 
 function Submenu({ group, onClose }: { group: ToolGroup; onClose: () => void }) {
+  const tr = useDashboardCopy();
   return (
     <div>
-      <p className="mb-3 text-sm font-bold uppercase text-slate-500">CHOISISSEZ UNE FONCTION</p>
+      <p className="mb-3 text-sm font-bold uppercase text-slate-500">{locale === "he" ? "בחרו פעולה" : "CHOISISSEZ UNE FONCTION"}</p>
       <div className="space-y-2.5">
         {group.items.map((entry, index) => {
           const Icon = entry.icon;
@@ -547,8 +562,8 @@ function Submenu({ group, onClose }: { group: ToolGroup; onClose: () => void }) 
                 {Icon ? <Icon className="size-5" /> : <Sparkles className="size-5" />}
               </span>
               <span className="min-w-0 flex-1 text-[15px] font-extrabold uppercase leading-tight">{entry.label}</span>
-              {entry.badge && <span className="rounded-full bg-amber-100 px-2 py-1 text-[9px] font-black text-amber-800">Bientôt</span>}
-              <ChevronRight className="size-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5" />
+              {entry.badge && <span className="rounded-full bg-amber-100 px-2 py-1 text-[9px] font-black text-amber-800">{tr("Bientôt")}</span>}
+              <ChevronRight className="rtl-mirror size-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5" />
             </Link>
           );
         })}
