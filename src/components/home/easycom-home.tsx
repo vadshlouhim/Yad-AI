@@ -145,7 +145,7 @@ function Hero() {
     <div className="home-hero-art" aria-label={t("agentAria")}>
       <div className="home-hero-portrait"><Image src={HOME_AGENT_IMAGES.dovBer} alt={t("agentAria")} width={899} height={1100} sizes="(max-width: 767px) 44vw, 520px" preload /></div>
       <span className="home-orbit home-orbit-publish"><ToolIcon id="publish" className="size-5" /><span>{locale === "he" ? "פרסום בכל הערוצים" : "Publier partout"}</span></span>
-      <span className="home-orbit home-orbit-newsletter"><FileText /><span>Newsletter</span></span>
+      <span className="home-orbit home-orbit-newsletter"><FileText /><span>{locale === "he" ? "ניוזלטר" : "Newsletter"}</span></span>
       <span className="home-orbit home-orbit-posters"><ImageIcon /><span>{locale === "he" ? "מודעות" : "Affiches"}</span></span>
       <span className="home-orbit home-orbit-automations"><Settings /><span>{locale === "he" ? "אוטומציות" : "Automatisations"}</span></span>
     </div>
