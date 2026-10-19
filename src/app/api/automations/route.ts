@@ -11,7 +11,6 @@ const TRIGGERS = new Set<Database["public"]["Enums"]["AutomationTrigger"]>([
   "EVENT_DAY",
   "AFTER_EVENT",
   "WEEKLY_SHABBAT",
-  "JEWISH_HOLIDAY",
   "DAILY",
   "CUSTOM_SCHEDULE",
   "MANUAL",
@@ -171,6 +170,9 @@ export async function POST(request: Request) {
 
       const requiresValidationDefault = getRequiresValidationDefault(community.vocabulary);
       const trigger = TRIGGERS.has(body.trigger as never) ? body.trigger : typedPreset.trigger;
+      if (trigger === "JEWISH_HOLIDAY") {
+        return NextResponse.json({ error: "Les automatisations de fêtes sont désactivées. Utilisez la publication manuelle." }, { status: 410 });
+      }
       const actions =
         body.channels !== undefined || body.contentType !== undefined || body.requiresValidation !== undefined
           ? normalizeActions(body, requiresValidationDefault)
@@ -220,6 +222,9 @@ export async function POST(request: Request) {
     if (preset && !presetConfig) return NextResponse.json({ error: "Preset non supporté" }, { status: 400 });
 
     const trigger = presetConfig?.trigger ?? body.trigger ?? "MANUAL";
+    if (trigger === "JEWISH_HOLIDAY") {
+      return NextResponse.json({ error: "Les automatisations de fêtes sont désactivées. Utilisez la publication manuelle." }, { status: 410 });
+    }
     if (!TRIGGERS.has(trigger as never)) return NextResponse.json({ error: "Déclencheur invalide" }, { status: 400 });
 
     const name = String(body.name ?? presetConfig?.name ?? "Nouvelle automatisation").trim();

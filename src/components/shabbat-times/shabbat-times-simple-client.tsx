@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Clock3,
   Crown,
-  Download,
   Edit3,
   ExternalLink,
   Gift,
@@ -25,24 +24,20 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Json } from "@/types/database.types";
 import { ScheduleHubNav } from "@/components/templates/schedule-hub-nav";
-import { CanvaLogo } from "@/components/templates/template-actions";
 import { CHABAD_SHABBAT_ATTRIBUTION } from "@/lib/automation/shabbat-poster";
 import { inferShabbatTimesVariant } from "@/lib/templates/taxonomy";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { parseOutputLocale, type OutputLocale } from "@/lib/ai/output-locale";
+import {
+  PosterResultActions,
+  OutputLocalePicker,
+  SchedulePosterDialogHeader,
+  SchedulePosterPreview,
+  ScheduleTemplateGallery,
+  type ScheduleTemplate,
+} from "@/components/religious-schedule/poster-workflow";
 
-type Template = {
-  id: string;
-  name: string;
-  description: string | null;
-  thumbnailUrl: string | null;
-  previewUrl: string | null;
-  isPremium: boolean;
-  supportsAi?: boolean;
-  canvaUrl?: string | null;
-  subCategory?: string | null;
-  tags?: string[] | null;
-};
+type Template = ScheduleTemplate;
 
 type Community = {
   id: string;
@@ -155,7 +150,7 @@ function InstagramMark({ className }: { className?: string }) {
   );
 }
 
-function IphonePosterPreview({ template, imageUrl }: { template: Template; imageUrl?: string | null }) {
+export function IphonePosterPreview({ template, imageUrl }: { template: Template; imageUrl?: string | null }) {
   return (
     <div className="mx-auto flex w-full justify-center py-2">
       <div className="relative aspect-[12/25] w-full max-w-[315px] rounded-[3.5rem] border-[1.5px] border-[#b0853e] bg-[#f2935a] p-[4px] shadow-[0_22px_54px_rgba(15,23,42,0.34)]">
@@ -285,7 +280,7 @@ function ShabbatPublishSuccessDialog({
   );
 }
 
-function TemplateImage({ template, className }: { template: Template; className?: string }) {
+export function TemplateImage({ template, className }: { template: Template; className?: string }) {
   const [source, setSource] = useState(template.previewUrl ?? template.thumbnailUrl);
 
   if (!source) {
@@ -684,56 +679,19 @@ export function ShabbatTimesSimpleClient({
           </span>
         </div>
 
-        {templates.length === 0 ? (
-          <div className="mt-5 rounded-[1.75rem] border border-dashed border-slate-300 bg-white p-10 text-center">
-            <ImageIcon className="mx-auto size-10 text-slate-300" />
-            <p className="mt-3 font-black text-slate-900">{t("noPoster")}</p>
-            <p className="mt-1 text-sm text-slate-500">{t("noPosterHelp")}</p>
-          </div>
-        ) : (
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
-            {templates.map((template, index) => {
-              const locked = !isPaid && index > 0;
-              const withOffices = inferShabbatTimesVariant(template) === "with-offices";
-              return (
-                <article key={template.id} className="group flex min-w-0 flex-col overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white p-1.5 text-left shadow-sm transition duration-200 hover:-translate-y-1 hover:border-violet-300 hover:shadow-xl hover:shadow-violet-950/10">
-                <button
-                  type="button"
-                  onClick={() => openTemplate(template, index)}
-                  className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300"
-                >
-                  <div className="relative aspect-square overflow-hidden rounded-[1.2rem] bg-slate-100">
-                    <TemplateImage template={template} className="h-full w-full transition duration-300 group-hover:scale-[1.02]" />
-                    <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-black text-slate-700 shadow-sm backdrop-blur">
-                      {index === 0 ? tx("offered") : t("premium")}
-                    </span>
-                    <span className={cn(
-                      "absolute bottom-2 right-2 z-10 rounded-full px-2.5 py-1 text-[10px] font-black shadow-sm backdrop-blur",
-                      withOffices ? "bg-[#421388]/95 text-white" : "bg-emerald-50/95 text-emerald-800",
-                    )}>
-                      {withOffices ? tx("withServices") : tx("simpleTimes")}
-                    </span>
-                    {locked && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-slate-950/48 backdrop-blur-[1px]">
-                        <span className="flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-xs font-black text-[#421388] shadow-xl">
-                          <Crown className="size-4 text-amber-500" /> Premium
-                        </span>
-                      </div>
-                    )}
-                    {template.canvaUrl ? <span className="absolute bottom-2 left-2 inline-flex rounded-full bg-white/95 px-2 py-1 shadow"><CanvaLogo className="h-4" /></span> : null}
-                  </div>
-                  <div className="flex items-center justify-between gap-2 px-2 py-3">
-                    <span className="line-clamp-1 text-sm font-black text-slate-900">{template.name}</span>
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-violet-50 text-[#421388] transition group-hover:bg-[#421388] group-hover:text-white">
-                      {locked ? <Crown className="size-4" /> : <Sparkles className="size-4" />}
-                    </span>
-                  </div>
-                </button>
-                </article>
-              );
-            })}
-          </div>
-        )}
+        <ScheduleTemplateGallery
+          templates={templates}
+          isPaid={isPaid}
+          onSelect={openTemplate}
+          emptyTitle={t("noPoster")}
+          emptyHelp={t("noPosterHelp")}
+          offeredLabel={tx("offered")}
+          premiumLabel={t("premium")}
+          variantLabel={(template) => {
+            const withOffices = inferShabbatTimesVariant(template) === "with-offices";
+            return { label: withOffices ? tx("withServices") : tx("simpleTimes"), className: withOffices ? "bg-[#421388]/95 text-white" : "bg-emerald-50/95 text-emerald-800" };
+          }}
+        />
       </section>
 
       {selectedTemplate && (
@@ -749,37 +707,11 @@ export function ShabbatTimesSimpleClient({
             aria-labelledby="shabbat-dialog-title"
             className="max-h-[94dvh] w-full max-w-5xl overflow-y-auto rounded-t-[2rem] bg-slate-50 shadow-2xl sm:max-h-[92vh] sm:rounded-[2rem]"
           >
-            <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-violet-100 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
-              <div className="relative flex size-14 shrink-0 items-end justify-center overflow-hidden rounded-2xl bg-violet-50 ring-1 ring-violet-100">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={DAVID_AUTOMATION_IMAGE_URL} alt="David" className="h-full w-full object-contain object-bottom drop-shadow-[0_12px_18px_rgba(66,19,136,0.22)]" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#421388]">{t("title")}</p>
-                <h2 id="shabbat-dialog-title" className="truncate text-lg font-black text-slate-950">
-                  {resultImageUrl ? t("ready") : t("customize")}
-                </h2>
-              </div>
-              <button
-                type="button"
-                aria-label={tx("close")}
-                onClick={() => setSelectedTemplate(null)}
-                disabled={generating || publishing}
-                className="flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 disabled:opacity-50"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
+            <SchedulePosterDialogHeader titleId="shabbat-dialog-title" busy={generating || publishing} eyebrow={t("title")} title={resultImageUrl ? t("ready") : t("customize")} closeLabel={tx("close")} onClose={() => setSelectedTemplate(null)} headerVisual={<>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={DAVID_AUTOMATION_IMAGE_URL} alt="David" className="h-full w-full object-contain object-bottom drop-shadow-[0_12px_18px_rgba(66,19,136,0.22)]" /></>} />
 
             <div className="grid gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_360px]">
               <div className="space-y-5">
-                <div className="rounded-[1.6rem] border border-violet-200 bg-white p-4 shadow-sm">
-                  <label className="text-sm font-black text-slate-900">{t("outputLanguage")}</label>
-                  <p className="mt-1 text-xs text-slate-500">{t("outputHelp")}</p>
-                  <div className="mt-3 grid grid-cols-2 gap-2" dir="ltr">
-                    {(["fr", "he"] as const).map((value) => <button key={value} type="button" onClick={() => { setOutputLocale(value); void refreshShabbatTimes(form.city); }} className={cn("rounded-xl border px-4 py-2.5 text-sm font-black", outputLocale === value ? "border-[#421388] bg-violet-50 text-[#421388]" : "border-slate-200 bg-white text-slate-600")}>{t(value)}</button>)}
-                  </div>
-                </div>
+                <OutputLocalePicker value={outputLocale} onChange={(value) => { setOutputLocale(value); void refreshShabbatTimes(form.city); }} label={t("outputLanguage")} help={t("outputHelp")} frLabel={t("fr")} heLabel={t("he")} />
                 {!resultImageUrl ? (
                   <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="flex items-center justify-between gap-3">
@@ -849,16 +781,7 @@ export function ShabbatTimesSimpleClient({
                   </div>
                 ) : (
                   <div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button type="button" onClick={() => { setResultImageUrl(null); setNotice(""); }} className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border border-blue-400 bg-gradient-to-r from-[#315ecb] to-[#4b7fe8] p-3 text-sm font-black text-white shadow-md shadow-blue-200 transition hover:-translate-y-0.5 hover:brightness-105">
-                        <span className="flex size-10 items-center justify-center rounded-xl bg-white text-[#2364d2] shadow-sm"><Edit3 className="size-5" /></span>
-                        {tx("edit")}
-                      </button>
-                      <button type="button" onClick={() => void downloadPoster()} className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border border-pink-400 bg-gradient-to-r from-[#d92d7c] to-[#f06b45] p-3 text-sm font-black text-white shadow-md shadow-rose-200 transition hover:-translate-y-0.5 hover:brightness-105">
-                        <span className="flex size-10 items-center justify-center rounded-xl bg-white text-[#d12d7e] shadow-sm"><Download className="size-5" /></span>
-                        {tx("download")}
-                      </button>
-                    </div>
+                    <PosterResultActions onEdit={() => { setResultImageUrl(null); setNotice(""); }} onDownload={() => void downloadPoster()} editLabel={tx("edit")} downloadLabel={tx("download")} />
                   </div>
                 )}
 
@@ -945,7 +868,7 @@ export function ShabbatTimesSimpleClient({
 
             <div className="border-t border-violet-100 bg-white/55 px-4 pb-7 pt-6 sm:px-6 sm:pb-8">
               <div className="mx-auto max-w-sm">
-                <IphonePosterPreview template={selectedTemplate} imageUrl={resultImageUrl} />
+                <SchedulePosterPreview template={selectedTemplate} imageUrl={resultImageUrl} alt="Affiche personnalisée des horaires de Chabbat" />
               </div>
             </div>
           </section>

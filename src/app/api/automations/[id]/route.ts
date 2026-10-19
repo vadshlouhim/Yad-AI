@@ -8,7 +8,6 @@ const TRIGGERS = new Set<Database["public"]["Enums"]["AutomationTrigger"]>([
   "EVENT_DAY",
   "AFTER_EVENT",
   "WEEKLY_SHABBAT",
-  "JEWISH_HOLIDAY",
   "DAILY",
   "CUSTOM_SCHEDULE",
   "MANUAL",
@@ -126,6 +125,9 @@ export async function PATCH(
   if (!automation) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
 
   const body = (await request.json()) as Record<string, unknown>;
+  if (automation.trigger === "JEWISH_HOLIDAY" || body.trigger === "JEWISH_HOLIDAY") {
+    return NextResponse.json({ error: "Les automatisations de fêtes sont désactivées. Utilisez la publication manuelle." }, { status: 410 });
+  }
   const admin = createAdminClient();
 
   const updateData: Record<string, unknown> = { updatedAt: new Date().toISOString() };

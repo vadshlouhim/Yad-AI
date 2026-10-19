@@ -77,3 +77,17 @@ Choix terminologiques :
 - « Langue de la publication » : **שפת הפרסום** ; elle reste indépendante de la langue de l’interface.
 - Les horaires sont toujours affichés en 24 heures et forcés en LTR.
 - Les noms de fêtes et de parachiot proviennent de Hebcal / `@hebcal/core` en hébreu natif ; les noms de communauté et les lieux provenant de la base ne sont pas traduits.
+
+## Étape 6b — parcours manuel des fêtes
+
+À faire relire par une personne hébréophone avant publication :
+
+- le message annonçant le remplacement des automatisations par le parcours manuel ;
+- les libellés « כניסה / הדלקת נרות » et « יציאה / סיום החג » selon les cas particuliers de fêtes sur plusieurs jours ;
+- la hiérarchie du nom de fête, de la date hébraïque et des heures dans les affiches RTL.
+
+Choix terminologiques :
+
+- « Horaires des fêtes » : **זמני חגים**.
+- « Publication manuelle » : formulation descriptive, sans terme technique d’automatisation.
+- Les heures restent en LTR ; le nom de fête et la date hébraïque utilisent des caractères hébreux natifs.

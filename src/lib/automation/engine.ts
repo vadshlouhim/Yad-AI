@@ -5,7 +5,7 @@ import type { ShabbatTimes } from "./hebcal";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateContent } from "@/lib/ai/engine";
 import { createPublicationsFromDraft, publishToAllChannels, publishToChannel } from "@/lib/publishing/publisher";
-import { getShabbatTimes, getNextHoliday, getHolidayTimes } from "./hebcal";
+import { getShabbatTimes, getNextHoliday } from "./hebcal";
 import {
   getCampaignFromTriggerConfig,
   getDueReminder,
@@ -264,7 +264,8 @@ export async function runAutomationEngine(): Promise<void> {
     .from("Automation")
     .select("*, community:Community(id,name,city,country,timezone,tone,hashtags,email,logoUrl,vocabulary)")
     .eq("isActive", true)
-    .eq("status", "ACTIVE");
+    .eq("status", "ACTIVE")
+    .neq("trigger", "JEWISH_HOLIDAY");
 
   if (!automations) return;
   console.log(`[Automation] ${automations.length} automatisations actives`);
@@ -286,6 +287,10 @@ async function processAutomation(
   automation: AutomationWithCommunity,
   now: Date
 ): Promise<void> {
+  if (automation.trigger === "JEWISH_HOLIDAY") {
+    console.warn(`[Automation] Automatisation de fête ignorée (parcours manuel): ${automation.id}`);
+    return;
+  }
   const supabase = createAdminClient();
   await prepareAutomationNotification(automation, now);
 
@@ -1182,6 +1187,10 @@ async function executeHayomYomPublication(
 export async function executeAutomationActions(
   automation: AutomationWithCommunity
 ): Promise<"paused" | void> {
+  if (automation.trigger === "JEWISH_HOLIDAY") {
+    console.warn(`[Automation] Exécution de fête bloquée (parcours manuel): ${automation.id}`);
+    return "paused";
+  }
   const supabase = createAdminClient();
 
   if (getHayomYomSettings(automation.triggerConfig)) {
@@ -1260,7 +1269,7 @@ export async function executeAutomationActions(
           if (existingDraft) break;
         }
 
-        let selectedTemplateImageUrl = automation.trigger === "WEEKLY_SHABBAT"
+        const selectedTemplateImageUrl = automation.trigger === "WEEKLY_SHABBAT"
           ? await renderShabbatPosterImage({
               supabase,
               triggerConfig,
@@ -1270,39 +1279,6 @@ export async function executeAutomationActions(
               communityName: automation.community.name,
             })
           : null;
-        if (automation.trigger === "JEWISH_HOLIDAY" && isRecord(triggerConfig.holidayPoster)) {
-          const holidayConfig = triggerConfig.holidayPoster;
-          const templateId = typeof holidayConfig.selectedTemplateId === "string" ? holidayConfig.selectedTemplateId : "";
-          const outputLocale = parseOutputLocale(holidayConfig.outputLocale, "fr");
-          const holiday = await getNextHoliday(outputLocale);
-          if (templateId && holiday) {
-            const { data: template } = await supabase.from("Template").select("*").eq("id", templateId).or(`isGlobal.eq.true,communityId.eq.${automation.community.id}`).maybeSingle();
-            if (template) {
-              const times = await getHolidayTimes({ city: automation.community.city ?? undefined, country: automation.community.country ?? undefined, timezone: automation.community.timezone, date: holiday.date, outputLocale });
-              const rendered = await createReligiousPoster({
-                admin: supabase,
-                template,
-                communityId: automation.community.id,
-                locale: outputLocale,
-                logoUrl: trustedStoredCommunityLogo(automation.community.logoUrl) ?? undefined,
-                content: {
-                  communityName: automation.community.name,
-                  title: holiday.name,
-                  subtitle: outputLocale === "he" ? "חג שמח" : "Bonne fête",
-                  hebrewDate: holiday.hebrewDate,
-                  gregorianDate: new Date(`${holiday.date}T12:00:00Z`).toLocaleDateString(outputIntlLocale(outputLocale), { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }),
-                  location: automation.community.city ?? undefined,
-                  entryLabel: RELIGIOUS_COPY[outputLocale].holidayEve,
-                  entryTime: times?.entry,
-                  exitLabel: RELIGIOUS_COPY[outputLocale].holidayExit,
-                  exitTime: times?.exit,
-                },
-              });
-              selectedTemplateImageUrl = rendered.imageUrl;
-            }
-          }
-        }
-
         const posterFields = getShabbatPosterConfig(triggerConfig).fields;
         const generated = shabbatTimes
           ? { body: buildShabbatCaption(isRecord(posterFields) ? posterFields as Record<string, string> : {}, shabbatTimes, parseOutputLocale(getShabbatPosterConfig(triggerConfig).outputLocale, "fr")), bodyHebrew: null, hashtags: [], cta: null }
@@ -1314,8 +1290,8 @@ export async function executeAutomationActions(
               eventId: automation.eventId ?? undefined,
               shabbatTimes,
               hebrewDate,
-              holidayName: automation.trigger === "JEWISH_HOLIDAY" && isRecord(triggerConfig.holidayPoster) && typeof triggerConfig.holidayPoster.selectedHolidayName === "string" ? triggerConfig.holidayPoster.selectedHolidayName : undefined,
-              outputLocale: automation.trigger === "JEWISH_HOLIDAY" ? parseOutputLocale(isRecord(triggerConfig.holidayPoster) ? triggerConfig.holidayPoster.outputLocale : undefined, "fr") : undefined,
+              holidayName: undefined,
+              outputLocale: undefined,
             });
 
         const { data: draft } = await supabase

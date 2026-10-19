@@ -47,6 +47,7 @@ export default async function JewishHolidaysAutoPage() {
       .eq("isActive", true)
       .eq("category", "HOLIDAY")
       .contains("tags", ["usage:holiday-times"])
+      .not("tags", "cs", "{legacy}")
       .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
       .order("usageCount", { ascending: false })
       .limit(120),
@@ -70,8 +71,8 @@ export default async function JewishHolidaysAutoPage() {
   const nextHoliday = getNextAnnualHoliday(holidays, now);
   const hydratedTemplates = (templates ?? []).map((template) => ({
     ...template,
-    thumbnailUrl: resolveTemplateAssetUrl(template.thumbnailUrl),
-    previewUrl: resolveTemplateAssetUrl(template.previewUrl),
+    thumbnailUrl: template.tags?.includes("crop:right-clean") ? `/api/jewish-holidays-auto/background/${template.id}` : resolveTemplateAssetUrl(template.thumbnailUrl),
+    previewUrl: template.tags?.includes("crop:right-clean") ? `/api/jewish-holidays-auto/background/${template.id}` : resolveTemplateAssetUrl(template.previewUrl),
   }));
 
   return (

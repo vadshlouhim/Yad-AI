@@ -24,6 +24,9 @@ export async function POST(
     .single();
 
   if (!automation) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+  if (automation.trigger === "JEWISH_HOLIDAY") {
+    return NextResponse.json({ error: "Les automatisations de fêtes sont désactivées. Utilisez la publication manuelle." }, { status: 410 });
+  }
 
   const { data: run } = await admin
     .from("AutomationRun")
