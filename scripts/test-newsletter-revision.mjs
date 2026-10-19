@@ -39,9 +39,9 @@ globalThis.__newsletter.access = { ok: false, response: Response.json({ error: "
 assert.equal((await api.POST(request(body))).status, 403);
 
 const draftApi = await bundle("src/app/api/newsletter/draft/route.ts");
-const draft = { version: 1, title: "Feuillet", generated: { ravWord: "Texte exact" }, photos: [{ id: "one", url: "https://example.test/photo.jpg", caption: "Kermesse", captionGroup: "school", groupCaption: "Les enfants de l’école" }], layout: { photoSide: "back", order: ["parasha", "rav"] }, previousRevision: { generated: { ravWord: "Texte précédent" }, photos: [] } };
+const draft = { version: 4, outputLocale: "fr", title: "Feuillet", generated: { ravWord: "Texte exact" }, photos: [{ id: "one", url: "https://example.test/photo.jpg", caption: "Kermesse", captionGroup: "school", groupCaption: "Les enfants de l’école" }], layout: { photoSide: "back", order: ["parasha", "rav"] }, previousRevision: { generated: { ravWord: "Texte précédent" }, photos: [] } };
 assert.equal((await draftApi.PUT(request({ draft, expectedUpdatedAt: null }))).status, 201);
-assert.deepEqual((await (await draftApi.GET()).json()).draft, draft);
+assert.deepEqual((await (await draftApi.GET(new Request("http://localhost?locale=fr"))).json()).draft, draft);
 assert.equal((await draftApi.PUT(request({ draft, expectedUpdatedAt: null }))).status, 409);
 assert.equal((await draftApi.PUT(request({ draft: { ...draft, title: "Nouvelle version" }, expectedUpdatedAt: saved.updatedAt }))).status, 200);
 delete globalThis.__newsletter;

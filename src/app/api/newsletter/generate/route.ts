@@ -59,6 +59,7 @@ function extractJson(raw: string) {
     if (!match) return null;
     return JSON.parse(match[0]) as Partial<{
       title: string;
+      subtitle: string;
       intro: string;
       ravWord: string;
       shabbatNote: string;
@@ -93,7 +94,7 @@ export async function POST(request: Request) {
     const modules = body.modules ?? {};
     const activeModuleCount = Object.values(modules).filter(Boolean).length;
     const sparseLayout = activeModuleCount <= 5;
-    const requestedTitle = safeText(body.title, 70) || "Le Chabbat Mag";
+    const requestedTitle = safeText(body.title, 70) || (outputLocale === "he" ? "השבתון" : "Le Chabbat Mag");
     const now = new Date();
     const [{ data: community }, { data: events }, { data: contacts }] = await Promise.all([
       admin
@@ -148,12 +149,13 @@ export async function POST(request: Request) {
     const prompt = [
       "Tu prépares une newsletter papier A4 professionnelle pour Chabbat, pour une synagogue ou un Beth Habad.",
       outputLanguageDirective(outputLocale),
-      "Retourne uniquement un JSON valide avec les cles: title, intro, ravWord, shabbatNote, eventIntro, restaurantAd, proofreadNote.",
+      "Retourne uniquement un JSON valide avec les cles: title, subtitle, intro, ravWord, shabbatNote, eventIntro, restaurantAd, proofreadNote.",
       body.mode === "rav" ? "Tu retravailles uniquement le Mot du Rav. Garde les autres champs courts ou vides, mais renvoie toujours un JSON valide." : `Le titre doit rester exactement : ${requestedTitle}. L'introduction doit etre courte, accueillante et tenir sur deux lignes maximum.`,
       sparseLayout
         ? "La maquette contient peu de rubriques. Equilibre intelligemment la page en enrichissant les textes actifs avec du contenu utile, sans repetition et sans remplissage artificiel, afin d'eviter de grandes zones vides."
         : "La maquette contient plusieurs rubriques. Reste concis pour conserver une composition aeree et reguliere.",
       "Style: chaleureux, clair, tres professionnel, adapte a l'impression papier. Pas d'emojis. Pas de Markdown.",
+      outputLocale === "he" ? "Écris un hébreu naturel, chaleureux et fluide, adapté à une communauté Habad ; évite toute traduction mot à mot du français." : "",
       `Communaute: ${community?.name ?? "Communaute"}. Ville: ${city}. Ton souhaite: ${safeText(body.tone, 80) || community?.tone || "professionnel"}.`,
       shabbat ? `Chabbat: ${parasha ?? "Chabbat"}, date hébraïque ${hebrewDate ?? ""}, entrée ${shabbat.entry ?? ""}, sortie ${shabbat.exit ?? ""}.` : "Horaires de Chabbat indisponibles.",
       modules.ravWord ? `Mot du Rav actif. Theme demande: ${safeText(body.ravTheme, 240) || "message court de Torah pour la semaine"}. Redige un mot de Torah original, inspire de la Paracha, sans jamais depasser ${NEWSLETTER_RAV_WORD_LIMIT} caracteres, espaces compris.` : "Mot du Rav inactif: laisse ravWord vide.",
@@ -170,13 +172,15 @@ export async function POST(request: Request) {
       communityId: profile.communityId,
       contentType: "COMMUNITY_NEWS",
       customInstructions: prompt,
+      outputLocale,
     });
 
     const parsed = extractJson(generated.body) ?? extractJson(generated.raw ?? "");
 
     return NextResponse.json({
       title: requestedTitle,
-      intro: newsletterGeneratedText(parsed?.intro, outputLocale === "he" ? "חדשות הקהילה ופעילויות השבוע." : "Votre feuillet communautaire des activités de la semaine."),
+      subtitle: newsletterGeneratedText(parsed?.subtitle, outputLocale === "he" ? "דף השבוע של הקהילה" : "Au cœur de notre communauté"),
+      intro: newsletterGeneratedText(parsed?.intro, outputLocale === "he" ? `שבת שלום וברוכים הבאים להשבתון שלנו. פרשת ${parasha ?? "השבוע"} מזמינה אותנו להתחזק יחד בתורה, במצוות ובאהבת ישראל. נאחל לכל בני הקהילה שבוע מבורך ומלא אור.` : "Votre feuillet communautaire des activités de la semaine."),
       ravWord: limitNewsletterText(newsletterGeneratedText(parsed?.ravWord), NEWSLETTER_RAV_WORD_LIMIT),
       shabbatNote: newsletterGeneratedText(parsed?.shabbatNote, outputLocale === "he" ? "רעיונות מרכזיים מפרשת השבוע לשיתוף סביב שולחן השבת." : `Retrouvez les grands enseignements de ${parasha ?? "la Paracha de la semaine"} et partagez-les en famille pendant Chabbat.`),
       eventIntro: newsletterGeneratedText(parsed?.eventIntro, outputLocale === "he" ? "האירועים המרכזיים לימים הקרובים." : "Voici les principaux rendez-vous à noter pour les prochains jours."),

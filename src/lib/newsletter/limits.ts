@@ -2,6 +2,11 @@
 export const NEWSLETTER_PHOTO_LIMIT = 6;
 export const NEWSLETTER_POSTER_LIMIT = 3;
 export const NEWSLETTER_RAV_WORD_LIMIT = 700;
+export const NEWSLETTER_INTRO_LIMIT = 360;
+export const NEWSLETTER_PARASHA_LIMIT = 700;
+export const NEWSLETTER_SEFER_LIMIT = 1000;
+export const NEWSLETTER_EVENT_INTRO_LIMIT = 300;
+export const NEWSLETTER_SPECIFIC_EVENT_LIMIT = 800;
 export const NEWSLETTER_IMAGES_PER_ROW = 4;
 
 export function limitNewsletterText(text: string, maxLength: number) {

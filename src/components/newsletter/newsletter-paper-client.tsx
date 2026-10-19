@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { NewsletterDocument, type NewsletterDocumentHandle } from "@/components/newsletter/newsletter-document";
 import { NewsletterRevision } from "./newsletter-revision";
@@ -10,9 +10,9 @@ import { parseLayoutPreferences, type NewsletterLayoutPreferences, type Newslett
 import type { NewsletterDocumentData } from "@/lib/newsletter/document-layout";
 import { inlineNewsletterExportImages, NEWSLETTER_IMAGE_ACCEPT, resolveNewsletterBanner, uploadNewsletterBatch, uploadNewsletterImage } from "@/lib/newsletter/media";
 import { createDraftSaveQueue } from "@/lib/newsletter/save-queue";
-import { limitNewsletterText, NEWSLETTER_PHOTO_LIMIT, NEWSLETTER_POSTER_LIMIT, NEWSLETTER_RAV_WORD_LIMIT } from "@/lib/newsletter/limits";
+import { limitNewsletterText, NEWSLETTER_EVENT_INTRO_LIMIT, NEWSLETTER_INTRO_LIMIT, NEWSLETTER_PARASHA_LIMIT, NEWSLETTER_PHOTO_LIMIT, NEWSLETTER_POSTER_LIMIT, NEWSLETTER_RAV_WORD_LIMIT, NEWSLETTER_SEFER_LIMIT, NEWSLETTER_SPECIFIC_EVENT_LIMIT } from "@/lib/newsletter/limits";
 import { newsletterLogoImageUrl } from "@/lib/newsletter/media-path";
-import { NEWSLETTER_LABEL_EDITOR, parseNewsletterLabels, resolveNewsletterLabels, type NewsletterLabels } from "@/lib/newsletter/labels";
+import { parseNewsletterLabels, resolveNewsletterLabels, type NewsletterLabelKey, type NewsletterLabels } from "@/lib/newsletter/labels";
 import { NEWSLETTER_CHALLOT_ICON_URL } from "@/lib/newsletter/kiddush";
 import type { NewsletterStudy } from "@/lib/newsletter/shabbat-study";
 import {
@@ -32,9 +32,8 @@ import {
   LayoutList,
   Loader2,
   PenLine,
+  Pencil,
   Plus,
-  RotateCcw,
-  Save,
   Trash2,
   ArrowUpRight,
   Store,
@@ -128,6 +127,7 @@ type UploadQueueItem = {
 
 export type GeneratedNewsletter = {
   title: string;
+  subtitle: string;
   intro: string;
   ravWord: string;
   shabbatNote: string;
@@ -149,6 +149,7 @@ export type NewsletterDraft = {
   kiddushText: string;
   manualBirthdays: NewsletterManualBirthday[];
   specificEventText: string;
+  seferHamitsvotText: string;
   labelOverrides: Partial<NewsletterLabels>;
   partnerAds: UploadedPhoto[];
   donationUrl: string;
@@ -159,13 +160,7 @@ export type NewsletterDraft = {
   layout?: NewsletterLayoutPreferences;
   previousRevision?: RevisionSnapshot | null;
 };
-type RevisionSnapshot = Pick<NewsletterDraft, "generated" | "parnessText" | "kiddushText" | "specificEventText" | "photos" | "layout" | "outputLocale" | "labelOverrides">;
-
-type NewsletterTranslation = Partial<Pick<GeneratedNewsletter, "title" | "intro" | "ravWord" | "shabbatNote" | "eventIntro" | "restaurantAd" | "proofreadNote">> & {
-  parnessText?: string;
-  kiddushText?: string;
-  specificEventText?: string;
-};
+type RevisionSnapshot = Pick<NewsletterDraft, "generated" | "parnessText" | "kiddushText" | "specificEventText" | "seferHamitsvotText" | "photos" | "layout" | "outputLocale" | "labelOverrides">;
 
 const MODULES: ModuleConfig[] = [
   { key: "seferHamitsvot", titleKey: "modules.seferHamitsvot", icon: BookOpen },
@@ -239,7 +234,8 @@ function filenamePart(value: string) {
 
 function initialGenerated(locale: OutputLocale = "fr"): GeneratedNewsletter {
   return {
-    title: locale === "he" ? "מגזין השבת" : "Le Chabbat Mag",
+    title: locale === "he" ? "השבתון" : "Le Chabbat Mag",
+    subtitle: locale === "he" ? "דף השבוע של הקהילה" : "Au cœur de notre communauté",
     intro: "",
     ravWord: "",
     shabbatNote: "",
@@ -290,20 +286,24 @@ export function parseNewsletterDraft(
   bannerDefault: string,
   outputLocaleDefault: OutputLocale = "fr",
 ): NewsletterDraft | null {
-  if (!isRecord(value) || (value.version !== 1 && value.version !== 2 && value.version !== 3)) return null;
+  if (!isRecord(value) || ![1, 2, 3, 4].includes(Number(value.version))) return null;
   const enabledValue = isRecord(value.enabled) ? value.enabled : {};
   const generatedValue = isRecord(value.generated) ? value.generated : {};
   // Versions 1 and 2 predate an explicit, trustworthy output-language choice.
   // They are existing French drafts, even if the first i18n build autosaved the
   // current interface locale into outputLocale.
-  const outputLocale = resolveNewsletterDraftLocale(value.version, value.outputLocale, outputLocaleDefault);
+  const storedLocale = resolveNewsletterDraftLocale(value.version, value.outputLocale, outputLocaleDefault);
+  if (storedLocale !== outputLocaleDefault) return null;
+  const outputLocale = outputLocaleDefault;
   const defaults = initialGenerated(outputLocale);
+  const storedTitle = draftText(generatedValue.title, draftText(value.title, defaults.title)).trim();
+  const safeTitle = outputLocale === "he" && (storedTitle.length < 3 || !/[\u0590-\u05ff]/.test(storedTitle)) ? defaults.title : storedTitle || defaults.title;
   const previous = isRecord(value.previousRevision) ? parseNewsletterDraft({ ...value.previousRevision, version: NEWSLETTER_DRAFT_VERSION, previousRevision: undefined }, donationDefault, bannerDefault, outputLocale) : null;
   const editorStep: EditorStep = value.editorStep === "content" || value.editorStep === "preview" ? value.editorStep : "modules";
   return {
     version: NEWSLETTER_DRAFT_VERSION,
     layout: parseLayoutPreferences(value.layout),
-    previousRevision: previous ? { generated: previous.generated, parnessText: previous.parnessText, kiddushText: previous.kiddushText, specificEventText: previous.specificEventText, photos: previous.photos, layout: previous.layout, outputLocale: previous.outputLocale, labelOverrides: previous.labelOverrides } : null,
+    previousRevision: previous ? { generated: previous.generated, parnessText: previous.parnessText, kiddushText: previous.kiddushText, specificEventText: previous.specificEventText, seferHamitsvotText: previous.seferHamitsvotText, photos: previous.photos, layout: previous.layout, outputLocale: previous.outputLocale, labelOverrides: previous.labelOverrides } : null,
     savedAt: typeof value.savedAt === "number" ? value.savedAt : 0,
     outputLocale,
     title: draftText(value.title, defaults.title),
@@ -317,6 +317,7 @@ export function parseNewsletterDraft(
     kiddushText: draftText(value.kiddushText),
     manualBirthdays: draftManualBirthdays(value.manualBirthdays),
     specificEventText: draftText(value.specificEventText).slice(0, 1200),
+    seferHamitsvotText: draftText(value.seferHamitsvotText).slice(0, NEWSLETTER_SEFER_LIMIT),
     labelOverrides: parseNewsletterLabels(value.labelOverrides),
     partnerAds: draftUploads(value.partnerAds),
     donationUrl: draftText(value.donationUrl, donationDefault),
@@ -324,7 +325,8 @@ export function parseNewsletterDraft(
     posters: draftUploads(value.posters),
     bannerPhotoUrl: resolveNewsletterBanner(value.bannerPhotoUrl, bannerDefault),
     generated: {
-      title: draftText(generatedValue.title, draftText(value.title, defaults.title)),
+      title: safeTitle,
+      subtitle: outputLocale === "he" && !/[\u0590-\u05ff]/.test(draftText(generatedValue.subtitle)) ? defaults.subtitle : draftText(generatedValue.subtitle, defaults.subtitle),
       intro: draftText(generatedValue.intro, defaults.intro),
       ravWord: limitNewsletterText(draftText(generatedValue.ravWord), NEWSLETTER_RAV_WORD_LIMIT),
       shabbatNote: draftText(generatedValue.shabbatNote),
@@ -380,7 +382,7 @@ export function NewsletterPaperClient({
   const conflictRef = useRef(false);
   const loadedOnceRef = useRef(false);
   const [enabled, setEnabled] = useState<Record<ModuleKey, boolean>>(() => ({ ...DEFAULT_ENABLED, support: Boolean(community.donationUrl) }));
-  const [outputLocale, setOutputLocale] = useState<OutputLocale>(interfaceLocale);
+  const outputLocale = interfaceLocale;
   const [editorStep, setEditorStep] = useState<EditorStep>("modules");
   const [parashaOpen, setParashaOpen] = useState(false);
   const [agendaOpen, setAgendaOpen] = useState(false);
@@ -391,9 +393,9 @@ export function NewsletterPaperClient({
   const [kiddushText, setKiddushText] = useState("");
   const [manualBirthdays, setManualBirthdays] = useState<NewsletterManualBirthday[]>([]);
   const [specificEventText, setSpecificEventText] = useState("");
-  const [communityLabelDefaults, setCommunityLabelDefaults] = useState<Partial<NewsletterLabels>>(community.newsletterLabels ?? {});
+  const [seferHamitsvotText, setSeferHamitsvotText] = useState(initialSeferHamitsvot?.text ?? "");
+  const [communityLabelDefaults] = useState<Partial<NewsletterLabels>>(community.newsletterLabels ?? {});
   const [labelOverrides, setLabelOverrides] = useState<Partial<NewsletterLabels>>({});
-  const [savingLabels, setSavingLabels] = useState(false);
   const [partnerAds, setPartnerAds] = useState<UploadedPhoto[]>([]);
   const [donationUrl, setDonationUrl] = useState(community.donationUrl ?? "");
   const [savingDonationUrl, setSavingDonationUrl] = useState(false);
@@ -409,13 +411,12 @@ export function NewsletterPaperClient({
   const [ravSuggestion, setRavSuggestion] = useState("");
   const [ravSuggestionError, setRavSuggestionError] = useState<string | null>(null);
   const [ravSuggestionLoading, setRavSuggestionLoading] = useState(false);
+  const [generationLoading, setGenerationLoading] = useState(false);
   const ravSuggestionBusyRef = useRef(false);
   const [layout, setLayout] = useState<NewsletterLayoutPreferences>({});
   const [previousRevision, setPreviousRevision] = useState<RevisionSnapshot | null>(null);
   const [revisionBusy, setRevisionBusy] = useState(false);
-  const [pendingOutputLocale, setPendingOutputLocale] = useState<OutputLocale | null>(null);
-  const [translationBusy, setTranslationBusy] = useState(false);
-  const [translationComplete, setTranslationComplete] = useState(false);
+  const [shorteningField, setShorteningField] = useState<"intro" | "ravWord" | "shabbatNote" | "eventIntro" | "specificEventText" | null>(null);
   const [preparedRevision, setPreparedRevision] = useState<{ key: string; pages: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draftReady, setDraftReady] = useState(false);
@@ -425,19 +426,6 @@ export function NewsletterPaperClient({
   const [pendingServerDraft, setPendingServerDraft] = useState<NewsletterDraft | null>(null);
   const [retryLoadCount, setRetryLoadCount] = useState(0);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
-
-  const hasEditorialText = useMemo(() => [
-    generated.title !== "Le Chabbat Mag" && generated.title !== "מגזין השבת" ? generated.title : "",
-    generated.intro,
-    generated.ravWord,
-    generated.shabbatNote,
-    generated.eventIntro,
-    generated.restaurantAd,
-    generated.proofreadNote,
-    parnessText,
-    kiddushText,
-    specificEventText,
-  ].some((text) => text.trim().length > 0), [generated.eventIntro, generated.intro, generated.proofreadNote, generated.ravWord, generated.restaurantAd, generated.shabbatNote, generated.title, kiddushText, parnessText, specificEventText]);
 
   const activeCount = useMemo(() => Object.values(enabled).filter(Boolean).length, [enabled]);
   const mayContainLegacyCuts = [[generated.intro, 180], [generated.ravWord, 850], [generated.shabbatNote, 620], [generated.eventIntro, 220]].some(([text, limit]) => typeof text === "string" && text.length === limit && !/[.!?…]$/.test(text.trim()));
@@ -455,7 +443,8 @@ export function NewsletterPaperClient({
   const localizedStudy = useMemo<NewsletterStudy | null>(() => initialSeferHamitsvot ? ({
     ...initialSeferHamitsvot,
     dateLabel: new Intl.DateTimeFormat(outputIntlLocale(outputLocale), { dateStyle: "full", timeZone: "UTC" }).format(new Date(`${initialSeferHamitsvot.date}T12:00:00Z`)),
-  }) : null, [initialSeferHamitsvot, outputLocale]);
+    text: seferHamitsvotText,
+  }) : null, [initialSeferHamitsvot, outputLocale, seferHamitsvotText]);
   const previewCommunity = { ...community, donationUrl };
   const outputEnabled = useMemo<Record<ModuleKey, boolean>>(() => ({
     seferHamitsvot: enabled.seferHamitsvot,
@@ -479,7 +468,7 @@ export function NewsletterPaperClient({
     outputLocale,
     layout,
   };
-  const localDraftKey = useMemo(() => `easycom.newsletter.draft.${community.id}.${userId}`, [community.id, userId]);
+  const localDraftKey = useMemo(() => `easycom.newsletter.draft.${community.id}.${userId}.${outputLocale}`, [community.id, outputLocale, userId]);
   const draftSnapshot = useMemo<NewsletterDraft>(() => ({
     version: NEWSLETTER_DRAFT_VERSION,
     savedAt: Date.now(),
@@ -493,6 +482,7 @@ export function NewsletterPaperClient({
     kiddushText,
     manualBirthdays,
     specificEventText,
+    seferHamitsvotText,
     labelOverrides,
     partnerAds,
     donationUrl,
@@ -500,10 +490,9 @@ export function NewsletterPaperClient({
     posters,
     bannerPhotoUrl,
     generated,
-  }), [bannerPhotoUrl, donationUrl, editorStep, enabled, generated, kiddushText, labelOverrides, manualBirthdays, mobilePreviewPage, outputLocale, parnessText, partnerAds, photos, posters, layout, previousRevision, specificEventText]);
+  }), [bannerPhotoUrl, donationUrl, editorStep, enabled, generated, kiddushText, labelOverrides, manualBirthdays, mobilePreviewPage, outputLocale, parnessText, partnerAds, photos, posters, layout, previousRevision, seferHamitsvotText, specificEventText]);
 
   const applyDraft = useCallback((draft: NewsletterDraft) => {
-    setOutputLocale(draft.outputLocale);
     setLayout(draft.layout ?? {});
     setPreviousRevision(draft.previousRevision ?? null);
     setPreparedRevision(null);
@@ -513,6 +502,7 @@ export function NewsletterPaperClient({
     setKiddushText(draft.kiddushText);
     setManualBirthdays(draft.manualBirthdays);
     setSpecificEventText(draft.specificEventText);
+    setSeferHamitsvotText(draft.seferHamitsvotText || initialSeferHamitsvot?.text || "");
     setLabelOverrides(draft.labelOverrides);
     setPartnerAds(draft.partnerAds);
     setDonationUrl(draft.donationUrl);
@@ -522,13 +512,10 @@ export function NewsletterPaperClient({
     setGenerated(draft.generated);
     setRavSuggestion("");
     setRavSuggestionError(null);
-    setPendingOutputLocale(null);
-    setTranslationComplete(false);
-  }, []);
+  }, [initialSeferHamitsvot?.text]);
 
   function applyRevision(revision: Revision, pages: string[], key: string) {
-    setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, photos, layout, outputLocale, labelOverrides });
-    setTranslationComplete(false);
+    setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, layout, outputLocale, labelOverrides });
     const { parnessText: parness, kiddushText: kiddush, ...texts } = revision.changes;
     setGenerated(current => ({
       ...current,
@@ -548,90 +535,13 @@ export function NewsletterPaperClient({
     setParnessText(previousRevision.parnessText);
     setKiddushText(previousRevision.kiddushText);
     setSpecificEventText(previousRevision.specificEventText);
+    setSeferHamitsvotText(previousRevision.seferHamitsvotText);
     setPhotos(previousRevision.photos);
     setLayout(previousRevision.layout ?? {});
-    setOutputLocale(previousRevision.outputLocale);
     setLabelOverrides(previousRevision.labelOverrides);
     setPreparedRevision(null);
     setPreviousRevision(null);
-    setTranslationComplete(false);
     setError(null);
-  }
-
-  function applyOutputLocale(locale: OutputLocale) {
-    setOutputLocale(locale);
-    if (generated.title === "Le Chabbat Mag" || generated.title === "מגזין השבת") {
-      setGenerated((current) => ({ ...current, title: locale === "he" ? "מגזין השבת" : "Le Chabbat Mag" }));
-    }
-    setLabelOverrides({});
-    setPreparedRevision(null);
-  }
-
-  function requestOutputLocale(locale: OutputLocale) {
-    if (locale === outputLocale) {
-      setPendingOutputLocale(null);
-      return;
-    }
-    setTranslationComplete(false);
-    if (hasEditorialText) {
-      setPendingOutputLocale(locale);
-      return;
-    }
-    applyOutputLocale(locale);
-  }
-
-  async function translateExistingTexts() {
-    const targetLocale = pendingOutputLocale;
-    if (!targetLocale || translationBusy) return;
-    setTranslationBusy(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/newsletter/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(65_000),
-        body: JSON.stringify({
-          outputLocale: targetLocale,
-          sourceLocale: outputLocale,
-          texts: {
-            title: generated.title,
-            intro: generated.intro,
-            ravWord: generated.ravWord,
-            shabbatNote: generated.shabbatNote,
-            eventIntro: generated.eventIntro,
-            restaurantAd: generated.restaurantAd,
-            proofreadNote: generated.proofreadNote,
-            parnessText,
-            kiddushText,
-            specificEventText,
-          },
-        }),
-      });
-      const payload = await response.json().catch(() => null) as { translations?: NewsletterTranslation; error?: unknown } | null;
-      if (!response.ok || !payload?.translations) throw new Error(interfaceLocale === "fr" && typeof payload?.error === "string" ? payload.error : t("outputLanguage.translationError"));
-      const translations = payload.translations;
-      setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, photos, layout, outputLocale, labelOverrides });
-      setGenerated((current) => ({
-        ...current,
-        ...(translations.title !== undefined ? { title: translations.title } : {}),
-        ...(translations.intro !== undefined ? { intro: translations.intro } : {}),
-        ...(translations.ravWord !== undefined ? { ravWord: limitNewsletterText(translations.ravWord, NEWSLETTER_RAV_WORD_LIMIT) } : {}),
-        ...(translations.shabbatNote !== undefined ? { shabbatNote: translations.shabbatNote } : {}),
-        ...(translations.eventIntro !== undefined ? { eventIntro: translations.eventIntro } : {}),
-        ...(translations.restaurantAd !== undefined ? { restaurantAd: translations.restaurantAd } : {}),
-        ...(translations.proofreadNote !== undefined ? { proofreadNote: translations.proofreadNote } : {}),
-      }));
-      if (translations.parnessText !== undefined) setParnessText(translations.parnessText);
-      if (translations.kiddushText !== undefined) setKiddushText(translations.kiddushText);
-      if (translations.specificEventText !== undefined) setSpecificEventText(translations.specificEventText);
-      applyOutputLocale(targetLocale);
-      setPendingOutputLocale(null);
-      setTranslationComplete(true);
-    } catch (translationError) {
-      setError(translationError instanceof Error ? translationError.message : t("outputLanguage.translationError"));
-    } finally {
-      setTranslationBusy(false);
-    }
   }
 
   async function requestRavSuggestion() {
@@ -654,10 +564,69 @@ export function NewsletterPaperClient({
     }
   }
 
+  async function generateEditorialContent() {
+    if (generationLoading) return;
+    setGenerationLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/newsletter/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(65_000),
+        body: JSON.stringify({ title: generated.title, modules: enabled, parnessText, kiddushText, photoCount: photos.length, outputLocale }),
+      });
+      const payload = await response.json().catch(() => null) as Partial<GeneratedNewsletter> & { error?: unknown } | null;
+      if (!response.ok || !payload) throw new Error(interfaceLocale === "fr" && typeof payload?.error === "string" ? payload.error : t("generate.error"));
+      setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, layout, outputLocale, labelOverrides });
+      setGenerated((current) => ({
+        ...current,
+        ...payload,
+        title: current.title,
+        subtitle: typeof payload.subtitle === "string" ? payload.subtitle : current.subtitle,
+        intro: limitNewsletterText(typeof payload.intro === "string" ? payload.intro : current.intro, NEWSLETTER_INTRO_LIMIT),
+        ravWord: limitNewsletterText(typeof payload.ravWord === "string" ? payload.ravWord : current.ravWord, NEWSLETTER_RAV_WORD_LIMIT),
+        shabbatNote: limitNewsletterText(typeof payload.shabbatNote === "string" ? payload.shabbatNote : current.shabbatNote, NEWSLETTER_PARASHA_LIMIT),
+        eventIntro: limitNewsletterText(typeof payload.eventIntro === "string" ? payload.eventIntro : current.eventIntro, NEWSLETTER_EVENT_INTRO_LIMIT),
+        warnings: Array.isArray(payload.warnings) ? payload.warnings : current.warnings,
+      }));
+      setPreparedRevision(null);
+    } catch (generationError) {
+      setError(generationError instanceof Error ? generationError.message : t("generate.error"));
+    } finally {
+      setGenerationLoading(false);
+    }
+  }
+
+  async function shortenText(field: "intro" | "ravWord" | "shabbatNote" | "eventIntro" | "specificEventText", maxLength: number) {
+    if (shorteningField) return;
+    const source = field === "specificEventText" ? specificEventText : generated[field];
+    if (!source.trim()) return;
+    setShorteningField(field);
+    setError(null);
+    try {
+      const response = await fetch("/api/newsletter/shorten", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(65_000),
+        body: JSON.stringify({ text: source, maxLength: Math.floor(maxLength * 0.72), outputLocale }),
+      });
+      const payload = await response.json().catch(() => null) as { text?: unknown; error?: unknown } | null;
+      if (!response.ok || typeof payload?.text !== "string") throw new Error(interfaceLocale === "fr" && typeof payload?.error === "string" ? payload.error : t("shorten.error"));
+      setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, layout, outputLocale, labelOverrides });
+      if (field === "specificEventText") setSpecificEventText(payload.text);
+      else setGenerated((current) => ({ ...current, [field]: payload.text as string }));
+      setPreparedRevision(null);
+    } catch (shortenError) {
+      setError(shortenError instanceof Error ? shortenError.message : t("shorten.error"));
+    } finally {
+      setShorteningField(null);
+    }
+  }
+
   const saveQueue = useMemo(() => createDraftSaveQueue<NewsletterDraft>(async (draft) => {
     if (!serverReadyRef.current || conflictRef.current) return;
     try {
-      const response = await fetch("/api/newsletter/draft", {
+      const response = await fetch(`/api/newsletter/draft?locale=${outputLocale}`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ draft, expectedUpdatedAt: serverUpdatedAtRef.current }),
         signal: AbortSignal.timeout(20_000),
@@ -681,7 +650,7 @@ export function NewsletterPaperClient({
       setDraftStatus("offline");
       setError(saveError instanceof Error ? saveError.message : t("errors.saveOffline"));
     }
-  }), [draftRequestError, t]);
+  }), [draftRequestError, outputLocale, t]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -727,7 +696,7 @@ export function NewsletterPaperClient({
     }
     const firstLoad = !loadedOnceRef.current;
 
-    fetch("/api/newsletter/draft", { cache: "no-store", signal: AbortSignal.timeout(15_000) })
+    fetch(`/api/newsletter/draft?locale=${outputLocale}`, { cache: "no-store", signal: AbortSignal.timeout(15_000) })
       .then(async (response) => {
         if (!response.ok) throw new Error(draftRequestError(response.status, true));
         return response.json() as Promise<{ draft?: unknown; updatedAt?: string }>;
@@ -772,7 +741,7 @@ export function NewsletterPaperClient({
       });
 
     return () => { active = false; };
-  }, [applyDraft, community.donationUrl, community.logoUrl, draftRequestError, interfaceLocale, localDraftKey, retryLoadCount, t]);
+  }, [applyDraft, community.donationUrl, community.logoUrl, draftRequestError, interfaceLocale, localDraftKey, outputLocale, retryLoadCount, t]);
 
   useEffect(() => {
     if (!draftReady) return;
@@ -937,27 +906,6 @@ export function NewsletterPaperClient({
     }
   }
 
-  async function saveDefaultLabels() {
-    setSavingLabels(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/newsletter/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newsletterLabels: resolvedLabels }),
-      });
-      const data = await response.json().catch(() => ({})) as { newsletterLabels?: unknown; error?: string };
-      if (!response.ok) throw new Error(interfaceLocale === "fr" && data.error ? data.error : t("errors.saveUnavailable"));
-      const saved = parseNewsletterLabels(data.newsletterLabels);
-      setCommunityLabelDefaults(saved);
-      setLabelOverrides({});
-    } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : t("errors.saveUnavailable"));
-    } finally {
-      setSavingLabels(false);
-    }
-  }
-
   function addManualBirthday() {
     setManualBirthdays((current) => current.length >= 20 ? current : [...current, { id: crypto.randomUUID(), name: "", dateLabel: "" }]);
   }
@@ -1064,8 +1012,21 @@ export function NewsletterPaperClient({
     }
   }
 
+  const sectionTitle = (key: NewsletterLabelKey, className?: string) => (
+    <EditableSectionTitle
+      label={resolvedLabels[key]}
+      defaultLabel={communityResolvedLabels[key]}
+      modified={Object.prototype.hasOwnProperty.call(labelOverrides, key)}
+      editLabel={t("labels.editOne", { label: resolvedLabels[key] })}
+      resetLabel={t("labels.resetLink")}
+      className={className}
+      onChange={(value) => setLabelOverrides((current) => ({ ...current, [key]: value }))}
+      onReset={() => resetLabelOverride(key)}
+    />
+  );
+
   return (
-    <fieldset dir={interfaceLocale === "he" ? "rtl" : "ltr"} disabled={!draftReady || uploading || preparingAction !== null || exporting || revisionBusy || translationBusy} className="mx-auto min-w-0 w-full max-w-7xl space-y-5 overflow-x-clip bg-[#f7faf8] pb-[calc(12rem+env(safe-area-inset-bottom))] sm:px-6 sm:pt-6 md:pb-28">
+    <fieldset dir={interfaceLocale === "he" ? "rtl" : "ltr"} disabled={!draftReady || uploading || preparingAction !== null || exporting || revisionBusy} className="mx-auto min-w-0 w-full max-w-7xl space-y-5 overflow-x-clip bg-[#f7faf8] pb-[calc(12rem+env(safe-area-inset-bottom))] sm:px-6 sm:pt-6 md:pb-28">
       <section className="relative overflow-hidden rounded-b-[2.4rem] bg-[radial-gradient(circle_at_82%_10%,#1d8276_0%,#164960_44%,#112b45_100%)] px-5 pb-7 pt-7 text-white shadow-[0_20px_42px_rgba(17,43,69,0.18)] sm:rounded-[2rem] sm:px-8">
         <span className="pointer-events-none absolute -end-14 top-12 size-48 rounded-full bg-[#a2e2c8]/20 blur-3xl" />
         <span className="pointer-events-none absolute -start-10 bottom-0 size-36 rounded-full bg-[#b7dcec]/20 blur-2xl" />
@@ -1111,7 +1072,7 @@ export function NewsletterPaperClient({
 
       {error ? <p role="alert" className="mx-4 whitespace-pre-line rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 sm:mx-0 print:hidden">{error}</p> : null}
       {mayContainLegacyCuts ? <p className="mx-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:mx-0">{t("legacyWarning")}</p> : null}
-      {!serverReady && !draftConflict ? <a href="/dashboard/newsletter" className="mx-4 inline-block font-bold text-violet-800 underline sm:mx-0">{t("retryLoading")}</a> : null}
+      {!serverReady && !draftConflict && (draftStatus === "error" || draftStatus === "offline") ? <button type="button" onClick={() => setRetryLoadCount((count) => count + 1)} className="mx-4 inline-block font-bold text-violet-800 underline sm:mx-0">{t("retryLoading")}</button> : null}
       {draftConflict && pendingServerDraft ? <div className="mx-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 sm:mx-0">
         <p className="font-bold">{t("conflict.message")}</p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -1167,27 +1128,8 @@ export function NewsletterPaperClient({
                 <span>{t("title.visible")}</span>
                 <span>{generated.title.length}/70</span>
               </div>
-            </div>
-
-            <div className="mt-4 rounded-[1.35rem] border border-[#d3e9df] bg-white p-4">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#164960]">{t("outputLanguage.label")}</p>
-              <p className="mt-1 text-xs text-slate-500">{t("outputLanguage.help")}</p>
-              <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("outputLanguage.label")}>
-                {(["fr", "he"] as const).map((value) => <button key={value} type="button" role="radio" aria-checked={outputLocale === value} onClick={() => requestOutputLocale(value)} className={cn("min-h-11 rounded-xl border px-3 text-sm font-black", outputLocale === value ? "border-[#0f766e] bg-[#eaf8f2] text-[#123d39]" : "border-slate-200 bg-white text-slate-600")}>{t(`outputLanguage.${value}`)}</button>)}
-              </div>
-              {pendingOutputLocale ? <div role="alertdialog" aria-modal="true" aria-labelledby="newsletter-language-warning" className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-start">
-                <p id="newsletter-language-warning" className="text-sm font-bold leading-6 text-amber-950">{t(`outputLanguage.${outputLocale}To${pendingOutputLocale === "he" ? "He" : "Fr"}Warning`)}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button type="button" onClick={() => void translateExistingTexts()} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#0f766e] px-3 text-xs font-black text-white">
-                    {translationBusy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}{t("outputLanguage.translate")}
-                  </button>
-                  <button type="button" onClick={() => { applyOutputLocale(pendingOutputLocale); setPendingOutputLocale(null); }} className="min-h-10 rounded-xl bg-white px-3 text-xs font-black text-amber-950 ring-1 ring-amber-300">{t("outputLanguage.keep")}</button>
-                </div>
-              </div> : null}
-              {translationComplete && previousRevision ? <div role="status" className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-start text-xs font-bold text-emerald-900">
-                <span>{t("outputLanguage.translationComplete")}</span>
-                <button type="button" onClick={undoRevision} className="min-h-9 rounded-lg bg-white px-3 font-black text-emerald-900 ring-1 ring-emerald-300">{t("outputLanguage.undoTranslation")}</button>
-              </div> : null}
+              <label htmlFor="newsletter-subtitle" className="mt-4 block text-xs font-black uppercase tracking-[0.14em] text-[#164960]">{t("title.subtitleLabel")}</label>
+              <input id="newsletter-subtitle" value={generated.subtitle} maxLength={100} onChange={(event) => setGenerated((current) => ({ ...current, subtitle: event.target.value }))} placeholder={t("title.subtitlePlaceholder")} className="mt-2 h-11 w-full rounded-xl border border-[#c4ded5] bg-white px-4 text-base font-semibold text-slate-950 outline-none focus:border-[#0f766e] focus:ring-4 focus:ring-emerald-100" />
             </div>
 
             <div className="mt-5 flex items-center justify-between gap-3">
@@ -1210,29 +1152,31 @@ export function NewsletterPaperClient({
             <p className="text-xs font-black uppercase tracking-[0.14em] text-[#421388]">{t("content.eyebrow")}</p>
             <h2 className="mt-1 text-xl font-black text-slate-950">{t("content.title")}</h2>
             <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{t("content.help")}</p>
+            <button type="button" onClick={() => void generateEditorialContent()} disabled={generationLoading} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-700 to-fuchsia-600 px-4 text-sm font-black text-white shadow-md disabled:opacity-60">{generationLoading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}{t(generationLoading ? "generate.loading" : "generate.action")}</button>
             <div className="mt-4 space-y-3">
               {enabled.seferHamitsvot ? <section className="overflow-hidden rounded-2xl border border-teal-100 bg-teal-50">
-                <h3>
-                  <button type="button" aria-expanded={seferHamitsvotOpen} aria-controls="newsletter-sefer-hamitsvot-panel" onClick={() => setSeferHamitsvotOpen((open) => !open)} className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-900"><BookOpen className="size-5" aria-hidden="true" /></span>
-                    <span className="min-w-0 flex-1"><span className="block text-sm font-black text-teal-900">{t("modules.seferHamitsvot")}</span><span className="block text-xs font-medium text-slate-600">{t(seferHamitsvotOpen ? "content.closeText" : "content.openText")}</span></span>
+                <div className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-start">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-900"><BookOpen className="size-5" aria-hidden="true" /></span>
+                  <h3 className="min-w-0 flex-1">{sectionTitle("seferHamitsvot", "text-sm font-black text-teal-900")}</h3>
+                  <button type="button" aria-expanded={seferHamitsvotOpen} aria-controls="newsletter-sefer-hamitsvot-panel" onClick={() => setSeferHamitsvotOpen((open) => !open)} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-2 text-xs font-medium text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600">
+                    <span className="hidden sm:inline">{t(seferHamitsvotOpen ? "content.closeText" : "content.openText")}</span>
                     <ChevronDown aria-hidden="true" className={cn("size-5 shrink-0 text-teal-800 transition-transform", seferHamitsvotOpen && "rotate-180")} />
                   </button>
-                </h3>
+                </div>
                 <div id="newsletter-sefer-hamitsvot-panel" hidden={!seferHamitsvotOpen} className="border-t border-teal-100 px-4 pb-4 pt-3">
                 {localizedStudy ? <>
                   <p className="mt-1 text-xs font-bold text-teal-800">{localizedStudy.dateLabel}{localizedShabbat?.hebrewDate ? ` · ${localizedShabbat.hebrewDate}` : ""}</p>
-                  <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{localizedStudy.text}</p>
-                  <a className="mt-2 inline-block text-xs underline" href={localizedStudy.sourceUrl} target="_blank" rel="noreferrer">{t("studySource")}</a>
-                  <p className="mt-2 text-xs text-slate-600">{t("studyExact")}</p>
+                  {localizedStudy.unavailable ? <p className="mt-2 text-sm text-amber-800">{t("studyUnavailable")}</p> : null}
+                  <TextArea label={t("fields.seferHamitsvotText")} value={seferHamitsvotText} onChange={(value) => setSeferHamitsvotText(value)} maxLength={NEWSLETTER_SEFER_LIMIT} />
+                  <a className="mt-2 inline-block text-xs underline" href={localizedStudy.sourceUrl} target="_blank" rel="noreferrer">{localizedStudy.sourceLabel}</a>
                 </> : <p className="mt-2 text-sm text-amber-800">{t("studyUnavailable")}</p>}
                 </div>
               </section> : null}
-              <TextArea label={t("fields.intro")} value={generated.intro} onChange={(intro) => setGenerated((current) => ({ ...current, intro }))} />
+              <TextArea label={t("fields.intro")} value={generated.intro} onChange={(intro) => setGenerated((current) => ({ ...current, intro }))} maxLength={NEWSLETTER_INTRO_LIMIT} onShorten={() => void shortenText("intro", NEWSLETTER_INTRO_LIMIT)} shortening={shorteningField === "intro"} shortenLabel={t("shorten.action")} />
               {enabled.ravWord ? (
                 <section className="rounded-2xl border border-[#cfe6d9] bg-[#f5fbf7] p-3 text-sm font-bold text-slate-700">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <label htmlFor="newsletter-rav-word" className="text-sm font-black text-[#173a40]">{t("modules.ravWord")}</label>
+                    {sectionTitle("ravWord", "text-sm font-black text-[#173a40]")}
                     <button
                       type="button"
                       onClick={() => void requestRavSuggestion()}
@@ -1253,6 +1197,7 @@ export function NewsletterPaperClient({
                     className="mt-3 w-full resize-y rounded-xl border border-[#cfe6d9] bg-white px-3 py-2 text-base font-medium leading-6 outline-none focus:border-[#087e55] focus:ring-4 focus:ring-emerald-100 sm:text-sm"
                   />
                   <span className="mt-1 block text-end text-[10px] font-bold text-slate-500">{generated.ravWord.length}/{NEWSLETTER_RAV_WORD_LIMIT} {t("charactersMaximum")}</span>
+                  {generated.ravWord.length > NEWSLETTER_RAV_WORD_LIMIT * 0.8 ? <button type="button" onClick={() => void shortenText("ravWord", NEWSLETTER_RAV_WORD_LIMIT)} disabled={Boolean(shorteningField)} className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-violet-100 px-3 text-xs font-black text-violet-900 disabled:opacity-60">{shorteningField === "ravWord" ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}{t("shorten.action")}</button> : null}
                   <div id="newsletter-rav-suggestion" aria-live="polite">
                     {!localizedShabbat?.parasha?.trim() ? <p className="mt-2 text-xs font-medium text-amber-800">{t("rav.parashaRequired")}</p> : null}
                     {ravSuggestionError ? <p role="alert" className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{ravSuggestionError}</p> : null}
@@ -1268,27 +1213,29 @@ export function NewsletterPaperClient({
                 </section>
               ) : null}
               {enabled.shabbat ? <section className="overflow-hidden rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white shadow-sm">
-                <button type="button" aria-expanded={parashaOpen} aria-controls="newsletter-parasha-panel" onClick={() => setParashaOpen((open) => !open)} className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600">
+                <div className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-start">
                   <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-800"><BookOpen className="size-5" /></span>
-                  <span className="min-w-0 flex-1"><span className="block text-sm font-black text-slate-900">{t("modules.shabbat")}</span><span className="block text-xs font-medium text-slate-600">{t(generated.shabbatNote.trim() ? "content.added" : "content.optional")}</span></span>
-                  <ChevronDown className={cn("size-5 shrink-0 text-teal-800 transition-transform", parashaOpen && "rotate-180")} />
-                </button>
-                <div id="newsletter-parasha-panel" hidden={!parashaOpen} className="border-t border-teal-100 px-4 pb-4 pt-3"><TextArea label={t("fields.parashaText")} value={generated.shabbatNote} onChange={(shabbatNote) => setGenerated((current) => ({ ...current, shabbatNote }))} /></div>
+                  <div className="min-w-0 flex-1">{sectionTitle("parasha", "text-sm font-black text-slate-900")}<span className="block text-xs font-medium text-slate-600">{t(generated.shabbatNote.trim() ? "content.added" : "content.optional")}</span></div>
+                  <button type="button" aria-expanded={parashaOpen} aria-controls="newsletter-parasha-panel" onClick={() => setParashaOpen((open) => !open)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600">
+                    <ChevronDown className={cn("size-5 shrink-0 text-teal-800 transition-transform", parashaOpen && "rotate-180")} />
+                  </button>
+                </div>
+                <div id="newsletter-parasha-panel" hidden={!parashaOpen} className="border-t border-teal-100 px-4 pb-4 pt-3"><TextArea label={t("fields.parashaText")} value={generated.shabbatNote} onChange={(shabbatNote) => setGenerated((current) => ({ ...current, shabbatNote }))} maxLength={NEWSLETTER_PARASHA_LIMIT} onShorten={() => void shortenText("shabbatNote", NEWSLETTER_PARASHA_LIMIT)} shortening={shorteningField === "shabbatNote"} shortenLabel={t("shorten.action")} /></div>
               </section> : null}
               {enabled.events ? <section className="overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white shadow-sm">
                 <div className="flex min-w-0 items-center gap-2 px-3 py-3 sm:px-4">
-                  <button type="button" aria-expanded={agendaOpen} aria-controls="newsletter-agenda-panel" onClick={() => setAgendaOpen((open) => !open)} className="flex min-h-12 min-w-0 flex-1 items-center gap-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-900"><CalendarDays className="size-5" /></span>
-                    <span className="min-w-0 flex-1"><span className="block text-sm font-black text-slate-900">{t("agenda.intro")}</span><span className="block text-xs font-medium text-slate-600">{t("agenda.count", { count: initialEvents.length })}</span></span>
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-900"><CalendarDays className="size-5" /></span>
+                  <div className="min-w-0 flex-1">{sectionTitle("agenda", "text-sm font-black text-slate-900")}<span className="block text-xs font-medium text-slate-600">{t("agenda.count", { count: initialEvents.length })}</span></div>
+                  <button type="button" aria-expanded={agendaOpen} aria-controls="newsletter-agenda-panel" onClick={() => setAgendaOpen((open) => !open)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600">
                     <ChevronDown className={cn("size-5 shrink-0 text-amber-800 transition-transform", agendaOpen && "rotate-180")} />
                   </button>
                   <a href="/dashboard/events" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-xl bg-white px-2 text-[11px] font-black text-amber-900 ring-1 ring-amber-200 transition hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 sm:px-3" aria-label={t("agenda.open")}>{t("agenda.name")} <ArrowUpRight className="size-3.5 rtl:-scale-x-100" /></a>
                 </div>
-                <div id="newsletter-agenda-panel" hidden={!agendaOpen} className="border-t border-amber-100 px-4 pb-4 pt-3"><TextArea label={t("fields.eventsIntro")} value={generated.eventIntro} onChange={(eventIntro) => setGenerated((current) => ({ ...current, eventIntro }))} /></div>
+                <div id="newsletter-agenda-panel" hidden={!agendaOpen} className="border-t border-amber-100 px-4 pb-4 pt-3"><TextArea label={t("fields.eventsIntro")} value={generated.eventIntro} onChange={(eventIntro) => setGenerated((current) => ({ ...current, eventIntro }))} maxLength={NEWSLETTER_EVENT_INTRO_LIMIT} onShorten={() => void shortenText("eventIntro", NEWSLETTER_EVENT_INTRO_LIMIT)} shortening={shorteningField === "eventIntro"} shortenLabel={t("shorten.action")} /></div>
               </section> : null}
               {enabled.birthdays ? <section className="rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 to-white p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <div><p className="text-sm font-black text-slate-900">{t("modules.birthdays")}</p><p className="text-xs text-slate-600">{t("birthdays.automatic", { count: initialBirthdays.length })}</p></div>
+                  <div>{sectionTitle("birthdays", "text-sm font-black text-slate-900")}<p className="text-xs text-slate-600">{t("birthdays.automatic", { count: initialBirthdays.length })}</p></div>
                   <button type="button" onClick={addManualBirthday} disabled={manualBirthdays.length >= 20} className="inline-flex min-h-10 items-center gap-1 rounded-xl bg-rose-700 px-3 text-xs font-black text-white disabled:opacity-50"><Plus className="size-4" />{t("birthdays.add")}</button>
                 </div>
                 {initialBirthdays.length ? <div className="mt-3 rounded-xl bg-white px-3 py-2 text-xs text-slate-700 ring-1 ring-rose-100">{initialBirthdays.map((birthday) => <p key={birthday.id}><strong>{birthday.name}</strong> · {(outputLocale === "he" ? birthday.hebrewDateHe : birthday.hebrewDate) || birthday.gregorianDate}</p>)}</div> : <p className="mt-3 text-xs font-medium text-slate-600">{t("birthdays.none")}</p>}
@@ -1299,14 +1246,15 @@ export function NewsletterPaperClient({
                 </div>)}</div> : null}
               </section> : null}
               {enabled.specificEvent ? <section className="rounded-2xl border border-cyan-100 bg-gradient-to-br from-cyan-50 to-white p-3">
-                <TextArea label={t("modules.specificEvent")} value={specificEventText} onChange={(value) => setSpecificEventText(value.slice(0, 1200))} maxLength={1200} />
-                <p className="mt-1 text-end text-[10px] font-bold text-slate-400">{specificEventText.length}/1200</p>
+                {sectionTitle("specificEvent", "text-sm font-black text-slate-900")}
+                <TextArea label={t("fields.specificEventText")} value={specificEventText} onChange={(value) => setSpecificEventText(value)} maxLength={NEWSLETTER_SPECIFIC_EVENT_LIMIT} onShorten={() => void shortenText("specificEventText", NEWSLETTER_SPECIFIC_EVENT_LIMIT)} shortening={shorteningField === "specificEventText"} shortenLabel={t("shorten.action")} />
                 <p className="mt-1 text-xs text-slate-600">{t("specificEventHelp")}</p>
               </section> : null}
-              {enabled.parness ? <TextInput label={t("modules.parness")} value={parnessText} onChange={setParnessText} placeholder={t("fields.parnessPlaceholder")} /> : null}
-              {enabled.kiddush ? <TextInput label={t("fields.kiddush")} iconSrc={NEWSLETTER_CHALLOT_ICON_URL} value={kiddushText} onChange={setKiddushText} placeholder={t("fields.kiddushPlaceholder")} /> : null}
+              {enabled.parness || enabled.kiddush ? <div className="rounded-2xl border border-violet-100 bg-white p-3">{sectionTitle("community", "text-sm font-black text-slate-900")}</div> : null}
+              {enabled.parness ? <TextInput label={sectionTitle("parness")} value={parnessText} onChange={setParnessText} placeholder={t("fields.parnessPlaceholder")} /> : null}
+              {enabled.kiddush ? <TextInput label={sectionTitle("kiddush")} iconSrc={NEWSLETTER_CHALLOT_ICON_URL} value={kiddushText} onChange={setKiddushText} placeholder={t("fields.kiddushPlaceholder")} /> : null}
               <label className="block text-sm font-bold text-slate-700">
-                {t("donation.label")}
+                {sectionTitle("support")}
                 <div className="mt-1.5 flex flex-col gap-2 sm:flex-row">
                   <input value={donationUrl} onChange={(event) => setDonationUrl(event.target.value)} placeholder="https://allodons.fr/..." className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-base outline-none focus:border-[#36506d] focus:ring-2 focus:ring-[#dfe8f3] sm:text-sm" />
                   <button type="button" onClick={() => void saveDonationLink()} disabled={savingDonationUrl} className="min-h-10 rounded-xl bg-[#18264d] px-3 text-xs font-black text-white disabled:opacity-60">{t(savingDonationUrl ? "saving" : "save")}</button>
@@ -1328,25 +1276,9 @@ export function NewsletterPaperClient({
                   </div>
                 </div>
               </section>
-              <details className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-3">
-                <summary className="cursor-pointer text-sm font-black text-violet-950">{t("labels.title")}</summary>
-                <p className="mt-2 text-xs text-slate-600">{t("labels.help")}</p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {NEWSLETTER_LABEL_EDITOR.map(({ key }) => <label key={key} className="text-xs font-bold text-slate-700">{t(`labelEditor.${key}`)}
-                    <span className="mt-1 flex gap-1">
-                      <input value={Object.prototype.hasOwnProperty.call(labelOverrides, key) ? labelOverrides[key] ?? "" : communityResolvedLabels[key]} maxLength={80} onChange={(event) => setLabelOverrides((current) => ({ ...current, [key]: event.target.value }))} className="min-h-10 min-w-0 flex-1 rounded-lg border border-violet-100 bg-white px-3 text-base font-medium outline-none focus:border-violet-600 sm:text-sm" />
-                      <button type="button" onClick={() => resetLabelOverride(key)} aria-label={t("labels.resetOne", { label: t(`labelEditor.${key}`) })} title={t("labels.resetCommunity")} className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white text-violet-900 ring-1 ring-violet-100"><RotateCcw className="size-3.5" /></button>
-                    </span>
-                  </label>)}
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button type="button" onClick={() => void saveDefaultLabels()} disabled={savingLabels} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-violet-800 px-3 text-xs font-black text-white disabled:opacity-60">{savingLabels ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}{t(savingLabels ? "saving" : "labels.saveDefaults")}</button>
-                  <button type="button" onClick={() => setLabelOverrides({})} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-white px-3 text-xs font-bold text-violet-900 ring-1 ring-violet-200"><RotateCcw className="size-4" />{t("labels.reset")}</button>
-                </div>
-              </details>
               {enabled.restaurantAd ? <section className="text-sm font-bold text-slate-700">
                 <div className="flex items-center justify-between gap-3">
-                  <span>{t("modules.restaurantAd")}</span>
+                  {sectionTitle("partners")}
                   <span className="text-xs font-semibold text-slate-400">{t("media.visualCount", { count: partnerAds.length })}</span>
                 </div>
                 <label className="mt-2 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
@@ -1367,7 +1299,7 @@ export function NewsletterPaperClient({
           {enabled.photos ? <section className="rounded-[1.65rem] border border-sky-100 bg-gradient-to-br from-white to-sky-50/60 p-4 shadow-[0_12px_28px_rgba(48,25,91,0.08)]">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#005572]">{t("modules.photos")}</p>
+                {sectionTitle("photos", "text-xs font-black uppercase tracking-[0.14em] text-[#005572]")}
                 <p className="mt-1 text-sm text-slate-500">{t("media.photoLimit", { count: photos.length, limit: NEWSLETTER_PHOTO_LIMIT })}</p>
                 {photos.length > NEWSLETTER_PHOTO_LIMIT ? <p className="mt-1 text-sm text-amber-700">{t("media.photoOverflow")}</p> : null}
               </div>
@@ -1387,7 +1319,7 @@ export function NewsletterPaperClient({
           {enabled.posters ? <section className="rounded-[1.65rem] border border-amber-100 bg-gradient-to-br from-white to-amber-50/60 p-4 shadow-[0_12px_28px_rgba(48,25,91,0.08)]">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-900">{t("modules.posters")}</p>
+                {sectionTitle("posters", "text-xs font-black uppercase tracking-[0.14em] text-amber-900")}
                 <p className="mt-1 text-sm text-slate-500">{t("media.posterLimit", { count: posters.length, limit: NEWSLETTER_POSTER_LIMIT })}</p>
                 {posters.length > NEWSLETTER_POSTER_LIMIT ? <p className="mt-1 text-sm text-amber-700">{t("media.posterOverflow")}</p> : null}
               </div>
@@ -1436,7 +1368,7 @@ export function NewsletterPaperClient({
   );
 }
 
-function TextInput({ label, iconSrc, value, onChange, placeholder }: { label: string; iconSrc?: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
+function TextInput({ label, iconSrc, value, onChange, placeholder }: { label: ReactNode; iconSrc?: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
   return (
     <label className="block text-sm font-bold text-slate-700">
       <span className="inline-flex items-center gap-2">
@@ -1448,8 +1380,49 @@ function TextInput({ label, iconSrc, value, onChange, placeholder }: { label: st
   );
 }
 
-function TextArea({ label, value, onChange, maxLength }: { label: string; value: string; onChange: (value: string) => void; maxLength?: number }) {
+function EditableSectionTitle({ label, defaultLabel, modified, editLabel, resetLabel, className, onChange, onReset }: {
+  label: string;
+  defaultLabel: string;
+  modified: boolean;
+  editLabel: string;
+  resetLabel: string;
+  className?: string;
+  onChange: (value: string) => void;
+  onReset: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(label);
+  const cancelled = useRef(false);
+  const beginEditing = () => {
+    cancelled.current = false;
+    setValue(label);
+    setEditing(true);
+  };
+  const commit = () => {
+    if (cancelled.current) { cancelled.current = false; return; }
+    const clean = value.trim().slice(0, 80);
+    if (clean) onChange(clean);
+    setEditing(false);
+  };
+  if (editing) return <span className="block" onClick={(event) => event.stopPropagation()}>
+    <input autoFocus value={value} maxLength={80} onChange={(event) => setValue(event.target.value)} onBlur={commit} onKeyDown={(event) => {
+      if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }
+      if (event.key === "Escape") { event.preventDefault(); cancelled.current = true; setValue(label); setEditing(false); }
+    }} className="min-h-9 w-full min-w-0 rounded-lg border border-violet-300 bg-white px-2 text-base font-bold text-slate-900 outline-none ring-violet-100 focus:ring-4" />
+  </span>;
+  return <span className="block">
+    <span className={cn("inline-flex flex-wrap items-center gap-1.5", className)}>
+      <span>{label}</span>
+      <span role="button" tabIndex={0} aria-label={editLabel} title={editLabel} onClick={(event) => { event.stopPropagation(); beginEditing(); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); event.stopPropagation(); beginEditing(); } }} className="inline-flex size-7 items-center justify-center rounded-lg text-violet-700 hover:bg-violet-100 focus:outline-none focus:ring-2 focus:ring-violet-500"><Pencil className="size-3.5" /></span>
+    </span>
+    {modified && label !== defaultLabel ? <button type="button" onClick={(event) => { event.stopPropagation(); onReset(); }} className="mt-0.5 block text-[10px] font-semibold text-violet-700 underline">{resetLabel}</button> : null}
+  </span>;
+}
+
+function TextArea({ label, value, onChange, maxLength, onShorten, shortening = false, shortenLabel }: { label: string; value: string; onChange: (value: string) => void; maxLength?: number; onShorten?: () => void; shortening?: boolean; shortenLabel?: string }) {
   return <label className="block text-sm font-bold text-slate-700">{label}
     <textarea value={value} maxLength={maxLength} onChange={(event) => onChange(event.target.value)} rows={4} className="mt-1.5 w-full resize-y rounded-xl border border-violet-100 px-3 py-2 text-base font-medium leading-6 outline-none focus:border-violet-700 focus:ring-2 focus:ring-violet-100 sm:text-sm" />
+    {maxLength ? <span className="mt-1 block text-end text-[10px] font-bold text-slate-500">{value.length}/{maxLength}</span> : null}
+    {onShorten && maxLength && value.length > maxLength * 0.8 ? <button type="button" onClick={onShorten} disabled={shortening} className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-violet-100 px-3 text-xs font-black text-violet-900 disabled:opacity-60">{shortening ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}{shortenLabel}</button> : null}
   </label>;
 }

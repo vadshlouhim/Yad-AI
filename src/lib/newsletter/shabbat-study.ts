@@ -1,4 +1,14 @@
-export type NewsletterStudy = { date: string; dateLabel: string; text: string; sourceUrl: string };
+import type { OutputLocale } from "@/lib/ai/output-locale";
+import { outputIntlLocale } from "@/lib/ai/output-locale";
+
+export type NewsletterStudy = {
+  date: string;
+  dateLabel: string;
+  text: string;
+  sourceUrl: string;
+  sourceLabel: string;
+  unavailable?: boolean;
+};
 
 /** The newsletter stores Friday's candle-lighting date, not Saturday. */
 export function newsletterShabbatDate(friday: string): string {
@@ -11,6 +21,12 @@ export function newsletterShabbatDate(friday: string): string {
   return date.toISOString().slice(0, 10);
 }
 
-export function newsletterStudyDateLabel(date: string): string {
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "full", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
+export function newsletterStudyDateLabel(date: string, locale: OutputLocale = "fr"): string {
+  return new Intl.DateTimeFormat(outputIntlLocale(locale), { dateStyle: "full", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
+}
+
+export function hebrewSeferHamitsvotUrl(dateISO: string) {
+  const [year, month, day] = dateISO.split("-").map(Number);
+  if (!year || !month || !day) throw new Error("Date d'étude invalide.");
+  return `https://he.chabad.org/dailystudy/seferHamitzvos.asp?tdate=${month}%2F${day}%2F${year}`;
 }

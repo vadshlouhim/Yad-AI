@@ -5,10 +5,11 @@ import { getUpcomingShabbatTimes } from "@/lib/automation/hebcal";
 import { requireAuth } from "@/lib/auth";
 import { getBirthdayOccurrence, getCurrentHebrewDate, validateHebrewBirthday } from "@/lib/contacts/hebrew-birthday";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { fetchSeferHamitsvot } from "@/lib/automation/hayom-yom";
-import { newsletterShabbatDate, newsletterStudyDateLabel, type NewsletterStudy } from "@/lib/newsletter/shabbat-study";
+import { newsletterShabbatDate, type NewsletterStudy } from "@/lib/newsletter/shabbat-study";
+import { fetchNewsletterStudy } from "@/lib/newsletter/shabbat-study.server";
 import { parseNewsletterLabels } from "@/lib/newsletter/labels";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { parseOutputLocale } from "@/lib/ai/output-locale";
 import { HebrewDateEvent } from "@hebcal/core";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -29,6 +30,7 @@ function startOfDay(date: Date) {
 export default async function NewsletterPage() {
   const { profile } = await requireAuth();
   if (!profile.communityId) redirect("/onboarding");
+  const outputLocale = parseOutputLocale(await getLocale());
 
   const admin = createAdminClient();
   const now = new Date();
@@ -69,7 +71,7 @@ export default async function NewsletterPage() {
       : null
     : null;
   const newsletterLabels = parseNewsletterLabels(vocabulary?.newsletterLabels);
-  const shabbat = (await getUpcomingShabbatTimes({ city, timezone, count: 1 }))[0] ?? null;
+  const shabbat = (await getUpcomingShabbatTimes({ city, timezone, count: 1, outputLocale }))[0] ?? null;
   const shabbatData: NewsletterShabbat | null = shabbat
     ? {
         date: shabbat.date,
@@ -86,8 +88,7 @@ export default async function NewsletterPage() {
   if (shabbatData) {
     try {
       const date = newsletterShabbatDate(shabbatData.date);
-      const study = await fetchSeferHamitsvot(date);
-      seferHamitsvot = { ...study, date, dateLabel: newsletterStudyDateLabel(date) };
+      seferHamitsvot = await fetchNewsletterStudy(date, outputLocale, profile.communityId);
     } catch (error) {
       // Optional study must not make the entire editor unavailable.
       console.error("[Newsletter Sefer Hamitsvot]", error);
@@ -127,7 +128,7 @@ export default async function NewsletterPage() {
 
   return (
     <NewsletterPaperClient
-      key={`${profile.id}:${profile.communityId}`}
+      key={`${profile.id}:${profile.communityId}:${outputLocale}`}
       userId={profile.id}
       community={{
         id: community?.id ?? profile.communityId,

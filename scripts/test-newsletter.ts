@@ -37,8 +37,8 @@ async function main() {
   assert.equal(migratedDraft?.specificEventText, "");
   assert.deepEqual(migratedDraft?.labelOverrides, {});
   const configurableDraft = parseNewsletterDraft({ version: 2, enabled: { shabbat: false }, generated: { ravWord: "x".repeat(900) } }, "", "");
-  assert.equal(parseNewsletterDraft({ version: 2, outputLocale: "he", enabled: {}, generated: { intro: "Texte français" } }, "", "", "he")?.outputLocale, "fr", "La locale ajoutée automatiquement aux brouillons version 2 ne doit pas remplacer leur français");
-  assert.equal(parseNewsletterDraft({ version: 3, outputLocale: "he", enabled: {}, generated: {} }, "", "", "fr")?.outputLocale, "he", "Un nouveau brouillon version 3 conserve son choix de langue");
+  assert.equal(parseNewsletterDraft({ version: 2, outputLocale: "he", enabled: {}, generated: { intro: "Texte français" } }, "", "", "he"), null, "Un ancien brouillon français ne doit jamais être ouvert dans l’éditeur hébreu");
+  assert.equal(parseNewsletterDraft({ version: NEWSLETTER_DRAFT_VERSION, outputLocale: "he", enabled: {}, generated: {} }, "", "", "he")?.outputLocale, "he", "Le brouillon hébreu courant reste isolé");
   assert.equal(resolveNewsletterDraftLocale(2, "he", "he"), "fr");
   assert.equal(resolveNewsletterDraftLocale(NEWSLETTER_DRAFT_VERSION, "he", "fr"), "he");
   assert.equal(configurableDraft?.enabled.shabbat, false, "Le RÃ©sumÃ© de la Paracha doit pouvoir Ãªtre retirÃ© dans Composer");

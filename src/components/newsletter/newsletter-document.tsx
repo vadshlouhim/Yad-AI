@@ -75,7 +75,6 @@ export const NewsletterDocument = forwardRef<NewsletterDocumentHandle, {
   }, [visible]);
 
   const pages = rendered?.key === key ? rendered.pages : [];
-  const parashaOmitted = pages.some((html) => html.includes('data-parasha-omitted="true"'));
   return <>
     {visible ? <div ref={container} className="min-w-0 w-full" aria-busy={busy}>
       <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden" aria-label={t("pagesAria")}>
@@ -84,10 +83,9 @@ export const NewsletterDocument = forwardRef<NewsletterDocumentHandle, {
           previewRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "start" });
         }} aria-current={selectedPage === index ? "page" : undefined} className="rounded-lg border border-[#bb8a36]/40 bg-[#faf7f0] px-3 py-2 text-sm font-semibold text-[#005572] aria-[current=page]:bg-[#005572] aria-[current=page]:text-white">{index === 0 ? t("front") : index === 1 ? t("back") : html.includes('data-composition="support-page"') ? t("support") : t("posters", { number: index + 1 })}</button>)}
         {busy ? <span role="status" className="text-sm text-slate-600">{t("previewComposing")}</span> : <span className="text-sm text-slate-600">{t("previewSummary", { count: pages.length })}</span>}
-        {parashaOmitted ? <span role="status" className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">{t("parashaOmitted")}</span> : null}
       </div>
-      {pages.map((html, index) => <div key={index} ref={(node) => { previewRefs.current[index] = node; }} className="mx-auto mb-6 scroll-mt-6 bg-white shadow-lg" style={{ width: PAPER.width * scale, height: PAPER.height * scale }}>
-        <div style={{ width: PAPER.width, height: PAPER.height, transform: `scale(${scale})`, transformOrigin: "top left" }}><PageMarkup html={html} /></div>
+      {pages.map((html, index) => <div key={index} dir="ltr" ref={(node) => { previewRefs.current[index] = node; }} className="relative mx-auto mb-6 overflow-hidden scroll-mt-6 bg-white shadow-lg" style={{ width: PAPER.width * scale, height: PAPER.height * scale }}>
+        <div className="absolute left-0 top-0" style={{ width: PAPER.width, height: PAPER.height, transform: `scale(${scale})`, transformOrigin: "top left" }}><PageMarkup html={html} /></div>
       </div>)}
     </div> : null}
     {typeof document !== "undefined" ? createPortal(<div id="newsletter-print" ref={printRoot} aria-hidden="true" style={{ position: "fixed", left: -20000, top: 0, width: PAPER.width, pointerEvents: "none" }}>

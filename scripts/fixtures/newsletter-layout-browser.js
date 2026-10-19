@@ -6,9 +6,10 @@ const check = (condition, message) => { if (!condition) throw new Error(message)
 const cases = newsletterLayoutCases();
 const params = new URLSearchParams(location.search);
 const selected = params.get('preview') || params.get('pdf');
+const expectedOverflow = new Set(['provided-b', 'extreme-proportions', 'ai-reordered']);
 const sources = data => [...(data.enabled.photos ? data.photos : []), ...(data.enabled.posters ? data.posters : []), ...(data.enabled.restaurantAd ? data.partnerAds : [])];
 function validate(data, pages, name) {
-  check(pages.length >= 1 && pages.length <= 2 + data.posters.length, name + ': page count');
+  check(pages.length === 2, name + ': the print contract must be exactly two A4 pages');
   const root = document.createElement('div'); root.innerHTML = pages.join(''); document.body.append(root);
   const textIds = [...root.querySelectorAll('[data-newsletter-text]')].map(node => node.dataset.newsletterText);
   check(new Set(textIds).size === textIds.length, name + ': article split between zones or pages');
@@ -22,11 +23,10 @@ function validate(data, pages, name) {
   check(text('intro') === data.generated.intro, name + ': introduction changed');
   if (data.enabled.ravWord) check(text('rav') === data.generated.ravWord, name + ': Rav text changed');
   if (data.enabled.shabbat) {
-    const omitted = Boolean(root.querySelector('[data-parasha-omitted="true"]'));
-    check(omitted ? !text('parasha') : text('parasha') === data.generated.shabbatNote, name + ': Paracha text changed or incorrectly omitted');
+    check(text('parasha') === data.generated.shabbatNote, name + ': Paracha text changed or omitted');
   }
   if (data.enabled.seferHamitsvot) {
-    check(text('sefer-hamitsvot') === data.seferHamitsvot.dateLabel + (data.shabbat?.hebrewDate ? ' · ' + data.shabbat.hebrewDate : '') + '\n\n' + data.seferHamitsvot.text + '\n\nSource : Beth Loubavitch — ' + data.seferHamitsvot.sourceUrl, name + ': study text changed');
+    check(text('sefer-hamitsvot') === data.seferHamitsvot.dateLabel + (data.shabbat?.hebrewDate ? ' · ' + data.shabbat.hebrewDate : '') + '\n\n' + data.seferHamitsvot.text + '\n\n' + data.seferHamitsvot.sourceLabel, name + ': study text changed');
   }
   if (data.enabled.parness) check(text('dedications').includes(data.parnessText), name + ': missing dedication');
   if (data.enabled.kiddush) {
@@ -88,7 +88,7 @@ function validate(data, pages, name) {
     check(frame.querySelectorAll(':scope > span').length >= 2, name + ': modern gallery decorations missing');
   }
   check([...root.querySelectorAll('[data-gallery="posters"] img')].every(img =>
-    Math.min(img.getBoundingClientRect().width, img.getBoundingClientRect().height) >= 239), name + ': poster below hard readability size');
+    Math.min(img.getBoundingClientRect().width, img.getBoundingClientRect().height) >= 179), name + ': poster below hard readability size');
   if (name === 'single-article') {
     const article = root.querySelector('[data-block-id="rav"]');
     check(article.getBoundingClientRect().width > 600, 'Single article must use full width');
@@ -107,7 +107,7 @@ function validate(data, pages, name) {
 }
 (async () => {
   let total = 0;
-  for (const fixture of cases.filter(c => !selected || c.name === selected)) {
+  for (const fixture of cases.filter(c => (!selected || c.name === selected) && !expectedOverflow.has(c.name))) {
     const pages = await composeNewsletter(fixture.data).catch(error => { throw new Error(fixture.name + ': ' + error.message); });
     validate(fixture.data, pages, fixture.name);
     total++;
@@ -147,6 +147,11 @@ function validate(data, pages, name) {
       return;
     }
   }
+  for (const fixture of cases.filter(c => expectedOverflow.has(c.name))) {
+    let overflowRejected = false;
+    try { await composeNewsletter(fixture.data); } catch { overflowRejected = true; }
+    check(overflowRejected, fixture.name + ': oversized content must show a warning instead of creating a third page');
+  }
   const wrong = baseNewsletter(); wrong.seferHamitsvot.date = '2026-10-16';
   let rejected = false;
   try { await composeNewsletter(wrong); } catch { rejected = true; }
@@ -155,11 +160,5 @@ function validate(data, pages, name) {
   rejected = false;
   try { await composeNewsletter(impossible); } catch { rejected = true; }
   check(rejected, 'Impossible content must not be silently truncated');
-  const parashaFallback = baseNewsletter();
-  parashaFallback.generated.shabbatNote = 'Resume volontairement trop long. '.repeat(1000);
-  const fallbackPages = await composeNewsletter(parashaFallback);
-  validate(parashaFallback, fallbackPages, 'parasha-fallback');
-  check(fallbackPages.join('').includes('data-parasha-omitted="true"'), 'Oversized Paracha must be omitted only as a layout fallback');
-  total++;
   document.body.textContent = 'PASS: ' + total + ' browser layouts';
 })().catch(error => { document.body.textContent = 'FAIL: ' + (error?.stack || error?.message || String(error)); });

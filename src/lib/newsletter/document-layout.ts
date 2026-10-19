@@ -220,7 +220,7 @@ async function makeBlocks(data: NewsletterDocumentData): Promise<DocumentBlock[]
   ];
   if (e.seferHamitsvot && data.seferHamitsvot) {
     const study = data.seferHamitsvot;
-    blocks.push(...textBlock("sefer-hamitsvot", labels.seferHamitsvot, `${study.dateLabel}${data.shabbat?.hebrewDate ? ` · ${data.shabbat.hebrewDate}` : ""}\n\n${study.text}\n\nSource : Beth Loubavitch — ${study.sourceUrl}`, true));
+    blocks.push(...textBlock("sefer-hamitsvot", labels.seferHamitsvot, `${study.dateLabel}${data.shabbat?.hebrewDate ? ` · ${data.shabbat.hebrewDate}` : ""}\n\n${study.text}\n\n${study.sourceLabel}`, true));
   }
   if (e.events) {
     blocks.push(...textBlock("events-intro", labels.agenda, g.eventIntro));
@@ -265,7 +265,7 @@ function header(data: NewsletterDocumentData, first: boolean) {
   const identity = element("div", undefined, { flex: "1", minWidth: "0" });
   identity.append(element("p", data.community.name, { margin: "0 0 12px", color: ACCENT, fontSize: "15px", fontWeight: "700", letterSpacing: "2px", textTransform: "uppercase", overflowWrap: "anywhere" }));
   identity.append(element(first ? "h1" : "p", data.generated.title, { margin: "0", color: ACCENT, fontSize: first ? "58px" : "28px", lineHeight: "1.04", letterSpacing: first ? "-2px" : "-0.8px", fontWeight: "700", overflowWrap: "anywhere" }));
-  identity.append(element("p", first ? (rtl ? "בלב הקהילה שלנו" : "Au cœur de notre communauté") : (rtl ? "חיי הקהילה שלנו" : "La vie de notre communauté"), { margin: "7px 0 0", color: GOLD, fontFamily: "var(--newsletter-serif), Georgia, serif", fontStyle: "italic", fontSize: first ? "25px" : "20px", lineHeight: "1.2", overflowWrap: "anywhere" }));
+  identity.append(element("p", first ? data.generated.subtitle : (rtl ? "חיי הקהילה שלנו" : "La vie de notre communauté"), { margin: "7px 0 0", color: GOLD, fontFamily: "var(--newsletter-serif), Georgia, serif", fontStyle: "italic", fontSize: first ? "25px" : "20px", lineHeight: "1.2", overflowWrap: "anywhere" }));
   const right = element("div", undefined, { width: first ? "120px" : "auto", textAlign: rtl ? "left" : "right", flexShrink: "0" });
   right.append(element("span", 'ב״ה', { display: "block", marginBottom: "8px", fontSize: "14px" }));
   const logo = data.bannerPhotoUrl || data.community.logoUrl;
@@ -312,7 +312,9 @@ function footer(data: NewsletterDocumentData, index: number, total: number) {
   info.append(contact);
   if (data.shabbat?.sourceUrl) info.append(element("div", RELIGIOUS_COPY[data.outputLocale].source, { fontSize: "8px", marginTop: "3px", color: INK }));
   info.append(element("div", rtl ? "נוצר באמצעות EasyCom-AI — בינה מלאכותית לשירות הקהילות" : "Contenu créé par EasyCom-AI — l’IA au service des communautés", { fontSize: "9px", marginTop: "4px", color: INK }));
-  node.append(info, element("span", `${index + 1} / ${total}`, { whiteSpace: "nowrap" }));
+  const pageNumber = element("span", `${index + 1} / ${total}`, { whiteSpace: "nowrap" });
+  pageNumber.dir = "ltr";
+  node.append(info, pageNumber);
   return node;
 }
 
@@ -411,7 +413,7 @@ const COLUMN_GAP = 24;
 const COLUMN_WIDTH = (CONTENT_WIDTH - COLUMN_GAP) / 2;
 const NORMAL_FONTS = [11, 11.5, 12, 10.5, 10];
 const DENSE_FONTS = [9.5, 9, 8.5, 8];
-const POSTER_MIN_SHORT_SIDE = 240;
+const POSTER_MIN_SHORT_SIDE = 180;
 const POSTERS_PER_DEDICATED_PAGE = 2;
 
 /** Contiguous row partitions retain upload order and at most four images. */
@@ -512,7 +514,7 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
   const notices = texts.filter(block => ["dedications", "support"].includes(block.id));
   const supportBlocks = notices.filter(block => block.id === "support");
   const dedicationBlocks = notices.filter(block => block.id === "dedications");
-  let stories = texts.filter(block => !["intro", "dedications", "support"].includes(block.id));
+  const stories = texts.filter(block => !["intro", "dedications", "support"].includes(block.id));
   const gallery = (id: string, title: string, predicate: (block: DocumentBlock) => boolean): Gallery => ({
     id, title, images: blocks.flatMap(block => block.kind === "images" && predicate(block) ? block.images : []),
   });
@@ -708,7 +710,7 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
         ...ordered.map((block, i) => [block, ...ordered.filter((_, j) => i !== j)])]
         .filter((order, index, all) => all.findIndex(other => other.map(b => b.id).join("|") === order.map(b => b.id).join("|")) === index);
     };
-    let orders = buildOrders();
+    const orders = buildOrders();
     const pageCache = new Map<string, SheetPlan | null>();
     const cachedPage = (items: DocumentBlock[], notes: DocumentBlock[], media: Gallery[], capacity: number, font: number) => {
       const key = JSON.stringify([items.map(b => b.id), notes.map(b => b.id), media.map(g => [g.id, g.images.map(image => image.id)]), capacity, font]);
@@ -720,8 +722,8 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
         const introHeight = intro.length ? textHeight(intro, font, CONTENT_WIDTH) + ZONE_GAP : 0;
         for (const editorial of orders) for (let split = 0; split <= editorial.length; split++) {
           const front = editorial.slice(0, split), back = editorial.slice(split);
-          const hasBack = back.length > 0 || backMedia.length > 0;
-          const supportReserve = supportBlocks.length && !posters.images.length
+          const hasBack = back.length > 0 || backMedia.length > 0 || supportBlocks.length > 0;
+          const supportReserve = supportBlocks.length
             ? heightOf(renderNotice(supportBlocks, font), CONTENT_WIDTH) + ZONE_GAP
             : 0;
           const frontNotices = dedicationBlocks;
@@ -732,6 +734,7 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
           if (hasBack && !b) continue;
           if (!front.length && back.length && !frontMedia.length) continue;
           const editorialPenalty = front.filter(block => !["rav", "parasha"].includes(block.id)).length * 100_000
+            + front.filter(block => ["sefer-hamitsvot", "events-intro", "birthdays"].includes(block.id) || block.id.startsWith("event-")).length * 2_000_000
             + back.filter(block => ["rav", "parasha"].includes(block.id)).length * 2_000_000;
           const orderPenalty = editorial.reduce((sum, block, index) => sum + (preferred.includes(block.id) ? Math.abs(index - preferred.indexOf(block.id)) * 400_000 : 0), 0);
           const fontRank = data.layout?.fontSize ? Math.abs(font - data.layout.fontSize) : [...NORMAL_FONTS, ...DENSE_FONTS].indexOf(font);
@@ -752,14 +755,14 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
         // Posters are information-dense documents, not decorative thumbnails.
         // Keep them out of residual editorial space and give them dedicated A4
         // zones where their hard readability size can always be respected.
-        const posterCounts = [0];
+        const posterCounts = [posters.images.length];
         for (const usedPosters of posterCounts) {
           const mainPosters: Gallery = { ...posters, images: posters.images.slice(0, usedPosters) };
           registerGallery(mainPosters);
           const candidates = usedPosters ? [
-            { front: [mainPosters], back: [photos, partners] },
-            { front: [mainPosters, photos], back: [partners] },
             { front: [photos], back: [mainPosters, partners] },
+            { front: [photos, mainPosters], back: [partners] },
+            { front: [mainPosters], back: [photos, partners] },
             { front: [], back: [mainPosters, photos, partners] },
           ] : [
             { front: [photos], back: [partners] },
@@ -779,13 +782,6 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
       }
     };
     attemptSelection();
-    let parashaOmitted = false;
-    if (!selected && stories.some(block => block.id === "parasha")) {
-      stories = stories.filter(block => block.id !== "parasha");
-      orders = buildOrders();
-      attemptSelection();
-      parashaOmitted = Boolean(selected);
-    }
     if (!selected) throw new Error("Les rubriques ne tiennent pas entières sur une A4 recto verso, même après réorganisation. Raccourcissez explicitement un texte ou retirez un visuel. Aucun texte n’a été coupé ni supprimé.");
     const choice = selected as { pages: SheetPlan[]; font: number; introHeight: number; score: number; usedPosters: number };
     const supportHeight = supportBlocks.length ? heightOf(renderNotice(supportBlocks, choice.font), CONTENT_WIDTH) : 0;
@@ -797,25 +793,7 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
         return kept.length ? [{ ...zone, blocks: kept, height: heightOf(renderNotice(kept, choice.font), zone.width) }] : [];
       }),
     }));
-    const posterPages: SheetPlan[] = [];
-    for (let index = choice.usedPosters; index < posters.images.length;) {
-      let count = Math.min(POSTERS_PER_DEDICATED_PAGE, posters.images.length - index);
-      let gallery: Gallery = { ...posters, images: posters.images.slice(index, index + count) };
-      registerGallery(gallery);
-      const availablePosterHeight = (candidateCount: number) => capacities[1]
-        - (supportHeight && index + candidateCount >= posters.images.length ? supportHeight + ZONE_GAP : 0);
-      let fitted = fitGallery(gallery, CONTENT_WIDTH, availablePosterHeight(count));
-      if (!fitted && count > 1) {
-        count = 1;
-        gallery = { ...posters, images: posters.images.slice(index, index + count) };
-        registerGallery(gallery);
-        fitted = fitGallery(gallery, CONTENT_WIDTH, availablePosterHeight(count));
-      }
-      if (!fitted) throw new Error("Une affiche ne peut pas atteindre la taille minimale de lisibilité sur une page A4.");
-      posterPages.push({ zones: [{ x: 0, y: 0, width: CONTENT_WIDTH, height: fitted.height, galleries: [fitted] }], score: 0, mode: "poster-page" });
-      index += count;
-    }
-    const plans = [...editorialPages, ...posterPages];
+    const plans = [...editorialPages];
     if (supportHeight) {
       if (supportHeight > capacities[1]) throw new Error("La rubrique Nous soutenir est trop longue pour la zone imprimable.");
       const lastIndex = plans.length - 1;
@@ -825,13 +803,14 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
       const usedBottom = last.zones.reduce((bottom, zone) => Math.max(bottom, zone.y + zone.height), 0);
       const supportZone: Zone = { x: 0, y: supportY, width: CONTENT_WIDTH, height: supportHeight, blocks: supportBlocks, notice: true };
       if (usedBottom <= supportY - ZONE_GAP) last.zones.push(supportZone);
-      else plans.push({ zones: [{ ...supportZone, y: capacities[1] + 4 - supportHeight }], score: 0, mode: "support-page" });
+      else throw new Error("La rubrique de soutien ne tient pas sur le recto-verso. Raccourcissez un texte ou retirez un visuel.");
     }
+    while (plans.length < 2) plans.push({ zones: [], score: 0, mode: "back" });
+    if (plans.length > 2) throw new Error("Le feuillet dépasse deux pages. Raccourcissez un texte ou retirez un visuel.");
     return plans.map((plan, index) => {
       const article = paper(data, index);
       article.dataset.composition = plan.mode;
       article.dataset.bodyFont = String(choice.font);
-      if (parashaOmitted) article.dataset.parashaOmitted = "true";
       const content = element("div", undefined, { position: "relative", flex: "1", minHeight: "0" });
       content.dataset.newsletterContent = "true";
       if (!index && intro.length) {

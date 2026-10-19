@@ -34,7 +34,12 @@ function cleanLegacyFields(draft: Record<string, unknown>) {
   return cleanDraft;
 }
 
-async function getDraftContext() {
+function draftLocale(request: Request) {
+  const value = new URL(request.url).searchParams.get("locale");
+  return value === "he" ? "he" : "fr";
+}
+
+async function getDraftContext(locale: "fr" | "he") {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: NextResponse.json({ error: "Non authentifié" }, { status: 401 }) };
@@ -53,12 +58,16 @@ async function getDraftContext() {
   return {
     admin,
     communityId: profile.communityId,
-    marker: `newsletter-paper-autosave:${user.id}`,
+    // Keep the historical marker for French so the existing "Le Chabaton"
+    // draft is read unchanged. Other locales have an isolated row.
+    marker: locale === "fr"
+      ? `newsletter-paper-autosave:${user.id}`
+      : `newsletter-paper-autosave:${user.id}:${locale}`,
   };
 }
 
-export async function GET() {
-  const context = await getDraftContext();
+export async function GET(request: Request) {
+  const context = await getDraftContext(draftLocale(request));
   if ("error" in context) return context.error;
 
   const { data, error } = await context.admin
@@ -87,12 +96,16 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const context = await getDraftContext();
+  const locale = draftLocale(request);
+  const context = await getDraftContext(locale);
   if ("error" in context) return context.error;
 
   const body = await request.json().catch(() => null) as { draft?: unknown; expectedUpdatedAt?: unknown } | null;
   if (!isRecord(body?.draft)) {
     return NextResponse.json({ error: "Brouillon invalide" }, { status: 400 });
+  }
+  if (body.draft.outputLocale !== locale) {
+    return NextResponse.json({ error: "Langue du brouillon invalide" }, { status: 400 });
   }
 
   const cleanedDraft = cleanLegacyFields(body.draft);

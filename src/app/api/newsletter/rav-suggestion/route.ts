@@ -47,9 +47,11 @@ export async function POST(request: Request) {
     const result = await generateContent({
       communityId: profile.communityId,
       contentType: "COMMUNITY_NEWS",
+      outputLocale,
       customInstructions: [
         outputLanguageDirective(outputLocale),
         `Rédige uniquement une proposition de Mot du Rav pour la Paracha ${parasha}, Chabbat suivant le vendredi ${shabbat.date}.`,
+        outputLocale === "he" ? "Écris en hébreu naturel, chaleureux et fluide, dans un style adapté à une communauté Habad, sans calque du français." : "",
         "Le contenu est destiné à être relu et validé par un humain avant impression.",
         `Ton chaleureux et sobre, sans titre, hashtag, emoji ni appel à l’action, avec ${NEWSLETTER_RAV_WORD_LIMIT} caractères maximum espaces compris.`,
         "N’invente ni citation, ni verset, ni histoire, ni détail précis de la Paracha non vérifié.",

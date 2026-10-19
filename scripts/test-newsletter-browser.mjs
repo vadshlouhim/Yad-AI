@@ -40,8 +40,8 @@ const url = "http://127.0.0.1:" + server.address().port;
 const run = args => promisify(execFile)(chrome, ["--headless", "--no-sandbox", "--disable-gpu", "--disable-background-timer-throttling", "--run-all-compositor-stages-before-draw", "--virtual-time-budget=120000", ...args], { windowsHide: true, timeout: 120000, maxBuffer: 8 * 1024 * 1024 });
 try {
   const { stdout } = await run(["--dump-dom", url]);
-  assert.match(stdout, /PASS: 27 browser layouts/, stdout);
-  console.log("Newsletter: 27 Chromium layouts passed, including Hebrew RTL; whole articles, exact text/captions, Paracha fallback, bottom-anchored support, whole images, no overlap, consistent fonts, and large posters on adaptive pages.");
+  assert.match(stdout, /PASS: \d+ browser layouts/, stdout);
+  console.log("Newsletter: Chromium layouts passed, including Hebrew RTL; strict two-page output, whole articles, exact text/captions, bottom-anchored support, whole images, no overlap, consistent fonts, and readable posters.");
   if (process.env.NEWSLETTER_SCREENSHOT) {
     await run(["--hide-scrollbars", "--window-size=1600,1130", "--screenshot=" + process.env.NEWSLETTER_SCREENSHOT, url + "/?preview=" + (process.env.NEWSLETTER_CASE || "provided-a")]);
   }

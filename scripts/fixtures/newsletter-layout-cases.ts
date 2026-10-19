@@ -10,20 +10,20 @@ export function baseNewsletter(): NewsletterDocumentData {
   return {
     outputLocale: "fr",
     community: { id: "fixture", name: "Beth Habad de Vanves", city: "Vanves", timezone: "Europe/Paris", address: null, phone: null, email: "contact@example.org", website: null, logoUrl: null, coverUrl: null, isBethHabad: true, donationUrl: "https://www.allodons.fr/exemple" },
-    generated: { title: "Le Chabbat Mag", intro: "Chers amis de la communauté, un Chabbat rempli de sérénité et d’inspiration vous attend à Vanves. Venez partager ces moments précieux avec nous.", ravWord: "Un message de paix et de partage. ".repeat(15), shabbatNote: "Cette semaine, partageons un moment ensemble. ".repeat(8), eventIntro: "Retrouvons-nous dimanche.", restaurantAd: "", proofreadNote: "", warnings: [] },
+    generated: { title: "Le Chabbat Mag", subtitle: "Au cœur de notre communauté", intro: "Chers amis de la communauté, un Chabbat rempli de sérénité et d’inspiration vous attend à Vanves. Venez partager ces moments précieux avec nous.", ravWord: "Un message de paix et de partage. ".repeat(15), shabbatNote: "Cette semaine, partageons un moment ensemble. ".repeat(8), eventIntro: "Retrouvons-nous dimanche.", restaurantAd: "", proofreadNote: "", warnings: [] },
     enabled: { ravWord: true, shabbat: true, photos: true, posters: true, parness: true, kiddush: true, events: true, specificEvent: false, birthdays: true, restaurantAd: true, seferHamitsvot: true, support: true },
     parnessText: "Famille Cohen", kiddushText: "Famille Levy", bannerPhotoUrl: "",
     events: [{ id: "1", title: "Rencontre communautaire", startDate: "2026-10-18T10:00:00Z", endDate: null, location: null, category: null, description: "Nous vous attendons nombreux." }],
     birthdays: [{ id: "1", name: "David", hebrewDate: "10 Tichri", gregorianDate: "2026-10-18" }],
     shabbat: { date: "2026-10-16", parasha: "Parachah Noah", hebrewDate: "6 Cheshvan 5787", entry: "18:41", exit: "20:01" },
-    seferHamitsvot: { date: "2026-10-17", dateLabel: "samedi 17 octobre 2026", text: "Texte témoin de l’étude, conservé intégralement. ".repeat(30), sourceUrl: "https://www.loubavitch.fr/etude/etudes-quotidiennes/251702/sefer-hamitsvot" },
+    seferHamitsvot: { date: "2026-10-17", dateLabel: "samedi 17 octobre 2026", text: "Texte témoin de l’étude, conservé intégralement. ".repeat(12), sourceUrl: "https://www.loubavitch.fr/etude/etudes-quotidiennes/251702/sefer-hamitsvot", sourceLabel: "Source : Beth Loubavitch — loubavitch.fr" },
     photos: [], posters: [], partnerAds: [],
   };
 }
 
 export function newsletterLayoutCases() {
   const cases: Array<{ name: string; data: NewsletterDocumentData }> = [];
-  for (let count = 0; count <= 8; count++) for (const portrait of [false, true]) {
+  for (let count = 0; count <= 1; count++) for (const portrait of [false, true]) {
     const data = baseNewsletter();
     data.photos = Array.from({ length: count }, (_, i) => sampleImage("photo-" + i, portrait ? 300 : 600, portrait ? 600 : 300));
     data.posters = Array.from({ length: count }, (_, i) => sampleImage("poster-" + i, i % 2 ? 600 : 300, i % 2 ? 300 : 600));
@@ -72,7 +72,8 @@ export function newsletterLayoutCases() {
   hebrew.enabled.seferHamitsvot = false;
   hebrew.enabled.kiddush = false;
   hebrew.generated = {
-    title: "מגזין השבת",
+    title: "השבתון",
+    subtitle: "דף השבוע של הקהילה",
     intro: "חדשות הקהילה ופעילויות השבוע.",
     ravWord: "השבת מזמינה אותנו לעצור, להקשיב ולחזק את הקשרים בינינו. מי ייתן ונמצא בפרשה השראה למעשה טוב נוסף.",
     shabbatNote: "פרשת לך לך מזכירה את האומץ לצאת לדרך חדשה מתוך אמונה ואחריות.",

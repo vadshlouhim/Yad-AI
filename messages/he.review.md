@@ -105,3 +105,21 @@ Choix terminologiques :
 - « Aucune affiche disponible en hébreu » : **אין עדיין מודעות בעברית**.
 - Pour Hanoucca, seul **הדלקת נרות** est présenté comme horaire religieux ; **מוצאי חג** n’est pas affiché.
 - Les codes de badges restent techniques et courts : **FR**, **HE**, puis **EN** quand l’anglais sera activé.
+
+## Étape 7 — corrections complètes du feuillet de Chabbat
+
+À faire relire par une personne hébréophone avant publication :
+
+- le titre **השבתון** et le sous-titre **דף השבוע של הקהילה** dans le bandeau du feuillet ;
+- l’introduction, le Mot du Rav et le résumé de la Paracha produits par l’IA dans un style communautaire Habad naturel ;
+- les résumés du Sefer Hamitsvot, limités à 80–120 mots et préparés à partir de la page hébraïque du jour du Chabbat ;
+- les libellés de raccourcissement par IA, d’édition des titres et de dépassement des deux pages.
+
+Choix terminologiques :
+
+- « Le Chabaton » en hébreu : **השבתון** ; sous-titre : **דף השבוע של הקהילה**.
+- « Raccourcir avec l’IA » : **לקצר עם AI**.
+- « Revenir au titre par défaut » : **חזרה לכותרת ברירת המחדל**.
+- « 2 pages · recto-verso » : **2 עמודים · דו־צדדי**.
+- La source du Sefer Hamitsvot est affichée sous la forme **מקור: he.chabad.org** ; le texte intégral n’est jamais recopié.
+- Un brouillon distinct est conservé pour chaque langue d’interface ; les brouillons historiques restent français.
