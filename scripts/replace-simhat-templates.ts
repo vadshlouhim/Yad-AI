@@ -267,6 +267,7 @@ async function main() {
         isPremium: false,
         isActive: true,
         tags: template.tags,
+        languages: ["fr"],
         usageCount: 0,
         createdAt: now,
         updatedAt: now,
@@ -287,7 +288,7 @@ async function main() {
   const { data: insertedRows, error: insertedRowsError } = await supabase
     .from("Template")
     .select(
-      "id,category,thumbnailUrl,previewUrl,supportsAi,canvaUrl,isGlobal,isPremium,isActive,tags",
+      "id,category,thumbnailUrl,previewUrl,supportsAi,canvaUrl,isGlobal,isPremium,isActive,tags,languages",
     )
     .in("id", preparedIds);
   if (insertedRowsError) throw insertedRowsError;
@@ -297,6 +298,7 @@ async function main() {
   for (const row of insertedRows ?? []) {
     if (
       row.category !== "HOLIDAY" ||
+      row.languages?.length !== 1 || row.languages[0] !== "fr" ||
       !row.tags?.includes(TEMPLATE_USAGE_TAGS.holidayPoster) ||
       !row.tags?.includes(IMPORT_TAG) ||
       !row.supportsAi ||

@@ -35,6 +35,7 @@ export default async function ShabbatTimesAutoPage({ searchParams }: { searchPar
         .select("*")
         .eq("isActive", true)
         .eq("category", "SHABBAT")
+        .contains("languages", [interfaceLocale])
         .contains("tags", ["usage:shabbat-times"])
         .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
         .order("usageCount", { ascending: false }),

@@ -202,6 +202,7 @@ async function main() {
         isPremium: false,
         isActive: true,
         tags: template.tags,
+        languages: ["fr"],
         usageCount: 0,
         createdAt: now,
         updatedAt: now,
@@ -223,7 +224,7 @@ async function main() {
   const { data: verifiedRows, error: verifyRowsError } = await supabase
     .from("Template")
     .select(
-      "id,name,category,subCategory,originalUrl,thumbnailUrl,previewUrl,supportsAi,canvaUrl,isGlobal,isPremium,isActive,tags",
+      "id,name,category,subCategory,originalUrl,thumbnailUrl,previewUrl,supportsAi,canvaUrl,isGlobal,isPremium,isActive,tags,languages",
     )
     .in("id", ids)
     .order("name");
@@ -237,6 +238,7 @@ async function main() {
   for (const row of verifiedRows ?? []) {
     if (
       row.category !== "HOLIDAY" ||
+      row.languages?.length !== 1 || row.languages[0] !== "fr" ||
       !row.tags?.includes(TEMPLATE_USAGE_TAGS.holidayTimes) ||
       !row.tags?.includes(IMPORT_TAG) ||
       !row.supportsAi ||

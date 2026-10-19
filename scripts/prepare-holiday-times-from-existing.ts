@@ -74,6 +74,7 @@ async function main() {
       isPremium: false,
       isActive: true,
       tags: taxonomy.tags,
+      languages: ["fr", "he"],
       usageCount: 0,
       updatedAt: now,
     };
@@ -81,9 +82,9 @@ async function main() {
   const { error: upsertError } = await supabase.from("Template").upsert(payload, { onConflict: "id" });
   if (upsertError) throw upsertError;
 
-  const { data: verified, error: verifyError } = await supabase.from("Template").select("id,tags,isActive,category").in("id", DEFINITIONS.map((definition) => definition.id));
+  const { data: verified, error: verifyError } = await supabase.from("Template").select("id,tags,isActive,category,languages").in("id", DEFINITIONS.map((definition) => definition.id));
   if (verifyError) throw verifyError;
-  if (verified?.length !== DEFINITIONS.length || verified.some((row) => row.category !== "HOLIDAY" || !row.isActive || !row.tags?.includes(IMPORT_TAG) || row.tags?.includes(LEGACY_TAG))) throw new Error("Vérification des modèles manuels échouée.");
+  if (verified?.length !== DEFINITIONS.length || verified.some((row) => row.category !== "HOLIDAY" || !row.isActive || !row.tags?.includes(IMPORT_TAG) || row.tags?.includes(LEGACY_TAG) || row.languages?.length !== 2 || !row.languages.includes("fr") || !row.languages.includes("he"))) throw new Error("Vérification des modèles manuels échouée.");
   const { count: legacyCount, error: legacyError } = await supabase.from("Template").select("id", { count: "exact", head: true }).eq("category", "HOLIDAY").contains("tags", [TEMPLATE_USAGE_TAGS.holidayTimes, LEGACY_TAG]);
   if (legacyError) throw legacyError;
   console.log(`Vérification réussie : ${verified.length} modèles manuels actifs ; ${legacyCount ?? 0} modèles historiques tagués legacy.`);

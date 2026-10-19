@@ -13,6 +13,11 @@ import {
   normalizeCanvaUrl,
   templateAvailability,
 } from "../src/lib/templates/availability";
+import {
+  enabledTemplateLanguageOptions,
+  normalizeTemplateLanguages,
+  parseTemplateLanguages,
+} from "../src/lib/templates/languages";
 
 const projectRef = "abcdefghijklmnopqrst";
 assert.equal(getSupabaseProjectRef(`https://${projectRef}.supabase.co`), projectRef);
@@ -76,5 +81,10 @@ assert.equal(normalizeCanvaUrl("https://www.canva.com/design/demo")?.startsWith(
 assert.throws(() => normalizeCanvaUrl("https://example.com/design/demo"), /canva\.com/);
 assert.throws(() => assertTemplateDestination({ supportsAi: false, canvaUrl: null, isActive: true }), /active/);
 assert.doesNotThrow(() => assertTemplateDestination({ supportsAi: false, canvaUrl: null, isActive: false }));
+assert.deepEqual(normalizeTemplateLanguages(undefined), ["fr"]);
+assert.deepEqual(parseTemplateLanguages(["fr", "he"]), ["fr", "he"]);
+assert.equal(parseTemplateLanguages([]), null);
+assert.equal(parseTemplateLanguages(["fr", "de"]), null);
+assert.deepEqual(enabledTemplateLanguageOptions(), ["fr", "he"]);
 
 console.log("Admin template tests passed");

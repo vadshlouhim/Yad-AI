@@ -3,7 +3,7 @@ import { newsletterShabbatDate, type NewsletterStudy } from "./shabbat-study";
 import type { NewsletterLayoutPreferences } from "./revision";
 import { resolveNewsletterLabels, type NewsletterLabels } from "./labels";
 import { formatKiddushSponsor, NEWSLETTER_CHALLOT_ICON_URL } from "./kiddush";
-import type { OutputLocale } from "@/lib/ai/output-locale";
+import { outputIntlLocale, type OutputLocale } from "@/lib/ai/output-locale";
 import { RELIGIOUS_COPY } from "./religious-locale";
 
 export const PAPER = { width: 794, height: 1123, margin: 42, gap: 18 };
@@ -225,7 +225,7 @@ async function makeBlocks(data: NewsletterDocumentData): Promise<DocumentBlock[]
   if (e.events) {
     blocks.push(...textBlock("events-intro", labels.agenda, g.eventIntro));
     for (const event of data.events) {
-      const date = new Intl.DateTimeFormat(data.outputLocale === "he" ? "he-IL" : "fr-FR", { dateStyle: "full", timeStyle: "short", timeZone: data.community.timezone }).format(new Date(event.startDate));
+      const date = new Intl.DateTimeFormat(outputIntlLocale(data.outputLocale), { dateStyle: "full", timeStyle: "short", timeZone: data.community.timezone }).format(new Date(event.startDate));
       blocks.push(...textBlock(`event-${event.id}`, event.title, [date, event.location, event.description].filter(Boolean).join("\n"), true));
     }
   }

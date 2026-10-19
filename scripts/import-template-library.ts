@@ -132,6 +132,7 @@ async function main() {
         isPremium: false,
         isActive: true,
         tags: file.tags,
+        languages: ["fr"],
         usageCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

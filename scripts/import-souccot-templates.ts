@@ -165,6 +165,7 @@ async function main() {
         isPremium: false,
         isActive: true,
         tags: ["theme:tichri", "theme:souccot", "usage:holiday-poster", "holiday:sukkot", "import:souccot-2026-09-22"],
+        languages: ["fr"],
         usageCount: 0,
         createdAt: now,
         updatedAt: now,
@@ -183,13 +184,14 @@ async function main() {
   const ids = prepared.map((template) => template.id);
   const { data: verifiedRows, error: verifyRowsError } = await supabase
     .from("Template")
-    .select("id, name, category, subCategory, originalUrl, thumbnailUrl, previewUrl, supportsAi, canvaUrl, isGlobal, isPremium, isActive, tags")
+    .select("id, name, category, subCategory, originalUrl, thumbnailUrl, previewUrl, supportsAi, canvaUrl, isGlobal, isPremium, isActive, tags, languages")
     .in("id", ids)
     .order("name");
   if (verifyRowsError) throw verifyRowsError;
   if ((verifiedRows ?? []).length !== TEMPLATE_NAMES.length) {
     throw new Error(`Vérification base échouée : ${verifiedRows?.length ?? 0}/${TEMPLATE_NAMES.length} lignes.`);
   }
+  if (verifiedRows?.some((row) => row.languages?.length !== 1 || row.languages[0] !== "fr")) throw new Error("Vérification des langues échouée.");
 
   const { data: storageFiles, error: storageError } = await supabase.storage
     .from(BUCKET)

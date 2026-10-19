@@ -91,3 +91,17 @@ Choix terminologiques :
 - « Horaires des fêtes » : **זמני חגים**.
 - « Publication manuelle » : formulation descriptive, sans terme technique d’automatisation.
 - Les heures restent en LTR ; le nom de fête et la date hébraïque utilisent des caractères hébreux natifs.
+
+## Étape 6c — langues des affiches
+
+À faire relire par une personne hébréophone avant publication :
+
+- le message vide **אין עדיין מודעות בעברית** dans les trois galeries filtrées ;
+- le libellé propre à Hanoucca **הדלקת נרות**, désormais affiché sans « fin de fête » ;
+- les badges et libellés de langue dans l’administration avant l’ouverture de cette interface à une équipe hébréophone.
+
+Choix terminologiques :
+
+- « Aucune affiche disponible en hébreu » : **אין עדיין מודעות בעברית**.
+- Pour Hanoucca, seul **הדלקת נרות** est présenté comme horaire religieux ; **מוצאי חג** n’est pas affiché.
+- Les codes de badges restent techniques et courts : **FR**, **HE**, puis **EN** quand l’anglais sera activé.

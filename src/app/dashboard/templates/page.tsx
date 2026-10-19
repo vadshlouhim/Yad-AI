@@ -8,6 +8,8 @@ import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import { getBillingConfig, getBillingUsage, planToTier } from "@/lib/billing";
 import { getStoredShabbatTimes } from "@/lib/ai/engine";
 import type { Metadata } from "next";
+import { getLocale, getTranslations } from "next-intl/server";
+import type { Locale } from "@/i18n/config";
 
 export const metadata: Metadata = { title: "Affiches — EasyCom IA" };
 
@@ -20,6 +22,8 @@ export default async function TemplatesPage({ searchParams }: Props) {
   const requestedTemplateId = query.templateId;
   let initialTemplateId = typeof requestedTemplateId === "string" ? requestedTemplateId : undefined;
   const { profile, supabaseUser } = await requireAuth();
+  const interfaceLocale = (await getLocale()) as Locale;
+  const t = await getTranslations("posterGallery");
   const communityId = profile.communityId!;
   const admin = createAdminClient();
   const source = typeof query.mediaId === "string"
@@ -33,6 +37,7 @@ export default async function TemplatesPage({ searchParams }: Props) {
       .from("Template")
       .select("*")
       .eq("isActive", true)
+      .contains("languages", [interfaceLocale])
       .or(`isGlobal.eq.true,communityId.eq.${communityId}`)
       .order("category", { ascending: true })
       .order("subCategory", { ascending: true })
@@ -74,6 +79,8 @@ export default async function TemplatesPage({ searchParams }: Props) {
         initialTemplateId={initialTemplateId}
         initialSource={source ? { id: source.id, imageUrl: source.url, editState: readPosterEditState(source.editState) } : null}
         returnToPublish={query.returnTo === "publish"}
+        emptyTitle={t("emptyTitle")}
+        emptyDescription={t("emptyDescription")}
       />
     </div>
   );

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.types";
 import { classifyTemplateAdminError } from "@/lib/templates/admin-errors";
 import { assertTemplateDestination, normalizeCanvaUrl } from "@/lib/templates/availability";
+import { parseTemplateLanguages } from "@/lib/templates/languages";
 import { NextResponse } from "next/server";
 
 const TEMPLATE_CATEGORIES = new Set<Database["public"]["Enums"]["TemplateCategory"]>([
@@ -131,6 +132,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const tags = normalizeTags(body.tags);
   if (tags) updateData.tags = tags;
+
+  if (body.languages !== undefined) {
+    const languages = parseTemplateLanguages(body.languages);
+    if (!languages) {
+      return NextResponse.json({ error: "Sélectionnez au moins une langue valide.", code: "INVALID_REQUEST" }, { status: 400 });
+    }
+    updateData.languages = languages;
+  }
 
   for (const field of ["isGlobal", "isActive", "isPremium"] as const) {
     if (body[field] !== undefined) updateData[field] = Boolean(body[field]);

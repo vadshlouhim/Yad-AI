@@ -1139,6 +1139,7 @@ export type Database = {
           layoutAnalyzedAt: string | null
           layoutConfidence: number | null
           layoutStatus: Database["public"]["Enums"]["TemplateLayoutStatus"]
+          languages: string[]
           name: string
           originalUrl: string | null
           previewUrl: string | null
@@ -1165,6 +1166,7 @@ export type Database = {
           layoutAnalyzedAt?: string | null
           layoutConfidence?: number | null
           layoutStatus?: Database["public"]["Enums"]["TemplateLayoutStatus"]
+          languages?: string[]
           name: string
           originalUrl?: string | null
           previewUrl?: string | null
@@ -1191,6 +1193,7 @@ export type Database = {
           layoutAnalyzedAt?: string | null
           layoutConfidence?: number | null
           layoutStatus?: Database["public"]["Enums"]["TemplateLayoutStatus"]
+          languages?: string[]
           name?: string
           originalUrl?: string | null
           previewUrl?: string | null

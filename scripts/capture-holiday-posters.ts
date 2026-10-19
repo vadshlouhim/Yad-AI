@@ -42,7 +42,8 @@ async function main() {
     if (!response.ok) throw new Error(`Fond inaccessible: ${template.id}`);
     const background = await renderReusableHolidayBackground(template.originalUrl);
     for (const locale of ["fr", "he"] as const) {
-      const content: ReligiousPosterContent = { communityName: locale === "he" ? "בית חב״ד לדוגמה" : "Beth Habad Exemple", title: names[template.id][locale], subtitle: locale === "he" ? "כ״ח בכסלו תשפ״ז" : "28 Kislev 5787", gregorianDate: locale === "he" ? "8 בדצמבר 2026" : "8 décembre 2026", location: locale === "he" ? "פריז" : "Paris", entryLabel: locale === "he" ? "הדלקת נרות" : "Allumage des bougies", entryTime: "16:37", exitLabel: locale === "he" ? "מוצאי חג" : "Fin de fête", exitTime: "17:52" };
+      const hanukkah = template.id === "template_holiday_manual_hanukkah_2026";
+      const content: ReligiousPosterContent = { communityName: locale === "he" ? "בית חב״ד לדוגמה" : "Beth Habad Exemple", title: names[template.id][locale], subtitle: locale === "he" ? "כ״ח בכסלו תשפ״ז" : "28 Kislev 5787", gregorianDate: locale === "he" ? "8 בדצמבר 2026" : "8 décembre 2026", location: locale === "he" ? "פריז" : "Paris", entryLabel: locale === "he" ? "הדלקת נרות" : "Allumage des bougies", entryTime: "16:37", exitLabel: hanukkah ? undefined : locale === "he" ? "מוצאי חג" : "Fin de fête", exitTime: hanukkah ? undefined : "17:52" };
       const poster = await renderReligiousPoster({ background, locale, content, embeddedHebrewFonts: true });
       await writeFile(path.join(outputDir, `${template.id.replace("template_holiday_manual_", "").replace("_2026", "")}-${locale}.png`), poster);
     }

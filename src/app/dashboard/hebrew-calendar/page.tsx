@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getHolidayTimes, getJewishHolidays, getUpcomingShabbatTimes } from "@/lib/automation/hebcal";
 import { getLocale, getTranslations } from "next-intl/server";
-import type { OutputLocale } from "@/lib/ai/output-locale";
+import { outputIntlLocale, type OutputLocale } from "@/lib/ai/output-locale";
 import { localizedHebrewDateForDate } from "@/lib/religious/locale";
 
 export async function generateMetadata() {
@@ -36,7 +36,7 @@ export default async function HebrewCalendarPage() {
     holidays = fromApi.filter((holiday) => new Date(`${holiday.date}T12:00:00`) >= now).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 12).map((holiday) => ({ date: holiday.date, hebrewDate: holiday.hebrewDate, name: holiday.name, nameHebrew: holiday.nameHebrew, isErev: isErevHoliday(holiday.name, holiday.nameHebrew) }));
   }
   const holidayCards = await Promise.all(holidays.map(async (holiday) => ({ ...holiday, times: await getHolidayTimes({ city, country: community?.country ?? undefined, timezone, date: holiday.date, outputLocale: locale }) })));
-  const date = (value: string) => new Intl.DateTimeFormat(locale === "he" ? "he-IL" : "fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T12:00:00Z`));
+  const date = (value: string) => new Intl.DateTimeFormat(outputIntlLocale(locale), { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T12:00:00Z`));
   const field = (value: string | null | undefined) => value?.trim() || "—";
   const next = shabbats[0];
   return (

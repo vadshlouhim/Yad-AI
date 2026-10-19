@@ -219,6 +219,7 @@ async function main() {
         isPremium: false,
         isActive: true,
         tags: template.tags,
+        languages: ["fr", "he"],
         usageCount: 0,
         createdAt: now,
         updatedAt: now,
@@ -239,7 +240,7 @@ async function main() {
   const { data: insertedRows, error: insertedRowsError } = await supabase
     .from("Template")
     .select(
-      "id,name,category,subCategory,thumbnailUrl,previewUrl,supportsAi,canvaUrl,isGlobal,isPremium,isActive,tags",
+      "id,name,category,subCategory,thumbnailUrl,previewUrl,supportsAi,canvaUrl,isGlobal,isPremium,isActive,tags,languages",
     )
     .in("id", preparedIds);
   if (insertedRowsError) throw insertedRowsError;
@@ -252,6 +253,7 @@ async function main() {
   for (const row of insertedRows ?? []) {
     if (
       row.category !== "SHABBAT" ||
+      row.languages?.length !== 2 || !row.languages.includes("fr") || !row.languages.includes("he") ||
       !row.tags?.includes(TEMPLATE_USAGE_TAGS.shabbatTimes) ||
       !row.tags?.includes(IMPORT_TAG) ||
       !row.supportsAi ||

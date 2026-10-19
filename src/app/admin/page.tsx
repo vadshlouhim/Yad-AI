@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getBillingConfig } from "@/lib/billing";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import { isTemplateSchemaOutdated } from "@/lib/templates/admin-errors";
+import { normalizeTemplateLanguages } from "@/lib/templates/languages";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
@@ -81,7 +82,7 @@ export default async function AdminPage() {
     admin
       .from("Template")
       .select(
-        "id, communityId, name, description, category, subCategory, channelType, originalUrl, thumbnailUrl, previewUrl, supportsAi, canvaUrl, isGlobal, isPremium, isActive, tags, usageCount, createdAt, updatedAt"
+        "id, communityId, name, description, category, subCategory, channelType, originalUrl, thumbnailUrl, previewUrl, supportsAi, canvaUrl, isGlobal, isPremium, isActive, tags, languages, usageCount, createdAt, updatedAt"
       )
       .order("usageCount", { ascending: false })
       .order("updatedAt", { ascending: false }),
@@ -124,6 +125,7 @@ export default async function AdminPage() {
     thumbnailUrl: resolveTemplateAssetUrl(template.thumbnailUrl),
     previewUrl: resolveTemplateAssetUrl(template.previewUrl),
     tags: template.tags ?? [],
+    languages: normalizeTemplateLanguages(template.languages),
   }));
 
   const totalTemplateUsage = hydratedTemplates.reduce((total, template) => total + (template.usageCount ?? 0), 0);

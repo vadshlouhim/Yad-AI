@@ -7,7 +7,7 @@ import { CommunityLogoPicker } from "@/components/templates/community-logo-picke
 import { ScheduleHubNav } from "@/components/templates/schedule-hub-nav";
 import { Button } from "@/components/ui/button";
 import { OutputLocalePicker, PosterResultActions, SchedulePosterDialog, SchedulePosterPreview, ScheduleTemplateGallery, SocialPublishPanel, type ScheduleTemplate } from "@/components/religious-schedule/poster-workflow";
-import type { HolidayItem } from "@/lib/automation/jewish-holidays";
+import { getHolidayRelationKey, type HolidayItem } from "@/lib/automation/jewish-holidays";
 import type { OutputLocale } from "@/lib/ai/output-locale";
 import type { Json } from "@/types/database.types";
 
@@ -26,6 +26,7 @@ function connectedChannel(channel: Channel) {
 export function JewishHolidaysAutoClient({ community, holidays, nextHoliday, allTemplates, initialAutomation, channels, interfaceLocale }: Props) {
   const locale = useLocale() as OutputLocale;
   const t = useTranslations("holidayTimes");
+  const th = useTranslations("holidayTimesHanukkah");
   const tx = useTranslations("shabbatTimesExtra");
   const format = useFormatter();
   const [outputLocale, setOutputLocale] = useState<OutputLocale>(interfaceLocale);
@@ -55,6 +56,8 @@ export function JewishHolidaysAutoClient({ community, holidays, nextHoliday, all
 
   const gregorianDate = selectedHoliday ? format.dateTime(new Date(`${selectedHoliday.startDate}T12:00:00Z`), { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }) : "—";
   const hebrewDate = selectedHoliday?.hebrewDate || "—";
+  const isHanukkah = getHolidayRelationKey(selectedHoliday?.officialName) === "hanoucca";
+  const entryLabel = isHanukkah ? th("candleLighting") : t("holidayEve");
 
   const refreshTimes = useCallback(async (holiday: HolidayItem | null, targetLocale: OutputLocale, targetCity = city) => {
     if (!holiday || !targetCity.trim()) return null;
@@ -91,7 +94,7 @@ export function JewishHolidaysAutoClient({ community, holidays, nextHoliday, all
     setError("");
     setNotice("");
     try {
-      const response = await fetch("/api/jewish-holidays-auto/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ selectedTemplateId: selectedTemplate.id, outputLocale, holidayName: holidayName(selectedHoliday), holidayDate: selectedHoliday.startDate, timesDate: selectedHoliday.firstEveningDate || selectedHoliday.startDate, hebrewDate: selectedHoliday.hebrewDate, structureName: structureName.trim(), city: city.trim(), logoUrl: logoUrl || null }) });
+      const response = await fetch("/api/jewish-holidays-auto/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ selectedTemplateId: selectedTemplate.id, outputLocale, holidayName: holidayName(selectedHoliday), holidayRelationKey: getHolidayRelationKey(selectedHoliday.officialName), holidayDate: selectedHoliday.startDate, timesDate: selectedHoliday.firstEveningDate || selectedHoliday.startDate, hebrewDate: selectedHoliday.hebrewDate, structureName: structureName.trim(), city: city.trim(), logoUrl: logoUrl || null }) });
       const data = await response.json().catch(() => ({})) as { imageUrl?: string; error?: string };
       if (!response.ok || !data.imageUrl) throw new Error(data.error ?? t("generationError"));
       setResultImageUrl(data.imageUrl);
@@ -120,8 +123,8 @@ export function JewishHolidaysAutoClient({ community, holidays, nextHoliday, all
   function buildCaption() {
     if (!selectedHoliday) return "";
     return outputLocale === "he"
-      ? `${holidayName(selectedHoliday)}\n${hebrewDate}\n${city}\n${t("holidayEve")}: ${times.entry ?? "—"}\n${t("holidayExit")}: ${times.exit ?? "—"}`
-      : `${holidayName(selectedHoliday)}\n${gregorianDate}\n${city}\n${t("holidayEve")} : ${times.entry ?? "—"}\n${t("holidayExit")} : ${times.exit ?? "—"}`;
+      ? `${holidayName(selectedHoliday)}\n${hebrewDate}\n${city}\n${entryLabel}: ${times.entry ?? "—"}${isHanukkah ? "" : `\n${t("holidayExit")}: ${times.exit ?? "—"}`}`
+      : `${holidayName(selectedHoliday)}\n${gregorianDate}\n${city}\n${entryLabel} : ${times.entry ?? "—"}${isHanukkah ? "" : `\n${t("holidayExit")} : ${times.exit ?? "—"}`}`;
   }
 
   async function publishPoster() {
@@ -160,7 +163,7 @@ export function JewishHolidaysAutoClient({ community, holidays, nextHoliday, all
                 <div className="flex items-center justify-between gap-3"><div><h3 className="font-black text-slate-950">{t("posterInfo")}</h3><p className="mt-1 text-xs font-semibold text-slate-500">{t("autoUpdate")}</p></div>{loadingTimes ? <span className="rounded-full bg-violet-50 px-3 py-1.5 text-[11px] font-black text-[#421388]">{t("updating")}</span> : null}</div>
                 <label className="mt-4 block text-sm font-bold text-slate-800"><span className="flex items-center gap-2"><Sparkles className="size-4 text-[#421388]" />{t("holiday")}</span><select value={selectedHolidayId} onChange={(event) => { const id = event.target.value; const holiday = holidays.find((item) => item.id === id) ?? null; setSelectedHolidayId(id); setResultImageUrl(null); void refreshTimes(holiday, outputLocale); }} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold text-slate-950 outline-none focus:border-[#421388] focus:ring-4 focus:ring-violet-100">{holidays.map((holiday) => <option key={holiday.id} value={holiday.id}>{holidayName(holiday)}</option>)}</select></label>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2"><label className="block text-sm font-bold text-slate-800"><span className="flex items-center gap-2"><Edit3 className="size-4 text-[#421388]" />{tx("structureName")}</span><input value={structureName} onChange={(event) => setStructureName(event.target.value)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-semibold outline-none focus:border-[#421388] focus:ring-4 focus:ring-violet-100" /></label><label className="block text-sm font-bold text-slate-800"><span className="flex items-center gap-2"><MapPin className="size-4 text-[#421388]" />{tx("city")}</span><input value={city} onChange={(event) => { setCity(event.target.value); setTimes({ entry: null, exit: null }); }} onBlur={() => void refreshTimes(selectedHoliday, outputLocale)} className="mt-2 h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 font-semibold outline-none focus:border-[#421388] focus:ring-4 focus:ring-violet-100" /></label></div>
-                <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/70 p-3"><div className="flex items-center justify-between"><p className="text-xs font-black uppercase tracking-[0.12em] text-[#421388]">{t("prefilled")}</p>{loadingTimes ? <Loader2 className="size-4 animate-spin text-[#421388]" /> : <CheckCircle2 className="size-4 text-emerald-600" />}</div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{[[t("date"), gregorianDate], [t("hebrewDate"), hebrewDate], [t("holidayEve"), times.entry ?? "—"], [t("holidayExit"), times.exit ?? "—"]].map(([label, value]) => <div key={label} className="min-w-0 rounded-xl bg-white px-2.5 py-2 text-center shadow-sm ring-1 ring-violet-100"><p className="text-[9px] font-black uppercase tracking-wide text-slate-400">{label}</p><p className="mt-1 text-xs font-black text-slate-900 sm:text-sm" dir={String(value).includes(":") ? "ltr" : undefined}>{value}</p></div>)}</div></div>
+                <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/70 p-3"><div className="flex items-center justify-between"><p className="text-xs font-black uppercase tracking-[0.12em] text-[#421388]">{t("prefilled")}</p>{loadingTimes ? <Loader2 className="size-4 animate-spin text-[#421388]" /> : <CheckCircle2 className="size-4 text-emerald-600" />}</div><div className={`mt-3 grid grid-cols-2 gap-2 ${isHanukkah ? "sm:grid-cols-3" : "sm:grid-cols-4"}`}>{[[t("date"), gregorianDate], [t("hebrewDate"), hebrewDate], [entryLabel, times.entry ?? "—"], ...(isHanukkah ? [] : [[t("holidayExit"), times.exit ?? "—"]])].map(([label, value]) => <div key={label} className="min-w-0 rounded-xl bg-white px-2.5 py-2 text-center shadow-sm ring-1 ring-violet-100"><p className="text-[9px] font-black uppercase tracking-wide text-slate-400">{label}</p><p className="mt-1 text-xs font-black text-slate-900 sm:text-sm" dir={String(value).includes(":") ? "ltr" : undefined}>{value}</p></div>)}</div></div>
                 <CommunityLogoPicker value={logoUrl || null} onChange={(url) => setLogoUrl(url)} onBusyChange={setUploadingLogo} onError={setError} />
                 <Button type="button" size="xl" className="mt-5 w-full rounded-2xl bg-[#d92d7c] font-black shadow-lg shadow-pink-950/20 hover:bg-[#c5236e]" loading={generating} disabled={uploadingLogo || loadingTimes || generating} onClick={() => void generatePoster()}>{!generating ? <Sparkles className="size-5" /> : null}{generating ? t("generating") : t("generate")}</Button>
               </div> : <PosterResultActions onEdit={() => { setResultImageUrl(null); setNotice(""); }} onDownload={() => void downloadPoster()} editLabel={tx("edit")} downloadLabel={tx("download")} />}

@@ -46,6 +46,7 @@ export default async function JewishHolidaysAutoPage() {
       .select("*")
       .eq("isActive", true)
       .eq("category", "HOLIDAY")
+      .contains("languages", [interfaceLocale])
       .contains("tags", ["usage:holiday-times"])
       .not("tags", "cs", "{legacy}")
       .or(`isGlobal.eq.true,communityId.eq.${communityId}`)

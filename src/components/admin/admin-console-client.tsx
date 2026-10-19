@@ -38,6 +38,7 @@ import type { BillingConfig, PlanTier } from "@/lib/billing";
 import { planToTier, tierLabel } from "@/lib/billing";
 import { createClient as createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { templateAvailability, type TemplateAvailability } from "@/lib/templates/availability";
+import { enabledTemplateLanguageOptions, TEMPLATE_LANGUAGE_LABELS, type TemplateLanguage } from "@/lib/templates/languages";
 import {
   buildTemplateTaxonomy,
   HOLIDAY_THEMES,
@@ -90,6 +91,7 @@ interface AdminTemplate {
   isPremium: boolean;
   isActive: boolean;
   tags: string[];
+  languages: TemplateLanguage[];
   usageCount: number;
   createdAt: string;
   updatedAt: string;
@@ -204,6 +206,7 @@ type AdminAutomationFormState = {
 };
 
 const numberFormatter = new Intl.NumberFormat("fr-FR");
+const enabledTemplateLanguages = enabledTemplateLanguageOptions();
 const TEMPLATE_CATEGORIES = ["ALL", "SHABBAT", "HOLIDAY", "EVENT", "COURSE", "ANNOUNCEMENT", "RECAP", "GREETING", "GENERAL"];
 const EDITABLE_TEMPLATE_CATEGORIES = TEMPLATE_CATEGORIES.filter((category) => category !== "ALL");
 const CHANNEL_TYPES = ["", "INSTAGRAM", "FACEBOOK", "WHATSAPP", "TELEGRAM", "EMAIL", "WEB"];
@@ -524,6 +527,7 @@ export function AdminConsoleClient({
         supportsAi: (selectedTemplate.availabilityMode ?? templateAvailability(selectedTemplate)) !== "CANVA_ONLY",
         canvaUrl: (selectedTemplate.availabilityMode ?? templateAvailability(selectedTemplate)) === "AI_ONLY" ? null : selectedTemplate.canvaUrl,
         tags: normalizedTaxonomy.tags,
+        languages: selectedTemplate.languages,
         isGlobal: selectedTemplate.isGlobal,
         isActive: selectedTemplate.isActive,
         isPremium: selectedTemplate.isPremium,
@@ -544,6 +548,7 @@ export function AdminConsoleClient({
         ...selectedTemplate,
         ...payload,
         tags: payload.tags ?? [],
+        languages: payload.languages ?? ["fr"],
         originalUrl: payload.originalUrl ?? null,
         thumbnailUrl: payload.thumbnailUrl ?? null,
         previewUrl: payload.previewUrl ?? null,
@@ -574,6 +579,7 @@ export function AdminConsoleClient({
           supportsAi: true,
           canvaUrl: null,
           tags: ["nouvelle-affiche"],
+          languages: ["fr"],
         }),
       });
       const payload = await readApiPayload(response);
@@ -593,6 +599,7 @@ export function AdminConsoleClient({
         canvaUrl: createdCanvaUrl,
         availabilityMode: templateAvailability({ supportsAi: createdSupportsAi, canvaUrl: createdCanvaUrl }),
         tags: Array.isArray(payload.tags) ? payload.tags : [],
+        languages: Array.isArray(payload.languages) ? payload.languages : ["fr"],
       } as unknown as AdminTemplate;
       setDrafts((previous) => {
         const next = new Map(previous);
@@ -1178,6 +1185,7 @@ export function AdminConsoleClient({
                             <p className={`mt-1 text-xs uppercase tracking-[0.18em] ${mutedText}`}>{template.category}{template.channelType ? ` · ${template.channelType}` : ""}</p>
                             <p className={`mt-2 line-clamp-2 text-xs leading-5 ${mutedText}`}>{template.description || "Aucune consigne IA renseignee."}</p>
                             <div className="mt-3 flex flex-wrap gap-1.5">
+                              {template.languages.map((language) => <span key={language} className="rounded-full bg-indigo-500/15 px-2 py-0.5 text-[10px] font-black uppercase text-indigo-600">{language}</span>)}
                               {template.isGlobal && <span className="rounded-full bg-cyan-500/15 px-2 py-0.5 text-[10px] font-semibold text-cyan-600">Global</span>}
                               <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${template.isActive ? "bg-emerald-500/15 text-emerald-600" : "bg-slate-500/15 text-slate-500"}`}>{template.isActive ? "Active" : "Masquee"}</span>
                               <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${template.originalUrl ? "bg-blue-500/15 text-blue-600" : "bg-red-500/15 text-red-600"}`}>
@@ -1291,6 +1299,23 @@ export function AdminConsoleClient({
                     </section>
 
                     <label className={`block text-sm font-semibold ${strongText}`}>{selectedAvailability === "CANVA_ONLY" ? "Description et critères de suggestion" : "Consignes IA / quand suggérer cette affiche"}<textarea value={selectedTemplate.description ?? ""} onChange={(event) => updateSelectedTemplate({ description: event.target.value })} rows={6} placeholder="Ex: À proposer quand l'utilisateur demande une affiche pour les horaires de Chabbat..." className={`mt-2 w-full resize-none rounded-2xl border px-3 py-2 text-sm leading-6 outline-none ${inputClass}`} /></label>
+                    <fieldset className={`rounded-3xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-indigo-100 bg-indigo-50/50"}`}>
+                      <legend className={`px-1 text-sm font-black ${strongText}`}>Langues de l&apos;affiche</legend>
+                      <p className={`mt-1 text-xs ${mutedText}`}>Au moins une langue est obligatoire. L&apos;anglais apparaîtra quand il sera activé globalement.</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {enabledTemplateLanguages.map((language) => {
+                          const checked = selectedTemplate.languages.includes(language);
+                          return <label key={language} className={`inline-flex cursor-pointer items-center gap-2 rounded-2xl border px-3 py-2 text-sm font-bold ${checked ? "border-indigo-500 bg-indigo-500 text-white" : inputClass}`}><input type="checkbox" checked={checked} onChange={() => {
+                            if (checked && selectedTemplate.languages.length === 1) {
+                              setStatus("Au moins une langue doit rester sélectionnée.");
+                              return;
+                            }
+                            setStatus(null);
+                            updateSelectedTemplate({ languages: checked ? selectedTemplate.languages.filter((item) => item !== language) : [...selectedTemplate.languages, language] });
+                          }} className="size-4 accent-indigo-600" />{TEMPLATE_LANGUAGE_LABELS[language]}</label>;
+                        })}
+                      </div>
+                    </fieldset>
                     <label className={`block text-sm font-semibold ${strongText}`}>Mots-cles de suggestion<input value={selectedTemplate.tags.join(", ")} onChange={(event) => updateSelectedTemplate({ tags: event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean) })} placeholder="chabbat, horaires, synagogue" className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
                     <label className={`block text-sm font-semibold ${strongText}`}>URL miniature<input value={selectedTemplate.thumbnailUrl ?? ""} onChange={(event) => updateSelectedTemplate({ thumbnailUrl: event.target.value || null })} placeholder="https://..." className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`} /></label>
                     <div

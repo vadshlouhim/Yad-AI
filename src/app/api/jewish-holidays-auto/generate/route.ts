@@ -30,6 +30,7 @@ export async function POST(request: Request) {
     const selectedTemplateId = typeof body.selectedTemplateId === "string" ? body.selectedTemplateId : "";
     const outputLocale = parseOutputLocale(body.outputLocale, "fr");
     const holidayName = typeof body.holidayName === "string" && body.holidayName.trim() ? body.holidayName.trim().slice(0, 150) : outputLocale === "he" ? "חג שמח" : "Bonne fête";
+    const isHanukkah = body.holidayRelationKey === "hanoucca";
     const holidayDate = typeof body.holidayDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.holidayDate) ? body.holidayDate : null;
     const timesDate = typeof body.timesDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.timesDate) ? body.timesDate : holidayDate;
     const hebrewDate = typeof body.hebrewDate === "string" ? body.hebrewDate.trim().slice(0, 100) : undefined;
@@ -53,10 +54,10 @@ export async function POST(request: Request) {
         subtitle: hebrewDate,
         gregorianDate: new Date(`${holidayDate}T12:00:00Z`).toLocaleDateString(outputIntlLocale(outputLocale), { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }),
         location: city,
-        entryLabel: RELIGIOUS_COPY[outputLocale].holidayEve,
+        entryLabel: isHanukkah ? RELIGIOUS_COPY[outputLocale].candleLighting : RELIGIOUS_COPY[outputLocale].holidayEve,
         entryTime: times?.entry,
-        exitLabel: RELIGIOUS_COPY[outputLocale].holidayExit,
-        exitTime: times?.exit,
+        exitLabel: isHanukkah ? undefined : RELIGIOUS_COPY[outputLocale].holidayExit,
+        exitTime: isHanukkah ? undefined : times?.exit,
       },
     });
     return NextResponse.json({ imageUrl: poster.imageUrl, promptUsed: "Texte superposé avec les polices embarquées du projet." });

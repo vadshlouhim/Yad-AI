@@ -1,6 +1,6 @@
 import { HDate, getSedra } from "@hebcal/core";
 import { resolveShabbatLocation } from "./city-location";
-import type { OutputLocale } from "@/lib/ai/output-locale";
+import { outputIntlLocale, type OutputLocale } from "@/lib/ai/output-locale";
 import { localizedHebrewDateForDate, localizedParasha } from "@/lib/religious/locale";
 
 export interface ShabbatTimes {
@@ -190,7 +190,7 @@ export async function getUpcomingShabbatTimes(params: {
         tdate: `${batchDate.getUTCMonth() + 1}/${batchDate.getUTCDate()}/${batchDate.getUTCFullYear()}`,
       });
       return fetch(`${CHABAD_WIDGET_URL}?${query.toString()}`, {
-        headers: { "Accept-Language": outputLocale === "he" ? "he-IL,he;q=0.9" : "fr-FR,fr;q=0.9", "User-Agent": "EasyCom-IA Shabbat times reader" },
+        headers: { "Accept-Language": `${outputIntlLocale(outputLocale)},${outputLocale};q=0.9`, "User-Agent": "EasyCom-IA Shabbat times reader" },
         next: { revalidate: 3600 },
         signal: AbortSignal.timeout(8_000),
       });
@@ -378,24 +378,24 @@ export async function getHolidayTimes(params: {
     let exit: string | null = null;
 
     if (candlesOnTargetDate?.date) {
-      entry = formatTime(candlesOnTargetDate.date, location.timezone);
+      entry = formatTime(candlesOnTargetDate.date, location.timezone, outputLocale);
     } else {
       for (let index = startIndex; index >= 0; index -= 1) {
         const item = items[index];
         if (item.category === "candles") {
-          entry = formatTime(item.date, location.timezone);
+          entry = formatTime(item.date, location.timezone, outputLocale);
           break;
         }
       }
     }
 
     if (havdalahOnTargetDate?.date) {
-      exit = formatTime(havdalahOnTargetDate.date, location.timezone);
+      exit = formatTime(havdalahOnTargetDate.date, location.timezone, outputLocale);
     } else {
       for (let index = endIndex; index < items.length; index += 1) {
         const item = items[index];
         if (item.category === "havdalah") {
-          exit = formatTime(item.date, location.timezone);
+          exit = formatTime(item.date, location.timezone, outputLocale);
           break;
         }
       }
@@ -431,9 +431,9 @@ export function getNextFriday(from: Date, timezone = "Europe/Paris"): Date {
   return date;
 }
 
-function formatTime(isoDateTime: string, timezone = "Europe/Paris"): string {
+function formatTime(isoDateTime: string, timezone = "Europe/Paris", locale: OutputLocale = "fr"): string {
   const date = new Date(isoDateTime);
-  return date.toLocaleTimeString("fr-FR", {
+  return date.toLocaleTimeString(outputIntlLocale(locale), {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: timezone,

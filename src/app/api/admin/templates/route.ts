@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.types";
 import { classifyTemplateAdminError } from "@/lib/templates/admin-errors";
 import { assertTemplateDestination, normalizeCanvaUrl } from "@/lib/templates/availability";
+import { parseTemplateLanguages } from "@/lib/templates/languages";
 import { NextResponse } from "next/server";
 
 const TEMPLATE_CATEGORIES = new Set<Database["public"]["Enums"]["TemplateCategory"]>([
@@ -55,6 +56,13 @@ export async function POST(request: Request) {
   const name = String(body.name ?? "Nouvelle affiche").trim();
   const category = TEMPLATE_CATEGORIES.has(body.category) ? body.category : "GENERAL";
   const supportsAi = body.supportsAi === undefined ? true : Boolean(body.supportsAi);
+  const languages = body.languages === undefined ? ["fr"] : parseTemplateLanguages(body.languages);
+  if (!languages) {
+    return NextResponse.json(
+      { error: "Sélectionnez au moins une langue valide.", code: "INVALID_REQUEST" },
+      { status: 400 },
+    );
+  }
   let canvaUrl: string | null;
   try {
     canvaUrl = normalizeCanvaUrl(body.canvaUrl);
@@ -97,6 +105,7 @@ export async function POST(request: Request) {
       isPremium: Boolean(body.isPremium),
       isActive: body.isActive === undefined ? true : Boolean(body.isActive),
       tags: normalizeTags(body.tags),
+      languages,
       usageCount: 0,
       createdAt: now,
       updatedAt: now,

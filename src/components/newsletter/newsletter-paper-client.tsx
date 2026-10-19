@@ -44,7 +44,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { parseOutputLocale, type OutputLocale } from "@/lib/ai/output-locale";
+import { outputIntlLocale, parseOutputLocale, type OutputLocale } from "@/lib/ai/output-locale";
 import { localizedHebrewDate, localizedParasha } from "@/lib/newsletter/religious-locale";
 import { NEWSLETTER_DRAFT_VERSION, resolveNewsletterDraftLocale } from "@/lib/newsletter/draft-locale";
 
@@ -454,7 +454,7 @@ export function NewsletterPaperClient({
   }) : null, [initialShabbat, outputLocale]);
   const localizedStudy = useMemo<NewsletterStudy | null>(() => initialSeferHamitsvot ? ({
     ...initialSeferHamitsvot,
-    dateLabel: new Intl.DateTimeFormat(outputLocale === "he" ? "he-IL" : "fr-FR", { dateStyle: "full", timeZone: "UTC" }).format(new Date(`${initialSeferHamitsvot.date}T12:00:00Z`)),
+    dateLabel: new Intl.DateTimeFormat(outputIntlLocale(outputLocale), { dateStyle: "full", timeZone: "UTC" }).format(new Date(`${initialSeferHamitsvot.date}T12:00:00Z`)),
   }) : null, [initialSeferHamitsvot, outputLocale]);
   const previewCommunity = { ...community, donationUrl };
   const outputEnabled = useMemo<Record<ModuleKey, boolean>>(() => ({
