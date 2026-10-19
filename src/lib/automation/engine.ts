@@ -1,13 +1,11 @@
 ﻿import { getPosterSource, trustedCommunityLogo, logoEditInstructions } from "@/lib/templates/edit-source";
-import { readPosterEditState } from "@/lib/templates/edit-state";
 import { trustedStoredCommunityLogo } from "@/lib/templates/edit-source";
-import { buildShabbatPosterChanges, buildShabbatCaption } from "./shabbat-poster";
+import { buildShabbatCaption } from "./shabbat-poster";
 import type { ShabbatTimes } from "./hebcal";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateContent } from "@/lib/ai/engine";
 import { createPublicationsFromDraft, publishToAllChannels, publishToChannel } from "@/lib/publishing/publisher";
-import { editTemplatePosterWithFal } from "@/lib/templates/fal-edit";
-import { getShabbatTimes, getNextHoliday } from "./hebcal";
+import { getShabbatTimes, getNextHoliday, getHolidayTimes } from "./hebcal";
 import {
   getCampaignFromTriggerConfig,
   getDueReminder,
@@ -50,6 +48,9 @@ import { getAutomationConfigurationHref } from "@/lib/automation/navigation";
 import { addDays, startOfDay, endOfDay, isWithinInterval } from "date-fns";
 import type { Tables, Enums } from "@/types/database.types";
 import { Resend } from "resend";
+import { parseOutputLocale, outputIntlLocale } from "@/lib/ai/output-locale";
+import { createReligiousPoster } from "@/lib/religious/poster-overlay";
+import { RELIGIOUS_COPY } from "@/lib/religious/locale";
 
 type Automation = Tables<"Automation">;
 type Publication = Tables<"Publication">;
@@ -96,7 +97,9 @@ async function renderShabbatPosterImage(params: {
   communityId: string;
   shabbatTimes: ShabbatTimes | null;
   logoUrl?: string | null;
+  communityName: string;
 }): Promise<string | null> {
+  void logoEditInstructions;
   const posterConfig = getShabbatPosterConfig(params.triggerConfig);
   const selectedTemplateId = typeof posterConfig.selectedTemplateId === "string" ? posterConfig.selectedTemplateId : "";
   if (!selectedTemplateId) throw new Error("Choisissez un modèle pour la préparation Chabbat.");
@@ -112,25 +115,33 @@ async function renderShabbatPosterImage(params: {
   if (!template) throw new Error("Modèle Chabbat inaccessible.");
 
   const savedFields = (isRecord(posterConfig.fields) ? posterConfig.fields : {}) as Record<string, string>;
+  const outputLocale = parseOutputLocale(posterConfig.outputLocale, "fr");
 
   try {
     const source = await getPosterSource(params.supabase, params.communityId, posterConfig.sourceMediaId);
-    const previous = readPosterEditState(source?.editState);
     const logoUrl = trustedStoredCommunityLogo(params.logoUrl)
       ?? trustedCommunityLogo(savedFields.logoUrl, params.communityId);
-    const changes = buildShabbatPosterChanges({ ...savedFields, officeTimes: typeof posterConfig.officeTimes === "string" ? posterConfig.officeTimes : savedFields.officeTimes }, params.shabbatTimes, previous?.changes);
-    if (changes.length === 0) return null;
-    const rendered = await editTemplatePosterWithFal({
+    const rendered = await createReligiousPoster({
       admin: params.supabase,
       template,
       communityId: params.communityId,
-      changes,
+      locale: outputLocale,
       sourceImageUrl: source && source.templateId === template.id ? source.url : undefined,
-      overlayLogoUrl: logoUrl ?? undefined,
-      editInstructions: logoUrl
-        ? "Do not draw, recreate or add the official community logo. Preserve the top-right branding area because the exact logo will be composited there after generation."
-        : logoEditInstructions(null),
-      editState: { version: 1, templateId: template.id, sourceMediaId: source?.id ?? null, changes: previous?.changes ?? [], textsToRemove: [], logoUrl, shabbatDate: params.shabbatTimes.date },
+      logoUrl: logoUrl ?? undefined,
+      content: {
+        communityName: savedFields.structureName || params.communityName,
+        title: outputLocale === "he" ? "שבת שלום" : "Chabbat Chalom",
+        subtitle: `${RELIGIOUS_COPY[outputLocale].parasha} ${params.shabbatTimes.parasha}`,
+        hebrewDate: params.shabbatTimes.hebrewDate,
+        gregorianDate: new Date(`${params.shabbatTimes.date}T12:00:00Z`).toLocaleDateString(outputIntlLocale(outputLocale), { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }),
+        location: savedFields.city || params.shabbatTimes.cityName,
+        entryLabel: RELIGIOUS_COPY[outputLocale].entry,
+        entryTime: params.shabbatTimes.entry,
+        exitLabel: RELIGIOUS_COPY[outputLocale].exit,
+        exitTime: params.shabbatTimes.exit,
+        extraLines: [savedFields.kiddouch, typeof posterConfig.officeTimes === "string" ? posterConfig.officeTimes : savedFields.officeTimes],
+        source: RELIGIOUS_COPY[outputLocale].source,
+      },
     });
     return rendered.imageUrl;
   } catch (err) {
@@ -643,7 +654,7 @@ async function shouldTrigger(automation: Automation, now: Date): Promise<boolean
     }
 
     case "JEWISH_HOLIDAY": {
-      const holiday = await getNextHoliday();
+      const holiday = await getNextHoliday(parseOutputLocale(isRecord(config.holidayPoster) ? config.holidayPoster.outputLocale : undefined, "fr"));
       if (!holiday) return false;
       const daysBeforeHoliday = (config.daysBefore as number) ?? 1;
       const triggerDate = addDays(new Date(holiday.date), -daysBeforeHoliday);
@@ -1233,10 +1244,12 @@ export async function executeAutomationActions(
         let hebrewDate: string | undefined;
 
         if (automation.trigger === "WEEKLY_SHABBAT") {
+          const shabbatOutputLocale = parseOutputLocale(getShabbatPosterConfig(triggerConfig).outputLocale, "fr");
           shabbatTimes = await getShabbatTimes({
             city: typeof getShabbatPosterConfig(triggerConfig).fields === "object" ? (getShabbatPosterConfig(triggerConfig).fields as Record<string, string>).city || automation.community.city || undefined : automation.community.city ?? undefined,
             country: automation.community.country ?? undefined,
             timezone: automation.community.timezone,
+            outputLocale: shabbatOutputLocale,
           });
           hebrewDate = shabbatTimes?.hebrewDate;
         }
@@ -1247,19 +1260,52 @@ export async function executeAutomationActions(
           if (existingDraft) break;
         }
 
-        const selectedTemplateImageUrl = automation.trigger === "WEEKLY_SHABBAT"
+        let selectedTemplateImageUrl = automation.trigger === "WEEKLY_SHABBAT"
           ? await renderShabbatPosterImage({
               supabase,
               triggerConfig,
               communityId: automation.community.id,
               shabbatTimes,
               logoUrl: automation.community.logoUrl,
+              communityName: automation.community.name,
             })
           : null;
+        if (automation.trigger === "JEWISH_HOLIDAY" && isRecord(triggerConfig.holidayPoster)) {
+          const holidayConfig = triggerConfig.holidayPoster;
+          const templateId = typeof holidayConfig.selectedTemplateId === "string" ? holidayConfig.selectedTemplateId : "";
+          const outputLocale = parseOutputLocale(holidayConfig.outputLocale, "fr");
+          const holiday = await getNextHoliday(outputLocale);
+          if (templateId && holiday) {
+            const { data: template } = await supabase.from("Template").select("*").eq("id", templateId).or(`isGlobal.eq.true,communityId.eq.${automation.community.id}`).maybeSingle();
+            if (template) {
+              const times = await getHolidayTimes({ city: automation.community.city ?? undefined, country: automation.community.country ?? undefined, timezone: automation.community.timezone, date: holiday.date, outputLocale });
+              const rendered = await createReligiousPoster({
+                admin: supabase,
+                template,
+                communityId: automation.community.id,
+                locale: outputLocale,
+                logoUrl: trustedStoredCommunityLogo(automation.community.logoUrl) ?? undefined,
+                content: {
+                  communityName: automation.community.name,
+                  title: holiday.name,
+                  subtitle: outputLocale === "he" ? "חג שמח" : "Bonne fête",
+                  hebrewDate: holiday.hebrewDate,
+                  gregorianDate: new Date(`${holiday.date}T12:00:00Z`).toLocaleDateString(outputIntlLocale(outputLocale), { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }),
+                  location: automation.community.city ?? undefined,
+                  entryLabel: RELIGIOUS_COPY[outputLocale].holidayEve,
+                  entryTime: times?.entry,
+                  exitLabel: RELIGIOUS_COPY[outputLocale].holidayExit,
+                  exitTime: times?.exit,
+                },
+              });
+              selectedTemplateImageUrl = rendered.imageUrl;
+            }
+          }
+        }
 
         const posterFields = getShabbatPosterConfig(triggerConfig).fields;
         const generated = shabbatTimes
-          ? { body: buildShabbatCaption(isRecord(posterFields) ? posterFields as Record<string, string> : {}, shabbatTimes), bodyHebrew: null, hashtags: [], cta: null }
+          ? { body: buildShabbatCaption(isRecord(posterFields) ? posterFields as Record<string, string> : {}, shabbatTimes, parseOutputLocale(getShabbatPosterConfig(triggerConfig).outputLocale, "fr")), bodyHebrew: null, hashtags: [], cta: null }
           : configuredMessage
           ? { body: configuredMessage, bodyHebrew: null, hashtags: [], cta: null }
           : await generateContent({
@@ -1268,6 +1314,8 @@ export async function executeAutomationActions(
               eventId: automation.eventId ?? undefined,
               shabbatTimes,
               hebrewDate,
+              holidayName: automation.trigger === "JEWISH_HOLIDAY" && isRecord(triggerConfig.holidayPoster) && typeof triggerConfig.holidayPoster.selectedHolidayName === "string" ? triggerConfig.holidayPoster.selectedHolidayName : undefined,
+              outputLocale: automation.trigger === "JEWISH_HOLIDAY" ? parseOutputLocale(isRecord(triggerConfig.holidayPoster) ? triggerConfig.holidayPoster.outputLocale : undefined, "fr") : undefined,
             });
 
         const { data: draft } = await supabase

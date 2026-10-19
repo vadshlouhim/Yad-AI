@@ -10,6 +10,7 @@ import {
 import { buildTemporalSystemContext } from "./time-context";
 import { getJewishHolidays, getShabbatTimes, type JewishHoliday } from "@/lib/automation/hebcal";
 import type { Enums } from "@/types/database.types";
+import { outputLanguageDirective, type OutputLocale } from "@/lib/ai/output-locale";
 
 type ContentType = Enums<"ContentType">;
 type ChannelType = Enums<"ChannelType">;
@@ -194,6 +195,7 @@ export async function generateContent(params: {
   shabbatTimes?: GenerationShabbatTimes | null;
   holidayName?: string;
   hebrewDate?: string;
+  outputLocale?: OutputLocale;
 }): Promise<GeneratedContent> {
   const { communityId, contentType, eventId, channelType, customInstructions } = params;
   const supabase = createAdminClient();
@@ -223,7 +225,8 @@ export async function generateContent(params: {
     nextHoliday: calendarContext.nextHoliday,
     upcomingHolidays: calendarContext.upcomingHolidays,
   });
-  const systemPrompt = temporalContext + "\n\n" + buildSystemPrompt(community) + buildMemoryContext(memories);
+  const systemPrompt = temporalContext + "\n\n" + buildSystemPrompt(community) + buildMemoryContext(memories)
+    + (params.outputLocale ? `\n\nLANGUE DE SORTIE OBLIGATOIRE : ${outputLanguageDirective(params.outputLocale)}` : "");
   const userPrompt = buildContentGenerationPrompt({
     contentType,
     event,

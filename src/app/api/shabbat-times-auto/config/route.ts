@@ -9,6 +9,7 @@ import {
   type ShabbatTemplateMode,
 } from "@/lib/automation/shabbat-times";
 import type { Database, Json } from "@/types/database.types";
+import { parseOutputLocale, type OutputLocale } from "@/lib/ai/output-locale";
 
 type AutomationRow = Database["public"]["Tables"]["Automation"]["Row"];
 
@@ -25,6 +26,7 @@ function buildActions(channels: string[], scheduleMode: string): Json {
 }
 
 type ShabbatPosterConfig = {
+  outputLocale?: OutputLocale;
   sourceMediaId?: string | null;
   draftSourceMediaId?: string | null;
   selectedTemplateId?: string | null;
@@ -96,6 +98,7 @@ function sanitizeConfig(value: unknown, existing: ShabbatPosterConfig): ShabbatP
 
   return {
     ...existing,
+    outputLocale: parseOutputLocale(value.outputLocale, existing.outputLocale ?? "fr"),
     sourceMediaId: stringOrEmpty(value.sourceMediaId) || existing.sourceMediaId || null,
     draftSourceMediaId: stringOrEmpty(value.draftSourceMediaId) || existing.draftSourceMediaId || null,
     palette: stringOrEmpty(value.palette) || existing.palette || "violet",
@@ -281,7 +284,7 @@ export async function POST(request: Request) {
 
     if (mode === "activate") {
       const { data: community } = await auth.admin.from("Community").select("city, country").eq("id", auth.communityId).single();
-      const times = await getShabbatTimes({ city: poster.fields?.city || community?.city || undefined, country: community?.country ?? undefined, timezone });
+      const times = await getShabbatTimes({ city: poster.fields?.city || community?.city || undefined, country: community?.country ?? undefined, timezone, outputLocale: poster.outputLocale ?? "fr" });
       if (!times?.entry || !times.exit) return NextResponse.json({ error: "Vérifiez la ville avant d’activer la préparation hebdomadaire." }, { status: 422 });
       const nextRunAt = getNextWeeklyRunAt({
         dayOfWeek: poster.notificationDayOfWeek ?? 5,

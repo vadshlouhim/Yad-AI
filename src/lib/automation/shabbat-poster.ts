@@ -1,9 +1,20 @@
 import type { PosterChange } from "@/lib/templates/fal-edit";
 import type { ShabbatTimes } from "./hebcal";
+import type { OutputLocale } from "@/lib/ai/output-locale";
 
 export const CHABAD_SHABBAT_ATTRIBUTION = "Shabbat times provided by Chabad.org/ShabbatTimes";
 
-export function buildShabbatCaption(fields: Record<string, string>, times: ShabbatTimes): string {
+export function buildShabbatCaption(fields: Record<string, string>, times: ShabbatTimes, locale: OutputLocale = "fr"): string {
+  if (locale === "he") return [
+    `שבת שלום${fields.structureName ? ` מאת ${fields.structureName}` : ""}.`,
+    `${fields.city ?? times.cityName ?? ""} · ${times.date}`,
+    `פרשת השבוע: ${times.parasha}`,
+    `כניסת שבת: ${times.entry}`,
+    `יציאת שבת: ${times.exit}`,
+    fields.kiddouch,
+    fields.officeTimes,
+    "זמני שבת באדיבות Chabad.org/ShabbatTimes",
+  ].filter(Boolean).join("\n");
   return [
     `Chabbat Chalom${fields.structureName ? ` de la part de ${fields.structureName}` : ""}.`,
     `${fields.city ?? times.cityName ?? ""} · ${times.date}`,

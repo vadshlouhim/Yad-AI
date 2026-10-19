@@ -23,7 +23,6 @@ import { EmailIcon, FacebookIcon, InstagramIcon, TelegramIcon, WhatsAppIcon } fr
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_HOLIDAY_NOTIFICATION_DAYS,
-  formatDate,
   getDaysUntil,
   getNotificationDate,
   type HolidayItem,
@@ -31,6 +30,8 @@ import {
 import type { Json } from "@/types/database.types";
 import { ScheduleHubNav } from "@/components/templates/schedule-hub-nav";
 import { CanvaLogo } from "@/components/templates/template-actions";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
+import { parseOutputLocale, type OutputLocale } from "@/lib/ai/output-locale";
 
 const HOLIDAYS_AGENT_IMAGE_URL =
   "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Presatntaion.webp";
@@ -95,6 +96,7 @@ type AssistantMessage = {
 };
 
 type PosterConfig = {
+  outputLocale?: OutputLocale;
   configured?: boolean;
   suspended?: boolean;
   notificationsEnabled?: boolean;
@@ -122,6 +124,7 @@ type Props = {
   allTemplates: Template[];
   initialAutomation: InitialAutomation;
   channels: Channel[];
+  interfaceLocale: OutputLocale;
 };
 
 const paletteOptions = [
@@ -179,6 +182,7 @@ function TemplateOption({
   featured?: boolean;
   onSelect: () => void;
 }) {
+  const tx = useTranslations("holidaysExtra");
   return (
     <article className={cn("group overflow-hidden rounded-xl border bg-white p-1 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md", featured ? "border-violet-400 ring-2 ring-violet-200/70" : "border-slate-200 hover:border-violet-400")}>
     <button type="button" onClick={onSelect} className="w-full text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300">
@@ -193,7 +197,7 @@ function TemplateOption({
       </div>
       <div className="space-y-1 px-3 py-3">
         <p className="line-clamp-2 text-sm font-bold text-slate-950">{template.name}</p>
-        <p className="truncate text-xs font-semibold uppercase tracking-[0.12em] text-violet-600">{template.subCategory ?? "Modèle lié"}</p>
+        <p className="truncate text-xs font-semibold uppercase tracking-[0.12em] text-violet-600">{template.subCategory ?? tx("modelRelated")}</p>
       </div>
     </button>
     </article>
@@ -250,13 +254,14 @@ function HolidayAccordion({
 }
 
 function PosterFallback({ palette, text }: { palette: string; text: string }) {
+  const tx = useTranslations("holidaysExtra");
   const selected = paletteOptions.find((item) => item.id === palette) ?? paletteOptions[0];
   return (
     <div className={cn("flex h-full w-full flex-col items-center justify-center bg-gradient-to-br p-8 text-center text-white", selected.classes)}>
       <Sparkles className="size-10 text-white/80" />
-      <p className="mt-4 text-2xl font-black">Aperçu en attente</p>
+      <p className="mt-4 text-2xl font-black">{tx("pendingPreview")}</p>
       <p className="mt-3 max-w-[220px] text-sm leading-6 text-white/80">
-        {text || "Décrivez votre affiche, puis générez le visuel."}
+        {text || tx("describePoster")}
       </p>
     </div>
   );
@@ -269,8 +274,20 @@ export function JewishHolidaysAutoClient({
   allTemplates,
   initialAutomation,
   channels,
+  interfaceLocale,
 }: Props) {
+  const locale = useLocale() as OutputLocale;
+  const t = useTranslations("holidays");
+  const tx = useTranslations("holidaysExtra");
+  const tn = useTranslations("holidaysNotice");
+  const tp = useTranslations("holidaysPlaceholders");
+  const to = useTranslations("holidaysOverview");
+  const format = useFormatter();
+  const formatDate = (value: string) => format.dateTime(new Date(`${value}T12:00:00Z`), { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const formatHolidayRange = (holiday: HolidayItem) => holiday.startDate === holiday.endDate ? formatDate(holiday.startDate) : `${formatDate(holiday.startDate)} — ${formatDate(holiday.endDate)}`;
+  const holidayName = (holiday: HolidayItem | null, targetLocale: OutputLocale = locale) => holiday ? (targetLocale === "he" ? holiday.nameHebrew || holiday.officialName : holiday.officialName) : "";
   const savedConfig = useMemo(() => getPosterConfig(initialAutomation), [initialAutomation]);
+  const [outputLocale, setOutputLocale] = useState<OutputLocale>(() => initialAutomation ? parseOutputLocale(savedConfig.outputLocale, "fr") : interfaceLocale);
   const initialHoliday =
     holidays.find((holiday) => holiday.id === savedConfig.selectedHolidayId) ?? nextHoliday ?? holidays[0] ?? null;
   const [view, setView] = useState<View>("overview");
@@ -287,7 +304,7 @@ export function JewishHolidaysAutoClient({
       ? savedConfig.assistantMessages
       : [{
           role: "assistant",
-          content: "Indiquez librement les informations à afficher.",
+          content: tx("describePoster"),
           createdAt: new Date().toISOString(),
         }]
   );
@@ -341,14 +358,14 @@ export function JewishHolidaysAutoClient({
       const response = await fetch("/api/jewish-holidays-auto/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, outputLocale }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error ?? "Enregistrement impossible");
+      if (!response.ok) throw new Error(data.error ?? tx("saveError"));
       setAutomation(data);
       return data as InitialAutomation;
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Enregistrement impossible");
+      setError(saveError instanceof Error ? saveError.message : tx("saveError"));
       return null;
     } finally {
       setSaving(false);
@@ -369,7 +386,7 @@ export function JewishHolidaysAutoClient({
       enabled,
       daysBefore,
       holidayId: selectedHoliday?.id,
-      holidayName: selectedHoliday?.officialName,
+      holidayName: holidayName(selectedHoliday, outputLocale),
       holidayCategory: selectedHoliday?.categoryLabel,
       holidayDate: selectedHoliday?.firstEveningDate,
     });
@@ -387,7 +404,7 @@ export function JewishHolidaysAutoClient({
     const saved = await saveToApi({
       mode: "save-selection",
       holidayId: selectedHoliday.id,
-      holidayName: selectedHoliday.officialName,
+      holidayName: holidayName(selectedHoliday, outputLocale),
       holidayCategory: selectedHoliday.categoryLabel,
       holidayDate: selectedHoliday.firstEveningDate,
       templateId: template?.id ?? null,
@@ -409,7 +426,7 @@ export function JewishHolidaysAutoClient({
     if (requirePaid()) return;
     const userText = assistantMessages.filter((message) => message.role === "user").map((message) => message.content).join("\n\n").trim();
     if (!userText) {
-      setError("Écrivez les informations à afficher avant de générer.");
+      setError(tx("writeInfo"));
       return;
     }
 
@@ -427,18 +444,18 @@ export function JewishHolidaysAutoClient({
       const response = await fetch("/api/jewish-holidays-auto/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userText, palette, selectedTemplateId, holidayId: selectedHoliday?.id }),
+        body: JSON.stringify({ userText, palette, selectedTemplateId, holidayId: selectedHoliday?.id, holidayName: holidayName(selectedHoliday, outputLocale), holidayDate: selectedHoliday?.firstEveningDate, outputLocale }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error ?? "Génération impossible");
+      if (!response.ok) throw new Error(data.error ?? tx("generationError"));
       setGeneratedImageUrl(data.imageUrl);
       setAssistantMessages((current) => [...current, {
         role: "assistant",
-        content: "Votre affiche est prête. Vérifiez-la avant publication.",
+        content: to("readyCheck"),
         createdAt: new Date().toISOString(),
       }]);
     } catch (generateError) {
-      setError(generateError instanceof Error ? generateError.message : "Génération impossible");
+      setError(generateError instanceof Error ? generateError.message : tx("generationError"));
     } finally {
       setGenerating(false);
     }
@@ -447,11 +464,11 @@ export function JewishHolidaysAutoClient({
   async function activate() {
     if (requirePaid()) return;
     if (selectedChannels.length === 0) {
-      setError("Sélectionnez au moins un réseau avant d'activer l'automatisation.");
+      setError(tx("selectNetwork"));
       return;
     }
     if (selectedDisconnectedNetworks.length > 0) {
-      setError(`Connectez d'abord : ${selectedDisconnectedNetworks.join(", ")}.`);
+      setError(tn("connectFirst", { networks: selectedDisconnectedNetworks.join(", ") }));
       return;
     }
     const saved = await saveToApi({
@@ -462,7 +479,7 @@ export function JewishHolidaysAutoClient({
       selectedChannels,
       daysBefore,
       holidayId: selectedHoliday?.id,
-      holidayName: selectedHoliday?.officialName,
+      holidayName: holidayName(selectedHoliday, outputLocale),
       holidayCategory: selectedHoliday?.categoryLabel,
       holidayDate: selectedHoliday?.firstEveningDate,
     });
@@ -480,7 +497,7 @@ export function JewishHolidaysAutoClient({
       selectedChannels,
       daysBefore,
       holidayId: selectedHoliday?.id,
-      holidayName: selectedHoliday?.officialName,
+      holidayName: holidayName(selectedHoliday, outputLocale),
       holidayCategory: selectedHoliday?.categoryLabel,
       holidayDate: selectedHoliday?.firstEveningDate,
     });
@@ -490,7 +507,7 @@ export function JewishHolidaysAutoClient({
   async function publish() {
     if (requirePaid()) return;
     if (selectedDisconnectedNetworks.length > 0) {
-      setError(`Connectez d'abord : ${selectedDisconnectedNetworks.join(", ")}.`);
+      setError(tn("connectFirst", { networks: selectedDisconnectedNetworks.join(", ") }));
       return;
     }
     setPublishing(true);
@@ -506,10 +523,10 @@ export function JewishHolidaysAutoClient({
       });
       const response = await fetch("/api/jewish-holidays-auto/publish", { method: "POST" });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error ?? "Publication impossible");
+      if (!response.ok) throw new Error(data.error ?? tx("publishError"));
       setPublishResults(data.results ?? null);
     } catch (publishError) {
-      setError(publishError instanceof Error ? publishError.message : "Publication impossible");
+      setError(publishError instanceof Error ? publishError.message : tx("publishError"));
     } finally {
       setPublishing(false);
     }
@@ -517,24 +534,24 @@ export function JewishHolidaysAutoClient({
 
   if (view === "models") {
     return (
-      <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+      <div dir={locale === "he" ? "rtl" : "ltr"} className="container mx-auto max-w-6xl space-y-6 px-4 py-6 text-start sm:px-6">
         <ScheduleHubNav active="holidays" />
         <div className="relative overflow-visible rounded-[1.4rem] border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-[0_22px_52px_rgba(66,19,136,0.22)]">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-start gap-4">
               <Button type="button" variant="ghost" size="icon" className="border border-white/20 text-white hover:bg-white/10" onClick={() => setView("overview")}>
-                <ArrowLeft className="size-5" />
+                <ArrowLeft className="size-5 rtl:rotate-180" />
               </Button>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">Choisissez votre affiche</h1>
+                <h1 className="text-3xl font-bold tracking-tight">{t("choose")}</h1>
                 <p className="mt-2 text-sm text-violet-100">
-                  {selectedHoliday ? `${selectedHoliday.officialName} - ${selectedHoliday.dateLabel}` : "Sélectionnez une fête depuis la vue d'ensemble."}
+                  {selectedHoliday ? `${holidayName(selectedHoliday)} - ${formatDate(selectedHoliday.firstEveningDate)}` : t("choose")}
                 </p>
               </div>
             </div>
             <DavidBannerAgent
               className="lg:max-w-xl"
-              text="Je suis David votre assistant IA, je vous aide à choisir le bon visuel pour chaque fête"
+              text={to("assistantChoose")}
             />
           </div>
         </div>
@@ -543,7 +560,7 @@ export function JewishHolidaysAutoClient({
           <section className="space-y-8 rounded-2xl border border-violet-100 bg-white p-5 shadow-sm sm:p-7">
             <div className="flex items-center gap-3">
               <span className="flex size-10 items-center justify-center rounded-xl bg-violet-700 text-white"><Gift className="size-5" /></span>
-              <div><h2 className="text-xl font-black text-slate-950">Horaires des fêtes</h2><p className="mt-1 text-sm text-slate-500">Affiches classées uniquement par fête précise.</p></div>
+              <div><h2 className="text-xl font-black text-slate-950">{t("title")}</h2><p className="mt-1 text-sm text-slate-500">{t("classified")}</p></div>
             </div>
             {scheduleTemplateSections.map(({ label, templates }) => (
               <section key={label} className="border-t border-slate-200 pt-5 first:border-t-0 first:pt-0">
@@ -555,10 +572,10 @@ export function JewishHolidaysAutoClient({
         ) : (
           <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
             <ImageIcon className="mx-auto size-12 text-slate-300" />
-            <h2 className="mt-4 text-2xl font-bold text-slate-950">Aucune affiche disponible pour le moment</h2>
+            <h2 className="mt-4 text-2xl font-bold text-slate-950">{t("none")}</h2>
             <Button asChild type="button" size="xl" className="mt-6 bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]">
               <Link href="/dashboard/templates">
-                Voir tous les visuels
+                {to("seeAll")}
               </Link>
             </Button>
           </section>
@@ -569,11 +586,11 @@ export function JewishHolidaysAutoClient({
 
   if (view === "customize") {
     return (
-      <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+      <div dir={locale === "he" ? "rtl" : "ltr"} className="container mx-auto max-w-6xl space-y-6 px-4 py-6 text-start sm:px-6">
         <div className="relative overflow-visible rounded-[1.4rem] border border-[#421388]/30 bg-[#421388] p-6 text-white shadow-[0_22px_52px_rgba(66,19,136,0.22)]">
           <div className="relative">
             <div className="mb-4 h-1.5 w-12 rounded-full bg-white/80" />
-            <h1 className="text-3xl font-bold tracking-tight">Personnalisez et activez</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{t("customize")}</h1>
           </div>
           <div className="absolute right-6 top-1/2 hidden -translate-y-1/2 sm:block" aria-hidden="true">
             <div className="flex size-24 items-center justify-center rounded-3xl bg-white p-2 shadow-2xl shadow-[#22084b]/30 ring-1 ring-white/70 animate-install-float">
@@ -583,8 +600,16 @@ export function JewishHolidaysAutoClient({
           </div>
         </div>
 
+        <section className="rounded-xl border border-violet-200 bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-black text-slate-950">{t("outputLanguage")}</h2>
+          <p className="mt-1 text-xs text-slate-500">{t("outputHelp")}</p>
+          <div className="mt-3 grid max-w-sm grid-cols-2 gap-2" dir="ltr">
+            {(["fr", "he"] as const).map((value) => <button key={value} type="button" onClick={() => setOutputLocale(value)} className={cn("rounded-xl border px-4 py-2.5 text-sm font-black", outputLocale === value ? "border-[#421388] bg-violet-50 text-[#421388]" : "border-slate-200 text-slate-600")}>{t(value)}</button>)}
+          </div>
+        </section>
+
         <section className="rounded-xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
-          <h2 className="text-xl font-bold text-slate-950">Aperçu de votre publication</h2>
+          <h2 className="text-xl font-bold text-slate-950">{t("preview")}</h2>
           <div className="mt-4">
             <SmartphoneFrame>
               <div className="flex-1 overflow-hidden">
@@ -597,7 +622,7 @@ export function JewishHolidaysAutoClient({
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[12px] font-bold text-slate-900">{community.name.toLowerCase().replace(/\s+/g, "")}</p>
-                    <p className="text-[10px] text-slate-400">Publication</p>
+                    <p className="text-[10px] text-slate-400">{t("publication")}</p>
                   </div>
                   <span className="text-lg leading-none text-slate-500">...</span>
                 </div>
@@ -614,9 +639,9 @@ export function JewishHolidaysAutoClient({
                 <div className="space-y-2 px-3 py-3 text-[11px] leading-4 text-slate-800">
                   <p>
                     <span className="font-bold">{community.name.toLowerCase().replace(/\s+/g, "")}</span>{" "}
-                    {postText || assistantInput || "Texte de publication à valider."}
+                    {postText || assistantInput || to("postFallback")}
                   </p>
-                  <p className="text-slate-400">Voir les commentaires</p>
+                  <p className="text-slate-400">{t("comments")}</p>
                 </div>
               </div>
             </SmartphoneFrame>
@@ -626,41 +651,41 @@ export function JewishHolidaysAutoClient({
         <div>
           <section className="space-y-4">
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="text-lg font-bold text-slate-950">Consignes pour l&apos;affiche</h2>
+              <h2 className="text-lg font-bold text-slate-950">{t("instructions")}</h2>
               <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]">
                 <textarea
                   value={assistantInput}
                   onChange={(event) => setAssistantInput(event.target.value)}
-                  placeholder="Exemple : Beth Habad Centre - Chavouot du 21 au 23 mai - Min'ha a 19 h 30 - ajoute notre logo et indique inscription obligatoire."
+                  placeholder={tp("poster")}
                   className="min-h-28 rounded-xl border border-slate-200 p-3 text-sm outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
                 />
                 <Button type="button" className="bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" onClick={addUserMessage}>
                   <Wand2 className="size-4" />
-                  Envoyer
+                  {tx("send")}
                 </Button>
               </div>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Button type="button" size="xl" loading={generating} className="bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" onClick={() => void generatePoster()}>
                   <Sparkles className="size-5" />
-                  {generatedImageUrl ? "Régénérer" : "Générer mon affiche"}
+                  {generatedImageUrl ? t("regenerate") : t("generate")}
                 </Button>
                 {generatedImageUrl && (
                   <Button type="button" variant="outline" size="xl" onClick={() => setAssistantInput("Je veux modifier : ")}>
                     <MessageSquare className="size-5" />
-                    Modifier avec l&apos;IA
+                    {tx("editWithAi")}
                   </Button>
                 )}
               </div>
-              {generating && <p className="mt-3 text-sm font-semibold text-violet-700">Création de votre affiche en cours...</p>}
+              {generating && <p className="mt-3 text-sm font-semibold text-violet-700">{t("creating")}</p>}
             </div>
 
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="text-lg font-bold text-slate-950">Texte de la publication</h2>
+              <h2 className="text-lg font-bold text-slate-950">{t("postText")}</h2>
               <textarea
                 value={postText}
                 onChange={(event) => setPostText(event.target.value)}
                 className="mt-3 min-h-24 w-full rounded-lg border border-slate-200 p-3 text-sm outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
-                placeholder="Texte valide par vous avant publication."
+                placeholder={tp("post")}
               />
             </div>
 
@@ -668,11 +693,11 @@ export function JewishHolidaysAutoClient({
               <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <h2 className="text-lg font-bold text-slate-950">Réseaux sociaux</h2>
-                    <p className="mt-1 text-sm text-slate-500">Choisissez les réseaux qui recevront vos visuels de fêtes.</p>
+                    <h2 className="text-lg font-bold text-slate-950">{t("social")}</h2>
+                    <p className="mt-1 text-sm text-slate-500">{t("socialHelp")}</p>
                   </div>
                   <Link href="/dashboard/settings/channels" className="text-xs font-black text-violet-700 transition hover:text-violet-900">
-                    Gérer les connexions
+                    {tx("manageConnections")}
                   </Link>
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -702,17 +727,17 @@ export function JewishHolidaysAutoClient({
                                 : current.filter((item) => item !== network.type));
                             }}
                             className="mt-1 size-4 cursor-pointer accent-violet-700"
-                            aria-label={`Sélectionner ${network.label}`}
+                            aria-label={tp("select", { network: network.label })}
                           />
                         </div>
                         <p className="mt-3 text-sm font-black text-slate-950">{channel?.name || network.label}</p>
                         <p className={cn("mt-1 inline-flex items-center gap-1 text-xs font-bold", connected ? "text-emerald-700" : "text-amber-700")}>
                           {connected ? <CheckCircle2 className="size-3.5" /> : <AlertTriangle className="size-3.5" />}
-                          {connected ? "Connecté" : "Connexion requise"}
+                          {connected ? tx("connected") : tx("connectionRequired")}
                         </p>
                         <div className="mt-4 border-t border-slate-900/5 pt-3">
                           <Link href={network.href} className={cn("text-xs font-black transition hover:opacity-70", network.tone)}>
-                            {connected ? "Paramètres" : "Connecter le compte"}
+                            {connected ? to("settings") : to("connectAccount")}
                           </Link>
                         </div>
                       </article>
@@ -727,18 +752,18 @@ export function JewishHolidaysAutoClient({
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button type="button" size="xl" loading={saving} className="bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" onClick={() => void activate()}>
                 <Sparkles className="size-5" />
-                Valider et activer l&apos;automatisation
+                {tx("activate")}
               </Button>
               <Button type="button" variant="outline" size="xl" onClick={() => setView("models")}>
-                <ArrowLeft className="size-5" />
-                Retour
+                <ArrowLeft className="size-5 rtl:rotate-180" />
+                {tx("back")}
               </Button>
             </div>
           </section>
 
             <Button type="button" size="xl" loading={publishing} disabled={!generatedImageUrl} className="mt-5 w-full bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" onClick={() => void publish()}>
               <Send className="size-5" />
-              Publier sur tous mes réseaux sélectionnés
+              {to("publishAll")}
             </Button>
 
             {publishResults && (
@@ -759,7 +784,7 @@ export function JewishHolidaysAutoClient({
   }
 
   return (
-    <div className="container mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
+    <div dir={locale === "he" ? "rtl" : "ltr"} className="container mx-auto max-w-6xl space-y-6 px-4 py-6 text-start sm:px-6">
       <ScheduleHubNav active="holidays" />
       {showWelcome && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
@@ -772,14 +797,14 @@ export function JewishHolidaysAutoClient({
                 <X className="size-5" />
               </button>
             </div>
-            <h2 className="mt-5 text-2xl font-bold leading-tight text-slate-950">Horaires des fêtes</h2>
+            <h2 className="mt-5 text-2xl font-bold leading-tight text-slate-950">{t("title")}</h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Préparez automatiquement les affiches d’horaires de chaque fête juive.
+              {to("heroDescription")}
             </p>
             <div className="mt-6 space-y-4">
               {[
-                { step: 1, title: "Choisissez un modèle", color: "bg-blue-100 text-blue-700" },
-                { step: 2, title: "Validez et publiez", color: "bg-violet-100 text-violet-700" },
+                { step: 1, title: to("stepChoose"), color: "bg-blue-100 text-blue-700" },
+                { step: 2, title: to("stepPublish"), color: "bg-violet-100 text-violet-700" },
               ].map(({ step, title, color }) => (
                 <div key={step} className="flex items-start gap-4">
                   <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-black", color)}>{step}</span>
@@ -797,7 +822,7 @@ export function JewishHolidaysAutoClient({
             <div className="mt-8 flex flex-col gap-3">
               <Button type="button" size="xl" className="w-full bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" disabled={!nextHoliday} onClick={() => void beginConfiguration()}>
                 <Sparkles className="size-5" />
-                Publiez les Horaires et visuels de fêtes →
+                {tx("publishVisuals")} →
               </Button>
               <Button type="button" variant="outline" className="w-full" onClick={() => setShowWelcome(false)}>
                 Découvrir d&apos;abord
@@ -823,13 +848,13 @@ export function JewishHolidaysAutoClient({
                 <span className="relative block h-6 w-2.5 rounded-sm bg-amber-100 shadow-[0_0_12px_rgba(255,215,128,0.72)] before:absolute before:-top-2 before:left-1/2 before:size-2 before:-translate-x-1/2 before:rounded-full before:bg-orange-300" />
                 <Paintbrush className="mb-0.5 ml-0.5 size-4 text-violet-100" />
               </div>
-              <h1 className="text-4xl font-bold tracking-tight">Horaires des fêtes</h1>
+              <h1 className="text-4xl font-bold tracking-tight">{t("title")}</h1>
             </div>
-            <p className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-violet-100">Calendriers et horaires des fêtes</p>
+            <p className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-violet-100">{t("calendar")}</p>
           </div>
           <DavidBannerAgent
             className="lg:max-w-2xl"
-            text="Je suis David votre assistant IA, Mon objectif est de préparer les bons visuels pour les Haguim, et publier au bon moment"
+            text={to("assistantGoal")}
           />
         </div>
       </div>
@@ -837,8 +862,8 @@ export function JewishHolidaysAutoClient({
       <section className="rounded-xl border border-slate-200 border-l-4 border-l-[#421388] bg-white p-5 shadow-sm shadow-[#421388]/5">
         <div className="grid gap-4 md:grid-cols-2">
           {[
-            { number: 1, icon: ImageIcon, title: "Choisissez un modèle", tone: "border-blue-300 text-blue-700" },
-            { number: 2, icon: Send, title: "Validez et publiez", tone: "border-violet-300 text-violet-700" },
+            { number: 1, icon: ImageIcon, title: to("stepChoose"), tone: "border-blue-300 text-blue-700" },
+            { number: 2, icon: Send, title: to("stepPublish"), tone: "border-violet-300 text-violet-700" },
           ].map((step) => {
             const Icon = step.icon;
             return (
@@ -855,48 +880,48 @@ export function JewishHolidaysAutoClient({
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
           <Button type="button" size="xl" className="bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]" disabled={!nextHoliday} onClick={() => void beginConfiguration()}>
             <Sparkles className="size-5" />
-            Publiez les Horaires et visuels de fêtes →
+            {tx("publishVisuals")} →
           </Button>
           <span className="inline-flex size-16 shrink-0 items-center justify-center rounded-2xl bg-white p-1.5 shadow-[0_14px_30px_rgba(66,19,136,0.18)] ring-1 ring-[#421388]/10 animate-install-float">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={HOLIDAYS_AGENT_IMAGE_URL} alt="" className="h-full w-full rounded-[0.85rem] object-cover" />
           </span>
           <p className="max-w-md text-sm font-medium leading-6 text-slate-600">
-            nous allons configurer cette automatisation ensemble. <strong className="font-black text-slate-950">Allons-y !</strong>
+            {tx("letsGo")}
           </p>
         </div>
       </section>
 
       <div className="space-y-4">
-        <HolidayAccordion title="Prochaine fête" isOpen={openSection === "next"} onToggle={() => setOpenSection(openSection === "next" ? null : "next")}>
+        <HolidayAccordion title={tx("nextHoliday")} isOpen={openSection === "next"} onToggle={() => setOpenSection(openSection === "next" ? null : "next")}>
           {nextHoliday ? (
             <>
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <span className="rounded-xl bg-violet-100 px-4 py-2 text-base font-black text-violet-800">{nextHoliday.categoryLabel}</span>
               </div>
-              <h3 className="mt-4 text-3xl font-black text-slate-950">{nextHoliday.officialName}</h3>
-              <p className="mt-2 text-lg font-semibold text-slate-700">{nextHoliday.dateLabel}</p>
-              <p className="mt-2 text-sm text-slate-500">Premier soir : {formatDate(nextHoliday.firstEveningDate)}</p>
+              <h3 className="mt-4 text-3xl font-black text-slate-950">{holidayName(nextHoliday)}</h3>
+              <p className="mt-2 text-lg font-semibold text-slate-700">{formatHolidayRange(nextHoliday)}</p>
+              <p className="mt-2 text-sm text-slate-500">{to("firstEvening", { date: formatDate(nextHoliday.firstEveningDate) })}</p>
               <p className="mt-4 rounded-lg bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700">
-                {nextHoliday.officialName} dans {getDaysUntil(nextHoliday.startDate)} jours
+                {holidayName(nextHoliday)} · {getDaysUntil(nextHoliday.startDate)}
               </p>
             </>
           ) : (
-            <p className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">Aucune fête future n&apos;est disponible pour le moment.</p>
+            <p className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">{t("noFuture")}</p>
           )}
         </HolidayAccordion>
 
-        <HolidayAccordion title="Prochaine notification" isOpen={openSection === "notification"} onToggle={() => setOpenSection(openSection === "notification" ? null : "notification")}>
+        <HolidayAccordion title={to("nextNotification")} isOpen={openSection === "notification"} onToggle={() => setOpenSection(openSection === "notification" ? null : "notification")}>
           <div className="mt-5 flex items-start gap-4">
             <div className="flex size-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
               <Bell className="size-7" />
             </div>
             <div>
-              <p className="text-lg font-black text-violet-700">{notificationsEnabled && nextNotificationDate ? formatDate(nextNotificationDate) : "À programmer"}</p>
-              <p className="text-sm text-slate-500">{notificationsEnabled ? `${daysBefore} jours avant le premier soir.` : "Choisissez si David doit vous notifier automatiquement."}</p>
+              <p className="text-lg font-black text-violet-700">{notificationsEnabled && nextNotificationDate ? formatDate(nextNotificationDate) : tx("toSchedule")}</p>
+              <p className="text-sm text-slate-500">{notificationsEnabled ? to("daysBefore", { count: daysBefore }) : to("notifyHelp")}</p>
             </div>
           </div>
-          <p className="mt-5 text-sm font-black text-slate-950">Voulez-vous recevoir automatiquement les affiches avant les Haguim ?</p>
+          <p className="mt-5 text-sm font-black text-slate-950">{t("automaticQuestion")}</p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <button
               type="button"
@@ -906,7 +931,7 @@ export function JewishHolidaysAutoClient({
                 notificationsEnabled === true ? "border-violet-500 bg-violet-50 text-violet-800 ring-2 ring-violet-100" : "border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:text-violet-700"
               )}
             >
-              Oui
+              {to("yes")}
             </button>
             <button
               type="button"
@@ -916,12 +941,12 @@ export function JewishHolidaysAutoClient({
                 notificationsEnabled === false ? "border-slate-500 bg-slate-50 text-slate-950 ring-2 ring-slate-100" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
               )}
             >
-              Non
+              {to("no")}
             </button>
           </div>
           {notificationsEnabled === true && (
             <label className="mt-5 block text-sm font-bold text-slate-700">
-              Modifier mon délai
+              {tx("editDelay")}
               <input
                 type="number"
                 min={1}
@@ -937,7 +962,7 @@ export function JewishHolidaysAutoClient({
         <HolidayAccordion title="Liste des Haguim à venir →" isOpen={openSection === "annual"} onToggle={() => setOpenSection(openSection === "annual" ? null : "annual")}>
         <div className="mt-5 overflow-hidden rounded-xl border border-slate-200">
           {holidays.length === 0 ? (
-            <p className="p-6 text-sm text-slate-500">Aucune fête à venir pour le pays configuré.</p>
+            <p className="p-6 text-sm text-slate-500">{t("noCountry")}</p>
           ) : (
             holidays.map((holiday) => (
               <div
@@ -946,21 +971,21 @@ export function JewishHolidaysAutoClient({
               >
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-bold text-slate-950">{holiday.officialName}</p>
+                    <p className="font-bold text-slate-950">{holidayName(holiday)}</p>
                     <button
                       type="button"
                       onClick={() => openHolidayVisuals(holiday)}
                       className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-white px-3 py-1 text-xs font-black text-violet-700 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-400 hover:bg-violet-50"
                     >
                       <ImageIcon className="size-3.5" />
-                      Voir les visuels
+                      {to("seeVisuals")}
                     </button>
                   </div>
                   <p className="text-sm font-semibold text-violet-700">{holiday.categoryLabel}</p>
                 </div>
-                <p className="text-sm text-slate-600">{holiday.dateLabel}</p>
-                <p className="text-sm text-slate-600">Premier soir : {formatDate(holiday.firstEveningDate)}</p>
-                <p className="text-sm font-semibold text-slate-700">Notification : {formatDate(getNotificationDate(holiday.firstEveningDate, daysBefore))}</p>
+                <p className="text-sm text-slate-600">{formatHolidayRange(holiday)}</p>
+                <p className="text-sm text-slate-600">{to("firstEvening", { date: formatDate(holiday.firstEveningDate) })}</p>
+                <p className="text-sm font-semibold text-slate-700">{to("notification", { date: formatDate(getNotificationDate(holiday.firstEveningDate, daysBefore)) })}</p>
               </div>
             ))
           )}
@@ -977,10 +1002,10 @@ export function JewishHolidaysAutoClient({
             <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-violet-100 text-violet-700">
               <Sparkles className="size-8" />
             </div>
-            <h2 className="mt-5 text-2xl font-bold text-slate-950">Activez EasyCom IA</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">Abonnez-vous pour configurer, générer et publier les affiches de fêtes.</p>
+            <h2 className="mt-5 text-2xl font-bold text-slate-950">{t("premium")}</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">{t("premiumHelp")}</p>
             <Button asChild className="mt-6 w-full bg-[#421388] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#35106f]">
-              <Link href="/dashboard/settings/billing">Découvrir l&apos;abonnement</Link>
+              <Link href="/dashboard/settings/billing">{t("discoverPlan")}</Link>
             </Button>
           </div>
         </div>

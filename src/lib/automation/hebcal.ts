@@ -1,5 +1,7 @@
 import { HDate, getSedra } from "@hebcal/core";
 import { resolveShabbatLocation } from "./city-location";
+import type { OutputLocale } from "@/lib/ai/output-locale";
+import { localizedHebrewDateForDate, localizedParasha } from "@/lib/religious/locale";
 
 export interface ShabbatTimes {
   cityName?: string;
@@ -128,7 +130,7 @@ async function loubavitchParasha(date: string, israel: boolean) {
       year: String(value.getFullYear()),
     });
     const response = await fetch(`${LOUBAVITCH_TORAH_URL}?${query.toString()}`, {
-      headers: { "Accept-Language": "fr-FR,fr;q=0.9", "User-Agent": "EasyCom-IA French Torah reading reader" },
+      headers: { "User-Agent": "EasyCom-IA Torah reading reader" },
       next: { revalidate: 86_400 },
       signal: AbortSignal.timeout(8_000),
     });
@@ -149,7 +151,7 @@ function chabadSourceUrl(latitude: number, longitude: number, city: string, time
 // ============================================================
 
 export async function getShabbatTimes(params: {
-  city?: string; country?: string; latitude?: number; longitude?: number; timezone?: string; date?: Date;
+  city?: string; country?: string; latitude?: number; longitude?: number; timezone?: string; date?: Date; outputLocale?: OutputLocale;
 }): Promise<ShabbatTimes | null> {
   return (await getUpcomingShabbatTimes({ ...params, count: 1 }))[0] ?? null;
 }
@@ -166,9 +168,10 @@ export async function getUpcomingShabbatTimes(params: {
   timezone?: string;
   date?: Date;
   count?: number;
+  outputLocale?: OutputLocale;
 }): Promise<UpcomingShabbatTimes[]> {
   try {
-    const { city, latitude, longitude, timezone = "Europe/Paris", date = new Date(), count = 8 } = params;
+    const { city, latitude, longitude, timezone = "Europe/Paris", date = new Date(), count = 8, outputLocale = "fr" } = params;
     const explicitCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude);
     const location = explicitCoordinates ? { latitude: latitude!, longitude: longitude!, timezone, cityName: city ?? "Coordonnées choisies", countryCode: params.country === "IL" ? "IL" : "FR" } : await resolveShabbatLocation(city, params.country);
     const firstFriday = getNextFriday(date, location.timezone);
@@ -183,11 +186,11 @@ export async function getUpcomingShabbatTimes(params: {
         ln: "2",
         weeks: String(Math.min(4, requestedCount - index * 4)),
         mid: "4194",
-        lang: "fr",
+        lang: outputLocale,
         tdate: `${batchDate.getUTCMonth() + 1}/${batchDate.getUTCDate()}/${batchDate.getUTCFullYear()}`,
       });
       return fetch(`${CHABAD_WIDGET_URL}?${query.toString()}`, {
-        headers: { "Accept-Language": "fr-FR,fr;q=0.9", "User-Agent": "EasyCom-IA Chabbat times reader" },
+        headers: { "Accept-Language": outputLocale === "he" ? "he-IL,he;q=0.9" : "fr-FR,fr;q=0.9", "User-Agent": "EasyCom-IA Shabbat times reader" },
         next: { revalidate: 3600 },
         signal: AbortSignal.timeout(8_000),
       });
@@ -204,8 +207,10 @@ export async function getUpcomingShabbatTimes(params: {
         cityName: location.cityName,
         timezone: location.timezone,
         countryCode: location.countryCode,
-        hebrewDate: chabadHebrewDate(saturday.date),
-        parasha: frenchParashaFallback(saturday.date, location.countryCode === "IL"),
+        hebrewDate: outputLocale === "he" ? localizedHebrewDateForDate(saturday.date, "he") : chabadHebrewDate(saturday.date),
+        parasha: outputLocale === "he"
+          ? localizedParasha(event.date, "he", "", location.countryCode === "IL")
+          : frenchParashaFallback(saturday.date, location.countryCode === "IL"),
         entry: event.time,
         exit: saturday.time,
         candleLighting: event.time,
@@ -216,10 +221,12 @@ export async function getUpcomingShabbatTimes(params: {
     const uniqueEntries = Array.from(new Map(entries.map((entry) => [entry.date, entry])).values())
       .sort((left, right) => left.date.localeCompare(right.date))
       .slice(0, requestedCount);
-    return Promise.all(uniqueEntries.map(async (entry) => ({
-      ...entry,
-      parasha: await loubavitchParasha(nextDay(entry.date), location.countryCode === "IL"),
-    })));
+    return outputLocale === "he"
+      ? uniqueEntries
+      : Promise.all(uniqueEntries.map(async (entry) => ({
+          ...entry,
+          parasha: await loubavitchParasha(nextDay(entry.date), location.countryCode === "IL"),
+        })));
   } catch (error) {
     console.error("[Chabad.org] Erreur getUpcomingShabbatTimes:", error);
     return [];
@@ -233,9 +240,10 @@ export async function getUpcomingShabbatTimes(params: {
 export async function getJewishHolidays(params: {
   year?: number;
   months?: number;
+  outputLocale?: OutputLocale;
 }): Promise<JewishHoliday[]> {
   try {
-    const { year = new Date().getFullYear() } = params;
+    const { year = new Date().getFullYear(), outputLocale = "fr" } = params;
 
     const searchParams = new URLSearchParams({
       v: "1",
@@ -248,7 +256,7 @@ export async function getJewishHolidays(params: {
       ss: "off",
       c: "off",
       i: "off",
-      lg: "fr",
+      lg: outputLocale === "he" ? "he-x-NoNikud" : "fr",
     });
 
     const response = await fetch(`${HEBCAL_API}?${searchParams.toString()}`, {
@@ -273,7 +281,7 @@ export async function getJewishHolidays(params: {
         link?: string;
       }) => ({
         date: item.date,
-        hebrewDate: item.hdate ?? "",
+        hebrewDate: localizedHebrewDateForDate(item.date, outputLocale, item.hdate ?? ""),
         name: item.title,
         nameHebrew: item.hebrew ?? "",
         category: item.category,
@@ -294,9 +302,10 @@ export async function getHolidayTimes(params: {
   longitude?: number;
   timezone?: string;
   date: string;
+  outputLocale?: OutputLocale;
 }): Promise<HolidayTimes | null> {
   try {
-    const { city, latitude, longitude, timezone = "Europe/Paris", date } = params;
+    const { city, latitude, longitude, timezone = "Europe/Paris", date, outputLocale = "fr" } = params;
     const targetDate = new Date(`${date}T12:00:00`);
     const start = new Date(targetDate);
     start.setDate(start.getDate() - 1);
@@ -317,7 +326,7 @@ export async function getHolidayTimes(params: {
       b: "18",
       m: HAVDALAH_MINUTES.toString(),
       i: "off",
-      lg: "fr",
+      lg: outputLocale === "he" ? "he-x-NoNikud" : "fr",
     });
 
     const location = Number.isFinite(latitude) && Number.isFinite(longitude)
@@ -403,8 +412,8 @@ export async function getHolidayTimes(params: {
 // PROCHAINE FÊTE
 // ============================================================
 
-export async function getNextHoliday(): Promise<JewishHoliday | null> {
-  const holidays = await getJewishHolidays({ year: new Date().getFullYear() });
+export async function getNextHoliday(outputLocale: OutputLocale = "fr"): Promise<JewishHoliday | null> {
+  const holidays = await getJewishHolidays({ year: new Date().getFullYear(), outputLocale });
   const now = new Date();
 
   const upcoming = holidays.filter((h) => new Date(h.date) > now);

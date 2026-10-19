@@ -1,18 +1,23 @@
 import { notFound } from "next/navigation";
 import { readPosterEditState } from "@/lib/templates/edit-state";
 import { getPosterSource } from "@/lib/templates/edit-source";
-import type { Metadata } from "next";
 import { ShabbatTimesSimpleClient } from "@/components/shabbat-times/shabbat-times-simple-client";
 import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getShabbatTimes } from "@/lib/automation/hebcal";
 import type { ShabbatCardItem } from "@/lib/automation/shabbat-times";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
+import { getLocale, getTranslations } from "next-intl/server";
+import { parseOutputLocale, type OutputLocale } from "@/lib/ai/output-locale";
 
-export const metadata: Metadata = { title: "Horaires Chabbat et Fêtes — EasyCom IA" };
+export async function generateMetadata() {
+  const t = await getTranslations("shabbatTimes");
+  return { title: `${t("title")} — EasyCom IA` };
+}
 
 export default async function ShabbatTimesAutoPage({ searchParams }: { searchParams: Promise<{ mediaId?: string | string[] }> }) {
   const query = await searchParams;
+  const interfaceLocale = (await getLocale()) as OutputLocale;
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
   const admin = createAdminClient();
@@ -56,6 +61,9 @@ export default async function ShabbatTimesAutoPage({ searchParams }: { searchPar
 
   const config = automationRows?.[0]?.triggerConfig;
   const poster = config && typeof config === "object" && !Array.isArray(config) ? config.shabbatPoster : null;
+  const outputLocale = automationRows?.[0] && poster && typeof poster === "object" && !Array.isArray(poster)
+    ? parseOutputLocale(poster.outputLocale, "fr")
+    : interfaceLocale;
   const sourceId = poster && typeof poster === "object" && !Array.isArray(poster) ? poster.draftSourceMediaId ?? poster.sourceMediaId : null;
   const source = await getPosterSource(admin, communityId, typeof query.mediaId === "string" ? query.mediaId : sourceId).catch(() => null);
   if (query.mediaId && !source) notFound();
@@ -72,6 +80,7 @@ export default async function ShabbatTimesAutoPage({ searchParams }: { searchPar
     city: typeof sourceFields.city === "string" && query.mediaId ? sourceFields.city : typeof savedFields.city === "string" ? savedFields.city : community?.city ?? undefined,
     country: community?.country ?? undefined,
     timezone: community?.timezone ?? "Europe/Paris",
+    outputLocale,
   });
 
   // Source unique des horaires : Chabad.org, personnalisé avec la ville de l'affiche.
@@ -95,6 +104,7 @@ export default async function ShabbatTimesAutoPage({ searchParams }: { searchPar
       initialAutomation={automation}
       initialPoster={source ? { id: source.id, imageUrl: source.url } : null}
       socialChannels={(socialChannels ?? []) as Parameters<typeof ShabbatTimesSimpleClient>[0]["socialChannels"]}
+      interfaceLocale={interfaceLocale}
     />
   );
 }

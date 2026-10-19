@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -8,10 +7,16 @@ import {
 } from "@/lib/automation/jewish-holidays";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import { JewishHolidaysAutoClient } from "@/components/jewish-holidays/jewish-holidays-auto-client";
+import { getLocale, getTranslations } from "next-intl/server";
+import type { OutputLocale } from "@/lib/ai/output-locale";
 
-export const metadata: Metadata = { title: "Horaires des fêtes — EasyCom IA" };
+export async function generateMetadata() {
+  const t = await getTranslations("holidays");
+  return { title: `${t("title")} — EasyCom IA` };
+}
 
 export default async function JewishHolidaysAutoPage() {
+  const interfaceLocale = (await getLocale()) as OutputLocale;
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
   const admin = createAdminClient();
@@ -85,6 +90,7 @@ export default async function JewishHolidaysAutoPage() {
       allTemplates={hydratedTemplates}
       initialAutomation={automationRows?.[0] ?? null}
       channels={channels ?? []}
+      interfaceLocale={interfaceLocale}
     />
   );
 }

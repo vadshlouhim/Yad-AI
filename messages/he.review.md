@@ -60,3 +60,20 @@ Choix terminologiques :
 - « Recto / verso » : **צד קדמי / צד אחורי**.
 - Les noms de communauté, de personnes et d’événements provenant de la base ne sont pas traduits.
 - Changement de langue d’un feuillet rempli : l’avertissement, les actions « traduction IA / conserver » et le message d’annulation ont été ajoutés en français et en hébreu ; la traduction conserve explicitement les noms propres, dates, nombres et faits.
+
+## Étape 6 — horaires de Chabbat et fêtes
+
+À faire relire par une personne hébréophone avant publication :
+
+- les libellés de configuration des automatisations et les messages de confirmation ;
+- les légendes de publication générées par l’IA ;
+- la hiérarchie typographique des affiches composées en RTL.
+
+Choix terminologiques :
+
+- « Allumage des bougies » : **הדלקת נרות** ; « Havdala » : **הבדלה**.
+- « Entrée / sortie de Chabbat » : **כניסת שבת / יציאת שבת**.
+- « Veille / sortie de fête » : **ערב חג / מוצאי חג**.
+- « Langue de la publication » : **שפת הפרסום** ; elle reste indépendante de la langue de l’interface.
+- Les horaires sont toujours affichés en 24 heures et forcés en LTR.
+- Les noms de fêtes et de parachiot proviennent de Hebcal / `@hebcal/core` en hébreu natif ; les noms de communauté et les lieux provenant de la base ne sont pas traduits.

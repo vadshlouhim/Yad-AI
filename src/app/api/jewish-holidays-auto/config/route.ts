@@ -8,10 +8,12 @@ import {
   JEWISH_HOLIDAYS_AUTOMATION_NAME,
 } from "@/lib/automation/jewish-holidays";
 import type { Database, Json } from "@/types/database.types";
+import { parseOutputLocale, type OutputLocale } from "@/lib/ai/output-locale";
 
 type AutomationRow = Database["public"]["Tables"]["Automation"]["Row"];
 
 type HolidayPosterConfig = {
+  outputLocale?: OutputLocale;
   configured?: boolean;
   suspended?: boolean;
   notificationsEnabled?: boolean;
@@ -177,6 +179,7 @@ export async function POST(request: Request) {
       daysBefore: DEFAULT_HOLIDAY_NOTIFICATION_DAYS,
       selectedChannels: ["FACEBOOK", "INSTAGRAM", "WHATSAPP"],
       ...current,
+      outputLocale: parseOutputLocale(current.outputLocale, "fr"),
       country: auth.community.country ?? current.country ?? "France",
       timezone: auth.community.timezone ?? current.timezone ?? "Europe/Paris",
     };
@@ -196,6 +199,7 @@ export async function POST(request: Request) {
       const enabled = booleanValue(body.enabled);
       poster = {
         ...base,
+        outputLocale: parseOutputLocale(body.outputLocale, base.outputLocale ?? "fr"),
         notificationsEnabled: enabled,
         configured: enabled ? true : base.configured,
         suspended: !enabled,
@@ -209,6 +213,7 @@ export async function POST(request: Request) {
     } else if (mode === "save-selection") {
       poster = {
         ...base,
+        outputLocale: parseOutputLocale(body.outputLocale, base.outputLocale ?? "fr"),
         selectedHolidayId: stringOrEmpty(body.holidayId) || base.selectedHolidayId || null,
         selectedHolidayName: stringOrEmpty(body.holidayName) || base.selectedHolidayName || null,
         selectedHolidayCategory: stringOrEmpty(body.holidayCategory) || base.selectedHolidayCategory || null,
@@ -233,6 +238,7 @@ export async function POST(request: Request) {
 
       poster = {
         ...base,
+        outputLocale: parseOutputLocale(body.outputLocale, base.outputLocale ?? "fr"),
         palette: stringOrEmpty(body.palette) || base.palette || "violet",
         assistantMessages,
         postText: stringOrEmpty(body.postText) || base.postText || "",

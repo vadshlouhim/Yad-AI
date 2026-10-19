@@ -28,6 +28,8 @@ import { ScheduleHubNav } from "@/components/templates/schedule-hub-nav";
 import { CanvaLogo } from "@/components/templates/template-actions";
 import { CHABAD_SHABBAT_ATTRIBUTION } from "@/lib/automation/shabbat-poster";
 import { inferShabbatTimesVariant } from "@/lib/templates/taxonomy";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
+import { parseOutputLocale, type OutputLocale } from "@/lib/ai/output-locale";
 
 type Template = {
   id: string;
@@ -95,6 +97,7 @@ type Props = {
   initialAutomation: InitialAutomation;
   socialChannels: SocialChannel[];
   initialPoster?: { id: string; imageUrl: string } | null;
+  interfaceLocale: OutputLocale;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -112,7 +115,16 @@ function stringValue(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
-function buildCaption(fields: FormState) {
+function buildCaption(fields: FormState, locale: OutputLocale) {
+  if (locale === "he") return [
+    `שבת שלום מאת ${fields.structureName}.`,
+    fields.parasha ? `פרשת השבוע: ${fields.parasha}` : "",
+    `כניסת שבת: ${fields.entry}`,
+    `יציאת שבת: ${fields.exit}`,
+    fields.kiddouch ? `קידוש בחסות: ${fields.kiddouch}` : "",
+    fields.city ? `📍 ${fields.city}` : "",
+    "זמני שבת באדיבות Chabad.org/ShabbatTimes",
+  ].filter(Boolean).join("\n") + "\n\n#שבתשלום";
   const lines = [
     `Chabbat Chalom de la part de ${fields.structureName}.`,
     fields.parasha ? `Paracha : ${fields.parasha}` : "",
@@ -183,6 +195,7 @@ function ShabbatPublishSuccessDialog({
   results: PublishResult[];
   onClose: () => void;
 }) {
+  const tx = useTranslations("shabbatTimesExtra");
   const successfulResults = results.filter((result) => result.success);
 
   useEffect(() => {
@@ -214,7 +227,7 @@ function ShabbatPublishSuccessDialog({
           type="button"
           onClick={onClose}
           className="absolute right-4 top-5 flex size-10 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#421388]"
-          aria-label="Fermer"
+          aria-label={tx("close")}
         >
           <X className="size-5" />
         </button>
@@ -224,13 +237,13 @@ function ShabbatPublishSuccessDialog({
             <CheckCircle2 className="size-9" />
           </span>
           <p className="mt-5 text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
-            Publication réussie
+            {tx("publishSuccess")}
           </p>
           <h2 id="shabbat-publish-success-title" className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">
-            Votre affiche a été publiée
+            {tx("published")}
           </h2>
           <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500">
-            Retrouvez maintenant votre affiche des horaires de Chabbat sur {successfulResults.length === 1 ? "le réseau sélectionné" : "les réseaux sélectionnés"}.
+            {tx("publishedOn")}
           </p>
 
           <div className="mt-6 grid gap-3">
@@ -255,7 +268,7 @@ function ShabbatPublishSuccessDialog({
                   <span className={cn("flex size-9 items-center justify-center rounded-xl bg-white", isFacebook ? "text-[#315ecb]" : "text-[#d12d7e]")}>
                     <Icon className="size-5" />
                   </span>
-                  Voir sur {isFacebook ? "Facebook" : "Instagram"}
+                  {tx("viewOn", { network: isFacebook ? "Facebook" : "Instagram" })}
                   <ExternalLink className="size-4 opacity-80" />
                 </a>
               );
@@ -263,7 +276,7 @@ function ShabbatPublishSuccessDialog({
           </div>
 
           <Button type="button" variant="outline" onClick={onClose} className="mt-4 h-11 w-full rounded-2xl border-slate-200 bg-white font-bold text-slate-700 hover:bg-slate-50">
-            Fermer
+            {tx("close")}
           </Button>
         </div>
       </section>
@@ -340,9 +353,17 @@ export function ShabbatTimesSimpleClient({
   initialAutomation,
   socialChannels,
   initialPoster,
+  interfaceLocale,
 }: Props) {
+  const locale = useLocale() as OutputLocale;
+  const t = useTranslations("shabbatTimes");
+  const tx = useTranslations("shabbatTimesExtra");
+  const tn = useTranslations("shabbatTimesNotice");
+  const tp = useTranslations("shabbatPlaceholders");
+  const format = useFormatter();
   const savedFields = useMemo(() => savedPosterFields(initialAutomation), [initialAutomation]);
   const savedPoster = initialAutomation && isRecord(initialAutomation.triggerConfig) && isRecord(initialAutomation.triggerConfig.shabbatPoster) ? initialAutomation.triggerConfig.shabbatPoster : {};
+  const [outputLocale, setOutputLocale] = useState<OutputLocale>(() => initialAutomation ? parseOutputLocale(savedPoster.outputLocale, "fr") : interfaceLocale);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(() => templates.find((template) => template.id === savedPoster.selectedTemplateId) ?? null);
   const [sourceMediaId, setSourceMediaId] = useState<string | null>(initialPoster?.id ?? null);
   const [weekDate, setWeekDate] = useState(shabbat?.date ?? "");
@@ -443,12 +464,12 @@ export function ShabbatTimesSimpleClient({
     setLoadingTimes(true);
     setError("");
     try {
-      const response = await fetch(`/api/shabbat?city=${encodeURIComponent(city)}`, { cache: "no-store" });
+      const response = await fetch(`/api/shabbat?city=${encodeURIComponent(city)}&outputLocale=${outputLocale}`, { cache: "no-store" });
       const data = await response.json();
       if (requestId !== timesRequest.current) return null;
       if (!response.ok || !data.entry || !data.exit) {
         setCityCandidates(Array.isArray(data.candidates) ? data.candidates : []);
-        throw new Error(data.error ?? "Horaires indisponibles.");
+        throw new Error(data.error ?? tx("unavailable"));
       }
       setCityCandidates([]);
       setWeekDate(data.date);
@@ -458,7 +479,7 @@ export function ShabbatTimesSimpleClient({
       if (requestId === timesRequest.current) {
         setForm((current) => ({ ...current, parasha: "", entry: "", exit: "" }));
         setWeekDate("");
-        setError(error instanceof Error ? error.message : "Horaires indisponibles.");
+        setError(error instanceof Error ? error.message : tx("unavailable"));
       }
       return null;
     } finally { if (requestId === timesRequest.current) setLoadingTimes(false); }
@@ -466,7 +487,7 @@ export function ShabbatTimesSimpleClient({
 
   async function generatePoster() {
     if (!selectedTemplate || generating) return;
-    if (!form.structureName.trim() || !form.city.trim()) { setError("Indiquez le nom de la structure et sa ville."); return; }
+    if (!form.structureName.trim() || !form.city.trim()) { setError(tx("missingIdentity")); return; }
     const times = await refreshShabbatTimes();
     if (!times) return;
 
@@ -490,16 +511,17 @@ export function ShabbatTimesSimpleClient({
           templateId: selectedTemplate.id,
           sourceMediaId,
           shabbat: true,
+          outputLocale,
           textBlocks,
           logoUrl: form.logoUrl || null,
           customInstructions: form.aiInstructions.trim(),
         }),
       });
       const data = await response.json().catch(() => ({})) as { imageUrl?: string; mediaId?: string; error?: string };
-      if (!response.ok || !data.imageUrl) throw new Error(data.error ?? "L’affiche n’a pas pu être créée.");
+      if (!response.ok || !data.imageUrl) throw new Error(data.error ?? tx("generationError"));
       setResultImageUrl(data.imageUrl);
       setSourceMediaId(data.mediaId ?? null);
-      setNotice("Votre affiche est prête.");
+      setNotice(t("ready"));
 
       const configResponse = await fetch("/api/shabbat-times-auto/config", {
         method: "POST",
@@ -511,15 +533,16 @@ export function ShabbatTimesSimpleClient({
           config: {
             fields: { ...savedFields, ...form, ...times },
             draftSourceMediaId: data.mediaId,
-            postText: buildCaption({ ...form, ...times }),
+            outputLocale,
+            postText: buildCaption({ ...form, ...times }, outputLocale),
             scheduleMode: "notification",
             channels: publishChannels,
           },
         }),
       });
-      if (!configResponse.ok) setNotice("Affiche créée et enregistrée. La configuration hebdomadaire n’a pas pu être sauvegardée ; réessayez son activation.");
+      if (!configResponse.ok) setNotice(tn("savedConfigFailed"));
     } catch (generationError) {
-      setError(generationError instanceof Error ? generationError.message : "L’affiche n’a pas pu être créée.");
+      setError(generationError instanceof Error ? generationError.message : tx("generationError"));
     } finally {
       setGenerating(false);
     }
@@ -540,10 +563,10 @@ export function ShabbatTimesSimpleClient({
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(objectUrl);
-      setNotice("Affiche téléchargée.");
+      setNotice(tx("downloaded"));
     } catch {
       window.open(resultImageUrl, "_blank", "noopener,noreferrer");
-      setNotice("L’affiche a été ouverte pour être enregistrée.");
+      setNotice(tx("opened"));
     }
   }
 
@@ -557,7 +580,7 @@ export function ShabbatTimesSimpleClient({
   async function publishPoster() {
     if (!resultImageUrl || publishing) return;
     if (publishChannels.length === 0) {
-      setError("Sélectionnez au moins un réseau connecté.");
+      setError(tx("selectNetwork"));
       return;
     }
     setPublishing(true);
@@ -567,14 +590,14 @@ export function ShabbatTimesSimpleClient({
       const response = await fetch("/api/shabbat-times-auto/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: buildCaption(form), imageUrl: resultImageUrl, channels: publishChannels }),
+        body: JSON.stringify({ content: buildCaption(form, outputLocale), imageUrl: resultImageUrl, channels: publishChannels }),
       });
       const data = await response.json().catch(() => ({})) as {
         successfulChannels?: string[];
         results?: PublishResult[];
         error?: string;
       };
-      if (!response.ok) throw new Error(data.error ?? "Publication impossible.");
+      if (!response.ok) throw new Error(data.error ?? tx("publishError"));
       const names = (data.successfulChannels ?? []).map((channel) => channel === "FACEBOOK" ? "Facebook" : "Instagram");
       setNotice(names.length ? `Affiche publiée sur ${names.join(" et ")}.` : "Publication lancée.");
       const successfulResults = (data.results ?? []).filter((result) => result.success);
@@ -582,12 +605,12 @@ export function ShabbatTimesSimpleClient({
       if (successfulResults.length && sourceMediaId) {
         const saved = await fetch("/api/shabbat-times-auto/config", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: "save-config", templateId: selectedTemplate?.id, config: { fields: { ...savedFields, ...form }, sourceMediaId, draftSourceMediaId: sourceMediaId, scheduleMode: "notification" } }),
+          body: JSON.stringify({ mode: "save-config", templateId: selectedTemplate?.id, config: { outputLocale, fields: { ...savedFields, ...form }, sourceMediaId, draftSourceMediaId: sourceMediaId, scheduleMode: "notification" } }),
         });
-        if (!saved.ok) setNotice("Publication effectuée. La référence pour les prochaines semaines n’a pas pu être enregistrée.");
+        if (!saved.ok) setNotice(tn("publishedRefFailed"));
       }
     } catch (publishError) {
-      setError(publishError instanceof Error ? publishError.message : "Publication impossible.");
+      setError(publishError instanceof Error ? publishError.message : tx("publishError"));
     } finally {
       setPublishing(false);
     }
@@ -606,9 +629,10 @@ export function ShabbatTimesSimpleClient({
           templateId: selectedTemplate.id,
           templateMode: selectedTemplateMode,
           config: {
+            outputLocale,
             fields: { ...savedFields, ...form },
             sourceMediaId: resultImageUrl ? sourceMediaId : savedPoster.sourceMediaId,
-            postText: buildCaption(form),
+            postText: buildCaption(form, outputLocale),
             notificationDay: "Vendredi",
             notificationDayOfWeek: 5,
             notificationTime: automationTime,
@@ -618,19 +642,19 @@ export function ShabbatTimesSimpleClient({
         }),
       });
       const data = await response.json().catch(() => ({})) as { error?: string };
-      if (!response.ok) throw new Error(data.error ?? "Activation impossible.");
+      if (!response.ok) throw new Error(data.error ?? tx("activationError"));
       setAutomationActive(true);
       setAutomationOpen(false);
-      setNotice(`Rappel hebdomadaire activé chaque vendredi à ${automationTime}, avec validation avant publication.`);
+      setNotice(tn("reminderEnabled", { time: automationTime }));
     } catch (automationError) {
-      setError(automationError instanceof Error ? automationError.message : "Activation impossible.");
+      setError(automationError instanceof Error ? automationError.message : tx("activationError"));
     } finally {
       setSavingAutomation(false);
     }
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 pb-24 pt-5 sm:px-6 sm:pt-7">
+    <div dir={locale === "he" ? "rtl" : "ltr"} className="mx-auto w-full max-w-7xl px-4 pb-24 pt-5 text-start sm:px-6 sm:pt-7">
       <div className="mb-5"><ScheduleHubNav active="shabbat" /></div>
       <header className="relative overflow-hidden rounded-[2rem] bg-[#421388] px-5 py-7 text-white shadow-[0_22px_55px_rgba(66,19,136,0.24)] sm:px-8 sm:py-9">
         <div className="pointer-events-none absolute -right-8 -top-10 size-44 rounded-full border border-white/10 bg-white/[0.04]" />
@@ -641,18 +665,16 @@ export function ShabbatTimesSimpleClient({
               <Clock3 className="size-6" />
             </span>
           </div>
-          <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">Créez votre affiche des horaires de Chabbat</h1>
-          <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-violet-100 sm:text-base">
-            Choisissez une affiche : la Paracha et les horaires sont remplis automatiquement selon votre ville.
-          </p>
+          <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">{t("create")}</h1>
+          <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-violet-100 sm:text-base">{t("intro")}</p>
         </div>
       </header>
 
       <section className="mt-7">
-        {savedPoster.selectedTemplateId ? <Button variant="outline" className="mb-4 rounded-xl font-black text-violet-700" onClick={() => { const template = templates.find((item) => item.id === savedPoster.selectedTemplateId); if (template) { openTemplate(template, templates.indexOf(template)); void refreshShabbatTimes(); } }}><Edit3 className="mr-2 size-4" />Reprendre pour le prochain Chabbat</Button> : null}
+        {savedPoster.selectedTemplateId ? <Button variant="outline" className="mb-4 rounded-xl font-black text-violet-700" onClick={() => { const template = templates.find((item) => item.id === savedPoster.selectedTemplateId); if (template) { openTemplate(template, templates.indexOf(template)); void refreshShabbatTimes(); } }}><Edit3 className="me-2 size-4" />{t("resume")}</Button> : null}
         <div className="flex items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-black tracking-tight text-slate-950">Choisissez votre affiche</h2>
+            <h2 className="text-2xl font-black tracking-tight text-slate-950">{t("choosePoster")}</h2>
             <p className="mt-1 text-sm text-slate-500">
               {templateCounts.simple} sans offices · {templateCounts.withOffices} avec offices
             </p>
@@ -665,8 +687,8 @@ export function ShabbatTimesSimpleClient({
         {templates.length === 0 ? (
           <div className="mt-5 rounded-[1.75rem] border border-dashed border-slate-300 bg-white p-10 text-center">
             <ImageIcon className="mx-auto size-10 text-slate-300" />
-            <p className="mt-3 font-black text-slate-900">Aucune affiche de Chabbat disponible</p>
-            <p className="mt-1 text-sm text-slate-500">Activez au moins un modèle Chabbat dans le Super Admin.</p>
+            <p className="mt-3 font-black text-slate-900">{t("noPoster")}</p>
+            <p className="mt-1 text-sm text-slate-500">{t("noPosterHelp")}</p>
           </div>
         ) : (
           <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
@@ -683,13 +705,13 @@ export function ShabbatTimesSimpleClient({
                   <div className="relative aspect-square overflow-hidden rounded-[1.2rem] bg-slate-100">
                     <TemplateImage template={template} className="h-full w-full transition duration-300 group-hover:scale-[1.02]" />
                     <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-black text-slate-700 shadow-sm backdrop-blur">
-                      {index === 0 ? "Offert" : "Premium"}
+                      {index === 0 ? tx("offered") : t("premium")}
                     </span>
                     <span className={cn(
                       "absolute bottom-2 right-2 z-10 rounded-full px-2.5 py-1 text-[10px] font-black shadow-sm backdrop-blur",
                       withOffices ? "bg-[#421388]/95 text-white" : "bg-emerald-50/95 text-emerald-800",
                     )}>
-                      {withOffices ? "Avec offices" : "Horaires simples"}
+                      {withOffices ? tx("withServices") : tx("simpleTimes")}
                     </span>
                     {locked && (
                       <div className="absolute inset-0 flex items-center justify-center bg-slate-950/48 backdrop-blur-[1px]">
@@ -733,14 +755,14 @@ export function ShabbatTimesSimpleClient({
                 <img src={DAVID_AUTOMATION_IMAGE_URL} alt="David" className="h-full w-full object-contain object-bottom drop-shadow-[0_12px_18px_rgba(66,19,136,0.22)]" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#421388]">Horaires de Chabbat</p>
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#421388]">{t("title")}</p>
                 <h2 id="shabbat-dialog-title" className="truncate text-lg font-black text-slate-950">
-                  {resultImageUrl ? "Votre affiche est prête" : "Personnalisez votre affiche"}
+                  {resultImageUrl ? t("ready") : t("customize")}
                 </h2>
               </div>
               <button
                 type="button"
-                aria-label="Fermer"
+                aria-label={tx("close")}
                 onClick={() => setSelectedTemplate(null)}
                 disabled={generating || publishing}
                 className="flex size-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 disabled:opacity-50"
@@ -751,31 +773,38 @@ export function ShabbatTimesSimpleClient({
 
             <div className="grid gap-5 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_360px]">
               <div className="space-y-5">
+                <div className="rounded-[1.6rem] border border-violet-200 bg-white p-4 shadow-sm">
+                  <label className="text-sm font-black text-slate-900">{t("outputLanguage")}</label>
+                  <p className="mt-1 text-xs text-slate-500">{t("outputHelp")}</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2" dir="ltr">
+                    {(["fr", "he"] as const).map((value) => <button key={value} type="button" onClick={() => { setOutputLocale(value); void refreshShabbatTimes(form.city); }} className={cn("rounded-xl border px-4 py-2.5 text-sm font-black", outputLocale === value ? "border-[#421388] bg-violet-50 text-[#421388]" : "border-slate-200 bg-white text-slate-600")}>{t(value)}</button>)}
+                  </div>
+                </div>
                 {!resultImageUrl ? (
                   <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <h3 className="font-black text-slate-950">Informations de l’affiche</h3>
-                        <p className="mt-1 text-xs font-semibold text-slate-500">Les horaires se mettent à jour automatiquement.</p>
+                        <h3 className="font-black text-slate-950">{t("posterInfo")}</h3>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">{t("autoUpdate")}</p>
                       </div>
-                      {loadingTimes ? <span className="rounded-full bg-violet-50 px-3 py-1.5 text-[11px] font-black text-[#421388]">Actualisation…</span> : null}
+                      {loadingTimes ? <span className="rounded-full bg-violet-50 px-3 py-1.5 text-[11px] font-black text-[#421388]">{t("updating")}</span> : null}
                     </div>
 
                     <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                      <Field label="Nom de la structure" value={form.structureName} onChange={(value) => updateForm("structureName", value)} placeholder="Ex. Beth Habad" required icon={Edit3} />
-                      <Field label="Ville" value={form.city} onChange={(value) => updateForm("city", value)} placeholder="Ex. Paris" required icon={MapPin} />
+                      <Field label={tx("structureName")} value={form.structureName} onChange={(value) => updateForm("structureName", value)} placeholder={tp("structure")} required icon={Edit3} />
+                      <Field label={tx("city")} value={form.city} onChange={(value) => updateForm("city", value)} placeholder={tp("city")} required icon={MapPin} />
                     </div>
 
                     <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/70 p-3">
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#421388]">Prérempli automatiquement</p>
+                        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#421388]">{t("prefilled")}</p>
                         {loadingTimes ? <Loader2 className="size-4 animate-spin text-[#421388]" /> : <CheckCircle2 className="size-4 text-emerald-600" />}
                       </div>
                       <div className="mt-3 grid grid-cols-3 gap-2">
                         {[
-                          ["Paracha", form.parasha || "—"],
-                          ["Entrée", form.entry || "—"],
-                          ["Sortie", form.exit || "—"],
+                          [t("parasha"), form.parasha || "—"],
+                          [t("entry"), form.entry || "—"],
+                          [t("exit"), form.exit || "—"],
                         ].map(([label, value]) => (
                           <div key={label} className="min-w-0 rounded-xl bg-white px-2.5 py-2 text-center shadow-sm ring-1 ring-violet-100">
                             <p className="text-[9px] font-black uppercase tracking-wide text-slate-400">{label}</p>
@@ -784,27 +813,27 @@ export function ShabbatTimesSimpleClient({
                         ))}
                       </div>
                       <p className="mt-2 text-[11px] font-bold text-violet-800">
-                        {weekDate ? `Horaires du ${new Date(`${weekDate}T12:00:00Z`).toLocaleDateString("fr-FR", { timeZone: "UTC" })} · ${form.city}` : "Recherche automatique des horaires…"}
+                        {weekDate ? `${format.dateTime(new Date(`${weekDate}T12:00:00Z`), { timeZone: "UTC" })} · ${form.city}` : t("updating")}
                       </p>
-                      <p className="mt-1 text-[10px] font-semibold text-slate-500">Source : Chabad.org/ShabbatTimes</p>
+                      <p className="mt-1 text-[10px] font-semibold text-slate-500">{t("source")}</p>
                       {cityCandidates.map((city) => <Button key={city} type="button" variant="outline" className="mt-2" onClick={() => void refreshShabbatTimes(city)}>{city}</Button>)}
                     </div>
 
                     <details className="group mt-4 rounded-2xl border border-slate-200 bg-slate-50 open:bg-white">
                       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-black text-slate-800">
-                        <span className="flex items-center gap-2"><Sparkles className="size-4 text-[#421388]" />Ajouter un Kiddouch ou une consigne</span>
+                        <span className="flex items-center gap-2"><Sparkles className="size-4 text-[#421388]" />{t("addKiddush")}</span>
                         <span className="text-lg text-slate-400 transition group-open:rotate-45">+</span>
                       </summary>
                       <div className="space-y-4 border-t border-slate-100 px-4 pb-4 pt-3">
-                        <Field label="Kiddouch offert par (facultatif)" value={form.kiddouch} onChange={(value) => updateForm("kiddouch", value)} placeholder="Ex. Famille Cohen" icon={Gift} />
+                        <Field label={tx("kiddushOptional")} value={form.kiddouch} onChange={(value) => updateForm("kiddouch", value)} placeholder={tp("family")} icon={Gift} />
                         <label className="block text-sm font-bold text-slate-800">
-                          <span className="flex items-center gap-2"><MessageSquareText className="size-4 text-[#421388]" />Consigne particulière pour l’IA (facultatif)</span>
+                          <span className="flex items-center gap-2"><MessageSquareText className="size-4 text-[#421388]" />{t("aiInstruction")}</span>
                           <textarea
                             value={form.aiInstructions}
                             onChange={(event) => updateForm("aiInstructions", event.target.value)}
                             maxLength={800}
                             rows={3}
-                            placeholder="Ex. Mettre le Kiddouch très visible, conserver une présentation sobre…"
+                            placeholder={tp("instruction")}
                             className="mt-2 w-full resize-y rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium leading-5 text-slate-950 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-[#421388] focus:ring-4 focus:ring-violet-100"
                           />
                           <span className="mt-1 block text-right text-[10px] font-bold text-slate-400">{form.aiInstructions.length}/800</span>
@@ -815,7 +844,7 @@ export function ShabbatTimesSimpleClient({
 
                     <Button type="button" size="xl" className="mt-5 w-full rounded-2xl bg-[#d92d7c] font-black shadow-lg shadow-pink-950/20 hover:bg-[#c5236e]" loading={generating} disabled={uploadingLogo || loadingTimes || generating} onClick={() => void generatePoster()}>
                       {!generating && <Sparkles className="size-5" />}
-                      {generating ? "David personnalise l’affiche…" : "Créer mon affiche avec David"}
+                      {generating ? t("generating") : t("generate")}
                     </Button>
                   </div>
                 ) : (
@@ -823,11 +852,11 @@ export function ShabbatTimesSimpleClient({
                     <div className="grid grid-cols-2 gap-3">
                       <button type="button" onClick={() => { setResultImageUrl(null); setNotice(""); }} className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border border-blue-400 bg-gradient-to-r from-[#315ecb] to-[#4b7fe8] p-3 text-sm font-black text-white shadow-md shadow-blue-200 transition hover:-translate-y-0.5 hover:brightness-105">
                         <span className="flex size-10 items-center justify-center rounded-xl bg-white text-[#2364d2] shadow-sm"><Edit3 className="size-5" /></span>
-                        Modifier
+                        {tx("edit")}
                       </button>
                       <button type="button" onClick={() => void downloadPoster()} className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border border-pink-400 bg-gradient-to-r from-[#d92d7c] to-[#f06b45] p-3 text-sm font-black text-white shadow-md shadow-rose-200 transition hover:-translate-y-0.5 hover:brightness-105">
                         <span className="flex size-10 items-center justify-center rounded-xl bg-white text-[#d12d7e] shadow-sm"><Download className="size-5" /></span>
-                        Télécharger
+                        {tx("download")}
                       </button>
                     </div>
                   </div>
@@ -837,15 +866,15 @@ export function ShabbatTimesSimpleClient({
                   <div className="flex items-start gap-3">
                     <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-white text-amber-600 shadow-sm"><Clock3 className="size-5" /></span>
                     <div>
-                      <h3 className="font-black text-slate-950">Rappel chaque vendredi</h3>
+                      <h3 className="font-black text-slate-950">{t("weeklyReminder")}</h3>
                     </div>
                   </div>
                   {automationActive ? (
-                    <p className="mt-3 flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-black text-emerald-700"><CheckCircle2 className="size-4" />Rappel hebdomadaire actif</p>
+                    <p className="mt-3 flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-black text-emerald-700"><CheckCircle2 className="size-4" />{t("reminderActive")}</p>
                   ) : automationOpen ? (
                     <div className="mt-3 rounded-2xl bg-white p-3">
                       <label className="text-xs font-black uppercase tracking-wide text-slate-500">
-                        Heure du rappel le vendredi
+                        {tx("reminderTime")}
                         <input type="time" value={automationTime} onChange={(event) => setAutomationTime(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-bold text-slate-900 outline-none focus:border-amber-400" />
                       </label>
                       <Button type="button" className="mt-3 w-full rounded-xl bg-amber-500 font-black text-white hover:bg-amber-600" loading={savingAutomation} onClick={() => void activateAutomation()}>
@@ -854,7 +883,7 @@ export function ShabbatTimesSimpleClient({
                     </div>
                   ) : (
                     <button type="button" onClick={() => setAutomationOpen(true)} className="mt-3 w-full rounded-xl border border-amber-300 bg-white px-3 py-2.5 text-sm font-black text-amber-700 transition hover:bg-amber-100">
-                      Activer le rappel hebdomadaire
+                      {tx("activateReminder")}
                     </button>
                   )}
                 </div>
@@ -869,8 +898,8 @@ export function ShabbatTimesSimpleClient({
                     <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <h3 className="font-black text-slate-950">Publier maintenant</h3>
-                          <p className="mt-1 text-xs leading-5 text-slate-500">Sélectionnez vos comptes connectés.</p>
+                          <h3 className="font-black text-slate-950">{t("publishNow")}</h3>
+                          <p className="mt-1 text-xs leading-5 text-slate-500">{t("selectAccounts")}</p>
                         </div>
                         <Send className="size-5 text-[#421388]" />
                       </div>
@@ -898,7 +927,7 @@ export function ShabbatTimesSimpleClient({
                               {active && <span className="absolute right-2 top-2 flex size-5 items-center justify-center rounded-full bg-white text-[#d92d7c]"><Check className="size-3" /></span>}
                               <span className={cn("flex size-9 items-center justify-center rounded-xl", active ? "bg-white" : "bg-slate-50", id === "FACEBOOK" ? "text-[#2364d2]" : "text-[#d12d7e]")}><Icon className="size-5" /></span>
                               {label}
-                              {!connected && <span className="text-[9px] font-bold">Non connecté</span>}
+                              {!connected && <span className="text-[9px] font-bold">{t("notConnected")}</span>}
                             </button>
                           );
                         })}
@@ -926,14 +955,14 @@ export function ShabbatTimesSimpleClient({
       {paywallOpen && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
           <div role="dialog" aria-modal="true" className="w-full max-w-md rounded-[2rem] bg-white p-6 text-center shadow-2xl">
-            <button type="button" aria-label="Fermer" onClick={() => setPaywallOpen(false)} className="ml-auto flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-500"><X className="size-5" /></button>
+            <button type="button" aria-label={tx("close")} onClick={() => setPaywallOpen(false)} className="ms-auto flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-500"><X className="size-5" /></button>
             <span className="mx-auto mt-2 flex size-16 items-center justify-center rounded-3xl bg-amber-100 text-amber-600"><Crown className="size-8" /></span>
-            <h2 className="mt-5 text-2xl font-black text-slate-950">Modèle Premium</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">Le premier modèle est offert. Passez à l’abonnement EasyCom IA pour accéder à toutes les affiches.</p>
+            <h2 className="mt-5 text-2xl font-black text-slate-950">{t("premium")}</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">{t("premiumHelp")}</p>
             <Button asChild className="mt-6 w-full rounded-2xl bg-[#421388] font-black hover:bg-[#35106f]">
-              <a href="/dashboard/settings/billing">Découvrir l’abonnement</a>
+              <a href="/dashboard/settings/billing">{t("discoverPlan")}</a>
             </Button>
-            <button type="button" onClick={() => setPaywallOpen(false)} className="mt-3 text-sm font-bold text-slate-500 hover:text-slate-900">Continuer avec le modèle offert</button>
+            <button type="button" onClick={() => setPaywallOpen(false)} className="mt-3 text-sm font-bold text-slate-500 hover:text-slate-900">{t("continueFree")}</button>
           </div>
         </div>
       )}

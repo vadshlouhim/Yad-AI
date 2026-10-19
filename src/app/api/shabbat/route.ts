@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getShabbatTimes, getJewishHolidays } from "@/lib/automation/hebcal";
+import { parseOutputLocale } from "@/lib/ai/output-locale";
 
 export async function GET(request: Request) {
   try {
@@ -28,15 +29,16 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") ?? "shabbat";
+    const outputLocale = parseOutputLocale(searchParams.get("outputLocale"), "fr");
 
     if (type === "holidays") {
-      const holidays = await getJewishHolidays({ year: new Date().getFullYear() });
+      const holidays = await getJewishHolidays({ year: new Date().getFullYear(), outputLocale });
       return NextResponse.json(holidays);
     }
 
     city = searchParams.get("city")?.trim() || city;
     const location = await resolveShabbatLocation(city, country);
-    const shabbatTimes = await getShabbatTimes({ city: location.cityName, latitude: location.latitude, longitude: location.longitude, timezone: location.timezone, country: location.countryCode });
+    const shabbatTimes = await getShabbatTimes({ city: location.cityName, latitude: location.latitude, longitude: location.longitude, timezone: location.timezone, country: location.countryCode, outputLocale });
     if (!shabbatTimes?.entry || !shabbatTimes.exit) return NextResponse.json({ error: "Horaires indisponibles pour cette ville et cette semaine." }, { status: 503 });
     return NextResponse.json(shabbatTimes);
   } catch (error) {
