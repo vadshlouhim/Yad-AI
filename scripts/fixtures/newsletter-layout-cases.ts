@@ -8,6 +8,7 @@ export function sampleImage(id: string, width: number, height: number) {
 
 export function baseNewsletter(): NewsletterDocumentData {
   return {
+    outputLocale: "fr",
     community: { id: "fixture", name: "Beth Habad de Vanves", city: "Vanves", timezone: "Europe/Paris", address: null, phone: null, email: "contact@example.org", website: null, logoUrl: null, coverUrl: null, isBethHabad: true, donationUrl: "https://www.allodons.fr/exemple" },
     generated: { title: "Le Chabbat Mag", intro: "Chers amis de la communauté, un Chabbat rempli de sérénité et d’inspiration vous attend à Vanves. Venez partager ces moments précieux avec nous.", ravWord: "Un message de paix et de partage. ".repeat(15), shabbatNote: "Cette semaine, partageons un moment ensemble. ".repeat(8), eventIntro: "Retrouvons-nous dimanche.", restaurantAd: "", proofreadNote: "", warnings: [] },
     enabled: { ravWord: true, shabbat: true, photos: true, posters: true, parness: true, kiddush: true, events: true, specificEvent: false, birthdays: true, restaurantAd: true, seferHamitsvot: true, support: true },
@@ -66,5 +67,24 @@ export function newsletterLayoutCases() {
   const moved = structuredClone(b);
   moved.layout = { photoSide: "back", order: ["parasha", "rav"], composition: "full" };
   cases.push({ name: "ai-reordered", data: moved });
+  const hebrew = structuredClone(baseNewsletter());
+  hebrew.outputLocale = "he";
+  hebrew.enabled.seferHamitsvot = false;
+  hebrew.enabled.kiddush = false;
+  hebrew.generated = {
+    title: "מגזין השבת",
+    intro: "חדשות הקהילה ופעילויות השבוע.",
+    ravWord: "השבת מזמינה אותנו לעצור, להקשיב ולחזק את הקשרים בינינו. מי ייתן ונמצא בפרשה השראה למעשה טוב נוסף.",
+    shabbatNote: "פרשת לך לך מזכירה את האומץ לצאת לדרך חדשה מתוך אמונה ואחריות.",
+    eventIntro: "האירועים הקרובים בקהילה:",
+    restaurantAd: "",
+    proofreadNote: "מוכן לבדיקה לפני ההדפסה.",
+    warnings: [],
+  };
+  hebrew.parnessText = "משפחת כהן";
+  hebrew.kiddushText = "משפחת לוי";
+  hebrew.shabbat = { date: "2026-10-23", parasha: "לֶךְ־לְךָ", hebrewDate: "י״ג חֶשְׁוָן תשפ״ז", entry: "18:28", exit: "19:32" };
+  hebrew.birthdays = [{ id: "1", name: "David Cohen", hebrewDate: "14 Hechvan 5787", hebrewDateHe: "י״ד חֶשְׁוָן תשפ״ז", gregorianDate: "2026-10-25" }];
+  cases.push({ name: "hebrew-rtl", data: hebrew });
   return cases;
 }

@@ -40,3 +40,23 @@ Nouveaux choix terminologiques :
 - « Yahrzeit » : **יארצייט**.
 - Le niveau de forfait descriptif « Business » : **עסקי** (ce n’est pas traité comme une marque).
 - Les marques Google, Facebook, Instagram, WhatsApp, Telegram, Gmail et Unisoft restent inchangées.
+
+## Étape 5 — feuillet de Chabbat
+
+À faire relire par une personne hébréophone avant publication :
+
+- les libellés des trois étapes de création et les messages de sauvegarde/conflit ;
+- les consignes de génération et de révision par IA, notamment le ton du « דבר הרב » ;
+- les titres du PDF, la formule de soutien à la communauté et la signature EasyCom IA ;
+- les messages liés aux photos, aux affiches et aux limites de mise en page.
+
+Choix terminologiques :
+
+- « Feuillet de Chabbat » : **עלון שבת**.
+- « Mot du Rav » : **דבר הרב**.
+- « Résumé de la Paracha » : **תקציר פרשת השבוע**.
+- « Entrée / sortie de Chabbat » : **כניסת שבת / צאת שבת**.
+- « Parness Hayom » : **פרנס היום** ; « Kidouch » : **קידוש**.
+- « Recto / verso » : **צד קדמי / צד אחורי**.
+- Les noms de communauté, de personnes et d’événements provenant de la base ne sont pas traduits.
+- Changement de langue d’un feuillet rempli : l’avertissement, les actions « traduction IA / conserver » et le message d’annulation ont été ajoutés en français et en hébreu ; la traduction conserve explicitement les noms propres, dates, nombres et faits.

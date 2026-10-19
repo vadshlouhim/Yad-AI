@@ -5,15 +5,19 @@ import { assertPaidFeature } from "@/lib/billing";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { limitNewsletterText, NEWSLETTER_RAV_WORD_LIMIT } from "@/lib/newsletter/limits";
+import { outputLanguageDirective, parseOutputLocale, type OutputLocale } from "@/lib/ai/output-locale";
+import { localizedParasha } from "@/lib/newsletter/religious-locale";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Reconnectez-vous pour utiliser l’IA." }, { status: 401 });
+    const body = await request.json().catch(() => ({})) as { outputLocale?: OutputLocale };
+    const outputLocale = parseOutputLocale(body.outputLocale);
 
     const admin = createAdminClient();
     const access = await assertPaidFeature(
@@ -35,7 +39,7 @@ export async function POST() {
       timezone: community.timezone && community.timezone !== "UTC" ? community.timezone : "Europe/Paris",
       count: 1,
     }))[0];
-    const parasha = shabbat?.parasha?.trim();
+    const parasha = shabbat ? localizedParasha(shabbat.date, outputLocale, shabbat.parasha).trim() : "";
     if (!parasha) {
       return NextResponse.json({ error: "La Paracha de ce Chabbat est indisponible. Réessayez plus tard." }, { status: 422 });
     }
@@ -44,9 +48,10 @@ export async function POST() {
       communityId: profile.communityId,
       contentType: "COMMUNITY_NEWS",
       customInstructions: [
+        outputLanguageDirective(outputLocale),
         `Rédige uniquement une proposition de Mot du Rav pour la Paracha ${parasha}, Chabbat suivant le vendredi ${shabbat.date}.`,
         "Le contenu est destiné à être relu et validé par un humain avant impression.",
-        `En français, chaleureux et sobre, sans titre, hashtag, emoji ni appel à l’action, avec ${NEWSLETTER_RAV_WORD_LIMIT} caractères maximum espaces compris.`,
+        `Ton chaleureux et sobre, sans titre, hashtag, emoji ni appel à l’action, avec ${NEWSLETTER_RAV_WORD_LIMIT} caractères maximum espaces compris.`,
         "N’invente ni citation, ni verset, ni histoire, ni détail précis de la Paracha non vérifié.",
         "Si tu ne peux pas vérifier un détail, formule une réflexion générale sans l’affirmer comme un fait.",
         "Place uniquement le Mot du Rav dans la propriété JSON body ; laisse les autres propriétés vides.",

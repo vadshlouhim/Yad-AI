@@ -33,6 +33,22 @@ export const DEFAULT_NEWSLETTER_LABELS: NewsletterLabels = {
   specificEvent: "Événement spécifique",
 };
 
+export const DEFAULT_NEWSLETTER_LABELS_HE: NewsletterLabels = {
+  ravWord: "דבר הרב",
+  parasha: "תקציר פרשת השבוע",
+  community: "בקהילה שלנו",
+  parness: "פרנס היום",
+  kiddush: "הקידוש בחסות",
+  seferHamitsvot: "ספר המצוות לשבת",
+  agenda: "ביומן",
+  birthdays: "ימי הולדת",
+  photos: "תמונות השבוע",
+  partners: "השותפים שלנו",
+  posters: "מודעות ואירועים קרובים",
+  support: "תמכו בנו",
+  specificEvent: "אירוע מיוחד",
+};
+
 export const NEWSLETTER_LABEL_EDITOR: ReadonlyArray<{ key: NewsletterLabelKey; description: string }> = [
   { key: "ravWord", description: "Mot du Rav" },
   { key: "parasha", description: "Paracha" },
@@ -61,10 +77,11 @@ export function parseNewsletterLabels(value: unknown): Partial<NewsletterLabels>
 export function resolveNewsletterLabels(
   communityDefaults?: Partial<NewsletterLabels> | null,
   draftOverrides?: Partial<NewsletterLabels> | null,
+  locale: "fr" | "he" = "fr",
 ): NewsletterLabels {
   return {
-    ...DEFAULT_NEWSLETTER_LABELS,
-    ...parseNewsletterLabels(communityDefaults),
+    ...(locale === "he" ? DEFAULT_NEWSLETTER_LABELS_HE : DEFAULT_NEWSLETTER_LABELS),
+    ...(locale === "fr" ? parseNewsletterLabels(communityDefaults) : {}),
     ...parseNewsletterLabels(draftOverrides),
   };
 }

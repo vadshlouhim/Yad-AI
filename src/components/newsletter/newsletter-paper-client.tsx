@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { NewsletterDocument, type NewsletterDocumentHandle } from "@/components/newsletter/newsletter-document";
 import { NewsletterRevision } from "./newsletter-revision";
 import { PhotoCaptions } from "./photo-captions";
@@ -43,6 +44,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { parseOutputLocale, type OutputLocale } from "@/lib/ai/output-locale";
+import { localizedHebrewDate, localizedParasha } from "@/lib/newsletter/religious-locale";
+import { NEWSLETTER_DRAFT_VERSION, resolveNewsletterDraftLocale } from "@/lib/newsletter/draft-locale";
 
 export type NewsletterEvent = {
   id: string;
@@ -58,6 +62,7 @@ export type NewsletterBirthday = {
   id: string;
   name: string;
   hebrewDate: string;
+  hebrewDateHe?: string;
   gregorianDate: string;
 };
 
@@ -91,7 +96,7 @@ type EditorStep = "modules" | "content" | "preview";
 
 type ModuleConfig = {
   key: ModuleKey;
-  title: string;
+  titleKey: string;
   icon: LucideIcon;
   locked?: boolean;
 };
@@ -133,8 +138,9 @@ export type GeneratedNewsletter = {
 };
 
 export type NewsletterDraft = {
-  version: 2;
+  version: typeof NEWSLETTER_DRAFT_VERSION;
   savedAt: number;
+  outputLocale: OutputLocale;
   title: string;
   enabled: Record<ModuleKey, boolean>;
   editorStep: EditorStep;
@@ -153,21 +159,27 @@ export type NewsletterDraft = {
   layout?: NewsletterLayoutPreferences;
   previousRevision?: RevisionSnapshot | null;
 };
-type RevisionSnapshot = Pick<NewsletterDraft, "generated" | "parnessText" | "kiddushText" | "photos" | "layout">;
+type RevisionSnapshot = Pick<NewsletterDraft, "generated" | "parnessText" | "kiddushText" | "specificEventText" | "photos" | "layout" | "outputLocale" | "labelOverrides">;
+
+type NewsletterTranslation = Partial<Pick<GeneratedNewsletter, "title" | "intro" | "ravWord" | "shabbatNote" | "eventIntro" | "restaurantAd" | "proofreadNote">> & {
+  parnessText?: string;
+  kiddushText?: string;
+  specificEventText?: string;
+};
 
 const MODULES: ModuleConfig[] = [
-  { key: "seferHamitsvot", title: "Sefer Hamitsvot du Chabbat", icon: BookOpen },
-  { key: "ravWord", title: "Mot du Rav", icon: BookOpen },
-  { key: "photos", title: "Photos de la semaine", icon: ImagePlus },
-  { key: "posters", title: "Affiches & événements à venir...", icon: ImagePlus },
-  { key: "parness", title: "Parness Hayom", icon: HeartHandshake },
-  { key: "birthdays", title: "Anniversaires", icon: Cake },
-  { key: "kiddush", title: "Kidouch offert", icon: Gift },
-  { key: "specificEvent", title: "Événement spécifique", icon: CalendarDays },
-  { key: "events", title: "Événements à venir", icon: CalendarDays },
-  { key: "restaurantAd", title: "Pub partenaire", icon: Store },
-  { key: "support", title: "Nous soutenir", icon: HandHeart },
-  { key: "shabbat", title: "Résumé de la Paracha", icon: Clock3 },
+  { key: "seferHamitsvot", titleKey: "modules.seferHamitsvot", icon: BookOpen },
+  { key: "ravWord", titleKey: "modules.ravWord", icon: BookOpen },
+  { key: "photos", titleKey: "modules.photos", icon: ImagePlus },
+  { key: "posters", titleKey: "modules.posters", icon: ImagePlus },
+  { key: "parness", titleKey: "modules.parness", icon: HeartHandshake },
+  { key: "birthdays", titleKey: "modules.birthdays", icon: Cake },
+  { key: "kiddush", titleKey: "modules.kiddush", icon: Gift },
+  { key: "specificEvent", titleKey: "modules.specificEvent", icon: CalendarDays },
+  { key: "events", titleKey: "modules.events", icon: CalendarDays },
+  { key: "restaurantAd", titleKey: "modules.restaurantAd", icon: Store },
+  { key: "support", titleKey: "modules.support", icon: HandHeart },
+  { key: "shabbat", titleKey: "modules.shabbat", icon: Clock3 },
 ];
 
 const ESSENTIAL_MODULE_KEYS = new Set<ModuleKey>(["shabbat", "ravWord", "events", "photos"]);
@@ -195,10 +207,10 @@ function nextPaint() {
   });
 }
 
-async function waitForImages(elements: Array<HTMLElement | null>) {
+async function waitForImages(elements: Array<HTMLElement | null>, unavailableMessage: string) {
   const images = elements.flatMap((element) => element ? Array.from(element.querySelectorAll("img")) : []);
   await Promise.all(images.map((image) => {
-    const failure = () => new Error(`Image indisponible : ${image.alt || "visuel du feuillet"}. Réimportez-la avant l’export.`);
+    const failure = () => new Error(unavailableMessage);
     if (image.complete) return image.naturalWidth > 0 ? Promise.resolve() : Promise.reject(failure());
     return new Promise<void>((resolve, reject) => {
       const cleanup = () => {
@@ -225,15 +237,15 @@ function filenamePart(value: string) {
     .slice(0, 54);
 }
 
-function initialGenerated(): GeneratedNewsletter {
+function initialGenerated(locale: OutputLocale = "fr"): GeneratedNewsletter {
   return {
-    title: "Le Chabbat Mag",
+    title: locale === "he" ? "מגזין השבת" : "Le Chabbat Mag",
     intro: "",
     ravWord: "",
     shabbatNote: "",
     eventIntro: "",
     restaurantAd: "",
-    proofreadNote: "Pret pour relecture avant impression.",
+    proofreadNote: locale === "he" ? "מוכן לבדיקה לפני ההדפסה." : "Prêt pour relecture avant impression.",
     warnings: [],
   };
 }
@@ -272,31 +284,28 @@ function draftManualBirthdays(value: unknown): NewsletterManualBirthday[] {
   }).slice(0, 20);
 }
 
-function draftRequestError(status: number, loading = false) {
-  const action = loading ? "Chargement" : "Sauvegarde";
-  if (status === 401) return "Session expirée. Reconnectez-vous pour reprendre votre brouillon.";
-  if (status === 403) return `Accès à la communauté indisponible. Vérifiez votre compte.`;
-  if (status === 404) return `Service de brouillon introuvable (404). ${action} serveur indisponible ; réessayez après actualisation.`;
-  if (status === 413) return `Brouillon trop volumineux pour être synchronisé.`;
-  return `${action} serveur indisponible (${status}). ${loading ? "Réessayez le chargement." : "Votre brouillon reste sur cet appareil."}`;
-}
-
 export function parseNewsletterDraft(
   value: unknown,
   donationDefault: string,
   bannerDefault: string,
+  outputLocaleDefault: OutputLocale = "fr",
 ): NewsletterDraft | null {
-  if (!isRecord(value) || (value.version !== 1 && value.version !== 2)) return null;
+  if (!isRecord(value) || (value.version !== 1 && value.version !== 2 && value.version !== 3)) return null;
   const enabledValue = isRecord(value.enabled) ? value.enabled : {};
   const generatedValue = isRecord(value.generated) ? value.generated : {};
-  const defaults = initialGenerated();
-  const previous = isRecord(value.previousRevision) ? parseNewsletterDraft({ ...value.previousRevision, version: 2, previousRevision: undefined }, donationDefault, bannerDefault) : null;
+  // Versions 1 and 2 predate an explicit, trustworthy output-language choice.
+  // They are existing French drafts, even if the first i18n build autosaved the
+  // current interface locale into outputLocale.
+  const outputLocale = resolveNewsletterDraftLocale(value.version, value.outputLocale, outputLocaleDefault);
+  const defaults = initialGenerated(outputLocale);
+  const previous = isRecord(value.previousRevision) ? parseNewsletterDraft({ ...value.previousRevision, version: NEWSLETTER_DRAFT_VERSION, previousRevision: undefined }, donationDefault, bannerDefault, outputLocale) : null;
   const editorStep: EditorStep = value.editorStep === "content" || value.editorStep === "preview" ? value.editorStep : "modules";
   return {
-    version: 2,
+    version: NEWSLETTER_DRAFT_VERSION,
     layout: parseLayoutPreferences(value.layout),
-    previousRevision: previous ? { generated: previous.generated, parnessText: previous.parnessText, kiddushText: previous.kiddushText, photos: previous.photos, layout: previous.layout } : null,
+    previousRevision: previous ? { generated: previous.generated, parnessText: previous.parnessText, kiddushText: previous.kiddushText, specificEventText: previous.specificEventText, photos: previous.photos, layout: previous.layout, outputLocale: previous.outputLocale, labelOverrides: previous.labelOverrides } : null,
     savedAt: typeof value.savedAt === "number" ? value.savedAt : 0,
+    outputLocale,
     title: draftText(value.title, defaults.title),
     enabled: Object.fromEntries(MODULES.map((module) => [
       module.key,
@@ -346,6 +355,20 @@ export function NewsletterPaperClient({
   initialShabbat: NewsletterShabbat | null;
   initialSeferHamitsvot?: NewsletterStudy | null;
 }) {
+  const interfaceLocale = parseOutputLocale(useLocale());
+  const t = useTranslations("newsletter");
+  const draftRequestError = useCallback((status: number, loading = false) => {
+    const action = t(loading ? "errors.loadAction" : "errors.saveAction");
+    if (status === 401) return t("errors.sessionExpired");
+    if (status === 403) return t("errors.communityUnavailable");
+    if (status === 404) return t("errors.draftNotFound", { action });
+    if (status === 413) return t("errors.draftTooLarge");
+    return t("errors.serverUnavailable", {
+      action,
+      status,
+      detail: t(loading ? "errors.retryLoad" : "errors.keptLocal"),
+    });
+  }, [t]);
   const documentRef = useRef<NewsletterDocumentHandle>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const draftSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -357,6 +380,7 @@ export function NewsletterPaperClient({
   const conflictRef = useRef(false);
   const loadedOnceRef = useRef(false);
   const [enabled, setEnabled] = useState<Record<ModuleKey, boolean>>(() => ({ ...DEFAULT_ENABLED, support: Boolean(community.donationUrl) }));
+  const [outputLocale, setOutputLocale] = useState<OutputLocale>(interfaceLocale);
   const [editorStep, setEditorStep] = useState<EditorStep>("modules");
   const [parashaOpen, setParashaOpen] = useState(false);
   const [agendaOpen, setAgendaOpen] = useState(false);
@@ -381,7 +405,7 @@ export function NewsletterPaperClient({
   const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
   const [exporting, setExporting] = useState(false);
   const [preparingAction, setPreparingAction] = useState<"preview" | "print" | "pdf" | null>(null);
-  const [generated, setGenerated] = useState<GeneratedNewsletter>(() => initialGenerated());
+  const [generated, setGenerated] = useState<GeneratedNewsletter>(() => initialGenerated(interfaceLocale));
   const [ravSuggestion, setRavSuggestion] = useState("");
   const [ravSuggestionError, setRavSuggestionError] = useState<string | null>(null);
   const [ravSuggestionLoading, setRavSuggestionLoading] = useState(false);
@@ -389,6 +413,9 @@ export function NewsletterPaperClient({
   const [layout, setLayout] = useState<NewsletterLayoutPreferences>({});
   const [previousRevision, setPreviousRevision] = useState<RevisionSnapshot | null>(null);
   const [revisionBusy, setRevisionBusy] = useState(false);
+  const [pendingOutputLocale, setPendingOutputLocale] = useState<OutputLocale | null>(null);
+  const [translationBusy, setTranslationBusy] = useState(false);
+  const [translationComplete, setTranslationComplete] = useState(false);
   const [preparedRevision, setPreparedRevision] = useState<{ key: string; pages: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draftReady, setDraftReady] = useState(false);
@@ -399,14 +426,36 @@ export function NewsletterPaperClient({
   const [retryLoadCount, setRetryLoadCount] = useState(0);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
 
+  const hasEditorialText = useMemo(() => [
+    generated.title !== "Le Chabbat Mag" && generated.title !== "מגזין השבת" ? generated.title : "",
+    generated.intro,
+    generated.ravWord,
+    generated.shabbatNote,
+    generated.eventIntro,
+    generated.restaurantAd,
+    generated.proofreadNote,
+    parnessText,
+    kiddushText,
+    specificEventText,
+  ].some((text) => text.trim().length > 0), [generated.eventIntro, generated.intro, generated.proofreadNote, generated.ravWord, generated.restaurantAd, generated.shabbatNote, generated.title, kiddushText, parnessText, specificEventText]);
+
   const activeCount = useMemo(() => Object.values(enabled).filter(Boolean).length, [enabled]);
   const mayContainLegacyCuts = [[generated.intro, 180], [generated.ravWord, 850], [generated.shabbatNote, 620], [generated.eventIntro, 220]].some(([text, limit]) => typeof text === "string" && text.length === limit && !/[.!?…]$/.test(text.trim()));
   const visibleEvents = initialEvents;
   const visiblePhotos = photos;
   const visiblePosters = posters;
   const visiblePartnerAds = partnerAds;
-  const communityResolvedLabels = useMemo(() => resolveNewsletterLabels(communityLabelDefaults), [communityLabelDefaults]);
-  const resolvedLabels = useMemo(() => resolveNewsletterLabels(communityLabelDefaults, labelOverrides), [communityLabelDefaults, labelOverrides]);
+  const communityResolvedLabels = useMemo(() => resolveNewsletterLabels(communityLabelDefaults, undefined, outputLocale), [communityLabelDefaults, outputLocale]);
+  const resolvedLabels = useMemo(() => resolveNewsletterLabels(communityLabelDefaults, labelOverrides, outputLocale), [communityLabelDefaults, labelOverrides, outputLocale]);
+  const localizedShabbat = useMemo<NewsletterShabbat | null>(() => initialShabbat ? ({
+    ...initialShabbat,
+    parasha: localizedParasha(initialShabbat.date, outputLocale, initialShabbat.parasha ?? ""),
+    hebrewDate: localizedHebrewDate(initialShabbat.date, outputLocale, initialShabbat.hebrewDate ?? ""),
+  }) : null, [initialShabbat, outputLocale]);
+  const localizedStudy = useMemo<NewsletterStudy | null>(() => initialSeferHamitsvot ? ({
+    ...initialSeferHamitsvot,
+    dateLabel: new Intl.DateTimeFormat(outputLocale === "he" ? "he-IL" : "fr-FR", { dateStyle: "full", timeZone: "UTC" }).format(new Date(`${initialSeferHamitsvot.date}T12:00:00Z`)),
+  }) : null, [initialSeferHamitsvot, outputLocale]);
   const previewCommunity = { ...community, donationUrl };
   const outputEnabled = useMemo<Record<ModuleKey, boolean>>(() => ({
     seferHamitsvot: enabled.seferHamitsvot,
@@ -420,19 +469,21 @@ export function NewsletterPaperClient({
     specificEvent: enabled.specificEvent && Boolean(specificEventText.trim()),
     restaurantAd: enabled.restaurantAd && visiblePartnerAds.length > 0,
     support: enabled.support && Boolean(donationUrl.trim()),
-    shabbat: enabled.shabbat && Boolean(initialShabbat),
-  }), [donationUrl, enabled, generated.ravWord, initialBirthdays.length, initialShabbat, kiddushText, manualBirthdays, parnessText, specificEventText, visibleEvents.length, visiblePartnerAds.length, visiblePhotos.length, visiblePosters.length]);
+    shabbat: enabled.shabbat && Boolean(localizedShabbat),
+  }), [donationUrl, enabled, generated.ravWord, initialBirthdays.length, localizedShabbat, kiddushText, manualBirthdays, parnessText, specificEventText, visibleEvents.length, visiblePartnerAds.length, visiblePhotos.length, visiblePosters.length]);
   const documentData: NewsletterDocumentData = {
     community: previewCommunity, enabled: outputEnabled, generated, parnessText, kiddushText,
     photos: visiblePhotos, posters: visiblePosters, partnerAds: visiblePartnerAds,
-    events: visibleEvents, birthdays: initialBirthdays, manualBirthdays, specificEventText, labels: resolvedLabels, shabbat: initialShabbat, bannerPhotoUrl: newsletterLogoImageUrl(bannerPhotoUrl),
-    seferHamitsvot: initialSeferHamitsvot,
+    events: visibleEvents, birthdays: initialBirthdays, manualBirthdays, specificEventText, labels: resolvedLabels, shabbat: localizedShabbat, bannerPhotoUrl: newsletterLogoImageUrl(bannerPhotoUrl),
+    seferHamitsvot: localizedStudy,
+    outputLocale,
     layout,
   };
   const localDraftKey = useMemo(() => `easycom.newsletter.draft.${community.id}.${userId}`, [community.id, userId]);
   const draftSnapshot = useMemo<NewsletterDraft>(() => ({
-    version: 2,
+    version: NEWSLETTER_DRAFT_VERSION,
     savedAt: Date.now(),
+    outputLocale,
     title: generated.title,
     layout, previousRevision,
     enabled,
@@ -449,9 +500,10 @@ export function NewsletterPaperClient({
     posters,
     bannerPhotoUrl,
     generated,
-  }), [bannerPhotoUrl, donationUrl, editorStep, enabled, generated, kiddushText, labelOverrides, manualBirthdays, mobilePreviewPage, parnessText, partnerAds, photos, posters, layout, previousRevision, specificEventText]);
+  }), [bannerPhotoUrl, donationUrl, editorStep, enabled, generated, kiddushText, labelOverrides, manualBirthdays, mobilePreviewPage, outputLocale, parnessText, partnerAds, photos, posters, layout, previousRevision, specificEventText]);
 
   const applyDraft = useCallback((draft: NewsletterDraft) => {
+    setOutputLocale(draft.outputLocale);
     setLayout(draft.layout ?? {});
     setPreviousRevision(draft.previousRevision ?? null);
     setPreparedRevision(null);
@@ -470,10 +522,13 @@ export function NewsletterPaperClient({
     setGenerated(draft.generated);
     setRavSuggestion("");
     setRavSuggestionError(null);
+    setPendingOutputLocale(null);
+    setTranslationComplete(false);
   }, []);
 
   function applyRevision(revision: Revision, pages: string[], key: string) {
-    setPreviousRevision({ generated, parnessText, kiddushText, photos, layout });
+    setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, photos, layout, outputLocale, labelOverrides });
+    setTranslationComplete(false);
     const { parnessText: parness, kiddushText: kiddush, ...texts } = revision.changes;
     setGenerated(current => ({
       ...current,
@@ -492,11 +547,91 @@ export function NewsletterPaperClient({
     setGenerated(previousRevision.generated);
     setParnessText(previousRevision.parnessText);
     setKiddushText(previousRevision.kiddushText);
+    setSpecificEventText(previousRevision.specificEventText);
     setPhotos(previousRevision.photos);
     setLayout(previousRevision.layout ?? {});
+    setOutputLocale(previousRevision.outputLocale);
+    setLabelOverrides(previousRevision.labelOverrides);
     setPreparedRevision(null);
     setPreviousRevision(null);
+    setTranslationComplete(false);
     setError(null);
+  }
+
+  function applyOutputLocale(locale: OutputLocale) {
+    setOutputLocale(locale);
+    if (generated.title === "Le Chabbat Mag" || generated.title === "מגזין השבת") {
+      setGenerated((current) => ({ ...current, title: locale === "he" ? "מגזין השבת" : "Le Chabbat Mag" }));
+    }
+    setLabelOverrides({});
+    setPreparedRevision(null);
+  }
+
+  function requestOutputLocale(locale: OutputLocale) {
+    if (locale === outputLocale) {
+      setPendingOutputLocale(null);
+      return;
+    }
+    setTranslationComplete(false);
+    if (hasEditorialText) {
+      setPendingOutputLocale(locale);
+      return;
+    }
+    applyOutputLocale(locale);
+  }
+
+  async function translateExistingTexts() {
+    const targetLocale = pendingOutputLocale;
+    if (!targetLocale || translationBusy) return;
+    setTranslationBusy(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/newsletter/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(65_000),
+        body: JSON.stringify({
+          outputLocale: targetLocale,
+          sourceLocale: outputLocale,
+          texts: {
+            title: generated.title,
+            intro: generated.intro,
+            ravWord: generated.ravWord,
+            shabbatNote: generated.shabbatNote,
+            eventIntro: generated.eventIntro,
+            restaurantAd: generated.restaurantAd,
+            proofreadNote: generated.proofreadNote,
+            parnessText,
+            kiddushText,
+            specificEventText,
+          },
+        }),
+      });
+      const payload = await response.json().catch(() => null) as { translations?: NewsletterTranslation; error?: unknown } | null;
+      if (!response.ok || !payload?.translations) throw new Error(interfaceLocale === "fr" && typeof payload?.error === "string" ? payload.error : t("outputLanguage.translationError"));
+      const translations = payload.translations;
+      setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, photos, layout, outputLocale, labelOverrides });
+      setGenerated((current) => ({
+        ...current,
+        ...(translations.title !== undefined ? { title: translations.title } : {}),
+        ...(translations.intro !== undefined ? { intro: translations.intro } : {}),
+        ...(translations.ravWord !== undefined ? { ravWord: limitNewsletterText(translations.ravWord, NEWSLETTER_RAV_WORD_LIMIT) } : {}),
+        ...(translations.shabbatNote !== undefined ? { shabbatNote: translations.shabbatNote } : {}),
+        ...(translations.eventIntro !== undefined ? { eventIntro: translations.eventIntro } : {}),
+        ...(translations.restaurantAd !== undefined ? { restaurantAd: translations.restaurantAd } : {}),
+        ...(translations.proofreadNote !== undefined ? { proofreadNote: translations.proofreadNote } : {}),
+      }));
+      if (translations.parnessText !== undefined) setParnessText(translations.parnessText);
+      if (translations.kiddushText !== undefined) setKiddushText(translations.kiddushText);
+      if (translations.specificEventText !== undefined) setSpecificEventText(translations.specificEventText);
+      applyOutputLocale(targetLocale);
+      setPendingOutputLocale(null);
+      setTranslationComplete(true);
+    } catch (translationError) {
+      setError(translationError instanceof Error ? translationError.message : t("outputLanguage.translationError"));
+    } finally {
+      setTranslationBusy(false);
+    }
   }
 
   async function requestRavSuggestion() {
@@ -506,13 +641,13 @@ export function NewsletterPaperClient({
     setRavSuggestion("");
     setRavSuggestionError(null);
     try {
-      const response = await fetch("/api/newsletter/rav-suggestion", { method: "POST" });
+      const response = await fetch("/api/newsletter/rav-suggestion", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ outputLocale }) });
       const payload = await response.json().catch(() => null) as { suggestion?: unknown; error?: unknown } | null;
-      if (!response.ok) throw new Error(typeof payload?.error === "string" ? payload.error : "Impossible de préparer une proposition pour le moment.");
-      if (typeof payload?.suggestion !== "string" || !payload.suggestion.trim()) throw new Error("Aucune proposition reçue. Réessayez.");
+      if (!response.ok) throw new Error(interfaceLocale === "fr" && typeof payload?.error === "string" ? payload.error : t("errors.ravUnavailable"));
+      if (typeof payload?.suggestion !== "string" || !payload.suggestion.trim()) throw new Error(t("errors.ravEmpty"));
       setRavSuggestion(limitNewsletterText(payload.suggestion, NEWSLETTER_RAV_WORD_LIMIT));
     } catch (requestError) {
-      setRavSuggestionError(requestError instanceof Error ? requestError.message : "La proposition IA est indisponible.");
+      setRavSuggestionError(requestError instanceof Error ? requestError.message : t("errors.ravUnavailable"));
     } finally {
       ravSuggestionBusyRef.current = false;
       setRavSuggestionLoading(false);
@@ -544,9 +679,9 @@ export function NewsletterPaperClient({
       serverReadyRef.current = false;
       setServerReady(false);
       setDraftStatus("offline");
-      setError(saveError instanceof Error ? saveError.message : "Sauvegarde serveur indisponible. Votre brouillon reste sur cet appareil.");
+      setError(saveError instanceof Error ? saveError.message : t("errors.saveOffline"));
     }
-  }), []);
+  }), [draftRequestError, t]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -583,7 +718,8 @@ export function NewsletterPaperClient({
       localDraft = parseNewsletterDraft(
         JSON.parse(window.localStorage.getItem(localDraftKey) ?? "null"),
         community.donationUrl ?? "",
-        community.logoUrl ?? "",
+            community.logoUrl ?? "",
+            interfaceLocale,
       );
       if (!loadedOnceRef.current && localDraft) applyDraft(localDraft);
     } catch {
@@ -603,6 +739,7 @@ export function NewsletterPaperClient({
           data?.draft,
           community.donationUrl ?? "",
           community.logoUrl ?? "",
+          interfaceLocale,
         );
         const previousServerRevision = serverUpdatedAtRef.current;
         serverUpdatedAtRef.current = data.updatedAt ?? null;
@@ -611,7 +748,7 @@ export function NewsletterPaperClient({
           setDraftConflict(true);
           conflictRef.current = true;
           setDraftStatus("offline");
-          setError("Une version plus récente existe sur un autre appareil. Choisissez la version à conserver.");
+          setError(t("errors.newerDraft"));
         } else {
           if (firstLoad && serverDraft && (!localDraft || serverDraft.savedAt > localDraft.savedAt)) applyDraft(serverDraft);
           setPendingServerDraft(null);
@@ -631,11 +768,11 @@ export function NewsletterPaperClient({
         setServerReady(false);
         setDraftReady(Boolean(localDraft) || Boolean(latestDraftRef.current));
         setDraftStatus(localDraft ? "offline" : "error");
-        setError(loadError instanceof Error ? loadError.message : "Chargement du brouillon indisponible.");
+        setError(loadError instanceof Error ? loadError.message : t("errors.loadUnavailable"));
       });
 
     return () => { active = false; };
-  }, [applyDraft, community.donationUrl, community.logoUrl, localDraftKey, retryLoadCount]);
+  }, [applyDraft, community.donationUrl, community.logoUrl, draftRequestError, interfaceLocale, localDraftKey, retryLoadCount, t]);
 
   useEffect(() => {
     if (!draftReady) return;
@@ -647,7 +784,7 @@ export function NewsletterPaperClient({
       savedLocally = true;
     } catch {
       setDraftStatus("error");
-      setError("Stockage local indisponible. Gardez cette page ouverte et libérez de l’espace sur cet appareil avant de continuer.");
+      setError(t("errors.localStorage"));
     }
     if (!savedLocally) return;
     setDraftStatus(serverReadyRef.current && !conflictRef.current ? "saving" : "offline");
@@ -659,7 +796,7 @@ export function NewsletterPaperClient({
     return () => {
       if (draftSaveTimerRef.current) clearTimeout(draftSaveTimerRef.current);
     };
-  }, [draftReady, draftSnapshot, localDraftKey, saveQueue, serverReady, draftConflict]);
+  }, [draftReady, draftSnapshot, localDraftKey, saveQueue, serverReady, draftConflict, t]);
 
   useEffect(() => {
     if (!draftReady) return;
@@ -691,7 +828,7 @@ export function NewsletterPaperClient({
         onClick={() => toggleModule(module.key)}
         aria-pressed={isActive}
         className={cn(
-          "group flex min-h-[66px] items-center gap-3 rounded-2xl border px-3.5 py-3 text-left transition active:scale-[0.985] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/25",
+          "group flex min-h-[66px] items-center gap-3 rounded-2xl border px-3.5 py-3 text-start transition active:scale-[0.985] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/25",
           isActive
             ? "border-emerald-300 bg-[#eaf8f2] text-[#123d39] shadow-[0_8px_20px_rgba(16,100,85,0.07)]"
             : "border-slate-200 bg-white text-slate-700 hover:border-[#8acbbb] hover:bg-[#f5fbf8]"
@@ -701,8 +838,8 @@ export function NewsletterPaperClient({
           <Icon className="size-[18px]" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-bold leading-snug">{module.title}</span>
-          {module.locked ? <span className="mt-0.5 block text-[11px] font-medium text-slate-500">Toujours inclus</span> : null}
+          <span className="block text-sm font-bold leading-snug">{t(module.titleKey)}</span>
+          {module.locked ? <span className="mt-0.5 block text-[11px] font-medium text-slate-500">{t("alwaysIncluded")}</span> : null}
         </span>
         <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-full border text-xs font-black", isActive ? "border-[#0f766e] bg-[#0f766e] text-white" : "border-slate-300 bg-white text-transparent")}>
           ✓
@@ -717,7 +854,7 @@ export function NewsletterPaperClient({
     if (uploadBusyRef.current || !selected.length) return;
     const remaining = Math.max(0, target === "photos" ? NEWSLETTER_PHOTO_LIMIT - photos.length : target === "posters" ? NEWSLETTER_POSTER_LIMIT - posters.length : target === "partnerAds" ? 3 - partnerAds.length : 1);
     const files = selected.slice(0, remaining);
-    if (!files.length) { setError("Limite atteinte. Retirez une image avant d’en ajouter une autre."); return; }
+    if (!files.length) { setError(t("errors.limitReached")); return; }
     const queueItems: UploadQueueItem[] = files.map((file) => ({ id: crypto.randomUUID(), file, target, name: file.name, status: "queued" }));
     setUploadQueue(queueItems);
     uploadBusyRef.current = true;
@@ -732,7 +869,7 @@ export function NewsletterPaperClient({
           setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "success", error: undefined } : queued));
           return uploaded;
         } catch (uploadError) {
-          const message = uploadError instanceof Error ? uploadError.message : "Envoi impossible.";
+          const message = interfaceLocale === "fr" && uploadError instanceof Error ? uploadError.message : t("errors.uploadUnavailable");
           setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "error", error: message } : queued));
           throw uploadError;
         }
@@ -741,8 +878,8 @@ export function NewsletterPaperClient({
         else if (target === "photos") setPhotos((current) => [...current, uploaded]);
         else if (target === "posters") setPosters((current) => [...current, uploaded]);
         else setPartnerAds((current) => [...current, uploaded]);
-      }, (completed, total) => setUploadProgress(`Importation : ${completed}/${total} fichier(s)`));
-      if (selected.length > remaining) errors.push(`Seuls les ${remaining} premiers fichiers ont été traités : limite de la rubrique atteinte.`);
+      }, (completed, total) => setUploadProgress(t("errors.uploadProgress", { completed, total })));
+      if (selected.length > remaining) errors.push(t("errors.uploadLimited", { count: remaining }));
       if (errors.length) setError(errors.join("\n"));
     } finally {
       uploadBusyRef.current = false;
@@ -755,13 +892,13 @@ export function NewsletterPaperClient({
     if (uploadBusyRef.current || item.status !== "error") return;
     const remaining = item.target === "photos" ? NEWSLETTER_PHOTO_LIMIT - photos.length : item.target === "posters" ? NEWSLETTER_POSTER_LIMIT - posters.length : item.target === "partnerAds" ? 3 - partnerAds.length : 1;
     if (item.target !== "banner" && remaining <= 0) {
-      setError("La rubrique est maintenant pleine. Retirez une image avant de réessayer.");
+      setError(t("errors.sectionFull"));
       return;
     }
     uploadBusyRef.current = true;
     setUploading(true);
     setError(null);
-    setUploadProgress(`Nouvelle tentative : ${item.name}`);
+    setUploadProgress(t("errors.retryUpload", { name: item.name }));
     setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "uploading", error: undefined } : queued));
     try {
       const uploaded = await uploadNewsletterImage(item.file, item.target === "banner" ? "logo" : "image");
@@ -771,7 +908,7 @@ export function NewsletterPaperClient({
       else setPartnerAds((current) => [...current, uploaded]);
       setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "success", error: undefined } : queued));
     } catch (uploadError) {
-      const message = uploadError instanceof Error ? uploadError.message : "Envoi impossible.";
+      const message = interfaceLocale === "fr" && uploadError instanceof Error ? uploadError.message : t("errors.uploadUnavailable");
       setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "error", error: message } : queued));
       setError(`${item.name} : ${message}`);
     } finally {
@@ -791,10 +928,10 @@ export function NewsletterPaperClient({
         body: JSON.stringify({ donationUrl }),
       });
       const data = await response.json().catch(() => ({})) as { donationUrl?: string | null; error?: string };
-      if (!response.ok) throw new Error(data.error ?? "Enregistrement impossible.");
+      if (!response.ok) throw new Error(interfaceLocale === "fr" && data.error ? data.error : t("errors.saveUnavailable"));
       setDonationUrl(data.donationUrl ?? "");
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Enregistrement impossible.");
+      setError(saveError instanceof Error ? saveError.message : t("errors.saveUnavailable"));
     } finally {
       setSavingDonationUrl(false);
     }
@@ -810,12 +947,12 @@ export function NewsletterPaperClient({
         body: JSON.stringify({ newsletterLabels: resolvedLabels }),
       });
       const data = await response.json().catch(() => ({})) as { newsletterLabels?: unknown; error?: string };
-      if (!response.ok) throw new Error(data.error ?? "Enregistrement impossible.");
+      if (!response.ok) throw new Error(interfaceLocale === "fr" && data.error ? data.error : t("errors.saveUnavailable"));
       const saved = parseNewsletterLabels(data.newsletterLabels);
       setCommunityLabelDefaults(saved);
       setLabelOverrides({});
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Enregistrement impossible.");
+      setError(saveError instanceof Error ? saveError.message : t("errors.saveUnavailable"));
     } finally {
       setSavingLabels(false);
     }
@@ -835,7 +972,7 @@ export function NewsletterPaperClient({
 
   async function exportPdf(pages: HTMLElement[]) {
     if (!generated.title.trim()) {
-      setError("Donnez un titre à votre newsletter avant de télécharger le PDF.");
+      setError(t("errors.titlePdf"));
       setEditorStep("modules");
       return;
     }
@@ -860,14 +997,14 @@ export function NewsletterPaperClient({
         snapshot.replaceChildren(page);
         await nextPaint();
         await inlineNewsletterExportImages(page);
-        await waitForImages([page]);
+        await waitForImages([page], t("errors.imageUnavailable"));
         const printable = page.firstElementChild as HTMLElement | null;
         if (
           page.scrollWidth > exportWidth + 1
           || page.scrollHeight > exportHeight + 1
           || (printable && (printable.scrollWidth > exportWidth + 1 || printable.scrollHeight > exportHeight + 1))
         ) {
-          throw new Error(`La page ${index + 1} dépasse le format A4. Réduisez un texte ou retirez une rubrique.`);
+          throw new Error(t("errors.pageOverflow", { number: index + 1 }));
         }
         const dataUrl = await toPng(page, {
           cacheBust: true,
@@ -891,7 +1028,7 @@ export function NewsletterPaperClient({
       }
       pdf.save(`${filenamePart(generated.title) || "newsletter"}-${filenamePart(community.name) || "communaute"}.pdf`);
     } catch (pdfError) {
-      setError(pdfError instanceof Error ? pdfError.message : "Export PDF impossible.");
+      setError(pdfError instanceof Error ? pdfError.message : t("errors.pdfUnavailable"));
     } finally {
       snapshot.remove();
       setExporting(false);
@@ -901,7 +1038,7 @@ export function NewsletterPaperClient({
   async function prepareOutput(action: "preview" | "print" | "pdf") {
     if (preparingAction || exporting || uploading || !draftReady) return;
     if (!generated.title.trim()) {
-      setError("Donnez un titre à votre newsletter avant de continuer.");
+      setError(t("errors.titleContinue"));
       setEditorStep("modules");
       return;
     }
@@ -911,16 +1048,16 @@ export function NewsletterPaperClient({
       setEditorStep("preview");
       await nextPaint();
       const pages = await documentRef.current?.prepare();
-      if (!pages?.length) throw new Error("Composition du feuillet impossible.");
+      if (!pages?.length) throw new Error(t("errors.compositionUnavailable"));
       if (action === "preview") {
         previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         return;
       }
-      await waitForImages(pages);
+      await waitForImages(pages, t("errors.imageUnavailable"));
       if (action === "print") window.print();
       if (action === "pdf") await exportPdf(pages);
     } catch (outputError) {
-      setError(outputError instanceof Error ? outputError.message : "Préparation du feuillet impossible.");
+      setError(outputError instanceof Error ? outputError.message : t("errors.preparationUnavailable"));
       setEditorStep("content");
     } finally {
       setPreparingAction(null);
@@ -928,31 +1065,31 @@ export function NewsletterPaperClient({
   }
 
   return (
-    <fieldset disabled={!draftReady || uploading || preparingAction !== null || exporting || revisionBusy} className="mx-auto min-w-0 w-full max-w-7xl space-y-5 overflow-x-clip bg-[#f7faf8] pb-[calc(12rem+env(safe-area-inset-bottom))] sm:px-6 sm:pt-6 md:pb-28">
+    <fieldset dir={interfaceLocale === "he" ? "rtl" : "ltr"} disabled={!draftReady || uploading || preparingAction !== null || exporting || revisionBusy || translationBusy} className="mx-auto min-w-0 w-full max-w-7xl space-y-5 overflow-x-clip bg-[#f7faf8] pb-[calc(12rem+env(safe-area-inset-bottom))] sm:px-6 sm:pt-6 md:pb-28">
       <section className="relative overflow-hidden rounded-b-[2.4rem] bg-[radial-gradient(circle_at_82%_10%,#1d8276_0%,#164960_44%,#112b45_100%)] px-5 pb-7 pt-7 text-white shadow-[0_20px_42px_rgba(17,43,69,0.18)] sm:rounded-[2rem] sm:px-8">
-        <span className="pointer-events-none absolute -right-14 top-12 size-48 rounded-full bg-[#a2e2c8]/20 blur-3xl" />
-        <span className="pointer-events-none absolute -left-10 bottom-0 size-36 rounded-full bg-[#b7dcec]/20 blur-2xl" />
+        <span className="pointer-events-none absolute -end-14 top-12 size-48 rounded-full bg-[#a2e2c8]/20 blur-3xl" />
+        <span className="pointer-events-none absolute -start-10 bottom-0 size-36 rounded-full bg-[#b7dcec]/20 blur-2xl" />
         <div className="relative flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#b9eee0]">Votre rendez-vous de Chabbat</p>
-            <h1 className="mt-2 max-w-2xl break-words text-[clamp(2rem,9vw,3.1rem)] font-black leading-[0.98] tracking-[-0.045em]">Créez votre feuillet <span className="mt-2 inline-flex rounded-xl bg-white px-2.5 py-1 text-[0.38em] tracking-normal text-[#164960] shadow-sm">en 3 étapes</span></h1>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#b9eee0]">{t("hero.eyebrow")}</p>
+            <h1 className="mt-2 max-w-2xl break-words text-[clamp(2rem,9vw,3.1rem)] font-black leading-[0.98] tracking-[-0.045em]">{t("hero.title")} <span className="mt-2 inline-flex rounded-xl bg-white px-2.5 py-1 text-[0.38em] tracking-normal text-[#164960] shadow-sm">{t("hero.steps")}</span></h1>
           </div>
           <span className="flex size-14 shrink-0 items-center justify-center rounded-[1.25rem] border border-white/20 bg-white/10 text-2xl font-black shadow-lg backdrop-blur-sm">ב&quot;ה</span>
         </div>
       </section>
 
       <section className="mx-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#dce9e5] bg-white px-4 py-2.5 sm:mx-0">
-        <p className="text-sm text-slate-700">Communauté : <strong>{community.name}</strong></p>
-        <a href="/dashboard/settings?section=community" className="text-sm font-semibold text-[#0b7069] underline underline-offset-2">Modifier</a>
+        <p className="text-sm text-slate-700">{t("community")} : <strong>{community.name}</strong></p>
+        <a href="/dashboard/settings?section=community" className="text-sm font-semibold text-[#0b7069] underline underline-offset-2">{t("edit")}</a>
       </section>
-      <nav className="mx-4 rounded-[1.7rem] border border-[#dce9e5] bg-white/90 p-2 shadow-[0_14px_35px_rgba(17,43,69,0.07)] sm:mx-0 sm:p-2.5 print:hidden" aria-label="Étapes de création">
+      <nav className="mx-4 rounded-[1.7rem] border border-[#dce9e5] bg-white/90 p-2 shadow-[0_14px_35px_rgba(17,43,69,0.07)] sm:mx-0 sm:p-2.5 print:hidden" aria-label={t("steps.aria")}>
         <div className="grid min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
           {([
-            ["modules", "01", "Composer", "Choisir les rubriques", LayoutList, "bg-[#164960] text-white shadow-[0_10px_24px_rgba(17,43,69,0.16)]", "border-[#dce9e5] bg-[#f2f8f6] text-[#164960] hover:bg-[#e6f2ed]"],
-            ["content", "02", "Personnaliser", "Ajouter vos contenus", PenLine, "bg-[#0f766e] text-white shadow-[0_10px_24px_rgba(15,118,110,0.16)]", "border-[#dce9e5] bg-[#f2f8f6] text-[#164960] hover:bg-[#e6f2ed]"],
-            ["preview", "03", "Feuillet", "Vérifier et télécharger", Eye, "bg-[#d7a95b] text-[#2f291d] shadow-[0_10px_24px_rgba(146,105,41,0.16)]", "border-[#dce9e5] bg-[#f2f8f6] text-[#164960] hover:bg-[#e6f2ed]"],
+            ["modules", "01", t("steps.compose"), t("steps.composeDetail"), LayoutList, "bg-[#164960] text-white shadow-[0_10px_24px_rgba(17,43,69,0.16)]", "border-[#dce9e5] bg-[#f2f8f6] text-[#164960] hover:bg-[#e6f2ed]"],
+            ["content", "02", t("steps.customize"), t("steps.customizeDetail"), PenLine, "bg-[#0f766e] text-white shadow-[0_10px_24px_rgba(15,118,110,0.16)]", "border-[#dce9e5] bg-[#f2f8f6] text-[#164960] hover:bg-[#e6f2ed]"],
+            ["preview", "03", t("steps.leaflet"), t("steps.leafletDetail"), Eye, "bg-[#d7a95b] text-[#2f291d] shadow-[0_10px_24px_rgba(146,105,41,0.16)]", "border-[#dce9e5] bg-[#f2f8f6] text-[#164960] hover:bg-[#e6f2ed]"],
           ] as const).map(([step, number, label, detail, Icon, activeClass, idleClass]) => (
-            <button key={step} type="button" aria-current={editorStep === step ? "step" : undefined} onClick={() => step === "preview" ? void prepareOutput("preview") : setEditorStep(step)} disabled={preparingAction !== null} className={cn("group flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1 rounded-[1.2rem] border border-transparent px-1 py-2 text-center transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 sm:min-h-[78px] sm:flex-row sm:justify-start sm:gap-3 sm:px-4 sm:text-left", editorStep === step ? activeClass : idleClass)}>
+            <button key={step} type="button" aria-current={editorStep === step ? "step" : undefined} onClick={() => step === "preview" ? void prepareOutput("preview") : setEditorStep(step)} disabled={preparingAction !== null} className={cn("group flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1 rounded-[1.2rem] border border-transparent px-1 py-2 text-center transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 sm:min-h-[78px] sm:flex-row sm:justify-start sm:gap-3 sm:px-4 sm:text-start", editorStep === step ? activeClass : idleClass)}>
               <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-lg bg-white/85 text-[10px] font-black shadow-sm sm:size-10 sm:rounded-xl sm:text-sm", editorStep === step && step !== "preview" ? "text-[#164960]" : "text-current")}>{number}</span>
               <span className="min-w-0 sm:flex-1"><span className="block text-[10px] font-black leading-tight sm:text-sm">{label}</span><span className="mt-1 hidden text-[11px] font-medium opacity-80 sm:block">{detail}</span></span>
               <Icon className="hidden size-4 shrink-0 opacity-75 lg:block" aria-hidden="true" />
@@ -968,15 +1105,15 @@ export function NewsletterPaperClient({
           draftStatus === "offline" || draftStatus === "error" ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700",
         )}>
           {draftStatus === "restoring" || draftStatus === "saving" ? <Loader2 className="size-3.5 animate-spin" /> : draftStatus === "offline" || draftStatus === "error" ? <CloudOff className="size-3.5" /> : <CheckCircle2 className="size-3.5" />}
-          {draftStatus === "restoring" ? "Reprise du brouillon…" : draftStatus === "saving" ? "Sauvegarde…" : draftStatus === "offline" ? "Sauvegardé sur cet appareil" : draftStatus === "error" ? "Brouillon indisponible" : "Brouillon sauvegardé automatiquement"}
+          {t(`draft.${draftStatus}`)}
         </span>
       </div>
 
       {error ? <p role="alert" className="mx-4 whitespace-pre-line rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 sm:mx-0 print:hidden">{error}</p> : null}
-      {mayContainLegacyCuts ? <p className="mx-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:mx-0">Certains textes de cet ancien brouillon semblent avoir été coupés lors de leur génération. Relisez-les dans « Personnaliser » pour compléter les phrases. Le nouvel export conserve désormais tout le texte enregistré.</p> : null}
-      {!serverReady && !draftConflict ? <a href="/dashboard/newsletter" className="mx-4 inline-block font-bold text-violet-800 underline sm:mx-0">Réessayer le chargement</a> : null}
+      {mayContainLegacyCuts ? <p className="mx-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:mx-0">{t("legacyWarning")}</p> : null}
+      {!serverReady && !draftConflict ? <a href="/dashboard/newsletter" className="mx-4 inline-block font-bold text-violet-800 underline sm:mx-0">{t("retryLoading")}</a> : null}
       {draftConflict && pendingServerDraft ? <div className="mx-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 sm:mx-0">
-        <p className="font-bold">Une autre version du brouillon a été enregistrée. Vos modifications restent sur cet appareil.</p>
+        <p className="font-bold">{t("conflict.message")}</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <button type="button" onClick={() => {
             try { window.localStorage.setItem(`${localDraftKey}.backup.${Date.now()}`, JSON.stringify(latestDraftRef.current)); } catch { /* Current local draft remains in memory. */ }
@@ -987,7 +1124,7 @@ export function NewsletterPaperClient({
             serverReadyRef.current = true;
             setServerReady(true);
             setError(null);
-          }} className="min-h-11 rounded-xl bg-white px-3 font-bold text-amber-950 ring-1 ring-amber-300">Utiliser la version serveur</button>
+          }} className="min-h-11 rounded-xl bg-white px-3 font-bold text-amber-950 ring-1 ring-amber-300">{t("conflict.server")}</button>
           <button type="button" onClick={() => {
             setPendingServerDraft(null);
             setDraftConflict(false);
@@ -995,21 +1132,21 @@ export function NewsletterPaperClient({
             serverReadyRef.current = true;
             setServerReady(true);
             setError(null);
-          }} className="min-h-11 rounded-xl bg-[#421388] px-3 font-bold text-white">Conserver ma version</button>
+          }} className="min-h-11 rounded-xl bg-[#421388] px-3 font-bold text-white">{t("conflict.local")}</button>
         </div>
       </div> : null}
       {uploading ? <p role="status" className="mx-4 rounded-xl bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-800 sm:mx-0">{uploadProgress}</p> : null}
-      {uploadQueue.length ? <section className="mx-4 rounded-2xl border border-sky-100 bg-white p-3 shadow-sm sm:mx-0 print:hidden" aria-label="État des importations">
+      {uploadQueue.length ? <section className="mx-4 rounded-2xl border border-sky-100 bg-white p-3 shadow-sm sm:mx-0 print:hidden" aria-label={t("uploads.title")}>
         <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-black uppercase tracking-[0.12em] text-[#005572]">Importation des images</p>
-          {!uploading ? <button type="button" onClick={() => setUploadQueue([])} className="text-xs font-bold text-slate-500 underline">Masquer</button> : null}
+          <p className="text-xs font-black uppercase tracking-[0.12em] text-[#005572]">{t("uploads.title")}</p>
+          {!uploading ? <button type="button" onClick={() => setUploadQueue([])} className="text-xs font-bold text-slate-500 underline">{t("hide")}</button> : null}
         </div>
         <div className="mt-2 space-y-2">
           {uploadQueue.map((item) => <div key={item.id} className="flex min-w-0 items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs">
             {item.status === "uploading" ? <Loader2 className="size-4 shrink-0 animate-spin text-sky-700" /> : item.status === "success" ? <CheckCircle2 className="size-4 shrink-0 text-emerald-700" /> : item.status === "error" ? <CloudOff className="size-4 shrink-0 text-red-600" /> : <Clock3 className="size-4 shrink-0 text-slate-500" />}
             <span className="min-w-0 flex-1"><span className="block truncate font-bold text-slate-800">{item.name}</span>{item.error ? <span className="block text-red-700">{item.error}</span> : null}</span>
-            <span className="shrink-0 font-bold text-slate-500">{item.status === "queued" ? "En attente" : item.status === "uploading" ? "Envoi…" : item.status === "success" ? "Ajoutée" : "Échec"}</span>
-            {item.status === "error" ? <button type="button" onClick={() => void retryUpload(item)} className="min-h-9 shrink-0 rounded-lg bg-[#164960] px-2 font-black text-white">Réessayer</button> : null}
+            <span className="shrink-0 font-bold text-slate-500">{t(`uploads.${item.status}`)}</span>
+            {item.status === "error" ? <button type="button" onClick={() => void retryUpload(item)} className="min-h-9 shrink-0 rounded-lg bg-[#164960] px-2 font-black text-white">{t("retry")}</button> : null}
           </div>)}
         </div>
       </section> : null}
@@ -1017,73 +1154,94 @@ export function NewsletterPaperClient({
         <aside className="space-y-4 print:hidden">
           <section className={cn("rounded-[1.8rem] border border-[#dce9e5] bg-white p-4 shadow-[0_14px_34px_rgba(17,43,69,0.06)]", editorStep !== "modules" && "hidden")}>
             <div className="rounded-[1.35rem] bg-[linear-gradient(135deg,#eaf6f0,#f6faf7_72%)] p-4 ring-1 ring-[#d3e9df]">
-              <label htmlFor="newsletter-title" className="text-xs font-black uppercase tracking-[0.14em] text-[#164960]">Titre du feuillet</label>
+              <label htmlFor="newsletter-title" className="text-xs font-black uppercase tracking-[0.14em] text-[#164960]">{t("title.label")}</label>
               <input
                 id="newsletter-title"
                 value={generated.title}
                 maxLength={70}
                 onChange={(event) => setGenerated((current) => ({ ...current, title: event.target.value }))}
-                placeholder="Ex. Les nouvelles de notre communauté"
+                placeholder={t("title.placeholder")}
                 className="mt-2 h-12 w-full rounded-2xl border border-[#c4ded5] bg-white px-4 text-base font-black text-slate-950 outline-none transition placeholder:font-medium placeholder:text-slate-400 focus:border-[#0f766e] focus:ring-4 focus:ring-emerald-100"
               />
               <div className="mt-2 flex items-center justify-between gap-3 text-[11px] font-semibold text-slate-500">
-                <span>Visible sur le feuillet</span>
+                <span>{t("title.visible")}</span>
                 <span>{generated.title.length}/70</span>
               </div>
             </div>
 
+            <div className="mt-4 rounded-[1.35rem] border border-[#d3e9df] bg-white p-4">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#164960]">{t("outputLanguage.label")}</p>
+              <p className="mt-1 text-xs text-slate-500">{t("outputLanguage.help")}</p>
+              <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("outputLanguage.label")}>
+                {(["fr", "he"] as const).map((value) => <button key={value} type="button" role="radio" aria-checked={outputLocale === value} onClick={() => requestOutputLocale(value)} className={cn("min-h-11 rounded-xl border px-3 text-sm font-black", outputLocale === value ? "border-[#0f766e] bg-[#eaf8f2] text-[#123d39]" : "border-slate-200 bg-white text-slate-600")}>{t(`outputLanguage.${value}`)}</button>)}
+              </div>
+              {pendingOutputLocale ? <div role="alertdialog" aria-modal="true" aria-labelledby="newsletter-language-warning" className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-start">
+                <p id="newsletter-language-warning" className="text-sm font-bold leading-6 text-amber-950">{t(`outputLanguage.${outputLocale}To${pendingOutputLocale === "he" ? "He" : "Fr"}Warning`)}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button type="button" onClick={() => void translateExistingTexts()} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#0f766e] px-3 text-xs font-black text-white">
+                    {translationBusy ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}{t("outputLanguage.translate")}
+                  </button>
+                  <button type="button" onClick={() => { applyOutputLocale(pendingOutputLocale); setPendingOutputLocale(null); }} className="min-h-10 rounded-xl bg-white px-3 text-xs font-black text-amber-950 ring-1 ring-amber-300">{t("outputLanguage.keep")}</button>
+                </div>
+              </div> : null}
+              {translationComplete && previousRevision ? <div role="status" className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-start text-xs font-bold text-emerald-900">
+                <span>{t("outputLanguage.translationComplete")}</span>
+                <button type="button" onClick={undoRevision} className="min-h-9 rounded-lg bg-white px-3 font-black text-emerald-900 ring-1 ring-emerald-300">{t("outputLanguage.undoTranslation")}</button>
+              </div> : null}
+            </div>
+
             <div className="mt-5 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-black text-slate-950">L’essentiel</h2>
-                <p className="mt-1 text-xs font-medium text-slate-500">À garder pour cette semaine</p>
+                <h2 className="text-lg font-black text-slate-950">{t("sections.essential")}</h2>
+                <p className="mt-1 text-xs font-medium text-slate-500">{t("sections.essentialHelp")}</p>
               </div>
-              <span className="rounded-full bg-[#eaf8f2] px-3 py-1 text-xs font-black text-[#0d675e]">{activeCount} actives</span>
+              <span className="rounded-full bg-[#eaf8f2] px-3 py-1 text-xs font-black text-[#0d675e]">{t("activeCount", { count: activeCount })}</span>
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">{ESSENTIAL_MODULES.map(renderModuleToggle)}</div>
 
             <div className="mt-6">
-              <h2 className="text-base font-black text-slate-950">Ajouter si besoin</h2>
+              <h2 className="text-base font-black text-slate-950">{t("sections.optional")}</h2>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">{OPTIONAL_MODULES.map(renderModuleToggle)}</div>
             </div>
           </section>
 
           {editorStep === "content" ? <>
           <section className="rounded-[1.8rem] border border-teal-100 bg-gradient-to-br from-white via-white to-teal-50/50 p-4 shadow-[0_14px_34px_rgba(0,85,114,0.08)]">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#421388]">Votre contenu</p>
-            <h2 className="mt-1 text-xl font-black text-slate-950">Personnalisez l’essentiel</h2>
-            <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">Vos textes seront repris tels quels.</p>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#421388]">{t("content.eyebrow")}</p>
+            <h2 className="mt-1 text-xl font-black text-slate-950">{t("content.title")}</h2>
+            <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{t("content.help")}</p>
             <div className="mt-4 space-y-3">
               {enabled.seferHamitsvot ? <section className="overflow-hidden rounded-2xl border border-teal-100 bg-teal-50">
                 <h3>
-                  <button type="button" aria-expanded={seferHamitsvotOpen} aria-controls="newsletter-sefer-hamitsvot-panel" onClick={() => setSeferHamitsvotOpen((open) => !open)} className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600">
+                  <button type="button" aria-expanded={seferHamitsvotOpen} aria-controls="newsletter-sefer-hamitsvot-panel" onClick={() => setSeferHamitsvotOpen((open) => !open)} className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600">
                     <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-900"><BookOpen className="size-5" aria-hidden="true" /></span>
-                    <span className="min-w-0 flex-1"><span className="block text-sm font-black text-teal-900">Sefer Hamitsvot du Chabbat</span><span className="block text-xs font-medium text-slate-600">{seferHamitsvotOpen ? "Refermer le texte" : "Ouvrir pour consulter le texte"}</span></span>
+                    <span className="min-w-0 flex-1"><span className="block text-sm font-black text-teal-900">{t("modules.seferHamitsvot")}</span><span className="block text-xs font-medium text-slate-600">{t(seferHamitsvotOpen ? "content.closeText" : "content.openText")}</span></span>
                     <ChevronDown aria-hidden="true" className={cn("size-5 shrink-0 text-teal-800 transition-transform", seferHamitsvotOpen && "rotate-180")} />
                   </button>
                 </h3>
                 <div id="newsletter-sefer-hamitsvot-panel" hidden={!seferHamitsvotOpen} className="border-t border-teal-100 px-4 pb-4 pt-3">
-                {initialSeferHamitsvot ? <>
-                  <p className="mt-1 text-xs font-bold text-teal-800">{initialSeferHamitsvot.dateLabel}{initialShabbat?.hebrewDate ? ` · ${initialShabbat.hebrewDate}` : ""}</p>
-                  <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{initialSeferHamitsvot.text}</p>
-                  <a className="mt-2 inline-block text-xs underline" href={initialSeferHamitsvot.sourceUrl} target="_blank" rel="noreferrer">Source : Beth Loubavitch</a>
-                  <p className="mt-2 text-xs text-slate-600">Texte repris intégralement pour le samedi, sans réécriture par IA.</p>
-                </> : <p className="mt-2 text-sm text-amber-800">L’étude de ce Chabbat n’a pas pu être chargée. Rechargez la page pour réessayer, ou désactivez cette rubrique pour continuer sans elle.</p>}
+                {localizedStudy ? <>
+                  <p className="mt-1 text-xs font-bold text-teal-800">{localizedStudy.dateLabel}{localizedShabbat?.hebrewDate ? ` · ${localizedShabbat.hebrewDate}` : ""}</p>
+                  <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{localizedStudy.text}</p>
+                  <a className="mt-2 inline-block text-xs underline" href={localizedStudy.sourceUrl} target="_blank" rel="noreferrer">{t("studySource")}</a>
+                  <p className="mt-2 text-xs text-slate-600">{t("studyExact")}</p>
+                </> : <p className="mt-2 text-sm text-amber-800">{t("studyUnavailable")}</p>}
                 </div>
               </section> : null}
-              <TextArea label="Introduction du feuillet" value={generated.intro} onChange={(intro) => setGenerated((current) => ({ ...current, intro }))} />
+              <TextArea label={t("fields.intro")} value={generated.intro} onChange={(intro) => setGenerated((current) => ({ ...current, intro }))} />
               {enabled.ravWord ? (
                 <section className="rounded-2xl border border-[#cfe6d9] bg-[#f5fbf7] p-3 text-sm font-bold text-slate-700">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <label htmlFor="newsletter-rav-word" className="text-sm font-black text-[#173a40]">Mot du Rav</label>
+                    <label htmlFor="newsletter-rav-word" className="text-sm font-black text-[#173a40]">{t("modules.ravWord")}</label>
                     <button
                       type="button"
                       onClick={() => void requestRavSuggestion()}
-                      disabled={ravSuggestionLoading || !initialShabbat?.parasha?.trim()}
+                      disabled={ravSuggestionLoading || !localizedShabbat?.parasha?.trim()}
                       aria-controls="newsletter-rav-suggestion"
                       className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#087e55] px-3 py-2 text-xs font-black text-white shadow-[0_7px_16px_rgba(8,126,85,0.18)] transition hover:bg-[#066c49] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200 disabled:cursor-not-allowed disabled:opacity-55"
                     >
                       {ravSuggestionLoading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-                      {ravSuggestionLoading ? "Création…" : "Créer un mot lié à la Paracha avec l’IA"}
+                      {t(ravSuggestionLoading ? "rav.creating" : "rav.create")}
                     </button>
                   </div>
                   <textarea
@@ -1094,112 +1252,112 @@ export function NewsletterPaperClient({
                     rows={6}
                     className="mt-3 w-full resize-y rounded-xl border border-[#cfe6d9] bg-white px-3 py-2 text-base font-medium leading-6 outline-none focus:border-[#087e55] focus:ring-4 focus:ring-emerald-100 sm:text-sm"
                   />
-                  <span className="mt-1 block text-right text-[10px] font-bold text-slate-500">{generated.ravWord.length}/{NEWSLETTER_RAV_WORD_LIMIT} caractères maximum</span>
+                  <span className="mt-1 block text-end text-[10px] font-bold text-slate-500">{generated.ravWord.length}/{NEWSLETTER_RAV_WORD_LIMIT} {t("charactersMaximum")}</span>
                   <div id="newsletter-rav-suggestion" aria-live="polite">
-                    {!initialShabbat?.parasha?.trim() ? <p className="mt-2 text-xs font-medium text-amber-800">La Paracha doit être disponible pour créer une proposition.</p> : null}
+                    {!localizedShabbat?.parasha?.trim() ? <p className="mt-2 text-xs font-medium text-amber-800">{t("rav.parashaRequired")}</p> : null}
                     {ravSuggestionError ? <p role="alert" className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{ravSuggestionError}</p> : null}
                     {ravSuggestion ? <div className="mt-3 rounded-xl border border-emerald-200 bg-white p-3 shadow-sm">
-                      <p className="flex items-center gap-1.5 text-xs font-black text-[#087e55]"><Sparkles className="size-3.5" /> Proposition IA à relire</p>
+                      <p className="flex items-center gap-1.5 text-xs font-black text-[#087e55]"><Sparkles className="size-3.5" /> {t("rav.review")}</p>
                       <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-6 text-slate-800">{ravSuggestion}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <button type="button" onClick={() => { setGenerated((current) => ({ ...current, ravWord: ravSuggestion })); setRavSuggestion(""); }} className="min-h-10 rounded-lg bg-[#087e55] px-3 text-xs font-black text-white transition hover:bg-[#066c49] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2">{generated.ravWord.trim() ? "Remplacer mon texte" : "Utiliser ce mot"}</button>
-                        <button type="button" onClick={() => setRavSuggestion("")} className="min-h-10 rounded-lg px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600">Ignorer</button>
+                        <button type="button" onClick={() => { setGenerated((current) => ({ ...current, ravWord: ravSuggestion })); setRavSuggestion(""); }} className="min-h-10 rounded-lg bg-[#087e55] px-3 text-xs font-black text-white transition hover:bg-[#066c49] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2">{t(generated.ravWord.trim() ? "rav.replace" : "rav.use")}</button>
+                        <button type="button" onClick={() => setRavSuggestion("")} className="min-h-10 rounded-lg px-3 text-xs font-bold text-slate-600 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600">{t("rav.ignore")}</button>
                       </div>
                     </div> : null}
                   </div>
                 </section>
               ) : null}
               {enabled.shabbat ? <section className="overflow-hidden rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white shadow-sm">
-                <button type="button" aria-expanded={parashaOpen} aria-controls="newsletter-parasha-panel" onClick={() => setParashaOpen((open) => !open)} className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600">
+                <button type="button" aria-expanded={parashaOpen} aria-controls="newsletter-parasha-panel" onClick={() => setParashaOpen((open) => !open)} className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600">
                   <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-800"><BookOpen className="size-5" /></span>
-                  <span className="min-w-0 flex-1"><span className="block text-sm font-black text-slate-900">Résumé de la Paracha</span><span className="block text-xs font-medium text-slate-600">{generated.shabbatNote.trim() ? "Texte ajouté · ouvrir pour modifier" : "Facultatif · ouvrir pour ajouter"}</span></span>
+                  <span className="min-w-0 flex-1"><span className="block text-sm font-black text-slate-900">{t("modules.shabbat")}</span><span className="block text-xs font-medium text-slate-600">{t(generated.shabbatNote.trim() ? "content.added" : "content.optional")}</span></span>
                   <ChevronDown className={cn("size-5 shrink-0 text-teal-800 transition-transform", parashaOpen && "rotate-180")} />
                 </button>
-                <div id="newsletter-parasha-panel" hidden={!parashaOpen} className="border-t border-teal-100 px-4 pb-4 pt-3"><TextArea label="Texte de la Paracha" value={generated.shabbatNote} onChange={(shabbatNote) => setGenerated((current) => ({ ...current, shabbatNote }))} /></div>
+                <div id="newsletter-parasha-panel" hidden={!parashaOpen} className="border-t border-teal-100 px-4 pb-4 pt-3"><TextArea label={t("fields.parashaText")} value={generated.shabbatNote} onChange={(shabbatNote) => setGenerated((current) => ({ ...current, shabbatNote }))} /></div>
               </section> : null}
               {enabled.events ? <section className="overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white shadow-sm">
                 <div className="flex min-w-0 items-center gap-2 px-3 py-3 sm:px-4">
-                  <button type="button" aria-expanded={agendaOpen} aria-controls="newsletter-agenda-panel" onClick={() => setAgendaOpen((open) => !open)} className="flex min-h-12 min-w-0 flex-1 items-center gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600">
+                  <button type="button" aria-expanded={agendaOpen} aria-controls="newsletter-agenda-panel" onClick={() => setAgendaOpen((open) => !open)} className="flex min-h-12 min-w-0 flex-1 items-center gap-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600">
                     <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-900"><CalendarDays className="size-5" /></span>
-                    <span className="min-w-0 flex-1"><span className="block text-sm font-black text-slate-900">Introduction de l’agenda</span><span className="block text-xs font-medium text-slate-600">{initialEvents.length} événement(s) repris depuis Mon Agenda</span></span>
+                    <span className="min-w-0 flex-1"><span className="block text-sm font-black text-slate-900">{t("agenda.intro")}</span><span className="block text-xs font-medium text-slate-600">{t("agenda.count", { count: initialEvents.length })}</span></span>
                     <ChevronDown className={cn("size-5 shrink-0 text-amber-800 transition-transform", agendaOpen && "rotate-180")} />
                   </button>
-                  <a href="/dashboard/events" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-xl bg-white px-2 text-[11px] font-black text-amber-900 ring-1 ring-amber-200 transition hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 sm:px-3" aria-label="Ouvrir Mon Agenda dans un nouvel onglet">Mon Agenda <ArrowUpRight className="size-3.5" /></a>
+                  <a href="/dashboard/events" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-xl bg-white px-2 text-[11px] font-black text-amber-900 ring-1 ring-amber-200 transition hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 sm:px-3" aria-label={t("agenda.open")}>{t("agenda.name")} <ArrowUpRight className="size-3.5 rtl:-scale-x-100" /></a>
                 </div>
-                <div id="newsletter-agenda-panel" hidden={!agendaOpen} className="border-t border-amber-100 px-4 pb-4 pt-3"><TextArea label="Texte avant les événements" value={generated.eventIntro} onChange={(eventIntro) => setGenerated((current) => ({ ...current, eventIntro }))} /></div>
+                <div id="newsletter-agenda-panel" hidden={!agendaOpen} className="border-t border-amber-100 px-4 pb-4 pt-3"><TextArea label={t("fields.eventsIntro")} value={generated.eventIntro} onChange={(eventIntro) => setGenerated((current) => ({ ...current, eventIntro }))} /></div>
               </section> : null}
               {enabled.birthdays ? <section className="rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 to-white p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <div><p className="text-sm font-black text-slate-900">Anniversaires</p><p className="text-xs text-slate-600">{initialBirthdays.length} anniversaire(s) automatique(s) cette semaine</p></div>
-                  <button type="button" onClick={addManualBirthday} disabled={manualBirthdays.length >= 20} className="inline-flex min-h-10 items-center gap-1 rounded-xl bg-rose-700 px-3 text-xs font-black text-white disabled:opacity-50"><Plus className="size-4" />Ajouter un nom</button>
+                  <div><p className="text-sm font-black text-slate-900">{t("modules.birthdays")}</p><p className="text-xs text-slate-600">{t("birthdays.automatic", { count: initialBirthdays.length })}</p></div>
+                  <button type="button" onClick={addManualBirthday} disabled={manualBirthdays.length >= 20} className="inline-flex min-h-10 items-center gap-1 rounded-xl bg-rose-700 px-3 text-xs font-black text-white disabled:opacity-50"><Plus className="size-4" />{t("birthdays.add")}</button>
                 </div>
-                {initialBirthdays.length ? <div className="mt-3 rounded-xl bg-white px-3 py-2 text-xs text-slate-700 ring-1 ring-rose-100">{initialBirthdays.map((birthday) => <p key={birthday.id}><strong>{birthday.name}</strong> · {birthday.hebrewDate || birthday.gregorianDate}</p>)}</div> : <p className="mt-3 text-xs font-medium text-slate-600">Aucun anniversaire automatique : vous pouvez tout de même ajouter des noms manuellement.</p>}
+                {initialBirthdays.length ? <div className="mt-3 rounded-xl bg-white px-3 py-2 text-xs text-slate-700 ring-1 ring-rose-100">{initialBirthdays.map((birthday) => <p key={birthday.id}><strong>{birthday.name}</strong> · {(outputLocale === "he" ? birthday.hebrewDateHe : birthday.hebrewDate) || birthday.gregorianDate}</p>)}</div> : <p className="mt-3 text-xs font-medium text-slate-600">{t("birthdays.none")}</p>}
                 {manualBirthdays.length ? <div className="mt-3 space-y-2">{manualBirthdays.map((birthday, index) => <div key={birthday.id} className="grid gap-2 rounded-xl bg-white p-2 ring-1 ring-rose-100 sm:grid-cols-[1fr_0.8fr_auto]">
-                  <input aria-label={`Nom de l’anniversaire ${index + 1}`} value={birthday.name} maxLength={120} onChange={(event) => setManualBirthdays((current) => current.map((item) => item.id === birthday.id ? { ...item, name: event.target.value } : item))} placeholder="Nom" className="min-h-10 rounded-lg border border-slate-200 px-3 text-base outline-none focus:border-rose-500 sm:text-sm" />
-                  <input aria-label={`Date ou mention de l’anniversaire ${index + 1}`} value={birthday.dateLabel} maxLength={80} onChange={(event) => setManualBirthdays((current) => current.map((item) => item.id === birthday.id ? { ...item, dateLabel: event.target.value } : item))} placeholder="Date ou mention (facultatif)" className="min-h-10 rounded-lg border border-slate-200 px-3 text-base outline-none focus:border-rose-500 sm:text-sm" />
-                  <button type="button" onClick={() => setManualBirthdays((current) => current.filter((item) => item.id !== birthday.id))} aria-label={`Supprimer ${birthday.name || `l’anniversaire ${index + 1}`}`} className="flex min-h-10 items-center justify-center rounded-lg px-3 text-red-700 hover:bg-red-50"><Trash2 className="size-4" /></button>
+                  <input aria-label={t("birthdays.nameAria", { number: index + 1 })} value={birthday.name} maxLength={120} onChange={(event) => setManualBirthdays((current) => current.map((item) => item.id === birthday.id ? { ...item, name: event.target.value } : item))} placeholder={t("birthdays.name")} className="min-h-10 rounded-lg border border-slate-200 px-3 text-base outline-none focus:border-rose-500 sm:text-sm" />
+                  <input aria-label={t("birthdays.dateAria", { number: index + 1 })} value={birthday.dateLabel} maxLength={80} onChange={(event) => setManualBirthdays((current) => current.map((item) => item.id === birthday.id ? { ...item, dateLabel: event.target.value } : item))} placeholder={t("birthdays.date")} className="min-h-10 rounded-lg border border-slate-200 px-3 text-base outline-none focus:border-rose-500 sm:text-sm" />
+                  <button type="button" onClick={() => setManualBirthdays((current) => current.filter((item) => item.id !== birthday.id))} aria-label={t("birthdays.remove", { name: birthday.name || String(index + 1) })} className="flex min-h-10 items-center justify-center rounded-lg px-3 text-red-700 hover:bg-red-50"><Trash2 className="size-4" /></button>
                 </div>)}</div> : null}
               </section> : null}
               {enabled.specificEvent ? <section className="rounded-2xl border border-cyan-100 bg-gradient-to-br from-cyan-50 to-white p-3">
-                <TextArea label="Événement spécifique" value={specificEventText} onChange={(value) => setSpecificEventText(value.slice(0, 1200))} maxLength={1200} />
-                <p className="mt-1 text-right text-[10px] font-bold text-slate-400">{specificEventText.length}/1200</p>
-                <p className="mt-1 text-xs text-slate-600">Ce texte reste uniquement dans ce feuillet et n’est pas ajouté à l’Agenda.</p>
+                <TextArea label={t("modules.specificEvent")} value={specificEventText} onChange={(value) => setSpecificEventText(value.slice(0, 1200))} maxLength={1200} />
+                <p className="mt-1 text-end text-[10px] font-bold text-slate-400">{specificEventText.length}/1200</p>
+                <p className="mt-1 text-xs text-slate-600">{t("specificEventHelp")}</p>
               </section> : null}
-              {enabled.parness ? <TextInput label="Parness Hayom" value={parnessText} onChange={setParnessText} placeholder="Ex. Leylouy Nichmat..." /> : null}
-              {enabled.kiddush ? <TextInput label="Kidouch offert par" iconSrc={NEWSLETTER_CHALLOT_ICON_URL} value={kiddushText} onChange={setKiddushText} placeholder="Ex. Famille Cohen" /> : null}
+              {enabled.parness ? <TextInput label={t("modules.parness")} value={parnessText} onChange={setParnessText} placeholder={t("fields.parnessPlaceholder")} /> : null}
+              {enabled.kiddush ? <TextInput label={t("fields.kiddush")} iconSrc={NEWSLETTER_CHALLOT_ICON_URL} value={kiddushText} onChange={setKiddushText} placeholder={t("fields.kiddushPlaceholder")} /> : null}
               <label className="block text-sm font-bold text-slate-700">
-                Lien de la page de dons
+                {t("donation.label")}
                 <div className="mt-1.5 flex flex-col gap-2 sm:flex-row">
                   <input value={donationUrl} onChange={(event) => setDonationUrl(event.target.value)} placeholder="https://allodons.fr/..." className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-base outline-none focus:border-[#36506d] focus:ring-2 focus:ring-[#dfe8f3] sm:text-sm" />
-                  <button type="button" onClick={() => void saveDonationLink()} disabled={savingDonationUrl} className="min-h-10 rounded-xl bg-[#18264d] px-3 text-xs font-black text-white disabled:opacity-60">{savingDonationUrl ? "Enregistrement..." : "Enregistrer"}</button>
+                  <button type="button" onClick={() => void saveDonationLink()} disabled={savingDonationUrl} className="min-h-10 rounded-xl bg-[#18264d] px-3 text-xs font-black text-white disabled:opacity-60">{t(savingDonationUrl ? "saving" : "save")}</button>
                 </div>
               </label>
               <section className="text-sm font-bold text-slate-700">
-                <p>Logo de la bannière</p>
+                <p>{t("banner.title")}</p>
                 <div className="mt-1.5 flex min-w-0 items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-2">
-                  {bannerPhotoUrl ? <img src={newsletterLogoImageUrl(bannerPhotoUrl)} alt="Logo affiché dans la bannière" className="size-24 shrink-0 object-contain drop-shadow-sm" /> : <span className="flex size-24 shrink-0 items-center justify-center rounded-2xl bg-white/70 text-slate-400 ring-1 ring-slate-200"><ImagePlus className="size-7" /></span>}
+                  {bannerPhotoUrl ? <img src={newsletterLogoImageUrl(bannerPhotoUrl)} alt={t("banner.alt")} className="size-24 shrink-0 object-contain drop-shadow-sm" /> : <span className="flex size-24 shrink-0 items-center justify-center rounded-2xl bg-white/70 text-slate-400 ring-1 ring-slate-200"><ImagePlus className="size-7" /></span>}
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-slate-600">{bannerPhotoUrl === community.logoUrl && community.logoUrl ? "Logo de votre communauté utilisé par défaut" : bannerPhotoUrl ? "Image personnalisée utilisée" : "Aucun logo téléversé"}</p>
+                    <p className="text-xs font-semibold text-slate-600">{t(bannerPhotoUrl === community.logoUrl && community.logoUrl ? "banner.default" : bannerPhotoUrl ? "banner.custom" : "banner.none")}</p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       <label className="inline-flex min-h-10 cursor-pointer items-center rounded-lg bg-white px-3 text-xs font-bold text-[#36506d] shadow-sm ring-1 ring-slate-200 focus-within:ring-2 focus-within:ring-violet-600">
-                        {bannerPhotoUrl ? "Téléverser une autre image" : "Choisir une image"}
+                        {t(bannerPhotoUrl ? "banner.replace" : "banner.choose")}
                         <input type="file" accept={NEWSLETTER_IMAGE_ACCEPT} className="sr-only" disabled={uploading} onChange={(event) => void uploadMedia(event, "banner")} />
                       </label>
-                      {community.logoUrl && bannerPhotoUrl !== community.logoUrl ? <button type="button" onClick={() => setBannerPhotoUrl(community.logoUrl ?? "")} className="min-h-10 rounded-lg px-3 text-xs font-bold text-slate-600 underline">Revenir au logo par défaut</button> : null}
+                      {community.logoUrl && bannerPhotoUrl !== community.logoUrl ? <button type="button" onClick={() => setBannerPhotoUrl(community.logoUrl ?? "")} className="min-h-10 rounded-lg px-3 text-xs font-bold text-slate-600 underline">{t("banner.reset")}</button> : null}
                     </div>
                   </div>
                 </div>
               </section>
               <details className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-3">
-                <summary className="cursor-pointer text-sm font-black text-violet-950">Personnaliser les intitulés</summary>
-                <p className="mt-2 text-xs text-slate-600">Ces changements s’appliquent à ce feuillet. Vous pouvez aussi les enregistrer comme défauts de la communauté.</p>
+                <summary className="cursor-pointer text-sm font-black text-violet-950">{t("labels.title")}</summary>
+                <p className="mt-2 text-xs text-slate-600">{t("labels.help")}</p>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {NEWSLETTER_LABEL_EDITOR.map(({ key, description }) => <label key={key} className="text-xs font-bold text-slate-700">{description}
+                  {NEWSLETTER_LABEL_EDITOR.map(({ key }) => <label key={key} className="text-xs font-bold text-slate-700">{t(`labelEditor.${key}`)}
                     <span className="mt-1 flex gap-1">
                       <input value={Object.prototype.hasOwnProperty.call(labelOverrides, key) ? labelOverrides[key] ?? "" : communityResolvedLabels[key]} maxLength={80} onChange={(event) => setLabelOverrides((current) => ({ ...current, [key]: event.target.value }))} className="min-h-10 min-w-0 flex-1 rounded-lg border border-violet-100 bg-white px-3 text-base font-medium outline-none focus:border-violet-600 sm:text-sm" />
-                      <button type="button" onClick={() => resetLabelOverride(key)} aria-label={`Réinitialiser l’intitulé ${description}`} title="Revenir au défaut de la communauté" className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white text-violet-900 ring-1 ring-violet-100"><RotateCcw className="size-3.5" /></button>
+                      <button type="button" onClick={() => resetLabelOverride(key)} aria-label={t("labels.resetOne", { label: t(`labelEditor.${key}`) })} title={t("labels.resetCommunity")} className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white text-violet-900 ring-1 ring-violet-100"><RotateCcw className="size-3.5" /></button>
                     </span>
                   </label>)}
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <button type="button" onClick={() => void saveDefaultLabels()} disabled={savingLabels} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-violet-800 px-3 text-xs font-black text-white disabled:opacity-60">{savingLabels ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}{savingLabels ? "Enregistrement…" : "Enregistrer comme défauts"}</button>
-                  <button type="button" onClick={() => setLabelOverrides({})} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-white px-3 text-xs font-bold text-violet-900 ring-1 ring-violet-200"><RotateCcw className="size-4" />Réinitialiser ce feuillet</button>
+                  <button type="button" onClick={() => void saveDefaultLabels()} disabled={savingLabels} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-violet-800 px-3 text-xs font-black text-white disabled:opacity-60">{savingLabels ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}{t(savingLabels ? "saving" : "labels.saveDefaults")}</button>
+                  <button type="button" onClick={() => setLabelOverrides({})} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-white px-3 text-xs font-bold text-violet-900 ring-1 ring-violet-200"><RotateCcw className="size-4" />{t("labels.reset")}</button>
                 </div>
               </details>
               {enabled.restaurantAd ? <section className="text-sm font-bold text-slate-700">
                 <div className="flex items-center justify-between gap-3">
-                  <span>Pub partenaire</span>
-                  <span className="text-xs font-semibold text-slate-400">{partnerAds.length}/3 visuel(x)</span>
+                  <span>{t("modules.restaurantAd")}</span>
+                  <span className="text-xs font-semibold text-slate-400">{t("media.visualCount", { count: partnerAds.length })}</span>
                 </div>
                 <label className="mt-2 flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
-                  <span className="truncate">Ajouter un visuel</span>
-                  <span className="shrink-0 rounded-lg bg-white px-2 py-1 text-[#36506d] shadow-sm">Televerser</span>
+                  <span className="truncate">{t("media.addVisual")}</span>
+                  <span className="shrink-0 rounded-lg bg-white px-2 py-1 text-[#36506d] shadow-sm">{t("media.upload")}</span>
                   <input type="file" accept={NEWSLETTER_IMAGE_ACCEPT} multiple className="sr-only" disabled={uploading || partnerAds.length >= 3} onChange={(event) => void uploadMedia(event, "partnerAds")} />
                 </label>
                 {partnerAds.length > 0 ? <div className="mt-3 grid grid-cols-3 gap-2">
                   {partnerAds.map((ad) => <div key={ad.id} className="group relative overflow-hidden rounded-xl bg-slate-100">
                     <img src={ad.url} alt={ad.name} className="aspect-square w-full object-contain" />
-                    <button type="button" onClick={() => setPartnerAds((current) => current.filter((item) => item.id !== ad.id))} className="absolute right-1 top-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-black text-slate-700 shadow transition hover:bg-white focus-visible:ring-2 focus-visible:ring-violet-600">Retirer</button>
+                    <button type="button" onClick={() => setPartnerAds((current) => current.filter((item) => item.id !== ad.id))} className="absolute end-1 top-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-black text-slate-700 shadow transition hover:bg-white focus-visible:ring-2 focus-visible:ring-violet-600">{t("remove")}</button>
                   </div>)}
                 </div> : null}
               </section> : null}
@@ -1209,42 +1367,42 @@ export function NewsletterPaperClient({
           {enabled.photos ? <section className="rounded-[1.65rem] border border-sky-100 bg-gradient-to-br from-white to-sky-50/60 p-4 shadow-[0_12px_28px_rgba(48,25,91,0.08)]">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#005572]">Photos de la semaine</p>
-                <p className="mt-1 text-sm text-slate-500">{photos.length}/{NEWSLETTER_PHOTO_LIMIT} photos · 4 maximum par ligne · images entières, sans recadrage</p>
-                {photos.length > NEWSLETTER_PHOTO_LIMIT ? <p className="mt-1 text-sm text-amber-700">Ce brouillon dépasse la nouvelle limite. Choisissez les 6 photos à conserver ; aucune n’a été retirée automatiquement.</p> : null}
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-[#005572]">{t("modules.photos")}</p>
+                <p className="mt-1 text-sm text-slate-500">{t("media.photoLimit", { count: photos.length, limit: NEWSLETTER_PHOTO_LIMIT })}</p>
+                {photos.length > NEWSLETTER_PHOTO_LIMIT ? <p className="mt-1 text-sm text-amber-700">{t("media.photoOverflow")}</p> : null}
               </div>
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#36506d] px-3 py-2 text-xs font-black text-white transition hover:bg-[#17253f]">
                 {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-                Ajouter
+                {t("add")}
                 <input type="file" accept={NEWSLETTER_IMAGE_ACCEPT} multiple className="sr-only" onChange={(event) => void uploadMedia(event, "photos")} disabled={uploading || photos.length >= NEWSLETTER_PHOTO_LIMIT} />
               </label>
             </div>
             {photos.length > 0 ? (
               <PhotoCaptions photos={photos} onChange={setPhotos} />
             ) : (
-              <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">Aucune photo ajoutée</div>
+              <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">{t("media.noPhotos")}</div>
             )}
           </section> : null}
 
           {enabled.posters ? <section className="rounded-[1.65rem] border border-amber-100 bg-gradient-to-br from-white to-amber-50/60 p-4 shadow-[0_12px_28px_rgba(48,25,91,0.08)]">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-900">Affiches &amp; événements à venir...</p>
-                <p className="mt-1 text-sm text-slate-500">{posters.length}/{NEWSLETTER_POSTER_LIMIT} affiches · 2 maximum par page · images entières, sans recadrage</p>
-                {posters.length > NEWSLETTER_POSTER_LIMIT ? <p className="mt-1 text-sm text-amber-700">Ce brouillon dépasse la nouvelle limite. Choisissez les 3 affiches à conserver ; aucune n’a été retirée automatiquement.</p> : null}
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-900">{t("modules.posters")}</p>
+                <p className="mt-1 text-sm text-slate-500">{t("media.posterLimit", { count: posters.length, limit: NEWSLETTER_POSTER_LIMIT })}</p>
+                {posters.length > NEWSLETTER_POSTER_LIMIT ? <p className="mt-1 text-sm text-amber-700">{t("media.posterOverflow")}</p> : null}
               </div>
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#18264d] px-3 py-2 text-xs font-black text-white transition hover:bg-[#101b37]">
                 {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-                Ajouter
+                {t("add")}
                 <input type="file" accept={NEWSLETTER_IMAGE_ACCEPT} multiple className="sr-only" onChange={(event) => void uploadMedia(event, "posters")} disabled={uploading || posters.length >= NEWSLETTER_POSTER_LIMIT} />
               </label>
             </div>
             {posters.length > 0 ? <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {posters.map((poster) => <div key={poster.id} className="group relative overflow-hidden rounded-xl bg-slate-100">
                 <img src={poster.url} alt={poster.name} className="aspect-[3/4] w-full object-contain" />
-                <button type="button" onClick={() => setPosters((current) => current.filter((item) => item.id !== poster.id))} className="absolute right-1 top-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-black text-slate-700 shadow transition hover:bg-white focus-visible:ring-2 focus-visible:ring-violet-600">Retirer</button>
+                <button type="button" onClick={() => setPosters((current) => current.filter((item) => item.id !== poster.id))} className="absolute end-1 top-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-black text-slate-700 shadow transition hover:bg-white focus-visible:ring-2 focus-visible:ring-violet-600">{t("remove")}</button>
               </div>)}
-            </div> : <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">Aucune affiche ajoutée</div>}
+            </div> : <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">{t("media.noPosters")}</div>}
           </section> : null}
 
           {generated.warnings.length > 0 ? (
@@ -1264,11 +1422,11 @@ export function NewsletterPaperClient({
       <div className={cn("fixed inset-x-0 bottom-[calc(5.95rem+env(safe-area-inset-bottom))] z-20 border-t border-[#dce9e5] bg-[#f7faf8]/95 px-3 py-2 backdrop-blur print:hidden md:bottom-0 md:z-40 md:py-3", keyboardOpen && "max-md:hidden")}>
         <div className={cn("mx-auto grid max-w-3xl gap-2", "grid-cols-1")}>
           {editorStep === "modules" ? (
-            <Button type="button" onClick={() => { if (generated.title.trim()) { setError(null); setEditorStep("content"); } else { setError("Donnez un titre à votre newsletter avant de continuer."); } }} className="min-h-13 rounded-2xl bg-[#164960] px-5 font-black text-white shadow-[0_10px_22px_rgba(17,43,69,0.18)] hover:bg-[#113d50]">
-              Continuer <PenLine className="size-4" />
+            <Button type="button" onClick={() => { if (generated.title.trim()) { setError(null); setEditorStep("content"); } else { setError(t("errors.titleContinue")); } }} className="min-h-13 rounded-2xl bg-[#164960] px-5 font-black text-white shadow-[0_10px_22px_rgba(17,43,69,0.18)] hover:bg-[#113d50]">
+              {t("continue")} <PenLine className="size-4" />
             </Button>
           ) : null}
-          {editorStep === "content" ? <Button type="button" onClick={() => void prepareOutput("preview")} loading={preparingAction === "preview"} className="min-h-13 rounded-2xl bg-[#164960] px-5 font-black text-white shadow-[0_10px_22px_rgba(17,43,69,0.18)] hover:bg-[#113d50]">Continuer <Eye className="size-4" /></Button> : null}
+          {editorStep === "content" ? <Button type="button" onClick={() => void prepareOutput("preview")} loading={preparingAction === "preview"} className="min-h-13 rounded-2xl bg-[#164960] px-5 font-black text-white shadow-[0_10px_22px_rgba(17,43,69,0.18)] hover:bg-[#113d50]">{t("continue")} <Eye className="size-4" /></Button> : null}
           {editorStep === "preview" ? <>
             <Button type="button" onClick={() => void prepareOutput("pdf")} loading={preparingAction === "pdf" || exporting} className="min-h-12 rounded-2xl bg-[#ffcd32] px-2 text-xs font-black text-[#28104f] hover:bg-[#f2bd16] sm:text-sm"><Download className="size-4" />PDF A4</Button>
           </> : null}

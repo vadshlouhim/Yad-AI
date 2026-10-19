@@ -44,7 +44,7 @@ function validate(data, pages, name) {
     check(Math.abs(bottomGap) <= 1, name + ': support is not anchored at the bottom (' + bottomGap + 'px)');
   }
   if (data.enabled.events) for (const event of data.events) {
-    const date = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'full', timeStyle: 'short', timeZone: data.community.timezone }).format(new Date(event.startDate));
+    const date = new Intl.DateTimeFormat(data.outputLocale === 'he' ? 'he-IL' : 'fr-FR', { dateStyle: 'full', timeStyle: 'short', timeZone: data.community.timezone }).format(new Date(event.startDate));
     check(text('event-' + event.id) === [date, event.location, event.description].filter(Boolean).join('\n'), name + ': event text changed');
   }
   for (const [id, items] of [['photos', data.photos], ['posters', data.posters], ['partners', data.partnerAds]]) {

@@ -8,8 +8,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchSeferHamitsvot } from "@/lib/automation/hayom-yom";
 import { newsletterShabbatDate, newsletterStudyDateLabel, type NewsletterStudy } from "@/lib/newsletter/shabbat-study";
 import { parseNewsletterLabels } from "@/lib/newsletter/labels";
+import { getTranslations } from "next-intl/server";
+import { HebrewDateEvent } from "@hebcal/core";
 
-export const metadata: Metadata = { title: "Newsletter papier Chabbat - EasyCom IA" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("newsletter");
+  return { title: `${t("metadataTitle")} - EasyCom IA` };
+}
 
 function addDays(date: Date, days: number) {
   const next = new Date(date);
@@ -103,6 +108,7 @@ export default async function NewsletterPage() {
           id: `${contact.id}-${occurrence.gregorianDate}`,
           name: contact.displayName || contact.firstName || "Membre",
           hebrewDate: occurrence.label,
+          hebrewDateHe: new HebrewDateEvent(occurrence.hebrewDate).render("he"),
           gregorianDate: occurrence.gregorianDate,
         }];
       });

@@ -3,6 +3,7 @@
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { composeNewsletter, PAPER, type NewsletterDocumentData } from "@/lib/newsletter/document-layout";
+import { useTranslations } from "next-intl";
 
 export type NewsletterDocumentHandle = { prepare: () => Promise<HTMLElement[]> };
 const paint = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
@@ -18,6 +19,7 @@ export const NewsletterDocument = forwardRef<NewsletterDocumentHandle, {
   onError: (error: string) => void;
   prepared?: { key: string; pages: string[] } | null;
 }>(function NewsletterDocument({ data, visible, onError, prepared }, ref) {
+  const t = useTranslations("newsletter.document");
   const key = JSON.stringify(data);
   const [rendered, setRendered] = useState<{ key: string; pages: string[] } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -44,7 +46,7 @@ export const NewsletterDocument = forwardRef<NewsletterDocumentHandle, {
       }
       const job = pending.current;
       const pages = await job.promise;
-      if (!alive.current || latestKey.current !== key) throw new Error("Le contenu a changé. Relancez l’aperçu.");
+      if (!alive.current || latestKey.current !== key) throw new Error(t("contentChanged"));
       setRendered({ key, pages });
       await paint();
       return Array.from(printRoot.current?.querySelectorAll<HTMLElement>("article[data-newsletter-page]") ?? []);
@@ -55,14 +57,14 @@ export const NewsletterDocument = forwardRef<NewsletterDocumentHandle, {
     } finally {
       if (alive.current) setBusy(false);
     }
-  }, [key, prepared]);
+  }, [key, prepared, t]);
 
   useImperativeHandle(ref, () => ({ prepare }), [prepare]);
   useEffect(() => {
     if (visible) void prepare().catch((error: unknown) => {
-      if (alive.current && latestKey.current === key) onError(error instanceof Error ? error.message : "Composition du feuillet impossible.");
+      if (alive.current && latestKey.current === key) onError(error instanceof Error ? error.message : t("compositionError"));
     });
-  }, [visible, prepare, onError, key]);
+  }, [visible, prepare, onError, key, t]);
 
   useEffect(() => {
     const root = container.current;
@@ -76,13 +78,13 @@ export const NewsletterDocument = forwardRef<NewsletterDocumentHandle, {
   const parashaOmitted = pages.some((html) => html.includes('data-parasha-omitted="true"'));
   return <>
     {visible ? <div ref={container} className="min-w-0 w-full" aria-busy={busy}>
-      <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden" aria-label="Pages du feuillet">
+      <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden" aria-label={t("pagesAria")}>
         {pages.map((html, index) => <button key={index} type="button" onClick={() => {
           setSelectedPage(index);
           previewRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }} aria-current={selectedPage === index ? "page" : undefined} className="rounded-lg border border-[#bb8a36]/40 bg-[#faf7f0] px-3 py-2 text-sm font-semibold text-[#005572] aria-[current=page]:bg-[#005572] aria-[current=page]:text-white">{index === 0 ? "Recto" : index === 1 ? "Verso" : html.includes('data-composition="support-page"') ? "Nous soutenir" : `Affiches ${index + 1}`}</button>)}
-        {busy ? <span role="status" className="text-sm text-slate-600">Composition des pages…</span> : <span className="text-sm text-slate-600">A4 adaptatif · {pages.length} page{pages.length > 1 ? "s" : ""} · aperçu identique au PDF</span>}
-        {parashaOmitted ? <span role="status" className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">Le Résumé de la Paracha a été retiré uniquement de cette composition pour garantir une mise en page lisible.</span> : null}
+        }} aria-current={selectedPage === index ? "page" : undefined} className="rounded-lg border border-[#bb8a36]/40 bg-[#faf7f0] px-3 py-2 text-sm font-semibold text-[#005572] aria-[current=page]:bg-[#005572] aria-[current=page]:text-white">{index === 0 ? t("front") : index === 1 ? t("back") : html.includes('data-composition="support-page"') ? t("support") : t("posters", { number: index + 1 })}</button>)}
+        {busy ? <span role="status" className="text-sm text-slate-600">{t("previewComposing")}</span> : <span className="text-sm text-slate-600">{t("previewSummary", { count: pages.length })}</span>}
+        {parashaOmitted ? <span role="status" className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">{t("parashaOmitted")}</span> : null}
       </div>
       {pages.map((html, index) => <div key={index} ref={(node) => { previewRefs.current[index] = node; }} className="mx-auto mb-6 scroll-mt-6 bg-white shadow-lg" style={{ width: PAPER.width * scale, height: PAPER.height * scale }}>
         <div style={{ width: PAPER.width, height: PAPER.height, transform: `scale(${scale})`, transformOrigin: "top left" }}><PageMarkup html={html} /></div>

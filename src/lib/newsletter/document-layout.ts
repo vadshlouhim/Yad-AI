@@ -3,6 +3,8 @@ import { newsletterShabbatDate, type NewsletterStudy } from "./shabbat-study";
 import type { NewsletterLayoutPreferences } from "./revision";
 import { resolveNewsletterLabels, type NewsletterLabels } from "./labels";
 import { formatKiddushSponsor, NEWSLETTER_CHALLOT_ICON_URL } from "./kiddush";
+import type { OutputLocale } from "@/lib/ai/output-locale";
+import { RELIGIOUS_COPY } from "./religious-locale";
 
 export const PAPER = { width: 794, height: 1123, margin: 42, gap: 18 };
 const CONTENT_WIDTH = PAPER.width - PAPER.margin * 2;
@@ -29,6 +31,7 @@ export type NewsletterDocumentData = {
   shabbat: NewsletterShabbat | null;
   seferHamitsvot?: NewsletterStudy | null;
   layout?: NewsletterLayoutPreferences;
+  outputLocale: OutputLocale;
 };
 
 export type DocumentImage = UploadedPhoto & { width: number; height: number };
@@ -120,10 +123,12 @@ function element(tag: string, text?: string, styles: Partial<CSSStyleDeclaration
 
 function heading(text: string, compact = false, fontSize = 11) {
   const scale = Math.min(1, fontSize / 11);
-  return element("h2", text, {
-    margin: `0 0 ${Math.max(4, 10 * scale)}px`, paddingTop: `${Math.max(4, 9 * scale)}px`, borderTop: `1px solid ${GOLD}`, fontFamily: "Arial, sans-serif", fontSize: `${(compact ? 15 : 24) * scale}px`,
-    lineHeight: "1.12", fontWeight: "700", letterSpacing: "-0.4px", color: ACCENT, overflowWrap: "anywhere",
+  const node = element("h2", text, {
+    margin: `0 0 ${Math.max(4, 10 * scale)}px`, paddingTop: `${Math.max(4, 9 * scale)}px`, borderTop: `1px solid ${GOLD}`, fontSize: `${(compact ? 15 : 24) * scale}px`,
+    lineHeight: "1.12", fontWeight: "700", letterSpacing: "-0.4px", color: ACCENT, overflowWrap: "anywhere", fontFamily: "var(--newsletter-font), Arial, sans-serif",
   });
+  node.dir = "auto";
+  return node;
 }
 
 export function renderDocumentBlock(block: DocumentBlock, fontSize: number) {
@@ -132,10 +137,11 @@ export function renderDocumentBlock(block: DocumentBlock, fontSize: number) {
   if (block.title) section.append(heading(block.title + (block.kind === "text" && block.continuation ? " — suite" : ""), block.kind === "text" && block.compact));
   if (block.kind === "text") {
     const text = element("div", block.id === "dedications" ? undefined : block.text, {
-      whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: block.compact ? "Arial, sans-serif" : "Georgia, 'Times New Roman', serif",
+      whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: block.compact ? "var(--newsletter-font), Arial, sans-serif" : "var(--newsletter-serif), Georgia, 'Times New Roman', serif",
       fontSize: `${fontSize * 4 / 3}px`, lineHeight: block.compact ? "1.32" : "1.38", color: INK,
     });
     text.dataset.newsletterText = block.id;
+    text.dir = "auto";
     if (block.id === "dedications") {
       block.text.split("\n").forEach((line, index) => {
         if (index) text.append(document.createTextNode("\n"));
@@ -202,7 +208,7 @@ export function supportCommunityName(name: string) {
 
 async function makeBlocks(data: NewsletterDocumentData): Promise<DocumentBlock[]> {
   const { generated: g, enabled: e } = data;
-  const labels = resolveNewsletterLabels(undefined, data.labels);
+  const labels = resolveNewsletterLabels(undefined, data.labels, data.outputLocale);
   if (e.seferHamitsvot && (!data.shabbat || !data.seferHamitsvot || data.seferHamitsvot.date !== newsletterShabbatDate(data.shabbat.date))) {
     throw new Error("Le Sefer Hamitsvot de ce Chabbat n’est pas disponible. Rechargez la page ou désactivez cette rubrique ; aucune étude d’une autre date ne sera utilisée.");
   }
@@ -219,17 +225,17 @@ async function makeBlocks(data: NewsletterDocumentData): Promise<DocumentBlock[]
   if (e.events) {
     blocks.push(...textBlock("events-intro", labels.agenda, g.eventIntro));
     for (const event of data.events) {
-      const date = new Intl.DateTimeFormat("fr-FR", { dateStyle: "full", timeStyle: "short", timeZone: data.community.timezone }).format(new Date(event.startDate));
+      const date = new Intl.DateTimeFormat(data.outputLocale === "he" ? "he-IL" : "fr-FR", { dateStyle: "full", timeStyle: "short", timeZone: data.community.timezone }).format(new Date(event.startDate));
       blocks.push(...textBlock(`event-${event.id}`, event.title, [date, event.location, event.description].filter(Boolean).join("\n"), true));
     }
   }
   if (e.specificEvent) blocks.push(...textBlock("specific-event", labels.specificEvent, data.specificEventText ?? "", true));
   if (e.birthdays) {
-    const automatic = data.birthdays.map((birthday) => `${birthday.name} · ${birthday.hebrewDate || birthday.gregorianDate}`);
+    const automatic = data.birthdays.map((birthday) => `${birthday.name} · ${(data.outputLocale === "he" ? birthday.hebrewDateHe : birthday.hebrewDate) || birthday.gregorianDate}`);
     const manual = (data.manualBirthdays ?? []).filter((birthday) => birthday.name.trim()).map((birthday) => `${birthday.name.trim()}${birthday.dateLabel.trim() ? ` · ${birthday.dateLabel.trim()}` : ""}`);
     blocks.push(...textBlock("birthdays", labels.birthdays, [...automatic, ...manual].join("\n"), true));
   }
-  if (e.support) blocks.push(...textBlock("support", labels.support, `Soutenez les actions ${supportCommunityName(data.community.name)}.\n${data.community.donationUrl || ""}`, true));
+  if (e.support) blocks.push(...textBlock("support", labels.support, data.outputLocale === "he" ? `תמכו בפעילות של ${data.community.name}.\n${data.community.donationUrl || ""}` : `Soutenez les actions ${supportCommunityName(data.community.name)}.\n${data.community.donationUrl || ""}`, true));
   if (e.photos) {
     const photos: DocumentImage[] = [];
     // Decode sequentially so large phone photos do not spike memory together.
@@ -253,13 +259,14 @@ async function makeBlocks(data: NewsletterDocumentData): Promise<DocumentBlock[]
 }
 
 function header(data: NewsletterDocumentData, first: boolean) {
+  const rtl = data.outputLocale === "he";
   const node = element("header", undefined, { paddingBottom: "18px", flexShrink: "0", position: "relative" });
   const line = element("div", undefined, { display: "flex", gap: "20px", justifyContent: "space-between", alignItems: "start" });
   const identity = element("div", undefined, { flex: "1", minWidth: "0" });
   identity.append(element("p", data.community.name, { margin: "0 0 12px", color: ACCENT, fontSize: "15px", fontWeight: "700", letterSpacing: "2px", textTransform: "uppercase", overflowWrap: "anywhere" }));
   identity.append(element(first ? "h1" : "p", data.generated.title, { margin: "0", color: ACCENT, fontSize: first ? "58px" : "28px", lineHeight: "1.04", letterSpacing: first ? "-2px" : "-0.8px", fontWeight: "700", overflowWrap: "anywhere" }));
-  identity.append(element("p", first ? "Au cœur de notre communauté" : "La vie de notre communauté", { margin: "7px 0 0", color: GOLD, fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: first ? "25px" : "20px", lineHeight: "1.2", overflowWrap: "anywhere" }));
-  const right = element("div", undefined, { width: first ? "120px" : "auto", textAlign: "right", flexShrink: "0" });
+  identity.append(element("p", first ? (rtl ? "בלב הקהילה שלנו" : "Au cœur de notre communauté") : (rtl ? "חיי הקהילה שלנו" : "La vie de notre communauté"), { margin: "7px 0 0", color: GOLD, fontFamily: "var(--newsletter-serif), Georgia, serif", fontStyle: "italic", fontSize: first ? "25px" : "20px", lineHeight: "1.2", overflowWrap: "anywhere" }));
+  const right = element("div", undefined, { width: first ? "120px" : "auto", textAlign: rtl ? "left" : "right", flexShrink: "0" });
   right.append(element("span", 'ב״ה', { display: "block", marginBottom: "8px", fontSize: "14px" }));
   const logo = data.bannerPhotoUrl || data.community.logoUrl;
   if (first && logo) {
@@ -274,10 +281,13 @@ function header(data: NewsletterDocumentData, first: boolean) {
   if (first && data.enabled.shabbat && data.shabbat) {
     const shabbat = data.shabbat;
     const details = element("div", undefined, { display: "grid", gridTemplateColumns: "1.4fr 1.4fr 1fr 1fr", gap: "14px", marginTop: "20px", background: ACCENT, color: IVORY, padding: "13px 16px", borderRadius: "0 18px 0 0" });
-    for (const [label, value] of [["Paracha", shabbat.parasha], ["Date hébraïque", shabbat.hebrewDate], ["Entrée", shabbat.entry], ["Sortie", shabbat.exit]]) {
+    const religious = RELIGIOUS_COPY[data.outputLocale];
+    for (const [label, value] of [[religious.parasha, shabbat.parasha], [religious.hebrewDate, shabbat.hebrewDate], [religious.entry, shabbat.entry], [religious.exit, shabbat.exit]]) {
       const item = element("div", undefined, { minWidth: "0" });
       item.append(element("div", label || "", { fontSize: "10px", color: "#f3d79a", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.8px" }));
-      item.append(element("div", value || "À vérifier", { fontWeight: "700", fontSize: "16px", lineHeight: "1.3", overflowWrap: "anywhere" }));
+      const valueNode = element("div", value || religious.unavailable, { fontWeight: "700", fontSize: "16px", lineHeight: "1.3", overflowWrap: "anywhere" });
+      valueNode.dir = label === religious.entry || label === religious.exit ? "ltr" : "auto";
+      item.append(valueNode);
       details.append(item);
     }
     node.append(details);
@@ -286,12 +296,22 @@ function header(data: NewsletterDocumentData, first: boolean) {
 }
 
 function footer(data: NewsletterDocumentData, index: number, total: number) {
+  const rtl = data.outputLocale === "he";
   const node = element("footer", undefined, { display: "flex", flexShrink: "0", gap: "14px", justifyContent: "space-between", alignItems: "end", borderTop: `1px solid ${GOLD}`, paddingTop: "10px", marginTop: "16px", fontSize: "10px", lineHeight: "1.4", color: ACCENT });
   const info = element("div", undefined, { minWidth: "0", overflowWrap: "anywhere" });
   info.append(element("strong", data.community.name));
-  info.append(element("div", [data.community.address, data.community.city, data.community.phone, data.community.email, data.community.website].filter(Boolean).join(" · ")));
-  if (data.shabbat?.sourceUrl) info.append(element("div", "Horaires de Chabbat fournis par Chabad.org/ShabbatTimes", { fontSize: "8px", marginTop: "3px", color: INK }));
-  info.append(element("div", "Contenu créé par EasyCom-AI — l’IA au service des communautés", { fontSize: "9px", marginTop: "4px", color: INK }));
+  const contact = element("div");
+  const contactValues = [data.community.address, data.community.city, data.community.phone, data.community.email, data.community.website].filter((value): value is string => Boolean(value));
+  contactValues.forEach((value, contactIndex) => {
+    if (contactIndex) contact.append(document.createTextNode(" · "));
+    const isolated = element("bdi", value);
+    if (/^(?:https?:\/\/|www\.)|@|^[+\d][\d\s().-]+$/.test(value)) isolated.dir = "ltr";
+    else isolated.dir = "auto";
+    contact.append(isolated);
+  });
+  info.append(contact);
+  if (data.shabbat?.sourceUrl) info.append(element("div", RELIGIOUS_COPY[data.outputLocale].source, { fontSize: "8px", marginTop: "3px", color: INK }));
+  info.append(element("div", rtl ? "נוצר באמצעות EasyCom-AI — בינה מלאכותית לשירות הקהילות" : "Contenu créé par EasyCom-AI — l’IA au service des communautés", { fontSize: "9px", marginTop: "4px", color: INK }));
   node.append(info, element("span", `${index + 1} / ${total}`, { whiteSpace: "nowrap" }));
   return node;
 }
@@ -367,10 +387,13 @@ export function fitNewsletterWholeBlocks(blocks: DocumentBlock[], capacities: nu
 
 
 function paper(data: NewsletterDocumentData, index: number) {
-  const article = element("article", undefined, { boxSizing: "border-box", width: `${PAPER.width}px`, height: `${PAPER.height}px`, padding: `${PAPER.margin}px`, background: IVORY, color: INK, display: "flex", flexDirection: "column", fontFamily: "Arial, sans-serif", overflowWrap: "anywhere", position: "relative", isolation: "isolate" });
+  const rtl = data.outputLocale === "he";
+  const article = element("article", undefined, { boxSizing: "border-box", width: `${PAPER.width}px`, height: `${PAPER.height}px`, padding: `${PAPER.margin}px`, background: IVORY, color: INK, display: "flex", flexDirection: "column", fontFamily: "var(--newsletter-font), Arial, sans-serif", overflowWrap: "anywhere", position: "relative", isolation: "isolate" });
+  article.style.setProperty("--newsletter-font", rtl ? "var(--font-hebrew)" : "Arial");
+  article.style.setProperty("--newsletter-serif", rtl ? "var(--font-hebrew)" : "Georgia");
   article.dataset.newsletterPage = String(index + 1);
-  article.style.direction = "ltr";
-  article.style.textAlign = "left";
+  article.style.direction = rtl ? "rtl" : "ltr";
+  article.style.textAlign = rtl ? "right" : "left";
   // Decorative curves are confined to the print-safe margin; never mask content.
   const decor = element("div", undefined, { position: "absolute", inset: "14px", border: `1px solid #d4b778`, pointerEvents: "none", zIndex: "-1" });
   const curve = element("div", undefined, { position: "absolute", right: "14px", top: "14px", width: "150px", height: "24px", borderRadius: "0 0 0 100%", background: ACCENT, borderBottom: `3px solid ${GOLD}`, pointerEvents: "none", zIndex: "-1" });
@@ -470,13 +493,19 @@ function renderGallery(plan: GalleryPlan, width: number) {
 }
 
 function renderCaption(text: string) {
-  return element("figcaption", text, { margin: "6px 0 0", fontFamily: "Arial, sans-serif", fontSize: "12px", lineHeight: "1.3", color: INK, textAlign: "center", whiteSpace: "pre-wrap", overflowWrap: "anywhere" });
+  const caption = element("figcaption", text, { margin: "6px 0 0", fontFamily: "var(--newsletter-font), Arial, sans-serif", fontSize: "12px", lineHeight: "1.3", color: INK, textAlign: "center", whiteSpace: "pre-wrap", overflowWrap: "anywhere" });
+  caption.dir = "auto";
+  return caption;
 }
 
 /** Measured zones shared unchanged by preview, browser print and PDF export. */
 export async function composeNewsletter(data: NewsletterDocumentData): Promise<string[]> {
   await document.fonts.ready;
-  const labels = resolveNewsletterLabels(undefined, data.labels);
+  if (data.outputLocale === "he") {
+    const family = getComputedStyle(document.documentElement).getPropertyValue("--font-hebrew").trim();
+    if (family) await document.fonts.load(`16px ${family}`);
+  }
+  const labels = resolveNewsletterLabels(undefined, data.labels, data.outputLocale);
   const blocks = await makeBlocks(data);
   const texts = blocks.filter(block => block.kind === "text");
   const intro = texts.filter(block => block.id === "intro");
@@ -500,7 +529,10 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
       && (g.id !== "posters" || rows.every(row => row.length <= POSTERS_PER_DEDICATED_PAGE))));
   };
   [photos, posters, partners].forEach(registerGallery);
-  const root = element("div", undefined, { position: "fixed", left: "-20000px", top: "0", width: CONTENT_WIDTH + "px", fontFamily: "Arial, sans-serif", color: INK, visibility: "hidden", direction: "ltr" });
+  const rtl = data.outputLocale === "he";
+  const root = element("div", undefined, { position: "fixed", left: "-20000px", top: "0", width: CONTENT_WIDTH + "px", fontFamily: "var(--newsletter-font), Arial, sans-serif", color: INK, visibility: "hidden", direction: rtl ? "rtl" : "ltr" });
+  root.style.setProperty("--newsletter-font", rtl ? "var(--font-hebrew)" : "Arial");
+  root.style.setProperty("--newsletter-serif", rtl ? "var(--font-hebrew)" : "Georgia");
   document.body.append(root);
   try {
     const heightOf = (node: HTMLElement, width = CONTENT_WIDTH) => {
@@ -808,7 +840,8 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
         content.append(node);
       }
       for (const zone of plan.zones) {
-        const node = element("div", undefined, { position: "absolute", left: zone.x + "px", top: (zone.y + (index ? 0 : choice.introHeight)) + "px", width: zone.width + "px" });
+        const logicalX = rtl ? CONTENT_WIDTH - zone.x - zone.width : zone.x;
+        const node = element("div", undefined, { position: "absolute", left: logicalX + "px", top: (zone.y + (index ? 0 : choice.introHeight)) + "px", width: zone.width + "px" });
         node.dataset.newsletterZone = "true";
         if (zone.notice) node.append(renderNotice(zone.blocks!, choice.font));
         else zone.blocks?.forEach((block, i) => {

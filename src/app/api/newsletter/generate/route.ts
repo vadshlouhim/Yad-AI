@@ -10,6 +10,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { assertPaidFeature } from "@/lib/billing";
 import { limitNewsletterText, NEWSLETTER_RAV_WORD_LIMIT } from "@/lib/newsletter/limits";
+import { outputIntlLocale, outputLanguageDirective, parseOutputLocale, type OutputLocale } from "@/lib/ai/output-locale";
+import { localizedHebrewDate, localizedParasha } from "@/lib/newsletter/religious-locale";
 
 type ModuleKey = "ravWord" | "photos" | "parness" | "birthdays" | "kiddush" | "events" | "restaurantAd" | "shabbat";
 
@@ -23,6 +25,7 @@ type GenerateBody = {
   restaurantText?: string;
   photoCount?: number;
   tone?: string;
+  outputLocale?: OutputLocale;
 };
 
 function addDays(date: Date, days: number) {
@@ -39,8 +42,8 @@ function safeText(value: unknown, max = 600) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
-function formatDate(value: string, timezone: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
+function formatDate(value: string, timezone: string, locale: OutputLocale) {
+  return new Intl.DateTimeFormat(outputIntlLocale(locale), {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -86,6 +89,7 @@ export async function POST(request: Request) {
     if (!profile?.communityId) return NextResponse.json({ error: "Communaute introuvable" }, { status: 403 });
 
     const body = await request.json().catch(() => ({})) as GenerateBody;
+    const outputLocale = parseOutputLocale(body.outputLocale);
     const modules = body.modules ?? {};
     const activeModuleCount = Object.values(modules).filter(Boolean).length;
     const sparseLayout = activeModuleCount <= 5;
@@ -117,6 +121,8 @@ export async function POST(request: Request) {
     const timezone = community?.timezone && community.timezone !== "UTC" ? community.timezone : "Europe/Paris";
     const city = community?.city ?? "Paris";
     const shabbat = (await getUpcomingShabbatTimes({ city, timezone, count: 1 }))[0] ?? null;
+    const parasha = shabbat ? localizedParasha(shabbat.date, outputLocale, shabbat.parasha) : null;
+    const hebrewDate = shabbat ? localizedHebrewDate(shabbat.date, outputLocale, shabbat.hebrewDate) : null;
     const currentHebrewYear = getCurrentHebrewDate(timezone, now).getFullYear();
     const birthdayWindowStart = startOfDay(now);
     const birthdayWindowEnd = startOfDay(addDays(now, 7));
@@ -135,12 +141,13 @@ export async function POST(request: Request) {
       .slice(0, 10);
 
     const eventLines = (events ?? []).map((event) => {
-      const when = formatDate(event.startDate, timezone);
+      const when = formatDate(event.startDate, timezone, outputLocale);
       return `- ${when}: ${event.title}${event.location ? `, ${event.location}` : ""}${event.description ? ` - ${event.description.slice(0, 160)}` : ""}`;
     });
 
     const prompt = [
-      "Tu prepares une newsletter papier A4 professionnelle pour Chabbat, en francais, pour une synagogue ou Beth Habad.",
+      "Tu prépares une newsletter papier A4 professionnelle pour Chabbat, pour une synagogue ou un Beth Habad.",
+      outputLanguageDirective(outputLocale),
       "Retourne uniquement un JSON valide avec les cles: title, intro, ravWord, shabbatNote, eventIntro, restaurantAd, proofreadNote.",
       body.mode === "rav" ? "Tu retravailles uniquement le Mot du Rav. Garde les autres champs courts ou vides, mais renvoie toujours un JSON valide." : `Le titre doit rester exactement : ${requestedTitle}. L'introduction doit etre courte, accueillante et tenir sur deux lignes maximum.`,
       sparseLayout
@@ -148,7 +155,7 @@ export async function POST(request: Request) {
         : "La maquette contient plusieurs rubriques. Reste concis pour conserver une composition aeree et reguliere.",
       "Style: chaleureux, clair, tres professionnel, adapte a l'impression papier. Pas d'emojis. Pas de Markdown.",
       `Communaute: ${community?.name ?? "Communaute"}. Ville: ${city}. Ton souhaite: ${safeText(body.tone, 80) || community?.tone || "professionnel"}.`,
-      shabbat ? `Chabbat: ${shabbat.parasha ?? "Chabbat"}, date hebraique ${shabbat.hebrewDate ?? ""}, entree ${shabbat.entry ?? ""}, sortie ${shabbat.exit ?? ""}.` : "Horaires de Chabbat indisponibles.",
+      shabbat ? `Chabbat: ${parasha ?? "Chabbat"}, date hébraïque ${hebrewDate ?? ""}, entrée ${shabbat.entry ?? ""}, sortie ${shabbat.exit ?? ""}.` : "Horaires de Chabbat indisponibles.",
       modules.ravWord ? `Mot du Rav actif. Theme demande: ${safeText(body.ravTheme, 240) || "message court de Torah pour la semaine"}. Redige un mot de Torah original, inspire de la Paracha, sans jamais depasser ${NEWSLETTER_RAV_WORD_LIMIT} caracteres, espaces compris.` : "Mot du Rav inactif: laisse ravWord vide.",
       modules.shabbat ? `Pour shabbatNote, redige un resume accessible et fidele de la Paracha de la semaine, entre ${sparseLayout ? "75 et 95" : "55 et 75"} mots, sans inventer de details.` : "Resume de Paracha inactif: laisse shabbatNote vide.",
       modules.parness ? `Parness Hayom: ${safeText(body.parnessText, 220) || "a completer"}.` : "Parness Hayom inactif.",
@@ -169,16 +176,16 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       title: requestedTitle,
-      intro: newsletterGeneratedText(parsed?.intro, "Votre feuillet communautaire des activités de la semaine."),
+      intro: newsletterGeneratedText(parsed?.intro, outputLocale === "he" ? "חדשות הקהילה ופעילויות השבוע." : "Votre feuillet communautaire des activités de la semaine."),
       ravWord: limitNewsletterText(newsletterGeneratedText(parsed?.ravWord), NEWSLETTER_RAV_WORD_LIMIT),
-      shabbatNote: newsletterGeneratedText(parsed?.shabbatNote, `Retrouvez les grands enseignements de ${shabbat?.parasha ?? "la Paracha de la semaine"} et partagez-les en famille pendant Chabbat.`),
-      eventIntro: newsletterGeneratedText(parsed?.eventIntro, "Voici les principaux rendez-vous à noter pour les prochains jours."),
+      shabbatNote: newsletterGeneratedText(parsed?.shabbatNote, outputLocale === "he" ? "רעיונות מרכזיים מפרשת השבוע לשיתוף סביב שולחן השבת." : `Retrouvez les grands enseignements de ${parasha ?? "la Paracha de la semaine"} et partagez-les en famille pendant Chabbat.`),
+      eventIntro: newsletterGeneratedText(parsed?.eventIntro, outputLocale === "he" ? "האירועים המרכזיים לימים הקרובים." : "Voici les principaux rendez-vous à noter pour les prochains jours."),
       restaurantAd: newsletterGeneratedText(parsed?.restaurantAd),
-      proofreadNote: newsletterGeneratedText(parsed?.proofreadNote, "Texte relu et adapté à un support papier."),
+      proofreadNote: newsletterGeneratedText(parsed?.proofreadNote, outputLocale === "he" ? "הטקסט מותאם לקריאה ולהדפסה." : "Texte relu et adapté à un support papier."),
       warnings: [
-        ...(eventLines.length === 0 && modules.events ? ["Aucun evenement a venir trouve dans l'agenda."] : []),
-        ...(birthdays.length === 0 && modules.birthdays ? ["Aucun anniversaire juif trouve sur les 7 prochains jours."] : []),
-        ...(!shabbat && modules.shabbat ? ["Horaires de Chabbat indisponibles pour cette ville."] : []),
+        ...(eventLines.length === 0 && modules.events ? [outputLocale === "he" ? "לא נמצאו אירועים קרובים ביומן." : "Aucun événement à venir trouvé dans l’agenda."] : []),
+        ...(birthdays.length === 0 && modules.birthdays ? [outputLocale === "he" ? "לא נמצאו ימי הולדת יהודיים בשבעת הימים הקרובים." : "Aucun anniversaire juif trouvé sur les 7 prochains jours."] : []),
+        ...(!shabbat && modules.shabbat ? [outputLocale === "he" ? "זמני השבת אינם זמינים לעיר הזאת." : "Horaires de Chabbat indisponibles pour cette ville."] : []),
       ],
     });
   } catch (error) {

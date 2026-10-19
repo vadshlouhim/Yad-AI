@@ -11,6 +11,7 @@ import { DEFAULT_NEWSLETTER_LABELS, parseNewsletterLabels, resolveNewsletterLabe
 import { parseNewsletterDraft } from "../src/components/newsletter/newsletter-paper-client";
 import { NEWSLETTER_OUTPUT_BYTES, normalizeNewsletterImage, normalizeNewsletterLogo } from "../src/lib/newsletter/server-image";
 import { formatKiddushSponsor, NEWSLETTER_CHALLOT_ICON_URL } from "../src/lib/newsletter/kiddush";
+import { NEWSLETTER_DRAFT_VERSION, resolveNewsletterDraftLocale } from "../src/lib/newsletter/draft-locale";
 
 async function main() {
   const supabaseUrl = "https://project.supabase.co";
@@ -30,11 +31,16 @@ async function main() {
   assert.equal(resolveNewsletterLabels({ agenda: "Nos rendez-vous" }, { parness: "Dédicace du jour" }).parness, "Dédicace du jour");
   assert.equal(resolveNewsletterLabels({}, {}).photos, DEFAULT_NEWSLETTER_LABELS.photos);
   const migratedDraft = parseNewsletterDraft({ version: 1, title: "Ancien feuillet", enabled: {}, generated: { title: "Ancien feuillet" } }, "", "");
-  assert.equal(migratedDraft?.version, 2);
+  assert.equal(migratedDraft?.version, NEWSLETTER_DRAFT_VERSION);
+  assert.equal(migratedDraft?.outputLocale, "fr", "Un brouillon existant sans choix fiable reste en français");
   assert.deepEqual(migratedDraft?.manualBirthdays, []);
   assert.equal(migratedDraft?.specificEventText, "");
   assert.deepEqual(migratedDraft?.labelOverrides, {});
   const configurableDraft = parseNewsletterDraft({ version: 2, enabled: { shabbat: false }, generated: { ravWord: "x".repeat(900) } }, "", "");
+  assert.equal(parseNewsletterDraft({ version: 2, outputLocale: "he", enabled: {}, generated: { intro: "Texte français" } }, "", "", "he")?.outputLocale, "fr", "La locale ajoutée automatiquement aux brouillons version 2 ne doit pas remplacer leur français");
+  assert.equal(parseNewsletterDraft({ version: 3, outputLocale: "he", enabled: {}, generated: {} }, "", "", "fr")?.outputLocale, "he", "Un nouveau brouillon version 3 conserve son choix de langue");
+  assert.equal(resolveNewsletterDraftLocale(2, "he", "he"), "fr");
+  assert.equal(resolveNewsletterDraftLocale(NEWSLETTER_DRAFT_VERSION, "he", "fr"), "he");
   assert.equal(configurableDraft?.enabled.shabbat, false, "Le RÃ©sumÃ© de la Paracha doit pouvoir Ãªtre retirÃ© dans Composer");
   assert.equal(configurableDraft?.generated.ravWord.length, NEWSLETTER_RAV_WORD_LIMIT, "Les anciens Mots du Rav sont ramenÃ©s Ã  la limite de 700 caractÃ¨res");
   assert.equal(resolveNewsletterBanner(undefined, "https://cdn.test/logo.png"), "https://cdn.test/logo.png");
