@@ -27,6 +27,7 @@ function validate(data, pages, name) {
   }
   if (data.enabled.seferHamitsvot) {
     check(text('sefer-hamitsvot') === data.seferHamitsvot.dateLabel + (data.shabbat?.hebrewDate ? ' · ' + data.shabbat.hebrewDate : '') + '\n\n' + data.seferHamitsvot.text + '\n\n' + data.seferHamitsvot.sourceLabel, name + ': study text changed');
+    if (data.outputLocale === 'he') check(data.seferHamitsvot.text.length <= 1000, name + ': Hebrew study exceeds 1,000 characters');
   }
   if (data.enabled.parness) check(text('dedications').includes(data.parnessText), name + ': missing dedication');
   if (data.enabled.kiddush) {

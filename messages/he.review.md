@@ -121,5 +121,5 @@ Choix terminologiques :
 - « Raccourcir avec l’IA » : **לקצר עם AI**.
 - « Revenir au titre par défaut » : **חזרה לכותרת ברירת המחדל**.
 - « 2 pages · recto-verso » : **2 עמודים · דו־צדדי**.
-- La source du Sefer Hamitsvot est affichée sous la forme **מקור: he.chabad.org** ; le texte intégral n’est jamais recopié.
+- La source du Sefer Hamitsvot est affichée sous la forme **מקור: Beth Loubavitch · תורגם ותומצת בעזרת AI** ; le texte français brut n’est jamais affiché dans le feuillet hébreu.
 - Un brouillon distinct est conservé pour chaque langue d’interface ; les brouillons historiques restent français.

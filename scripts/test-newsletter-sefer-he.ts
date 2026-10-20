@@ -1,58 +1,61 @@
 import assert from "node:assert/strict";
-import { commandmentRefs, fetchHebrewSeferHamitsvotSource } from "../src/lib/newsletter/hebrew-sefer-hamitsvot";
-import { hebrewSeferHamitsvotUrl, newsletterShabbatDate, upcomingSaturdayDate } from "../src/lib/newsletter/shabbat-study";
+import { fetchSeferHamitsvot } from "../src/lib/automation/hayom-yom";
+import {
+  HEBREW_SEFER_MAX_LENGTH,
+  HEBREW_SEFER_SOURCE_LABEL,
+  frenchCommandments,
+  hebrewCommandmentHeading,
+  hebrewTranslationPrompt,
+  prepareHebrewSeferTranslation,
+  stripFrenchSeferIntroduction,
+} from "../src/lib/newsletter/hebrew-sefer-translation";
+import { newsletterShabbatDate, upcomingSaturdayDate } from "../src/lib/newsletter/shabbat-study";
+import heMessages from "../messages/he.json";
 
 const DATE = "2026-10-24";
-
-function jsonResponse(value: unknown, status = 200) {
-  return new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
-}
+const WARNING = "Notons que bon nombre de ces lois ne sont pas pratiquées de nos jours. Ce texte constitue un premier essai. ";
+const FRENCH_STUDY = `${WARNING}Mitsva positive N° 245 : C'est le commandement qui nous a été enjoint en ce qui concerne la loi de l'achat et de la vente.`;
 
 async function main() {
   assert.equal(newsletterShabbatDate("2026-10-23"), DATE);
   assert.equal(upcomingSaturdayDate(new Date("2026-10-20T23:30:00Z"), "Europe/Paris"), DATE);
-  assert.equal(hebrewSeferHamitsvotUrl(DATE), "https://he.chabad.org/dailystudy/seferHamitzvos.asp?tdate=10%2F24%2F2026");
 
   const requested: string[] = [];
-  const source = await fetchHebrewSeferHamitsvotSource(DATE, (async (input) => {
+  const source = await fetchSeferHamitsvot(DATE, (async (input) => {
     const url = String(input);
     requested.push(url);
-    if (url.startsWith("https://he.chabad.org/")) return new Response("Just a moment...", { status: 403 });
     if (url.includes("view=day") && url.includes("year=2026") && url.includes("month=10") && url.includes("day=24")) {
       return new Response('<a href="/etude/etudes-quotidiennes/251709/sefer-hamitsvot">Sefer</a>', { status: 200 });
     }
     if (url.includes("loubavitch.fr/etude/etudes-quotidiennes/251709/sefer-hamitsvot")) {
-      return new Response('<div class="date today">10.24.2026</div><div class="event-desc">Mitsva positive N° 245 :\nTexte français.</div>', { status: 200 });
+      return new Response(`<div class="date today">10.24.2026</div><div class="event-desc">${FRENCH_STUDY}</div>`, { status: 200 });
     }
-    if (url.includes("api/v3/texts/Sefer_HaMitzvot,_Positive_Commandments.245?version=hebrew")) return jsonResponse({
-      ref: "Sefer HaMitzvot, Positive Commandments 245",
-      heRef: "ספר המצוות, מצוות עשה רמ״ה",
-      versions: [{ language: "he", text: ["היא שצונו בדין מקח וממכר, ובדרכים שבהן מתקיים המכר בין המוכר והקונה."] }],
-    });
     return new Response("Not found", { status: 404 });
   }) as typeof fetch);
 
-  assert.equal(source.date, DATE);
-  assert.equal(source.retrieval, "loubavitch.fr+sefaria");
-  assert.equal(source.title, "מצוות עשה רמ״ה");
-  assert.match(source.text, /דין מקח וממכר/);
-  assert.match(source.sourceUrl, /sefaria\.org\/Sefer_HaMitzvot,_Positive_Commandments\.245/);
-  assert.equal(source.sourceLabel, "מקור: ספר המצוות לרמב״ם (Sefaria)");
-  assert.deepEqual(commandmentRefs("Mitsva positive N° 8 ; Mitsva négative N° 64 ; Mitsva positive N° 206"), [
-    { type: "Positive", number: 8 },
-    { type: "Negative", number: 64 },
-    { type: "Positive", number: 206 },
+  assert.equal(source.text, FRENCH_STUDY);
+  assert.ok(requested.length === 2 && requested.every((url) => url.startsWith("https://www.loubavitch.fr/")));
+  assert.equal(stripFrenchSeferIntroduction(source.text), FRENCH_STUDY.slice(WARNING.length));
+  assert.deepEqual(frenchCommandments("Mitsva positive N° 245; Mitsva négative N° 64"), [
+    { type: "positive", number: 245 },
+    { type: "negative", number: 64 },
   ]);
-  assert.ok(requested.some((url) => url.includes("loubavitch.fr")), "The fallback must identify the mitzvah on loubavitch.fr");
+  assert.equal(hebrewCommandmentHeading(source.text), "מצוות עשה מס׳ 245");
+  const prompt = hebrewTranslationPrompt(source.text);
+  assert.doesNotMatch(prompt, /premier essai|bon nombre de ces lois/i);
+  assert.match(prompt, /מצוות עשה מס׳ 245/);
 
-  const outageRequests: string[] = [];
-  await assert.rejects(fetchHebrewSeferHamitsvotSource(DATE, (async (input) => {
-    outageRequests.push(String(input));
-    return new Response("Unavailable", { status: 503 });
-  }) as typeof fetch), /לא ניתן לטעון/);
-  assert.ok(outageRequests.some((url) => url.includes("loubavitch.fr")), "After the Chabad block, the fallback must try the French schedule source");
+  const translated = prepareHebrewSeferTranslation(
+    "המצווה עוסקת בדיני קנייה ומכירה ומלמדת כיצד העסקה חלה בין המוכר לקונה. יש לפעול בדרכי הקניין שקבעה ההלכה, כדי שהעברת הבעלות תהיה ברורה ומחייבת.",
+    source.text,
+  );
+  assert.match(translated, /^מצוות עשה מס׳ 245/);
+  assert.ok(translated.length < HEBREW_SEFER_MAX_LENGTH);
+  assert.equal(prepareHebrewSeferTranslation(FRENCH_STUDY, source.text), "", "Raw French must never reach a Hebrew newsletter");
+  assert.equal(HEBREW_SEFER_SOURCE_LABEL, "מקור: Beth Loubavitch · תורגם ותומצת בעזרת AI");
+  assert.equal(heMessages.newsletter.studyTranslationFailed, "התרגום לא הצליח – נסו שוב");
 
-  console.log("Sefer Hamitsvot HE: exact Shabbat date, mitzvah 245, Hebrew fallback and outage behavior passed.");
+  console.log("Sefer Hamitsvot HE: same Loubavitch source/date, intro removal, Hebrew-only translation and 1,000-character limit passed.");
 }
 
 void main().catch((error) => {

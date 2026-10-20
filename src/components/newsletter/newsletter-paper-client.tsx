@@ -468,7 +468,7 @@ export function NewsletterPaperClient({
     photos: visiblePhotos, posters: visiblePosters, partnerAds: visiblePartnerAds,
     events: visibleEvents, birthdays: initialBirthdays, manualBirthdays, specificEventText, labels: resolvedLabels, shabbat: localizedShabbat, bannerPhotoUrl: newsletterLogoImageUrl(bannerPhotoUrl),
     seferHamitsvot: localizedStudy,
-    studyUnavailableMessage: t("studyUnavailable"),
+    studyUnavailableMessage: t(initialSeferHamitsvot?.unavailableReason === "translation" ? "studyTranslationFailed" : "studyUnavailable"),
     outputLocale,
     layout,
   };
@@ -1171,7 +1171,7 @@ export function NewsletterPaperClient({
                 {localizedStudy ? <>
                   <p className="mt-1 text-xs font-bold text-teal-800">{localizedStudy.dateLabel}{localizedShabbat?.hebrewDate ? ` · ${localizedShabbat.hebrewDate}` : ""}</p>
                   {localizedStudy.unavailable ? <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                    <p>{t("studyUnavailable")}</p>
+                    <p>{t(localizedStudy.unavailableReason === "translation" ? "studyTranslationFailed" : "studyUnavailable")}</p>
                     <button type="button" disabled={studyRetrying} onClick={() => startStudyRetry(() => router.refresh())} className="mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-amber-900 px-3 py-2 text-xs font-black text-white disabled:opacity-60">
                       {studyRetrying ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
                       {t(studyRetrying ? "studyRetrying" : "studyRetry")}

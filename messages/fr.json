@@ -349,6 +349,7 @@
     "retryLoading": "Réessayer le chargement",
     "conflict": { "message": "Une autre version du brouillon a été enregistrée. Vos modifications restent sur cet appareil.", "server": "Utiliser la version serveur", "local": "Conserver ma version" },
     "studyUnavailable": "L’étude de ce Chabbat n’a pas pu être chargée. Réessayez ou écrivez le texte vous-même ; aucune autre date et aucune autre langue ne seront utilisées.",
+    "studyTranslationFailed": "La traduction a échoué – réessayez.",
     "studyRetry": "Réessayer",
     "studyRetrying": "Nouvelle tentative…",
     "studyManualHelp": "Vous pouvez saisir ou coller votre propre texte dans le champ ci-dessous.",

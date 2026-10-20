@@ -8,6 +8,7 @@ export type NewsletterStudy = {
   sourceUrl: string;
   sourceLabel: string;
   unavailable?: boolean;
+  unavailableReason?: "source" | "translation";
 };
 
 /** The newsletter stores Friday's candle-lighting date, not Saturday. */
@@ -47,19 +48,14 @@ export function upcomingSaturdayDate(now: Date, timezone: string) {
   return localDate.toISOString().slice(0, 10);
 }
 
-export function hebrewSeferHamitsvotUrl(dateISO: string) {
-  const [year, month, day] = dateISO.split("-").map(Number);
-  if (!year || !month || !day) throw new Error("Date d'étude invalide.");
-  return `https://he.chabad.org/dailystudy/seferHamitzvos.asp?tdate=${month}%2F${day}%2F${year}`;
-}
-
-export function unavailableNewsletterStudy(dateISO: string, locale: OutputLocale): NewsletterStudy {
+export function unavailableNewsletterStudy(dateISO: string, locale: OutputLocale, unavailableReason: "source" | "translation" = "source"): NewsletterStudy {
   return {
     date: dateISO,
     dateLabel: newsletterStudyDateLabel(dateISO, locale),
     text: "",
-    sourceUrl: locale === "he" ? hebrewSeferHamitsvotUrl(dateISO) : "https://www.loubavitch.fr",
-    sourceLabel: locale === "he" ? "מקור: he.chabad.org" : "Source : Beth Loubavitch — loubavitch.fr",
+    sourceUrl: "https://www.loubavitch.fr",
+    sourceLabel: locale === "he" ? "מקור: Beth Loubavitch · תורגם ותומצת בעזרת AI" : "Source : Beth Loubavitch — loubavitch.fr",
     unavailable: true,
+    unavailableReason,
   };
 }
