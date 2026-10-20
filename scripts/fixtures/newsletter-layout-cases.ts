@@ -69,7 +69,6 @@ export function newsletterLayoutCases() {
   cases.push({ name: "ai-reordered", data: moved });
   const hebrew = structuredClone(baseNewsletter());
   hebrew.outputLocale = "he";
-  hebrew.enabled.seferHamitsvot = false;
   hebrew.enabled.kiddush = false;
   hebrew.generated = {
     title: "השבתון",
@@ -85,6 +84,13 @@ export function newsletterLayoutCases() {
   hebrew.parnessText = "משפחת כהן";
   hebrew.kiddushText = "משפחת לוי";
   hebrew.shabbat = { date: "2026-10-23", parasha: "לֶךְ־לְךָ", hebrewDate: "י״ג חֶשְׁוָן תשפ״ז", entry: "18:28", exit: "19:32" };
+  hebrew.seferHamitsvot = {
+    date: "2026-10-24",
+    dateLabel: "שבת, 24 באוקטובר 2026",
+    text: "מצוות עשה רמ״ה עוסקת בדיני מקח וממכר ובדרכים שבהן העסקה מתקיימת בין המוכר לקונה. התורה מלמדת שיש כללים ברורים להעברת בעלות, וחכמים קבעו דרכי קניין מעשיות למטלטלין, ובהן משיכה, מסירה והגבהה. גם קרקעות ונכסים אחרים נקנים בדרכים המתאימות להם, כגון שטר וחזקה. עיקר הלימוד הוא שמסחר תקין אינו נשען רק על הסכמה כללית, אלא על פעולה משפטית מוכרת שמבהירה מתי הקניין הושלם ושומרת על סדר והגינות בין הצדדים.",
+    sourceUrl: "https://he.chabad.org/dailystudy/seferHamitzvos.asp?tdate=10%2F24%2F2026",
+    sourceLabel: "מקור: he.chabad.org",
+  };
   hebrew.birthdays = [{ id: "1", name: "David Cohen", hebrewDate: "14 Hechvan 5787", hebrewDateHe: "י״ד חֶשְׁוָן תשפ״ז", gregorianDate: "2026-10-25" }];
   cases.push({ name: "hebrew-rtl", data: hebrew });
   return cases;

@@ -30,6 +30,7 @@ export type NewsletterDocumentData = {
   labels?: Partial<NewsletterLabels>;
   shabbat: NewsletterShabbat | null;
   seferHamitsvot?: NewsletterStudy | null;
+  studyUnavailableMessage?: string;
   layout?: NewsletterLayoutPreferences;
   outputLocale: OutputLocale;
 };
@@ -210,7 +211,7 @@ async function makeBlocks(data: NewsletterDocumentData): Promise<DocumentBlock[]
   const { generated: g, enabled: e } = data;
   const labels = resolveNewsletterLabels(undefined, data.labels, data.outputLocale);
   if (e.seferHamitsvot && (!data.shabbat || !data.seferHamitsvot || data.seferHamitsvot.date !== newsletterShabbatDate(data.shabbat.date))) {
-    throw new Error("Le Sefer Hamitsvot de ce Chabbat n’est pas disponible. Rechargez la page ou désactivez cette rubrique ; aucune étude d’une autre date ne sera utilisée.");
+    throw new Error(data.studyUnavailableMessage ?? "L’étude de ce Chabbat n’est pas disponible.");
   }
   const blocks: DocumentBlock[] = [
     ...textBlock("intro", "", g.intro),
@@ -218,7 +219,7 @@ async function makeBlocks(data: NewsletterDocumentData): Promise<DocumentBlock[]
     ...(e.shabbat ? textBlock("parasha", labels.parasha, g.shabbatNote) : []),
     ...textBlock("dedications", labels.community, [e.parness && data.parnessText.trim() ? `${labels.parness} · ${data.parnessText}` : "", e.kiddush && data.kiddushText.trim() ? `${labels.kiddush} ${formatKiddushSponsor(data.kiddushText)}` : ""].filter(Boolean).join("\n"), true),
   ];
-  if (e.seferHamitsvot && data.seferHamitsvot) {
+  if (e.seferHamitsvot && data.seferHamitsvot?.text.trim()) {
     const study = data.seferHamitsvot;
     blocks.push(...textBlock("sefer-hamitsvot", labels.seferHamitsvot, `${study.dateLabel}${data.shabbat?.hebrewDate ? ` · ${data.shabbat.hebrewDate}` : ""}\n\n${study.text}\n\n${study.sourceLabel}`, true));
   }

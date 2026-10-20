@@ -30,3 +30,14 @@ export function hebrewSeferHamitsvotUrl(dateISO: string) {
   if (!year || !month || !day) throw new Error("Date d'étude invalide.");
   return `https://he.chabad.org/dailystudy/seferHamitzvos.asp?tdate=${month}%2F${day}%2F${year}`;
 }
+
+export function unavailableNewsletterStudy(dateISO: string, locale: OutputLocale): NewsletterStudy {
+  return {
+    date: dateISO,
+    dateLabel: newsletterStudyDateLabel(dateISO, locale),
+    text: "",
+    sourceUrl: locale === "he" ? hebrewSeferHamitsvotUrl(dateISO) : "https://www.loubavitch.fr",
+    sourceLabel: locale === "he" ? "מקור: he.chabad.org" : "Source : Beth Loubavitch — loubavitch.fr",
+    unavailable: true,
+  };
+}

@@ -156,6 +156,13 @@ function validate(data, pages, name) {
   let rejected = false;
   try { await composeNewsletter(wrong); } catch { rejected = true; }
   check(rejected, 'Friday study must not be printed as Saturday study');
+  const wrongHebrew = baseNewsletter();
+  wrongHebrew.outputLocale = 'he';
+  wrongHebrew.seferHamitsvot.date = '2026-10-16';
+  wrongHebrew.studyUnavailableMessage = 'לא ניתן היה לטעון את לימוד השבת.';
+  let hebrewError = '';
+  try { await composeNewsletter(wrongHebrew); } catch (error) { hebrewError = error?.message || String(error); }
+  check(hebrewError === wrongHebrew.studyUnavailableMessage, 'Hebrew study error must not surface in French');
   const impossible = baseNewsletter(); impossible.generated.ravWord = 'Contenu démesurément long. '.repeat(3000);
   rejected = false;
   try { await composeNewsletter(impossible); } catch { rejected = true; }

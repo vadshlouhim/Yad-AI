@@ -1,7 +1,8 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { type ChangeEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { NewsletterDocument, type NewsletterDocumentHandle } from "@/components/newsletter/newsletter-document";
 import { NewsletterRevision } from "./newsletter-revision";
@@ -357,6 +358,7 @@ export function NewsletterPaperClient({
   initialShabbat: NewsletterShabbat | null;
   initialSeferHamitsvot?: NewsletterStudy | null;
 }) {
+  const router = useRouter();
   const interfaceLocale = parseOutputLocale(useLocale());
   const t = useTranslations("newsletter");
   const draftRequestError = useCallback((status: number, loading = false) => {
@@ -387,6 +389,7 @@ export function NewsletterPaperClient({
   const [parashaOpen, setParashaOpen] = useState(false);
   const [agendaOpen, setAgendaOpen] = useState(false);
   const [seferHamitsvotOpen, setSeferHamitsvotOpen] = useState(false);
+  const [studyRetrying, startStudyRetry] = useTransition();
   // Retain the legacy field so version-1 drafts remain compatible.
   const mobilePreviewPage = "front" as const;
   const [parnessText, setParnessText] = useState("");
@@ -465,6 +468,7 @@ export function NewsletterPaperClient({
     photos: visiblePhotos, posters: visiblePosters, partnerAds: visiblePartnerAds,
     events: visibleEvents, birthdays: initialBirthdays, manualBirthdays, specificEventText, labels: resolvedLabels, shabbat: localizedShabbat, bannerPhotoUrl: newsletterLogoImageUrl(bannerPhotoUrl),
     seferHamitsvot: localizedStudy,
+    studyUnavailableMessage: t("studyUnavailable"),
     outputLocale,
     layout,
   };
@@ -1166,7 +1170,14 @@ export function NewsletterPaperClient({
                 <div id="newsletter-sefer-hamitsvot-panel" hidden={!seferHamitsvotOpen} className="border-t border-teal-100 px-4 pb-4 pt-3">
                 {localizedStudy ? <>
                   <p className="mt-1 text-xs font-bold text-teal-800">{localizedStudy.dateLabel}{localizedShabbat?.hebrewDate ? ` · ${localizedShabbat.hebrewDate}` : ""}</p>
-                  {localizedStudy.unavailable ? <p className="mt-2 text-sm text-amber-800">{t("studyUnavailable")}</p> : null}
+                  {localizedStudy.unavailable ? <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <p>{t("studyUnavailable")}</p>
+                    <button type="button" disabled={studyRetrying} onClick={() => startStudyRetry(() => router.refresh())} className="mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-amber-900 px-3 py-2 text-xs font-black text-white disabled:opacity-60">
+                      {studyRetrying ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
+                      {t(studyRetrying ? "studyRetrying" : "studyRetry")}
+                    </button>
+                    <p className="mt-2 text-xs font-semibold text-amber-800">{t("studyManualHelp")}</p>
+                  </div> : null}
                   <TextArea label={t("fields.seferHamitsvotText")} value={seferHamitsvotText} onChange={(value) => setSeferHamitsvotText(value)} maxLength={NEWSLETTER_SEFER_LIMIT} />
                   <a className="mt-2 inline-block text-xs underline" href={localizedStudy.sourceUrl} target="_blank" rel="noreferrer">{localizedStudy.sourceLabel}</a>
                 </> : <p className="mt-2 text-sm text-amber-800">{t("studyUnavailable")}</p>}
