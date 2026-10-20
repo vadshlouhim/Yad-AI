@@ -1,25 +1,18 @@
 import { hebrewSeferHamitsvotUrl } from "./shabbat-study";
+import { fetchSeferHamitsvot } from "@/lib/automation/hayom-yom";
 
-const TORAH_CALC_URL = "https://www.torahcalc.com/api/dailylearning";
-const SEFARIA_TEXT_URL = "https://www.sefaria.org/api/texts";
+const SEFARIA_TEXT_URL = "https://www.sefaria.org/api/v3/texts";
 const SOURCE_TIMEOUT_MS = 20_000;
 
 type FetchLike = typeof fetch;
 
-type TorahCalcResponse = {
-  success?: boolean;
-  data?: {
-    date?: string;
-    dailySeferHamitzvos?: {
-      name?: string;
-      url?: string;
-    } | null;
-  };
-};
-
 type SefariaResponse = {
+  ref?: string;
   heRef?: string;
-  he?: unknown;
+  versions?: Array<{
+    language?: string;
+    text?: unknown;
+  }>;
 };
 
 export type HebrewSeferHamitsvotSource = {
@@ -27,7 +20,8 @@ export type HebrewSeferHamitsvotSource = {
   title: string;
   text: string;
   sourceUrl: string;
-  retrieval: "he.chabad.org" | "same-day-hebrew-fallback";
+  sourceLabel: string;
+  retrieval: "he.chabad.org" | "loubavitch.fr+sefaria";
 };
 
 function decodeHtml(value: string) {
@@ -107,16 +101,15 @@ async function fetchDirectChabad(dateISO: string, fetchImpl: FetchLike): Promise
   const html = await response.text();
   if (!response.ok) throw new Error(`he.chabad.org חסם את בקשת השרת (${response.status}).`);
   const study = extractHebrewSeferHamitsvot(html, dateISO);
-  return { date: dateISO, ...study, sourceUrl, retrieval: "he.chabad.org" };
+  return { date: dateISO, ...study, sourceUrl, sourceLabel: "מקור: he.chabad.org", retrieval: "he.chabad.org" };
 }
 
-function commandmentRefs(name: string) {
+export function commandmentRefs(frenchStudy: string) {
   const refs: Array<{ type: "Positive" | "Negative"; number: number }> = [];
-  for (const match of name.matchAll(/(Positive|Negative) Commandments?\s+([\d,\s]+)/g)) {
-    for (const raw of match[2].split(",")) {
-      const number = Number.parseInt(raw.trim(), 10);
-      if (Number.isInteger(number) && number > 0) refs.push({ type: match[1] as "Positive" | "Negative", number });
-    }
+  for (const match of frenchStudy.matchAll(/Mitsva\s+(positive|n[eé]gative)\s+N(?:°|º|o)?\s*(\d+)/gi)) {
+    const number = Number.parseInt(match[2], 10);
+    const type = match[1].toLocaleLowerCase("fr-FR") === "positive" ? "Positive" : "Negative";
+    if (Number.isInteger(number) && number > 0 && !refs.some((ref) => ref.type === type && ref.number === number)) refs.push({ type, number });
   }
   return refs;
 }
@@ -128,39 +121,31 @@ function flattenHebrewText(value: unknown): string[] {
 }
 
 async function fetchSameDayHebrewFallback(dateISO: string, fetchImpl: FetchLike): Promise<HebrewSeferHamitsvotSource> {
-  const scheduleUrl = `${TORAH_CALC_URL}?date=${encodeURIComponent(dateISO)}`;
-  const scheduleResponse = await fetchWithTimeout(fetchImpl, scheduleUrl, "application/json");
-  if (!scheduleResponse.ok) throw new Error(`לוח ספר המצוות אינו זמין (${scheduleResponse.status}).`);
-  const schedule = await scheduleResponse.json() as TorahCalcResponse;
-  const daily = schedule.data?.dailySeferHamitzvos;
-  if (!schedule.success || schedule.data?.date !== dateISO || !daily?.name || !daily.url) {
-    throw new Error("לוח ספר המצוות לא החזיר לימוד לתאריך המבוקש.");
-  }
-  const scheduledDate = new URL(daily.url).searchParams.get("tdate");
-  const [year, month, day] = dateISO.split("-");
-  if (scheduledDate !== `${Number(month)}/${Number(day)}/${year}`) {
-    throw new Error("לוח ספר המצוות החזיר תאריך אחר.");
-  }
-  const refs = commandmentRefs(daily.name);
+  const frenchStudy = await fetchSeferHamitsvot(dateISO, fetchImpl);
+  const refs = commandmentRefs(frenchStudy.text);
   if (!refs.length) throw new Error("לא ניתן לזהות את מספר המצווה בלימוד היומי.");
 
   const portions = await Promise.all(refs.map(async ({ type, number }) => {
     const ref = `Sefer_HaMitzvot,_${type}_Commandments.${number}`;
-    const response = await fetchWithTimeout(fetchImpl, `${SEFARIA_TEXT_URL}/${encodeURIComponent(ref)}?lang=he&context=0`, "application/json");
+    const apiUrl = `${SEFARIA_TEXT_URL}/${ref}?version=hebrew`;
+    const response = await fetchWithTimeout(fetchImpl, apiUrl, "application/json");
     if (!response.ok) throw new Error(`הטקסט העברי של המצווה אינו זמין (${response.status}).`);
     const payload = await response.json() as SefariaResponse;
-    const text = flattenHebrewText(payload.he).join("\n").trim();
+    const expectedRef = `Sefer HaMitzvot, ${type} Commandments ${number}`;
+    const text = flattenHebrewText(payload.versions?.find((version) => version.language === "he")?.text).join("\n").trim();
     const title = payload.heRef?.replace(/^ספר המצוות,\s*/, "").trim();
-    if (!title || text.length < 40 || !/[\u0590-\u05ff]/.test(text)) throw new Error("הטקסט העברי של המצווה חסר.");
+    if (payload.ref !== expectedRef || !title || text.length < 40 || !/[\u0590-\u05ff]/.test(text)) throw new Error("הטקסט העברי של המצווה חסר או שההפניה אינה תואמת.");
     return { title, text: `${title}\n${text}` };
   }));
 
+  const firstRef = `Sefer_HaMitzvot,_${refs[0].type}_Commandments.${refs[0].number}`;
   return {
     date: dateISO,
     title: portions.map((portion) => portion.title).join("; "),
     text: portions.map((portion) => portion.text).join("\n\n"),
-    sourceUrl: hebrewSeferHamitsvotUrl(dateISO),
-    retrieval: "same-day-hebrew-fallback",
+    sourceUrl: `https://www.sefaria.org/${firstRef}?lang=he`,
+    sourceLabel: "מקור: ספר המצוות לרמב״ם (Sefaria)",
+    retrieval: "loubavitch.fr+sefaria",
   };
 }
 

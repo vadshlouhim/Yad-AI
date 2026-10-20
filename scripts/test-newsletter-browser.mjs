@@ -18,7 +18,7 @@ const artifactDir = process.env.NEWSLETTER_PDF_DIR;
 if (artifactDir) await mkdir(artifactDir, { recursive: true });
 const server = createServer(async (req, res) => {
   try {
-    if (req.method === "POST" && artifactDir && ["/artifact/provided-a", "/artifact/provided-b", "/artifact/captions"].includes(req.url)) {
+    if (req.method === "POST" && artifactDir && ["/artifact/provided-a", "/artifact/provided-b", "/artifact/captions", "/artifact/hebrew-rtl"].includes(req.url)) {
       const chunks = [];
       for await (const chunk of req) chunks.push(chunk);
       await writeFile(path.join(artifactDir, req.url.split("/").at(-1) + ".pdf"), Buffer.concat(chunks));

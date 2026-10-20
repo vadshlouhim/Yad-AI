@@ -1,5 +1,5 @@
 import type { CommunityInfo, GeneratedNewsletter, ModuleKey, NewsletterBirthday, NewsletterEvent, NewsletterManualBirthday, NewsletterShabbat, UploadedPhoto } from "@/components/newsletter/newsletter-paper-client";
-import { newsletterShabbatDate, type NewsletterStudy } from "./shabbat-study";
+import { isSaturdayDate, newsletterShabbatDate, type NewsletterStudy } from "./shabbat-study";
 import type { NewsletterLayoutPreferences } from "./revision";
 import { resolveNewsletterLabels, type NewsletterLabels } from "./labels";
 import { formatKiddushSponsor, NEWSLETTER_CHALLOT_ICON_URL } from "./kiddush";
@@ -210,7 +210,8 @@ export function supportCommunityName(name: string) {
 async function makeBlocks(data: NewsletterDocumentData): Promise<DocumentBlock[]> {
   const { generated: g, enabled: e } = data;
   const labels = resolveNewsletterLabels(undefined, data.labels, data.outputLocale);
-  if (e.seferHamitsvot && (!data.shabbat || !data.seferHamitsvot || data.seferHamitsvot.date !== newsletterShabbatDate(data.shabbat.date))) {
+  const expectedStudyDate = data.shabbat ? newsletterShabbatDate(data.shabbat.date) : data.seferHamitsvot?.date;
+  if (e.seferHamitsvot && (!data.seferHamitsvot || !expectedStudyDate || !isSaturdayDate(expectedStudyDate) || data.seferHamitsvot.date !== expectedStudyDate)) {
     throw new Error(data.studyUnavailableMessage ?? "L’étude de ce Chabbat n’est pas disponible.");
   }
   const blocks: DocumentBlock[] = [

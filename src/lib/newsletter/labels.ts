@@ -43,7 +43,7 @@ export const DEFAULT_NEWSLETTER_LABELS_HE: NewsletterLabels = {
   agenda: "ביומן",
   birthdays: "ימי הולדת",
   photos: "תמונות השבוע",
-  partners: "השותפים שלנו",
+  partners: "התומכים שלנן",
   posters: "מודעות ואירועים קרובים",
   support: "תמכו בנו",
   specificEvent: "אירוע מיוחד",

@@ -5,7 +5,7 @@ import { getUpcomingShabbatTimes } from "@/lib/automation/hebcal";
 import { requireAuth } from "@/lib/auth";
 import { getBirthdayOccurrence, getCurrentHebrewDate, validateHebrewBirthday } from "@/lib/contacts/hebrew-birthday";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { newsletterShabbatDate, unavailableNewsletterStudy, type NewsletterStudy } from "@/lib/newsletter/shabbat-study";
+import { newsletterShabbatDate, unavailableNewsletterStudy, upcomingSaturdayDate, type NewsletterStudy } from "@/lib/newsletter/shabbat-study";
 import { fetchNewsletterStudy } from "@/lib/newsletter/shabbat-study.server";
 import { parseNewsletterLabels } from "@/lib/newsletter/labels";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -85,15 +85,13 @@ export default async function NewsletterPage() {
 
   const birthdayWindowStart = startOfDay(now);
   let seferHamitsvot: NewsletterStudy | null = null;
-  if (shabbatData) {
-    const date = newsletterShabbatDate(shabbatData.date);
-    try {
-      seferHamitsvot = await fetchNewsletterStudy(date, outputLocale, profile.communityId);
-    } catch (error) {
-      // Optional study must not make the entire editor unavailable.
-      console.error("[Newsletter Sefer Hamitsvot]", error);
-      seferHamitsvot = unavailableNewsletterStudy(date, outputLocale);
-    }
+  const studyDate = shabbatData ? newsletterShabbatDate(shabbatData.date) : upcomingSaturdayDate(now, timezone);
+  try {
+    seferHamitsvot = await fetchNewsletterStudy(studyDate, outputLocale, profile.communityId);
+  } catch (error) {
+    // Optional study must not make the entire editor unavailable.
+    console.error("[Newsletter Sefer Hamitsvot]", error);
+    seferHamitsvot = unavailableNewsletterStudy(studyDate, outputLocale);
   }
   const birthdayWindowEnd = startOfDay(weekEnd);
   const currentHebrewYear = getCurrentHebrewDate(timezone, now).getFullYear();

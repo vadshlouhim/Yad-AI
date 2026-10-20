@@ -165,8 +165,8 @@ function eventUrl(listHtml: string, slug: "hayom-yom" | "sefer-hamitsvot") {
   return absoluteSourceUrl(href);
 }
 
-async function fetchSource(url: string) {
-  const response = await fetch(url, {
+async function fetchSource(url: string, fetchImpl: typeof fetch = fetch) {
+  const response = await fetchImpl(url, {
     headers: { "User-Agent": "EasyCom-IA/1.0 (+https://easycom-ai.com)" },
     cache: "no-store",
     signal: AbortSignal.timeout(20_000),
@@ -188,10 +188,10 @@ function seferText(html: string) {
 }
 
 /** Same source/parser as daily study, independent of the Hayom Yom availability. */
-export async function fetchSeferHamitsvot(dateISO: string) {
-  const listHtml = await fetchSource(studyListUrl(dateISO));
+export async function fetchSeferHamitsvot(dateISO: string, fetchImpl: typeof fetch = fetch) {
+  const listHtml = await fetchSource(studyListUrl(dateISO), fetchImpl);
   const sourceUrl = eventUrl(listHtml, "sefer-hamitsvot");
-  const html = await fetchSource(sourceUrl);
+  const html = await fetchSource(sourceUrl, fetchImpl);
   const [year, month, day] = dateISO.split("-");
   if (!html.includes(`${month}.${day}.${year}`)) throw new Error("Le Sefer Hamitsvot ne correspond pas à la date demandée.");
   const text = seferText(html);
