@@ -29,7 +29,7 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const isAssistantPage = pathname.startsWith("/dashboard/assistant");
-  const menuSections = getOfficialDashboardMenuSections(communityType, tr);
+  const menuSections = getOfficialDashboardMenuSections(communityType, tr, locale);
 
   useEffect(() => {
     function handleOpenMainMenu() {
@@ -85,6 +85,7 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
     if (pathname.startsWith("/dashboard/referencement")) return tr("Referencement");
     if (pathname.startsWith("/dashboard/shabbat-times-auto")) return tr("Horaire de Chabbat");
     if (pathname.startsWith("/dashboard/templates")) return tr("Affiches");
+    if (pathname.startsWith("/dashboard/newsletter")) return tr("Newsletter papier Chabbat");
     if (pathname.startsWith("/dashboard/settings")) return tr("Parametres");
     return tr("Accueil");
   }

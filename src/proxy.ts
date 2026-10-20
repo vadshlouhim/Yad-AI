@@ -3,6 +3,14 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { updateSession } from "@/lib/supabase/session";
 import { DEMO_ACCESS_COOKIE, isValidDemoAccessCookie } from "@/lib/demo/access";
 import { normalizeAuthNextPath } from "@/lib/supabase/auth-redirect";
+import {
+  isSupportedLocale,
+  LOCALE_COOKIE_MAX_AGE,
+  LOCALE_COOKIE_NAME,
+  LOCALE_SOURCE_AUTO,
+  LOCALE_SOURCE_COOKIE_NAME,
+} from "@/i18n/config";
+import { detectLocaleFromRequest } from "@/lib/locale-detection";
 
 const PUBLIC_ROUTES = [
   "/",
@@ -55,6 +63,35 @@ function redirectWithSession(url: URL, supabaseResponse: NextResponse) {
   return response;
 }
 
+function hasSupabaseSessionCookie(request: NextRequest) {
+  return request.cookies
+    .getAll()
+    .some((cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("-auth-token"));
+}
+
+function prepareAutomaticLocale(request: NextRequest) {
+  const savedLocale = request.cookies.get(LOCALE_COOKIE_NAME)?.value;
+  if (isSupportedLocale(savedLocale) || hasSupabaseSessionCookie(request)) return null;
+
+  const locale = detectLocaleFromRequest(request);
+  request.cookies.set(LOCALE_COOKIE_NAME, locale);
+  request.cookies.set(LOCALE_SOURCE_COOKIE_NAME, LOCALE_SOURCE_AUTO);
+  return locale;
+}
+
+function withAutomaticLocale(response: NextResponse, locale: ReturnType<typeof prepareAutomaticLocale>) {
+  if (!locale) return response;
+  const options = {
+    maxAge: LOCALE_COOKIE_MAX_AGE,
+    path: "/",
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+  };
+  response.cookies.set(LOCALE_COOKIE_NAME, locale, options);
+  response.cookies.set(LOCALE_SOURCE_COOKIE_NAME, LOCALE_SOURCE_AUTO, options);
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -91,19 +128,24 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const automaticLocale = prepareAutomaticLocale(request);
+
   const publicRoute = isPublicRoute(pathname);
   const authEntry = pathname === "/auth/login" || pathname === "/auth/register";
 
   // Les pages publiques ordinaires ne dépendent pas de Supabase Auth.
   // Connexion et inscription conservent la redirection des utilisateurs connectés.
   if (publicRoute && !authEntry) {
-    return NextResponse.next();
+    return withAutomaticLocale(
+      NextResponse.next({ request: { headers: new Headers(request.headers) } }),
+      automaticLocale,
+    );
   }
 
   // Sans variables Supabase valides (dev sans .env.local) â†’ autoriser les routes publiques
   if (!isSupabaseConfigured()) {
-    if (publicRoute) return NextResponse.next();
-    return NextResponse.redirect(new URL("/auth/login", request.url));
+    if (publicRoute) return withAutomaticLocale(NextResponse.next({ request: { headers: new Headers(request.headers) } }), automaticLocale);
+    return withAutomaticLocale(NextResponse.redirect(new URL("/auth/login", request.url)), automaticLocale);
   }
 
   // Rafraîchit la session Supabase + récupère l'utilisateur
@@ -113,19 +155,19 @@ export async function proxy(request: NextRequest) {
   if (publicRoute) {
     if (user && authEntry) {
       const callbackUrl = normalizeAuthNextPath(request.nextUrl.searchParams.get("callbackUrl"));
-      return redirectWithSession(new URL(callbackUrl, request.url), supabaseResponse);
+      return withAutomaticLocale(redirectWithSession(new URL(callbackUrl, request.url), supabaseResponse), automaticLocale);
     }
-    return supabaseResponse;
+    return withAutomaticLocale(supabaseResponse, automaticLocale);
   }
 
   // Pas connecté â†’ login
   if (!user) {
     const loginUrl = new URL("/auth/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
-    return redirectWithSession(loginUrl, supabaseResponse);
+    return withAutomaticLocale(redirectWithSession(loginUrl, supabaseResponse), automaticLocale);
   }
 
-  return supabaseResponse;
+  return withAutomaticLocale(supabaseResponse, automaticLocale);
 }
 
 export const config = {

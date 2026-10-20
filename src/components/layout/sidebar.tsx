@@ -154,8 +154,8 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
   const [collapsed, setCollapsed] = useState(false);
   const [flyoutSection, setFlyoutSection] = useState<string | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const menuSections = getOfficialDashboardMenuSections(community.communityType, tr);
-  const quickAccessItems = getQuickAccessItems(tr);
+  const menuSections = getOfficialDashboardMenuSections(community.communityType, tr, locale);
+  const quickAccessItems = getQuickAccessItems(tr, locale);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(menuSections.map((section) => [section.section, true]))
   );
@@ -340,9 +340,9 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
       <div className="flex min-h-[74px] items-center gap-3 border-b border-slate-200 bg-white px-4 py-4">
         <button
           type="button"
-          onClick={() => router.push(resolveHref("/dashboard/assistant"))}
+          onClick={() => router.push(resolveHref(locale === "he" ? "/dashboard/newsletter" : "/dashboard/assistant"))}
           className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-blue-600 shadow-sm ring-1 ring-blue-100 transition-all hover:scale-[1.02]"
-          aria-label={tr("Ouvrir l'assistant")}
+          aria-label={locale === "he" ? tr("Newsletter papier Chabbat") : tr("Ouvrir l'assistant")}
         >
           {community.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element

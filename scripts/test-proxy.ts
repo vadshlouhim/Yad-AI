@@ -5,6 +5,8 @@ import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeAuthNextPath } from "../src/lib/supabase/auth-redirect";
+import { detectLocaleFromRequest, detectVisitorLocale } from "../src/lib/locale-detection";
+import { isDashboardPathEnabled, isFeatureEnabled } from "../src/lib/features-by-locale";
 
 // Execute the real proxy with isolated dependencies: no network or real sessions.
 const source = readFileSync(new URL("../src/proxy.ts", import.meta.url), "utf8");
@@ -25,6 +27,14 @@ runInNewContext(compiled, {
   exports: moduleExports,
   require(name: string) {
     if (name === "@/lib/supabase/auth-redirect") return { normalizeAuthNextPath };
+    if (name === "@/i18n/config") return {
+      isSupportedLocale: (value: unknown) => value === "fr" || value === "he",
+      LOCALE_COOKIE_MAX_AGE: 60 * 60 * 24 * 365,
+      LOCALE_COOKIE_NAME: "NEXT_LOCALE",
+      LOCALE_SOURCE_AUTO: "auto",
+      LOCALE_SOURCE_COOKIE_NAME: "locale_source",
+    };
+    if (name === "@/lib/locale-detection") return { detectLocaleFromRequest };
     if (name === "@/lib/supabase/config") return { isSupabaseConfigured: () => configured };
     if (name === "@/lib/supabase/session") return {
       updateSession: async () => {
@@ -40,12 +50,14 @@ runInNewContext(compiled, {
     return nativeRequire(name);
   },
   URL,
+  Headers,
+  process,
 });
 assert.ok(moduleExports.proxy);
 const proxy = moduleExports.proxy;
-function request(path: string, cookie?: string) {
+function request(path: string, cookie?: string, headers?: Record<string, string>) {
   return new NextRequest(`https://example.test${path}`, {
-    headers: cookie ? { cookie } : {},
+    headers: { ...(cookie ? { cookie } : {}), ...headers },
   });
 }
 function reset() {
@@ -57,6 +69,32 @@ function reset() {
 }
 
 async function main() {
+  for (const [path, headers, expected] of [
+    ["/?country=IL", {}, "he"],
+    ["/?country=FR", {}, "fr"],
+    ["/?country=US", {}, "fr"],
+    ["/?country=FR", { "accept-language": "he-IL,fr;q=0.8" }, "he"],
+  ] as const) {
+    reset();
+    const response = await proxy(request(path, undefined, headers));
+    assert.equal(response.cookies.get("NEXT_LOCALE")?.value, expected, path);
+    assert.equal(response.cookies.get("locale_source")?.value, "auto", path);
+  }
+  reset();
+  const manual = await proxy(request("/?country=IL", "NEXT_LOCALE=fr; locale_source=manual"));
+  assert.equal(manual.cookies.get("NEXT_LOCALE"), undefined, "manual locale must never be overwritten");
+  reset();
+  const connected = await proxy(request("/", "sb-test-auth-token=existing-session", { "x-vercel-ip-country": "IL" }));
+  assert.equal(connected.cookies.get("NEXT_LOCALE"), undefined, "profile locale must take priority for connected users");
+  assert.equal(detectVisitorLocale({ acceptLanguage: "he-IL,fr;q=0.8", country: "FR", userAgent: "Mozilla/5.0" }), "he");
+  assert.equal(detectVisitorLocale({ acceptLanguage: "en-US", country: "IL", userAgent: "Googlebot" }), "fr");
+  assert.equal(isFeatureEnabled("he", "newsletter"), true);
+  assert.equal(isFeatureEnabled("he", "publish"), false);
+  assert.equal(isDashboardPathEnabled("he", "/dashboard/newsletter"), true);
+  assert.equal(isDashboardPathEnabled("he", "/dashboard/settings/billing"), true);
+  assert.equal(isDashboardPathEnabled("he", "/dashboard/templates"), false);
+  assert.equal(isDashboardPathEnabled("fr", "/dashboard/templates"), true);
+
   const publicPaths = [
     "/", "/method", "/affiches", "/contact", "/blog", "/tarification",
     "/privacy", "/data-deletion", "/help", "/site-map", "/sitemap.xml",
@@ -95,7 +133,7 @@ async function main() {
       sessionResponse.headers.set("expires", "0");
       sessionResponse.headers.set("pragma", "no-cache");
       const suffix = destination === "/dashboard" ? "" : `?callbackUrl=${encodeURIComponent(destination)}`;
-      const response = await proxy(request(path + suffix, "sb-token.0=expired"));
+      const response = await proxy(request(path + suffix, "sb-test-auth-token=expired"));
       assert.equal(response.headers.get("location"), `https://example.test${destination}`);
       assert.deepEqual(response.cookies.getAll(), sessionResponse.cookies.getAll());
       for (const header of ["cache-control", "expires", "pragma"]) {
@@ -114,7 +152,7 @@ async function main() {
     reset();
     sessionResponse.cookies.set("sb-token", "cleared", { maxAge: 0, path: "/" });
     sessionResponse.headers.set("cache-control", "no-store");
-    const response = await proxy(request(path, "sb-token=unverified"));
+    const response = await proxy(request(path, "sb-test-auth-token=unverified"));
     const location = new URL(response.headers.get("location")!);
     assert.equal(location.pathname, "/auth/login", path);
     assert.equal(location.searchParams.get("callbackUrl"), path);

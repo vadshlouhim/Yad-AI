@@ -7,6 +7,8 @@ import {
   isSupportedLocale,
   LOCALE_COOKIE_MAX_AGE,
   LOCALE_COOKIE_NAME,
+  LOCALE_SOURCE_COOKIE_NAME,
+  LOCALE_SOURCE_MANUAL,
   LOCALE_PENDING_COOKIE_MAX_AGE,
   LOCALE_PENDING_COOKIE_NAME,
   type Locale,
@@ -30,6 +32,7 @@ export function LanguageSwitcher({
 
     setPendingLocale(locale);
     document.cookie = `${LOCALE_COOKIE_NAME}=${locale}; Path=/; Max-Age=${LOCALE_COOKIE_MAX_AGE}; SameSite=Lax`;
+    document.cookie = `${LOCALE_SOURCE_COOKIE_NAME}=${LOCALE_SOURCE_MANUAL}; Path=/; Max-Age=${LOCALE_COOKIE_MAX_AGE}; SameSite=Lax`;
 
     try {
       const response = await fetch("/api/user/locale", {

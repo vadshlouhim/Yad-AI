@@ -5,6 +5,8 @@ import {
   isSupportedLocale,
   LOCALE_COOKIE_MAX_AGE,
   LOCALE_COOKIE_NAME,
+  LOCALE_SOURCE_COOKIE_NAME,
+  LOCALE_SOURCE_MANUAL,
   type Locale,
 } from "@/i18n/config";
 
@@ -12,13 +14,21 @@ const localeSchema = z.object({
   locale: z.enum(["fr", "he"]),
 });
 
-function withLocaleCookie(response: NextResponse, locale: Locale) {
+function withLocaleCookie(response: NextResponse, locale: Locale, manual = false) {
   response.cookies.set(LOCALE_COOKIE_NAME, locale, {
     maxAge: LOCALE_COOKIE_MAX_AGE,
     path: "/",
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
   });
+  if (manual) {
+    response.cookies.set(LOCALE_SOURCE_COOKIE_NAME, LOCALE_SOURCE_MANUAL, {
+      maxAge: LOCALE_COOKIE_MAX_AGE,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
   return response;
 }
 
@@ -71,5 +81,6 @@ export async function PATCH(request: Request) {
   return withLocaleCookie(
     NextResponse.json({ locale: parsed.data.locale }),
     parsed.data.locale,
+    true,
   );
 }

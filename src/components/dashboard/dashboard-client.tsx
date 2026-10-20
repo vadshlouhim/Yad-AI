@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { ComponentType, SVGProps } from "react";
@@ -9,9 +11,25 @@ import {
   AlertCircle,
   ArrowRight,
   Bell,
+  BookOpen,
+  Cake,
+  CalendarRange,
+  Camera,
   CheckCircle2,
   Clock3,
+  CreditCard,
+  FileText,
+  Globe2,
+  Image as ImageIcon,
+  LogOut,
+  Mail,
+  Megaphone,
+  MessageSquare,
+  Search,
+  ShoppingBag,
   Settings2,
+  Target,
+  UsersRound,
   Waves,
   Zap,
 } from "lucide-react";
@@ -30,6 +48,8 @@ import { MobileDashboardHome } from "@/components/dashboard/mobile-dashboard-hom
 import { ComingSoonBanner } from "@/components/coming-soon/coming-soon-banner";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { useDashboardCopy } from "@/lib/i18n/use-dashboard-copy";
+import { createClient } from "@/lib/supabase/client";
+import { HOME_AGENT_IMAGES } from "@/components/home/home-media";
 
 interface Props {
   basePath?: "/dashboard" | "/demo";
@@ -133,6 +153,31 @@ const HE_CHANNEL_SHORT_LABELS: Record<string, string> = {
   EMAIL: "Mail",
 };
 
+const HE_COMING_MODULES = [
+  { key: "publish", icon: Megaphone },
+  { key: "posters", icon: ImageIcon },
+  { key: "shabbatTimes", icon: Clock3 },
+  { key: "birthdays", icon: Cake },
+  { key: "automations", icon: CalendarRange },
+  { key: "crm", icon: UsersRound },
+  { key: "torah", icon: BookOpen },
+  { key: "emailReviews", icon: Mail },
+  { key: "shop", icon: ShoppingBag },
+  { key: "targeted", icon: Target },
+  { key: "photoRecap", icon: Camera },
+  { key: "website", icon: Globe2 },
+  { key: "seo", icon: Search },
+  { key: "whatsapp", icon: MessageSquare },
+] as const;
+
+const HE_DASHBOARD_AGENTS = [
+  { name: "Levik", roleKey: "newsletter", image: HOME_AGENT_IMAGES.levik, active: true },
+  { name: "Dov Ber", roleKey: "publish", image: HOME_AGENT_IMAGES.dovBer, active: false },
+  { name: "David", roleKey: "automations", image: HOME_AGENT_IMAGES.david, active: false },
+  { name: "Zalman", roleKey: "posters", image: HOME_AGENT_IMAGES.zalman, active: false },
+  { name: "Shmouel", roleKey: "torah", image: HOME_AGENT_IMAGES.shmouel, active: false },
+] as const;
+
 export function DashboardClient({
   basePath = "/dashboard",
   userName,
@@ -144,6 +189,7 @@ export function DashboardClient({
   notifications,
 }: Props) {
   const t = useTranslations("dashboard");
+  const router = useRouter();
   const locale = useLocale();
   const tr = useDashboardCopy();
   const resolveHref = (href: string) => href.startsWith("/dashboard") ? href.replace("/dashboard", basePath) : href;
@@ -154,6 +200,97 @@ export function DashboardClient({
   const reviewCount = pendingPublications.length;
   const failedCount = pendingPublications.filter((publication) => publication.status === "FAILED").length;
   const nextEvent = upcomingEvents[0];
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/auth/login");
+  }
+
+  if (locale === "he") {
+    return (
+      <div className="mx-auto min-h-full max-w-6xl space-y-5 overflow-x-hidden px-4 py-5 sm:px-6 md:py-8" dir="rtl">
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="flex items-center gap-3 text-2xl font-bold tracking-tight text-slate-950 sm:text-4xl">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-xl shadow-sm">👋</span>
+                <span>{t("welcome", { name: firstName })}</span>
+              </h1>
+              <p className="mt-2 truncate text-sm text-slate-500">{community.name}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link href={resolveHref("/dashboard/notifications")} aria-label={t("heNotifications")} className="relative flex size-11 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-700">
+                <Bell className="size-5" />
+                {notifications.length > 0 ? <span className="absolute end-2 top-2 size-2 rounded-full bg-red-500" /> : null}
+              </Link>
+              <LanguageSwitcher compact />
+            </div>
+          </div>
+        </section>
+
+        <section className="hebrew-brand-gradient overflow-hidden rounded-[2rem] p-6 shadow-[0_20px_48px_rgba(66,19,136,0.24)] sm:p-8">
+          <div className="flex items-start gap-4">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-amber-300 ring-1 ring-white/20"><FileText className="size-6" aria-hidden="true" /></span>
+            <div className="min-w-0 max-w-3xl">
+              <span className="inline-flex rounded-full bg-amber-300 px-3 py-1 text-xs font-black text-amber-950">{t("heAvailableNow")}</span>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">{t("heOnlyTitle")}</h2>
+              <p className="mt-2 text-sm leading-6 text-violet-100 sm:text-base">{t("heOnlyDescription")}</p>
+            </div>
+          </div>
+          <Link href={resolveHref("/dashboard/newsletter")} className="mt-5 inline-flex min-h-12 items-center gap-2 rounded-2xl bg-amber-300 px-5 font-black text-[#321070] shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/50">
+            {t("heCreateNewsletter")}<ArrowRight className="rtl-mirror size-5" />
+          </Link>
+        </section>
+
+        <section aria-labelledby="he-coming-title">
+          <h2 id="he-coming-title" className="text-xl font-black text-slate-950">{t("heComingSoonTitle")}</h2>
+          <div className="mt-3 grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-4">
+            {HE_COMING_MODULES.map(({ key, icon: Icon }) => (
+              <button key={key} type="button" disabled aria-disabled="true" className="cursor-default rounded-2xl border border-slate-200 bg-white/80 p-3.5 text-start opacity-80 shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <Icon className="size-6 shrink-0 text-violet-700" aria-hidden="true" />
+                  <span className="rounded-full bg-violet-100 px-2 py-1 text-[11px] font-black text-violet-700">{t("heComingSoonBadge")}</span>
+                </div>
+                <h3 className="mt-3 text-[15px] font-bold leading-5 text-slate-900">{t(`heComingModules.${key}.name`)}</h3>
+                <p className="mt-1 text-[13px] leading-5 text-slate-500">{t(`heComingModules.${key}.description`)}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section aria-labelledby="he-agents-title">
+          <h2 id="he-agents-title" className="text-xl font-black text-slate-950">{t("heAgentsTitle")}</h2>
+          <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+            {HE_DASHBOARD_AGENTS.map((agent) => {
+              const content = <>
+                <span className="relative block h-28 overflow-hidden rounded-xl bg-violet-50">
+                  <Image src={agent.image} alt="" fill sizes="(max-width: 640px) 45vw, 180px" className={`object-contain object-bottom${agent.active ? "" : " grayscale"}`} />
+                  <span className={`absolute end-2 top-2 rounded-full px-2 py-1 text-[10px] font-black ${agent.active ? "bg-amber-300 text-amber-950" : "bg-slate-200 text-slate-600"}`}>{t(agent.active ? "heAvailableNow" : "heComingSoonBadge")}</span>
+                </span>
+                <span className="mt-2 block font-bold text-slate-900">{agent.name}</span>
+                <span className="block text-xs text-slate-500">{t(`heAgentRoles.${agent.roleKey}`)}</span>
+              </>;
+              return agent.active
+                ? <Link key={agent.name} href={resolveHref("/dashboard/newsletter")} className="rounded-2xl border-2 border-amber-300 bg-white p-2 shadow-sm">{content}</Link>
+                : <button key={agent.name} type="button" disabled aria-disabled="true" className="cursor-default rounded-2xl border border-slate-200 bg-white p-2 text-start opacity-65">{content}</button>;
+            })}
+          </div>
+        </section>
+
+        <section aria-labelledby="he-account-title" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <h2 id="he-account-title" className="border-b border-slate-100 px-4 py-3 text-base font-black text-slate-950">{t("heAccountTitle")}</h2>
+          <div className="divide-y divide-slate-100">
+            <Link href={resolveHref("/dashboard/settings")} className="flex min-h-12 items-center gap-3 px-4 py-3 text-sm font-bold text-slate-800"><Settings2 className="size-5 text-violet-700" />{t("heManageProfile")}</Link>
+            <Link href={resolveHref("/dashboard/settings/billing")} className="flex min-h-12 items-center gap-3 px-4 py-3 text-sm font-bold text-slate-800"><CreditCard className="size-5 text-violet-700" />{t("heBilling")}</Link>
+            <a href="https://wa.me/33668508898" target="_blank" rel="noopener noreferrer" className="flex min-h-12 items-center gap-3 px-4 py-3 text-sm font-bold text-slate-800"><MessageSquare className="size-5 text-emerald-600" />{t("heSupport")}</a>
+            <div className="flex min-h-12 items-center justify-between gap-3 px-4 py-3"><span className="text-sm font-bold text-slate-800">{t("heLanguage")}</span><LanguageSwitcher compact /></div>
+          </div>
+          <button type="button" onClick={handleLogout} className="flex min-h-11 w-full items-center justify-center gap-2 border-t border-red-100 px-4 py-3 text-sm font-semibold text-red-600"><LogOut className="size-4" />{t("heLogout")}</button>
+        </section>
+      </div>
+    );
+  }
 
   function openMainMenu() {
     if (typeof window === "undefined") return;

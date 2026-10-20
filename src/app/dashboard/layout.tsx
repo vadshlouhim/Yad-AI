@@ -10,6 +10,7 @@ import { ensureTodayEventReminderNotifications } from "@/lib/notifications/event
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { getToolOnboardingPath } from "@/lib/public-tools";
+import { isDashboardPathEnabled } from "@/lib/features-by-locale";
 
 export const metadata: Metadata = {
   title: { template: "%s — EasyCom IA", default: "Dashboard — EasyCom IA" },
@@ -24,6 +25,10 @@ export default async function DashboardLayout({
   const { profile } = await requireAuth();
   const pathname = (await headers()).get("x-current-pathname") ?? "";
   const isSettingsPath = pathname.startsWith("/dashboard/settings");
+
+  if (!isDashboardPathEnabled(profile.locale, pathname)) {
+    redirect("/dashboard/newsletter");
+  }
 
   if (!profile.communityId) {
     redirect(getToolOnboardingPath(pathname));
@@ -75,7 +80,10 @@ export default async function DashboardLayout({
         />
         <GmbNotificationBadge />
         <DashboardFirstVisitGate userId={profile.id} />
-        <main className="flex-1 w-full overflow-y-auto pb-24 animate-fade-in md:pb-0">
+        <main
+          className="dashboard-main-scroll flex-1 w-full overflow-y-auto pb-24 animate-fade-in md:pb-0"
+          style={profile.locale === "he" ? { scrollbarWidth: "none" } : undefined}
+        >
           {children}
         </main>
         <MobileBottomNav />

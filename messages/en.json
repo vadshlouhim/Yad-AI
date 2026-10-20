@@ -1,0 +1,30 @@
+{
+  "home": {
+    "whatsappMessage": "Hello, I would like more information about EasyCom AI.",
+    "heBadgeNewsletter": "Shabbat newsletter",
+    "heBadgePdf": "Print-ready PDF",
+    "heBadgeAi": "AI in Hebrew",
+    "heDemoKicker": "New",
+    "heDemoTitle": "Shabbat Newsletter",
+    "heDemoSubtitle": "The first AI platform for Shabbat newsletters for emissaries and Chabad houses",
+    "heDemoLine": "Write, design and print in just a few minutes",
+    "heDemoCta": "Create an account and get started",
+    "heDemoAria": "Create an account for the Shabbat newsletter",
+    "agentsAvailability": "In Hebrew, the Shabbat newsletter is available now. The other agents are coming soon.",
+    "availableNow": "Available now",
+    "comingSoonBadge": "Coming soon"
+  },
+  "dashboard": {
+    "heNewsletter": "Shabbat newsletter",
+    "heSettings": "Settings",
+    "heAvailableNow": "Available now",
+    "heOnlyTitle": "Shabbat Newsletter",
+    "heOnlyDescription": "Create a professional, AI-written and designed Shabbat newsletter, ready to print in minutes.",
+    "heCreateNewsletter": "Create a Shabbat newsletter",
+    "heMoreSoon": "More features are coming soon in Hebrew.",
+    "heManageProfile": "Profile and settings",
+    "heBilling": "Subscription and billing",
+    "heSupport": "WhatsApp support",
+    "heLogout": "Sign out"
+  }
+}

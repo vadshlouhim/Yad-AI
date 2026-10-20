@@ -7,13 +7,14 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import {
   ArrowLeft, ArrowRight, BookOpen, CalendarClock, Check, FileText, Image as ImageIcon, Menu,
-  MessageCircle, Play, Plus, Settings, Share2, Sparkles, Users,
+  MessageCircle, Play, Plus, Printer, Settings, Share2, Sparkles, Users,
   X, ShoppingBag, Clock, Mail, Volume2, VolumeX,
 } from "lucide-react";
 import { PUBLIC_TOOLS, getLocalizedPublicTool, type PublicTool } from "@/lib/public-tools";
 import { ToolIcon } from "@/components/presentation/tool-visual";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { HOME_AGENT_IMAGES, MAIN_VIDEO_URL, homeVideoSource } from "./home-media";
+import { isFeatureEnabled } from "@/lib/features-by-locale";
 import "./easycom-home.css";
 
 const PreviewDialog = dynamic(() => import("./home-video-dialog"), {
@@ -33,18 +34,18 @@ const TOOLS = [
   { id: "email", name: "Email & Avis Google", badge: "Surveillé et intelligent", media: "10-email-avis-google", agent: "Levik", role: "Email & Avis Google", portrait: HOME_AGENT_IMAGES.levik, Icon: Mail },
   { id: "coming-soon", name: "À venir…", badge: "Bientôt disponible", media: "11-upcoming", agent: "EasyCom AI", role: "Nouveauté", portrait: HOME_AGENT_IMAGES.dovBer, Icon: Sparkles },
 ] as const;
-const HE_TOOL_COPY: Record<string, { name: string; badge: string; role: string }> = {
-  publish: { name: "פרסום בכל הערוצים", badge: "בלחיצה אחת", role: "רשתות חברתיות" },
-  newsletter: { name: "ניוזלטר", badge: "להדפסה לשבת", role: "ניוזלטר" },
-  shabbat: { name: "זמני שבת וחגים", badge: "מתפרסם אוטומטית", role: "זמני שבת וחגים" },
-  automations: { name: "היום יום ויום הולדת עברי", badge: "חכם", role: "אוטומציות" },
-  reminders: { name: "אוטומציות 10 ו־5 ימים מראש", badge: "תזכורות חכמות", role: "תזכורות לאירועים" },
-  contacts: { name: "CRM 2.0", badge: "חיבור ל־Unisoft", role: "CRM קהילתי" },
-  posters: { name: "מודעות ופליירים", badge: "AI ו־Canva", role: "מודעות ופליירים" },
-  torah: { name: "שיעורי תורה", badge: "מקורות מהימנים", role: "שיעור תורה" },
-  email: { name: "אימייל וביקורות Google", badge: "חכם ובמעקב", role: "אימייל וביקורות Google" },
-  "coming-soon": { name: "בקרוב…", badge: "זמין בקרוב", role: "חדש" },
-};
+
+const HE_COMING_HOME_MODULES = [
+  { key: "publish", Icon: Share2 },
+  { key: "posters", Icon: ImageIcon },
+  { key: "shabbatTimes", Icon: Clock },
+  { key: "birthdays", Icon: CalendarClock },
+  { key: "automations", Icon: Settings },
+  { key: "crm", Icon: Users },
+  { key: "torah", Icon: BookOpen },
+  { key: "emailReviews", Icon: Mail },
+  { key: "shop", Icon: ShoppingBag },
+] as const;
 type HomeTool = (typeof TOOLS)[number];
 const NAV = [
   { href: "#fonctionnalites", label: "features" },
@@ -88,6 +89,8 @@ function DemoLink() {
 function HomeHeader() {
   const [open, setOpen] = useState(false);
   const t = useTranslations("nav");
+  const locale = useLocale();
+  const visibleNav = NAV.filter(link => locale !== "he" || !["features", "comingSoon"].includes(link.label));
   const toggle = useRef<HTMLButtonElement>(null);
   const mobileMenu = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -109,7 +112,7 @@ function HomeHeader() {
   return <header className="home-header">
     <div className="home-container home-header-inner">
       <Brand />
-      <nav className="home-desktop-nav" aria-label={t("primaryLabel")}>{NAV.map(link => link.nextLink ? <Link key={link.href} href={link.href}>{t(link.label)}</Link> : <a key={link.href} href={link.href}>{t(link.label)}</a>)}</nav>
+      <nav className="home-desktop-nav" aria-label={t("primaryLabel")}>{visibleNav.map(link => link.nextLink ? <Link key={link.href} href={link.href}>{t(link.label)}</Link> : <a key={link.href} href={link.href}>{t(link.label)}</a>)}</nav>
       <div className="home-header-actions">
         <span className="home-language-desktop"><LanguageSwitcher compact /></span>
         <Link href="/auth/login" prefetch={false} className="home-login">{t("loginShort")}</Link>
@@ -121,7 +124,7 @@ function HomeHeader() {
       <button type="button" className="home-menu-backdrop" aria-label={t("closeMenu")} onClick={() => { setOpen(false); toggle.current?.focus(); }} />
       <nav ref={mobileMenu} id="home-mobile-menu" className="home-mobile-menu" aria-label={t("mobileLabel")}>
         <div className="home-language-mobile"><LanguageSwitcher /></div>
-        {NAV.filter(link => !link.desktop).map(link => link.nextLink ? <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>{t(link.label)}<ArrowRight className="rtl-mirror" size={16} /></Link> : <a key={link.href} href={link.href} onClick={() => setOpen(false)}>{t(link.label)}<ArrowRight className="rtl-mirror" size={16} /></a>)}
+        {visibleNav.filter(link => locale === "he" || !link.desktop).map(link => link.nextLink ? <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>{t(link.label)}<ArrowRight className="rtl-mirror" size={16} /></Link> : <a key={link.href} href={link.href} onClick={() => setOpen(false)}>{t(link.label)}<ArrowRight className="rtl-mirror" size={16} /></a>)}
         <Link href="/contact" onClick={() => setOpen(false)}>{t("contact")}<ArrowRight className="rtl-mirror" size={16} /></Link>
         <Link href="/auth/login" prefetch={false} onClick={() => setOpen(false)}>{t("loginShort")}<ArrowRight className="rtl-mirror" size={16} /></Link>
       </nav>
@@ -136,18 +139,24 @@ function Hero() {
       <h1 id="home-title"><span className="home-title-line">{t("title1")}</span>{" "}<span className="home-title-line">{t("title2")}</span>{" "}<span className="home-title-accent">{t("title3")}</span></h1>
       <p className="home-hero-subtitle">{t("subtitle")}</p>
       <div className="home-hero-buttons"><TrialLink /><DemoLink /></div>
-      <Link href="/fonctionnalites-a-venir" className="home-coming-soon-chip">
+      {locale !== "he" ? <Link href="/fonctionnalites-a-venir" className="home-coming-soon-chip">
         <span className="home-coming-soon-rocket" aria-hidden="true">🚀</span>
         <span>{t("discoverUpcoming")}</span>
         <small>NEW</small>
-      </Link>
+      </Link> : null}
     </div>
     <div className="home-hero-art" aria-label={t("agentAria")}>
       <div className="home-hero-portrait"><Image src={HOME_AGENT_IMAGES.dovBer} alt={t("agentAria")} width={899} height={1100} sizes="(max-width: 767px) 44vw, 520px" preload /></div>
-      <span className="home-orbit home-orbit-publish"><ToolIcon id="publish" className="size-5" /><span>{locale === "he" ? "פרסום בכל הערוצים" : "Publier partout"}</span></span>
-      <span className="home-orbit home-orbit-newsletter"><FileText /><span>{locale === "he" ? "ניוזלטר" : "Newsletter"}</span></span>
-      <span className="home-orbit home-orbit-posters"><ImageIcon /><span>{locale === "he" ? "מודעות" : "Affiches"}</span></span>
-      <span className="home-orbit home-orbit-automations"><Settings /><span>{locale === "he" ? "אוטומציות" : "Automatisations"}</span></span>
+      {locale === "he" ? <>
+        <span className="home-orbit home-orbit-publish"><FileText /><span>{t("heBadgeNewsletter")}</span></span>
+        <span className="home-orbit home-orbit-newsletter"><Printer /><span>{t("heBadgePdf")}</span></span>
+        <span className="home-orbit home-orbit-posters"><Sparkles /><span>{t("heBadgeAi")}</span></span>
+      </> : <>
+        <span className="home-orbit home-orbit-publish"><ToolIcon id="publish" className="size-5" /><span>Publier partout</span></span>
+        <span className="home-orbit home-orbit-newsletter"><FileText /><span>Newsletter</span></span>
+        <span className="home-orbit home-orbit-posters"><ImageIcon /><span>Affiches</span></span>
+        <span className="home-orbit home-orbit-automations"><Settings /><span>Automatisations</span></span>
+      </>}
     </div>
     <ul className="home-reassurance" aria-label={t("simpleStart")}>{["reassurance1", "reassurance2", "reassurance3"].map(key => <li key={key}><span><Check size={12} strokeWidth={3} aria-hidden="true" /></span>{t(key)}</li>)}</ul>
   </section>;
@@ -182,7 +191,7 @@ function MainVideoPlayer() {
   return <>
     <video
       ref={videoRef}
-      className="home-master-video"
+      className={`home-master-video${loaded && !failed ? " home-master-video-ready" : ""}${failed ? " home-master-video-failed" : ""}`}
       src={MAIN_VIDEO_URL}
       autoPlay
       muted={muted}
@@ -207,7 +216,10 @@ function MainVideoPlayer() {
 function MainDemo({ blocked }: { blocked: boolean }) {
   const t = useTranslations("home");
   const locale = useLocale();
-  const container = useRef<HTMLDivElement>(null);
+  const container = useRef<HTMLElement>(null);
+  const setContainerRef = (node: HTMLElement | null) => {
+    container.current = node;
+  };
   const [inView, setInView] = useState(false);
   const [manuallyStarted, setManuallyStarted] = useState(false);
   const reducedMotion = useSyncExternalStore(
@@ -235,20 +247,20 @@ function MainDemo({ blocked }: { blocked: boolean }) {
 
   if (locale === "he") {
     return <section id="demo" className="home-container home-demo" aria-label={t("demoAria")}>
-      <div ref={container} className="home-demo-frame home-demo-hebrew">
+      <Link ref={setContainerRef} href="/auth/register" prefetch={false} className="home-demo-frame home-demo-hebrew" aria-label={t("heDemoAria")}>
         <div className="home-demo-hebrew-copy">
-          <Sparkles aria-hidden="true" />
-          <strong>EasyCom AI בפעולה</strong>
-          <span>יוצרים, מפרסמים ומבצעים אוטומציה במקום אחד</span>
-          <ul><li>מודעות ופליירים</li><li>פרסום בכל הערוצים</li><li>עלון שבת</li></ul>
+          <span className="home-demo-hebrew-kicker">{t("heDemoKicker")}</span>
+          <strong>{t("heDemoTitle")}</strong>
+          <span>{t("heDemoSubtitle")}</span>
+          <p>{t("heDemoLine")}</p>
+          <span className="home-demo-hebrew-cta">{t("heDemoCta")}</span>
         </div>
-        <span className="home-demo-label">{t("demoLabel")}</span>
-      </div>
+      </Link>
     </section>;
   }
 
   return <section id="demo" className="home-container home-demo" aria-label={t("demoAria")}>
-    <div ref={container} className="home-demo-frame">
+    <div ref={setContainerRef} className="home-demo-frame">
       <picture className="home-demo-poster"><source media="(max-width: 767px)" srcSet={`${MEDIA}demo-mobile.webp`} />
         <img src={`${MEDIA}demo-desktop.webp`} alt={t("demoImageAlt")} width={1600} height={670} loading="lazy" />
       </picture>
@@ -344,10 +356,26 @@ function CardRow({ id, className, label, children, footer }: { id: string; class
   </>;
 }
 
+function HebrewComingSoonGrid() {
+  const t = useTranslations("home");
+  return <section id="fonctionnalites" className="home-features home-coming-features" aria-labelledby="home-features-title">
+    <div className="home-coming-heading">
+      <h2 id="home-features-title"><Sparkles className="home-sparkles" fill="currentColor" aria-hidden="true" />{t("heComingTitle")}</h2>
+      <p>{t("heComingSubtitle")}</p>
+    </div>
+    <div className="home-coming-grid">
+      {HE_COMING_HOME_MODULES.map(({ key, Icon }) => <button key={key} type="button" disabled className="home-coming-card" aria-disabled="true">
+        <div className="home-coming-card-top"><Icon aria-hidden="true" /><span>{t("comingSoonBadge")}</span></div>
+        <strong>{t(`heComingModules.${key}.name`)}</strong>
+        <p>{t(`heComingModules.${key}.description`)}</p>
+      </button>)}
+    </div>
+  </section>;
+}
+
 function WhatsAppBubble() {
   const t = useTranslations("home");
-  const locale = useLocale();
-  const message = encodeURIComponent(locale === "he" ? "שלום, אשמח לקבל מידע נוסף על EasyCom AI." : "Bonjour, je souhaite en savoir plus sur EasyCom AI.");
+  const message = encodeURIComponent(t("whatsappMessage"));
   return <a
     href={`https://wa.me/33668508898?text=${message}`}
     className="home-whatsapp-bubble"
@@ -365,7 +393,10 @@ export function EasyComHome() {
   const t = useTranslations("home");
   const nav = useTranslations("nav");
   const footer = useTranslations("footer");
-  const tools = TOOLS.map((tool) => locale === "he" ? { ...tool, ...HE_TOOL_COPY[tool.id] } : tool) as HomeTool[];
+  const hebrewToolCopy = locale === "he" ? t.raw("toolCopy") as Record<string, { name: string; badge: string; role: string }> : {};
+  const tools = TOOLS.map((tool) => locale === "he" ? { ...tool, ...hebrewToolCopy[tool.id] } : tool) as HomeTool[];
+  const priceLocale = locale === "he" ? "he-IL" : "fr-FR";
+  const formatPrice = (value: number) => new Intl.NumberFormat(priceLocale, { style: "currency", currency: "EUR" }).format(value);
   const [active, setActive] = useState<string | null>(null);
   const [selected, setSelected] = useState<{ item: PublicTool; media: string; trigger: HTMLElement; comingSoon: boolean } | null>(null);
   useEffect(() => {
@@ -390,26 +421,28 @@ export function EasyComHome() {
       <Hero />
       <MainDemo blocked={selected !== null} />
       <div className="home-container home-body">
-        <section id="fonctionnalites" className="home-features" aria-labelledby="home-features-title">
+        {locale === "he" ? <HebrewComingSoonGrid /> : isFeatureEnabled(locale, "publish") ? <section id="fonctionnalites" className="home-features" aria-labelledby="home-features-title">
           <h2 id="home-features-title"><Sparkles className="home-sparkles" fill="currentColor" aria-hidden="true" />{t("whatToDo")}</h2>
           <CardRow id="home-functions-row" className="home-tool-row" label={t("toolsLabel")} footer={<div className="home-feature-links">
             <a href="https://linktr.ee/Yadshlouhim" className="home-feature-link home-feature-link-shop"><span className="home-feature-link-icon"><ShoppingBag aria-hidden="true" /></span><span className="home-feature-link-copy">{t("shop")}<small>{t("online")}</small></span><ArrowRight className="rtl-mirror home-feature-link-arrow" size={17} aria-hidden="true" /></a>
             <Link href="/affiches" prefetch={false} className="home-feature-link home-feature-link-posters"><span className="home-feature-link-icon"><ImageIcon aria-hidden="true" /></span><span className="home-feature-link-copy">{t("posters")}<small>IA &amp; Canva</small></span><ArrowRight className="rtl-mirror home-feature-link-arrow" size={17} aria-hidden="true" /></Link>
           </div>}>{tools.filter(tool => tool.id !== "posters").map(tool => <FeatureCard key={tool.id} tool={tool} active={active === tool.id} setActive={setActive} onOpen={open} />)}
           </CardRow>
-        </section>
+        </section> : null}
         <section id="agents" className="home-agents" aria-labelledby="home-agents-title">
-          <div className="home-section-heading"><h2 id="home-agents-title"><Users fill="currentColor" aria-hidden="true" /><span className="home-agents-desktop-title">{t("agents")}</span><span className="home-agents-mobile-title">{t("specializedAgents")}</span></h2></div>
-          <CardRow id="home-agents-row" className="home-agent-row" label={t("agents")}>{tools.filter(tool => !["shabbat", "email", "coming-soon", "reminders", "contacts"].includes(tool.id)).map(tool => <button key={tool.id} type="button" className={`home-agent home-agent-${tool.id}`} aria-label={`${tool.agent}, ${tool.role}`} aria-haspopup="dialog" onClick={event => open(tool, event.currentTarget)}>
-            <span className="home-agent-art"><Image src={tool.portrait} alt="" width={260} height={310} sizes="(max-width: 767px) 100px, (max-width: 1023px) 150px, 240px" /><span className="home-agent-badge"><tool.Icon size={23} aria-hidden="true" /></span></span>
+          <div className="home-section-heading"><h2 id="home-agents-title"><Users fill="currentColor" aria-hidden="true" /><span className="home-agents-desktop-title">{t("agents")}</span><span className="home-agents-mobile-title">{t("specializedAgents")}</span></h2>{locale === "he" ? <p className="home-agents-availability">{t("agentsAvailability")}</p> : null}</div>
+          <CardRow id="home-agents-row" className="home-agent-row" label={t("agents")}>{tools.filter(tool => !["shabbat", "email", "coming-soon", "reminders", "contacts"].includes(tool.id)).map(tool => {
+            const enabled = locale !== "he" || tool.id === "newsletter";
+            return <button key={tool.id} type="button" className={`home-agent home-agent-${tool.id}${enabled ? " home-agent-enabled" : " home-agent-disabled"}`} aria-label={`${tool.agent}, ${tool.role}`} aria-haspopup={enabled ? "dialog" : undefined} aria-disabled={!enabled || undefined} disabled={!enabled} onClick={enabled ? event => open(tool, event.currentTarget) : undefined}>
+            <span className="home-agent-art"><Image src={tool.portrait} alt="" width={260} height={310} sizes="(max-width: 767px) 100px, (max-width: 1023px) 150px, 240px" /><span className="home-agent-badge"><tool.Icon size={23} aria-hidden="true" /></span>{locale === "he" ? <span className="home-agent-status">{t(enabled ? "availableNow" : "comingSoonBadge")}</span> : null}</span>
             <span className="home-agent-info"><strong>{tool.agent}</strong><span>{tool.role}</span><ArrowRight size={19} className="rtl-mirror home-agent-arrow" aria-hidden="true" /></span>
-          </button>)}</CardRow>
+          </button>})}</CardRow>
         </section>
         <section id="tarifs" className="home-pricing" aria-label={locale === "he" ? "הצעת היכרות EasyCom AI" : "Offre de bienvenue EasyCom AI"}>
           <h2><Sparkles className="home-sparkles" fill="currentColor" aria-hidden="true" />{t("tryTitle")}</h2>
           <p className="home-price-special">{t("specialOffer")}</p>
           <p className="home-price-gift">{t("gift")}</p>
-          <p className="home-price"><bdi dir="ltr">9,99 €</bdi> <span>{t("firstMonth")}</span></p><p className="home-price-after">{t("thenPrice")}</p><TrialLink />
+          <p className="home-price"><bdi dir="ltr">{formatPrice(9.99)}</bdi> <span>{t("firstMonth")}</span></p><p className="home-price-after">{t("thenPrice", { price: formatPrice(19.99) })}</p><TrialLink />
         </section>
         <FAQ />
         <section className="home-final" aria-labelledby="home-final-title">
@@ -419,7 +452,10 @@ export function EasyComHome() {
       </div>
     </main>
     <footer className="home-container home-footer">
-      <div className="home-footer-top"><Brand /><nav aria-label={t("footerNav")}>{NAV.map(link => link.nextLink ? <Link key={link.href} href={link.href} className={link.desktop ? "home-footer-faq" : ""}>{nav(link.label)}</Link> : <a key={link.href} href={link.href} className={link.desktop ? "home-footer-faq" : ""}>{nav(link.label)}</a>)}<Link href="/contact" className="home-footer-contact">{nav("contact")}</Link></nav></div>
+      <div className="home-footer-top"><Brand /><nav aria-label={t("footerNav")}>{NAV.map(link => {
+        if (locale === "he" && ["features", "comingSoon"].includes(link.label)) return <a key={link.label} href="#fonctionnalites" className={link.desktop ? "home-footer-faq" : ""}>{nav(link.label)}</a>;
+        return link.nextLink ? <Link key={link.href} href={link.href} className={link.desktop ? "home-footer-faq" : ""}>{nav(link.label)}</Link> : <a key={link.href} href={link.href} className={link.desktop ? "home-footer-faq" : ""}>{nav(link.label)}</a>;
+      })}<Link href="/contact" className="home-footer-contact">{nav("contact")}</Link></nav></div>
       <div className="home-footer-bottom"><p>{footer("rights", { year: new Date().getFullYear() })}</p><nav aria-label={t("legalLinks")}>{LEGAL.map(link => <Link key={link.href} href={link.href}>{footer(link.label)}</Link>)}</nav></div>
     </footer>
     <WhatsAppBubble />

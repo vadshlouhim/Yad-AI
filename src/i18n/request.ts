@@ -5,6 +5,8 @@ import {
   DEFAULT_LOCALE,
   isSupportedLocale,
   LOCALE_COOKIE_NAME,
+  LOCALE_SOURCE_COOKIE_NAME,
+  LOCALE_SOURCE_MANUAL,
   type Locale,
 } from "@/i18n/config";
 
@@ -16,6 +18,7 @@ const messages: Record<Locale, () => Promise<Record<string, unknown>>> = {
 export default getRequestConfig(async () => {
   const cookieStore = await cookies();
   const cookieLocale = cookieStore.get(LOCALE_COOKIE_NAME)?.value;
+  const localeSource = cookieStore.get(LOCALE_SOURCE_COOKIE_NAME)?.value;
   let locale: Locale = isSupportedLocale(cookieLocale) ? cookieLocale : DEFAULT_LOCALE;
 
   const hasSupabaseSession = cookieStore
@@ -23,6 +26,7 @@ export default getRequestConfig(async () => {
     .some((cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("-auth-token"));
 
   if (
+    localeSource !== LOCALE_SOURCE_MANUAL &&
     hasSupabaseSession &&
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY

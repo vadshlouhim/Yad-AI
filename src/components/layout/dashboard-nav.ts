@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import React from "react";
 import { getCommunityProfileLabel } from "@/lib/community/profile-labels";
+import { isFeatureEnabled, type FeatureKey } from "@/lib/features-by-locale";
 import { COMMUNITY_AUTOMATION_MODULES } from "@/components/automations/community-automation-registry";
 
 // Official colored brand icons for the sidebar
@@ -388,7 +389,8 @@ function getStructureTypeLabel(communityType?: string | null) {
 
 export function getOfficialDashboardMenuSections(
   communityType?: string | null,
-  translate: (value: string) => string = (value) => value
+  translate: (value: string) => string = (value) => value,
+  locale = "fr",
 ): OfficialDashboardMenuSection[] {
   getStructureTypeLabel(communityType);
   const resourcesSubtitle = "Des outils pratiques pour accompagner votre communauté";
@@ -520,7 +522,26 @@ export function getOfficialDashboardMenuSections(
     },
   ];
 
-  return sections.map((section) => ({
+  const featureBySection: Partial<Record<OfficialDashboardMenuSection["key"], FeatureKey>> = {
+    social: "publish",
+    automations: "automations",
+    targeted: "crm",
+    torah: "torahLessons",
+    email: "emailReviews",
+    visuals: "posters",
+    shop_articles: "shop",
+    newsletter: "newsletter",
+    resources: "services",
+    contacts: "crm",
+    roadmap: "services",
+  };
+  const visibleSections = sections.filter((section) => {
+    if (section.key === "settings") return true;
+    const feature = featureBySection[section.key];
+    return feature ? isFeatureEnabled(locale, feature) : locale !== "he";
+  });
+
+  return visibleSections.map((section) => ({
     ...section,
     section: translate(section.section),
     subtitle: translate(section.subtitle),
@@ -547,8 +568,14 @@ export const QUICK_ACCESS_ITEMS: ReadonlyArray<Omit<DashboardNavItem, "icon"> & 
   { href: "/dashboard/events", label: "Mon Agenda", icon: CalendarDays },
 ];
 
-export function getQuickAccessItems(translate: (value: string) => string = (value) => value) {
-  return QUICK_ACCESS_ITEMS.map((item) => ({ ...item, label: translate(item.label) }));
+export function getQuickAccessItems(translate: (value: string) => string = (value) => value, locale = "fr") {
+  const items = locale === "he"
+    ? [
+        { href: "/dashboard/overview", label: "Tableau de bord", icon: House },
+        { href: "/dashboard/newsletter", label: "Newsletter papier Chabbat", icon: Mail },
+      ]
+    : QUICK_ACCESS_ITEMS;
+  return items.map((item) => ({ ...item, label: translate(item.label) }));
 }
 
 export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
