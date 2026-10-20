@@ -42,7 +42,7 @@ function draftLocale(request: Request) {
 async function getDraftContext(locale: "fr" | "he") {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: NextResponse.json({ error: "Non authentifié" }, { status: 401 }) };
+  if (!user) return { error: NextResponse.json({ code: "UNAUTHENTICATED" }, { status: 401 }) };
 
   const admin = createAdminClient();
   const { data: profile } = await admin
@@ -52,7 +52,7 @@ async function getDraftContext(locale: "fr" | "he") {
     .single();
 
   if (!profile?.communityId) {
-    return { error: NextResponse.json({ error: "Communauté introuvable" }, { status: 403 }) };
+    return { error: NextResponse.json({ code: "COMMUNITY_UNAVAILABLE" }, { status: 403 }) };
   }
 
   return {
@@ -82,7 +82,7 @@ export async function GET(request: Request) {
 
   if (error) {
     console.error("[Newsletter Draft GET]", error.code, error.message);
-    return NextResponse.json({ error: "Chargement du brouillon impossible" }, { status: 500 });
+    return NextResponse.json({ code: "LOAD_UNAVAILABLE" }, { status: 500 });
   }
   const row = data?.[0];
   if (!row) return NextResponse.json({ draft: null });
@@ -102,16 +102,16 @@ export async function PUT(request: Request) {
 
   const body = await request.json().catch(() => null) as { draft?: unknown; expectedUpdatedAt?: unknown } | null;
   if (!isRecord(body?.draft)) {
-    return NextResponse.json({ error: "Brouillon invalide" }, { status: 400 });
+    return NextResponse.json({ code: "INVALID_REQUEST" }, { status: 400 });
   }
   if (body.draft.outputLocale !== locale) {
-    return NextResponse.json({ error: "Langue du brouillon invalide" }, { status: 400 });
+    return NextResponse.json({ code: "INVALID_LOCALE" }, { status: 400 });
   }
 
   const cleanedDraft = cleanLegacyFields(body.draft);
   const serialized = JSON.stringify(cleanedDraft);
   if (new TextEncoder().encode(serialized).byteLength > MAX_DRAFT_BYTES) {
-    return NextResponse.json({ error: "Brouillon trop volumineux" }, { status: 413 });
+    return NextResponse.json({ code: "PAYLOAD_TOO_LARGE" }, { status: 413 });
   }
 
   const { data: existing, error: lookupError } = await context.admin
@@ -126,12 +126,12 @@ export async function PUT(request: Request) {
 
   if (lookupError) {
     console.error("[Newsletter Draft lookup]", lookupError.code, lookupError.message);
-    return NextResponse.json({ error: "Sauvegarde impossible" }, { status: 500 });
+    return NextResponse.json({ code: "SAVE_UNAVAILABLE" }, { status: 500 });
   }
 
   const expectedUpdatedAt = typeof body.expectedUpdatedAt === "string" ? body.expectedUpdatedAt : null;
   if ((existing?.[0]?.updatedAt ?? null) !== expectedUpdatedAt) {
-    return NextResponse.json({ error: "Ce brouillon a été modifié sur un autre appareil.", updatedAt: existing?.[0]?.updatedAt ?? null }, { status: 409 });
+    return NextResponse.json({ code: "DRAFT_CONFLICT", updatedAt: existing?.[0]?.updatedAt ?? null }, { status: 409 });
   }
 
   const now = new Date().toISOString();
@@ -151,9 +151,9 @@ export async function PUT(request: Request) {
 
     if (error) {
       console.error("[Newsletter Draft UPDATE]", error.code, error.message);
-      return NextResponse.json({ error: "Sauvegarde impossible" }, { status: 500 });
+      return NextResponse.json({ code: "SAVE_UNAVAILABLE" }, { status: 500 });
     }
-    if (!data) return NextResponse.json({ error: "Ce brouillon a été modifié sur un autre appareil." }, { status: 409 });
+    if (!data) return NextResponse.json({ code: "DRAFT_CONFLICT" }, { status: 409 });
     return NextResponse.json({ saved: true, updatedAt: data.updatedAt });
   }
 
@@ -175,10 +175,10 @@ export async function PUT(request: Request) {
     .select("updatedAt")
     .single();
 
-  if (error?.code === "23505") return NextResponse.json({ error: "Ce brouillon a été créé sur un autre appareil." }, { status: 409 });
+  if (error?.code === "23505") return NextResponse.json({ code: "DRAFT_CONFLICT" }, { status: 409 });
   if (error) {
     console.error("[Newsletter Draft INSERT]", error.code, error.message);
-    return NextResponse.json({ error: "Sauvegarde impossible" }, { status: 500 });
+    return NextResponse.json({ code: "SAVE_UNAVAILABLE" }, { status: 500 });
   }
   return NextResponse.json({ saved: true, updatedAt: data.updatedAt }, { status: 201 });
 }

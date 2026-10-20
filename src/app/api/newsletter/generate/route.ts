@@ -76,7 +76,7 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Non authentifie" }, { status: 401 });
+    if (!user) return NextResponse.json({ code: "UNAUTHENTICATED" }, { status: 401 });
 
     const admin = createAdminClient();
     const paidAccess = await assertPaidFeature(
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     );
     if (!paidAccess.ok) return paidAccess.response;
     const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
-    if (!profile?.communityId) return NextResponse.json({ error: "Communaute introuvable" }, { status: 403 });
+    if (!profile?.communityId) return NextResponse.json({ code: "COMMUNITY_UNAVAILABLE" }, { status: 403 });
 
     const body = await request.json().catch(() => ({})) as GenerateBody;
     const outputLocale = parseOutputLocale(body.outputLocale);
@@ -187,13 +187,13 @@ export async function POST(request: Request) {
       restaurantAd: newsletterGeneratedText(parsed?.restaurantAd),
       proofreadNote: newsletterGeneratedText(parsed?.proofreadNote, outputLocale === "he" ? "הטקסט מותאם לקריאה ולהדפסה." : "Texte relu et adapté à un support papier."),
       warnings: [
-        ...(eventLines.length === 0 && modules.events ? [outputLocale === "he" ? "לא נמצאו אירועים קרובים ביומן." : "Aucun événement à venir trouvé dans l’agenda."] : []),
-        ...(birthdays.length === 0 && modules.birthdays ? [outputLocale === "he" ? "לא נמצאו ימי הולדת יהודיים בשבעת הימים הקרובים." : "Aucun anniversaire juif trouvé sur les 7 prochains jours."] : []),
-        ...(!shabbat && modules.shabbat ? [outputLocale === "he" ? "זמני השבת אינם זמינים לעיר הזאת." : "Horaires de Chabbat indisponibles pour cette ville."] : []),
+        ...(eventLines.length === 0 && modules.events ? ["NO_UPCOMING_EVENTS"] : []),
+        ...(birthdays.length === 0 && modules.birthdays ? ["NO_UPCOMING_BIRTHDAYS"] : []),
+        ...(!shabbat && modules.shabbat ? ["SHABBAT_TIMES_UNAVAILABLE"] : []),
       ],
     });
   } catch (error) {
     console.error("[Newsletter Generate]", error);
-    return NextResponse.json({ error: "Generation de newsletter impossible" }, { status: 500 });
+    return NextResponse.json({ code: "AI_UNAVAILABLE" }, { status: 500 });
   }
 }

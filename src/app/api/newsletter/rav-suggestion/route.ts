@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Reconnectez-vous pour utiliser l’IA." }, { status: 401 });
+    if (!user) return NextResponse.json({ code: "UNAUTHENTICATED" }, { status: 401 });
     const body = await request.json().catch(() => ({})) as { outputLocale?: OutputLocale };
     const outputLocale = parseOutputLocale(body.outputLocale);
 
@@ -29,10 +29,10 @@ export async function POST(request: Request) {
     if (!access.ok) return access.response;
 
     const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
-    if (!profile?.communityId) return NextResponse.json({ error: "Communauté introuvable." }, { status: 403 });
+    if (!profile?.communityId) return NextResponse.json({ code: "COMMUNITY_UNAVAILABLE" }, { status: 403 });
 
     const { data: community } = await admin.from("Community").select("city, timezone").eq("id", profile.communityId).single();
-    if (!community) return NextResponse.json({ error: "Communauté introuvable." }, { status: 404 });
+    if (!community) return NextResponse.json({ code: "COMMUNITY_UNAVAILABLE" }, { status: 404 });
 
     const shabbat = (await getUpcomingShabbatTimes({
       city: community.city ?? "Paris",
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     }))[0];
     const parasha = shabbat ? localizedParasha(shabbat.date, outputLocale, shabbat.parasha).trim() : "";
     if (!parasha) {
-      return NextResponse.json({ error: "La Paracha de ce Chabbat est indisponible. Réessayez plus tard." }, { status: 422 });
+      return NextResponse.json({ code: "SHABBAT_UNAVAILABLE" }, { status: 422 });
     }
 
     const result = await generateContent({
@@ -60,11 +60,11 @@ export async function POST(request: Request) {
       ].join("\n"),
     });
     const suggestion = limitNewsletterText(result.body, NEWSLETTER_RAV_WORD_LIMIT);
-    if (!suggestion) return NextResponse.json({ error: "Aucune proposition reçue. Réessayez." }, { status: 502 });
+    if (!suggestion) return NextResponse.json({ code: "AI_EMPTY_RESPONSE" }, { status: 502 });
 
     return NextResponse.json({ suggestion, parasha }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("[Newsletter Rav Suggestion]", error);
-    return NextResponse.json({ error: "La proposition IA est momentanément indisponible. Votre texte n’a pas été modifié." }, { status: 500 });
+    return NextResponse.json({ code: "AI_UNAVAILABLE" }, { status: 500 });
   }
 }

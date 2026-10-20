@@ -9,8 +9,8 @@ export const maxDuration = 60;
 
 const BUCKET = "community-assets";
 
-function uploadError(message: string, code: string, status = 400) {
-  return NextResponse.json({ error: message, code }, { status });
+function uploadError(code: string, status = 400) {
+  return NextResponse.json({ code }, { status });
 }
 
 export async function POST(request: Request) {
@@ -18,18 +18,18 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return uploadError("Non authentifié", "UNAUTHENTICATED", 401);
+    if (!user) return uploadError("UNAUTHENTICATED", 401);
 
     const form = await request.formData();
     const file = form.get("file");
     const target = form.get("target") === "logo" ? "logo" : "image";
-    if (!(file instanceof File)) return uploadError("Fichier manquant", "FILE_MISSING");
-    if (!file.size) return uploadError("Ce fichier est vide.", "EMPTY_FILE");
-    if (file.size > MAX_SOURCE_BYTES) return uploadError("Image trop lourde, maximum 20 Mo.", "SOURCE_TOO_LARGE", 413);
+    if (!(file instanceof File)) return uploadError("FILE_MISSING");
+    if (!file.size) return uploadError("EMPTY_FILE");
+    if (file.size > MAX_SOURCE_BYTES) return uploadError("SOURCE_TOO_LARGE", 413);
 
     const admin = createAdminClient();
     const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
-    if (!profile?.communityId) return uploadError("Communauté introuvable", "COMMUNITY_MISSING", 403);
+    if (!profile?.communityId) return uploadError("COMMUNITY_UNAVAILABLE", 403);
 
     let body: Buffer;
     try {
@@ -38,10 +38,7 @@ export async function POST(request: Request) {
     } catch (error) {
       const tooLarge = error instanceof Error && error.message === "output_too_large";
       console.warn("[Newsletter Image]", { requestId, stage: "convert", status: "failed", inputBytes: file.size, mime: file.type || "unknown" });
-      return uploadError(
-        tooLarge ? "Cette image reste trop lourde après optimisation. Réduisez sa résolution puis réessayez." : "Image illisible ou format non reconnu. Essayez une autre photo.",
-        tooLarge ? "OUTPUT_TOO_LARGE" : "INVALID_IMAGE",
-      );
+      return uploadError(tooLarge ? "OUTPUT_TOO_LARGE" : "INVALID_IMAGE");
     }
 
     const safeBase = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 45) || "photo";
@@ -63,7 +60,7 @@ export async function POST(request: Request) {
     }
     if (storageError) {
       console.error("[Newsletter Image]", { requestId, stage: "storage", status: "failed", code: storageError.message });
-      return uploadError("Stockage de l’image indisponible. Réessayez.", "STORAGE_FAILED", 500);
+      return uploadError("STORAGE_FAILED", 500);
     }
 
     const { data } = admin.storage.from(BUCKET).getPublicUrl(storagePath);
@@ -71,7 +68,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: data.publicUrl, path: storagePath, type: contentType, name: file.name, requestId });
   } catch (error) {
     console.error("[Newsletter Image]", { requestId, stage: "request", status: "failed", error });
-    return uploadError("Importation impossible. Réessayez.", "UPLOAD_FAILED", 500);
+    return uploadError("UPLOAD_FAILED", 500);
   }
 }
 

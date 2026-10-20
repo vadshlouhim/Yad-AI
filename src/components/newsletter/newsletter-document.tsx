@@ -4,6 +4,7 @@ import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, 
 import { createPortal } from "react-dom";
 import { composeNewsletter, PAPER, type NewsletterDocumentData } from "@/lib/newsletter/document-layout";
 import { useTranslations } from "next-intl";
+import { NEWSLETTER_ERROR_CODES, newsletterErrorCode } from "@/lib/newsletter/errors";
 
 export type NewsletterDocumentHandle = { prepare: () => Promise<HTMLElement[]> };
 const paint = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
@@ -62,7 +63,10 @@ export const NewsletterDocument = forwardRef<NewsletterDocumentHandle, {
   useImperativeHandle(ref, () => ({ prepare }), [prepare]);
   useEffect(() => {
     if (visible) void prepare().catch((error: unknown) => {
-      if (alive.current && latestKey.current === key) onError(error instanceof Error ? error.message : t("compositionError"));
+      if (alive.current && latestKey.current === key) {
+        const code = newsletterErrorCode(error);
+        onError(code === NEWSLETTER_ERROR_CODES.layoutOverflow ? t("layoutOverflow") : code === NEWSLETTER_ERROR_CODES.printableOverflow ? t("printableOverflow") : t("compositionError"));
+      }
     });
   }, [visible, prepare, onError, key, t]);
 

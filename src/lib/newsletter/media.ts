@@ -1,4 +1,5 @@
 import { newsletterExportImageUrl } from "./media-path";
+import { NEWSLETTER_ERROR_CODES, NewsletterError } from "./errors";
 
 export const NEWSLETTER_IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/avif,image/bmp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.avif,.bmp,.heic,.heif";
 export const MAX_SOURCE_BYTES = 20 * 1024 * 1024;
@@ -14,10 +15,10 @@ export function resolveNewsletterBanner(
 
 /** Decode before uploading: unsupported/corrupt files must never become broken images. */
 export async function prepareNewsletterImage(file: File): Promise<File> {
-  if (!file.size) throw new Error("Ce fichier est vide.");
-  if (file.size > MAX_SOURCE_BYTES) throw new Error("Image trop volumineuse : maximum 20 Mo.");
+  if (!file.size) throw new NewsletterError(NEWSLETTER_ERROR_CODES.emptyFile);
+  if (file.size > MAX_SOURCE_BYTES) throw new NewsletterError(NEWSLETTER_ERROR_CODES.sourceTooLarge);
   if (!/\.(jpe?g|png|webp|gif|avif|bmp|heic|heif)$/i.test(file.name) && !/^image\/(jpeg|png|webp|gif|avif|bmp|heic|heif)$/.test(file.type)) {
-    throw new Error("Utilisez une image JPG, PNG, WebP, GIF, AVIF, BMP, HEIC ou HEIF. Les PDF ne sont pas acceptés.");
+    throw new NewsletterError(NEWSLETTER_ERROR_CODES.invalidImage);
   }
   return file;
 }
@@ -41,9 +42,9 @@ export async function uploadNewsletterImage(file: File, target: "image" | "logo"
     method: "POST", body: form,
   }, 90_000);
   const data = await response.json().catch(() => ({})) as { url?: string; name?: string; error?: string; code?: string };
-  if (response.status === 401) throw new Error("Votre session a expiré. Reconnectez-vous pour ajouter des images.");
-  if (response.status === 413) throw new Error("Image refusée car trop volumineuse. Réduisez sa résolution.");
-  if (!response.ok || !data.url) throw new Error(data.error || "Envoi impossible. Vérifiez votre connexion puis réessayez.");
+  if (response.status === 401) throw new NewsletterError(NEWSLETTER_ERROR_CODES.unauthenticated);
+  if (response.status === 413) throw new NewsletterError(NEWSLETTER_ERROR_CODES.sourceTooLarge);
+  if (!response.ok || !data.url) throw new NewsletterError(data.code === "INVALID_IMAGE" ? NEWSLETTER_ERROR_CODES.invalidImage : NEWSLETTER_ERROR_CODES.uploadFailed);
   return { id: crypto.randomUUID(), url: data.url, name: data.name || file.name };
 }
 
@@ -60,7 +61,7 @@ export async function uploadNewsletterBatch<T>(
     try {
       onSuccess(await upload(file));
     } catch (error) {
-      errors.push(`${file.name} : ${error instanceof Error ? error.message : "Envoi impossible."}`);
+      errors.push(`${file.name} : ${error instanceof Error ? error.message : NEWSLETTER_ERROR_CODES.uploadFailed}`);
     }
     onProgress(index + 1, files.length);
   }
@@ -70,10 +71,10 @@ export async function uploadNewsletterBatch<T>(
 function blobAsDataUrl(blob: Blob) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Impossible d’intégrer une image au PDF."));
+    reader.onerror = () => reject(new NewsletterError(NEWSLETTER_ERROR_CODES.imageUnavailable));
     reader.onload = () => typeof reader.result === "string"
       ? resolve(reader.result)
-      : reject(new Error("Impossible d’intégrer une image au PDF."));
+      : reject(new NewsletterError(NEWSLETTER_ERROR_CODES.imageUnavailable));
     reader.readAsDataURL(blob);
   });
 }
@@ -94,9 +95,9 @@ export async function inlineNewsletterExportImages(root: HTMLElement) {
         cache: "no-store",
         credentials: "same-origin",
       }, 30_000);
-      if (!response.ok) throw new Error(`Image indisponible : ${image.alt || "visuel du feuillet"}. Réimportez-la avant l’export.`);
+      if (!response.ok) throw new NewsletterError(NEWSLETTER_ERROR_CODES.imageUnavailable);
       const blob = await response.blob();
-      if (!blob.type.startsWith("image/") || !blob.size) throw new Error(`Image invalide : ${image.alt || "visuel du feuillet"}.`);
+      if (!blob.type.startsWith("image/") || !blob.size) throw new NewsletterError(NEWSLETTER_ERROR_CODES.invalidImage);
       dataUrl = await blobAsDataUrl(blob);
       cache.set(source, dataUrl);
     }
@@ -104,6 +105,6 @@ export async function inlineNewsletterExportImages(root: HTMLElement) {
     image.removeAttribute("srcset");
     image.src = dataUrl;
     if (typeof image.decode === "function") await image.decode();
-    if (!image.complete || !image.naturalWidth) throw new Error(`Image non intégrée : ${image.alt || "visuel du feuillet"}.`);
+    if (!image.complete || !image.naturalWidth) throw new NewsletterError(NEWSLETTER_ERROR_CODES.imageUnavailable);
   }
 }

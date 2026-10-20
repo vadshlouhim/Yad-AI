@@ -5,6 +5,7 @@ import { resolveNewsletterLabels, type NewsletterLabels } from "./labels";
 import { formatKiddushSponsor, NEWSLETTER_CHALLOT_ICON_URL } from "./kiddush";
 import { outputIntlLocale, type OutputLocale } from "@/lib/ai/output-locale";
 import { RELIGIOUS_COPY } from "./religious-locale";
+import { NEWSLETTER_ERROR_CODES, NewsletterError } from "./errors";
 
 export const PAPER = { width: 794, height: 1123, margin: 42, gap: 18 };
 const CONTENT_WIDTH = PAPER.width - PAPER.margin * 2;
@@ -64,7 +65,7 @@ export function paginateNewsletter(blocks: DocumentBlock[], capacity: (index: nu
         if (page.blocks.length) { newPage(); continue; }
         const overhead = measure({ ...block, height: 0 }, baseFont);
         const height = Math.min(block.height, remaining - overhead);
-        if (height < 80) throw new Error("L’en-tête laisse trop peu de place aux images. Raccourcissez le titre ou les coordonnées.");
+        if (height < 80) throw new NewsletterError(NEWSLETTER_ERROR_CODES.headerTooLarge);
         push({ ...block, height, maxHeight: Math.min(block.maxHeight, height) });
         break;
       }
@@ -89,7 +90,7 @@ export function paginateNewsletter(blocks: DocumentBlock[], capacity: (index: nu
           else right = end - 1;
         }
       }
-      if (!fit) throw new Error("Le titre ou l’en-tête est trop long pour une page A4.");
+      if (!fit) throw new NewsletterError(NEWSLETTER_ERROR_CODES.headerTooLarge);
       push({ ...block, text: block.text.slice(0, fit) });
       block = { ...block, text: block.text.slice(fit), continuation: true };
       if (!block.text.length) break;
@@ -184,7 +185,7 @@ async function imageDimensions(image: UploadedPhoto): Promise<DocumentImage> {
       img.onload = null;
       img.onerror = null;
       if (ok && img.naturalWidth && img.naturalHeight) resolve({ ...image, width: img.naturalWidth, height: img.naturalHeight });
-      else reject(new Error(`Image indisponible : ${image.name}. Réimportez-la avant l’export.`));
+      else reject(new NewsletterError(NEWSLETTER_ERROR_CODES.imageUnavailable, { imageId: image.id }));
     };
     img.onload = () => finish(true);
     img.onerror = () => finish(false);
@@ -212,7 +213,8 @@ async function makeBlocks(data: NewsletterDocumentData): Promise<DocumentBlock[]
   const labels = resolveNewsletterLabels(undefined, data.labels, data.outputLocale);
   const expectedStudyDate = data.shabbat ? newsletterShabbatDate(data.shabbat.date) : data.seferHamitsvot?.date;
   if (e.seferHamitsvot && (!data.seferHamitsvot || !expectedStudyDate || !isSaturdayDate(expectedStudyDate) || data.seferHamitsvot.date !== expectedStudyDate)) {
-    throw new Error(data.studyUnavailableMessage ?? "L’étude de ce Chabbat n’est pas disponible.");
+    if (data.studyUnavailableMessage) throw new Error(data.studyUnavailableMessage);
+    throw new NewsletterError(NEWSLETTER_ERROR_CODES.studyUnavailable);
   }
   const blocks: DocumentBlock[] = [
     ...textBlock("intro", "", g.intro),
@@ -343,7 +345,7 @@ export function fitNewsletterColumns(blocks: DocumentBlock[], capacities: number
   }
   const largest = blocks.filter(block => block.kind === "text").sort((a, b) =>
     (b.kind === "text" ? b.text.length : 0) - (a.kind === "text" ? a.text.length : 0)).slice(0, 3);
-  throw new Error(`Même avec la police réduite à 8 points, le texte dépasse les deux faces A4. Les rubriques les plus longues sont ${largest.map(block => `« ${block.title || "Introduction"} »`).join(", ")}. Aucun texte n’a été supprimé.`);
+  throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { sections: largest.map(block => block.id) });
 }
 
 /** Keep each editorial section whole; the print edition never creates a “suite” fragment. */
@@ -386,7 +388,7 @@ export function fitNewsletterWholeBlocks(blocks: DocumentBlock[], capacities: nu
   }
   const largest = blocks.filter((block) => block.kind === "text").sort((a, b) =>
     (b.kind === "text" ? b.text.length : 0) - (a.kind === "text" ? a.text.length : 0)).slice(0, 3);
-  throw new Error(`Les rubriques ${largest.map((block) => `« ${block.title || "Introduction"} »`).join(", ")} ne tiennent pas entières sur une A4 recto verso à 8 points. Raccourcissez-les manuellement ou retirez un visuel ; aucun texte n’a été coupé.`);
+  throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { sections: largest.map(block => block.id) });
 }
 
 
@@ -414,7 +416,7 @@ const ZONE_GAP = 16;
 const COLUMN_GAP = 24;
 const COLUMN_WIDTH = (CONTENT_WIDTH - COLUMN_GAP) / 2;
 const NORMAL_FONTS = [11, 11.5, 12, 10.5, 10];
-const DENSE_FONTS = [9.5, 9, 8.5, 8];
+const DENSE_FONTS = [9.5];
 const POSTER_MIN_SHORT_SIDE = 180;
 const POSTERS_PER_DEDICATED_PAGE = 2;
 
@@ -549,10 +551,34 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
       if (!measureCache.has(key)) measureCache.set(key, heightOf(renderDocumentBlock(block, font), width));
       return measureCache.get(key)!;
     };
+    const density = data.layout?.density ?? "auto";
+    const zoneGap = density === "tight" ? 9 : density === "compact" ? 12 : ZONE_GAP;
     const textHeight = (items: DocumentBlock[], font: number, width: number) =>
-      items.reduce((sum, block) => sum + measure(block, font, width), Math.max(0, items.length - 1) * ZONE_GAP);
-    const footHeight = heightOf(footer(data, 0, 2)) + 16;
+      items.reduce((sum, block) => sum + measure(block, font, width), Math.max(0, items.length - 1) * zoneGap);
+    const footHeight = heightOf(footer(data, 0, data.layout?.pageLimit ?? 2)) + (density === "tight" ? 8 : 16);
     const capacities = [true, false].map(first => PAPER.height - PAPER.margin * 2 - heightOf(header(data, first)) - footHeight - 4);
+    if (data.layout?.pageLimit === 3) {
+      const posterImages = blocks.flatMap(block => block.kind === "images" && block.poster ? block.images : []);
+      const fallbackBlocks = blocks.filter(block => block.kind !== "images" || !block.poster);
+      for (let index = 0; index < posterImages.length; index += 2) {
+        const images = posterImages.slice(index, index + 2);
+        fallbackBlocks.push({ kind: "images", id: `posters-overflow-${index}`, title: index ? "" : labels.posters, images, height: 300, maxHeight: 340, poster: true });
+      }
+      const pages = paginateNewsletter(fallbackBlocks, index => capacities[Math.min(index, 1)], block => measure(block, 9.5, CONTENT_WIDTH), 9.5);
+      if (pages.length > 3) throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { maxPages: 3 });
+      return pages.map((page, index) => {
+        const article = paper(data, index);
+        article.dataset.composition = "overflow-page";
+        const content = element("div", undefined, { flex: "1", minHeight: "0", overflow: "hidden" });
+        page.blocks.forEach((block, blockIndex) => {
+          const node = renderDocumentBlock(block, page.fontSize);
+          if (blockIndex) node.style.marginTop = zoneGap + "px";
+          content.append(node);
+        });
+        article.append(content, footer(data, index, pages.length));
+        return article.outerHTML;
+      });
+    }
     const titleHeights = new Map<string, number>();
     const galleryCache = new Map<string, GalleryPlan | null>();
     const fitGallery = (g: Gallery, width: number, room: number): GalleryPlan | null => {
@@ -598,7 +624,7 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
         if (rows.some(row => row.images.some(img => {
           const ratio = img.width / img.height;
           const shortest = Math.min(row.height, row.height * ratio);
-          const minimum = g.id === "posters" ? POSTER_MIN_SHORT_SIDE : 65;
+          const minimum = g.id === "posters" ? (density === "tight" ? 135 : density === "compact" ? 160 : POSTER_MIN_SHORT_SIDE) : density === "tight" ? 52 : density === "compact" ? 58 : 65;
           return shortest < Math.min(minimum, width * Math.min(1, 1 / ratio), maxHeight * Math.min(1, ratio)) - 0.1;
         }))) continue;
         const areas = rows.flatMap(row => row.images.map(img => row.height ** 2 * img.width / img.height));
@@ -656,15 +682,15 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
         const zones = [...base];
         let y = top;
         if (withNotices && pageNotices.length) {
-          if (y) y += ZONE_GAP;
+          if (y) y += zoneGap;
           const h = noticeHeight(width);
           zones.push({ x, y, width, height: h, blocks: pageNotices, notice: true }); y += h;
         }
         if (media.length) {
-          if (y) y += ZONE_GAP;
+          if (y) y += zoneGap;
           const fitted = fitGalleries(media, width, capacity - y);
           if (!fitted) return null;
-          const h = fitted.reduce((sum, g) => sum + g.height, (fitted.length - 1) * ZONE_GAP);
+          const h = fitted.reduce((sum, g) => sum + g.height, (fitted.length - 1) * zoneGap);
           zones.push({ x, y, width, height: h, galleries: fitted });
         }
         return zones;
@@ -685,7 +711,7 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
           // both columns still benefits from the entire page width.
           if (pageNotices.length) {
             const h = noticeHeight(COLUMN_WIDTH);
-            const notice: Zone = { x: side * (COLUMN_WIDTH + COLUMN_GAP), y: heights[side] + ZONE_GAP, width: COLUMN_WIDTH, height: h, blocks: pageNotices, notice: true };
+            const notice: Zone = { x: side * (COLUMN_WIDTH + COLUMN_GAP), y: heights[side] + zoneGap, width: COLUMN_WIDTH, height: h, blocks: pageNotices, notice: true };
             const below = appendTail([...zones, notice], CONTENT_WIDTH, 0, Math.max(heights[1 - side], notice.y + h), false);
             if (below) consider(below, "columns");
           }
@@ -721,12 +747,12 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
     };
     const search = (fonts: number[], usedPosters: number) => {
       for (const font of fonts) {
-        const introHeight = intro.length ? textHeight(intro, font, CONTENT_WIDTH) + ZONE_GAP : 0;
+        const introHeight = intro.length ? textHeight(intro, font, CONTENT_WIDTH) + zoneGap : 0;
         for (const editorial of orders) for (let split = 0; split <= editorial.length; split++) {
           const front = editorial.slice(0, split), back = editorial.slice(split);
           const hasBack = back.length > 0 || backMedia.length > 0 || supportBlocks.length > 0;
           const supportReserve = supportBlocks.length
-            ? heightOf(renderNotice(supportBlocks, font), CONTENT_WIDTH) + ZONE_GAP
+            ? heightOf(renderNotice(supportBlocks, font), CONTENT_WIDTH) + zoneGap
             : 0;
           const frontNotices = dedicationBlocks;
           const backNotices: DocumentBlock[] = [];
@@ -784,7 +810,7 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
       }
     };
     attemptSelection();
-    if (!selected) throw new Error("Les rubriques ne tiennent pas entières sur une A4 recto verso, même après réorganisation. Raccourcissez explicitement un texte ou retirez un visuel. Aucun texte n’a été coupé ni supprimé.");
+    if (!selected) throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { maxPages: 2 });
     const choice = selected as { pages: SheetPlan[]; font: number; introHeight: number; score: number; usedPosters: number };
     const supportHeight = supportBlocks.length ? heightOf(renderNotice(supportBlocks, choice.font), CONTENT_WIDTH) : 0;
     const editorialPages = choice.pages.map((plan) => ({
@@ -797,18 +823,18 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
     }));
     const plans = [...editorialPages];
     if (supportHeight) {
-      if (supportHeight > capacities[1]) throw new Error("La rubrique Nous soutenir est trop longue pour la zone imprimable.");
+      if (supportHeight > capacities[1]) throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { section: "support" });
       const lastIndex = plans.length - 1;
       const last = plans[lastIndex];
       const planCapacity = capacities[lastIndex === 0 ? 0 : 1] + 4 - (lastIndex === 0 ? choice.introHeight : 0);
       const supportY = planCapacity - supportHeight;
       const usedBottom = last.zones.reduce((bottom, zone) => Math.max(bottom, zone.y + zone.height), 0);
       const supportZone: Zone = { x: 0, y: supportY, width: CONTENT_WIDTH, height: supportHeight, blocks: supportBlocks, notice: true };
-      if (usedBottom <= supportY - ZONE_GAP) last.zones.push(supportZone);
-      else throw new Error("La rubrique de soutien ne tient pas sur le recto-verso. Raccourcissez un texte ou retirez un visuel.");
+      if (usedBottom <= supportY - zoneGap) last.zones.push(supportZone);
+      else throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { section: "support" });
     }
     while (plans.length < 2) plans.push({ zones: [], score: 0, mode: "back" });
-    if (plans.length > 2) throw new Error("Le feuillet dépasse deux pages. Raccourcissez un texte ou retirez un visuel.");
+    if (plans.length > 2) throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { maxPages: 2 });
     return plans.map((plan, index) => {
       const article = paper(data, index);
       article.dataset.composition = plan.mode;
@@ -827,12 +853,12 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
         if (zone.notice) node.append(renderNotice(zone.blocks!, choice.font));
         else zone.blocks?.forEach((block, i) => {
           const section = renderDocumentBlock(block, choice.font);
-          if (i) section.style.marginTop = ZONE_GAP + "px";
+          if (i) section.style.marginTop = zoneGap + "px";
           node.append(section);
         });
         zone.galleries?.forEach((g, i) => {
           const section = renderGallery(g, zone.width);
-          if (i) section.style.marginTop = ZONE_GAP + "px";
+          if (i) section.style.marginTop = zoneGap + "px";
           node.append(section);
         });
         content.append(node);
@@ -844,7 +870,7 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
       if (nodes.some(node => {
         const r = node.getBoundingClientRect();
         return r.bottom > bounds.bottom + 1 || r.right > bounds.right + 1 || r.left < bounds.left - 1;
-      })) throw new Error("La composition dépasse la zone imprimable. Aucun contenu n’a été masqué.");
+      })) throw new NewsletterError(NEWSLETTER_ERROR_CODES.printableOverflow);
       return article.outerHTML;
     });
   } finally { root.remove(); }

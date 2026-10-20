@@ -1,5 +1,6 @@
 import type { OutputLocale } from "@/lib/ai/output-locale";
 import { outputIntlLocale } from "@/lib/ai/output-locale";
+import { NEWSLETTER_ERROR_CODES, NewsletterError } from "./errors";
 
 export type NewsletterStudy = {
   date: string;
@@ -13,10 +14,10 @@ export type NewsletterStudy = {
 
 /** The newsletter stores Friday's candle-lighting date, not Saturday. */
 export function newsletterShabbatDate(friday: string): string {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(friday)) throw new Error("Date du Chabbat invalide.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(friday)) throw new NewsletterError(NEWSLETTER_ERROR_CODES.invalidDate);
   const date = new Date(`${friday}T12:00:00Z`);
   if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== friday || date.getUTCDay() !== 5) {
-    throw new Error("La date des horaires doit correspondre au vendredi.");
+    throw new NewsletterError(NEWSLETTER_ERROR_CODES.invalidDate);
   }
   date.setUTCDate(date.getUTCDate() + 1);
   return date.toISOString().slice(0, 10);
@@ -42,7 +43,7 @@ export function upcomingSaturdayDate(now: Date, timezone: string) {
   const year = parts.find((part) => part.type === "year")?.value;
   const month = parts.find((part) => part.type === "month")?.value;
   const day = parts.find((part) => part.type === "day")?.value;
-  if (!year || !month || !day) throw new Error("Date locale de la communauté indisponible.");
+  if (!year || !month || !day) throw new NewsletterError(NEWSLETTER_ERROR_CODES.invalidDate);
   const localDate = new Date(`${year}-${month}-${day}T12:00:00Z`);
   localDate.setUTCDate(localDate.getUTCDate() + (6 - localDate.getUTCDay() + 7) % 7);
   return localDate.toISOString().slice(0, 10);

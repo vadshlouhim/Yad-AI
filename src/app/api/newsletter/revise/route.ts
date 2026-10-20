@@ -13,20 +13,20 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Reconnectez-vous pour utiliser l’IA." }, { status: 401 });
+    if (!user) return NextResponse.json({ code: "UNAUTHENTICATED" }, { status: 401 });
     const admin = createAdminClient();
     const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
-    if (!profile?.communityId) return NextResponse.json({ error: "Communauté introuvable." }, { status: 403 });
+    if (!profile?.communityId) return NextResponse.json({ code: "COMMUNITY_UNAVAILABLE" }, { status: 403 });
     const access = await assertPaidFeature(admin, user.id, "newsletter_generation", "La modification IA du feuillet nécessite un abonnement actif.");
     if (!access.ok) return access.response;
     const raw = await request.text();
-    if (raw.length > 80000) return NextResponse.json({ error: "Demande trop volumineuse." }, { status: 413 });
+    if (raw.length > 80000) return NextResponse.json({ code: "PAYLOAD_TOO_LARGE" }, { status: 413 });
     let body;
-    try { body = JSON.parse(raw); } catch { return NextResponse.json({ error: "Demande invalide." }, { status: 400 }); }
-    if (!body || typeof body.instructions !== "string" || !body.instructions.trim() || body.instructions.length > 2000 || !body.texts || typeof body.texts !== "object") return NextResponse.json({ error: "Ajoutez des consignes (2 000 caractères maximum)." }, { status: 400 });
+    try { body = JSON.parse(raw); } catch { return NextResponse.json({ code: "INVALID_REQUEST" }, { status: 400 }); }
+    if (!body || typeof body.instructions !== "string" || !body.instructions.trim() || body.instructions.length > 2000 || !body.texts || typeof body.texts !== "object") return NextResponse.json({ code: "INVALID_REQUEST" }, { status: 400 });
     const allowed: RevisionField[] = Array.isArray(body.editableFields) ? REVISION_FIELDS.filter(field => body.editableFields.includes(field)) : [];
     const texts = Object.fromEntries(REVISION_FIELDS.map(field => [field, typeof body.texts[field] === "string" ? body.texts[field] : ""]));
-    if (Object.values(texts).some(text => text.length > 16000)) return NextResponse.json({ error: "Une rubrique dépasse la taille acceptée." }, { status: 413 });
+    if (Object.values(texts).some(text => text.length > 16000)) return NextResponse.json({ code: "PAYLOAD_TOO_LARGE" }, { status: 413 });
     const blockIds = Array.isArray(body.blockIds) ? body.blockIds.filter((id: unknown) => typeof id === "string" && /^[a-zA-Z0-9_-]{1,100}$/.test(id)).slice(0, 40) : [];
     const outputLocale = parseOutputLocale(body.outputLocale);
     const result = await generateContent({
@@ -48,10 +48,10 @@ export async function POST(request: Request) {
     });
     let parsed;
     try { parsed = JSON.parse(result.body.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "")); }
-    catch { return NextResponse.json({ error: "La proposition IA est illisible. Votre feuillet est conservé ; réessayez." }, { status: 502 }); }
+    catch { return NextResponse.json({ code: "AI_INVALID_RESPONSE" }, { status: 502 }); }
     try { return NextResponse.json(validateNewsletterRevision(parsed, allowed), { headers: { "Cache-Control": "no-store" } }); }
-    catch (error) { return NextResponse.json({ error: (error as Error).message }, { status: 422 }); }
+    catch { return NextResponse.json({ code: "AI_INVALID_RESPONSE" }, { status: 422 }); }
   } catch {
-    return NextResponse.json({ error: "La modification IA est indisponible. Votre feuillet précédent est conservé." }, { status: 500 });
+    return NextResponse.json({ code: "AI_UNAVAILABLE" }, { status: 500 });
   }
 }

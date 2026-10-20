@@ -9,6 +9,8 @@ import { NewsletterRevision } from "./newsletter-revision";
 import { PhotoCaptions } from "./photo-captions";
 import { parseLayoutPreferences, type NewsletterLayoutPreferences, type NewsletterRevision as Revision } from "@/lib/newsletter/revision";
 import type { NewsletterDocumentData } from "@/lib/newsletter/document-layout";
+import { estimateNewsletterFill } from "@/lib/newsletter/layout-estimate";
+import { NEWSLETTER_ERROR_CODES, newsletterErrorCode } from "@/lib/newsletter/errors";
 import { inlineNewsletterExportImages, NEWSLETTER_IMAGE_ACCEPT, resolveNewsletterBanner, uploadNewsletterBatch, uploadNewsletterImage } from "@/lib/newsletter/media";
 import { createDraftSaveQueue } from "@/lib/newsletter/save-queue";
 import { limitNewsletterText, NEWSLETTER_EVENT_INTRO_LIMIT, NEWSLETTER_INTRO_LIMIT, NEWSLETTER_PARASHA_LIMIT, NEWSLETTER_PHOTO_LIMIT, NEWSLETTER_POSTER_LIMIT, NEWSLETTER_RAV_WORD_LIMIT, NEWSLETTER_SEFER_LIMIT, NEWSLETTER_SPECIFIC_EVENT_LIMIT } from "@/lib/newsletter/limits";
@@ -161,7 +163,7 @@ export type NewsletterDraft = {
   layout?: NewsletterLayoutPreferences;
   previousRevision?: RevisionSnapshot | null;
 };
-type RevisionSnapshot = Pick<NewsletterDraft, "generated" | "parnessText" | "kiddushText" | "specificEventText" | "seferHamitsvotText" | "photos" | "layout" | "outputLocale" | "labelOverrides">;
+type RevisionSnapshot = Pick<NewsletterDraft, "generated" | "parnessText" | "kiddushText" | "specificEventText" | "seferHamitsvotText" | "photos" | "posters" | "partnerAds" | "layout" | "outputLocale" | "labelOverrides">;
 
 const MODULES: ModuleConfig[] = [
   { key: "seferHamitsvot", titleKey: "modules.seferHamitsvot", icon: BookOpen },
@@ -304,7 +306,7 @@ export function parseNewsletterDraft(
   return {
     version: NEWSLETTER_DRAFT_VERSION,
     layout: parseLayoutPreferences(value.layout),
-    previousRevision: previous ? { generated: previous.generated, parnessText: previous.parnessText, kiddushText: previous.kiddushText, specificEventText: previous.specificEventText, seferHamitsvotText: previous.seferHamitsvotText, photos: previous.photos, layout: previous.layout, outputLocale: previous.outputLocale, labelOverrides: previous.labelOverrides } : null,
+    previousRevision: previous ? { generated: previous.generated, parnessText: previous.parnessText, kiddushText: previous.kiddushText, specificEventText: previous.specificEventText, seferHamitsvotText: previous.seferHamitsvotText, photos: previous.photos, posters: previous.posters, partnerAds: previous.partnerAds, layout: previous.layout, outputLocale: previous.outputLocale, labelOverrides: previous.labelOverrides } : null,
     savedAt: typeof value.savedAt === "number" ? value.savedAt : 0,
     outputLocale,
     title: draftText(value.title, defaults.title),
@@ -334,7 +336,7 @@ export function parseNewsletterDraft(
       eventIntro: draftText(generatedValue.eventIntro),
       restaurantAd: draftText(generatedValue.restaurantAd),
       proofreadNote: draftText(generatedValue.proofreadNote, defaults.proofreadNote),
-      warnings: Array.isArray(generatedValue.warnings) ? generatedValue.warnings.filter((item): item is string => typeof item === "string").slice(0, 10) : [],
+      warnings: Array.isArray(generatedValue.warnings) ? generatedValue.warnings.filter((item): item is string => typeof item === "string" && (outputLocale === "fr" || /[\u0590-\u05ff]/.test(item))).slice(0, 10) : [],
     },
   };
 }
@@ -361,6 +363,10 @@ export function NewsletterPaperClient({
   const router = useRouter();
   const interfaceLocale = parseOutputLocale(useLocale());
   const t = useTranslations("newsletter");
+  const localizedError = useCallback((error: unknown, fallback: string) => {
+    const code = newsletterErrorCode(error);
+    return code ? t(`errorCodes.${code}` as never) : fallback;
+  }, [t]);
   const draftRequestError = useCallback((status: number, loading = false) => {
     const action = t(loading ? "errors.loadAction" : "errors.saveAction");
     if (status === 401) return t("errors.sessionExpired");
@@ -429,13 +435,19 @@ export function NewsletterPaperClient({
   const [pendingServerDraft, setPendingServerDraft] = useState<NewsletterDraft | null>(null);
   const [retryLoadCount, setRetryLoadCount] = useState(0);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [overflowOpen, setOverflowOpen] = useState(false);
+  const [overflowPreview, setOverflowPreview] = useState(false);
+  const [overflowShortening, setOverflowShortening] = useState(false);
+  const [shortenProposal, setShortenProposal] = useState<Pick<GeneratedNewsletter, "intro" | "ravWord" | "shabbatNote"> | null>(null);
+  const [deferChoice, setDeferChoice] = useState("");
 
   const activeCount = useMemo(() => Object.values(enabled).filter(Boolean).length, [enabled]);
   const mayContainLegacyCuts = [[generated.intro, 180], [generated.ravWord, 850], [generated.shabbatNote, 620], [generated.eventIntro, 220]].some(([text, limit]) => typeof text === "string" && text.length === limit && !/[.!?…]$/.test(text.trim()));
   const visibleEvents = initialEvents;
-  const visiblePhotos = photos;
-  const visiblePosters = posters;
-  const visiblePartnerAds = partnerAds;
+  const deferredIds = useMemo(() => new Set(layout.deferredMediaIds ?? []), [layout.deferredMediaIds]);
+  const visiblePhotos = useMemo(() => photos.filter(item => !deferredIds.has(item.id)), [deferredIds, photos]);
+  const visiblePosters = useMemo(() => posters.filter(item => !deferredIds.has(item.id)), [deferredIds, posters]);
+  const visiblePartnerAds = useMemo(() => partnerAds.filter(item => !deferredIds.has(item.id)), [deferredIds, partnerAds]);
   const communityResolvedLabels = useMemo(() => resolveNewsletterLabels(communityLabelDefaults, undefined, outputLocale), [communityLabelDefaults, outputLocale]);
   const resolvedLabels = useMemo(() => resolveNewsletterLabels(communityLabelDefaults, labelOverrides, outputLocale), [communityLabelDefaults, labelOverrides, outputLocale]);
   const localizedShabbat = useMemo<NewsletterShabbat | null>(() => initialShabbat ? ({
@@ -463,7 +475,7 @@ export function NewsletterPaperClient({
     support: enabled.support && Boolean(donationUrl.trim()),
     shabbat: enabled.shabbat && Boolean(localizedShabbat),
   }), [donationUrl, enabled, generated.ravWord, initialBirthdays.length, localizedShabbat, kiddushText, manualBirthdays, parnessText, specificEventText, visibleEvents.length, visiblePartnerAds.length, visiblePhotos.length, visiblePosters.length]);
-  const documentData: NewsletterDocumentData = {
+  const baseDocumentData: NewsletterDocumentData = {
     community: previewCommunity, enabled: outputEnabled, generated, parnessText, kiddushText,
     photos: visiblePhotos, posters: visiblePosters, partnerAds: visiblePartnerAds,
     events: visibleEvents, birthdays: initialBirthdays, manualBirthdays, specificEventText, labels: resolvedLabels, shabbat: localizedShabbat, bannerPhotoUrl: newsletterLogoImageUrl(bannerPhotoUrl),
@@ -471,6 +483,15 @@ export function NewsletterPaperClient({
     studyUnavailableMessage: t(initialSeferHamitsvot?.unavailableReason === "translation" ? "studyTranslationFailed" : "studyUnavailable"),
     outputLocale,
     layout,
+  };
+  const fillEstimate = estimateNewsletterFill(baseDocumentData);
+  const documentData: NewsletterDocumentData = {
+    ...baseDocumentData,
+    layout: {
+      ...layout,
+      density: layout.density ?? (fillEstimate.percent > 100 ? "compact" : "auto"),
+      pageLimit: overflowPreview ? 3 : layout.pageLimit,
+    },
   };
   const localDraftKey = useMemo(() => `easycom.newsletter.draft.${community.id}.${userId}.${outputLocale}`, [community.id, outputLocale, userId]);
   const draftSnapshot = useMemo<NewsletterDraft>(() => ({
@@ -519,7 +540,7 @@ export function NewsletterPaperClient({
   }, [initialSeferHamitsvot?.text]);
 
   function applyRevision(revision: Revision, pages: string[], key: string) {
-    setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, layout, outputLocale, labelOverrides });
+    setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, posters, partnerAds, layout, outputLocale, labelOverrides });
     const { parnessText: parness, kiddushText: kiddush, ...texts } = revision.changes;
     setGenerated(current => ({
       ...current,
@@ -541,6 +562,8 @@ export function NewsletterPaperClient({
     setSpecificEventText(previousRevision.specificEventText);
     setSeferHamitsvotText(previousRevision.seferHamitsvotText);
     setPhotos(previousRevision.photos);
+    setPosters(previousRevision.posters);
+    setPartnerAds(previousRevision.partnerAds);
     setLayout(previousRevision.layout ?? {});
     setLabelOverrides(previousRevision.labelOverrides);
     setPreparedRevision(null);
@@ -557,7 +580,7 @@ export function NewsletterPaperClient({
     try {
       const response = await fetch("/api/newsletter/rav-suggestion", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ outputLocale }) });
       const payload = await response.json().catch(() => null) as { suggestion?: unknown; error?: unknown } | null;
-      if (!response.ok) throw new Error(interfaceLocale === "fr" && typeof payload?.error === "string" ? payload.error : t("errors.ravUnavailable"));
+      if (!response.ok) throw new Error(t("errors.ravUnavailable"));
       if (typeof payload?.suggestion !== "string" || !payload.suggestion.trim()) throw new Error(t("errors.ravEmpty"));
       setRavSuggestion(limitNewsletterText(payload.suggestion, NEWSLETTER_RAV_WORD_LIMIT));
     } catch (requestError) {
@@ -580,8 +603,8 @@ export function NewsletterPaperClient({
         body: JSON.stringify({ title: generated.title, modules: enabled, parnessText, kiddushText, photoCount: photos.length, outputLocale }),
       });
       const payload = await response.json().catch(() => null) as Partial<GeneratedNewsletter> & { error?: unknown } | null;
-      if (!response.ok || !payload) throw new Error(interfaceLocale === "fr" && typeof payload?.error === "string" ? payload.error : t("generate.error"));
-      setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, layout, outputLocale, labelOverrides });
+      if (!response.ok || !payload) throw new Error(t("generate.error"));
+      setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, posters, partnerAds, layout, outputLocale, labelOverrides });
       setGenerated((current) => ({
         ...current,
         ...payload,
@@ -591,7 +614,7 @@ export function NewsletterPaperClient({
         ravWord: limitNewsletterText(typeof payload.ravWord === "string" ? payload.ravWord : current.ravWord, NEWSLETTER_RAV_WORD_LIMIT),
         shabbatNote: limitNewsletterText(typeof payload.shabbatNote === "string" ? payload.shabbatNote : current.shabbatNote, NEWSLETTER_PARASHA_LIMIT),
         eventIntro: limitNewsletterText(typeof payload.eventIntro === "string" ? payload.eventIntro : current.eventIntro, NEWSLETTER_EVENT_INTRO_LIMIT),
-        warnings: Array.isArray(payload.warnings) ? payload.warnings : current.warnings,
+        warnings: Array.isArray(payload.warnings) ? payload.warnings.map(warning => t(`warningCodes.${warning}` as never)) : current.warnings,
       }));
       setPreparedRevision(null);
     } catch (generationError) {
@@ -615,8 +638,8 @@ export function NewsletterPaperClient({
         body: JSON.stringify({ text: source, maxLength: Math.floor(maxLength * 0.72), outputLocale }),
       });
       const payload = await response.json().catch(() => null) as { text?: unknown; error?: unknown } | null;
-      if (!response.ok || typeof payload?.text !== "string") throw new Error(interfaceLocale === "fr" && typeof payload?.error === "string" ? payload.error : t("shorten.error"));
-      setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, layout, outputLocale, labelOverrides });
+      if (!response.ok || typeof payload?.text !== "string") throw new Error(t("shorten.error"));
+      setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, posters, partnerAds, layout, outputLocale, labelOverrides });
       if (field === "specificEventText") setSpecificEventText(payload.text);
       else setGenerated((current) => ({ ...current, [field]: payload.text as string }));
       setPreparedRevision(null);
@@ -842,7 +865,7 @@ export function NewsletterPaperClient({
           setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "success", error: undefined } : queued));
           return uploaded;
         } catch (uploadError) {
-          const message = interfaceLocale === "fr" && uploadError instanceof Error ? uploadError.message : t("errors.uploadUnavailable");
+          const message = localizedError(uploadError, t("errors.uploadUnavailable"));
           setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "error", error: message } : queued));
           throw uploadError;
         }
@@ -853,7 +876,11 @@ export function NewsletterPaperClient({
         else setPartnerAds((current) => [...current, uploaded]);
       }, (completed, total) => setUploadProgress(t("errors.uploadProgress", { completed, total })));
       if (selected.length > remaining) errors.push(t("errors.uploadLimited", { count: remaining }));
-      if (errors.length) setError(errors.join("\n"));
+      if (errors.length) setError(errors.map(item => {
+        const match = item.match(/^(.*) : ([A-Z_]+)$/);
+        if (!match || !Object.values(NEWSLETTER_ERROR_CODES).includes(match[2] as never)) return item;
+        return `${match[1]} : ${t(`errorCodes.${match[2]}` as never)}`;
+      }).join("\n"));
     } finally {
       uploadBusyRef.current = false;
       setUploading(false);
@@ -881,7 +908,7 @@ export function NewsletterPaperClient({
       else setPartnerAds((current) => [...current, uploaded]);
       setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "success", error: undefined } : queued));
     } catch (uploadError) {
-      const message = interfaceLocale === "fr" && uploadError instanceof Error ? uploadError.message : t("errors.uploadUnavailable");
+      const message = localizedError(uploadError, t("errors.uploadUnavailable"));
       setUploadQueue((current) => current.map((queued) => queued.id === item.id ? { ...queued, status: "error", error: message } : queued));
       setError(`${item.name} : ${message}`);
     } finally {
@@ -900,8 +927,8 @@ export function NewsletterPaperClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ donationUrl }),
       });
-      const data = await response.json().catch(() => ({})) as { donationUrl?: string | null; error?: string };
-      if (!response.ok) throw new Error(interfaceLocale === "fr" && data.error ? data.error : t("errors.saveUnavailable"));
+      const data = await response.json().catch(() => ({})) as { donationUrl?: string | null; code?: string };
+      if (!response.ok) throw new Error(t("errors.saveUnavailable"));
       setDonationUrl(data.donationUrl ?? "");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : t("errors.saveUnavailable"));
@@ -1009,15 +1036,82 @@ export function NewsletterPaperClient({
       if (action === "print") window.print();
       if (action === "pdf") await exportPdf(pages);
     } catch (outputError) {
-      setError(outputError instanceof Error ? outputError.message : t("errors.preparationUnavailable"));
-      setEditorStep("content");
+      if ([NEWSLETTER_ERROR_CODES.layoutOverflow, NEWSLETTER_ERROR_CODES.printableOverflow].includes(newsletterErrorCode(outputError) as never)) {
+        setOverflowPreview(true);
+        setOverflowOpen(true);
+        setEditorStep("preview");
+        setError(null);
+      } else {
+        setError(outputError instanceof Error ? outputError.message : t("errors.preparationUnavailable"));
+        setEditorStep("content");
+      }
     } finally {
       setPreparingAction(null);
     }
   }
 
+  async function prepareOverflowShortening() {
+    if (overflowShortening) return;
+    setOverflowShortening(true);
+    setError(null);
+    try {
+      const shorten = async (text: string) => {
+        if (!text.trim()) return text;
+        const response = await fetch("/api/newsletter/shorten", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: AbortSignal.timeout(65_000),
+          body: JSON.stringify({ text, maxLength: Math.max(80, Math.floor(text.length * 0.75)), outputLocale }),
+        });
+        const payload = await response.json().catch(() => null) as { text?: unknown } | null;
+        if (!response.ok || typeof payload?.text !== "string") throw new Error(t("shorten.error"));
+        return payload.text;
+      };
+      const [intro, ravWord, shabbatNote] = await Promise.all([
+        shorten(generated.intro), shorten(generated.ravWord), shorten(generated.shabbatNote),
+      ]);
+      setShortenProposal({ intro, ravWord, shabbatNote });
+    } catch (shortenError) {
+      setError(shortenError instanceof Error ? shortenError.message : t("shorten.error"));
+    } finally {
+      setOverflowShortening(false);
+    }
+  }
+
+  function acceptOverflowShortening() {
+    if (!shortenProposal) return;
+    setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, posters, partnerAds, layout, outputLocale, labelOverrides });
+    setGenerated(current => ({ ...current, ...shortenProposal }));
+    setLayout(current => ({ ...current, density: "compact", pageLimit: 2 }));
+    setShortenProposal(null);
+    setOverflowPreview(false);
+    setOverflowOpen(false);
+  }
+
+  function reduceOverflowVisuals() {
+    setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, posters, partnerAds, layout, outputLocale, labelOverrides });
+    setLayout(current => ({ ...current, density: "tight", fontSize: 9.5, pageLimit: 2 }));
+    setOverflowPreview(false);
+    setOverflowOpen(false);
+  }
+
+  function deferOverflowMedia() {
+    if (!deferChoice) return;
+    setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, posters, partnerAds, layout, outputLocale, labelOverrides });
+    setLayout(current => ({ ...current, pageLimit: 2, deferredMediaIds: [...new Set([...(current.deferredMediaIds ?? []), deferChoice])] }));
+    setDeferChoice("");
+    setOverflowPreview(false);
+    setOverflowOpen(false);
+  }
+
+  function continueWithThirdPage() {
+    setLayout(current => ({ ...current, pageLimit: 3 }));
+    setOverflowPreview(false);
+    setOverflowOpen(false);
+  }
+
   const sectionTitle = (key: NewsletterLabelKey, className?: string) => (
-    <EditableSectionTitle
+    <span className="inline-flex flex-wrap items-center gap-2"><EditableSectionTitle
       label={resolvedLabels[key]}
       defaultLabel={communityResolvedLabels[key]}
       modified={Object.prototype.hasOwnProperty.call(labelOverrides, key)}
@@ -1026,7 +1120,7 @@ export function NewsletterPaperClient({
       className={className}
       onChange={(value) => setLabelOverrides((current) => ({ ...current, [key]: value }))}
       onReset={() => resetLabelOverride(key)}
-    />
+    />{fillEstimate.sections.find(section => section.key === key) ? <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">{t("fill.section", { percent: fillEstimate.sections.find(section => section.key === key)?.percent ?? 0 })}</span> : null}</span>
   );
 
   return (
@@ -1156,6 +1250,18 @@ export function NewsletterPaperClient({
             <p className="text-xs font-black uppercase tracking-[0.14em] text-[#421388]">{t("content.eyebrow")}</p>
             <h2 className="mt-1 text-xl font-black text-slate-950">{t("content.title")}</h2>
             <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{t("content.help")}</p>
+            <div className={cn("mt-4 rounded-2xl border p-3", fillEstimate.percent < 90 ? "border-emerald-200 bg-emerald-50" : fillEstimate.percent <= 100 ? "border-amber-200 bg-amber-50" : "border-red-200 bg-red-50")} data-newsletter-fill-gauge>
+              <div className="flex items-center justify-between gap-3 text-sm font-black">
+                <span>{t("fill.label", { percent: fillEstimate.percent })}</span>
+                <span aria-hidden="true">{fillEstimate.percent}%</span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/80"><div className={cn("h-full rounded-full transition-[width]", fillEstimate.percent < 90 ? "bg-emerald-600" : fillEstimate.percent <= 100 ? "bg-amber-500" : "bg-red-600")} style={{ width: `${Math.min(100, fillEstimate.percent)}%` }} /></div>
+              <p className="mt-2 text-xs font-semibold opacity-80">{t(fillEstimate.percent > 100 ? "fill.over" : fillEstimate.percent >= 90 ? "fill.close" : "fill.comfortable")}</p>
+            </div>
+            {(layout.deferredMediaIds?.length ?? 0) > 0 ? <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+              <p className="font-bold">{t("overflow.deferHelp")}</p>
+              <div className="mt-2 flex flex-wrap gap-2">{[...photos, ...posters, ...partnerAds].filter(item => deferredIds.has(item.id)).map(item => <button key={item.id} type="button" onClick={() => setLayout(current => ({ ...current, deferredMediaIds: (current.deferredMediaIds ?? []).filter(id => id !== item.id) }))} className="rounded-full bg-white px-3 py-1.5 font-bold text-[#164960] ring-1 ring-slate-200">{t("add")} · {item.name}</button>)}</div>
+            </div> : null}
             <button type="button" onClick={() => void generateEditorialContent()} disabled={generationLoading} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-700 to-fuchsia-600 px-4 text-sm font-black text-white shadow-md disabled:opacity-60">{generationLoading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}{t(generationLoading ? "generate.loading" : "generate.action")}</button>
             <div className="mt-4 space-y-3">
               {enabled.seferHamitsvot ? <section className="overflow-hidden rounded-2xl border border-teal-100 bg-teal-50">
@@ -1362,6 +1468,43 @@ export function NewsletterPaperClient({
           {draftReady ? <NewsletterDocument prepared={preparedRevision} ref={documentRef} data={documentData} visible={editorStep === "preview"} onError={setError} /> : null}
         </main>
       </div>
+      {overflowOpen ? <div className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/55 p-3 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="newsletter-overflow-title" data-newsletter-overflow-dialog>
+        <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] bg-white p-5 shadow-2xl sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 id="newsletter-overflow-title" className="text-xl font-black text-slate-950">{t("overflow.title")}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-700">{t("overflow.message")}</p>
+            </div>
+            <button type="button" onClick={() => setOverflowOpen(false)} className="min-h-10 rounded-xl px-3 text-sm font-black text-slate-500 hover:bg-slate-100" aria-label={t("overflow.close")}>×</button>
+          </div>
+          <div className="mt-4 rounded-2xl bg-slate-50 p-3 text-sm text-slate-700">
+            <p className="font-black">{t("overflow.dominant")}</p>
+            <p className="mt-1">{fillEstimate.sections.slice().sort((a, b) => b.percent - a.percent).slice(0, 3).map(section => t("overflow.dominantItem", { label: t(`fill.names.${section.key}`), percent: section.percent })).join(", ")}</p>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <button type="button" onClick={() => void prepareOverflowShortening()} disabled={overflowShortening} className="min-h-12 rounded-2xl bg-violet-700 px-4 py-3 text-sm font-black text-white disabled:opacity-60">{overflowShortening ? t("overflow.shortening") : t("overflow.shorten")}</button>
+            <button type="button" onClick={reduceOverflowVisuals} className="min-h-12 rounded-2xl bg-[#164960] px-4 py-3 text-sm font-black text-white">{t("overflow.reduceVisuals")}</button>
+          </div>
+          {shortenProposal ? <div className="mt-4 rounded-2xl border border-violet-200 bg-violet-50 p-4">
+            <h3 className="font-black text-violet-950">{t("overflow.compare")}</h3>
+            {(["intro", "ravWord", "shabbatNote"] as const).map(key => generated[key].trim() ? <div key={key} className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+              <div className="rounded-xl bg-white p-3"><strong>{t("overflow.before", { count: generated[key].length })}</strong><p className="mt-1 line-clamp-3 text-slate-600">{generated[key]}</p></div>
+              <div className="rounded-xl bg-white p-3"><strong>{t("overflow.after", { count: shortenProposal[key].length })}</strong><p className="mt-1 line-clamp-3 text-slate-600">{shortenProposal[key]}</p></div>
+            </div> : null)}
+            <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={acceptOverflowShortening} className="min-h-10 rounded-xl bg-violet-800 px-4 text-sm font-black text-white">{t("overflow.apply")}</button><button type="button" onClick={() => setShortenProposal(null)} className="min-h-10 rounded-xl px-4 text-sm font-black text-slate-600">{t("overflow.cancel")}</button></div>
+          </div> : null}
+          <div className="mt-4 rounded-2xl border border-slate-200 p-3">
+            <label className="text-sm font-black text-slate-800">{t("overflow.defer")}</label>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row"><select value={deferChoice} onChange={event => setDeferChoice(event.target.value)} className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-sm">
+              <option value="">{t("overflow.chooseMedia")}</option>
+              {[...photos.map(item => ({ ...item, kind: t("fill.names.photos") })), ...posters.map(item => ({ ...item, kind: t("fill.names.posters") })), ...partnerAds.map(item => ({ ...item, kind: t("fill.names.partners") }))].filter(item => !deferredIds.has(item.id)).map(item => <option key={item.id} value={item.id}>{item.kind} · {item.name}</option>)}
+            </select><button type="button" onClick={deferOverflowMedia} disabled={!deferChoice} className="min-h-11 rounded-xl bg-slate-800 px-4 text-sm font-black text-white disabled:opacity-40">{t("overflow.deferAction")}</button></div>
+            <p className="mt-2 text-xs text-slate-500">{t("overflow.deferHelp")}</p>
+          </div>
+          <button type="button" onClick={continueWithThirdPage} className="mt-4 min-h-12 w-full rounded-2xl border border-amber-300 bg-amber-50 px-4 text-sm font-black text-amber-950">{t("overflow.continueThird")}</button>
+          <p className="mt-2 text-center text-xs font-semibold text-amber-800">{t("overflow.thirdWarning")}</p>
+        </div>
+      </div> : null}
       <div className={cn("fixed inset-x-0 bottom-[calc(5.95rem+env(safe-area-inset-bottom))] z-20 border-t border-[#dce9e5] bg-[#f7faf8]/95 px-3 py-2 backdrop-blur print:hidden md:bottom-0 md:z-40 md:py-3", keyboardOpen && "max-md:hidden")}>
         <div className={cn("mx-auto grid max-w-3xl gap-2", "grid-cols-1")}>
           {editorStep === "modules" ? (

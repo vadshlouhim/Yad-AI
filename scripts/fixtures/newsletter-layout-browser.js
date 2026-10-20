@@ -123,7 +123,7 @@ function validate(data, pages, name) {
         for (const [i, html] of markup.entries()) {
           snapshot.remove();
           snapshot = document.createElement('div');
-          Object.assign(snapshot.style, { position: 'fixed', left: '0', top: '0', zIndex: '-2147483647', width: '794px', pointerEvents: 'none' });
+          Object.assign(snapshot.style, { position: 'fixed', left: '-30000px', top: '0', width: '794px', pointerEvents: 'none' });
           snapshot.innerHTML = html;
           document.body.append(snapshot);
           window.scrollTo(0, 0);
@@ -153,6 +153,12 @@ function validate(data, pages, name) {
     try { await composeNewsletter(fixture.data); } catch { overflowRejected = true; }
     check(overflowRejected, fixture.name + ': oversized content must show a warning instead of creating a third page');
   }
+  const continued = structuredClone(cases.find(c => c.name === 'provided-b').data);
+  continued.layout = { ...(continued.layout || {}), density: 'tight', pageLimit: 3 };
+  const continuedPages = await composeNewsletter(continued);
+  check(continuedPages.length >= 2 && continuedPages.length <= 3, 'continue anyway must produce at most three pages');
+  const continuedRoot = document.createElement('div'); continuedRoot.innerHTML = continuedPages.join('');
+  check(continuedRoot.querySelectorAll('img:not([data-newsletter-decoration])').length === sources(continued).length, 'third-page preview must preserve every visual');
   const wrong = baseNewsletter(); wrong.seferHamitsvot.date = '2026-10-16';
   let rejected = false;
   try { await composeNewsletter(wrong); } catch { rejected = true; }
