@@ -32,6 +32,12 @@ assert.equal(full.sections.slice().sort((a, b) => b.percent - a.percent)[0]?.key
 
 assert.deepEqual(parseLayoutPreferences({ fontSize: 9, density: "tight", pageLimit: 3, deferredMediaIds: ["a", "a", "b"] }), { density: "tight", pageLimit: 3, deferredMediaIds: ["a", "b"] });
 assert.equal(parseLayoutPreferences({ fontSize: 9.5 }).fontSize, 9.5);
+assert.equal(parseLayoutPreferences({ pageLimit: 4 }).pageLimit, 4);
+assert.equal(parseLayoutPreferences({ pageLimit: 5 }).pageLimit, undefined);
+
+// The gauge measures against the selected page count: 4 pages hold twice a recto-verso sheet.
+const onFourPages = estimateNewsletterFill({ ...overloaded, layout: { pageLimit: 4 } });
+assert.ok(Math.abs(onFourPages.percent - full.percent / 2) <= 1, `4-page gauge should halve the 2-page fill, got ${onFourPages.percent}% vs ${full.percent}%`);
 
 async function main() {
   const he = JSON.parse(await readFile("messages/he.json", "utf8"));

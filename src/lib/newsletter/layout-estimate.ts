@@ -22,7 +22,13 @@ export function estimateNewsletterFill(data: NewsletterDocumentData): Newsletter
     { key: "posters", percent: e.posters ? data.posters.length * 15 : 0 },
     { key: "partners", percent: e.restaurantAd ? data.partnerAds.length * 10 : 0 },
     { key: "specificEvent", percent: e.specificEvent ? textShare(data.specificEventText, 900, 12) : 0 },
-  ].filter(section => section.percent > 0).map(section => ({ ...section, percent: Math.round(section.percent) }));
+  ];
+  // Shares are calibrated on one recto-verso sheet (2 pages); extra pages add capacity.
+  const scale = 2 / (data.layout?.pageLimit ?? 2);
   const fixed = 13;
-  return { percent: Math.round(fixed + sections.reduce((sum, section) => sum + section.percent, 0)), sections };
+  const total = fixed + sections.reduce((sum, section) => sum + section.percent, 0);
+  return {
+    percent: Math.round(total * scale),
+    sections: sections.filter(section => section.percent > 0).map(section => ({ ...section, percent: Math.round(section.percent * scale) })),
+  };
 }

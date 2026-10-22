@@ -41,9 +41,11 @@ const run = args => promisify(execFile)(chrome, ["--headless", "--no-sandbox", "
 try {
   const { stdout } = await run(["--dump-dom", url]);
   assert.match(stdout, /PASS: \d+ browser layouts/, stdout);
-  console.log("Newsletter: Chromium layouts passed, including Hebrew RTL; strict two-page output, whole articles, exact text/captions, bottom-anchored support, whole images, no overlap, consistent fonts, and readable posters.");
+  console.log(stdout.match(/PASS: [^<]*/)?.[0]);
+  console.log("Newsletter: Chromium layouts passed, including Hebrew RTL; two-page output (or the extra pages the user added), whole articles, exact text/captions, bottom-anchored support, whole images, no overlap, consistent fonts, and readable posters.");
   if (process.env.NEWSLETTER_SCREENSHOT) {
-    await run(["--hide-scrollbars", "--window-size=1600,1130", "--screenshot=" + process.env.NEWSLETTER_SCREENSHOT, url + "/?preview=" + (process.env.NEWSLETTER_CASE || "provided-a")]);
+    const pages = Number(process.env.NEWSLETTER_PAGES) || 2;
+    await run(["--hide-scrollbars", `--window-size=${pages * 806},1130`, "--screenshot=" + process.env.NEWSLETTER_SCREENSHOT, url + "/?preview=" + (process.env.NEWSLETTER_CASE || "provided-a") + (pages > 2 ? "&pages=" + pages : "")]);
   }
   if (artifactDir) for (const fixture of (process.env.NEWSLETTER_PDF_CASES || "provided-a,provided-b,captions").split(",")) {
     const pdfOutput = await waitForNewsletterPdf(chrome, url + "/?pdf=" + fixture);

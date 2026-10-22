@@ -89,6 +89,11 @@
     "aiPrompt": "Adapt this message for Facebook, Instagram, and WhatsApp. Keep one text suitable for all networks. Message: {message}"
   },
   "dashboard": {
+    "comingSoonDialog": {
+      "title": "Coming soon",
+      "message": "This feature will be available soon. It isn’t available yet.",
+      "close": "Got it"
+    },
     "heNewsletter": "Shabbat newsletter",
     "heSettings": "Settings",
     "heAvailableNow": "Available now",

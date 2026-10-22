@@ -9,7 +9,7 @@ export type NewsletterLayoutPreferences = {
   composition?: "auto" | "full" | "columns";
   fontSize?: number;
   density?: "auto" | "compact" | "tight";
-  pageLimit?: 2 | 3;
+  pageLimit?: 2 | 3 | 4;
   deferredMediaIds?: string[];
 };
 export const CAPTION_LIMIT = 180;
@@ -23,7 +23,7 @@ export function parseLayoutPreferences(raw: unknown): NewsletterLayoutPreference
     ...(["auto", "full", "columns"].includes(String(value.composition)) ? { composition: value.composition as "auto" | "full" | "columns" } : {}),
     ...(typeof value.fontSize === "number" && value.fontSize >= 9.5 && value.fontSize <= 12 && value.fontSize * 2 === Math.round(value.fontSize * 2) ? { fontSize: value.fontSize } : {}),
     ...(["auto", "compact", "tight"].includes(String(value.density)) ? { density: value.density as "auto" | "compact" | "tight" } : {}),
-    ...(value.pageLimit === 2 || value.pageLimit === 3 ? { pageLimit: value.pageLimit } : {}),
+    ...(value.pageLimit === 2 || value.pageLimit === 3 || value.pageLimit === 4 ? { pageLimit: value.pageLimit } : {}),
     ...(Array.isArray(value.deferredMediaIds) ? { deferredMediaIds: [...new Set(value.deferredMediaIds.filter((id): id is string => typeof id === "string" && id.length <= 200))].slice(0, 20) } : {}),
   };
 }

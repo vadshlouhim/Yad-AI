@@ -485,12 +485,15 @@ export function NewsletterPaperClient({
     layout,
   };
   const fillEstimate = estimateNewsletterFill(baseDocumentData);
+  const pageLimit = layout.pageLimit ?? 2;
+  const nextPageLimit = pageLimit === 2 ? 3 : 4;
   const documentData: NewsletterDocumentData = {
     ...baseDocumentData,
     layout: {
       ...layout,
       density: layout.density ?? (fillEstimate.percent > 100 ? "compact" : "auto"),
-      pageLimit: overflowPreview ? 3 : layout.pageLimit,
+      // While the overflow dialog is open, the preview shows the result with one more page.
+      pageLimit: overflowPreview ? nextPageLimit : layout.pageLimit,
     },
   };
   const localDraftKey = useMemo(() => `easycom.newsletter.draft.${community.id}.${userId}.${outputLocale}`, [community.id, outputLocale, userId]);
@@ -1037,7 +1040,7 @@ export function NewsletterPaperClient({
       if (action === "pdf") await exportPdf(pages);
     } catch (outputError) {
       if ([NEWSLETTER_ERROR_CODES.layoutOverflow, NEWSLETTER_ERROR_CODES.printableOverflow].includes(newsletterErrorCode(outputError) as never)) {
-        setOverflowPreview(true);
+        setOverflowPreview(pageLimit < 4);
         setOverflowOpen(true);
         setEditorStep("preview");
         setError(null);
@@ -1082,7 +1085,7 @@ export function NewsletterPaperClient({
     if (!shortenProposal) return;
     setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, posters, partnerAds, layout, outputLocale, labelOverrides });
     setGenerated(current => ({ ...current, ...shortenProposal }));
-    setLayout(current => ({ ...current, density: "compact", pageLimit: 2 }));
+    setLayout(current => ({ ...current, density: "compact" }));
     setShortenProposal(null);
     setOverflowPreview(false);
     setOverflowOpen(false);
@@ -1090,7 +1093,7 @@ export function NewsletterPaperClient({
 
   function reduceOverflowVisuals() {
     setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, posters, partnerAds, layout, outputLocale, labelOverrides });
-    setLayout(current => ({ ...current, density: "tight", fontSize: 9.5, pageLimit: 2 }));
+    setLayout(current => ({ ...current, density: "tight", fontSize: 9.5 }));
     setOverflowPreview(false);
     setOverflowOpen(false);
   }
@@ -1098,14 +1101,14 @@ export function NewsletterPaperClient({
   function deferOverflowMedia() {
     if (!deferChoice) return;
     setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, posters, partnerAds, layout, outputLocale, labelOverrides });
-    setLayout(current => ({ ...current, pageLimit: 2, deferredMediaIds: [...new Set([...(current.deferredMediaIds ?? []), deferChoice])] }));
+    setLayout(current => ({ ...current, deferredMediaIds: [...new Set([...(current.deferredMediaIds ?? []), deferChoice])] }));
     setDeferChoice("");
     setOverflowPreview(false);
     setOverflowOpen(false);
   }
 
-  function continueWithThirdPage() {
-    setLayout(current => ({ ...current, pageLimit: 3 }));
+  function addOverflowPage() {
+    setLayout(current => ({ ...current, pageLimit: nextPageLimit }));
     setOverflowPreview(false);
     setOverflowOpen(false);
   }
@@ -1256,7 +1259,11 @@ export function NewsletterPaperClient({
                 <span aria-hidden="true">{fillEstimate.percent}%</span>
               </div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/80"><div className={cn("h-full rounded-full transition-[width]", fillEstimate.percent < 90 ? "bg-emerald-600" : fillEstimate.percent <= 100 ? "bg-amber-500" : "bg-red-600")} style={{ width: `${Math.min(100, fillEstimate.percent)}%` }} /></div>
-              <p className="mt-2 text-xs font-semibold opacity-80">{t(fillEstimate.percent > 100 ? "fill.over" : fillEstimate.percent >= 90 ? "fill.close" : "fill.comfortable")}</p>
+              <p className="mt-2 text-xs font-semibold opacity-80">{t(fillEstimate.percent > 100 ? "fill.over" : fillEstimate.percent >= 90 ? "fill.close" : "fill.comfortable", { pages: pageLimit })}</p>
+              {pageLimit > 2 ? <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-black/5 pt-3" data-newsletter-page-format>
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#164960] ring-1 ring-slate-200">{t("fill.format", { pages: pageLimit, sheets: Math.ceil(pageLimit / 2) })}</span>
+                <button type="button" onClick={() => setLayout(current => ({ ...current, pageLimit: 2 }))} className="min-h-9 rounded-xl px-3 text-xs font-black text-[#164960] underline-offset-2 hover:underline">{t("fill.backToTwo")}</button>
+              </div> : null}
             </div>
             {(layout.deferredMediaIds?.length ?? 0) > 0 ? <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
               <p className="font-bold">{t("overflow.deferHelp")}</p>
@@ -1472,11 +1479,16 @@ export function NewsletterPaperClient({
         <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] bg-white p-5 shadow-2xl sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 id="newsletter-overflow-title" className="text-xl font-black text-slate-950">{t("overflow.title")}</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-700">{t("overflow.message")}</p>
+              <h2 id="newsletter-overflow-title" className="text-xl font-black text-slate-950">{pageLimit < 4 ? t("overflow.addPageTitle", { pages: pageLimit, next: nextPageLimit }) : t("overflow.title")}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-700">{pageLimit === 2 ? t("overflow.message") : t("overflow.messageExtended", { pages: pageLimit })}</p>
             </div>
-            <button type="button" onClick={() => setOverflowOpen(false)} className="min-h-10 rounded-xl px-3 text-sm font-black text-slate-500 hover:bg-slate-100" aria-label={t("overflow.close")}>×</button>
+            <button type="button" onClick={() => { setOverflowOpen(false); setOverflowPreview(false); }} className="min-h-10 rounded-xl px-3 text-sm font-black text-slate-500 hover:bg-slate-100" aria-label={t("overflow.close")}>×</button>
           </div>
+          {pageLimit < 4 ? <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4" data-newsletter-add-page>
+            <button type="button" onClick={addOverflowPage} className="min-h-12 w-full rounded-2xl bg-amber-500 px-4 text-sm font-black text-amber-950 shadow-sm hover:bg-amber-400">{t("overflow.addPage", { next: nextPageLimit })}</button>
+            <p className="mt-2 text-center text-xs font-semibold text-amber-900">{t(nextPageLimit === 3 ? "overflow.addPageHelp3" : "overflow.addPageHelp4")}</p>
+          </div> : <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-800">{t("overflow.maxReached")}</p>}
+          {pageLimit < 4 ? <p className="mt-5 text-sm font-black text-slate-800">{t("overflow.otherSolutions", { pages: pageLimit })}</p> : null}
           <div className="mt-4 rounded-2xl bg-slate-50 p-3 text-sm text-slate-700">
             <p className="font-black">{t("overflow.dominant")}</p>
             <p className="mt-1">{fillEstimate.sections.slice().sort((a, b) => b.percent - a.percent).slice(0, 3).map(section => t("overflow.dominantItem", { label: t(`fill.names.${section.key}`), percent: section.percent })).join(", ")}</p>
@@ -1501,8 +1513,6 @@ export function NewsletterPaperClient({
             </select><button type="button" onClick={deferOverflowMedia} disabled={!deferChoice} className="min-h-11 rounded-xl bg-slate-800 px-4 text-sm font-black text-white disabled:opacity-40">{t("overflow.deferAction")}</button></div>
             <p className="mt-2 text-xs text-slate-500">{t("overflow.deferHelp")}</p>
           </div>
-          <button type="button" onClick={continueWithThirdPage} className="mt-4 min-h-12 w-full rounded-2xl border border-amber-300 bg-amber-50 px-4 text-sm font-black text-amber-950">{t("overflow.continueThird")}</button>
-          <p className="mt-2 text-center text-xs font-semibold text-amber-800">{t("overflow.thirdWarning")}</p>
         </div>
       </div> : null}
       <div className={cn("fixed inset-x-0 bottom-[calc(5.95rem+env(safe-area-inset-bottom))] z-20 border-t border-[#dce9e5] bg-[#f7faf8]/95 px-3 py-2 backdrop-blur print:hidden md:bottom-0 md:z-40 md:py-3", keyboardOpen && "max-md:hidden")}>

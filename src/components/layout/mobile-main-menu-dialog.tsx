@@ -529,6 +529,7 @@ function ComingSoonCard({ group, onOpen }: { group: ToolGroup; onOpen: () => voi
 
 function ComingSoonDetail({ group }: { group: ToolGroup }) {
   const tr = useDashboardCopy();
+  const locale = useLocale();
   const Icon = group.icon;
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-3 text-center normal-case">
@@ -545,6 +546,7 @@ function ComingSoonDetail({ group }: { group: ToolGroup }) {
 
 function Submenu({ group, onClose }: { group: ToolGroup; onClose: () => void }) {
   const tr = useDashboardCopy();
+  const locale = useLocale();
   return (
     <div>
       <p className="mb-3 text-sm font-bold uppercase text-slate-500">{locale === "he" ? "בחרו פעולה" : "CHOISISSEZ UNE FONCTION"}</p>

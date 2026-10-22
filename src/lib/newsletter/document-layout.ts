@@ -555,30 +555,9 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
     const zoneGap = density === "tight" ? 9 : density === "compact" ? 12 : ZONE_GAP;
     const textHeight = (items: DocumentBlock[], font: number, width: number) =>
       items.reduce((sum, block) => sum + measure(block, font, width), Math.max(0, items.length - 1) * zoneGap);
-    const footHeight = heightOf(footer(data, 0, data.layout?.pageLimit ?? 2)) + (density === "tight" ? 8 : 16);
+    const pageLimit = data.layout?.pageLimit ?? 2;
+    const footHeight = heightOf(footer(data, 0, pageLimit)) + (density === "tight" ? 8 : 16);
     const capacities = [true, false].map(first => PAPER.height - PAPER.margin * 2 - heightOf(header(data, first)) - footHeight - 4);
-    if (data.layout?.pageLimit === 3) {
-      const posterImages = blocks.flatMap(block => block.kind === "images" && block.poster ? block.images : []);
-      const fallbackBlocks = blocks.filter(block => block.kind !== "images" || !block.poster);
-      for (let index = 0; index < posterImages.length; index += 2) {
-        const images = posterImages.slice(index, index + 2);
-        fallbackBlocks.push({ kind: "images", id: `posters-overflow-${index}`, title: index ? "" : labels.posters, images, height: 300, maxHeight: 340, poster: true });
-      }
-      const pages = paginateNewsletter(fallbackBlocks, index => capacities[Math.min(index, 1)], block => measure(block, 9.5, CONTENT_WIDTH), 9.5);
-      if (pages.length > 3) throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { maxPages: 3 });
-      return pages.map((page, index) => {
-        const article = paper(data, index);
-        article.dataset.composition = "overflow-page";
-        const content = element("div", undefined, { flex: "1", minHeight: "0", overflow: "hidden" });
-        page.blocks.forEach((block, blockIndex) => {
-          const node = renderDocumentBlock(block, page.fontSize);
-          if (blockIndex) node.style.marginTop = zoneGap + "px";
-          content.append(node);
-        });
-        article.append(content, footer(data, index, pages.length));
-        return article.outerHTML;
-      });
-    }
     const titleHeights = new Map<string, number>();
     const galleryCache = new Map<string, GalleryPlan | null>();
     const fitGallery = (g: Gallery, width: number, room: number): GalleryPlan | null => {
@@ -777,9 +756,88 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
       }
     };
     const available = (items: Gallery[]) => items.filter(gallery => gallery.images.length);
-    const attemptSelection = () => {
+    const galleryParts = new Map<string, Gallery>();
+    const galleryPart = (g: Gallery, from: number, to: number) => {
+      if (!from && to >= g.images.length) return g;
+      const key = g.id + ":" + g.images.slice(from, to).map(image => image.id).join(",");
+      if (!galleryParts.has(key)) {
+        const part = { ...g, images: g.images.slice(from, to) };
+        registerGallery(part);
+        galleryParts.set(key, part);
+      }
+      return galleryParts.get(key)!;
+    };
+    /** Extra pages (3–4): whole articles flow page by page; a gallery may continue on the next page, in upload order. */
+    const searchPages = (pageCount: number, fonts: number[]) => {
+      const media = available([photos, posters, partners]);
+      const placements: number[][] = [];
+      const place = (acc: number[]) => {
+        if (acc.length === media.length) { placements.push(acc); return; }
+        for (let page = acc.at(-1) ?? 0; page < pageCount; page++) place([...acc, page]);
+      };
+      place([]);
+      for (const font of fonts) {
+        const introHeight = intro.length ? textHeight(intro, font, CONTENT_WIDTH) + zoneGap : 0;
+        const supportReserve = supportBlocks.length ? heightOf(renderNotice(supportBlocks, font), CONTENT_WIDTH) + zoneGap : 0;
+        for (const editorial of orders.slice(0, 3)) for (const placement of placements) {
+          const plans: SheetPlan[] = [];
+          const pageOf = new Map<string, number>();
+          let start = 0;
+          let carry: Gallery | null = null;
+          for (let page = 0; page < pageCount; page++) {
+            const last = page === pageCount - 1;
+            const pageMedia: Gallery[] = [...(carry ? [carry] : []), ...media.filter((_, i) => placement[i] === page)];
+            const tail: Gallery | undefined = pageMedia.at(-1);
+            const notes = page ? [] : dedicationBlocks;
+            const capacity = capacities[page ? 1 : 0] - (page ? 0 : introHeight) - (last ? supportReserve : 0);
+            // Keep one article for every later page that has no visual, so no page stays blank.
+            const reserved = Array.from({ length: pageCount - page - 1 }, (_, i) => page + 1 + i).filter(later => !placement.includes(later)).length;
+            const most = last ? editorial.length - start : Math.max(0, editorial.length - start - reserved);
+            // Whole galleries first; only then let the last gallery of the page continue overleaf.
+            const takes = !tail ? [0] : last ? [tail.images.length] : Array.from({ length: tail.images.length }, (_, i) => tail.images.length - i);
+            let plan: SheetPlan | null = null;
+            let count = most;
+            let taken = 0;
+            for (const pass of [takes.slice(0, 1), takes.slice(1)]) {
+              for (count = most; !plan && count >= (last ? most : 0); count--) {
+                const items = editorial.slice(start, start + count);
+                for (const take of pass) {
+                  const here = tail ? [...pageMedia.slice(0, -1), galleryPart(tail, 0, take)] : [];
+                  if (!items.length && !here.length && !notes.length) continue;
+                  plan = cachedPage(items, notes, here, capacity, font);
+                  if (plan) { taken = take; break; }
+                }
+                if (plan) break;
+              }
+              if (plan) break;
+            }
+            if (!plan) break;
+            carry = tail && taken < tail.images.length ? galleryPart(tail, taken, tail.images.length) : null;
+            editorial.slice(start, start + count).forEach(block => pageOf.set(block.id, page));
+            plans.push(plan);
+            start += count;
+          }
+          if (plans.length !== pageCount || start < editorial.length) continue;
+          const editorialPenalty = editorial.reduce((sum, block) => {
+            const page = pageOf.get(block.id) ?? 0;
+            if (["rav", "parasha"].includes(block.id)) return sum + page * 2_000_000;
+            if (!page && (["sefer-hamitsvot", "events-intro", "birthdays"].includes(block.id) || block.id.startsWith("event-"))) return sum + 2_000_000;
+            return sum + (page ? 0 : 100_000);
+          }, 0);
+          const orderPenalty = editorial.reduce((sum, block, index) => sum + (preferred.includes(block.id) ? Math.abs(index - preferred.indexOf(block.id)) * 400_000 : 0), 0);
+          const fontRank = data.layout?.fontSize ? Math.abs(font - data.layout.fontSize) : [...NORMAL_FONTS, ...DENSE_FONTS].indexOf(font);
+          const preferredSide = data.layout?.photoSide ?? "auto";
+          const photosOnFront = media.some((gallery, i) => gallery.id === "photos" && placement[i] === 0);
+          const sidePenalty = preferredSide === "auto" ? (photos.images.length && !photosOnFront ? 50_000 : 0) : (preferredSide === "front") !== photosOnFront ? 1_000_000 : 0;
+          const score = plans.reduce((sum, plan) => sum + plan.score, 0) + editorialPenalty + orderPenalty + sidePenalty + fontRank * 2_000_000;
+          if (!selected || score < selected.score) selected = { pages: plans, font, introHeight, score, usedPosters: posters.images.length };
+        }
+        if (selected) break;
+      }
+    };
+    const attemptSelection = (fontSets: number[][]) => {
       selected = null;
-      for (const fonts of [NORMAL_FONTS, DENSE_FONTS]) {
+      for (const fonts of fontSets) {
         // Posters are information-dense documents, not decorative thumbnails.
         // Keep them out of residual editorial space and give them dedicated A4
         // zones where their hard readability size can always be respected.
@@ -809,8 +867,13 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
         if (selected) break;
       }
     };
-    attemptSelection();
-    if (!selected) throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { maxPages: 2 });
+    // A requested extra page is preferred over shrinking the type to the dense size.
+    for (const fonts of [NORMAL_FONTS, DENSE_FONTS]) {
+      attemptSelection([fonts]);
+      for (let count = 3; !selected && count <= pageLimit; count++) searchPages(count, fonts);
+      if (selected) break;
+    }
+    if (!selected) throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { maxPages: pageLimit });
     const choice = selected as { pages: SheetPlan[]; font: number; introHeight: number; score: number; usedPosters: number };
     const supportHeight = supportBlocks.length ? heightOf(renderNotice(supportBlocks, choice.font), CONTENT_WIDTH) : 0;
     const editorialPages = choice.pages.map((plan) => ({
@@ -834,7 +897,7 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
       else throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { section: "support" });
     }
     while (plans.length < 2) plans.push({ zones: [], score: 0, mode: "back" });
-    if (plans.length > 2) throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { maxPages: 2 });
+    if (plans.length > pageLimit) throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { maxPages: pageLimit });
     return plans.map((plan, index) => {
       const article = paper(data, index);
       article.dataset.composition = plan.mode;

@@ -45,6 +45,7 @@ import { DASHBOARD_MODULE_COLORS } from "./dashboard-module-colors";
 import { MOBILE_ACTION_CARD_CLASS, MOBILE_HOME_HEADER_CLASS } from "@/components/presentation/platform-style";
 import { HOME_EASYCOM_AGENTS, type EasyComAgent } from "@/lib/agents";
 import { ComingSoonBanner } from "@/components/coming-soon/coming-soon-banner";
+import { useComingSoonGate } from "@/components/dashboard/coming-soon-dialog";
 import {
   getOfficialDashboardMenuSections,
   OFFICIAL_MENU_SECTION_STYLES,
@@ -213,6 +214,17 @@ const MODAL_TONES: Record<string, string> = {
   email: "from-[#f33967] via-[#ed3262] to-[#dc2860]",
 };
 
+// Hebrew: the two agents whose tools are offered open those tools directly.
+const HE_AGENT_HREFS: Record<string, string> = {
+  levik: "/dashboard/newsletter",
+  dov: "/dashboard/social-networks",
+};
+
+const SECTION_HREFS: Record<string, string> = {
+  email: "/dashboard/email",
+  visuals: "/dashboard/templates",
+};
+
 function resolveHref(href: string, basePath: "/dashboard" | "/demo") {
   return href.startsWith("/dashboard") ? href.replace("/dashboard", basePath) : href;
 }
@@ -239,6 +251,7 @@ export function MobileDashboardHome({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { isBlocked, guard, openComingSoon, comingSoonDialog } = useComingSoonGate();
   const [profileOpen, setProfileOpen] = useState(false);
   const [homeModules, setHomeModules] = useState<MobileHomeModuleKey[]>([...MOBILE_HOME_DEFAULT_MODULES]);
   const [homeLoaded, setHomeLoaded] = useState(false);
@@ -390,7 +403,8 @@ export function MobileDashboardHome({
           <div className="flex items-center gap-2.5">
             <Link
               href={resolveHref("/dashboard/events", basePath)}
-              aria-label="Ouvrir l’Agenda IA"
+              onClick={guard("/dashboard/events")}
+              aria-label={tr("Ouvrir l’Agenda IA")}
               className="relative flex size-10 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white backdrop-blur-sm transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <span className="relative flex size-7 items-center justify-center rounded-full bg-white/16 ring-1 ring-white/15">
@@ -403,7 +417,7 @@ export function MobileDashboardHome({
 
             <Link
               href={resolveHref("/dashboard/notifications", basePath)}
-              aria-label="Ouvrir les notifications"
+              aria-label={tr("Ouvrir les notifications")}
               className="relative flex size-10 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white backdrop-blur-sm transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <Bell className="size-6 stroke-[2.2]" />
@@ -417,7 +431,7 @@ export function MobileDashboardHome({
                 type="button"
                 onClick={() => setProfileOpen((open) => !open)}
                 aria-expanded={profileOpen}
-                aria-label="Ouvrir le menu du profil"
+                aria-label={tr("Ouvrir le menu du profil")}
                 className="flex h-10 items-center gap-1.5 rounded-full bg-white/10 px-1.5 pe-2.5 text-white ring-1 ring-white/10 backdrop-blur-sm transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <span className="flex size-8 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#a352e2] to-[#6730b6] text-[0.65rem] font-black shadow-inner shadow-white/10">
@@ -515,10 +529,14 @@ export function MobileDashboardHome({
             {featuredAgents.map((agent) => {
               const accent = AGENT_ACCENTS[agent.slug] ?? AGENT_ACCENTS.david;
               const AccentIcon = accent.icon;
+              const agentHref = locale === "he" && HE_AGENT_HREFS[agent.slug]
+                ? HE_AGENT_HREFS[agent.slug]
+                : `/dashboard/assistant?agent=${encodeURIComponent(agent.slug)}&prefill=${encodeURIComponent(getAgentPrompt(agent, locale, tr))}`;
               return (
                 <Link
                   key={agent.slug}
-                  href={`${resolveHref("/dashboard/assistant", basePath)}?agent=${encodeURIComponent(agent.slug)}&prefill=${encodeURIComponent(getAgentPrompt(agent, locale, tr))}`}
+                  href={resolveHref(agentHref, basePath)}
+                  onClick={guard(agentHref)}
                   className="relative h-[112px] w-[150px] shrink-0 snap-start overflow-hidden rounded-[1.35rem] border border-white/20 bg-white/[0.055] shadow-[0_12px_22px_rgba(17,2,58,0.2)] backdrop-blur-sm transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   <span className={cn("absolute end-2.5 top-2.5 z-20 flex size-8 items-center justify-center rounded-full text-white shadow-lg", accent.surface)}>
@@ -659,7 +677,7 @@ export function MobileDashboardHome({
             if (action.href) {
               return (
                 <div key={action.key} className={layoutClassName} {...sharedProps}>
-                  <Link href={resolveHref(action.href, basePath)} className={cardClassName} onClick={(event) => { if (editMode) event.preventDefault(); }}>{cardContent}</Link>
+                  <Link href={resolveHref(action.href, basePath)} className={cardClassName} onClick={(event) => { if (editMode) event.preventDefault(); else guard(action.href!)(event); }}>{cardContent}</Link>
                   {removeButton}
                 </div>
               );
@@ -667,7 +685,11 @@ export function MobileDashboardHome({
 
             return (
               <div key={action.key} className={layoutClassName} {...sharedProps}>
-                <button type="button" onClick={() => { if (!editMode && action.sectionKey) openSection(action.sectionKey); }} className={cardClassName}>{cardContent}</button>
+                <button type="button" onClick={() => {
+                  if (editMode || !action.sectionKey) return;
+                  if (isBlocked(SECTION_HREFS[action.sectionKey] ?? "")) openComingSoon();
+                  else openSection(action.sectionKey);
+                }} className={cardClassName}>{cardContent}</button>
                 {removeButton}
               </div>
             );
@@ -675,8 +697,9 @@ export function MobileDashboardHome({
         </div>
         {undoModule ? <div className="fixed bottom-[6.5rem] left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl bg-slate-950 px-4 py-3 text-xs font-bold text-white shadow-xl"><span>{tr("Module retiré")}</span><button type="button" onClick={restoreHomeModule} className="text-[#f2c75c]">{tr("Annuler")}</button></div> : null}
         {homeNotice ? <button type="button" onClick={() => setHomeNotice(null)} className="fixed bottom-[6.5rem] left-1/2 z-50 w-[calc(100%-2rem)] -translate-x-1/2 rounded-2xl bg-slate-950 px-4 py-3 text-start text-xs font-bold text-white shadow-xl">{homeNotice}</button> : null}
-        {basePath === "/dashboard" ? <div className="mt-5"><ComingSoonBanner /></div> : null}
+        {basePath === "/dashboard" ? <div className="mt-5"><ComingSoonBanner onClick={guard("/fonctionnalites-a-venir")} /></div> : null}
       </section>
+      {comingSoonDialog}
 
       <ModuleDialog
         section={selectedSection}

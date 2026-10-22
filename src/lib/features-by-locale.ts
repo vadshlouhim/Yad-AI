@@ -84,7 +84,14 @@ export function isDashboardPathEnabled(locale: string, pathname: string): boolea
     || pathname === "/dashboard/overview"
     || pathname === "/dashboard/settings"
     || pathname.startsWith("/dashboard/settings/")
+    || pathname === "/dashboard/notifications"
   ) return true;
   const feature = dashboardFeatureForPathname(pathname);
   return feature ? isFeatureEnabled(locale, feature) : locale !== "he";
+}
+
+/** Same rule for a link target (accepts /demo paths, query strings and non-dashboard pages). */
+export function isDashboardHrefEnabled(locale: string, href: string): boolean {
+  const pathname = href.split(/[?#]/)[0].replace(/^\/demo(?=\/|$)/, "/dashboard");
+  return isDashboardPathEnabled(locale, pathname);
 }

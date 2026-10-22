@@ -1630,7 +1630,6 @@ export function AssistantClient({
         window.localStorage.setItem("easycom-assistant-experience", "detailed");
       }
       setAssistantExperienceState("detailed");
-      setShowAllFeaturesMobile(true);
       router.push(card.href ?? "/dashboard/settings?section=interface");
       return;
     }

@@ -9,7 +9,8 @@ const selected = params.get('preview') || params.get('pdf');
 const expectedOverflow = new Set(['provided-b', 'extreme-proportions', 'ai-reordered']);
 const sources = data => [...(data.enabled.photos ? data.photos : []), ...(data.enabled.posters ? data.posters : []), ...(data.enabled.restaurantAd ? data.partnerAds : [])];
 function validate(data, pages, name) {
-  check(pages.length === 2, name + ': the print contract must be exactly two A4 pages');
+  const pageLimit = data.layout?.pageLimit || 2;
+  check(pageLimit === 2 ? pages.length === 2 : pages.length >= 2 && pages.length <= pageLimit, name + ': the print contract is two A4 pages, or the extra pages the user added');
   const root = document.createElement('div'); root.innerHTML = pages.join(''); document.body.append(root);
   const textIds = [...root.querySelectorAll('[data-newsletter-text]')].map(node => node.dataset.newsletterText);
   check(new Set(textIds).size === textIds.length, name + ': article split between zones or pages');
@@ -108,7 +109,10 @@ function validate(data, pages, name) {
 }
 (async () => {
   let total = 0;
-  for (const fixture of cases.filter(c => (!selected || c.name === selected) && !expectedOverflow.has(c.name))) {
+  // ?preview=<case>&pages=3 renders a case with extra pages for visual review.
+  const previewPages = Number(params.get('pages')) || 0;
+  for (const fixture of cases.filter(c => (!selected || c.name === selected) && (previewPages || !expectedOverflow.has(c.name)))) {
+    if (previewPages) fixture.data.layout = { ...(fixture.data.layout || {}), pageLimit: previewPages };
     const pages = await composeNewsletter(fixture.data).catch(error => { throw new Error(fixture.name + ': ' + error.message); });
     validate(fixture.data, pages, fixture.name);
     total++;
@@ -153,12 +157,43 @@ function validate(data, pages, name) {
     try { await composeNewsletter(fixture.data); } catch { overflowRejected = true; }
     check(overflowRejected, fixture.name + ': oversized content must show a warning instead of creating a third page');
   }
-  const continued = structuredClone(cases.find(c => c.name === 'provided-b').data);
-  continued.layout = { ...(continued.layout || {}), density: 'tight', pageLimit: 3 };
-  const continuedPages = await composeNewsletter(continued);
-  check(continuedPages.length >= 2 && continuedPages.length <= 3, 'continue anyway must produce at most three pages');
-  const continuedRoot = document.createElement('div'); continuedRoot.innerHTML = continuedPages.join('');
-  check(continuedRoot.querySelectorAll('img:not([data-newsletter-decoration])').length === sources(continued).length, 'third-page preview must preserve every visual');
+  // Overflowing sheets: adding a 3rd, then a 4th page keeps the full composed layout.
+  const extendedSummary = [];
+  for (const fixture of cases.filter(c => expectedOverflow.has(c.name))) {
+    let extendedPages = null;
+    const extended = structuredClone(fixture.data);
+    for (const pageLimit of [3, 4]) {
+      extended.layout = { ...(fixture.data.layout || {}), pageLimit };
+      extendedPages = await composeNewsletter(extended).catch(() => null);
+      if (extendedPages) break;
+    }
+    check(extendedPages, fixture.name + ': adding pages must resolve the overflow');
+    check(extendedPages.length >= 3, fixture.name + ': extra page requested but not used');
+    check(extendedPages.every(html => !html.includes('data-composition="overflow-page"')), fixture.name + ': extra pages must use the composed layout');
+    validate(extended, extendedPages, fixture.name + ' (' + extendedPages.length + ' pages)');
+    extendedSummary.push(fixture.name + '=' + extendedPages.length + 'p/limit' + extended.layout.pageLimit);
+    total++;
+  }
+  // Grow provided-b one visual at a time until it no longer fits on 3 pages: the 4th page must take over.
+  const heavy = structuredClone(cases.find(c => c.name === 'provided-b').data);
+  const pool = [...heavy.posters, ...heavy.photos];
+  heavy.layout = { ...(heavy.layout || {}), pageLimit: 3 };
+  for (let i = 0; await composeNewsletter(heavy).then(() => true, () => false); i++) {
+    check(i < 24, 'heavy fixture never exceeded 3 pages');
+    const source = pool[i % pool.length];
+    const copy = { ...source, id: source.id + '-copy' + i, name: source.name + ' copy ' + i };
+    if (heavy.posters.includes(source) || source.poster) heavy.posters.push(copy); else heavy.photos.push(copy);
+  }
+  heavy.layout.pageLimit = 4;
+  const heavyPages = await composeNewsletter(heavy).catch(error => { throw new Error('heavy (4 pages): ' + error.message); });
+  check(heavyPages.length === 4, 'heavy fixture must use 4 pages');
+  validate(heavy, heavyPages, 'heavy (4 pages)');
+  extendedSummary.push('heavy=' + heavyPages.length + 'p/limit4');
+  total++;
+  heavy.posters = [...heavy.posters, ...heavy.posters.map(item => ({ ...item, id: item.id + '-x', name: item.name + ' x' }))];
+  check(!(await composeNewsletter(heavy).catch(() => null)), 'content beyond 4 pages must be rejected, never truncated');
+  const short = baseNewsletter(); short.layout = { pageLimit: 4 };
+  check((await composeNewsletter(short)).length === 2, 'short content must stay on one recto-verso sheet even when 4 pages are allowed');
   const wrong = baseNewsletter(); wrong.seferHamitsvot.date = '2026-10-16';
   let rejected = false;
   try { await composeNewsletter(wrong); } catch { rejected = true; }
@@ -174,5 +209,5 @@ function validate(data, pages, name) {
   rejected = false;
   try { await composeNewsletter(impossible); } catch { rejected = true; }
   check(rejected, 'Impossible content must not be silently truncated');
-  document.body.textContent = 'PASS: ' + total + ' browser layouts';
+  document.body.textContent = 'PASS: ' + total + ' browser layouts (' + extendedSummary.join(', ') + ')';
 })().catch(error => { document.body.textContent = 'FAIL: ' + (error?.stack || error?.message || String(error)); });
