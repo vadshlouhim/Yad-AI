@@ -13,6 +13,8 @@ import { syncLocaleOnLogin } from "@/lib/i18n/sync-locale-on-login";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const tokenHash = searchParams.get("token_hash");
+  const verificationType = searchParams.get("type");
   const next = normalizeAuthNextPath(
     searchParams.get("next"),
     DEFAULT_POST_LOGIN_PATH
@@ -30,7 +32,23 @@ export async function GET(request: NextRequest) {
         ? `${forwardedProto}://${forwardedHost}`
         : siteUrl ?? origin;
 
-  if (code) {
+  const allowedVerificationTypes = new Set([
+    "signup",
+    "invite",
+    "magiclink",
+    "recovery",
+    "email_change",
+    "email",
+  ] as const);
+  const hasValidTokenHash =
+    Boolean(tokenHash) &&
+    allowedVerificationTypes.has(
+      verificationType as (typeof allowedVerificationTypes extends Set<infer T>
+        ? T
+        : never),
+    );
+
+  if (code || hasValidTokenHash) {
     const cookieStore = await cookies();
 
     // Capture les cookies auth pour les coller sur la réponse redirect
@@ -51,7 +69,18 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = code
+      ? await supabase.auth.exchangeCodeForSession(code)
+      : await supabase.auth.verifyOtp({
+          token_hash: tokenHash!,
+          type: verificationType as
+            | "signup"
+            | "invite"
+            | "magiclink"
+            | "recovery"
+            | "email_change"
+            | "email",
+        });
 
     if (!error && data.user) {
       const admin = createAdminClient();

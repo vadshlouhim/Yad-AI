@@ -932,7 +932,7 @@ L'offre gratuite permettrait de decouvrir la plateforme avec un acces limite :
 
 ### Offre de lancement
 
-Prix envisage : **9,99 EUR par mois pendant les 3 premiers mois**.  
+Offre envisagée : **30 jours d'essai gratuit, puis 19,99 EUR par mois**.
 Objectif : reduire la barriere d'entree, favoriser l'adoption initiale et convertir les premiers utilisateurs.
 
 ### Offre standard

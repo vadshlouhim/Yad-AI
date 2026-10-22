@@ -573,6 +573,7 @@ export function getQuickAccessItems(translate: (value: string) => string = (valu
     ? [
         { href: "/dashboard/overview", label: "Tableau de bord", icon: House },
         { href: "/dashboard/newsletter", label: "Newsletter papier Chabbat", icon: Mail },
+        { href: "/dashboard/social-networks", label: "Publier sur tous mes réseaux", icon: Share2 },
       ]
     : QUICK_ACCESS_ITEMS;
   return items.map((item) => ({ ...item, label: translate(item.label) }));

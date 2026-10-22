@@ -6,6 +6,8 @@ import { publishToTelegram } from "./adapters/telegram";
 import { prepareEmailFallback } from "./adapters/email";
 import { publishToWhatsApp } from "./adapters/whatsapp";
 import { createNotificationOnce } from "@/lib/notifications/create-once";
+import { isPublishDryRun } from "./dry-run";
+import { resolveAllowedPublishTime } from "./observance-guard";
 
 type Publication = Tables<"Publication">;
 type Channel = Tables<"Channel">;
@@ -33,6 +35,30 @@ export async function publishToChannel(
 ): Promise<PublishResult> {
   const supabase = createAdminClient();
   const { channel } = publication;
+
+  if (isPublishDryRun()) {
+    const result: PublishResult = {
+      success: true,
+      externalId: `dry-run:${publication.id}`,
+    };
+    await supabase
+      .from("Publication")
+      .update({
+        status: "PUBLISHED",
+        publishedAt: new Date().toISOString(),
+        externalId: result.externalId,
+        externalUrl: null,
+        error: null,
+        metadata: {
+          ...(publication.metadata && typeof publication.metadata === "object" ? publication.metadata : {}),
+          dryRun: true,
+        },
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", publication.id);
+    if (options?.createNotification !== false) await createPublicationNotification(publication, result);
+    return result;
+  }
 
   await supabase
     .from("Publication")
@@ -152,24 +178,37 @@ async function createPublicationNotification(publication: Publication, result: P
   const supabase = createAdminClient();
   const { data: adminUser } = await supabase
     .from("profiles")
-    .select("id")
+    .select("id, locale")
     .eq("communityId", publication.communityId)
     .limit(1)
     .maybeSingle();
 
   if (!adminUser) return;
 
+  const hebrew = adminUser.locale === "he";
+  const channel = hebrew
+    ? (({ FACEBOOK: "פייסבוק", INSTAGRAM: "אינסטגרם", WHATSAPP: "וואטסאפ", TELEGRAM: "טלגרם", EMAIL: "אימייל" } as Record<string, string>)[publication.channelType] ?? publication.channelType)
+    : publication.channelType;
+
   await createNotificationOnce(supabase, {
     userId: adminUser.id,
     communityId: publication.communityId,
     type: result.success ? "PUBLICATION_SUCCESS" : result.fallbackUsed ? "PUBLICATION_SCHEDULED" : "PUBLICATION_FAILED",
-    title: result.success ? "Publication réussie" : result.fallbackUsed ? "Export prêt" : "Échec de publication",
-    body: result.success
-      ? `Votre contenu a été publié sur ${publication.channelType}.`
-      : result.fallbackUsed
-      ? `Votre contenu est prêt à être copié-collé sur ${publication.channelType}.`
-      : `La publication sur ${publication.channelType} a échoué : ${result.error}`,
-    link: `/dashboard/publications/${publication.id}`,
+    title: hebrew
+      ? result.success ? "הפרסום הצליח" : result.fallbackUsed ? "הייצוא מוכן" : "הפרסום נכשל"
+      : result.success ? "Publication réussie" : result.fallbackUsed ? "Export prêt" : "Échec de publication",
+    body: hebrew
+      ? result.success
+        ? `התוכן שלכם פורסם ב${channel}.`
+        : result.fallbackUsed
+          ? `התוכן מוכן להעתקה ולהדבקה ב${channel}.`
+          : `הפרסום ב${channel} נכשל. אפשר לנסות שוב מהיסטוריית הפרסומים.`
+      : result.success
+        ? `Votre contenu a été publié sur ${channel}.`
+        : result.fallbackUsed
+          ? `Votre contenu est prêt à être copié-collé sur ${channel}.`
+          : `La publication sur ${channel} a échoué : ${result.error}`,
+    link: `/dashboard/publications?status=${result.success ? "PUBLISHED" : "FAILED"}`,
     dedupeKey: `publication:${publication.id}:${result.success ? "success" : result.fallbackUsed ? "fallback" : "failed"}`,
   });
 }
@@ -193,6 +232,16 @@ export async function createPublicationsFromDraft(params: {
   ]);
 
   if (!draft) throw new Error("Brouillon introuvable");
+
+  const { data: community } = await supabase
+    .from("Community")
+    .select("city,country,timezone")
+    .eq("id", communityId)
+    .single();
+  const guardedSchedule = scheduledAt && community
+    ? await resolveAllowedPublishTime(scheduledAt, community)
+    : null;
+  const safeScheduledAt = guardedSchedule?.publishAt ?? scheduledAt;
 
   const publications: Publication[] = [];
 
@@ -221,9 +270,18 @@ export async function createPublicationsFromDraft(params: {
         channelType: channel.type,
         content: adaptation?.body ?? draft.body,
         mediaUrls,
-        metadata,
-        status: scheduledAt ? "SCHEDULED" : "PENDING",
-        scheduledAt: scheduledAt?.toISOString() ?? null,
+        status: safeScheduledAt ? "SCHEDULED" : "PENDING",
+        scheduledAt: safeScheduledAt?.toISOString() ?? null,
+        metadata: {
+          ...(metadata ?? {}),
+          ...(guardedSchedule?.adjusted
+            ? {
+                observanceAdjusted: true,
+                observanceReason: guardedSchedule.reason,
+                originallyScheduledAt: guardedSchedule.requestedAt.toISOString(),
+              }
+            : {}),
+        },
         updatedAt: new Date().toISOString(),
       })
       .select()

@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ManualPublishClient } from "@/components/publish/manual-publish-client";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { getLocale } from "next-intl/server";
+import { redirect } from "next/navigation";
 
 interface Props {
   params: Promise<{
@@ -22,6 +24,7 @@ const VALID_PLATFORMS = ["whatsapp", "instagram", "facebook", "telegram", "email
 
 export default async function ManualPublishPage({ params }: Props) {
   const { platform } = await params;
+  if ((await getLocale()) === "he") redirect("/dashboard/social-networks");
 
   if (!VALID_PLATFORMS.includes(platform.toLowerCase())) {
     notFound();

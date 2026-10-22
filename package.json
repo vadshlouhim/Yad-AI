@@ -27,6 +27,7 @@
     "test:posters": "eslint src/lib/templates/fal-edit.ts src/app/api/templates",
     "test:poster-reuse": "tsx scripts/test-poster-reuse.ts",
     "test:proxy": "tsx scripts/test-proxy.ts",
+    "test:subscription-policy": "tsx scripts/test-subscription-policy.ts",
     "test:public-discovery": "tsx scripts/test-public-discovery.ts",
     "test:country": "tsx scripts/test-community-country.ts",
     "benchmark:public-ttfb": "node scripts/benchmark-public-ttfb.mjs"

@@ -16,12 +16,26 @@ export type FeatureKey =
 const ENABLED_BY_LOCALE: Record<string, FeatureKey[] | "all"> = {
   fr: "all",
   en: "all",
-  he: ["newsletter"],
+  he: ["newsletter", "publish"],
 };
 
 export function isFeatureEnabled(locale: string, key: FeatureKey) {
   const list = ENABLED_BY_LOCALE[locale] ?? "all";
   return list === "all" || list.includes(key);
+}
+
+export type PublishChannel = "FACEBOOK" | "INSTAGRAM" | "WHATSAPP" | "EMAIL";
+
+// Keep dormant channels in the product without exposing them on the streamlined
+// composer. Re-enabling one channel is now a configuration change, not a UI rewrite.
+const PUBLISH_CHANNELS_BY_LOCALE: Record<string, PublishChannel[]> = {
+  fr: ["FACEBOOK", "INSTAGRAM"],
+  en: ["FACEBOOK", "INSTAGRAM"],
+  he: ["FACEBOOK", "INSTAGRAM"],
+};
+
+export function getPublishChannels(locale: string): PublishChannel[] {
+  return PUBLISH_CHANNELS_BY_LOCALE[locale] ?? PUBLISH_CHANNELS_BY_LOCALE.en;
 }
 
 const DASHBOARD_ROUTE_FEATURES: Array<[prefix: string, feature: FeatureKey]> = [

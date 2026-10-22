@@ -106,7 +106,7 @@ const OAUTH_MESSAGES: Record<string, { tone: "success" | "error"; text: string }
   expired: { tone: "error", text: "Session expirée. Relancez la connexion." },
   invalid_state: { tone: "error", text: "Erreur de sécurité OAuth. Relancez la connexion." },
   forbidden: { tone: "error", text: "Ce compte ne correspond pas à cette communauté." },
-  no_page: { tone: "error", text: "Aucune Page Facebook administrable trouvée." },
+  no_page: { tone: "error", text: "Aucune Page Facebook trouvée. Relancez la connexion, cliquez sur « Modifier les paramètres » et cochez votre Page. Vous devez être admin de la Page (ou y avoir accès via Meta Business Suite)." },
   no_instagram_business: { tone: "error", text: "Aucun compte Instagram Pro lié à une Page Facebook." },
   app_deleted: { tone: "error", text: "L’application Meta configurée a été supprimée. Créez une nouvelle application Meta puis remplacez META_APP_ID et META_APP_SECRET." },
   redirect_uri_mismatch: { tone: "error", text: "L’URL de redirection n’est pas autorisée dans Meta. Ajoutez l’URL exacte du callback dans Facebook Login > Paramètres." },

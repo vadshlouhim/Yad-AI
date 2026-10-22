@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { canAccessAdmin } from "@/lib/admin-access";
+import { SUBSCRIPTION_TRIAL_DAYS } from "@/lib/billing/subscription-policy";
 
 type Admin = ReturnType<typeof createAdminClient>;
 type UserRole = "SUPER_ADMIN" | "ADMIN" | "EDITOR" | "VIEWER";
@@ -32,9 +33,9 @@ export function tierLimitMessage(
   metric: "assistantMessages" | "automations" | "socialPublications"
 ): string {
   if (tier !== "FREE") return "";
-  if (metric === "automations") return "Créez votre première automatisation : premier mois à 9,99 € TTC, puis 19,99 € TTC/mois.";
-  if (metric === "socialPublications") return "Publiez avec EasyCom IA : premier mois à 9,99 € TTC, puis 19,99 € TTC/mois.";
-  return "Lancez votre première génération IA : premier mois à 9,99 € TTC, puis 19,99 € TTC/mois.";
+  if (metric === "automations") return "Essayez toutes les automatisations gratuitement pendant 30 jours, puis 19,99 € TTC/mois.";
+  if (metric === "socialPublications") return "Publiez gratuitement pendant 30 jours, puis 19,99 € TTC/mois.";
+  return "Essayez toutes les fonctionnalités gratuitement pendant 30 jours, puis 19,99 € TTC/mois.";
 }
 
 export function tierLabel(tier: PlanTier): string {
@@ -48,11 +49,9 @@ export const LIMITED_SOCIAL_CHANNELS = ["INSTAGRAM", "FACEBOOK", "TELEGRAM"] as 
 
 export interface BillingConfig {
   basePriceCents: number;
-  launchPriceCents: number;
+  trialDays: number;
   currency: "EUR";
   taxLabel: "TTC";
-  launchEndsAt: string;
-  launchMessage: string;
 }
 
 export interface BillingGate {
@@ -73,21 +72,13 @@ export interface BillingUsage {
 
 export const DEFAULT_BILLING_CONFIG: BillingConfig = {
   basePriceCents: 1999,
-  launchPriceCents: 999,
+  trialDays: SUBSCRIPTION_TRIAL_DAYS,
   currency: "EUR",
   taxLabel: "TTC",
-  launchEndsAt: "2099-12-31",
-  launchMessage: "Offre de bienvenue : premier mois à 9,99 € TTC, puis 19,99 € TTC/mois.",
 };
 
 export function isPaidPlan(plan: string | null | undefined) {
   return Boolean(plan && plan !== "FREE_TRIAL");
-}
-
-export function isLaunchOfferActive(config: BillingConfig, now = new Date()) {
-  void config;
-  void now;
-  return true;
 }
 
 export function formatEuroCents(cents: number) {
@@ -272,7 +263,7 @@ export async function assertTierFeature(
 
 export function getCheckoutPrice(
   config: BillingConfig,
-  ..._legacyArgs: [tier?: "PROFESSIONAL" | "ENTERPRISE", applyLaunchOffer?: boolean]
+  ..._legacyArgs: [tier?: "PROFESSIONAL" | "ENTERPRISE"]
 ) {
   void _legacyArgs;
   return {

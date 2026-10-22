@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 import { getPublicToolDestination } from "@/lib/public-tools";
 import { normalizeSupportedCountry } from "@/lib/community/countries";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { createSubscriptionCheckout } from "@/lib/billing/checkout-client";
 
 const STEPS = [
   { id: 0, label: "Identité", description: "Votre structure" },
@@ -130,6 +131,7 @@ export function OnboardingWizard({
   returnTo,
 }: Props) {
   const he = useLocale() === "he";
+  const billingCopy = useTranslations("onboarding");
   const steps = he ? [{ id: 0, label: "זהות", description: "הארגון שלכם" }, { id: 1, label: "חיבורים", description: "ערוצים לבחירה" }] : STEPS;
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(Math.min(initialStep, steps.length - 1));
@@ -195,7 +197,21 @@ export function OnboardingWizard({
 
       if (!res.ok) throw new Error(he ? "שגיאה בשמירה" : "Erreur lors de la sauvegarde");
 
-      router.replace(getPublicToolDestination(returnTo) ?? "/dashboard");
+      try {
+        const checkoutUrl = await createSubscriptionCheckout({
+          tier: "PROFESSIONAL",
+          successUrl: `${window.location.origin}${getPublicToolDestination(returnTo) ?? "/dashboard/settings/billing?success=true"}`,
+          cancelUrl: `${window.location.origin}/dashboard/settings/billing`,
+        });
+        if (checkoutUrl) {
+          window.location.assign(checkoutUrl);
+          return;
+        }
+      } catch (checkoutError) {
+        console.error(checkoutError);
+        alert(billingCopy("checkoutError"));
+      }
+      router.replace("/dashboard/settings/billing");
       router.refresh();
     } catch (err) {
       console.error(err);
@@ -295,15 +311,18 @@ export function OnboardingWizard({
             />
           )}
           {currentStep === 1 && (
-            <StepSocial
-              data={data}
-              updateData={updateData}
-              onNext={finishOnboarding}
-              onPrev={goPrev}
-              communityId={communityId}
-              simulationMode={simulationMode}
-              saving={saving}
-            />
+            <div className="space-y-4">
+              {!simulationMode && <p className="rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 text-center text-sm font-bold text-violet-900">{billingCopy("checkoutReminder")}</p>}
+              <StepSocial
+                data={data}
+                updateData={updateData}
+                onNext={finishOnboarding}
+                onPrev={goPrev}
+                communityId={communityId}
+                simulationMode={simulationMode}
+                saving={saving}
+              />
+            </div>
           )}
         </div>
       </div>

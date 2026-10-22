@@ -77,6 +77,46 @@ async function fetchJson<T>(url: string): Promise<T> {
   return data;
 }
 
+const PAGE_FIELDS = "id,name,access_token,instagram_business_account{id,username}";
+
+/**
+ * Avec Facebook Login for Business, /me/accounts peut être vide quand la Page
+ * appartient à un portefeuille business. On retombe alors sur les Pages
+ * réellement cochées par l'utilisateur (granular_scopes du token).
+ */
+async function fetchGrantedPages(
+  graphApiBase: string,
+  userToken: string,
+  appId: string,
+  appSecret: string
+): Promise<MetaPage[]> {
+  const debugUrl = new URL(`${graphApiBase}/debug_token`);
+  debugUrl.searchParams.set("input_token", userToken);
+  debugUrl.searchParams.set("access_token", `${appId}|${appSecret}`);
+  const debug = await fetchJson<{
+    data?: { granular_scopes?: { scope: string; target_ids?: string[] }[] };
+  }>(debugUrl.toString());
+
+  const pageIds = new Set(
+    (debug.data?.granular_scopes ?? [])
+      .filter((scope) => scope.scope === "pages_show_list" || scope.scope === "pages_manage_posts")
+      .flatMap((scope) => scope.target_ids ?? [])
+  );
+
+  const pages: MetaPage[] = [];
+  for (const pageId of pageIds) {
+    const pageUrl = new URL(`${graphApiBase}/${pageId}`);
+    pageUrl.searchParams.set("fields", PAGE_FIELDS);
+    pageUrl.searchParams.set("access_token", userToken);
+    try {
+      pages.push(await fetchJson<MetaPage>(pageUrl.toString()));
+    } catch (error) {
+      console.error("[Meta OAuth] Page inaccessible", pageId, error);
+    }
+  }
+  return pages;
+}
+
 function getOAuthBaseUrl(requestUrl: URL) {
   const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL;
   return appUrl?.replace(/\/$/, "") ?? requestUrl.origin;
@@ -189,13 +229,18 @@ export async function GET(request: Request, { params }: RouteParams) {
     const longLived = await fetchJson<{ access_token: string; expires_in?: number }>(longLivedUrl.toString());
 
     const pagesUrl = new URL(`${graphApiBase}/me/accounts`);
-    pagesUrl.searchParams.set("fields", "id,name,access_token,instagram_business_account{id,username}");
+    pagesUrl.searchParams.set("fields", PAGE_FIELDS);
     pagesUrl.searchParams.set("access_token", longLived.access_token);
     const pagesResponse = await fetchJson<{ data: MetaPage[] }>(pagesUrl.toString());
 
-    console.log("[Meta OAuth] Pages response:", JSON.stringify(pagesResponse, null, 2));
+    let pages = pagesResponse.data ?? [];
+    if (pages.length === 0) {
+      pages = await fetchGrantedPages(graphApiBase, longLived.access_token, appId, appSecret);
+    }
 
-    const selectedPage = pagesResponse.data.find((page) =>
+    console.log("[Meta OAuth] Pages found:", pages.map((page) => ({ id: page.id, name: page.name, hasToken: Boolean(page.access_token) })));
+
+    const selectedPage = pages.find((page) =>
       provider === "instagram" ? Boolean(page.instagram_business_account?.id) : Boolean(page.access_token)
     );
 

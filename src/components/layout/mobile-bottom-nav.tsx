@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Grid2X2, UsersRound } from "lucide-react";
+import { FileText, Grid2X2, Share2, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -28,9 +28,10 @@ export function MobileBottomNav() {
       className="fixed inset-x-0 bottom-0 z-30 hidden rounded-t-[2rem] border-t border-[#421388]/10 bg-white/95 px-4 pt-2.5 shadow-[0_-18px_42px_rgba(66,19,136,0.13)] backdrop-blur-2xl max-md:block pb-[max(0.6rem,env(safe-area-inset-bottom))]"
       aria-label={nav("primaryLabel")}
     >
-      <div className={`mx-auto grid min-h-[4.7rem] max-w-md items-center gap-2 ${locale === "he" ? "grid-cols-3" : "grid-cols-2"}`}>
+      <div className={`mx-auto grid min-h-[4.7rem] max-w-md items-center gap-2 ${locale === "he" ? "grid-cols-4" : "grid-cols-2"}`}>
         {locale === "he" ? <>
           <Link href="/dashboard/newsletter" aria-current={pathname.startsWith("/dashboard/newsletter") ? "page" : undefined} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-2 text-xs font-semibold focus-visible:ring-4 focus-visible:ring-violet-200 ${pathname.startsWith("/dashboard/newsletter") ? "bg-[#421388] text-white" : "bg-violet-50 text-violet-900"}`}><FileText className="size-5" aria-hidden="true" />{dashboard("heNewsletter")}</Link>
+          <Link href="/dashboard/social-networks" aria-current={pathname.startsWith("/dashboard/social-networks") ? "page" : undefined} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-semibold focus-visible:ring-4 focus-visible:ring-violet-200 ${pathname.startsWith("/dashboard/social-networks") ? "bg-[#421388] text-white" : "bg-violet-50 text-violet-900"}`}><Share2 className="size-5" aria-hidden="true" />{dashboard("hePublishNav")}</Link>
           <span aria-disabled="true" className="flex min-h-14 cursor-default flex-col items-center justify-center gap-1 rounded-xl bg-slate-100 px-1 text-[11px] font-semibold text-slate-400"><Grid2X2 className="size-5" aria-hidden="true" /><span>{dashboard("mainMenu")}</span><small className="text-[8px] leading-none">{dashboard("heComingSoonBadge")}</small></span>
           <span aria-disabled="true" className="flex min-h-14 cursor-default flex-col items-center justify-center gap-1 rounded-xl bg-slate-100 px-1 text-[11px] font-semibold text-slate-400"><UsersRound className="size-5" aria-hidden="true" /><span>{dashboard("smartCrm")}</span><small className="text-[8px] leading-none">{dashboard("heComingSoonBadge")}</small></span>
         </> : <>

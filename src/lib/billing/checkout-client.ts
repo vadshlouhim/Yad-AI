@@ -1,6 +1,5 @@
 export interface SubscriptionCheckoutRequest {
   tier: "PROFESSIONAL" | "ENTERPRISE";
-  applyLaunchOffer?: boolean;
   successUrl: string;
   cancelUrl: string;
 }

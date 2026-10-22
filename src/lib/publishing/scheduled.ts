@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/types/database.types";
+import { resolveAllowedPublishTime } from "./observance-guard";
 
 type Channel = Tables<"Channel">;
 type Publication = Tables<"Publication">;
@@ -28,6 +29,29 @@ export async function processScheduledPublications(limit = 50) {
 
   for (const pub of scheduledPubs ?? []) {
     try {
+      const { data: community } = await admin
+        .from("Community")
+        .select("city,country,timezone")
+        .eq("id", pub.communityId)
+        .single();
+      if (community) {
+        const guarded = await resolveAllowedPublishTime(new Date(pub.scheduledAt ?? now), community);
+        if (guarded.adjusted && guarded.publishAt > now) {
+          await admin
+            .from("Publication")
+            .update({
+              scheduledAt: guarded.publishAt.toISOString(),
+              metadata: {
+                ...(pub.metadata && typeof pub.metadata === "object" ? pub.metadata : {}),
+                observanceAdjusted: true,
+                observanceReason: guarded.reason,
+              },
+              updatedAt: now.toISOString(),
+            })
+            .eq("id", pub.id);
+          continue;
+        }
+      }
       await publishToChannel(pub as Publication & { channel: Channel });
       processed += 1;
       await new Promise((resolve) => setTimeout(resolve, 300));

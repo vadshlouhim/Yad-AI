@@ -1,1289 +1,193 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import Image from "next/image";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  AlertTriangle,
-  CalendarClock,
-  CheckCircle2,
-  ExternalLink,
-  History,
-  ImagePlus,
-  Loader2,
-  Mail,
-  RefreshCw,
-  Search,
-  Send,
-  Share2,
-  Sparkles,
-  Upload,
-  X,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { FacebookIcon, InstagramIcon, WhatsAppIcon } from "@/components/layout/dashboard-nav";
+import { useLocale, useTranslations } from "next-intl";
+import { ArrowLeft, CalendarDays, Check, CheckCircle2, ImagePlus, Loader2, RotateCcw, Sparkles, Upload, WandSparkles, X } from "lucide-react";
+import { FacebookIcon, InstagramIcon } from "@/components/layout/dashboard-nav";
 import { cn } from "@/lib/utils";
-import { AGENT_IMAGE_URLS } from "@/lib/agents";
-import { rememberSocialComposerDraft, takeSocialComposerDraft } from "@/lib/publishing/social-composer-session";
 
-const AGENTS = [
-  {
-    name: "Dov",
-    label: "Réseaux sociaux",
-    image: AGENT_IMAGE_URLS.dovBer,
-  },
+type NetworkType = "FACEBOOK" | "INSTAGRAM";
+type Tone = "warm" | "festive" | "simple";
+type Moment = "now" | "tonight" | "custom";
+type Channel = { id: string; type: NetworkType; name: string | null; handle: string | null; isConnected: boolean; isActive: boolean };
+type Draft = { idea: string; tone: Tone; versions: Record<NetworkType, string>; mediaUrls: string[]; selectedNetworks: NetworkType[]; moment: Moment; customDate: string; repeatWeekly: boolean };
+type SuccessState = { scheduled: boolean; date: string | null; networks: NetworkType[] };
+
+const NETWORKS: Array<{ type: NetworkType; icon: typeof FacebookIcon; limit: number }> = [
+  { type: "FACEBOOK", icon: FacebookIcon, limit: 63_206 },
+  { type: "INSTAGRAM", icon: InstagramIcon, limit: 2_200 },
 ];
+const DRAFT_KEY = "easycom:social-composer:v2";
 
-const NETWORKS = [
-  {
-    type: "FACEBOOK",
-    label: "Facebook",
-    href: "/dashboard/facebook",
-    icon: FacebookIcon,
-    color: "text-[#2364d2]",
-    surface: "bg-gradient-to-r from-[#315ecb] to-[#4b7fe8]",
-    border: "border-blue-400",
-    selectedShadow: "shadow-md shadow-blue-200",
-  },
-  {
-    type: "INSTAGRAM",
-    label: "Instagram",
-    href: "/dashboard/instagram",
-    icon: InstagramIcon,
-    color: "text-[#d12d7e]",
-    surface: "bg-gradient-to-r from-[#d92d7c] to-[#f06b45]",
-    border: "border-pink-400",
-    selectedShadow: "shadow-md shadow-rose-200",
-  },
-  {
-    type: "WHATSAPP",
-    label: "WhatsApp",
-    href: "/dashboard/whatsapp",
-    icon: WhatsAppIcon,
-    color: "text-[#128153]",
-    surface: "bg-gradient-to-r from-[#15966a] to-[#2bbf87]",
-    border: "border-emerald-400",
-    selectedShadow: "shadow-md shadow-emerald-200",
-  },
-] as const;
+function nextSundayAtSeven() { const value = new Date(); const days = (7 - value.getDay()) % 7 || 7; value.setDate(value.getDate() + days); value.setHours(19, 0, 0, 0); return value; }
+function tonightAtSeven() { const value = new Date(); value.setHours(19, 0, 0, 0); if (value.getTime() <= Date.now()) value.setDate(value.getDate() + 1); return value; }
+function dateTimeLocal(date: Date) { const offset = date.getTimezoneOffset(); return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 16); }
 
-type NetworkType = (typeof NETWORKS)[number]["type"];
-type RepeatFrequency = "once" | "daily" | "weekly" | "monthly" | "custom";
-type ImmediatePublishResult = {
-  success?: boolean;
-  externalId?: string;
-  externalUrl?: string | null;
-  error?: string;
-  fallbackUsed?: boolean;
-};
-
-const WEEK_DAYS = [
-  { value: 1, label: "Lun" },
-  { value: 2, label: "Mar" },
-  { value: 3, label: "Mer" },
-  { value: 4, label: "Jeu" },
-  { value: 5, label: "Ven" },
-  { value: 6, label: "Sam" },
-  { value: 0, label: "Dim" },
-] as const;
-
-type Channel = {
-  id: string;
-  type: NetworkType;
-  name: string | null;
-  handle: string | null;
-  isConnected: boolean;
-  isActive: boolean;
-};
-
-type WhatsAppContact = {
-  id: string;
-  displayName: string;
-  phone: string | null;
-  tags: string[] | null;
-  optInWhatsapp: boolean;
-};
-
-type Publication = {
-  id: string;
-  draftId: string | null;
-  channelType: NetworkType;
-  content: string;
-  scheduledAt: string | null;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  mediaUrls: string[] | null;
-};
-
-type SocialNetworksData = {
-  channels: Channel[];
-  whatsappContacts: WhatsAppContact[];
-  publications: Publication[];
-};
-
-function SocialNetworksBanner() {
-  return (
-    <section className="relative overflow-hidden rounded-[1.6rem] border border-white/20 bg-[#d92d7c] p-4 text-white shadow-[0_20px_50px_-30px_rgba(217,45,124,0.58)] md:rounded-[1.75rem] md:p-8 md:shadow-[0_28px_80px_-34px_rgba(217,45,124,0.58)]">
-      <div className="relative flex min-h-[9rem] items-center gap-2 text-left md:grid md:min-h-0 md:gap-8 md:text-center lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:text-left">
-        <div className="min-w-0 max-w-3xl flex-1">
-          <div className="mb-3 h-1.5 w-10 rounded-full bg-white/80 md:mx-auto md:mb-4 md:w-12 lg:mx-0" />
-          <div className="hidden items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-white/90 md:inline-flex">
-            <Share2 className="size-3.5" />
-            Reseaux sociaux
-          </div>
-          <h1 className="text-[clamp(1.45rem,7vw,1.85rem)] font-black leading-[1.04] tracking-[-0.035em] text-white md:mt-3 md:text-4xl md:leading-tight">Publiez partout, depuis un seul espace</h1>
-          <p className="mx-auto mt-3 hidden max-w-2xl text-base font-medium leading-6 text-white/85 md:block lg:mx-0">
-            Préparez votre message avec l&apos;IA, ajoutez un visuel et diffusez-le sur Facebook, Instagram et WhatsApp au bon moment.
-          </p>
-        </div>
-
-        <div className="relative flex w-[6.25rem] shrink-0 items-end justify-center self-stretch md:w-auto md:min-w-[18rem] md:self-auto">
-          <div className="pointer-events-none absolute bottom-[16%] left-1/2 aspect-square w-[68%] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.68)_0%,rgba(255,255,255,0.2)_44%,transparent_72%)] blur-3xl" aria-hidden />
-          {AGENTS.map((agent) => (
-            <div key={agent.name} className="relative z-10 flex h-full flex-col items-center justify-end md:h-auto">
-              <Image
-                src={agent.image}
-                alt={`${agent.name}, agent ${agent.label}`}
-                width={230}
-                height={270}
-                className="h-[8.2rem] w-auto object-contain object-bottom drop-shadow-[0_0_18px_rgba(255,255,255,0.36)] drop-shadow-[0_16px_22px_rgba(0,0,0,0.28)] md:h-64 md:drop-shadow-[0_0_26px_rgba(255,255,255,0.46)] md:drop-shadow-[0_24px_30px_rgba(0,0,0,0.35)]"
-                priority
-              />
-              <span className="mt-1 hidden items-center gap-1.5 rounded-full border border-white/60 bg-white/95 px-3 py-1.5 text-[11px] font-black text-slate-800 shadow-[0_8px_18px_rgba(57,15,53,0.22)] backdrop-blur-sm md:inline-flex">
-                <Share2 className="size-4 text-[#d92d7c]" aria-hidden="true" />
-                {agent.name} · {agent.label}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+function StepCard({ number, title, children }: { number: string; title: string; children: React.ReactNode }) {
+  return <section className="rounded-[20px] border border-[#eee9f7] bg-white p-4 shadow-[0_8px_28px_rgba(54,31,92,0.05)] sm:p-5"><div className="mb-4 flex items-center gap-3"><span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-violet-100 text-sm font-black text-violet-700">{number}</span><h2 className="text-[15px] font-black text-slate-900">{title}</h2></div>{children}</section>;
 }
 
-function SocialPublishSuccessDialog({
-  results,
-  onClose,
-}: {
-  results: Partial<Record<NetworkType, ImmediatePublishResult>>;
-  onClose: () => void;
-}) {
-  const successfulNetworks = NETWORKS.filter((network) => results[network.type]?.success);
-
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-      <section role="dialog" aria-modal="true" aria-labelledby="social-publish-success-title" className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/80 bg-white text-center shadow-[0_30px_100px_rgba(15,23,42,0.38)]">
-        <div className="h-2 bg-gradient-to-r from-[#315ecb] via-[#d92d7c] to-[#2bbf87]" />
-        <button type="button" onClick={onClose} className="absolute right-4 top-5 flex size-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" aria-label="Fermer">
-          <X className="size-4" />
-        </button>
-
-        <div className="p-6 sm:p-8">
-          <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shadow-sm shadow-emerald-200">
-            <CheckCircle2 className="size-9" />
-          </div>
-          <p className="mt-5 text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Publication réussie</p>
-          <h2 id="social-publish-success-title" className="mt-2 text-2xl font-black text-slate-950">Votre publication a bien été envoyée</h2>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500">
-            Elle est maintenant disponible sur {successfulNetworks.length === 1 ? "le réseau sélectionné" : `les ${successfulNetworks.length} réseaux sélectionnés`}.
-          </p>
-
-          <div className="mt-6 grid gap-3">
-            {successfulNetworks.map((network) => {
-              const result = results[network.type];
-              const Icon = network.icon;
-              const label = network.type === "WHATSAPP" ? "Ouvrir WhatsApp" : `Voir la publication sur ${network.label}`;
-              const buttonStyle = network.type === "FACEBOOK"
-                ? "bg-[#315ecb] shadow-blue-200 hover:bg-[#274fae]"
-                : network.type === "INSTAGRAM"
-                  ? "bg-gradient-to-r from-[#d92d7c] to-[#f06b45] shadow-rose-200 hover:brightness-105"
-                  : "bg-[#15966a] shadow-emerald-200 hover:bg-[#117c58]";
-
-              return result?.externalUrl ? (
-                <a key={network.type} href={result.externalUrl} target="_blank" rel="noopener noreferrer" className={cn("inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-2xl px-4 text-sm font-black text-white shadow-md transition", buttonStyle)}>
-                  <Icon className="size-5" />
-                  <span>{label}</span>
-                  <ExternalLink className="size-4 opacity-80" />
-                </a>
-              ) : null;
-            })}
-          </div>
-
-          <Button type="button" variant="outline" onClick={onClose} className="mt-4 h-11 w-full rounded-2xl border-slate-200 bg-white font-bold text-slate-700 hover:bg-slate-50">
-            Fermer
-          </Button>
-        </div>
-      </section>
-    </div>,
-    document.body
-  );
-}
-
-function PublishRequirementsDialog({
-  issues,
-  onClose,
-}: {
-  issues: string[];
-  onClose: () => void;
-}) {
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    const previousFocus = document.activeElement as HTMLElement | null;
-    const previousOverflow = document.body.style.overflow;
-
-    document.body.style.overflow = "hidden";
-    closeButtonRef.current?.focus();
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      previousFocus?.focus();
-    };
-  }, [onClose]);
-
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[1250] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
-      onMouseDown={(event) => {
-        if (event.currentTarget === event.target) onClose();
-      }}
-    >
-      <section
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="publish-requirements-title"
-        aria-describedby="publish-requirements-description"
-        className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-[0_30px_100px_rgba(15,23,42,0.38)]"
-      >
-        <div className="h-1.5 bg-[#d92d7c]" />
-        <button
-          ref={closeButtonRef}
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-5 flex size-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d92d7c] focus-visible:ring-offset-2"
-          aria-label="Fermer la fenêtre"
-        >
-          <X className="size-5" />
-        </button>
-
-        <div className="p-6 sm:p-7">
-          <span className="flex size-14 items-center justify-center rounded-2xl bg-rose-50 text-[#d92d7c] shadow-sm shadow-rose-100">
-            <AlertTriangle className="size-7" />
-          </span>
-          <p className="mt-5 text-xs font-black uppercase tracking-[0.16em] text-[#d92d7c]">
-            Publication incomplète
-          </p>
-          <h2 id="publish-requirements-title" className="mt-2 pr-10 text-2xl font-black text-slate-950">
-            Une dernière action est nécessaire
-          </h2>
-          <p id="publish-requirements-description" className="mt-3 text-sm leading-6 text-slate-600">
-            Complétez les éléments suivants avant de publier votre message.
-          </p>
-
-          <div className="mt-5 space-y-3">
-            {issues.map((issue) => (
-              <div key={issue} className="flex items-start gap-3 rounded-2xl border border-rose-100 bg-rose-50/70 p-4 text-sm font-bold leading-5 text-slate-800">
-                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[#d92d7c]" />
-                <span>{issue}</span>
-              </div>
-            ))}
-          </div>
-
-          <Button
-            type="button"
-            onClick={onClose}
-            className="mt-6 h-12 w-full rounded-2xl bg-[#d92d7c] font-black text-white shadow-md shadow-rose-200 hover:bg-[#bd246d]"
-          >
-            J&apos;ai compris
-          </Button>
-        </div>
-      </section>
-    </div>,
-    document.body
-  );
-}
-
-function buildScheduledDates({
-  date,
-  time,
-  frequency,
-  endDate,
-  days,
-}: {
-  date: string;
-  time: string;
-  frequency: RepeatFrequency;
-  endDate: string;
-  days: number[];
-}) {
-  if (!date || !time) throw new Error("Choisissez une date et un horaire.");
-
-  const firstDate = new Date(`${date}T${time}:00`);
-  if (Number.isNaN(firstDate.getTime()) || firstDate.getTime() <= Date.now()) {
-    throw new Error("Choisissez une date et un horaire futurs.");
-  }
-  if (frequency === "once") return [firstDate.toISOString()];
-  if (!endDate) throw new Error("Choisissez une date de fin pour la répétition.");
-
-  const lastDate = new Date(`${endDate}T${time}:00`);
-  if (Number.isNaN(lastDate.getTime()) || lastDate < firstDate) {
-    throw new Error("La date de fin doit être postérieure à la première publication.");
-  }
-  if ((frequency === "weekly" || frequency === "custom") && days.length === 0) {
-    throw new Error("Choisissez au moins un jour de publication.");
-  }
-
-  const dates: string[] = [];
-  const cursor = new Date(firstDate);
-  while (cursor <= lastDate) {
-    const dayMatches = days.includes(cursor.getDay());
-    const shouldInclude =
-      frequency === "daily" ||
-      ((frequency === "weekly" || frequency === "custom") && dayMatches) ||
-      (frequency === "monthly" && cursor.getDate() === firstDate.getDate());
-
-    if (shouldInclude) dates.push(cursor.toISOString());
-    if (dates.length > 52) throw new Error("La planification est limitée à 52 envois. Réduisez la période choisie.");
-    cursor.setDate(cursor.getDate() + 1);
-  }
-
-  if (dates.length === 0) throw new Error("Aucune date ne correspond aux paramètres choisis.");
-  return dates;
-}
-
-function SocialScheduleDialog({
-  initialMessage,
-  initialMediaUrls,
-  initialMediaNames,
-  initialNetworks,
-  initialContactIds,
-  channels,
-  contacts,
-  onClose,
-  onCreate,
-}: {
-  initialMessage: string;
-  initialMediaUrls: string[];
-  initialMediaNames: string[];
-  initialNetworks: NetworkType[];
-  initialContactIds: string[];
-  channels: Channel[];
-  contacts: WhatsAppContact[];
-  onClose: () => void;
-  onCreate: (payload: {
-    message: string;
-    mediaUrls: string[];
-    mediaNames: string[];
-    networks: NetworkType[];
-    contactIds: string[];
-    scheduledDates: string[];
-  }) => Promise<void>;
-}) {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [content, setContent] = useState(initialMessage);
-  const [mediaUrls, setDialogMediaUrls] = useState(initialMediaUrls);
-  const [mediaNames, setDialogMediaNames] = useState(initialMediaNames);
-  const [networks, setNetworks] = useState<NetworkType[]>(initialNetworks);
-  const [contactIds, setContactIds] = useState(initialContactIds);
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("09:00");
-  const [frequency, setFrequency] = useState<RepeatFrequency>("once");
-  const [endDate, setEndDate] = useState("");
-  const [days, setDays] = useState<number[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  const channelsByType = useMemo(() => new Map(channels.map((channel) => [channel.type, channel])), [channels]);
-
-  function toggleNetwork(type: NetworkType) {
-    setNetworks((current) => current.includes(type) ? current.filter((item) => item !== type) : [...current, type]);
-    setError("");
-  }
-
-  function toggleDay(day: number) {
-    setDays((current) => current.includes(day) ? current.filter((item) => item !== day) : [...current, day]);
-    setError("");
-  }
-
-  async function uploadImages(files: FileList | null) {
-    const selectedFiles = Array.from(files ?? []);
-    if (selectedFiles.length === 0) return;
-
-    setUploading(true);
-    setError("");
-    try {
-      for (const file of selectedFiles) {
-        const formData = new FormData();
-        formData.append("file", file);
-        const response = await fetch("/api/uploads/attachment", { method: "POST", body: formData });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.error ?? "Importation impossible.");
-        if (payload.url) {
-          setDialogMediaUrls((current) => [...current, payload.url]);
-          setDialogMediaNames((current) => [...current, file.name]);
-        }
-      }
-    } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : "Importation impossible.");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  }
-
-  async function createSchedule() {
-    const disconnected = networks.filter((type) => {
-      const channel = channelsByType.get(type);
-      return !channel?.isConnected || !channel?.isActive;
-    });
-
-    if (!content.trim()) return setError("Ajoutez un message à publier.");
-    if (networks.length === 0) return setError("Choisissez au moins un réseau social.");
-    if (disconnected.length > 0) return setError(`Connectez d’abord : ${disconnected.join(", ")}.`);
-    if (networks.includes("INSTAGRAM") && mediaUrls.length === 0) return setError("Instagram requiert au moins une image.");
-    if (networks.includes("WHATSAPP") && contactIds.length === 0) return setError("Choisissez au moins un contact WhatsApp.");
-
-    setSaving(true);
-    setError("");
-    try {
-      const scheduledDates = buildScheduledDates({ date, time, frequency, endDate, days });
-      await onCreate({ message: content.trim(), mediaUrls, mediaNames, networks, contactIds, scheduledDates });
-      onClose();
-    } catch (scheduleError) {
-      setError(scheduleError instanceof Error ? scheduleError.message : "Planification impossible.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-[1100] flex items-start justify-center overflow-y-auto bg-slate-950/55 px-4 py-6 backdrop-blur-sm sm:py-8">
-      <section role="dialog" aria-modal="true" aria-labelledby="social-schedule-title" className="w-full max-w-4xl rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div>
-            <h2 id="social-schedule-title" className="text-xl font-bold text-slate-950">Planifier vos publications multiréseaux</h2>
-            <p className="mt-1 text-sm text-slate-500">Vérifiez le contenu préparé : il sera conservé et diffusé exactement aux moments choisis.</p>
-          </div>
-          <button type="button" onClick={onClose} className="flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50" aria-label="Fermer">
-            <X className="size-4" />
-          </button>
-        </div>
-
-        <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="social-schedule-message" className="mb-2 block text-sm font-semibold text-slate-900">Message préparé</label>
-              <textarea id="social-schedule-message" value={content} onChange={(event) => setContent(event.target.value)} rows={7} className="w-full resize-none rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-6 outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100" />
-            </div>
-
-            <div>
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-slate-900">Images préparées</p>
-                <span className="text-xs font-semibold text-slate-500">{mediaUrls.length} image(s)</span>
-              </div>
-              <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(event) => void uploadImages(event.target.files)} />
-              {mediaUrls.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-slate-200 p-3 text-sm text-slate-500">Aucune image ajoutée à cette publication.</p>
-              ) : (
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {mediaUrls.map((url, index) => (
-                    <div key={`${url}-${index}`} className="group relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-                      <Image src={url} alt={mediaNames[index] ?? "Image préparée"} width={220} height={150} className="aspect-[4/3] w-full object-cover" />
-                      <button type="button" onClick={() => {
-                        setDialogMediaUrls((current) => current.filter((_, itemIndex) => itemIndex !== index));
-                        setDialogMediaNames((current) => current.filter((_, itemIndex) => itemIndex !== index));
-                      }} className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow hover:text-rose-600" aria-label="Retirer cette image">
-                        <X className="size-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="mt-3 h-10 rounded-xl border-pink-200 text-pink-800 hover:bg-pink-50">
-                {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-                {uploading ? "Ajout..." : "Ajouter une image"}
-              </Button>
-            </div>
-
-            <div>
-              <p className="mb-2 text-sm font-semibold text-slate-900">Réseaux destinataires</p>
-              <div className="grid gap-2 sm:grid-cols-3">
-                {NETWORKS.map((network) => {
-                  const selected = networks.includes(network.type);
-                  const channel = channelsByType.get(network.type);
-                  const connected = Boolean(channel?.isConnected && channel?.isActive);
-                  const Icon = network.icon;
-                  return (
-                    <button key={network.type} type="button" onClick={() => toggleNetwork(network.type)} aria-pressed={selected} className={cn("flex items-center gap-2 rounded-xl border p-3 text-left text-sm font-bold transition", selected ? "border-pink-300 bg-pink-50 text-slate-950 ring-2 ring-pink-100" : "border-slate-200 bg-white text-slate-600", !connected && "opacity-60")}>
-                      <Icon className={cn("size-5", network.color)} />
-                      <span className="min-w-0 flex-1">{network.label}<span className="block text-[10px] font-semibold text-slate-500">{connected ? "Connecté" : "Non connecté"}</span></span>
-                      {selected ? <CheckCircle2 className="size-4 text-pink-600" /> : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {networks.includes("WHATSAPP") ? (
-              <div>
-                <div className="mb-2 flex items-center justify-between gap-3"><p className="text-sm font-semibold text-slate-900">Destinataires WhatsApp</p><span className="text-xs font-semibold text-emerald-700">{contactIds.length} sélectionné(s)</span></div>
-                <div className="max-h-44 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
-                  {contacts.map((contact) => (
-                    <label key={contact.id} className="flex cursor-pointer items-center gap-3 rounded-lg bg-white p-2.5 text-sm shadow-sm hover:bg-emerald-50">
-                      <input type="checkbox" checked={contactIds.includes(contact.id)} onChange={() => setContactIds((current) => current.includes(contact.id) ? current.filter((id) => id !== contact.id) : [...current, contact.id])} className="size-4" />
-                      <span className="min-w-0"><span className="block truncate font-bold text-slate-800">{contact.displayName}</span><span className="block text-xs text-slate-500">{contact.phone}</span></span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
-            <div className="rounded-2xl bg-gradient-to-r from-[#d92d7c] to-[#f06b45] p-4 text-white shadow-md shadow-rose-200">
-              <CalendarClock className="size-6" />
-              <p className="mt-2 font-black">Choisissez le bon moment</p>
-              <p className="mt-1 text-xs leading-5 text-white/85">Chaque occurrence apparaîtra dans l’historique et utilisera le contenu vérifié dans cette fenêtre.</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div><label htmlFor="social-schedule-date" className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Jour</label><input id="social-schedule-date" type="date" value={date} min={new Date().toISOString().slice(0, 10)} onChange={(event) => { setDate(event.target.value); setError(""); }} className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-pink-400" /></div>
-              <div><label htmlFor="social-schedule-time" className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Horaire</label><input id="social-schedule-time" type="time" value={time} onChange={(event) => { setTime(event.target.value); setError(""); }} className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-pink-400" /></div>
-            </div>
-
-            <div><label htmlFor="social-schedule-frequency" className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Fréquence</label><select id="social-schedule-frequency" value={frequency} onChange={(event) => { setFrequency(event.target.value as RepeatFrequency); setError(""); }} className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-pink-400"><option value="once">Une fois</option><option value="daily">Tous les jours</option><option value="weekly">Chaque semaine</option><option value="monthly">Chaque mois</option><option value="custom">Personnalisée</option></select></div>
-
-            {(frequency === "weekly" || frequency === "custom") ? (
-              <div><p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Jours concernés</p><div className="grid grid-cols-4 gap-2">{WEEK_DAYS.map((day) => <button key={day.value} type="button" onClick={() => toggleDay(day.value)} className={cn("rounded-xl border px-2 py-2 text-xs font-semibold", days.includes(day.value) ? "border-pink-500 bg-pink-50 text-pink-800" : "border-slate-200 bg-white text-slate-600")}>{day.label}</button>)}</div></div>
-            ) : null}
-
-            {frequency !== "once" ? (
-              <div><label htmlFor="social-schedule-end-date" className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Fin de la répétition</label><input id="social-schedule-end-date" type="date" value={endDate} min={date || new Date().toISOString().slice(0, 10)} onChange={(event) => { setEndDate(event.target.value); setError(""); }} className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-pink-400" /></div>
-            ) : null}
-
-            {error ? <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm font-medium text-red-700">{error}</p> : null}
-
-            <Button type="button" onClick={() => void createSchedule()} disabled={saving || uploading} className="h-11 w-full rounded-2xl bg-gradient-to-r from-[#d92d7c] to-[#f06b45] text-white shadow-md shadow-rose-200 hover:brightness-105">
-              {saving ? <Loader2 className="size-4 animate-spin" /> : <CalendarClock className="size-4" />}
-              {saving ? "Enregistrement..." : "Enregistrer la planification"}
-            </Button>
-          </div>
-        </div>
-      </section>
-    </div>,
-    document.body
-  );
-}
-
-function EmailComingSoonDialog({ onClose }: { onClose: () => void }) {
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    const previousFocus = document.activeElement as HTMLElement | null;
-    const previousOverflow = document.body.style.overflow;
-
-    document.body.style.overflow = "hidden";
-    closeButtonRef.current?.focus();
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      previousFocus?.focus();
-    };
-  }, [onClose]);
-
-  if (typeof document === "undefined") return null;
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm"
-      onMouseDown={(event) => {
-        if (event.currentTarget === event.target) onClose();
-      }}
-    >
-      <section
-        id="email-coming-soon-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="email-coming-soon-title"
-        aria-describedby="email-coming-soon-description"
-        className="animate-fade-in relative w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/70 bg-white shadow-[0_30px_100px_rgba(15,23,42,0.34)]"
-      >
-        <div className="h-1.5 bg-gradient-to-r from-[#8A184D] via-[#d92d7c] to-[#f06b45]" />
-        <button
-          ref={closeButtonRef}
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-5 flex size-9 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8A184D] focus-visible:ring-offset-2"
-          aria-label="Fermer la fenêtre"
-        >
-          <X className="size-5" />
-        </button>
-
-        <div className="p-6 sm:p-7">
-          <span className="flex size-14 items-center justify-center rounded-2xl bg-rose-50 text-[#8A184D] shadow-sm shadow-rose-100">
-            <Mail className="size-7" />
-          </span>
-          <p className="mt-5 text-xs font-black uppercase tracking-[0.16em] text-[#8A184D]">
-            Bientôt disponible
-          </p>
-          <h2 id="email-coming-soon-title" className="mt-2 pr-8 text-2xl font-black text-slate-950 sm:text-3xl">
-            Diffusez aussi vos communications par email
-          </h2>
-          <p id="email-coming-soon-description" className="mt-5 text-sm leading-6 text-slate-600 sm:text-[15px]">
-            Bientôt, vous pourrez rédiger un seul message, puis le diffuser depuis EasyCom AI sur vos réseaux sociaux et par email. Vous choisirez vos destinataires, et chaque envoi respectera leur consentement ainsi que les bonnes pratiques anti-spam.
-          </p>
-
-          <div className="mt-5 rounded-2xl border border-rose-100 bg-rose-50/70 p-4">
-            <div className="flex items-center gap-2 text-sm font-black text-slate-900">
-              <Share2 className="size-4 text-[#8A184D]" />
-              Un message, tous vos canaux
-            </div>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              EasyCom AI vous guidera vers une communication ciblée et responsable, jamais vers des envois non sollicités.
-            </p>
-          </div>
-
-          <Button
-            type="button"
-            onClick={onClose}
-            className="mt-7 h-11 w-full rounded-2xl bg-[#8A184D] font-bold text-white shadow-sm shadow-rose-200 hover:bg-[#741442]"
-          >
-            Compris
-          </Button>
-        </div>
-      </section>
-    </div>,
-    document.body
-  );
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
+  return <button type="button" role="switch" aria-checked={checked} aria-label={label} onClick={onChange} className={cn("relative h-7 w-12 shrink-0 rounded-full transition", checked ? "bg-violet-600" : "bg-slate-200")}><span className={cn("absolute top-1 size-5 rounded-full bg-white shadow transition-all", checked ? "start-6" : "start-1")} /></button>;
 }
 
 export function SocialNetworksClient() {
-  const [data, setData] = useState<SocialNetworksData>({ channels: [], whatsappContacts: [], publications: [] });
-  const [loading, setLoading] = useState(true);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [message, setMessage] = useState("");
+  const t = useTranslations("socialComposer");
+  const locale = useLocale();
+  const rtl = locale === "he";
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [idea, setIdea] = useState("");
+  const [tone, setTone] = useState<Tone>("warm");
+  const [versions, setVersions] = useState<Record<NetworkType, string>>({ FACEBOOK: "", INSTAGRAM: "" });
+  const [activeTextNetwork, setActiveTextNetwork] = useState<NetworkType>("FACEBOOK");
+  const [activePreviewNetwork, setActivePreviewNetwork] = useState<NetworkType>("FACEBOOK");
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
-  const [mediaNames, setMediaNames] = useState<string[]>([]);
-  const [selectedNetworks, setSelectedNetworks] = useState<NetworkType[]>(["FACEBOOK", "INSTAGRAM", "WHATSAPP"]);
-  const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
-  const [contactSearch, setContactSearch] = useState("");
-  const [emailComingSoonOpen, setEmailComingSoonOpen] = useState(false);
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [publishRequirementIssues, setPublishRequirementIssues] = useState<string[] | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [publishSuccess, setPublishSuccess] = useState<Partial<Record<NetworkType, ImmediatePublishResult>> | null>(null);
-  const contactsSelectionInitialized = useRef(false);
+  const [selectedNetworks, setSelectedNetworks] = useState<NetworkType[]>([]);
+  const [moment, setMoment] = useState<Moment>("now");
+  const [customDate, setCustomDate] = useState(dateTimeLocal(nextSundayAtSeven()));
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
+  const [shabbatMode, setShabbatMode] = useState(true);
+  const [scheduleAdjustment, setScheduleAdjustment] = useState<{ publishAt: string; reason: string | null } | null>(null);
+  const [draftAvailable, setDraftAvailable] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<SuccessState | null>(null);
 
-  const channelsByType = useMemo(() => new Map(data.channels.map((channel) => [channel.type, channel])), [data.channels]);
-  const selectedDisconnected = selectedNetworks.filter((type) => {
-    const channel = channelsByType.get(type);
-    return !channel?.isConnected || !channel?.isActive;
-  });
-
-  const filteredContacts = useMemo(() => {
-    const search = contactSearch.trim().toLowerCase();
-    if (!search) return data.whatsappContacts;
-    return data.whatsappContacts.filter((contact) => {
-      const haystack = [contact.displayName, contact.phone, ...(contact.tags ?? [])].filter(Boolean).join(" ").toLowerCase();
-      return haystack.includes(search);
-    });
-  }, [contactSearch, data.whatsappContacts]);
-
-  const whatsappGroups = useMemo(() => {
-    const tags = new Set<string>();
-    for (const contact of data.whatsappContacts) {
-      for (const tag of contact.tags ?? []) {
-        if (tag.trim()) tags.add(tag.trim());
-      }
-    }
-    return Array.from(tags).sort((a, b) => a.localeCompare(b, "fr"));
-  }, [data.whatsappContacts]);
-
-  const canPublish = Boolean(
-    message.trim() &&
-      selectedNetworks.length > 0 &&
-      selectedDisconnected.length === 0 &&
-      !publishing
-  );
-
-  const canSchedule = Boolean(
-    canPublish &&
-      (!selectedNetworks.includes("INSTAGRAM") || mediaUrls.length > 0) &&
-      (!selectedNetworks.includes("WHATSAPP") || selectedContacts.length > 0)
-  );
-
-  async function loadData() {
-    setLoading(true);
+  const loadChannels = useCallback(async () => {
     try {
-      const response = await fetch("/api/social-networks");
-      const payload = (await response.json()) as SocialNetworksData & { error?: string };
-      if (!response.ok) throw new Error(payload.error ?? "Chargement impossible.");
-      setData(payload);
-      const availableContactIds = new Set((payload.whatsappContacts ?? []).map((contact) => contact.id));
-      setSelectedContacts((current) => {
-        if (!contactsSelectionInitialized.current && availableContactIds.size > 0) {
-          contactsSelectionInitialized.current = true;
-          return Array.from(availableContactIds);
-        }
-        return current.filter((id) => availableContactIds.has(id));
-      });
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Chargement impossible.");
-    } finally {
-      setLoading(false);
-    }
-  }
+      const response = await fetch("/api/social-networks", { cache: "no-store" });
+      if (!response.ok) throw new Error();
+      const data = await response.json() as { channels?: Channel[] };
+      const visible = (data.channels ?? []).filter((channel) => NETWORKS.some((item) => item.type === channel.type));
+      setChannels(visible);
+      setSelectedNetworks(visible.filter((channel) => channel.isConnected && channel.isActive).map((channel) => channel.type));
+    } catch { setError(t("errors.load")); }
+  }, [t]);
 
+  useEffect(() => { void loadChannels(); }, [loadChannels]);
   useEffect(() => {
-    const draft = takeSocialComposerDraft();
-    if (!draft) return;
-
-    contactsSelectionInitialized.current = true;
-    setMessage(draft.message);
-    setMediaUrls(draft.mediaUrls);
-    setMediaNames(draft.mediaNames);
-    setSelectedNetworks(draft.selectedNetworks);
-    setSelectedContacts(draft.selectedContacts);
-    setSuccessMessage(
-      draft.generatedImageAdded
-        ? "Votre image a été ajoutée. Votre message est prêt à être publié."
-        : "Votre brouillon a été restauré."
-    );
+    const fromUrl = new URLSearchParams(window.location.search).get("idea");
+    if (fromUrl) setIdea(fromUrl.slice(0, 4_000));
+    const stored = localStorage.getItem(DRAFT_KEY);
+    if (!stored) return;
+    try { const draft = JSON.parse(stored) as Draft; if (draft.idea || draft.versions?.FACEBOOK || draft.mediaUrls?.length) setDraftAvailable(true); }
+    catch { localStorage.removeItem(DRAFT_KEY); }
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    const timer = window.setTimeout(() => {
+      const draft: Draft = { idea, tone, versions, mediaUrls, selectedNetworks, moment, customDate, repeatWeekly };
+      if (idea || versions.FACEBOOK || versions.INSTAGRAM || mediaUrls.length) localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [idea, tone, versions, mediaUrls, selectedNetworks, moment, customDate, repeatWeekly]);
 
-  async function adaptMessage() {
-    const source = message.trim();
-    if (!source) return;
+  const requestedDate = useMemo(() => {
+    if (moment === "now") return null;
+    if (moment === "tonight") return tonightAtSeven();
+    const value = new Date(customDate);
+    return Number.isNaN(value.getTime()) ? null : value;
+  }, [moment, customDate]);
 
-    setAiLoading(true);
+  useEffect(() => {
+    if (!shabbatMode || !requestedDate) { setScheduleAdjustment(null); return; }
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/social-networks/schedule-check?at=${encodeURIComponent(requestedDate.toISOString())}`, { signal: controller.signal });
+        if (!response.ok) return;
+        const value = await response.json() as { adjusted: boolean; publishAt: string; reason: string | null };
+        setScheduleAdjustment(value.adjusted ? { publishAt: value.publishAt, reason: value.reason } : null);
+      } catch { /* Server-side guard remains authoritative. */ }
+    }, 350);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [requestedDate, shabbatMode]);
+
+  const restoreDraft = () => {
+    const stored = localStorage.getItem(DRAFT_KEY); if (!stored) return;
+    try { const draft = JSON.parse(stored) as Draft; setIdea(draft.idea ?? ""); setTone(draft.tone ?? "warm"); setVersions(draft.versions ?? { FACEBOOK: "", INSTAGRAM: "" }); setMediaUrls(draft.mediaUrls ?? []); setSelectedNetworks(draft.selectedNetworks ?? []); setMoment(draft.moment ?? "now"); setCustomDate(draft.customDate ?? dateTimeLocal(nextSundayAtSeven())); setRepeatWeekly(Boolean(draft.repeatWeekly)); }
+    finally { setDraftAvailable(false); }
+  };
+
+  const generate = async () => {
+    if (!idea.trim()) { setError(t("errors.ideaRequired")); return; }
+    setGenerating(true); setError(null);
     try {
-      const response = await fetch("/api/publishing/instagram/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: `Adapte ce message pour une publication commune Facebook, Instagram et WhatsApp. Garde un seul texte utilisable partout. Message: ${source}`,
-        }),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Adaptation IA impossible.");
-      setMessage(payload.body ?? "");
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Adaptation IA impossible.");
-    } finally {
-      setAiLoading(false);
-    }
-  }
+      const response = await fetch("/api/publishing/social-generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: idea, tone, locale }) });
+      if (!response.ok) throw new Error();
+      const value = await response.json() as { versions: Record<NetworkType, string> };
+      setVersions(value.versions);
+    } catch { setError(t("errors.ai")); } finally { setGenerating(false); }
+  };
 
-  async function uploadImage(event: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []);
-    if (files.length === 0) return;
+  const uploadImage = async (file: File) => {
+    setUploading(true); setError(null);
+    try { const form = new FormData(); form.append("file", file); const response = await fetch("/api/uploads/attachment", { method: "POST", body: form }); if (!response.ok) throw new Error(); const value = await response.json() as { url?: string; publicUrl?: string }; const url = value.url ?? value.publicUrl; if (!url) throw new Error(); setMediaUrls([url]); }
+    catch { setError(t("errors.upload")); } finally { setUploading(false); }
+  };
 
-    setUploading(true);
+  const toggleNetwork = (type: NetworkType) => { const channel = channels.find((item) => item.type === type); if (!channel?.isConnected) return; setSelectedNetworks((current) => current.includes(type) ? current.filter((item) => item !== type) : [...current, type]); };
+
+  const submit = async () => {
+    setError(null);
+    if (selectedNetworks.length === 0) { setError(t("errors.networkRequired")); return; }
+    if (selectedNetworks.some((network) => !versions[network].trim())) { setError(t("errors.textRequired")); return; }
+    if (selectedNetworks.includes("INSTAGRAM") && mediaUrls.length === 0) { setError(t("errors.instagramImage")); return; }
+    if (moment === "now" && !window.confirm(t("actions.confirmNow"))) return;
+    if (requestedDate && requestedDate.getTime() <= Date.now()) { setError(t("errors.future")); return; }
+    setSubmitting(true);
     try {
-      const uploadedUrls: string[] = [];
-      const uploadedNames: string[] = [];
+      const safeDate = scheduleAdjustment ? new Date(scheduleAdjustment.publishAt) : requestedDate;
+      const scheduledDates = safeDate ? Array.from({ length: repeatWeekly ? 8 : 1 }, (_, index) => new Date(safeDate.getTime() + index * 7 * 86_400_000).toISOString()) : undefined;
+      const response = await fetch("/api/social-networks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: versions.FACEBOOK || versions.INSTAGRAM, texts: versions, mediaUrls, channelTypes: selectedNetworks, scheduledAt: null, scheduledDates, repeatWeekly }) });
+      if (!response.ok) throw new Error();
+      localStorage.removeItem(DRAFT_KEY); setSuccess({ scheduled: Boolean(safeDate), date: safeDate?.toISOString() ?? null, networks: selectedNetworks });
+    } catch { setError(t("errors.publish")); } finally { setSubmitting(false); }
+  };
 
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append("file", file);
-        const response = await fetch("/api/uploads/attachment", { method: "POST", body: formData });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.error ?? "Upload impossible.");
-        if (payload.url) {
-          uploadedUrls.push(payload.url);
-          uploadedNames.push(file.name);
-        }
-      }
+  const reset = () => { setIdea(""); setVersions({ FACEBOOK: "", INSTAGRAM: "" }); setMediaUrls([]); setMoment("now"); setRepeatWeekly(false); setSuccess(null); localStorage.removeItem(DRAFT_KEY); };
+  const activeText = versions[activeTextNetwork];
+  const previewText = versions[activePreviewNetwork];
+  const chosenCount = selectedNetworks.length;
+  const formattedSuggestion = new Intl.DateTimeFormat(locale, { weekday: "long", hour: "2-digit", minute: "2-digit" }).format(nextSundayAtSeven());
+  const effectiveDate = scheduleAdjustment ? new Date(scheduleAdjustment.publishAt) : requestedDate;
 
-      setMediaUrls((current) => [...current, ...uploadedUrls]);
-      setMediaNames((current) => [...current, ...uploadedNames]);
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Upload impossible.");
-    } finally {
-      setUploading(false);
-      event.target.value = "";
-    }
-  }
+  return <div dir={rtl ? "rtl" : "ltr"} className="min-h-screen bg-[#f6f4fb] pb-36 text-slate-900">
+    <div className="mx-auto w-full max-w-[720px] space-y-4 px-3 py-4 sm:px-5 sm:py-6">
+      <header className="flex min-h-12 items-center justify-between gap-3"><Link href="/dashboard" aria-label={t("header.back")} className="flex size-11 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm ring-1 ring-[#eee9f7]"><ArrowLeft className={cn("size-5", rtl && "rotate-180")} /></Link><h1 className="text-lg font-black">{t("header.title")}</h1><Link href="/dashboard/settings" aria-label={t("header.profile")} className="flex size-11 items-center justify-center rounded-full bg-violet-100 text-sm font-black text-violet-700 ring-1 ring-violet-200">EC</Link></header>
+      <div className="flex justify-end"><Link href="/dashboard/social-networks/planning" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-sm font-bold text-violet-700 ring-1 ring-[#e8e0f5]"><CalendarDays className="size-4" />{t("header.week")}</Link></div>
+      {draftAvailable ? <div className="flex items-center justify-between gap-3 rounded-2xl border border-violet-200 bg-violet-50 p-3 text-sm"><span className="font-bold text-violet-950">{t("draft.resume")}</span><div className="flex gap-2"><button type="button" onClick={restoreDraft} className="min-h-11 rounded-xl bg-violet-600 px-3 font-bold text-white">{t("draft.restore")}</button><button type="button" onClick={() => { localStorage.removeItem(DRAFT_KEY); setDraftAvailable(false); }} aria-label={t("draft.dismiss")} className="flex size-11 items-center justify-center rounded-xl text-violet-700"><X className="size-4" /></button></div></div> : null}
 
-  function toggleNetwork(type: NetworkType) {
-    setSelectedNetworks((current) =>
-      current.includes(type) ? current.filter((item) => item !== type) : [...current, type]
-    );
-  }
+      <section className="overflow-hidden rounded-[20px] bg-gradient-to-br from-[#6d28d9] via-[#9333ea] to-[#ec4899] p-5 text-white shadow-[0_18px_40px_rgba(109,40,217,0.2)]"><p className="text-xl font-black tracking-tight">{t("hero.title")}</p><p className="mt-1 text-sm text-white/80">{t("hero.subtitle")}</p><div className="mt-4 flex flex-wrap gap-2">{NETWORKS.map(({ type, icon: Icon }) => { const channel = channels.find((item) => item.type === type); return channel?.isConnected ? <span key={type} className="inline-flex min-h-9 items-center gap-2 rounded-full bg-white/95 px-3 text-xs font-bold text-slate-800"><Icon className="size-4" /><span className="max-w-36 truncate">{channel.name || channel.handle || t(`networks.${type}`)}</span><Check className="size-4 text-emerald-600" /></span> : <Link key={type} href={`/api/auth/oauth/${type.toLowerCase()}?returnTo=/dashboard/social-networks`} className="inline-flex min-h-9 items-center gap-2 rounded-full bg-white/20 px-3 text-xs font-bold ring-1 ring-white/30"><Icon className="size-4" />{t("hero.connect")}</Link>; })}</div></section>
 
-  function toggleContact(id: string) {
-    setSelectedContacts((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
-    );
-  }
+      <StepCard number="1" title={t("message.title")}>
+        <textarea value={idea} onChange={(event) => setIdea(event.target.value)} dir="auto" rows={4} placeholder={t("message.placeholder")} className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100" />
+        <div className="mt-3 flex flex-wrap gap-2">{(["warm", "festive", "simple"] as Tone[]).map((value) => <button key={value} type="button" onClick={() => setTone(value)} className={cn("min-h-11 rounded-full border px-4 text-sm font-bold", tone === value ? "border-violet-500 bg-violet-50 text-violet-800" : "border-slate-200 text-slate-600")}>{t(`message.tones.${value}`)}</button>)}</div>
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">{(["torah", "kiddush", "holiday", "shabbat", "event"] as const).map((key) => <button key={key} type="button" onClick={() => setIdea(t(`message.templates.${key}.text`))} className="min-h-10 shrink-0 rounded-full bg-slate-100 px-3 text-xs font-bold text-slate-700">{t(`message.templates.${key}.label`)}</button>)}</div>
+        <button type="button" onClick={generate} disabled={generating} className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-700 to-pink-500 px-5 text-sm font-black text-white shadow-lg shadow-violet-200 disabled:opacity-60">{generating ? <><Loader2 className="size-4 animate-spin" />{t("message.generating")}</> : <><Sparkles className="size-4" />{t("message.generate")}</>}</button>
+        {(versions.FACEBOOK || versions.INSTAGRAM) ? <div className="mt-5"><div className="flex rounded-xl bg-slate-100 p-1">{NETWORKS.map(({ type, icon: Icon }) => <button key={type} type="button" onClick={() => setActiveTextNetwork(type)} className={cn("flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg text-sm font-bold transition", activeTextNetwork === type ? "bg-white text-violet-800 shadow-sm" : "text-slate-500")}><Icon className="size-4" />{t(`networks.${type}`)}</button>)}</div><textarea value={activeText} onChange={(event) => setVersions((current) => ({ ...current, [activeTextNetwork]: event.target.value }))} dir="auto" rows={7} className="mt-3 w-full resize-y rounded-2xl border border-slate-200 p-4 text-sm leading-6 outline-none focus:border-violet-400" /><div className="mt-2 flex items-center justify-between gap-3 text-xs"><button type="button" onClick={generate} disabled={generating} className="inline-flex min-h-10 items-center gap-2 font-bold text-violet-700"><RotateCcw className="size-3.5" />{t("message.another")}</button><span className={cn("font-bold", activeText.length > (NETWORKS.find((item) => item.type === activeTextNetwork)?.limit ?? 0) ? "text-red-600" : "text-slate-400")}>{activeText.length.toLocaleString(locale)} / {(NETWORKS.find((item) => item.type === activeTextNetwork)?.limit ?? 0).toLocaleString(locale)}</span></div></div> : null}
+      </StepCard>
 
-  function toggleGroup(tag: string) {
-    const contactIds = data.whatsappContacts
-      .filter((contact) => contact.tags?.includes(tag))
-      .map((contact) => contact.id);
-    const everySelected = contactIds.every((id) => selectedContacts.includes(id));
+      <StepCard number="2" title={t("image.title")}>
+        {mediaUrls[0] ? <div><div className="relative aspect-square overflow-hidden rounded-2xl bg-slate-100"><img src={mediaUrls[0]} alt={t("image.alt")} className="h-full w-full object-cover" /></div><div className="mt-3 grid grid-cols-2 gap-2"><button type="button" onClick={() => fileRef.current?.click()} className="min-h-11 rounded-xl border border-slate-200 text-sm font-bold text-slate-700">{t("image.replace")}</button><button type="button" onClick={() => setMediaUrls([])} className="min-h-11 rounded-xl border border-red-100 text-sm font-bold text-red-600">{t("image.remove")}</button></div></div> : <button type="button" onClick={() => fileRef.current?.click()} className="flex min-h-40 w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50/40 text-violet-700"><ImagePlus className="size-7" /><span className="text-sm font-bold">{t("image.empty")}</span></button>}
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadImage(file); event.currentTarget.value = ""; }} />
+        <div className="mt-3 grid grid-cols-3 gap-2"><button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl bg-slate-100 px-1 text-[11px] font-bold text-slate-700">{uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}{t("image.upload")}</button><Link href="/dashboard/media-library?returnTo=/dashboard/social-networks" className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl bg-slate-100 px-1 text-center text-[11px] font-bold text-slate-700"><ImagePlus className="size-4" />{t("image.library")}</Link><Link href="/dashboard/templates?create=ai&returnTo=/dashboard/social-networks" className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl bg-slate-100 px-1 text-center text-[11px] font-bold text-slate-700"><WandSparkles className="size-4" />{t("image.ai")}</Link></div>
+      </StepCard>
 
-    setSelectedContacts((current) => {
-      if (everySelected) return current.filter((id) => !contactIds.includes(id));
-      return Array.from(new Set([...current, ...contactIds]));
-    });
-  }
+      <StepCard number="3" title={t("preview.title")}><div className="mb-3 flex rounded-xl bg-slate-100 p-1">{NETWORKS.map(({ type, icon: Icon }) => <button key={type} type="button" onClick={() => setActivePreviewNetwork(type)} className={cn("flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg text-sm font-bold", activePreviewNetwork === type ? "bg-white text-violet-800 shadow-sm" : "text-slate-500")}><Icon className="size-4" />{t(`networks.${type}`)}</button>)}</div><article className="overflow-hidden rounded-2xl border border-slate-200 bg-white"><div className="flex items-center gap-3 p-3"><div className="flex size-10 items-center justify-center rounded-full bg-violet-100 font-black text-violet-700">EC</div><div><p className="text-sm font-black">{channels.find((item) => item.type === activePreviewNetwork)?.name || t("preview.pageName")}</p><p className="text-xs text-slate-400">{t("preview.time")}</p></div></div><p dir="auto" className="whitespace-pre-wrap px-3 pb-3 text-sm leading-5 text-slate-700">{previewText ? `${previewText.slice(0, 280)}${previewText.length > 280 ? `… ${t("preview.more")}` : ""}` : t("preview.empty")}</p>{mediaUrls[0] ? <div className={cn("overflow-hidden bg-slate-100", activePreviewNetwork === "INSTAGRAM" ? "aspect-square" : "aspect-[1.91/1]")}><img src={mediaUrls[0]} alt={t("image.alt")} className="h-full w-full object-cover" /></div> : null}</article></StepCard>
 
-  async function submit(
-    publishNow: boolean,
-    scheduledPayload?: {
-      message: string;
-      mediaUrls: string[];
-      mediaNames: string[];
-      networks: NetworkType[];
-      contactIds: string[];
-      scheduledDates: string[];
-    }
-  ) {
-    const submittedMessage = scheduledPayload?.message ?? message;
-    const submittedMediaUrls = scheduledPayload?.mediaUrls ?? mediaUrls;
-    const submittedNetworks = scheduledPayload?.networks ?? selectedNetworks;
-    const submittedContactIds = scheduledPayload?.contactIds ?? selectedContacts;
-    setPublishing(true);
-    try {
-      const response = await fetch("/api/social-networks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: submittedMessage,
-          mediaUrls: submittedMediaUrls,
-          channelTypes: submittedNetworks,
-          scheduledAt: publishNow ? null : undefined,
-          scheduledDates: publishNow ? undefined : scheduledPayload?.scheduledDates,
-          whatsappRecipientIds: submittedContactIds,
-        }),
-      });
-      const payload = (await response.json()) as {
-        error?: string;
-        publishResults?: Partial<Record<NetworkType, ImmediatePublishResult>>;
-      };
-      if (!response.ok) throw new Error(payload.error ?? "Publication impossible.");
+      <StepCard number="4" title={t("channels.title")}><div className="divide-y divide-slate-100">{NETWORKS.map(({ type, icon: Icon }) => { const channel = channels.find((item) => item.type === type); const connected = Boolean(channel?.isConnected); return <div key={type} className="flex min-h-16 items-center gap-3 py-2"><span className="flex size-11 items-center justify-center rounded-xl bg-slate-100"><Icon className="size-5" /></span><div className="min-w-0 flex-1"><p className="text-sm font-black">{t(`networks.${type}`)}</p>{connected ? <p className="truncate text-xs font-bold text-emerald-600">● {t("channels.connected")} · {channel?.name || channel?.handle || t(`networks.${type}`)}</p> : <p className="text-xs text-slate-400">{t("channels.disconnected")}</p>}</div>{connected ? <Toggle checked={selectedNetworks.includes(type)} onChange={() => toggleNetwork(type)} label={t("channels.toggle", { network: t(`networks.${type}`) })} /> : <Link href={`/api/auth/oauth/${type.toLowerCase()}?returnTo=/dashboard/social-networks`} className="inline-flex min-h-11 items-center rounded-xl border border-violet-200 px-3 text-xs font-black text-violet-700">{t("channels.connect")}</Link>}</div>; })}</div>{chosenCount === 0 ? <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{t("errors.networkRequired")}</p> : null}</StepCard>
 
-      if (publishNow) {
-        const unconfirmedNetworks = submittedNetworks.filter(
-          (network) => payload.publishResults?.[network]?.success !== true
-        );
-        if (unconfirmedNetworks.length > 0) {
-          const details = unconfirmedNetworks
-            .map((network) => {
-              const result = payload.publishResults?.[network];
-              return `${network}: ${result?.error ?? (result?.fallbackUsed ? "envoi manuel requis" : "envoi non confirmé")}`;
-            })
-            .join(" · ");
-          await loadData();
-          throw new Error(`La diffusion réelle n'a pas été confirmée sur tous les réseaux. ${details}`);
-        }
-      }
-
-      if (scheduledPayload) {
-        setMessage(scheduledPayload.message);
-        setMediaUrls(scheduledPayload.mediaUrls);
-        setMediaNames(scheduledPayload.mediaNames);
-        setSelectedNetworks(scheduledPayload.networks);
-        setSelectedContacts(scheduledPayload.contactIds);
-      }
-      if (publishNow) {
-        setSuccessMessage(null);
-        setPublishSuccess(payload.publishResults ?? {});
-      } else {
-        setSuccessMessage(`${scheduledPayload?.scheduledDates.length ?? 1} envoi(s) programmé(s) avec succès.`);
-      }
-      await loadData();
-    } catch (error) {
-      const submitError = error instanceof Error ? error : new Error("Publication impossible.");
-      if (publishNow) alert(submitError.message);
-      else throw submitError;
-    } finally {
-      setPublishing(false);
-    }
-  }
-
-  function publishNow() {
-    const issues: string[] = [];
-
-    if (selectedNetworks.includes("INSTAGRAM") && mediaUrls.length === 0) {
-      issues.push("Ajoutez au moins une image pour publier sur Instagram.");
-    }
-    if (selectedNetworks.includes("WHATSAPP") && selectedContacts.length === 0) {
-      issues.push("Sélectionnez au moins un contact pour publier sur WhatsApp.");
-    }
-
-    if (issues.length > 0) {
-      setPublishRequirementIssues(issues);
-      return;
-    }
-
-    void submit(true);
-  }
-
-  return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6">
-      <SocialNetworksBanner />
-
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
-        <div className="space-y-4">
-          <Card className="overflow-hidden rounded-2xl border border-rose-100 bg-white shadow-[0_20px_48px_-32px_rgba(154,33,111,0.22)]">
-            <div className="space-y-4 p-5">
-              <div className="flex gap-2">
-                <Button onClick={adaptMessage} disabled={aiLoading || !message.trim()} className="ml-auto h-12 w-full rounded-xl bg-[#d92d7c] text-white shadow-lg shadow-pink-950/25 hover:bg-[#c5236e] sm:w-auto">
-                  {aiLoading ? <RefreshCw className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-                  Transformer avec l&apos;IA
-                </Button>
-              </div>
-
-              <textarea
-                value={message}
-                onChange={(event) => setMessage(event.target.value)}
-                rows={8}
-                placeholder="Votre publication apparaît ici. Vous pouvez la relire et l’ajuster avant l’envoi."
-                className="min-h-[210px] w-full rounded-xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-900 placeholder:text-slate-400 shadow-inner shadow-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400"
-              />
-
-              <div className="space-y-2.5">
-                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-rose-300 bg-rose-50/60 px-4 py-4 text-sm font-bold text-slate-700 transition hover:bg-rose-100">
-                    <Upload className="size-4" />
-                    {uploading ? "Importation..." : "Ajouter une image"}
-                    <input type="file" accept="image/*" multiple className="hidden" onChange={uploadImage} />
-                  </label>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <Link
-                      href="/dashboard/templates?returnTo=publish"
-                      onClick={(event) => {
-                        const saved = rememberSocialComposerDraft({
-                          message,
-                          mediaUrls,
-                          mediaNames,
-                          selectedNetworks,
-                          selectedContacts,
-                        });
-                        if (!saved) {
-                          event.preventDefault();
-                          alert("Votre brouillon ne peut pas être conservé dans ce navigateur. La banque d’images n’a pas été ouverte afin de ne pas perdre votre message.");
-                        }
-                      }}
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4a1e91] to-[#6530bd] px-3 text-center text-xs font-black text-white shadow-md shadow-violet-200 transition hover:brightness-110"
-                    >
-                      <ImagePlus className="size-4 shrink-0" />
-                      Banque d&apos;images
-                    </Link>
-                    <Link
-                      href="https://chatgpt.com"
-                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#d92d7c] to-[#f06b45] px-3 text-center text-xs font-black text-white shadow-md shadow-rose-200 transition hover:brightness-110"
-                    >
-                      <Sparkles className="size-4 shrink-0" />
-                      Créer avec l&apos;IA
-                    </Link>
-                  </div>
-              </div>
-
-              {mediaUrls.length > 0 ? (
-                <div className="grid gap-3 sm:grid-cols-3">
-                  {mediaUrls.map((url, index) => (
-                    <div key={`${url}-${index}`} className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-                      <Image src={url} alt={mediaNames[index] ?? "Image importee"} width={320} height={220} className="aspect-[4/3] w-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMediaUrls((current) => current.filter((_, itemIndex) => itemIndex !== index));
-                          setMediaNames((current) => current.filter((_, itemIndex) => itemIndex !== index));
-                        }}
-                        className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow hover:bg-white hover:text-rose-600"
-                        aria-label="Retirer l'image"
-                      >
-                        <X className="size-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          </Card>
-
-          <Card className="rounded-2xl border border-fuchsia-100 bg-white p-5 shadow-[0_20px_48px_-32px_rgba(154,33,111,0.18)]">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-black text-slate-950">Choisissez vos canaux</h2>
-                <p className="mt-1 text-sm text-slate-500">Sélectionnez les réseaux qui recevront cette publication.</p>
-              </div>
-              <Button variant="outline" onClick={loadData} disabled={loading} className="rounded-xl border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
-                <RefreshCw className={cn("size-4", loading && "animate-spin")} />
-                Actualiser
-              </Button>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-3">
-              {NETWORKS.map((network) => {
-                const channel = channelsByType.get(network.type);
-                const connected = Boolean(channel?.isConnected && channel?.isActive);
-                const selected = selectedNetworks.includes(network.type);
-                const Icon = network.icon;
-
-                return (
-                  <button
-                    type="button"
-                    key={network.type}
-                    onClick={() => toggleNetwork(network.type)}
-                    aria-pressed={selected}
-                    className={cn(
-                      "group relative w-full overflow-hidden rounded-xl border text-left text-white transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d92d7c] focus-visible:ring-offset-2",
-                      network.surface,
-                      selected
-                        ? `${network.border} ${network.selectedShadow}`
-                        : "border-transparent opacity-70 shadow-sm"
-                    )}
-                  >
-                    <div className="p-4 pt-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="flex min-w-0 flex-1 items-center gap-3">
-                        <span className={cn("flex size-11 shrink-0 items-center justify-center rounded-xl border bg-white shadow-sm", selected ? `border-white ${network.color} shadow-black/15` : `border-white/80 ${network.color}`)}>
-                          <Icon className="size-5" />
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block text-sm font-black text-white">{network.label}</span>
-                          <span className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-white/85">
-                            {connected ? <CheckCircle2 className="size-3.5" /> : <AlertTriangle className="size-3.5" />}
-                            {connected ? "Connecte" : "Non connecte"}
-                          </span>
-                        </span>
-                      </span>
-                      <span className={cn("mt-1 flex size-5 shrink-0 items-center justify-center rounded-full border-2", selected ? "border-white bg-white text-[#d92d7c]" : "border-white/70 bg-transparent text-transparent")} aria-hidden>
-                        <CheckCircle2 className="size-4" />
-                      </span>
-                    </div>
-                    <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/20 pt-3">
-                      <span className="text-xs font-bold text-white/90">
-                        {selected ? "Selectionne pour l'envoi" : "Ajouter a l'envoi"}
-                      </span>
-                      {!connected ? (
-                        <span className="text-xs font-black text-white">Connexion requise</span>
-                      ) : null}
-                    </div>
-                    </div>
-                  </button>
-                );
-              })}
-              <button
-                type="button"
-                onClick={() => setEmailComingSoonOpen(true)}
-                aria-haspopup="dialog"
-                aria-controls="email-coming-soon-dialog"
-                className="group rounded-xl border border-slate-400 bg-gradient-to-r from-[#64748b] to-[#94a3b8] p-4 text-left text-white shadow-md shadow-slate-200 transition duration-200 hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8A184D] focus-visible:ring-offset-2 md:col-start-3"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-white bg-white text-slate-700 shadow-sm transition group-hover:scale-105">
-                    <Mail className="size-5" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-black">Email</span>
-                    <span className="mt-1 inline-flex rounded-full bg-white/20 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-white">
-                      Bientôt disponible
-                    </span>
-                  </span>
-                </div>
-                <span className="mt-4 block border-t border-white/20 pt-3 text-xs font-bold text-white/90">
-                  Découvrir la fonctionnalité
-                </span>
-              </button>
-            </div>
-
-          </Card>
-
-          {selectedNetworks.includes("WHATSAPP") ? (
-            <Card className="rounded-2xl border-slate-200 p-5">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-base font-black text-slate-950">Contacts WhatsApp</h2>
-                  <p className="mt-1 text-sm text-slate-500">Selectionnez les contacts. Les tags servent de groupes simples.</p>
-                </div>
-                <Badge variant="secondary">{selectedContacts.length} selectionne(s)</Badge>
-              </div>
-
-              <div className="relative mb-3">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  value={contactSearch}
-                  onChange={(event) => setContactSearch(event.target.value)}
-                  placeholder="Rechercher un contact ou un tag..."
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm shadow-inner shadow-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-                />
-              </div>
-
-              <div className="mb-3 flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={() => setSelectedContacts(data.whatsappContacts.map((contact) => contact.id))}>
-                  Tout cocher
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setSelectedContacts([])}>
-                  Tout decocher
-                </Button>
-              </div>
-
-              {whatsappGroups.length > 0 ? (
-                <div className="mb-3 flex flex-wrap gap-2">
-                  {whatsappGroups.map((tag) => {
-                    const contactIds = data.whatsappContacts
-                      .filter((contact) => contact.tags?.includes(tag))
-                      .map((contact) => contact.id);
-                    const active = contactIds.length > 0 && contactIds.every((id) => selectedContacts.includes(id));
-
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => toggleGroup(tag)}
-                        className={cn(
-                          "rounded-full border px-3 py-1 text-xs font-black transition",
-                          active
-                            ? "border-emerald-300 bg-emerald-100 text-emerald-800"
-                            : "border-slate-200 bg-white text-slate-600 hover:bg-emerald-50"
-                        )}
-                      >
-                        {tag}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
-
-              <div className="max-h-72 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
-                {filteredContacts.length === 0 ? (
-                  <div className="p-3 text-sm text-slate-500">
-                    <p>{contactSearch.trim() ? "Aucun contact ne correspond à votre recherche." : "Aucun contact WhatsApp disponible."}</p>
-                    {!contactSearch.trim() ? (
-                      <Link href="/dashboard/contacts" className="mt-2 inline-flex font-black text-emerald-700 hover:text-emerald-800">
-                        Ajouter ou autoriser des contacts WhatsApp
-                      </Link>
-                    ) : null}
-                  </div>
-                ) : (
-                  filteredContacts.map((contact) => (
-                    <label key={contact.id} className="flex cursor-pointer items-start gap-3 rounded-lg bg-white p-3 text-sm shadow-sm hover:bg-emerald-50">
-                      <input
-                        type="checkbox"
-                        checked={selectedContacts.includes(contact.id)}
-                        onChange={() => toggleContact(contact.id)}
-                        className="mt-1 size-4"
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-bold text-slate-900">{contact.displayName}</span>
-                        <span className="block text-xs text-slate-500">{contact.phone}</span>
-                        {contact.tags?.length ? (
-                          <span className="mt-1 flex flex-wrap gap-1">
-                            {contact.tags.slice(0, 3).map((tag) => (
-                              <span key={tag} className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
-                                {tag}
-                              </span>
-                            ))}
-                          </span>
-                        ) : null}
-                      </span>
-                    </label>
-                  ))
-                )}
-              </div>
-            </Card>
-          ) : null}
-        </div>
-
-        <aside className="space-y-4 lg:sticky lg:top-6">
-          <div className="grid gap-3">
-            <Button
-              onClick={publishNow}
-              disabled={!canPublish}
-              className="min-h-12 rounded-xl bg-gradient-to-r from-[#d92d7c] to-[#f06b45] text-white shadow-lg shadow-pink-950/25 hover:from-[#c5236e] hover:to-[#df5938]"
-            >
-              {publishing ? <RefreshCw className="size-4 animate-spin" /> : <Send className="size-4" />}
-              Publier maintenant
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setScheduleOpen(true)}
-              disabled={!canSchedule}
-              className="min-h-12 rounded-xl border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-950"
-            >
-              <CalendarClock className="size-4" />
-              Planifier l&apos;envoi
-            </Button>
-          </div>
-
-          {successMessage ? (
-            <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
-              {successMessage}
-            </div>
-          ) : null}
-        </aside>
-      </section>
-
-      <Link href="/dashboard/publications" className="group flex min-h-20 items-center justify-between gap-4 rounded-2xl bg-gradient-to-r from-[#421388] via-[#5c24ad] to-[#d92d7c] px-5 py-4 text-white shadow-[0_16px_32px_rgba(66,19,136,0.24)] transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-200">
-        <span className="flex min-w-0 items-center gap-3"><span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/16 ring-1 ring-white/25"><History className="size-5" /></span><span className="min-w-0"><span className="block text-base font-black">Historique des publications</span><span className="mt-0.5 block text-sm font-semibold text-white/75">Retrouvez toutes vos publications envoyées et programmées.</span></span></span>
-        <ExternalLink className="size-5 shrink-0 text-white/85 transition group-hover:translate-x-0.5" />
-      </Link>
-
-      {publishSuccess ? (
-        <SocialPublishSuccessDialog
-          results={publishSuccess}
-          onClose={() => setPublishSuccess(null)}
-        />
-      ) : null}
-
-      {publishRequirementIssues ? (
-        <PublishRequirementsDialog
-          issues={publishRequirementIssues}
-          onClose={() => setPublishRequirementIssues(null)}
-        />
-      ) : null}
-
-      {scheduleOpen ? (
-        <SocialScheduleDialog
-          initialMessage={message}
-          initialMediaUrls={mediaUrls}
-          initialMediaNames={mediaNames}
-          initialNetworks={selectedNetworks}
-          initialContactIds={selectedContacts}
-          channels={data.channels}
-          contacts={data.whatsappContacts}
-          onClose={() => setScheduleOpen(false)}
-          onCreate={(payload) => submit(false, payload)}
-        />
-      ) : null}
-
-      {emailComingSoonOpen ? (
-        <EmailComingSoonDialog onClose={() => setEmailComingSoonOpen(false)} />
-      ) : null}
+      <StepCard number="5" title={t("schedule.title")}><div className="grid grid-cols-3 gap-2">{(["now", "tonight", "custom"] as Moment[]).map((value) => <button key={value} type="button" onClick={() => setMoment(value)} className={cn("min-h-11 rounded-full border px-2 text-xs font-black", moment === value ? "border-violet-500 bg-violet-50 text-violet-800" : "border-slate-200 text-slate-600")}>{t(`schedule.moments.${value}`)}</button>)}</div>{moment === "custom" ? <input type="datetime-local" value={customDate} onChange={(event) => setCustomDate(event.target.value)} className="mt-3 min-h-12 w-full rounded-xl border border-slate-200 px-3 text-sm" /> : null}<button type="button" onClick={() => { setMoment("custom"); setCustomDate(dateTimeLocal(nextSundayAtSeven())); }} className="mt-4 flex min-h-14 w-full items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-start text-sm font-bold text-amber-950"><span className="text-xl">⭐</span><span>{t("schedule.suggestion", { time: formattedSuggestion })}</span></button><div className="mt-3 flex items-center gap-3 rounded-2xl border border-sky-200 bg-sky-50 p-3"><span className="text-xl">🕯️</span><p className="flex-1 text-sm font-bold text-sky-950">{t("schedule.shabbat")}</p><Toggle checked={shabbatMode} onChange={() => setShabbatMode((value) => !value)} label={t("schedule.shabbatToggle")} /></div>{scheduleAdjustment ? <p className="mt-3 rounded-2xl border border-blue-200 bg-blue-50 p-3 text-sm font-bold text-blue-900">{t("schedule.adjusted", { date: new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(scheduleAdjustment.publishAt)) })}</p> : null}{moment !== "now" ? <label className="mt-3 flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 text-sm font-bold"><input type="checkbox" checked={repeatWeekly} onChange={(event) => setRepeatWeekly(event.target.checked)} className="size-5 accent-violet-600" />{t("schedule.repeat")}</label> : null}</StepCard>
+      {error ? <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</div> : null}
     </div>
-  );
+
+    <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 border-t border-[#eee9f7] bg-white/95 p-3 shadow-[0_-10px_30px_rgba(54,31,92,0.08)] backdrop-blur md:bottom-0"><div className="mx-auto flex max-w-[720px] gap-2"><button type="button" onClick={() => void submit()} disabled={submitting || chosenCount === 0} className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-700 to-pink-500 px-4 text-sm font-black text-white shadow-lg shadow-violet-200 disabled:cursor-not-allowed disabled:opacity-45">{submitting ? <Loader2 className="size-4 animate-spin" /> : moment === "now" ? t("actions.publish", { count: chosenCount }) : t("actions.schedule", { count: chosenCount })}</button><button type="button" onClick={() => { localStorage.setItem(DRAFT_KEY, JSON.stringify({ idea, tone, versions, mediaUrls, selectedNetworks, moment, customDate, repeatWeekly })); setDraftAvailable(false); }} className="min-h-12 rounded-2xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700">{t("actions.draft")}</button></div></div>
+
+    {success ? <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"><section role="dialog" aria-modal="true" aria-labelledby="publish-success-title" className="w-full max-w-sm rounded-[24px] bg-white p-6 text-center shadow-2xl"><span className="mx-auto flex size-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600"><CheckCircle2 className="size-9" /></span><h2 id="publish-success-title" className="mt-4 text-2xl font-black">{t(success.scheduled ? "success.scheduled" : "success.published")}</h2>{effectiveDate ? <p className="mt-2 text-sm text-slate-500">{new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(effectiveDate)}</p> : null}<div className="mt-4 flex justify-center gap-2">{success.networks.map((network) => { const Icon = NETWORKS.find((candidate) => candidate.type === network)!.icon; return <span key={network} className="flex size-10 items-center justify-center rounded-full bg-slate-100"><Icon className="size-5" /></span>; })}</div><div className="mt-6 grid gap-2"><Link href="/dashboard/social-networks/planning" className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-violet-600 font-black text-white">{t("success.week")}</Link><button type="button" onClick={reset} className="min-h-12 rounded-2xl border border-slate-200 font-black text-slate-700">{t("success.new")}</button></div></section></div> : null}
+  </div>;
 }

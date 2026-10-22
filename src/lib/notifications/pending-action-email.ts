@@ -116,6 +116,10 @@ export interface NotificationEmailParams {
   ctaUrl: string;
   ctaLabel?: string;
   recipientName?: string | null;
+  locale?: string;
+  direction?: "ltr" | "rtl";
+  greeting?: string;
+  footer?: string;
 }
 
 // Email de notification générique (rappels, automatisations, contenus prêts…).
@@ -124,11 +128,11 @@ export function renderNotificationEmail(params: NotificationEmailParams): {
   html: string;
   text: string;
 } {
-  const { appName, title, body, ctaUrl, ctaLabel = "Ouvrir l'application", recipientName } = params;
-  const greeting = recipientName ? `Bonjour ${escapeHtml(recipientName)},` : "Bonjour,";
+  const { appName, title, body, ctaUrl, ctaLabel = "Ouvrir l'application", recipientName, locale = "fr", direction = "ltr", footer } = params;
+  const greeting = params.greeting ?? (recipientName ? `Bonjour ${escapeHtml(recipientName)},` : "Bonjour,");
 
   const html = `<!DOCTYPE html>
-<html lang="fr">
+<html lang="${escapeHtml(locale)}" dir="${direction}">
 <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>${escapeHtml(title)}</title></head>
 <body style="margin:0;padding:0;background-color:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f9;padding:32px 16px;">
@@ -145,7 +149,7 @@ export function renderNotificationEmail(params: NotificationEmailParams): {
             </td>
           </tr></table>
         </td></tr>
-        <tr><td style="padding:18px 32px;border-top:1px solid #f1f5f9;"><p style="margin:0;color:#94a3b8;font-size:12px;line-height:1.5;">Notification automatique de ${escapeHtml(appName)}. Gérez vos préférences dans l'application.</p></td></tr>
+        <tr><td style="padding:18px 32px;border-top:1px solid #f1f5f9;"><p style="margin:0;color:#94a3b8;font-size:12px;line-height:1.5;">${escapeHtml(footer ?? `Notification automatique de ${appName}. Gérez vos préférences dans l'application.`)}</p></td></tr>
       </table>
     </td></tr>
   </table>

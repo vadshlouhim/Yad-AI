@@ -5,6 +5,7 @@ import { createCheckoutSession } from "@/lib/stripe";
 import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { getCanonicalAppOrigin, safeAppReturnUrl } from "@/lib/stripe-config";
+import { isTrialEligible } from "@/lib/billing/subscription-policy";
 
 export async function POST(request: Request) {
   try {
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
     const admin = createAdminClient();
     const { data: profile, error: profileError } = await admin
       .from("profiles")
-      .select("communityId")
+      .select("communityId, locale")
       .eq("id", user.id)
       .single();
     if (profileError) throw profileError;
@@ -47,11 +48,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const { data: subscriptions } = await admin
+    const { data: subscriptions, error: subscriptionsError } = await admin
       .from("Subscription")
       .select("id, stripeSubscriptionId, status")
       .eq("communityId", profile.communityId)
       .limit(10);
+    if (subscriptionsError) throw subscriptionsError;
     const activeSubscription = await findCurrentModeSubscription(subscriptions ?? []);
     if (activeSubscription) {
       return NextResponse.json(
@@ -64,14 +66,16 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const firstSubscription = !(subscriptions?.length);
+    const includeTrial = isTrialEligible(subscriptions?.length ?? 0);
     const requestOrigin = getCanonicalAppOrigin(request.url);
     const successUrl = safeAppReturnUrl(body.successUrl, requestOrigin, "/dashboard/settings/billing?success=true");
     const cancelUrl = safeAppReturnUrl(body.cancelUrl, requestOrigin, "/dashboard/settings/billing");
 
     const session = await createCheckoutSession({
       communityId: profile.communityId,
-      useIntroductoryPrice: firstSubscription,
+      userId: user.id,
+      locale: profile.locale === "he" || profile.locale === "en" ? profile.locale : "fr",
+      includeTrial,
       stripeCustomerId: community.stripeCustomerId ?? undefined,
       customerEmail: user.email,
       successUrl,

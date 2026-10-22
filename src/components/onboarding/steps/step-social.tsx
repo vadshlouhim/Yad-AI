@@ -69,7 +69,7 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   expired: "Session expirée, veuillez réessayer.",
   invalid_state: "Erreur de sécurité, veuillez réessayer.",
   no_instagram_business: "Aucun compte Instagram Pro lié à cette Page Facebook.",
-  no_page: "Aucune Page Facebook trouvée sur ce compte.",
+  no_page: "Aucune Page Facebook trouvée. Relancez la connexion, cliquez sur « Modifier les paramètres » et cochez votre Page.",
   forbidden: "Accès non autorisé.",
   error: "Une erreur est survenue lors de la connexion.",
   gmail_cancelled: "Connexion Gmail annulée.",

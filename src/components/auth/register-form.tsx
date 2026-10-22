@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { getPublicToolDestination, getToolOnboardingPath } from "@/lib/public-tools";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -24,8 +24,8 @@ import { useLocale, useTranslations } from "next-intl";
 
 export function RegisterForm() {
   const t = useTranslations("auth");
-  const he = useLocale() === "he";
-  const router = useRouter();
+  const locale = useLocale();
+  const he = locale === "he";
   const searchParams = useSearchParams();
   const toolDestination = getPublicToolDestination(searchParams.get("callbackUrl"));
   const onboardingPath = getToolOnboardingPath(toolDestination);
@@ -59,46 +59,33 @@ export function RegisterForm() {
       return;
     }
 
-    const supabase = createClient();
-    const { data, error } = await supabase.auth
-      .signUp({
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({
+        name,
         email,
         password,
-        options: {
-          data: { full_name: name, country },
-          emailRedirectTo: buildAuthCallbackUrl(
-            window.location.origin,
-            registrationPath,
-            DEFAULT_POST_REGISTER_PATH
-          ),
-        },
-      })
-      .catch(() => ({
-        data: null,
-        error: new Error("Auth service unreachable"),
-      }));
+        country,
+        locale: he ? "he" : "fr",
+        nextPath: registrationPath,
+      }),
+    }).catch(() => null);
 
-    if (error) {
-      if (error.message.includes("already registered")) {
-        setError(he ? "כבר קיים חשבון עם כתובת האימייל הזו." : "Un compte existe déjà avec cet email.");
+    if (!response?.ok) {
+      const payload = await response?.json().catch(() => null) as
+        | { error?: string }
+        | null;
+      if (payload?.error === "rate_limited") {
+        setError(he ? "יותר מדי ניסיונות. נסו שוב בעוד כמה דקות." : "Trop de tentatives. Veuillez réessayer dans quelques minutes.");
+      } else if (payload?.error === "email_delivery_failed") {
+        setError(he ? "לא ניתן היה לשלוח את האימייל. נסו שוב." : "L’email de confirmation n’a pas pu être envoyé. Veuillez réessayer.");
       } else {
         setError(he ? "אירעה שגיאה. נסו שוב." : "Une erreur est survenue. Veuillez réessayer.");
       }
       setLoading(false);
       return;
-    }
-
-    if (data?.session) {
-      await fetch("/api/auth/sync-locale", {
-        method: "POST",
-        cache: "no-store",
-      }).catch(() => null);
-
-      if (toolDestination) {
-        router.replace(registrationPath);
-        router.refresh();
-        return;
-      }
     }
     setSuccess(true);
     setLoading(false);
@@ -300,6 +287,10 @@ export function RegisterForm() {
         <Button type="submit" size="lg" className="w-full" loading={loading} disabled={!supabaseConfigured}>
           {t("register")}
         </Button>
+
+        <p className="rounded-xl border border-violet-100 bg-violet-50 px-3 py-2 text-center text-sm font-semibold leading-6 text-violet-900">
+          {t("trialReminder")}
+        </p>
 
         <p className="text-xs text-slate-400 text-center leading-relaxed">
           {he ? "ביצירת חשבון אתם מסכימים ל" : "En créant un compte, vous acceptez nos"}{" "}

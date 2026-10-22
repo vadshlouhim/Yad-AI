@@ -71,7 +71,7 @@ export async function notifyPendingAction(
 export async function notifyUser(
   admin: Admin,
   userId: string,
-  params: { title: string; body: string; link: string }
+  params: { title: string; body: string; link: string; email?: { locale: string; direction: "ltr" | "rtl"; ctaLabel: string; greeting: string; footer: string } }
 ): Promise<void> {
   const ctaUrl = `${APP_URL}${params.link.startsWith("/") ? "" : "/"}${params.link}`;
 
@@ -91,13 +91,17 @@ export async function notifyUser(
         title: params.title,
         body: params.body,
         ctaUrl,
-        ctaLabel: `Ouvrir ${APP_NAME}`,
+        ctaLabel: params.email?.ctaLabel ?? `Ouvrir ${APP_NAME}`,
         recipientName,
+        locale: params.email?.locale,
+        direction: params.email?.direction,
+        greeting: params.email?.greeting,
+        footer: params.email?.footer,
       });
       try {
         const resend = new Resend(apiKey);
         await resend.emails.send({
-          from: process.env.EMAIL_FROM?.replace(/^"|"$/g, "") ?? `${APP_NAME} <noreply@easycom-ai.com>`,
+          from: (process.env.EMAIL_FROM ?? process.env.AUTH_EMAIL_FROM)?.replace(/^"|"$/g, "") ?? `${APP_NAME} <noreply@easycom-ai.com>`,
           to: recipientEmail,
           subject,
           html,
@@ -139,7 +143,7 @@ async function sendPendingActionEmail(params: {
   try {
     const resend = new Resend(apiKey);
     await resend.emails.send({
-      from: process.env.EMAIL_FROM?.replace(/^"|"$/g, "") ?? `${APP_NAME} <noreply@easycom-ai.com>`,
+      from: (process.env.EMAIL_FROM ?? process.env.AUTH_EMAIL_FROM)?.replace(/^"|"$/g, "") ?? `${APP_NAME} <noreply@easycom-ai.com>`,
       to: params.recipientEmail,
       subject,
       html,

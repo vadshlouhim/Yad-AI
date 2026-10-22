@@ -3,21 +3,27 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicationsFromDraft, publishToChannel } from "@/lib/publishing/publisher";
-import { TIER_LIMITS, assertPaidFeature, getBillingGate, getBillingUsage, paywallResponse, tierLimitMessage } from "@/lib/billing";
+import { TIER_LIMITS, getBillingGate, getBillingUsage, paywallResponse, tierLimitMessage } from "@/lib/billing";
 import type { Tables } from "@/types/database.types";
+import { isPublishDryRun } from "@/lib/publishing/dry-run";
+import { getJewishHolidays, getUpcomingShabbatTimes } from "@/lib/automation/hebcal";
 
 type Channel = Tables<"Channel">;
 type Publication = Tables<"Publication">;
 
-const SOCIAL_CHANNELS = ["FACEBOOK", "INSTAGRAM", "WHATSAPP"] as const;
+const SOCIAL_CHANNELS = ["FACEBOOK", "INSTAGRAM"] as const;
 const LIMITED_SOCIAL_CHANNELS = new Set(["FACEBOOK", "INSTAGRAM"]);
 const postSchema = z.object({
   text: z.string().min(1),
+  texts: z.object({
+    FACEBOOK: z.string().min(1).max(63_206),
+    INSTAGRAM: z.string().min(1).max(2_200),
+  }).optional(),
   mediaUrls: z.array(z.string().url()).default([]),
   channelTypes: z.array(z.enum(SOCIAL_CHANNELS)).min(1),
   scheduledAt: z.string().datetime().nullable().optional(),
   scheduledDates: z.array(z.string().datetime()).min(1).max(52).optional(),
-  whatsappRecipientIds: z.array(z.string()).default([]),
+  repeatWeekly: z.boolean().default(false),
 });
 
 const patchSchema = z.object({
@@ -35,10 +41,10 @@ async function getSessionContext() {
   if (!user) return null;
 
   const admin = createAdminClient();
-  const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
+  const { data: profile } = await admin.from("profiles").select("communityId,locale").eq("id", user.id).single();
   if (!profile?.communityId) return null;
 
-  return { admin, userId: user.id, communityId: profile.communityId };
+  return { admin, userId: user.id, communityId: profile.communityId, locale: profile.locale ?? "fr" };
 }
 
 function getChannelProfileUrl(channel: Channel): string | null {
@@ -56,20 +62,14 @@ export async function GET() {
   const context = await getSessionContext();
   if (!context) return NextResponse.json({ error: "Non autorise" }, { status: 401 });
 
-  const { admin, communityId } = context;
+  const { admin, communityId, locale } = context;
 
-  const [channelsResult, membersResult, publicationsResult] = await Promise.all([
+  const [channelsResult, publicationsResult, communityResult, eventsResult] = await Promise.all([
     admin
       .from("Channel")
       .select("id,type,name,handle,isConnected,isActive,settings")
       .eq("communityId", communityId)
       .in("type", SOCIAL_CHANNELS),
-    admin
-      .from("CommunityMember")
-      .select("id,displayName,phone,tags,optInWhatsapp")
-      .eq("communityId", communityId)
-      .not("phone", "is", null)
-      .order("displayName", { ascending: true }),
     admin
       .from("Publication")
       .select("id,draftId,channelType,content,scheduledAt,status,createdAt,updatedAt,mediaUrls")
@@ -77,24 +77,37 @@ export async function GET() {
       .in("channelType", SOCIAL_CHANNELS)
       .order("createdAt", { ascending: false })
       .limit(60),
+    admin.from("Community").select("city,country,timezone").eq("id", communityId).single(),
+    admin.from("Event").select("title,startAt").eq("communityId", communityId).gte("startAt", new Date().toISOString()).order("startAt", { ascending: true }).limit(3),
   ]);
 
   if (channelsResult.error) return NextResponse.json({ error: channelsResult.error.message }, { status: 500 });
-  if (membersResult.error) return NextResponse.json({ error: membersResult.error.message }, { status: 500 });
   if (publicationsResult.error) return NextResponse.json({ error: publicationsResult.error.message }, { status: 500 });
+
+  const outputLocale = locale === "he" ? "he" : locale === "en" ? "en" : "fr";
+  const [shabbat, holidays] = await Promise.all([
+    communityResult.data ? getUpcomingShabbatTimes({ ...communityResult.data, outputLocale, count: 1 }) : Promise.resolve([]),
+    getJewishHolidays({ year: new Date().getFullYear(), outputLocale }),
+  ]);
+  const nextHoliday = holidays.find((holiday) => new Date(`${holiday.date}T23:59:59`) >= new Date());
 
   return NextResponse.json({
     channels: (channelsResult.data ?? []).map((channel) => {
       const settings = (channel.settings as Record<string, unknown> | null) ?? {};
       return {
         ...channel,
-        isConnected: channel.type === "WHATSAPP" && settings.mode === "personal"
+        isActive: isPublishDryRun() ? true : channel.isActive,
+        isConnected: isPublishDryRun() || (channel.type === "WHATSAPP" && settings.mode === "personal")
           ? true
           : channel.isConnected,
       };
     }),
-    whatsappContacts: (membersResult.data ?? []).filter((member) => member.optInWhatsapp),
     publications: publicationsResult.data ?? [],
+    ideas: {
+      parasha: shabbat[0]?.parasha ?? null,
+      holiday: nextHoliday?.name ?? null,
+      events: (eventsResult.data ?? []).map((event) => event.title),
+    },
   });
 }
 
@@ -109,7 +122,8 @@ export async function POST(request: Request) {
     }
 
     const { admin, communityId } = context;
-    const { text, mediaUrls, channelTypes, scheduledAt, scheduledDates, whatsappRecipientIds } = parsed.data;
+    const dryRun = isPublishDryRun();
+    const { text, texts, mediaUrls, channelTypes, scheduledAt, scheduledDates } = parsed.data;
     const cleanText = text.trim();
     const uniqueChannelTypes = Array.from(new Set(channelTypes));
     const scheduleDates = Array.from(new Set(scheduledDates?.length ? scheduledDates : scheduledAt ? [scheduledAt] : []))
@@ -125,7 +139,7 @@ export async function POST(request: Request) {
     }
 
     const gate = await getBillingGate(admin, context.userId);
-    if (!gate.isSuperAdmin && requestedSocialCount > 0) {
+    if (!dryRun && !gate.isSuperAdmin && requestedSocialCount > 0) {
       const usage = await getBillingUsage(admin, communityId, gate.tier);
       if (usage.socialPublications + requestedSocialCount > TIER_LIMITS[gate.tier].socialPublications) {
         return paywallResponse(
@@ -137,26 +151,17 @@ export async function POST(request: Request) {
       }
     }
 
-    if (uniqueChannelTypes.includes("WHATSAPP")) {
-      const paid = await assertPaidFeature(
-        admin,
-        context.userId,
-        "whatsapp",
-        "WhatsApp est reserve au mode payant. Passez a l'abonnement pour envoyer des messages."
-      );
-      if (!paid.ok) return paid.response;
-    }
-
     if (uniqueChannelTypes.includes("INSTAGRAM") && mediaUrls.length === 0) {
       return NextResponse.json({ error: "Instagram requiert une image avant publication." }, { status: 400 });
     }
 
-    const { data: channels, error: channelsError } = await admin
+    let channelsQuery = admin
       .from("Channel")
       .select("*")
       .eq("communityId", communityId)
-      .in("type", uniqueChannelTypes)
-      .eq("isActive", true);
+      .in("type", uniqueChannelTypes);
+    if (!dryRun) channelsQuery = channelsQuery.eq("isActive", true);
+    const { data: channels, error: channelsError } = await channelsQuery;
 
     if (channelsError) throw channelsError;
 
@@ -164,7 +169,7 @@ export async function POST(request: Request) {
       (channels ?? [])
         .filter((channel) => {
           const settings = (channel.settings as Record<string, unknown> | null) ?? {};
-          return channel.isConnected || (channel.type === "WHATSAPP" && settings.mode === "personal");
+          return dryRun || channel.isConnected || (channel.type === "WHATSAPP" && settings.mode === "personal");
         })
         .map((channel) => channel.type)
     );
@@ -174,26 +179,6 @@ export async function POST(request: Request) {
         { error: `Connectez d'abord : ${missingTypes.join(", ")}.` },
         { status: 400 }
       );
-    }
-
-    let whatsappRecipientPhones: string[] = [];
-    if (uniqueChannelTypes.includes("WHATSAPP") && whatsappRecipientIds.length > 0) {
-      const { data: recipients, error: recipientsError } = await admin
-        .from("CommunityMember")
-        .select("phone")
-        .eq("communityId", communityId)
-        .in("id", whatsappRecipientIds)
-        .eq("optInWhatsapp", true)
-        .not("phone", "is", null);
-
-      if (recipientsError) throw recipientsError;
-      whatsappRecipientPhones = (recipients ?? [])
-        .map((recipient) => recipient.phone?.replace(/[^\d]/g, "") ?? "")
-        .filter((phone) => phone.length >= 8);
-
-      if (whatsappRecipientPhones.length === 0) {
-        return NextResponse.json({ error: "Selectionnez au moins un contact WhatsApp valide." }, { status: 400 });
-      }
     }
 
     const draftId = crypto.randomUUID();
@@ -218,15 +203,12 @@ export async function POST(request: Request) {
         mediaUrls,
         source: "social-networks-page",
       };
-      if (channelType === "WHATSAPP") {
-        metadata.whatsappRecipientPhones = whatsappRecipientPhones;
-      }
 
       await admin.from("ChannelAdaptation").upsert(
         {
           draftId,
           channelType,
-          body: cleanText,
+          body: texts?.[channelType] ?? cleanText,
           imageUrl: primaryImageUrl,
           metadata,
           updatedAt: now,

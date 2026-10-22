@@ -89,8 +89,12 @@ async function main() {
   assert.equal(detectVisitorLocale({ acceptLanguage: "he-IL,fr;q=0.8", country: "FR", userAgent: "Mozilla/5.0" }), "he");
   assert.equal(detectVisitorLocale({ acceptLanguage: "en-US", country: "IL", userAgent: "Googlebot" }), "fr");
   assert.equal(isFeatureEnabled("he", "newsletter"), true);
-  assert.equal(isFeatureEnabled("he", "publish"), false);
+  assert.equal(isFeatureEnabled("he", "publish"), true);
   assert.equal(isDashboardPathEnabled("he", "/dashboard/newsletter"), true);
+  assert.equal(isDashboardPathEnabled("he", "/dashboard/social-networks"), true);
+  assert.equal(isDashboardPathEnabled("he", "/dashboard/publications"), true);
+  assert.equal(isDashboardPathEnabled("he", "/dashboard/publish/instagram"), true);
+  assert.equal(isDashboardPathEnabled("he", "/dashboard/assistant"), false);
   assert.equal(isDashboardPathEnabled("he", "/dashboard/settings/billing"), true);
   assert.equal(isDashboardPathEnabled("he", "/dashboard/templates"), false);
   assert.equal(isDashboardPathEnabled("fr", "/dashboard/templates"), true);

@@ -4,6 +4,7 @@ import { BillingClient } from "@/components/settings/billing-client";
 import { getBillingConfig } from "@/lib/billing";
 import { stripe } from "@/lib/stripe";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 type InvoiceSummary = {
   id: string;
@@ -16,23 +17,27 @@ type InvoiceSummary = {
   hostedInvoiceUrl: string | null;
 };
 
-export const metadata: Metadata = { title: "Facturation — EasyCom IA" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("billing");
+  return { title: t("metadataTitle") };
+}
 
 export default async function BillingPage() {
   const { profile } = await requireAuth();
   const communityId = profile.communityId!;
   const admin = createAdminClient();
 
-  const [{ data: community }, { data: subscription }, billingConfig] = await Promise.all([
+  const [{ data: community }, { data: subscription }, { count: subscriptionHistoryCount }, billingConfig] = await Promise.all([
     admin.from("Community").select("plan, stripeCustomerId, planExpiresAt").eq("id", communityId).single(),
     admin
       .from("Subscription")
       .select("id, plan, status, currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd, trialEnd, createdAt")
       .eq("communityId", communityId)
-      .in("status", ["ACTIVE", "TRIALING", "PAST_DUE"])
+      .in("status", ["ACTIVE", "TRIALING", "PAST_DUE", "UNPAID", "INCOMPLETE", "CANCELED", "PAUSED"])
       .order("createdAt", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    admin.from("Subscription").select("id", { count: "exact", head: true }).eq("communityId", communityId),
     getBillingConfig(admin),
   ]);
 
@@ -61,6 +66,8 @@ export default async function BillingPage() {
       subscription={subscription as Parameters<typeof BillingClient>[0]["subscription"]}
       billingConfig={billingConfig}
       invoices={invoices}
+      hasUsedTrial={(subscriptionHistoryCount ?? 0) > 0}
+      now={new Date().toISOString()}
     />
   );
 }

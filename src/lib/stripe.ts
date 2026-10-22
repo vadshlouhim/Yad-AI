@@ -1,5 +1,6 @@
 import Stripe from "stripe";
-import { assertStripeConfiguration, getConfiguredLaunchPriceId, getConfiguredPriceId, getStripeMode } from "@/lib/stripe-config";
+import { assertStripeConfiguration, getConfiguredPriceId, getStripeMode } from "@/lib/stripe-config";
+import { SUBSCRIPTION_TRIAL_DAYS } from "@/lib/billing/subscription-policy";
 
 let _stripe: Stripe | null = null;
 
@@ -13,8 +14,6 @@ function getStripe(): Stripe {
   return _stripe;
 }
 
-// Proxy conserve la compatibilité avec tous les imports existants (stripe.xxx)
-// tout en initialisant Stripe uniquement à la première requête, jamais au build.
 export const stripe = new Proxy({} as Stripe, {
   get(_target, prop, receiver) {
     return Reflect.get(getStripe(), prop, receiver);
@@ -26,50 +25,36 @@ export const PLANS = {
     name: "Gratuit",
     priceId: null,
     price: 0,
-    limits: {
-      socialPublications: 1,
-      assistantMessages: 20,
-      automations: 1,
-      posterGenerations: 1,
-      whatsapp: false,
-    },
+    limits: { socialPublications: 1, assistantMessages: 20, automations: 1, posterGenerations: 1, whatsapp: false },
   },
   PROFESSIONAL: {
     name: "EasyCom IA",
-    priceId: process.env.STRIPE_PAID_PRICE_ID ?? process.env.STRIPE_PRO_PRICE_ID,
+    priceId: process.env.STRIPE_PRICE_MONTHLY_1999,
     price: 19.99,
-    limits: {
-      socialPublications: -1,
-      assistantMessages: -1,
-      automations: -1,
-      posterGenerations: -1,
-      whatsapp: true,
-    },
+    limits: { socialPublications: -1, assistantMessages: -1, automations: -1, posterGenerations: -1, whatsapp: true },
   },
 } as const;
 
 export async function createCheckoutSession(params: {
   communityId: string;
-  useIntroductoryPrice: boolean;
+  userId: string;
+  locale: "fr" | "he" | "en";
+  includeTrial: boolean;
   stripeCustomerId?: string;
   customerEmail?: string;
   successUrl: string;
   cancelUrl: string;
 }) {
-  const {
-    communityId,
-    useIntroductoryPrice,
-    stripeCustomerId,
-    customerEmail,
-    successUrl,
-    cancelUrl,
-  } = params;
-
+  const { communityId, userId, locale, includeTrial, stripeCustomerId, customerEmail, successUrl, cancelUrl } = params;
   assertStripeConfiguration({ checkout: true });
-  const basePriceId = getConfiguredPriceId();
-  const launchPriceId = getConfiguredLaunchPriceId();
-  await validateSubscriptionCatalog(launchPriceId, basePriceId);
-  const priceId = useIntroductoryPrice ? launchPriceId : basePriceId;
+  const priceId = getConfiguredPriceId();
+  await validateSubscriptionCatalog(priceId);
+  const metadata = {
+    community_id: communityId,
+    user_id: userId,
+    plan_tier: "PROFESSIONAL",
+    trial_included: String(includeTrial),
+  };
 
   const checkoutParams: Stripe.Checkout.SessionCreateParams = {
     mode: "subscription",
@@ -79,21 +64,28 @@ export async function createCheckoutSession(params: {
         ? { customer_email: customerEmail }
         : {}),
     line_items: [{ price: priceId, quantity: 1 }],
+    payment_method_collection: "always",
     success_url: successUrl,
     cancel_url: cancelUrl,
     client_reference_id: communityId,
-    metadata: { communityId, planTier: "PROFESSIONAL", introductoryPrice: String(useIntroductoryPrice) },
+    locale: locale === "he" ? "auto" : locale,
+    metadata,
     subscription_data: {
-      metadata: { communityId, planTier: "PROFESSIONAL", introductoryPrice: String(useIntroductoryPrice) },
+      ...(includeTrial
+        ? {
+            trial_period_days: SUBSCRIPTION_TRIAL_DAYS,
+            trial_settings: { end_behavior: { missing_payment_method: "cancel" as const } },
+          }
+        : {}),
+      metadata,
     },
     billing_address_collection: "required",
+    integration_identifier: createIntegrationIdentifier(),
   };
 
   try {
     return await stripe.checkout.sessions.create(checkoutParams);
   } catch (error) {
-    // Un ancien Customer Stripe (supprimé ou provenant d'un autre mode
-    // test/live) ne doit pas empêcher la communauté de se réabonner.
     if (stripeCustomerId && isMissingStripeCustomer(error)) {
       delete checkoutParams.customer;
       if (customerEmail) checkoutParams.customer_email = customerEmail;
@@ -120,7 +112,6 @@ export async function createArticleCheckoutSession(params: {
   expectedCurrency: string;
 }) {
   const { communityId, priceId, stripeCustomerId, successUrl, cancelUrl, articleId, articleSlug, expectedAmount, expectedCurrency } = params;
-
   assertStripeConfiguration();
   const price = await stripe.prices.retrieve(priceId);
   assertStripeObjectMode(price.livemode, "Price article");
@@ -134,13 +125,7 @@ export async function createArticleCheckoutSession(params: {
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: successUrl,
     cancel_url: cancelUrl,
-    metadata: {
-      communityId,
-      articleId,
-      articleSlug,
-      checkoutType: "article",
-    },
-    allow_promotion_codes: true,
+    metadata: { communityId, articleId, articleSlug, checkoutType: "article" },
     billing_address_collection: "required",
   };
 
@@ -155,10 +140,7 @@ export async function createArticleCheckoutSession(params: {
   }
 }
 
-export async function createPortalSession(params: {
-  stripeCustomerId: string;
-  returnUrl: string;
-}) {
+export async function createPortalSession(params: { stripeCustomerId: string; returnUrl: string }) {
   assertStripeConfiguration({ portal: true });
   return stripe.billingPortal.sessions.create({
     customer: params.stripeCustomerId,
@@ -167,19 +149,10 @@ export async function createPortalSession(params: {
   });
 }
 
-async function validateSubscriptionCatalog(launchPriceId: string, basePriceId: string) {
-  const [launchPrice, basePrice] = await Promise.all([
-    stripe.prices.retrieve(launchPriceId),
-    stripe.prices.retrieve(basePriceId),
-  ]);
-
-  assertStripeObjectMode(launchPrice.livemode, "Price de lancement");
-  assertStripeObjectMode(basePrice.livemode, "Price standard");
-  assertMonthlyEuroPrice(launchPrice, 999, "lancement");
-  assertMonthlyEuroPrice(basePrice, 1999, "standard");
-  if (launchPrice.product !== basePrice.product) {
-    throw new Error("Les Prices Stripe de lancement et standard doivent appartenir au même Product.");
-  }
+async function validateSubscriptionCatalog(priceId: string) {
+  const price = await stripe.prices.retrieve(priceId);
+  assertStripeObjectMode(price.livemode, "Price mensuel");
+  assertMonthlyEuroPrice(price, 1999, "mensuel");
 }
 
 function assertMonthlyEuroPrice(price: Stripe.Price, expectedAmount: number, label: string) {
@@ -188,29 +161,14 @@ function assertMonthlyEuroPrice(price: Stripe.Price, expectedAmount: number, lab
   }
 }
 
-export async function switchIntroductorySubscriptionToBasePrice(subscriptionId: string) {
-  assertStripeConfiguration({ checkout: true });
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-  const item = subscription.items.data[0];
-  if (!item) throw new Error("Abonnement Stripe sans ligne tarifaire.");
-
-  const launchPriceId = getConfiguredLaunchPriceId();
-  const basePriceId = getConfiguredPriceId();
-  if (item.price.id === basePriceId) return subscription;
-  if (item.price.id !== launchPriceId) {
-    throw new Error("L'abonnement ne porte ni le Price de lancement ni le Price standard configuré.");
-  }
-
-  return stripe.subscriptions.update(subscriptionId, {
-    items: [{ id: item.id, price: basePriceId }],
-    proration_behavior: "none",
-    metadata: { ...subscription.metadata, introductoryPriceApplied: "true" },
-  }, { idempotencyKey: `easycom-intro-to-base-${subscriptionId}` });
+function createIntegrationIdentifier() {
+  const alphabet = "abcdefghijklmnopqrstuvwxyz";
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  const suffix = Array.from(bytes, (value) => alphabet[value % alphabet.length]).join("");
+  return `easycom_trial_${suffix}`;
 }
 
 function assertStripeObjectMode(livemode: boolean, label: string) {
   const expectedLiveMode = getStripeMode() === "live";
-  if (livemode !== expectedLiveMode) {
-    throw new Error(`${label}: objet Stripe provenant du mauvais environnement.`);
-  }
+  if (livemode !== expectedLiveMode) throw new Error(`${label}: objet Stripe provenant du mauvais environnement.`);
 }

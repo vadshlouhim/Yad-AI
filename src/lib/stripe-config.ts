@@ -41,13 +41,9 @@ export function assertStripeConfiguration(requirements: StripeConfigurationRequi
   }
 
   if (requirements.checkout) {
-    for (const [name, priceId] of [
-      ["STRIPE_LAUNCH_PRICE_ID", requiredEnv("STRIPE_LAUNCH_PRICE_ID")],
-      ["STRIPE_PAID_PRICE_ID", requiredEnv("STRIPE_PAID_PRICE_ID", "STRIPE_PRO_PRICE_ID")],
-    ]) {
-      if (!priceId.startsWith("price_")) {
-        throw new Error(`${name} doit contenir un Price ID Stripe.`);
-      }
+    const priceId = requiredEnv("STRIPE_PRICE_MONTHLY_1999");
+    if (!priceId.startsWith("price_")) {
+      throw new Error("STRIPE_PRICE_MONTHLY_1999 doit contenir un Price ID Stripe.");
     }
   }
 
@@ -64,11 +60,7 @@ export function assertStripeConfiguration(requirements: StripeConfigurationRequi
 }
 
 export function getConfiguredPriceId() {
-  return requiredEnv("STRIPE_PAID_PRICE_ID", "STRIPE_PRO_PRICE_ID");
-}
-
-export function getConfiguredLaunchPriceId() {
-  return requiredEnv("STRIPE_LAUNCH_PRICE_ID");
+  return requiredEnv("STRIPE_PRICE_MONTHLY_1999");
 }
 
 export function getCanonicalAppOrigin(requestUrl?: string) {

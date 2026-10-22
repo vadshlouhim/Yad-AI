@@ -56,12 +56,13 @@
     "demoLabel": "Démonstration — données fictives", "whatToDo": "Que souhaitez-vous faire ?",
     "toolsLabel": "outils", "shop": "Boutique et Articles", "online": "En ligne", "posters": "Affiches & Visuels",
     "agents": "Vos agents IA", "specializedAgents": "Vos agents IA spécialisés", "tryTitle": "Essayez EasyCom AI",
-    "specialOffer": "Offre spéciale", "gift": "Profitez de deux semaines offertes avec toutes les fonctionnalités !",
-    "firstMonth": "le premier mois", "thenPrice": "Puis {price}/mois sans engagement",
-    "faqTitle": "Questions fréquentes", "faq1q": "EasyCom AI est-il réservé aux Beth Habad ?",
-    "faq1a": "Non. EasyCom AI s’adresse aux synagogues, Beth Habad et associations communautaires qui souhaitent réunir leur communication au même endroit.",
-    "faq2q": "Puis-je arrêter mon abonnement quand je veux ?",
-    "faq2a": "Oui. Votre abonnement est sans engagement et peut être annulé à tout moment depuis l’espace Paiement.",
+    "specialOffer": "Offre de lancement", "gift": "30 jours d'essai gratuit",
+    "trialPriceCaption": "pendant 30 jours", "thenPrice": "Puis {price}/mois, sans engagement. Résiliable à tout moment.",
+    "cardRequired": "Carte bancaire demandée, aucun prélèvement avant 30 jours.",
+    "faqTitle": "Questions fréquentes", "faq1q": "Dois-je payer pendant l'essai ?",
+    "faq1a": "Non. Votre carte est demandée à l'inscription, mais aucun prélèvement n'est fait pendant 30 jours. Vous pouvez résilier avant la fin de l'essai sans rien payer.",
+    "faq2q": "Que se passe-t-il après 30 jours ?",
+    "faq2a": "L'abonnement continue à 19,99 €/mois, sans engagement. Vous pouvez résilier à tout moment depuis « Abonnement et paiement ».",
     "final1": "Vous vous occupez de votre communauté.", "final2": "EasyCom AI s’occupe de votre communication.",
     "footerNav": "Navigation de pied de page", "legalLinks": "Liens légaux", "question": "Une question ?",
     "chat": "Discutez avec nous", "whatsapp": "Contacter EasyCom AI sur WhatsApp",
@@ -71,6 +72,11 @@
     "heDemoSubtitle": "La première plateforme IA pour les newsletters de Chabbat des émissaires et Beth Habad",
     "heDemoLine": "Rédigez, mettez en page et imprimez en quelques minutes",
     "heDemoCta": "Créer un compte et commencer", "heDemoAria": "Créer un compte pour la newsletter de Chabbat",
+    "heDemoAvailableTitle": "Ce qui est déjà disponible en hébreu",
+    "heDemoCards": {
+      "newsletter": { "label": "Disponible maintenant", "title": "Newsletter de Chabbat", "description": "Un feuillet recto verso professionnel, prêt à imprimer en quelques minutes", "aria": "Créer un compte pour la newsletter de Chabbat" },
+      "publish": { "label": "Nouveau", "title": "Publier partout", "description": "Écrivez une fois, publiez sur tous vos réseaux", "aria": "Créer un compte pour publier partout" }
+    },
     "agentsAvailability": "En hébreu, la newsletter de Chabbat est déjà disponible. Les autres agents arrivent bientôt.",
     "availableNow": "Disponible maintenant", "comingSoonBadge": "Bientôt"
   },
@@ -81,8 +87,31 @@
     "register": "Créer mon compte", "google": "Continuer avec Google", "forgot": "Mot de passe oublié ?",
     "noAccount": "Pas encore de compte ?", "hasAccount": "Déjà un compte ?", "createAccount": "Créer un compte",
     "backToLogin": "Retour à la connexion", "sendLink": "Envoyer le lien", "reset": "Mettre à jour le mot de passe",
+    "trialReminder": "30 jours gratuits, puis 19,99 €/mois. Aucun prélèvement aujourd'hui.",
     "checkEmail": "Vérifiez votre email", "or": "ou"
   },
+  "billing": {
+    "metadataTitle": "Abonnement et paiement — EasyCom IA", "back": "Paramètres", "title": "Abonnement et paiement", "subtitle": "Votre abonnement, votre carte et vos factures.",
+    "heroTitle": "Un seul abonnement.\nTout EasyCom IA.", "heroDescription": "30 jours gratuits avec toutes les fonctionnalités, puis 19,99 €/mois, sans engagement.",
+    "statusDiscovery": "Essai disponible", "statusTrial": "Essai gratuit", "statusActive": "Abonnement actif", "statusPastDue": "Paiement à régulariser", "statusInactive": "Abonnement inactif",
+    "offerBadge": "Offre de lancement", "offerTrial": "30 jours d'essai gratuit", "offerThen": "Puis {price}/mois, sans engagement. Résiliable à tout moment.", "offerCard": "Carte bancaire demandée — aucun prélèvement pendant 30 jours.", "offerEligibility": "L'essai est réservé aux communautés qui n'en ont jamais bénéficié. Sinon, l'abonnement commence immédiatement.", "tryFree": "Essayer gratuitement", "continueCheckout": "Continuer vers le paiement", "subscribeNow": "S'abonner à {price}/mois",
+    "trialSummary": "Essai gratuit – il vous reste {days} jour(s), jusqu'au {date}. Ensuite {price}/mois.", "trialUsed": "Cette communauté a déjà bénéficié de son essai. L'abonnement à {price}/mois commence immédiatement.",
+    "state": "État", "fullAccess": "Toutes les fonctionnalités sont disponibles.", "noBilling": "Aucune facturation en cours.", "since": "Depuis", "periodStart": "Début de la période actuelle.", "accessEnd": "Fin d'accès", "nextRenewal": "Prochain renouvellement", "accessUntil": "Votre accès reste actif jusque-là.", "changeAnytime": "Vous pouvez modifier cet abonnement à tout moment.",
+    "manageTitle": "Gérer / Résilier", "manageDescription": "Modifiez votre carte, téléchargez vos factures Stripe ou résiliez votre abonnement.", "openPortal": "Gérer / Résilier",
+    "invoices": "Factures", "invoicesDescription": "Vos derniers paiements Stripe.", "invoice": "Facture Stripe", "paid": "Payée", "processing": "En cours", "download": "Télécharger", "noInvoices": "Aucune facture pour le moment. Elles apparaîtront ici après votre premier paiement.",
+    "included": "Ce qui est inclus", "features": ["Automatisations IA sans limite", "Affiches, publications et envois", "Newsletter papier Chabbat et PDF", "Email, avis Google et WhatsApp"], "secure": "Paiements sécurisés par Stripe · annulation à tout moment.",
+    "checkoutError": "Impossible d'ouvrir le paiement.", "portalError": "Impossible d'ouvrir l'espace Stripe.",
+    "notificationTitle": "Abonnement", "trialEndingTitle": "Votre essai se termine bientôt", "trialEndingBody": "Votre essai gratuit se termine dans 3 jours. Ensuite, votre abonnement continuera à 19,99 €/mois.", "subscriptionActive": "Votre abonnement EasyCom IA est actif.", "subscriptionCanceled": "Votre abonnement a été annulé.", "paymentFailed": "Le paiement de votre abonnement a échoué. Mettez à jour votre moyen de paiement.", "paymentPaid": "Votre paiement EasyCom IA a bien été reçu.", "emailCta": "Gérer mon abonnement", "emailGreeting": "Bonjour,", "emailGreetingName": "Bonjour {name},", "emailFooter": "Notification automatique d'EasyCom IA. Gérez vos préférences dans l'application."
+  },
+  "pricing": {
+    "metadataTitle": "Tarification EasyCom IA — 30 jours gratuits", "metadataDescription": "30 jours d'essai gratuit, puis 19,99 €/mois, sans engagement. Carte bancaire demandée, aucun prélèvement pendant l'essai.",
+    "eyebrow": "Une offre, tout inclus", "headline1": "Simple.", "headline2": "Transparent.", "headline3": "Prêt à agir.", "intro": "Profitez de toutes les fonctionnalités pendant 30 jours. Votre carte est demandée, mais aucun prélèvement n'est effectué aujourd'hui.", "noCommitment": "Sans engagement", "secure": "Paiement sécurisé Stripe",
+    "badge": "Offre de lancement", "title": "30 jours d'essai gratuit", "allFeatures": "Toutes les fonctionnalités EasyCom IA, sans limite pendant l'essai.", "priceCaption": "pendant 30 jours", "then": "Puis {price}/mois, sans engagement. Résiliable à tout moment.", "card": "Carte bancaire demandée — aucun prélèvement pendant 30 jours.", "cta": "Essayer gratuitement", "oneTrial": "Un seul essai gratuit par communauté.",
+    "included": ["Automatisations et rappels intelligents", "Affiches, contenus et générations IA", "Publications, WhatsApp et emails", "Newsletter Chabbat imprimable et PDF", "Avis Google et outils communautaires", "Annulation à tout moment depuis Stripe"],
+    "howKicker": "Sans surprise", "howTitle": "Comment ça marche ?", "steps": [{"title":"Vous créez votre compte","text":"Configurez votre communauté et ajoutez votre carte en toute sécurité."},{"title":"Vous essayez tout gratuitement","text":"Toutes les fonctionnalités sont disponibles pendant 30 jours, sans prélèvement."},{"title":"Vous continuez librement","text":"Après 30 jours : {price}/mois, sans engagement. Résiliable à tout moment."}],
+    "controlTitle": "Vous gardez le contrôle", "controlText": "Résiliez avant la fin des 30 jours pour ne rien payer.", "createAccount": "Créer mon compte"
+  },
+  "onboarding": { "checkoutReminder": "30 jours gratuits, puis 19,99 €/mois. Aucun prélèvement aujourd'hui.", "checkoutError": "Votre communauté est enregistrée, mais le paiement n'a pas pu s'ouvrir. Vous pouvez le reprendre depuis Abonnement et paiement." },
   "blog": {
     "frenchOnly": "Cet article est disponible en français.",
     "frenchOnlyList": "Les articles sont actuellement disponibles en français.",
@@ -108,6 +137,11 @@
     "heOnlyTitle": "Newsletter de Chabbat",
     "heOnlyDescription": "Créez une newsletter de Chabbat professionnelle, rédigée et mise en page par l’IA, prête à imprimer en quelques minutes.",
     "heCreateNewsletter": "Créer une newsletter de Chabbat",
+    "heAvailableFeatures": "Fonctionnalités disponibles en hébreu",
+    "hePublishTitle": "Publier partout",
+    "hePublishDescription": "Écrivez une fois : l’IA adapte et publie sur tous vos réseaux.",
+    "heCreatePublication": "Nouvelle publication",
+    "hePublishNav": "Publier",
     "heMoreSoon": "D’autres fonctionnalités arriveront bientôt en hébreu.",
     "heManageProfile": "Profil et réglages",
     "heBilling": "Abonnement et facturation",
@@ -358,6 +392,50 @@
       "Axé sur les valeurs spirituelles": "Axé sur les valeurs spirituelles",
       "Business": "Business"
     }
+  },
+  "socialPlanning": {
+    "back": "Retour à Publier partout", "title": "Ma semaine", "subtitle": "Vos publications, de dimanche à Chabbat", "shabbat": "Chabbat – aucune publication", "empty": "Aucune publication dans cette catégorie.",
+    "tabs": { "upcoming": "À venir", "published": "Publiés", "failed": "Échecs" },
+    "status": { "SCHEDULED": "Programmé", "PUBLISHED": "Publié", "FAILED": "Échec", "PENDING": "En attente", "CANCELLED": "Annulé" },
+    "ideas": { "title": "Idées de l’IA pour cette semaine", "parasha": "Une idée autour de la Paracha {name}", "holiday": "Préparer la communauté pour {name}", "event": "Rappeler l’événement {name}", "volunteers": "Merci à nos bénévoles", "kiddush": "Une photo du Kiddouch" },
+    "actions": { "edit": "Modifier", "duplicate": "Dupliquer", "delete": "Supprimer", "deleteConfirm": "Supprimer cette publication programmée ?" }
+  },
+  "socialComposer": {
+    "header": { "back": "Retour au tableau de bord", "title": "Publier partout", "profile": "Ouvrir mon profil", "week": "Ma semaine" },
+    "networks": { "FACEBOOK": "Facebook", "INSTAGRAM": "Instagram" },
+    "draft": { "resume": "Reprendre votre brouillon ?", "restore": "Reprendre", "dismiss": "Ignorer le brouillon" },
+    "hero": { "title": "Une idée, tous vos réseaux", "subtitle": "Créez une fois, adaptez et publiez en quelques minutes.", "connect": "Connecter" },
+    "message": {
+      "title": "Votre message", "placeholder": "Que voulez-vous annoncer ?", "generate": "Rédiger avec l’IA", "generating": "L’IA rédige votre post…", "another": "Autre version",
+      "tones": { "warm": "Chaleureux", "festive": "Festif", "simple": "Sobre" },
+      "templates": {
+        "torah": { "label": "Cours de Torah", "text": "Annoncez notre prochain cours de Torah avec le thème, la date, l’heure et le lieu." },
+        "kiddush": { "label": "Kiddouch", "text": "Invitez chaleureusement la communauté au prochain Kiddouch et ajoutez les informations pratiques." },
+        "holiday": { "label": "Fête", "text": "Souhaitez une bonne fête à la communauté et rappelez le programme prévu." },
+        "shabbat": { "label": "Horaires de Chabbat", "text": "Partagez les horaires d’entrée et de sortie de Chabbat ainsi que les horaires des offices." },
+        "event": { "label": "Événement", "text": "Présentez notre prochain événement et invitez la communauté à s’inscrire." }
+      }
+    },
+    "image": { "title": "Image", "empty": "Ajoutez une image", "upload": "Importer", "library": "Banque d’images", "ai": "Créer avec l’IA", "replace": "Remplacer", "remove": "Retirer", "alt": "Visuel de la publication" },
+    "preview": { "title": "Aperçu", "pageName": "Votre communauté", "time": "il y a 1 min", "more": "Voir plus", "empty": "Votre texte apparaîtra ici." },
+    "channels": { "title": "Vos réseaux", "connected": "Connecté", "disconnected": "Non connecté", "connect": "Connecter", "toggle": "Activer ou désactiver {network}" },
+    "schedule": { "title": "Quand publier ?", "moments": { "now": "Maintenant", "tonight": "Ce soir", "custom": "Choisir…" }, "suggestion": "{time} : le meilleur moment pour votre communauté", "shabbat": "Mode Chabbat : rien ne part du vendredi soir à la fin de Chabbat, ni pendant Yom Tov.", "shabbatToggle": "Activer le mode Chabbat", "adjusted": "Cette heure tombe pendant Chabbat ou une fête — nous publierons à la sortie, le {date}.", "repeat": "Répéter chaque semaine pendant 8 semaines" },
+    "actions": { "publish": "Publier sur {count} réseau(x)", "schedule": "Programmer sur {count} réseau(x)", "draft": "Enregistrer le brouillon", "confirmNow": "Confirmer la publication immédiate sur les réseaux sélectionnés ?" },
+    "success": { "scheduled": "Programmé !", "published": "Publié !", "week": "Voir ma semaine", "new": "Nouveau post" },
+    "errors": { "load": "Impossible de charger vos réseaux.", "ideaRequired": "Écrivez d’abord ce que vous souhaitez annoncer.", "ai": "L’IA n’a pas pu rédiger les versions. Réessayez.", "upload": "L’image n’a pas pu être importée.", "networkRequired": "Choisissez au moins un réseau.", "textRequired": "Préparez un texte pour chaque réseau sélectionné.", "instagramImage": "Instagram requiert une image.", "future": "Choisissez une date et une heure futures.", "publish": "La publication n’a pas pu être enregistrée. Réessayez." }
+  },
+  "publishing": {
+    "banner": { "kicker": "Réseaux sociaux", "title": "Publiez partout, depuis un seul espace", "description": "Préparez votre message avec l’IA, ajoutez un visuel et diffusez-le sur Facebook, Instagram et WhatsApp au bon moment.", "agent": "Réseaux sociaux" },
+    "networks": { "FACEBOOK": "Facebook", "INSTAGRAM": "Instagram", "WHATSAPP": "WhatsApp", "TELEGRAM": "Telegram", "EMAIL": "Email", "ALL": "Tous les réseaux" },
+    "common": { "close": "Fermer", "closeDialog": "Fermer la fenêtre", "connected": "Connecté", "disconnected": "Non connecté", "comingSoon": "Bientôt disponible", "understood": "J’ai compris", "refresh": "Actualiser", "loading": "Chargement…", "selected": "sélectionné(s)", "removeImage": "Retirer cette image" },
+    "success": { "eyebrow": "Publication réussie", "title": "Votre publication a bien été envoyée", "one": "Elle est maintenant disponible sur le réseau sélectionné.", "many": "Elle est maintenant disponible sur les {count} réseaux sélectionnés.", "openWhatsApp": "Ouvrir WhatsApp", "viewOn": "Voir la publication sur {network}" },
+    "requirements": { "eyebrow": "Publication incomplète", "title": "Une dernière action est nécessaire", "description": "Complétez les éléments suivants avant de publier votre message.", "instagramImage": "Ajoutez au moins une image pour publier sur Instagram.", "whatsappContact": "Sélectionnez au moins un contact pour publier sur WhatsApp." },
+    "schedule": { "title": "Planifier vos publications multiréseaux", "description": "Vérifiez le contenu préparé : il sera conservé et diffusé exactement aux moments choisis.", "message": "Message préparé", "images": "Images préparées", "imageCount": "{count} image(s)", "noImage": "Aucune image ajoutée à cette publication.", "addImage": "Ajouter une image", "adding": "Ajout…", "channels": "Réseaux destinataires", "whatsappRecipients": "Destinataires WhatsApp", "selectedCount": "{count} sélectionné(s)", "momentTitle": "Choisissez le bon moment", "momentHelp": "Chaque occurrence apparaîtra dans l’historique et utilisera le contenu vérifié dans cette fenêtre.", "day": "Jour", "time": "Horaire", "frequency": "Fréquence", "once": "Une fois", "daily": "Tous les jours", "weekly": "Chaque semaine", "monthly": "Chaque mois", "custom": "Personnalisée", "weekDays": "Jours concernés", "endDate": "Fin de la répétition", "saving": "Enregistrement…", "save": "Enregistrer la planification", "days": { "sun": "Dim", "mon": "Lun", "tue": "Mar", "wed": "Mer", "thu": "Jeu", "fri": "Ven", "sat": "Sam" } },
+    "errors": { "upload": "Importation impossible.", "load": "Chargement impossible.", "ai": "Adaptation IA impossible.", "publish": "Publication impossible.", "messageRequired": "Ajoutez un message à publier.", "networkRequired": "Choisissez au moins un réseau social.", "connectFirst": "Connectez d’abord : {networks}.", "instagramImage": "Instagram requiert au moins une image.", "whatsappContact": "Choisissez au moins un contact WhatsApp.", "dateTime": "Choisissez une date et un horaire.", "future": "Choisissez une date et un horaire futurs.", "endRequired": "Choisissez une date de fin pour la répétition.", "endAfter": "La date de fin doit être postérieure à la première publication.", "dayRequired": "Choisissez au moins un jour de publication.", "limit": "La planification est limitée à 52 envois. Réduisez la période choisie.", "noDates": "Aucune date ne correspond aux paramètres choisis.", "unconfirmed": "La diffusion réelle n’a pas été confirmée sur tous les réseaux. {details}", "manual": "envoi manuel requis", "notConfirmed": "envoi non confirmé" },
+    "emailSoon": { "title": "Diffusez aussi vos communications par email", "description": "Bientôt, vous pourrez rédiger un seul message puis le diffuser aussi par email, dans le respect du consentement et des bonnes pratiques anti-spam.", "feature": "Un message, tous vos canaux", "help": "EasyCom AI vous guidera vers une communication ciblée et responsable." },
+    "composer": { "ai": "Transformer avec l’IA", "placeholder": "Votre publication apparaît ici. Vous pouvez la relire et l’ajuster avant l’envoi.", "uploading": "Importation…", "addImage": "Ajouter une image", "imageLibrary": "Banque d’images", "imageLibrarySoon": "Bientôt", "imageAi": "Créer avec l’IA", "imageAiSoon": "Bientôt", "imageAlt": "Image importée", "channelsTitle": "Choisissez vos canaux", "channelsHelp": "Sélectionnez les réseaux qui recevront cette publication.", "selectedForSend": "Sélectionné pour l’envoi", "addToSend": "Ajouter à l’envoi", "connectionRequired": "Connexion requise", "emailDiscover": "Découvrir la fonctionnalité", "contactsTitle": "Contacts WhatsApp", "contactsHelp": "Sélectionnez les contacts. Les tags servent de groupes simples.", "searchContacts": "Rechercher un contact ou un tag…", "selectAll": "Tout cocher", "clearAll": "Tout décocher", "noSearchResult": "Aucun contact ne correspond à votre recherche.", "noContacts": "Aucun contact WhatsApp disponible.", "manageContacts": "Ajouter ou autoriser des contacts WhatsApp", "publishNow": "Publier maintenant", "schedule": "Planifier l’envoi", "history": "Historique des publications", "historyHelp": "Retrouvez toutes vos publications envoyées et programmées.", "restored": "Votre brouillon a été restauré.", "imageAdded": "Votre image a été ajoutée. Votre message est prêt à être publié.", "scheduled": "{count} envoi(s) programmé(s) avec succès." },
+    "history": { "sent": "Publications envoyées", "successful": "Envoyées avec succès", "failures": "Échecs", "publishedAt": "Publié {date}", "status": { "PUBLISHED": "Publié", "FAILED": "Échec" }, "view": "Voir", "retry": "Relancer ({count})", "retryError": "Erreur lors de la relance.", "copy": "Copier le contenu", "copied": "Contenu copié !", "delete": "Supprimer", "deleteConfirm": "Supprimer cette publication de l’historique ?", "deleteError": "Suppression impossible.", "failedHelp": "La publication a échoué.", "failedCount": "{count} publication(s) en échec", "failedDescription": "Ces publications n’ont pas pu être envoyées. Vous pouvez les relancer individuellement.", "empty": "Aucune publication", "emptyFilter": "Aucune publication ne correspond à ce filtre.", "emailSubject": "Objet" },
+    "aiPrompt": "Adapte ce message pour une publication commune Facebook, Instagram et WhatsApp. Garde un seul texte utilisable partout. Message : {message}"
   },
   "newsletter": {
     "warningCodes": { "NO_UPCOMING_EVENTS": "Aucun événement à venir trouvé dans l’agenda.", "NO_UPCOMING_BIRTHDAYS": "Aucun anniversaire juif trouvé sur les 7 prochains jours.", "SHABBAT_TIMES_UNAVAILABLE": "Horaires de Chabbat indisponibles pour cette ville." },

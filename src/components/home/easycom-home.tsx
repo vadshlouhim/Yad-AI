@@ -36,7 +36,6 @@ const TOOLS = [
 ] as const;
 
 const HE_COMING_HOME_MODULES = [
-  { key: "publish", Icon: Share2 },
   { key: "posters", Icon: ImageIcon },
   { key: "shabbatTimes", Icon: Clock },
   { key: "birthdays", Icon: CalendarClock },
@@ -247,15 +246,19 @@ function MainDemo({ blocked }: { blocked: boolean }) {
 
   if (locale === "he") {
     return <section id="demo" className="home-container home-demo" aria-label={t("demoAria")}>
-      <Link ref={setContainerRef} href="/auth/register" prefetch={false} className="home-demo-frame home-demo-hebrew" aria-label={t("heDemoAria")}>
+      <div ref={setContainerRef} className="home-demo-frame home-demo-hebrew">
         <div className="home-demo-hebrew-copy">
-          <span className="home-demo-hebrew-kicker">{t("heDemoKicker")}</span>
-          <strong>{t("heDemoTitle")}</strong>
-          <span>{t("heDemoSubtitle")}</span>
-          <p>{t("heDemoLine")}</p>
-          <span className="home-demo-hebrew-cta">{t("heDemoCta")}</span>
+          <h2>{t("heDemoAvailableTitle")}</h2>
+          <div className="home-demo-hebrew-grid">
+            {["newsletter", "publish"].map((key) => <Link key={key} href="/auth/register" prefetch={false} className="home-demo-hebrew-card" aria-label={t(`heDemoCards.${key}.aria`)}>
+              <span className="home-demo-hebrew-kicker">{t(`heDemoCards.${key}.label`)}</span>
+              <strong>{t(`heDemoCards.${key}.title`)}</strong>
+              <p>{t(`heDemoCards.${key}.description`)}</p>
+              <span className="home-demo-hebrew-cta">{t("heDemoCta")}</span>
+            </Link>)}
+          </div>
         </div>
-      </Link>
+      </div>
     </section>;
   }
 
@@ -395,8 +398,8 @@ export function EasyComHome() {
   const footer = useTranslations("footer");
   const hebrewToolCopy = locale === "he" ? t.raw("toolCopy") as Record<string, { name: string; badge: string; role: string }> : {};
   const tools = TOOLS.map((tool) => locale === "he" ? { ...tool, ...hebrewToolCopy[tool.id] } : tool) as HomeTool[];
-  const priceLocale = locale === "he" ? "he-IL" : "fr-FR";
-  const formatPrice = (value: number) => new Intl.NumberFormat(priceLocale, { style: "currency", currency: "EUR" }).format(value);
+  const priceLocale = locale === "he" ? "he-IL" : locale === "en" ? "en-US" : "fr-FR";
+  const formatPrice = (value: number) => new Intl.NumberFormat(priceLocale, { style: "currency", currency: "EUR", minimumFractionDigits: value === 0 ? 0 : 2 }).format(value);
   const [active, setActive] = useState<string | null>(null);
   const [selected, setSelected] = useState<{ item: PublicTool; media: string; trigger: HTMLElement; comingSoon: boolean } | null>(null);
   useEffect(() => {
@@ -432,17 +435,20 @@ export function EasyComHome() {
         <section id="agents" className="home-agents" aria-labelledby="home-agents-title">
           <div className="home-section-heading"><h2 id="home-agents-title"><Users fill="currentColor" aria-hidden="true" /><span className="home-agents-desktop-title">{t("agents")}</span><span className="home-agents-mobile-title">{t("specializedAgents")}</span></h2>{locale === "he" ? <p className="home-agents-availability">{t("agentsAvailability")}</p> : null}</div>
           <CardRow id="home-agents-row" className="home-agent-row" label={t("agents")}>{tools.filter(tool => !["shabbat", "email", "coming-soon", "reminders", "contacts"].includes(tool.id)).map(tool => {
-            const enabled = locale !== "he" || tool.id === "newsletter";
+            const enabled = locale !== "he" || tool.id === "newsletter" || tool.id === "publish";
             return <button key={tool.id} type="button" className={`home-agent home-agent-${tool.id}${enabled ? " home-agent-enabled" : " home-agent-disabled"}`} aria-label={`${tool.agent}, ${tool.role}`} aria-haspopup={enabled ? "dialog" : undefined} aria-disabled={!enabled || undefined} disabled={!enabled} onClick={enabled ? event => open(tool, event.currentTarget) : undefined}>
             <span className="home-agent-art"><Image src={tool.portrait} alt="" width={260} height={310} sizes="(max-width: 767px) 100px, (max-width: 1023px) 150px, 240px" /><span className="home-agent-badge"><tool.Icon size={23} aria-hidden="true" /></span>{locale === "he" ? <span className="home-agent-status">{t(enabled ? "availableNow" : "comingSoonBadge")}</span> : null}</span>
             <span className="home-agent-info"><strong>{tool.agent}</strong><span>{tool.role}</span><ArrowRight size={19} className="rtl-mirror home-agent-arrow" aria-hidden="true" /></span>
           </button>})}</CardRow>
         </section>
-        <section id="tarifs" className="home-pricing" aria-label={locale === "he" ? "הצעת היכרות EasyCom AI" : "Offre de bienvenue EasyCom AI"}>
+        <section id="tarifs" className="home-pricing" aria-label={t("specialOffer")}>
           <h2><Sparkles className="home-sparkles" fill="currentColor" aria-hidden="true" />{t("tryTitle")}</h2>
           <p className="home-price-special">{t("specialOffer")}</p>
-          <p className="home-price-gift">{t("gift")}</p>
-          <p className="home-price"><bdi dir="ltr">{formatPrice(9.99)}</bdi> <span>{t("firstMonth")}</span></p><p className="home-price-after">{t("thenPrice", { price: formatPrice(19.99) })}</p><TrialLink />
+          <p className="home-price-gift">{locale === "he" ? t("trialFeatures") : t("gift")}</p>
+          <p className="home-price"><bdi dir="ltr">{formatPrice(0)}</bdi> <span>{t("trialPriceCaption")}</span></p>
+          <p className="home-price-after">{t("thenPrice", { price: formatPrice(19.99) })}</p>
+          <p className="home-price-after">{t("cardRequired")}</p>
+          <TrialLink />
         </section>
         <FAQ />
         <section className="home-final" aria-labelledby="home-final-title">

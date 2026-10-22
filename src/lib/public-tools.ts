@@ -566,7 +566,7 @@ const HE_PUBLIC_TOOL_COPY: Record<string, Partial<PublicTool>> = {
   automations: { name: "אוטומציות", description: "מארגנים את התקשורת החוזרת.", category: "Automatiser", benefits: ["תרחישים מרוכזים", "קצב מותאם", "בחירת רמת האישור"] },
   reminders: { name: "תזכורות לאירועים", description: "משאירים את האירועים בתודעה.", category: "Automatiser", benefits: ["תזכורות מראש", "קמפיינים להתאמה", "אתם בוחרים את הקצב"] },
   contacts: { name: "CRM קהילתי", description: "מוצאים את חברי הקהילה.", category: "Organiser", benefits: ["אנשי קשר מרוכזים", "קבוצות מאורגנות", "תקשורת ממוקדת יותר"] },
-  shabbat: { name: "זמני שבת וחגים", description: "מכינים את המפגשים השבועיים.", category: "Automatiser", benefits: ["עיר להתאמה", "מסר מוכן", "בדיקת הזמנים לפני הפרסום"] },
+  shabbat: { name: "זמני שבת וחגים", description: "מכינים את מפגשי הקהילה.", category: "Automatiser", benefits: ["עיר להתאמה", "מסר מוכן", "בדיקת הזמנים לפני הפרסום"] },
   torah: { name: "שיעורי תורה בעזרת AI", description: "מכינים חומרי עזר לשיעורים.", category: "Créer", benefits: ["הכנה מלווה", "חומרים מובנים", "בדיקה לפני השימוש"] },
   email: { name: "אימייל", description: "כל ההתכתבויות מרוכזות בפלטפורמה.", category: "Diffuser", benefits: ["התכתבויות מרוכזות", "סיוע בניסוח", "אתם מאשרים את ההודעות"] },
 };

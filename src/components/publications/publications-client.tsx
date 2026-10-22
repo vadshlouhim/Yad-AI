@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,9 +20,7 @@ import {
 } from "lucide-react";
 import {
   CHANNEL_LABELS,
-  PUBLICATION_STATUS_LABELS,
   cn,
-  formatRelative,
   truncate,
 } from "@/lib/utils";
 import { SocialPageBanner } from "@/components/publish/social-page-banner";
@@ -50,6 +49,8 @@ interface Props {
   statsByStatus: Record<string, number>;
   activeStatus?: string;
   activeChannel?: string;
+  locale: string;
+  timeZone: string;
 }
 
 const SOCIAL_LOGOS: Record<string, React.ReactNode> = {
@@ -114,12 +115,12 @@ const CHANNEL_ACCENT_CLASSES: Record<string, { line: string; preview: string; do
 };
 
 const CHANNEL_FILTERS = [
-  { label: "Tous les réseaux", value: "ALL", logo: SOCIAL_LOGOS.ALL, colorClass: "bg-[#0d2f6b] text-white border-transparent" },
-  { label: "WhatsApp", value: "WHATSAPP", logo: SOCIAL_LOGOS.WHATSAPP, colorClass: "bg-emerald-600 text-white border-transparent hover:bg-emerald-700" },
-  { label: "Instagram", value: "INSTAGRAM", logo: SOCIAL_LOGOS.INSTAGRAM, colorClass: "bg-gradient-to-br from-pink-600 via-rose-600 to-orange-500 text-white border-transparent hover:opacity-95" },
-  { label: "Facebook", value: "FACEBOOK", logo: SOCIAL_LOGOS.FACEBOOK, colorClass: "bg-blue-700 text-white border-transparent hover:bg-blue-800" },
-  { label: "Telegram", value: "TELEGRAM", logo: SOCIAL_LOGOS.TELEGRAM, colorClass: "bg-sky-600 text-white border-transparent hover:bg-sky-700" },
-  { label: "Email", value: "EMAIL", logo: SOCIAL_LOGOS.EMAIL, colorClass: "bg-rose-600 text-white border-transparent hover:bg-rose-700" },
+  { value: "ALL", logo: SOCIAL_LOGOS.ALL },
+  { value: "WHATSAPP", logo: SOCIAL_LOGOS.WHATSAPP },
+  { value: "INSTAGRAM", logo: SOCIAL_LOGOS.INSTAGRAM },
+  { value: "FACEBOOK", logo: SOCIAL_LOGOS.FACEBOOK },
+  { value: "TELEGRAM", logo: SOCIAL_LOGOS.TELEGRAM },
+  { value: "EMAIL", logo: SOCIAL_LOGOS.EMAIL },
 ];
 
 const CHANNEL_FILTER_STYLES: Record<string, { active: string; inactive: string }> = {
@@ -169,13 +170,13 @@ function cleanPreviewText(value: string): string {
     .trim();
 }
 
-function buildChannelPreview(pub: Publication) {
+function buildChannelPreview(pub: Publication, locale: string, emailSubject: string) {
   const text = cleanPreviewText(pub.content);
   if (pub.channelType === "EMAIL") {
-    return `Objet: ${pub.event?.title ?? pub.draft?.title ?? "Information communautaire"}\n\n${text}`;
+    return `${emailSubject}: ${pub.event?.title ?? pub.draft?.title ?? emailSubject}\n\n${text}`;
   }
   if (pub.channelType === "INSTAGRAM") {
-    return `${text}\n\n#communaute #easycomia`;
+    return locale === "he" ? `${text}\n\n#קהילה #EasyComAI` : `${text}\n\n#communaute #easycomia`;
   }
   return text;
 }
@@ -195,7 +196,8 @@ function buildChannelProfileUrl(pub: Publication) {
   return pub.externalUrl;
 }
 
-export function PublicationsClient({ publications, statsByStatus, activeStatus, activeChannel }: Props) {
+export function PublicationsClient({ publications, statsByStatus, activeStatus, activeChannel, locale, timeZone }: Props) {
+  const t = useTranslations("publishing");
   const router = useRouter();
   const [retrying, setRetrying] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -203,6 +205,13 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
   const currentChannel = activeChannel || "ALL";
   const currentStatus = activeStatus === "FAILED" ? "FAILED" : "PUBLISHED";
   const interactiveButtonClass = "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm active:scale-[0.98]";
+  const intlLocale = locale === "he" ? "he-IL" : locale === "en" ? "en-US" : "fr-FR";
+  const formatDate = (value: Date | string) => new Intl.DateTimeFormat(intlLocale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone,
+  }).format(new Date(value));
+  const channelLabel = (type: string) => t.has(`networks.${type}`) ? t(`networks.${type}`) : CHANNEL_LABELS[type] ?? type;
 
   async function retryPublication(id: string) {
     setRetrying(id);
@@ -210,14 +219,14 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
       await fetch(`/api/publishing/retry/${id}`, { method: "POST" });
       router.refresh();
     } catch {
-      alert("Erreur lors de la relance.");
+      alert(t("history.retryError"));
     } finally {
       setRetrying(null);
     }
   }
 
   async function deletePublication(id: string) {
-    const confirmed = window.confirm("Supprimer cette publication de l'historique ?");
+    const confirmed = window.confirm(t("history.deleteConfirm"));
     if (!confirmed) return;
 
     setDeleting(id);
@@ -225,11 +234,12 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
       const response = await fetch(`/api/publications/${id}`, { method: "DELETE" });
       const data = await response.json().catch(() => null);
       if (!response.ok) {
-        throw new Error(data?.error ?? "Suppression impossible.");
+        console.error("[Publication delete]", data?.error);
+        throw new Error(t("history.deleteError"));
       }
       router.refresh();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Suppression impossible.");
+      alert(error instanceof Error ? error.message : t("history.deleteError"));
     } finally {
       setDeleting(null);
     }
@@ -272,14 +282,13 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
                     {pub.event?.title ?? pub.draft?.title ?? truncate(pub.content, 50)}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
-                    {CHANNEL_LABELS[pub.channelType]} ·{" "}
-                    {pub.publishedAt ? `Publié ${formatRelative(pub.publishedAt)}` : formatRelative(pub.createdAt)}
+                    {channelLabel(pub.channelType)} · {pub.publishedAt ? t("history.publishedAt", { date: formatDate(pub.publishedAt) }) : formatDate(pub.createdAt)}
                   </p>
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-2">
                   {STATUS_ICON[pub.status]}
                   <Badge variant={STATUS_VARIANT[pub.status] ?? "failed"} className="hidden text-[11px] sm:inline-flex">
-                    {PUBLICATION_STATUS_LABELS[pub.status] ?? pub.status}
+                    {t(`history.status.${pub.status}`)}
                   </Badge>
                   <span className="flex size-9 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 transition-all duration-200 group-open/details:rotate-180 group-hover:bg-white group-hover:text-slate-800">
                     <ChevronDown className="size-4" />
@@ -295,15 +304,15 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
               <div className="min-w-0 flex-1 px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
               <div className={cn("rounded-[22px] border-2 bg-white px-4 py-3 shadow-sm shadow-slate-200/60", accent.preview)}>
                 <div className="contents">
-                  <p className="line-clamp-6 whitespace-pre-line text-sm leading-relaxed text-slate-700">
-                    {truncate(buildChannelPreview(pub), 320)}
+                  <p dir="auto" className="line-clamp-6 whitespace-pre-line text-sm leading-relaxed text-slate-700">
+                    {truncate(buildChannelPreview(pub, locale, t("history.emailSubject")), 320)}
                   </p>
                 </div>
               </div>
 
               {pub.error && (
                 <div className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-                  <p className="line-clamp-2 text-xs text-red-700">{pub.error}</p>
+                  <p className="line-clamp-2 text-xs text-red-700">{locale === "he" ? t("history.failedHelp") : pub.error}</p>
                 </div>
               )}
 
@@ -312,7 +321,7 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
                   <a href={profileUrl} target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" size="sm" className={cn("h-7 text-xs", interactiveButtonClass)}>
                       <ExternalLink className="size-3" />
-                      Voir
+                      {t("history.view")}
                     </Button>
                   </a>
                 )}
@@ -325,7 +334,7 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
                     loading={retrying === pub.id}
                   >
                     <RefreshCw className="size-3" />
-                    Relancer ({pub.retryCount})
+                    {t("history.retry", { count: pub.retryCount })}
                   </Button>
                 )}
                 {pub.status === "PUBLISHED" && pub.channelType === "WHATSAPP" && (
@@ -335,11 +344,11 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
                     className={cn("h-7 text-xs", interactiveButtonClass)}
                     onClick={() => {
                       navigator.clipboard.writeText(cleanPreviewText(pub.content));
-                      alert("Contenu copié !");
+                      alert(t("history.copied"));
                     }}
                   >
                     <Copy className="size-3" />
-                    Copier le contenu
+                    {t("history.copy")}
                   </Button>
                 )}
                 {(pub.status === "PUBLISHED" || pub.status === "FAILED") && (
@@ -351,7 +360,7 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
                     loading={deleting === pub.id}
                   >
                     <Trash2 className="size-3" />
-                    Supprimer
+                    {t("history.delete")}
                   </Button>
                 )}
               </div>
@@ -364,11 +373,11 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden" dir={locale === "he" ? "rtl" : undefined}>
       <SocialPageBanner
-        title="Historique des publications"
+        title={t("composer.history")}
         color="#071F49"
-        statusLabel="Publications envoyées"
+        statusLabel={t("history.sent")}
       />
 
       <div className="flex flex-wrap justify-center gap-2 pb-1">
@@ -389,7 +398,7 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
                 )}
               >
                 {tab.logo}
-                <span>{tab.label}</span>
+                <span>{channelLabel(tab.value)}</span>
               </button>
             </Link>
           );
@@ -398,8 +407,8 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
 
       <div className="flex flex-wrap justify-center gap-1.5">
         {[
-          { label: "Envoyées avec succès", value: "PUBLISHED" },
-          { label: "Échecs", value: "FAILED" },
+          { label: t("history.successful"), value: "PUBLISHED" },
+          { label: t("history.failures"), value: "FAILED" },
         ].map((filter) => {
           const isActive = currentStatus === filter.value;
           const count = statsByStatus[filter.value] ?? 0;
@@ -428,10 +437,10 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
           <AlertCircle className="mt-0.5 size-5 flex-shrink-0 text-red-500" />
           <div>
             <p className="text-sm font-semibold text-red-800">
-              {statsByStatus.FAILED} publication{statsByStatus.FAILED > 1 ? "s" : ""} en échec
+              {t("history.failedCount", { count: statsByStatus.FAILED })}
             </p>
             <p className="mt-0.5 text-xs text-red-600">
-              Ces publications n&apos;ont pas pu être envoyées. Vous pouvez les relancer individuellement.
+              {t("history.failedDescription")}
             </p>
           </div>
         </div>
@@ -443,9 +452,9 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-xl shadow-md shadow-slate-200/50">
               <Zap className="size-6 text-slate-400" />
             </div>
-            <p className="mt-4 text-base font-bold text-slate-800">Aucune publication</p>
+            <p className="mt-4 text-base font-bold text-slate-800">{t("history.empty")}</p>
             <p className="mt-1 max-w-sm text-xs text-slate-500">
-              Aucune publication ne correspond à ce filtre.
+              {t("history.emptyFilter")}
             </p>
           </div>
         ) : (

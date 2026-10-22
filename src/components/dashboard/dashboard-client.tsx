@@ -154,7 +154,6 @@ const HE_CHANNEL_SHORT_LABELS: Record<string, string> = {
 };
 
 const HE_COMING_MODULES = [
-  { key: "publish", icon: Megaphone },
   { key: "posters", icon: ImageIcon },
   { key: "shabbatTimes", icon: Clock3 },
   { key: "birthdays", icon: Cake },
@@ -171,11 +170,11 @@ const HE_COMING_MODULES = [
 ] as const;
 
 const HE_DASHBOARD_AGENTS = [
-  { name: "Levik", roleKey: "newsletter", image: HOME_AGENT_IMAGES.levik, active: true },
-  { name: "Dov Ber", roleKey: "publish", image: HOME_AGENT_IMAGES.dovBer, active: false },
-  { name: "David", roleKey: "automations", image: HOME_AGENT_IMAGES.david, active: false },
-  { name: "Zalman", roleKey: "posters", image: HOME_AGENT_IMAGES.zalman, active: false },
-  { name: "Shmouel", roleKey: "torah", image: HOME_AGENT_IMAGES.shmouel, active: false },
+  { name: "Levik", roleKey: "newsletter", image: HOME_AGENT_IMAGES.levik, active: true, href: "/dashboard/newsletter" },
+  { name: "Dov Ber", roleKey: "publish", image: HOME_AGENT_IMAGES.dovBer, active: true, href: "/dashboard/social-networks" },
+  { name: "David", roleKey: "automations", image: HOME_AGENT_IMAGES.david, active: false, href: "" },
+  { name: "Zalman", roleKey: "posters", image: HOME_AGENT_IMAGES.zalman, active: false, href: "" },
+  { name: "Shmouel", roleKey: "torah", image: HOME_AGENT_IMAGES.shmouel, active: false, href: "" },
 ] as const;
 
 export function DashboardClient({
@@ -229,18 +228,26 @@ export function DashboardClient({
           </div>
         </section>
 
-        <section className="hebrew-brand-gradient overflow-hidden rounded-[2rem] p-6 shadow-[0_20px_48px_rgba(66,19,136,0.24)] sm:p-8">
-          <div className="flex items-start gap-4">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-amber-300 ring-1 ring-white/20"><FileText className="size-6" aria-hidden="true" /></span>
-            <div className="min-w-0 max-w-3xl">
-              <span className="inline-flex rounded-full bg-amber-300 px-3 py-1 text-xs font-black text-amber-950">{t("heAvailableNow")}</span>
-              <h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">{t("heOnlyTitle")}</h2>
-              <p className="mt-2 text-sm leading-6 text-violet-100 sm:text-base">{t("heOnlyDescription")}</p>
-            </div>
-          </div>
-          <Link href={resolveHref("/dashboard/newsletter")} className="mt-5 inline-flex min-h-12 items-center gap-2 rounded-2xl bg-amber-300 px-5 font-black text-[#321070] shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/50">
-            {t("heCreateNewsletter")}<ArrowRight className="rtl-mirror size-5" />
-          </Link>
+        <section className="grid gap-4 md:grid-cols-2" aria-label={t("heAvailableFeatures")}>
+          {[
+            { href: "/dashboard/newsletter", icon: FileText, title: "heOnlyTitle", description: "heOnlyDescription", action: "heCreateNewsletter" },
+            { href: "/dashboard/social-networks", icon: Megaphone, title: "hePublishTitle", description: "hePublishDescription", action: "heCreatePublication" },
+          ].map((card) => {
+            const Icon = card.icon;
+            return <article key={card.href} className="hebrew-brand-gradient flex min-h-72 flex-col overflow-hidden rounded-[2rem] p-6 shadow-[0_20px_48px_rgba(66,19,136,0.24)] sm:p-8">
+              <div className="flex items-start gap-4">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-amber-300 ring-1 ring-white/20"><Icon className="size-6" aria-hidden="true" /></span>
+                <div className="min-w-0">
+                  <span className="inline-flex rounded-full bg-amber-300 px-3 py-1 text-xs font-black text-amber-950">{t("heAvailableNow")}</span>
+                  <h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">{t(card.title)}</h2>
+                  <p className="mt-2 text-sm leading-6 text-violet-100 sm:text-base">{t(card.description)}</p>
+                </div>
+              </div>
+              <Link href={resolveHref(card.href)} className="mt-auto inline-flex min-h-12 w-fit items-center gap-2 rounded-2xl bg-amber-300 px-5 font-black text-[#321070] shadow-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/50">
+                {t(card.action)}<ArrowRight className="rtl-mirror size-5" />
+              </Link>
+            </article>;
+          })}
         </section>
 
         <section aria-labelledby="he-coming-title">
@@ -272,7 +279,7 @@ export function DashboardClient({
                 <span className="block text-xs text-slate-500">{t(`heAgentRoles.${agent.roleKey}`)}</span>
               </>;
               return agent.active
-                ? <Link key={agent.name} href={resolveHref("/dashboard/newsletter")} className="rounded-2xl border-2 border-amber-300 bg-white p-2 shadow-sm">{content}</Link>
+                ? <Link key={agent.name} href={resolveHref(agent.href)} className="rounded-2xl border-2 border-amber-300 bg-white p-2 shadow-sm">{content}</Link>
                 : <button key={agent.name} type="button" disabled aria-disabled="true" className="cursor-default rounded-2xl border border-slate-200 bg-white p-2 text-start opacity-65">{content}</button>;
             })}
           </div>

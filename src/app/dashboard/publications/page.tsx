@@ -2,8 +2,11 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PublicationsClient } from "@/components/publications/publications-client";
 import type { Metadata } from "next";
+import { getLocale } from "next-intl/server";
 
-export const metadata: Metadata = { title: "Historique des publications - EasyCom IA" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getLocale()) === "he" ? "היסטוריית פרסומים - EasyCom IA" : "Historique des publications - EasyCom IA" };
+}
 
 const PUBLICATION_STATUSES = ["PUBLISHED", "FAILED"] as const;
 
@@ -30,7 +33,7 @@ export default async function PublicationsPage({
 
   if (params.channel) query = query.eq("channelType", params.channel);
 
-  const [{ data: publications }, statusCounts] = await Promise.all([
+  const [{ data: publications }, statusCounts, { data: community }] = await Promise.all([
     query,
     Promise.all(
       PUBLICATION_STATUSES.map(async (publicationStatus) => {
@@ -42,6 +45,7 @@ export default async function PublicationsPage({
         return [publicationStatus, count ?? 0] as [string, number];
       })
     ),
+    admin.from("Community").select("timezone").eq("id", communityId).maybeSingle(),
   ]);
 
   const statsByStatus = Object.fromEntries(statusCounts);
@@ -53,6 +57,8 @@ export default async function PublicationsPage({
         statsByStatus={statsByStatus}
         activeStatus={status}
         activeChannel={params.channel}
+        timeZone={community?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone}
+        locale={await getLocale()}
       />
     </div>
   );

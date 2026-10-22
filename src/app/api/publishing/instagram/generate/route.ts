@@ -7,13 +7,13 @@ import { createClient } from "@/lib/supabase/server";
 const VISUAL_REQUEST_PATTERN =
   /\b(affiche|flyer|poster|visuel|visuelle|carousel|carrousel|design|mockup|image instagram|story)\b/i;
 
-function buildInstagramTitle(caption: string) {
+function buildInstagramTitle(caption: string, locale: "fr" | "he") {
   const firstLine = caption
     .split("\n")
     .map((line) => line.trim())
     .find(Boolean);
 
-  return firstLine ? firstLine.slice(0, 120) : "Publication Instagram";
+  return firstLine ? firstLine.slice(0, 120) : locale === "he" ? "פרסום באינסטגרם" : "Publication Instagram";
 }
 
 export async function POST(request: Request) {
@@ -29,6 +29,7 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const userPrompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
+    const locale: "fr" | "he" = body.locale === "he" ? "he" : "fr";
 
     if (!userPrompt) {
       return NextResponse.json({ error: "Le prompt Instagram est requis." }, { status: 400 });
@@ -52,13 +53,15 @@ export async function POST(request: Request) {
       communityId: profile.communityId,
       contentType: "GENERAL",
       channelType: "INSTAGRAM",
-      customInstructions: `${appendSocialMessageGuidelines(userPrompt)}\n\nImportant: reponds uniquement dans la langue de la demande utilisateur. Si la demande est en francais, n'ajoute pas d'hebreu.`,
+      customInstructions: locale === "he"
+        ? `${appendSocialMessageGuidelines(userPrompt)}\n\nכתוב את הפוסט ישירות בעברית מודרנית, טבעית, חמה וקהילתית. אין לתרגם מצרפתית באופן מילולי. שמור על מגבלות האורך של הרשת החברתית והוסף האשטגים בעברית רק אם הם מועילים.`
+        : `${appendSocialMessageGuidelines(userPrompt)}\n\nImportant: reponds uniquement en francais et n'ajoute pas d'hebreu.`,
     });
 
     const caption = generated.body?.trim() ?? "";
 
     return NextResponse.json({
-      title: buildInstagramTitle(caption),
+      title: buildInstagramTitle(caption, locale),
       body: caption,
       hashtags: generated.hashtags ?? [],
     });

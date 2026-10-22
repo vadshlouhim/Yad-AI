@@ -83,7 +83,7 @@ export async function POST(request: Request) {
       admin,
       user.id,
       "newsletter_generation",
-      "Générez votre newsletter Chabbat avec EasyCom IA : premier mois à 9,99 € TTC, puis 19,99 € TTC/mois."
+      "Générez votre newsletter Chabbat avec EasyCom IA : 30 jours gratuits, puis 19,99 € TTC/mois."
     );
     if (!paidAccess.ok) return paidAccess.response;
     const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();

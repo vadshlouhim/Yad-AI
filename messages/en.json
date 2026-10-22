@@ -1,5 +1,7 @@
 {
   "home": {
+    "specialOffer": "Launch offer", "gift": "30-day free trial", "trialPriceCaption": "for 30 days", "thenPrice": "Then {price}/month, no commitment. Cancel anytime.", "cardRequired": "Card required — no charge for 30 days.",
+    "faqTitle": "Frequently asked questions", "faq1q": "Do I have to pay during the trial?", "faq1a": "No. Your card is required at signup, but no charge is made for 30 days. You can cancel before the trial ends and pay nothing.", "faq2q": "What happens after 30 days?", "faq2a": "The subscription continues at €19.99/month, with no commitment. You can cancel anytime from Subscription and billing.",
     "whatsappMessage": "Hello, I would like more information about EasyCom AI.",
     "heBadgeNewsletter": "Shabbat newsletter",
     "heBadgePdf": "Print-ready PDF",
@@ -10,9 +12,81 @@
     "heDemoLine": "Write, design and print in just a few minutes",
     "heDemoCta": "Create an account and get started",
     "heDemoAria": "Create an account for the Shabbat newsletter",
+    "heDemoAvailableTitle": "What is already available in Hebrew?",
+    "heDemoCards": {
+      "newsletter": { "label": "Available now", "title": "Shabbat Newsletter", "description": "A professional two-sided newsletter, ready to print in minutes", "aria": "Create an account for the Shabbat newsletter" },
+      "publish": { "label": "New", "title": "Publish everywhere", "description": "Write once and publish across all your networks", "aria": "Create an account to publish everywhere" }
+    },
     "agentsAvailability": "In Hebrew, the Shabbat newsletter is available now. The other agents are coming soon.",
     "availableNow": "Available now",
     "comingSoonBadge": "Coming soon"
+  },
+  "auth": { "trialReminder": "30 days free, then €19.99/month. No charge today." },
+  "billing": {
+    "metadataTitle": "Subscription and billing — EasyCom IA", "back": "Settings", "title": "Subscription and billing", "subtitle": "Your subscription, card and invoices.",
+    "heroTitle": "One subscription.\nAll of EasyCom IA.", "heroDescription": "30 days free with every feature, then €19.99/month, no commitment.",
+    "statusDiscovery": "Trial available", "statusTrial": "Free trial", "statusActive": "Active subscription", "statusPastDue": "Payment required", "statusInactive": "Inactive subscription",
+    "offerBadge": "Launch offer", "offerTrial": "30-day free trial", "offerThen": "Then {price}/month, no commitment. Cancel anytime.", "offerCard": "Card required — no charge for 30 days.", "offerEligibility": "The trial is available only to communities that have never used it. Otherwise, billing starts immediately.", "tryFree": "Try for free", "continueCheckout": "Continue to checkout", "subscribeNow": "Subscribe for {price}/month",
+    "trialSummary": "Free trial – {days} day(s) left, until {date}. Then {price}/month.", "trialUsed": "This community has already used its trial. The {price}/month subscription starts immediately.",
+    "state": "Status", "fullAccess": "All features are available.", "noBilling": "No active billing.", "since": "Since", "periodStart": "Start of the current period.", "accessEnd": "Access ends", "nextRenewal": "Next renewal", "accessUntil": "Your access remains active until then.", "changeAnytime": "You can change this subscription anytime.",
+    "manageTitle": "Manage / Cancel", "manageDescription": "Update your card, download Stripe invoices or cancel your subscription.", "openPortal": "Manage / Cancel",
+    "invoices": "Invoices", "invoicesDescription": "Your latest Stripe payments.", "invoice": "Stripe invoice", "paid": "Paid", "processing": "Processing", "download": "Download", "noInvoices": "No invoices yet. They will appear here after your first payment.",
+    "included": "What's included", "features": ["Unlimited AI automations", "Posters, publications and sends", "Printable Shabbat newsletter and PDF", "Email, Google reviews and WhatsApp"], "secure": "Secure payments by Stripe · cancel anytime.",
+    "checkoutError": "Unable to open checkout.", "portalError": "Unable to open Stripe.",
+    "notificationTitle": "Subscription", "trialEndingTitle": "Your trial ends soon", "trialEndingBody": "Your free trial ends in 3 days. Your subscription will then continue at €19.99/month.", "subscriptionActive": "Your EasyCom IA subscription is active.", "subscriptionCanceled": "Your subscription was canceled.", "paymentFailed": "Your subscription payment failed. Update your payment method.", "paymentPaid": "Your EasyCom IA payment was received.", "emailCta": "Manage my subscription", "emailGreeting": "Hello,", "emailGreetingName": "Hello {name},", "emailFooter": "This is an automated EasyCom IA notification. Manage your preferences in the app."
+  },
+  "pricing": {
+    "metadataTitle": "EasyCom IA pricing — 30 days free", "metadataDescription": "30-day free trial, then €19.99/month, no commitment. Card required and no charge during the trial.",
+    "eyebrow": "One offer, everything included", "headline1": "Simple.", "headline2": "Transparent.", "headline3": "Ready to go.", "intro": "Use every feature for 30 days. Your card is required, but there is no charge today.", "noCommitment": "No commitment", "secure": "Secure Stripe payment",
+    "badge": "Launch offer", "title": "30-day free trial", "allFeatures": "Every EasyCom IA feature, unlimited during the trial.", "priceCaption": "for 30 days", "then": "Then {price}/month, no commitment. Cancel anytime.", "card": "Card required — no charge for 30 days.", "cta": "Try for free", "oneTrial": "One free trial per community.",
+    "included": ["Smart automations and reminders", "Posters, content and AI generation", "Publications, WhatsApp and email", "Printable Shabbat newsletter and PDF", "Google reviews and community tools", "Cancel anytime through Stripe"],
+    "howKicker": "No surprises", "howTitle": "How does it work?", "steps": [{"title":"Create your account","text":"Set up your community and add your card securely."},{"title":"Try everything free","text":"Every feature is available for 30 days with no charge."},{"title":"Continue freely","text":"After 30 days: {price}/month, no commitment. Cancel anytime."}],
+    "controlTitle": "You stay in control", "controlText": "Cancel before the 30 days end and pay nothing.", "createAccount": "Create my account"
+  },
+  "onboarding": { "checkoutReminder": "30 days free, then €19.99/month. No charge today.", "checkoutError": "Your community was saved, but checkout could not open. Continue from Subscription and billing." },
+  "socialPlanning": {
+    "back": "Back to Post everywhere", "title": "My week", "subtitle": "Your posts, from Sunday to Shabbat", "shabbat": "Shabbat – no publications", "empty": "No publications in this category.",
+    "tabs": { "upcoming": "Upcoming", "published": "Published", "failed": "Failures" },
+    "status": { "SCHEDULED": "Scheduled", "PUBLISHED": "Published", "FAILED": "Failed", "PENDING": "Pending", "CANCELLED": "Cancelled" },
+    "ideas": { "title": "AI ideas for this week", "parasha": "An idea about Parasha {name}", "holiday": "Prepare the community for {name}", "event": "Remind everyone about {name}", "volunteers": "Thank our volunteers", "kiddush": "A photo from Kiddush" },
+    "actions": { "edit": "Edit", "duplicate": "Duplicate", "delete": "Delete", "deleteConfirm": "Delete this scheduled publication?" }
+  },
+  "socialComposer": {
+    "header": { "back": "Back to dashboard", "title": "Post everywhere", "profile": "Open my profile", "week": "My week" },
+    "networks": { "FACEBOOK": "Facebook", "INSTAGRAM": "Instagram" },
+    "draft": { "resume": "Resume your draft?", "restore": "Resume", "dismiss": "Dismiss draft" },
+    "hero": { "title": "One idea, all your networks", "subtitle": "Create once, adapt and publish in minutes.", "connect": "Connect" },
+    "message": {
+      "title": "Your message", "placeholder": "What would you like to announce?", "generate": "Write with AI", "generating": "AI is writing your post…", "another": "Another version",
+      "tones": { "warm": "Warm", "festive": "Festive", "simple": "Simple" },
+      "templates": {
+        "torah": { "label": "Torah class", "text": "Announce our next Torah class with its topic, date, time and location." },
+        "kiddush": { "label": "Kiddush", "text": "Warmly invite the community to the next Kiddush and add the practical details." },
+        "holiday": { "label": "Holiday", "text": "Wish the community a happy holiday and share the planned program." },
+        "shabbat": { "label": "Shabbat times", "text": "Share Shabbat entry and exit times together with the service schedule." },
+        "event": { "label": "Event", "text": "Present our next event and invite the community to register." }
+      }
+    },
+    "image": { "title": "Image", "empty": "Add an image", "upload": "Upload", "library": "Image library", "ai": "Create with AI", "replace": "Replace", "remove": "Remove", "alt": "Publication visual" },
+    "preview": { "title": "Preview", "pageName": "Your community", "time": "1 min ago", "more": "See more", "empty": "Your text will appear here." },
+    "channels": { "title": "Your networks", "connected": "Connected", "disconnected": "Not connected", "connect": "Connect", "toggle": "Enable or disable {network}" },
+    "schedule": { "title": "When to publish?", "moments": { "now": "Now", "tonight": "Tonight", "custom": "Choose…" }, "suggestion": "{time}: the best time for your community", "shabbat": "Shabbat mode: nothing is sent from Friday evening until Shabbat ends, or during Yom Tov.", "shabbatToggle": "Enable Shabbat mode", "adjusted": "This time falls during Shabbat or a holiday — we will publish after it ends, on {date}.", "repeat": "Repeat weekly for 8 weeks" },
+    "actions": { "publish": "Publish to {count} network(s)", "schedule": "Schedule on {count} network(s)", "draft": "Save draft", "confirmNow": "Confirm immediate publication to the selected networks?" },
+    "success": { "scheduled": "Scheduled!", "published": "Published!", "week": "View my week", "new": "New post" },
+    "errors": { "load": "Unable to load your networks.", "ideaRequired": "First write what you would like to announce.", "ai": "AI could not write the versions. Try again.", "upload": "The image could not be uploaded.", "networkRequired": "Choose at least one network.", "textRequired": "Prepare text for every selected network.", "instagramImage": "Instagram requires an image.", "future": "Choose a future date and time.", "publish": "The publication could not be saved. Try again." }
+  },
+  "publishing": {
+    "banner": { "kicker": "Social networks", "title": "Publish everywhere from one place", "description": "Prepare your message with AI, add an image, and share it on Facebook, Instagram and WhatsApp at the right time.", "agent": "Social networks" },
+    "networks": { "FACEBOOK": "Facebook", "INSTAGRAM": "Instagram", "WHATSAPP": "WhatsApp", "TELEGRAM": "Telegram", "EMAIL": "Email", "ALL": "All networks" },
+    "common": { "close": "Close", "closeDialog": "Close dialog", "connected": "Connected", "disconnected": "Not connected", "comingSoon": "Coming soon", "understood": "Understood", "refresh": "Refresh", "loading": "Loading…", "selected": "selected", "removeImage": "Remove image" },
+    "success": { "eyebrow": "Published successfully", "title": "Your publication was sent", "one": "It is now available on the selected network.", "many": "It is now available on the {count} selected networks.", "openWhatsApp": "Open WhatsApp", "viewOn": "View on {network}" },
+    "requirements": { "eyebrow": "Publication incomplete", "title": "One more action is required", "description": "Complete the following before publishing.", "instagramImage": "Add at least one image to publish on Instagram.", "whatsappContact": "Select at least one WhatsApp contact." },
+    "schedule": { "title": "Schedule multi-network publications", "description": "Review the content; it will be saved and published at the chosen times.", "message": "Prepared message", "images": "Prepared images", "imageCount": "{count} image(s)", "noImage": "No image added.", "addImage": "Add image", "adding": "Adding…", "channels": "Destination networks", "whatsappRecipients": "WhatsApp recipients", "selectedCount": "{count} selected", "momentTitle": "Choose the right time", "momentHelp": "Each occurrence appears in history and uses the reviewed content.", "day": "Day", "time": "Time", "frequency": "Frequency", "once": "Once", "daily": "Daily", "weekly": "Weekly", "monthly": "Monthly", "custom": "Custom", "weekDays": "Publication days", "endDate": "Repeat until", "saving": "Saving…", "save": "Save schedule", "days": { "sun": "Sun", "mon": "Mon", "tue": "Tue", "wed": "Wed", "thu": "Thu", "fri": "Fri", "sat": "Sat" } },
+    "errors": { "upload": "Upload failed.", "load": "Loading failed.", "ai": "AI adaptation failed.", "publish": "Publication failed.", "messageRequired": "Add a message to publish.", "networkRequired": "Choose at least one network.", "connectFirst": "Connect first: {networks}.", "instagramImage": "Instagram requires an image.", "whatsappContact": "Choose at least one WhatsApp contact.", "dateTime": "Choose a date and time.", "future": "Choose a future date and time.", "endRequired": "Choose an end date.", "endAfter": "The end date must be after the first publication.", "dayRequired": "Choose at least one publication day.", "limit": "Scheduling is limited to 52 publications.", "noDates": "No dates match your settings.", "unconfirmed": "Publication was not confirmed on every network. {details}", "manual": "manual send required", "notConfirmed": "send not confirmed" },
+    "emailSoon": { "title": "Publish by email too", "description": "Email publishing is coming soon and does not block active social networks.", "feature": "One message, every channel", "help": "EasyCom AI supports targeted and responsible communication." },
+    "composer": { "ai": "Transform with AI", "placeholder": "Your publication appears here. Review and adjust it before sending.", "uploading": "Uploading…", "addImage": "Add image", "imageLibrary": "Image library", "imageLibrarySoon": "Coming soon", "imageAi": "Create with AI", "imageAiSoon": "Coming soon", "imageAlt": "Uploaded image", "channelsTitle": "Choose channels", "channelsHelp": "Select the networks that receive this publication.", "selectedForSend": "Selected to send", "addToSend": "Add to send", "connectionRequired": "Connection required", "emailDiscover": "Learn more", "contactsTitle": "WhatsApp contacts", "contactsHelp": "Select contacts; tags act as groups.", "searchContacts": "Search a contact or tag…", "selectAll": "Select all", "clearAll": "Clear all", "noSearchResult": "No contact matches your search.", "noContacts": "No WhatsApp contacts available.", "manageContacts": "Add or authorize WhatsApp contacts", "publishNow": "Publish now", "schedule": "Schedule publication", "history": "Publication history", "historyHelp": "Find all sent and scheduled publications.", "restored": "Draft restored.", "imageAdded": "Image added; your message is ready.", "scheduled": "{count} publication(s) scheduled successfully." },
+    "history": { "sent": "Sent publications", "successful": "Sent successfully", "failures": "Failures", "publishedAt": "Published {date}", "status": { "PUBLISHED": "Published", "FAILED": "Failed" }, "view": "View", "retry": "Retry ({count})", "retryError": "Retry failed.", "copy": "Copy content", "copied": "Content copied!", "delete": "Delete", "deleteConfirm": "Delete this publication from history?", "deleteError": "Deletion failed.", "failedHelp": "Publication failed.", "failedCount": "{count} failed publication(s)", "failedDescription": "These publications could not be sent. You can retry them individually.", "empty": "No publications", "emptyFilter": "No publication matches this filter.", "emailSubject": "Subject" },
+    "aiPrompt": "Adapt this message for Facebook, Instagram, and WhatsApp. Keep one text suitable for all networks. Message: {message}"
   },
   "dashboard": {
     "heNewsletter": "Shabbat newsletter",
@@ -21,6 +95,11 @@
     "heOnlyTitle": "Shabbat Newsletter",
     "heOnlyDescription": "Create a professional, AI-written and designed Shabbat newsletter, ready to print in minutes.",
     "heCreateNewsletter": "Create a Shabbat newsletter",
+    "heAvailableFeatures": "Features available in Hebrew",
+    "hePublishTitle": "Publish everywhere",
+    "hePublishDescription": "Write once: AI adapts and publishes across all your networks.",
+    "heCreatePublication": "New publication",
+    "hePublishNav": "Publish",
     "heMoreSoon": "More features are coming soon in Hebrew.",
     "heManageProfile": "Profile and settings",
     "heBilling": "Subscription and billing",

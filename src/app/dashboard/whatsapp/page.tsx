@@ -3,10 +3,13 @@ import { WhatsAppClient } from "@/components/whatsapp/whatsapp-client";
 import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getBillingConfig, getBillingGate } from "@/lib/billing";
+import { getLocale } from "next-intl/server";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = { title: "WhatsApp - EasyCom IA" };
 
 export default async function WhatsAppPage() {
+  if ((await getLocale()) === "he") redirect("/dashboard/social-networks");
   const { profile } = await requireAuth();
   const admin = createAdminClient();
   const communityId = profile.communityId!;

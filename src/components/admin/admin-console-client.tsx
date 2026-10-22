@@ -379,9 +379,7 @@ export function AdminConsoleClient({
   const [globalError, setGlobalError] = useState<string | null>(initialTemplateError);
   const [billingDraft, setBillingDraft] = useState({
     basePriceEuros: (billingConfig.basePriceCents / 100).toFixed(2),
-    launchPriceEuros: (billingConfig.launchPriceCents / 100).toFixed(2),
-    launchEndsAt: billingConfig.launchEndsAt,
-    launchMessage: billingConfig.launchMessage,
+    trialDays: String(billingConfig.trialDays),
   });
   const [billingSaving, setBillingSaving] = useState(false);
   const [showDevelopmentPreview, setShowDevelopmentPreview] = useState(false);
@@ -1588,46 +1586,23 @@ export function AdminConsoleClient({
                   />
                 </label>
                 <label className={`text-sm font-semibold ${strongText}`}>
-                  Tarif de bienvenue TTC (premier mois)
+                  Durée de l&apos;essai gratuit (jours)
                   <input
-                    value={billingDraft.launchPriceEuros}
-                    onChange={(event) => setBillingDraft((current) => ({ ...current, launchPriceEuros: event.target.value }))}
-                    className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}
-                    inputMode="decimal"
-                    placeholder="9.99"
-                  />
-                </label>
-                <label className={`text-sm font-semibold ${strongText}`}>
-                  Date de fin du tarif réduit
-                  <input
-                    type="date"
-                    value={billingDraft.launchEndsAt}
-                    onChange={(event) => setBillingDraft((current) => ({ ...current, launchEndsAt: event.target.value }))}
+                    type="number"
+                    min="0"
+                    value={billingDraft.trialDays}
+                    onChange={(event) => setBillingDraft((current) => ({ ...current, trialDays: event.target.value }))}
                     className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}
                   />
                 </label>
                 <div className={`rounded-3xl border p-4 ${isDark ? "border-blue-300/20 bg-blue-300/10" : "border-blue-100 bg-blue-50"}`}>
                   <p className={`text-xs font-black uppercase tracking-[0.16em] ${isDark ? "text-blue-100" : "text-blue-700"}`}>Aperçu public</p>
                   <p className={`mt-3 text-sm font-bold ${mutedText}`}>
-                    <span className="line-through">{billingDraft.basePriceEuros || "19.99"} € TTC</span>
-                    <span className={`ml-3 text-2xl font-black ${isDark ? "text-white" : "text-blue-700"}`}>
-                      {billingDraft.launchPriceEuros || "9.99"} € TTC
-                    </span>
-                    <span className="ml-1 text-xs">/ mois</span>
+                    <span className={`text-2xl font-black ${isDark ? "text-white" : "text-blue-700"}`}>0 €</span>
+                    <span className="ml-2 text-xs">pendant {billingDraft.trialDays || "30"} jours, puis {billingDraft.basePriceEuros || "19.99"} € TTC / mois</span>
                   </p>
                 </div>
               </div>
-
-              <label className={`mt-5 block text-sm font-semibold ${strongText}`}>
-                Message de lancement
-                <textarea
-                  value={billingDraft.launchMessage}
-                  onChange={(event) => setBillingDraft((current) => ({ ...current, launchMessage: event.target.value }))}
-                  rows={4}
-                  className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}
-                  placeholder="Offre de lancement..."
-                />
-              </label>
             </section>
           )}
 

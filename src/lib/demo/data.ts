@@ -254,7 +254,7 @@ export const DEMO_DRAFTS = [
     communityId: "demo-community-id",
     eventId: "evt-hanoucca",
     title: "✨ Grand allumage de Hanoukka — Place des Vosges",
-    body: `🕎 HANOUKKA EST ARRIVÉ !\n\nVenez célébrer avec nous le grand allumage public de Hanoukka sur la magnifique Place des Vosges !\n\n🗓️ Dans 2 semaines\n📍 Place des Vosges, Paris 75004\n⏰ 18h00 — entrée libre\n\nAu programme :\n🍩 Sufganiot (beignets) & latkes maison\n🎵 Chants traditionnels en famille\n🎠 Animation enfants avec cadeaux\n🕎 Allumage solennel de la Hanoukia géante\n\nCet événement est ouvert à TOUS — partagez autour de vous ! ❤️`,
+    body: `🕎 HANOUKKA EST ARRIVÉ !\n\nVenez célébrer avec nous le grand allumage public de Hanoukka sur la magnifique Place des Vosges !\n\n🗓️ Dans 15 jours\n📍 Place des Vosges, Paris 75004\n⏰ 18h00 — entrée libre\n\nAu programme :\n🍩 Sufganiot (beignets) & latkes maison\n🎵 Chants traditionnels en famille\n🎠 Animation enfants avec cadeaux\n🕎 Allumage solennel de la Hanoukia géante\n\nCet événement est ouvert à TOUS — partagez autour de vous ! ❤️`,
     bodyHebrew: null,
     bodyEnglish: null,
     hashtags: ["#hanoucca", "#hanoukka", "#paris", "#bhmarais", "#fetedesfetes"],
