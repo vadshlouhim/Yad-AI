@@ -133,10 +133,11 @@ function heading(text: string, compact = false, fontSize = 11) {
   return node;
 }
 
-export function renderDocumentBlock(block: DocumentBlock, fontSize: number) {
+export function renderDocumentBlock(block: DocumentBlock, fontSize: number, locale: OutputLocale = "fr") {
   const section = element("section", undefined, { breakInside: "avoid", minWidth: "0" });
   section.dataset.blockId = block.id;
-  if (block.title) section.append(heading(block.title + (block.kind === "text" && block.continuation ? " — suite" : ""), block.kind === "text" && block.compact));
+  const continuation = block.kind === "text" && block.continuation ? (locale === "he" ? " — המשך" : " — suite") : "";
+  if (block.title) section.append(heading(block.title + continuation, block.kind === "text" && block.compact));
   if (block.kind === "text") {
     const text = element("div", block.id === "dedications" ? undefined : block.text, {
       whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: block.compact ? "var(--newsletter-font), Arial, sans-serif" : "var(--newsletter-serif), Georgia, 'Times New Roman', serif",
@@ -506,15 +507,24 @@ function renderCaption(text: string) {
   return caption;
 }
 
-export type NewsletterComposition = { pages: string[]; omittedMediaIds: string[] };
+export type NewsletterComposition = {
+  pages: string[];
+  omittedMediaIds: string[];
+  /** The flowing safety-net layout was used: some article continues on the next page. */
+  flowFallback?: boolean;
+  /** Blocks taller than a whole page, which prevented the whole-article layout. */
+  oversizedBlocks?: string[];
+};
 
 const isOverflowError = (error: unknown) =>
   [NEWSLETTER_ERROR_CODES.layoutOverflow, NEWSLETTER_ERROR_CODES.printableOverflow].includes(newsletterErrorCode(error) as never);
 
 /**
  * Never asks the user to arbitrate before trying everything that keeps the content intact:
- * normal spacing, then tight spacing (smaller gaps and photos; posters stay readable). On 3 pages, as a last resort,
- * visuals are left out from the end (posters, partners, photos) — text is never cut.
+ * normal spacing, then tight spacing (smaller gaps and photos; posters stay readable).
+ * On 3 pages the composition never fails:
+ *  - when the text alone fits, visuals are set aside from the end (posters, partners, photos);
+ *  - otherwise a flowing layout lets long articles continue overleaf, keeping every word and visual.
  */
 export async function composeNewsletterWithReport(data: NewsletterDocumentData): Promise<NewsletterComposition> {
   const pageLimit: 2 | 3 = (data.layout?.pageLimit ?? 2) > 2 ? 3 : 2;
@@ -533,24 +543,86 @@ export async function composeNewsletterWithReport(data: NewsletterDocumentData):
   if (pages) return { pages, omittedMediaIds: [] };
   if (pageLimit < 3) throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { maxPages: pageLimit });
 
-  const queue = [
-    ...data.posters.map(item => item.id).reverse(),
-    ...data.partnerAds.map(item => item.id).reverse(),
-    ...data.photos.map(item => item.id).reverse(),
-  ];
-  const omitted = new Set<string>();
-  for (const id of queue) {
-    omitted.add(id);
-    const candidate = {
-      ...data,
-      photos: data.photos.filter(item => !omitted.has(item.id)),
-      posters: data.posters.filter(item => !omitted.has(item.id)),
-      partnerAds: data.partnerAds.filter(item => !omitted.has(item.id)),
-    };
-    const fitted = await attempt(candidate, ["tight"]);
-    if (fitted) return { pages: fitted, omittedMediaIds: [...omitted] };
+  const withoutMedia = (ids: Set<string>) => ({
+    ...data,
+    photos: data.photos.filter(item => !ids.has(item.id)),
+    posters: data.posters.filter(item => !ids.has(item.id)),
+    partnerAds: data.partnerAds.filter(item => !ids.has(item.id)),
+  });
+  const allMedia = [...data.posters, ...data.partnerAds, ...data.photos].map(item => item.id);
+  // If even the text alone cannot be laid out as whole articles, setting visuals aside is pointless.
+  const textOnlyFits = !allMedia.length || Boolean(await attempt(withoutMedia(new Set(allMedia)), ["tight"]));
+  if (textOnlyFits && allMedia.length) {
+    // Grouped steps keep the number of attempts small on phones.
+    const posterIds = data.posters.map(item => item.id);
+    const partnerIds = data.partnerAds.map(item => item.id);
+    const photoIds = data.photos.map(item => item.id);
+    const steps = [
+      posterIds.slice(-1),
+      posterIds,
+      [...posterIds, ...partnerIds],
+      [...posterIds, ...partnerIds, ...photoIds.slice(Math.ceil(photoIds.length / 2))],
+    ].filter((step, index, all) => step.length && step.length < allMedia.length && all.findIndex(other => other.length === step.length) === index);
+    for (const step of steps) {
+      const fitted = await attempt(withoutMedia(new Set(step)), ["tight"]);
+      if (fitted) return { pages: fitted, omittedMediaIds: [...step].reverse() };
+    }
+    const textOnly = await attempt(withoutMedia(new Set(allMedia)), ["tight"]);
+    if (textOnly) return { pages: textOnly, omittedMediaIds: [...allMedia].reverse() };
   }
-  throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { maxPages: pageLimit });
+  const flow = await composeNewsletterFlow(data, pageLimit);
+  return { pages: flow.pages, omittedMediaIds: [], flowFallback: true, oversizedBlocks: flow.oversizedBlocks };
+}
+
+/**
+ * Safety net: a word-processor flow that cannot fail. Articles may continue on the next
+ * page ("— suite"); nothing is truncated or hidden. Type tightens to stay within
+ * `targetPages`; physically larger content gets the extra pages it needs.
+ */
+async function composeNewsletterFlow(data: NewsletterDocumentData, targetPages: number): Promise<{ pages: string[]; oversizedBlocks: string[] }> {
+  await document.fonts.ready;
+  const blocks = await makeBlocks(data);
+  const rtl = data.outputLocale === "he";
+  const root = element("div", undefined, { position: "fixed", left: "-20000px", top: "0", width: CONTENT_WIDTH + "px", fontFamily: "var(--newsletter-font), Arial, sans-serif", color: INK, visibility: "hidden", direction: rtl ? "rtl" : "ltr" });
+  root.style.setProperty("--newsletter-font", rtl ? "var(--font-hebrew)" : "Arial");
+  root.style.setProperty("--newsletter-serif", rtl ? "var(--font-hebrew)" : "Georgia");
+  document.body.append(root);
+  try {
+    const flowData = { ...data, layout: { ...data.layout, density: "auto" as const } };
+    const heightOf = (node: HTMLElement) => { root.replaceChildren(node); return node.getBoundingClientRect().height; };
+    const cache = new Map<string, number>();
+    const measure = (block: DocumentBlock, font: number) => {
+      const key = JSON.stringify([block, font]);
+      if (!cache.has(key)) cache.set(key, heightOf(renderDocumentBlock(block, font, data.outputLocale)));
+      return cache.get(key)!;
+    };
+    // 16px footer margin + a few pixels of safety for rounding differences between browsers.
+    const footHeight = heightOf(footer(flowData, 0, 9)) + 16 + 8;
+    const capacities = [true, false].map(first => PAPER.height - PAPER.margin * 2 - heightOf(header(flowData, first)) - footHeight);
+    const capacity = (index: number) => capacities[index ? 1 : 0];
+    const oversizedBlocks = blocks.filter((block, index) => measure(block, 11) > capacity(index ? 1 : 0)).map(block => block.id);
+    let layout: DocumentPage[] = [];
+    for (const font of [11, 10.5, 10, 9.5]) {
+      layout = paginateNewsletter(blocks, capacity, measure, font);
+      if (layout.length <= targetPages) break;
+    }
+    while (layout.length < 2) layout.push({ blocks: [], fontSize: 11 });
+    const pages = layout.map((page, index) => {
+      const article = paper(flowData, index);
+      article.dataset.composition = "flow";
+      article.dataset.bodyFont = String(page.fontSize);
+      const content = element("div", undefined, { flex: "1", minHeight: "0" });
+      content.dataset.newsletterContent = "true";
+      page.blocks.forEach((block, i) => {
+        const section = renderDocumentBlock(block, page.fontSize, data.outputLocale);
+        if (i) section.style.marginTop = blockGap(page.fontSize) + "px";
+        content.append(section);
+      });
+      article.append(content, footer(flowData, index, layout.length));
+      return article.outerHTML;
+    });
+    return { pages, oversizedBlocks };
+  } finally { root.remove(); }
 }
 
 /** Measured zones shared unchanged by preview, browser print and PDF export. */

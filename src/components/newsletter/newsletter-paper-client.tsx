@@ -437,7 +437,7 @@ export function NewsletterPaperClient({
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   // Set only when the content does not fit even after automatic tightening.
   const [needsMorePages, setNeedsMorePages] = useState(false);
-  const [omittedMediaIds, setOmittedMediaIds] = useState<string[]>([]);
+  const [compositionReport, setCompositionReport] = useState({ pageCount: 2, omittedMedia: 0, flowFallback: false, oversizedBlocks: [] as string[] });
   const [overflowShortening, setOverflowShortening] = useState(false);
 
   const activeCount = useMemo(() => Object.values(enabled).filter(Boolean).length, [enabled]);
@@ -493,10 +493,25 @@ export function NewsletterPaperClient({
     },
   };
   const showOverflow = useCallback(() => setNeedsMorePages(true), []);
+  const reportedFallback = useRef("");
   const handleComposed = useCallback((report: NewsletterComposition) => {
     setNeedsMorePages(false);
-    setOmittedMediaIds(current => current.join("|") === report.omittedMediaIds.join("|") ? current : report.omittedMediaIds);
-  }, []);
+    const summary = { pageCount: report.pages.length, omittedMedia: report.omittedMediaIds.length, flowFallback: Boolean(report.flowFallback), oversizedBlocks: report.oversizedBlocks ?? [] };
+    setCompositionReport(current => JSON.stringify(current) === JSON.stringify(summary) ? current : summary);
+    // Let the team know when the safety net was needed; never blocks the user.
+    const signature = JSON.stringify(summary);
+    if ((summary.flowFallback || summary.omittedMedia) && reportedFallback.current !== signature) {
+      reportedFallback.current = signature;
+      void fetch("/api/newsletter/layout-event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...summary, outputLocale }) }).catch(() => undefined);
+    }
+  }, [outputLocale]);
+  const compositionNote = compositionReport.pageCount > pageLimit
+    ? t("overflow.extraPages", { count: compositionReport.pageCount })
+    : compositionReport.flowFallback
+      ? t("overflow.continued")
+      : compositionReport.omittedMedia
+        ? t("overflow.omitted", { count: compositionReport.omittedMedia })
+        : null;
   const localDraftKey = useMemo(() => `easycom.newsletter.draft.${community.id}.${userId}.${outputLocale}`, [community.id, outputLocale, userId]);
   const draftSnapshot = useMemo<NewsletterDraft>(() => ({
     version: NEWSLETTER_DRAFT_VERSION,
@@ -1449,17 +1464,15 @@ export function NewsletterPaperClient({
 
         <main ref={previewRef} className={cn("min-w-0 rounded-[1.8rem] border border-amber-100 bg-gradient-to-b from-[#fffdf8] to-[#f7f2e7] p-3 shadow-[0_16px_42px_rgba(95,68,22,0.1)] sm:p-5 xl:col-span-2", editorStep !== "preview" && "hidden")}>
           {draftReady ? <NewsletterRevision data={documentData} onApply={applyRevision} onUndo={undoRevision} canUndo={Boolean(previousRevision)} onBusy={setRevisionBusy} /> : null}
-          {needsMorePages ? <div className="mb-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 print:hidden" role="status" data-newsletter-overflow-banner>
-            <p className="font-black text-amber-950">{pageLimit === 2 ? t("overflow.bannerTitle") : t("overflow.fullTitle")}</p>
-            {pageLimit === 2 ? <>
-              <p className="mt-1 text-sm text-amber-900">{t("overflow.bannerHelp")}</p>
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-                <button type="button" onClick={addThirdPage} className="min-h-11 rounded-xl bg-amber-500 px-4 text-sm font-black text-amber-950 shadow-sm hover:bg-amber-400" data-newsletter-add-page>{t("overflow.addThirdPage")}</button>
-                <button type="button" onClick={() => void shortenTextsAutomatically()} disabled={overflowShortening} className="min-h-11 text-sm font-bold text-amber-900 underline underline-offset-2 disabled:opacity-60">{overflowShortening ? t("overflow.shortening") : t("overflow.shortenInstead")}</button>
-              </div>
-            </> : <button type="button" onClick={() => void shortenTextsAutomatically()} disabled={overflowShortening} className="mt-3 min-h-11 rounded-xl bg-amber-500 px-4 text-sm font-black text-amber-950 shadow-sm hover:bg-amber-400 disabled:opacity-60">{overflowShortening ? t("overflow.shortening") : t("overflow.shortenAction")}</button>}
+          {needsMorePages && pageLimit === 2 ? <div className="mb-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 print:hidden" role="status" data-newsletter-overflow-banner>
+            <p className="font-black text-amber-950">{t("overflow.bannerTitle")}</p>
+            <p className="mt-1 text-sm text-amber-900">{t("overflow.bannerHelp")}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <button type="button" onClick={addThirdPage} className="min-h-11 rounded-xl bg-amber-500 px-4 text-sm font-black text-amber-950 shadow-sm hover:bg-amber-400" data-newsletter-add-page>{t("overflow.addThirdPage")}</button>
+              <button type="button" onClick={() => void shortenTextsAutomatically()} disabled={overflowShortening} className="min-h-11 text-sm font-bold text-amber-900 underline underline-offset-2 disabled:opacity-60">{overflowShortening ? t("overflow.shortening") : t("overflow.shortenInstead")}</button>
+            </div>
           </div> : null}
-          {!needsMorePages && omittedMediaIds.length ? <p className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 print:hidden" role="status" data-newsletter-omitted-media>{t("overflow.omitted", { count: omittedMediaIds.length })}</p> : null}
+          {!needsMorePages && compositionNote ? <p className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 print:hidden" role="status" data-newsletter-composition-note>{compositionNote}</p> : null}
           {draftReady ? <NewsletterDocument prepared={preparedRevision} ref={documentRef} data={documentData} visible={editorStep === "preview"} onError={setError} onOverflow={showOverflow} onComposed={handleComposed} /> : null}
         </main>
       </div>

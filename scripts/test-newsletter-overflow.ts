@@ -44,10 +44,11 @@ async function main() {
   const he = JSON.parse(await readFile("messages/he.json", "utf8"));
   const fr = JSON.parse(await readFile("messages/fr.json", "utf8"));
   // The overflow UI is a single banner: one button, one alternative.
-  const keys = ["bannerTitle", "bannerHelp", "addThirdPage", "shortenInstead", "shortenAction", "shortening", "fullTitle", "omitted", "deferHelp"];
+  // There is no "does not fit on 3 pages" message any more: 3 pages always compose.
+  const keys = ["bannerTitle", "bannerHelp", "addThirdPage", "shortenInstead", "shortening", "omitted", "deferHelp", "continued", "extraPages"];
   assert.deepEqual(Object.keys(fr.newsletter.overflow).sort(), [...keys].sort());
   assert.deepEqual(Object.keys(he.newsletter.overflow).sort(), [...keys].sort());
-  const withoutIcuSyntax = (text: string) => text.replace(/\{count, plural,|\b(?:one|other) \{/g, "");
+  const withoutIcuSyntax = (text: string) => text.replace(/\{count, plural,|\b(?:one|other) \{|\{\w+\}/g, "");
   for (const key of keys) assert.ok(!/[A-Za-zÀ-ÿ]{4}/.test(withoutIcuSyntax(he.newsletter.overflow[key])), `Hebrew overflow.${key} must not contain French`);
   console.log(`Newsletter overflow: normal ${normal.percent}%, overloaded ${full.percent}%, localization and layout preferences passed.`);
 }

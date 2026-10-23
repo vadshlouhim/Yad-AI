@@ -195,6 +195,30 @@ function validate(data, pages, name) {
   validate(kept, heavyReport.pages, 'heavy (3 pages, ' + heavyReport.omittedMediaIds.length + ' visual(s) set aside)');
   extendedSummary.push('heavy=3p/-' + heavyReport.omittedMediaIds.length + 'visual');
   total++;
+  // A single article taller than a page cannot be laid out whole: on 3 pages the flowing
+  // safety net takes over instead of failing, without cutting a word or dropping a visual.
+  for (const locale of ['fr', 'he']) {
+    const oversized = baseNewsletter();
+    oversized.outputLocale = locale;
+    oversized.generated.ravWord = locale === 'he' ? 'דבר תורה ארוך מאוד לשבת. '.repeat(320) : 'Un très long mot du Rav pour Chabbat. '.repeat(160);
+    check(!(await composeNewsletterWithReport(oversized).catch(() => null)), locale + ': an oversized article on 2 pages must offer a 3rd page');
+    oversized.layout = { ...(oversized.layout || {}), pageLimit: 3 };
+    const flow = await composeNewsletterWithReport(oversized).catch(error => { throw new Error(locale + ' oversized (3 pages): ' + error.message); });
+    check(flow.flowFallback && flow.oversizedBlocks.includes('rav'), locale + ': the flowing safety net must report the oversized article');
+    check(flow.pages.length >= 3 && !flow.omittedMediaIds.length, locale + ': the safety net keeps every visual');
+    const flowRoot = document.createElement('div'); flowRoot.innerHTML = flow.pages.join(''); document.body.append(flowRoot);
+    const ravText = [...flowRoot.querySelectorAll('[data-newsletter-text="rav"]')].map(node => node.textContent).join('');
+    check(ravText === oversized.generated.ravWord, locale + ': the safety net must keep every word of the article');
+    const continuation = [...flowRoot.querySelectorAll('h2')].map(node => node.textContent).filter(text => /— (suite|המשך)$/.test(text));
+    check(continuation.length && continuation.every(text => text.endsWith(locale === 'he' ? '— המשך' : '— suite')), locale + ': continuation label must be localized');
+    check([...flowRoot.querySelectorAll('article')].every(page => {
+      const content = page.querySelector('[data-newsletter-content]').getBoundingClientRect();
+      return [...page.querySelectorAll('[data-newsletter-content] section')].every(section => section.getBoundingClientRect().bottom <= content.bottom + 1);
+    }), locale + ': the safety net must not overflow the printable area');
+    flowRoot.remove();
+    extendedSummary.push(locale + '-oversized=' + flow.pages.length + 'p/flow');
+    total++;
+  }
   const legacy = baseNewsletter(); legacy.layout = { pageLimit: 4 };
   check((await composeNewsletter(legacy)).length === 2, 'short content must stay on one recto-verso sheet even when a legacy 4-page draft allows more');
   const wrong = baseNewsletter(); wrong.seferHamitsvot.date = '2026-10-16';
