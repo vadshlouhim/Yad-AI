@@ -1,5 +1,5 @@
 /* global document, location, DOMParser */
-import { composeNewsletter } from '../../src/lib/newsletter/document-layout';
+import { composeNewsletter, composeNewsletterWithReport } from '../../src/lib/newsletter/document-layout';
 import { newsletterLayoutCases, baseNewsletter } from './newsletter-layout-cases';
 import { formatKiddushSponsor } from '../../src/lib/newsletter/kiddush';
 const check = (condition, message) => { if (!condition) throw new Error(message); };
@@ -152,48 +152,51 @@ function validate(data, pages, name) {
       return;
     }
   }
-  for (const fixture of cases.filter(c => expectedOverflow.has(c.name))) {
-    let overflowRejected = false;
-    try { await composeNewsletter(fixture.data); } catch { overflowRejected = true; }
-    check(overflowRejected, fixture.name + ': oversized content must show a warning instead of creating a third page');
-  }
-  // Overflowing sheets: adding a 3rd, then a 4th page keeps the full composed layout.
+  // Overflowing sheets: automatic tightening may keep them on 2 pages; otherwise the
+  // single extra page offered to the user keeps the full composed layout.
   const extendedSummary = [];
   for (const fixture of cases.filter(c => expectedOverflow.has(c.name))) {
-    let extendedPages = null;
-    const extended = structuredClone(fixture.data);
-    for (const pageLimit of [3, 4]) {
-      extended.layout = { ...(fixture.data.layout || {}), pageLimit };
-      extendedPages = await composeNewsletter(extended).catch(() => null);
-      if (extendedPages) break;
+    const tightened = await composeNewsletterWithReport(fixture.data).catch(() => null);
+    if (tightened) {
+      check(tightened.pages.length === 2 && !tightened.omittedMediaIds.length, fixture.name + ': automatic tightening must keep every visual on one recto-verso sheet');
+      validate(fixture.data, tightened.pages, fixture.name + ' (tightened, 2 pages)');
+      extendedSummary.push(fixture.name + '=2p');
+      total++;
+      continue;
     }
-    check(extendedPages, fixture.name + ': adding pages must resolve the overflow');
-    check(extendedPages.length >= 3, fixture.name + ': extra page requested but not used');
-    check(extendedPages.every(html => !html.includes('data-composition="overflow-page"')), fixture.name + ': extra pages must use the composed layout');
-    validate(extended, extendedPages, fixture.name + ' (' + extendedPages.length + ' pages)');
-    extendedSummary.push(fixture.name + '=' + extendedPages.length + 'p/limit' + extended.layout.pageLimit);
+    const extended = structuredClone(fixture.data);
+    extended.layout = { ...(fixture.data.layout || {}), pageLimit: 3 };
+    const report = await composeNewsletterWithReport(extended).catch(() => null);
+    check(report, fixture.name + ': adding a 3rd page must resolve the overflow');
+    check(report.pages.length === 3, fixture.name + ': extra page requested but not used');
+    check(report.omittedMediaIds.length === 0, fixture.name + ': the 3rd page must hold every visual');
+    check(report.pages.every(html => !html.includes('data-composition="overflow-page"')), fixture.name + ': extra pages must use the composed layout');
+    validate(extended, report.pages, fixture.name + ' (3 pages)');
+    extendedSummary.push(fixture.name + '=3p');
     total++;
   }
-  // Grow provided-b one visual at a time until it no longer fits on 3 pages: the 4th page must take over.
+  // Grow provided-b one visual at a time beyond 3 pages: composition never fails, the last visuals are set aside.
   const heavy = structuredClone(cases.find(c => c.name === 'provided-b').data);
   const pool = [...heavy.posters, ...heavy.photos];
   heavy.layout = { ...(heavy.layout || {}), pageLimit: 3 };
-  for (let i = 0; await composeNewsletter(heavy).then(() => true, () => false); i++) {
+  let heavyReport = await composeNewsletterWithReport(heavy);
+  for (let i = 0; !heavyReport.omittedMediaIds.length; i++) {
     check(i < 24, 'heavy fixture never exceeded 3 pages');
     const source = pool[i % pool.length];
     const copy = { ...source, id: source.id + '-copy' + i, name: source.name + ' copy ' + i };
     if (heavy.posters.includes(source) || source.poster) heavy.posters.push(copy); else heavy.photos.push(copy);
+    heavyReport = await composeNewsletterWithReport(heavy).catch(error => { throw new Error('heavy (3 pages): ' + error.message); });
   }
-  heavy.layout.pageLimit = 4;
-  const heavyPages = await composeNewsletter(heavy).catch(error => { throw new Error('heavy (4 pages): ' + error.message); });
-  check(heavyPages.length === 4, 'heavy fixture must use 4 pages');
-  validate(heavy, heavyPages, 'heavy (4 pages)');
-  extendedSummary.push('heavy=' + heavyPages.length + 'p/limit4');
+  check(heavyReport.pages.length === 3, 'heavy fixture must stay on 3 pages');
+  const heavyOnTwo = { ...heavy, layout: { ...heavy.layout, pageLimit: 2 } };
+  check(!(await composeNewsletterWithReport(heavyOnTwo).catch(() => null)), 'heavy content on 2 pages must offer a 3rd page instead of dropping visuals');
+  check(heavyReport.omittedMediaIds[0] === heavy.posters.at(-1).id, 'the last poster must be the first visual set aside');
+  const kept = { ...heavy, posters: heavy.posters.filter(item => !heavyReport.omittedMediaIds.includes(item.id)), photos: heavy.photos.filter(item => !heavyReport.omittedMediaIds.includes(item.id)), partnerAds: heavy.partnerAds.filter(item => !heavyReport.omittedMediaIds.includes(item.id)) };
+  validate(kept, heavyReport.pages, 'heavy (3 pages, ' + heavyReport.omittedMediaIds.length + ' visual(s) set aside)');
+  extendedSummary.push('heavy=3p/-' + heavyReport.omittedMediaIds.length + 'visual');
   total++;
-  heavy.posters = [...heavy.posters, ...heavy.posters.map(item => ({ ...item, id: item.id + '-x', name: item.name + ' x' }))];
-  check(!(await composeNewsletter(heavy).catch(() => null)), 'content beyond 4 pages must be rejected, never truncated');
-  const short = baseNewsletter(); short.layout = { pageLimit: 4 };
-  check((await composeNewsletter(short)).length === 2, 'short content must stay on one recto-verso sheet even when 4 pages are allowed');
+  const legacy = baseNewsletter(); legacy.layout = { pageLimit: 4 };
+  check((await composeNewsletter(legacy)).length === 2, 'short content must stay on one recto-verso sheet even when a legacy 4-page draft allows more');
   const wrong = baseNewsletter(); wrong.seferHamitsvot.date = '2026-10-16';
   let rejected = false;
   try { await composeNewsletter(wrong); } catch { rejected = true; }

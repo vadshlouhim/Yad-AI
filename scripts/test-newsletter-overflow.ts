@@ -32,17 +32,23 @@ assert.equal(full.sections.slice().sort((a, b) => b.percent - a.percent)[0]?.key
 
 assert.deepEqual(parseLayoutPreferences({ fontSize: 9, density: "tight", pageLimit: 3, deferredMediaIds: ["a", "a", "b"] }), { density: "tight", pageLimit: 3, deferredMediaIds: ["a", "b"] });
 assert.equal(parseLayoutPreferences({ fontSize: 9.5 }).fontSize, 9.5);
-assert.equal(parseLayoutPreferences({ pageLimit: 4 }).pageLimit, 4);
+// 3 pages is the maximum: legacy 4-page drafts are brought back to 3.
+assert.equal(parseLayoutPreferences({ pageLimit: 4 }).pageLimit, 3);
 assert.equal(parseLayoutPreferences({ pageLimit: 5 }).pageLimit, undefined);
 
-// The gauge measures against the selected page count: 4 pages hold twice a recto-verso sheet.
-const onFourPages = estimateNewsletterFill({ ...overloaded, layout: { pageLimit: 4 } });
-assert.ok(Math.abs(onFourPages.percent - full.percent / 2) <= 1, `4-page gauge should halve the 2-page fill, got ${onFourPages.percent}% vs ${full.percent}%`);
+// The gauge measures against the selected page count.
+const onThreePages = estimateNewsletterFill({ ...overloaded, layout: { pageLimit: 3 } });
+assert.ok(Math.abs(onThreePages.percent - full.percent * 2 / 3) <= 1, `3-page gauge should be 2/3 of the 2-page fill, got ${onThreePages.percent}% vs ${full.percent}%`);
 
 async function main() {
   const he = JSON.parse(await readFile("messages/he.json", "utf8"));
-  assert.equal(he.newsletter.overflow.message, "התוכן לא נכנס בעלון דו־צדדי (2 עמודי A4). קצרו טקסט או הסירו תמונה/מודעה. שום טקסט לא נחתך ולא נמחק.");
-  assert.ok(!/[A-Za-zÀ-ÿ]{4}/.test(he.newsletter.overflow.message), "Hebrew overflow message must not contain French");
+  const fr = JSON.parse(await readFile("messages/fr.json", "utf8"));
+  // The overflow UI is a single banner: one button, one alternative.
+  const keys = ["bannerTitle", "bannerHelp", "addThirdPage", "shortenInstead", "shortenAction", "shortening", "fullTitle", "omitted", "deferHelp"];
+  assert.deepEqual(Object.keys(fr.newsletter.overflow).sort(), [...keys].sort());
+  assert.deepEqual(Object.keys(he.newsletter.overflow).sort(), [...keys].sort());
+  const withoutIcuSyntax = (text: string) => text.replace(/\{count, plural,|\b(?:one|other) \{/g, "");
+  for (const key of keys) assert.ok(!/[A-Za-zÀ-ÿ]{4}/.test(withoutIcuSyntax(he.newsletter.overflow[key])), `Hebrew overflow.${key} must not contain French`);
   console.log(`Newsletter overflow: normal ${normal.percent}%, overloaded ${full.percent}%, localization and layout preferences passed.`);
 }
 

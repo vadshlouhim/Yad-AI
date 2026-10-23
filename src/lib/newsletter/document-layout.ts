@@ -5,7 +5,7 @@ import { resolveNewsletterLabels, type NewsletterLabels } from "./labels";
 import { formatKiddushSponsor, NEWSLETTER_CHALLOT_ICON_URL } from "./kiddush";
 import { outputIntlLocale, type OutputLocale } from "@/lib/ai/output-locale";
 import { RELIGIOUS_COPY } from "./religious-locale";
-import { NEWSLETTER_ERROR_CODES, NewsletterError } from "./errors";
+import { NEWSLETTER_ERROR_CODES, NewsletterError, newsletterErrorCode } from "./errors";
 
 export const PAPER = { width: 794, height: 1123, margin: 42, gap: 18 };
 const CONTENT_WIDTH = PAPER.width - PAPER.margin * 2;
@@ -301,7 +301,9 @@ function header(data: NewsletterDocumentData, first: boolean) {
 
 function footer(data: NewsletterDocumentData, index: number, total: number) {
   const rtl = data.outputLocale === "he";
-  const node = element("footer", undefined, { display: "flex", flexShrink: "0", gap: "14px", justifyContent: "space-between", alignItems: "end", borderTop: `1px solid ${GOLD}`, paddingTop: "10px", marginTop: "16px", fontSize: "10px", lineHeight: "1.4", color: ACCENT });
+  // Must match the footer reserve used by the compositor (8px when tight, 16px otherwise).
+  const marginTop = data.layout?.density === "tight" ? "8px" : "16px";
+  const node = element("footer", undefined, { display: "flex", flexShrink: "0", gap: "14px", justifyContent: "space-between", alignItems: "end", borderTop: `1px solid ${GOLD}`, paddingTop: "10px", marginTop, fontSize: "10px", lineHeight: "1.4", color: ACCENT });
   const info = element("div", undefined, { minWidth: "0", overflowWrap: "anywhere" });
   info.append(element("strong", data.community.name));
   const contact = element("div");
@@ -504,8 +506,59 @@ function renderCaption(text: string) {
   return caption;
 }
 
+export type NewsletterComposition = { pages: string[]; omittedMediaIds: string[] };
+
+const isOverflowError = (error: unknown) =>
+  [NEWSLETTER_ERROR_CODES.layoutOverflow, NEWSLETTER_ERROR_CODES.printableOverflow].includes(newsletterErrorCode(error) as never);
+
+/**
+ * Never asks the user to arbitrate before trying everything that keeps the content intact:
+ * normal spacing, then tight spacing (smaller gaps and photos; posters stay readable). On 3 pages, as a last resort,
+ * visuals are left out from the end (posters, partners, photos) — text is never cut.
+ */
+export async function composeNewsletterWithReport(data: NewsletterDocumentData): Promise<NewsletterComposition> {
+  const pageLimit: 2 | 3 = (data.layout?.pageLimit ?? 2) > 2 ? 3 : 2;
+  const attempt = async (candidate: NewsletterDocumentData, densities: Array<"auto" | "compact" | "tight">) => {
+    for (const density of densities) {
+      try {
+        return await composeNewsletterOnce({ ...candidate, layout: { ...candidate.layout, pageLimit, density } });
+      } catch (error) {
+        if (!isOverflowError(error)) throw error;
+      }
+    }
+    return null;
+  };
+  const requested = data.layout?.density ?? "auto";
+  const pages = await attempt(data, [...new Set([requested, "tight" as const])]);
+  if (pages) return { pages, omittedMediaIds: [] };
+  if (pageLimit < 3) throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { maxPages: pageLimit });
+
+  const queue = [
+    ...data.posters.map(item => item.id).reverse(),
+    ...data.partnerAds.map(item => item.id).reverse(),
+    ...data.photos.map(item => item.id).reverse(),
+  ];
+  const omitted = new Set<string>();
+  for (const id of queue) {
+    omitted.add(id);
+    const candidate = {
+      ...data,
+      photos: data.photos.filter(item => !omitted.has(item.id)),
+      posters: data.posters.filter(item => !omitted.has(item.id)),
+      partnerAds: data.partnerAds.filter(item => !omitted.has(item.id)),
+    };
+    const fitted = await attempt(candidate, ["tight"]);
+    if (fitted) return { pages: fitted, omittedMediaIds: [...omitted] };
+  }
+  throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { maxPages: pageLimit });
+}
+
 /** Measured zones shared unchanged by preview, browser print and PDF export. */
 export async function composeNewsletter(data: NewsletterDocumentData): Promise<string[]> {
+  return (await composeNewsletterWithReport(data)).pages;
+}
+
+async function composeNewsletterOnce(data: NewsletterDocumentData): Promise<string[]> {
   await document.fonts.ready;
   if (data.outputLocale === "he") {
     const family = getComputedStyle(document.documentElement).getPropertyValue("--font-hebrew").trim();
@@ -603,7 +656,8 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
         if (rows.some(row => row.images.some(img => {
           const ratio = img.width / img.height;
           const shortest = Math.min(row.height, row.height * ratio);
-          const minimum = g.id === "posters" ? (density === "tight" ? 135 : density === "compact" ? 160 : POSTER_MIN_SHORT_SIDE) : density === "tight" ? 52 : density === "compact" ? 58 : 65;
+          // Tightening is automatic, so it never makes a poster unreadable: only photos shrink.
+          const minimum = g.id === "posters" ? POSTER_MIN_SHORT_SIDE : density === "tight" ? 52 : density === "compact" ? 58 : 65;
           return shortest < Math.min(minimum, width * Math.min(1, 1 / ratio), maxHeight * Math.min(1, ratio)) - 0.1;
         }))) continue;
         const areas = rows.flatMap(row => row.images.map(img => row.height ** 2 * img.width / img.height));
@@ -767,7 +821,7 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
       }
       return galleryParts.get(key)!;
     };
-    /** Extra pages (3–4): whole articles flow page by page; a gallery may continue on the next page, in upload order. */
+    /** Extra page (3): whole articles flow page by page; a gallery may continue on the next page, in upload order. */
     const searchPages = (pageCount: number, fonts: number[]) => {
       const media = available([photos, posters, partners]);
       const placements: number[][] = [];
