@@ -21,7 +21,7 @@ import {
   Zap,
 } from "lucide-react";
 import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
-import { AGENT_IMAGE_URLS } from "@/lib/agents";
+import { ASSISTANT_IMAGE } from "@/lib/agents";
 import type {
   DonationCampaign,
   CampaignStep,
@@ -403,9 +403,9 @@ export function DonationCampaignClient({ community, initialCampaign, initialStep
           title="Centre de pilotage complet de campagne de dons"
           description="Construisez, pilotez et diffusez toute votre campagne de dons depuis un seul espace intelligent, clair et prêt à accompagner chaque étape."
           icon={HandHeart}
-          imageUrl={AGENT_IMAGE_URLS.avi}
-          imageAlt="Avi, agent IA campagne de dons"
-          bubbleTitle="Je suis Avi, l’agent IA responsable de votre campagne de dons"
+          imageUrl={ASSISTANT_IMAGE}
+          imageAlt="David, l’Assistant EasyCom"
+          bubbleTitle="Je suis David, votre Assistant EasyCom pour votre campagne de dons"
           bubbleTitleClassName="text-slate-950"
           bubbleText="Je vous aide à structurer, préparer et diffuser chaque étape de votre campagne."
           tone="rose"

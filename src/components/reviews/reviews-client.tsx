@@ -18,7 +18,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AGENT_IMAGE_URLS } from "@/lib/agents";
+import { ASSISTANT_IMAGE } from "@/lib/agents";
 
 interface GoogleReview {
   id: string;
@@ -53,7 +53,7 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   gmb_error: "Erreur pendant la finalisation Google Business.",
 };
 
-const BAROUH_REVIEWS_IMAGE = AGENT_IMAGE_URLS.barouh;
+const ASSISTANT_REVIEWS_IMAGE = ASSISTANT_IMAGE;
 
 function getAiAnalysis(review: GoogleReview, now: number) {
   if (review.answered) {
@@ -267,7 +267,7 @@ export function ReviewsClient({ communityId, initialConnected, locationDisplayNa
             </Button>
           </div>
         </div>
-        <Image src={BAROUH_REVIEWS_IMAGE} alt="Barouh, agent IA Avis Google" width={240} height={280} className="pointer-events-none absolute -bottom-3 -right-5 z-10 h-[10.5rem] w-auto object-contain object-bottom drop-shadow-[0_18px_24px_rgba(12,2,35,0.34)] sm:-right-2 sm:h-[16rem]" priority />
+        <Image src={ASSISTANT_REVIEWS_IMAGE} alt="David, l’Assistant EasyCom" width={240} height={280} className="pointer-events-none absolute -bottom-3 -right-5 z-10 h-[10.5rem] w-auto object-contain object-bottom drop-shadow-[0_18px_24px_rgba(12,2,35,0.34)] sm:-right-2 sm:h-[16rem]" priority />
       </div>
 
       {/* Notice */}

@@ -60,7 +60,7 @@ export function TopBar({ communityName, communityType, userAvatar, userName, unr
   }, [mobileNavOpen]);
 
   function getPageTitle() {
-    if (pathname.startsWith("/dashboard/assistant")) return tr("Agents intelligents");
+    if (pathname.startsWith("/dashboard/assistant")) return tr("Assistant IA");
     if (pathname.startsWith("/dashboard/automations")) return locale === "he" ? "אוטומציות" : "Automatisations";
     if (pathname.startsWith("/dashboard/communication-ciblee")) return tr("Communication ciblée");
     if (pathname.startsWith("/dashboard/notifications")) return tr("Notifications");

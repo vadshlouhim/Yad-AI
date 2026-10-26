@@ -1,11 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { ArrowLeft, ArrowRight, Bot, CheckCircle2, LogIn, Sparkles } from "lucide-react";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { PublicNavbar } from "@/components/layout/public-navbar";
-import { EASYCOM_AGENTS, getLocalizedEasyComAgent } from "@/lib/agents";
+import { ASSISTANT_AGENT, EASYCOM_AGENTS, RETIRED_AGENT_SLUGS, getLocalizedEasyComAgent } from "@/lib/agents";
 import { getLocale } from "next-intl/server";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -32,10 +32,10 @@ export default async function AgentLandingPage({ params }: Props) {
   const { slug } = await params;
   const locale = await getLocale();
   const he = locale === "he";
+  // One assistant now: the former agents' pages keep their links alive by pointing to David.
+  if ((RETIRED_AGENT_SLUGS as readonly string[]).includes(slug)) permanentRedirect(`/agents/${ASSISTANT_AGENT.slug}`);
   const agent = getLocalizedEasyComAgent(slug, locale);
   if (!agent) notFound();
-
-  const otherAgents = EASYCOM_AGENTS.filter((item) => item.slug !== agent.slug).slice(0, 3).map((item) => getLocalizedEasyComAgent(item.slug, locale)!);
 
   return (
     <main className="min-h-screen bg-white text-slate-950">
@@ -45,9 +45,9 @@ export default async function AgentLandingPage({ params }: Props) {
         <div className="absolute -left-24 top-8 size-72 rounded-full bg-blue-200/50 blur-3xl" />
         <div className="absolute -right-20 bottom-0 size-80 rounded-full bg-cyan-200/40 blur-3xl" />
         <div className="relative mx-auto max-w-7xl">
-          <Link href="/#agents" className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 transition hover:text-blue-700">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 transition hover:text-blue-700">
             <ArrowLeft className="rtl-mirror size-4" />
-            {he ? "כל סוכני ה־AI" : "Tous les agents IA"}
+            {he ? "חזרה לדף הבית" : "Retour à l’accueil"}
           </Link>
 
           <div className="mt-10 grid items-center gap-10 lg:grid-cols-[1fr_0.9fr]">
@@ -126,25 +126,6 @@ export default async function AgentLandingPage({ params }: Props) {
             <LogIn className="size-4" />
             {he ? "התחברות" : "Se connecter"}
           </Link>
-        </div>
-      </section>
-
-      <section className="bg-slate-50 px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-600">{he ? "משלימים את הצוות" : "Compléter votre équipe"}</p>
-          <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950">{he ? "הכירו גם את הסוכנים האלה" : "Découvrez aussi ces agents"}</h2>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {otherAgents.map((otherAgent) => (
-              <Link key={otherAgent.slug} href={`/agents/${otherAgent.slug}`} className="group rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-lg">
-                <div className="relative h-48 overflow-hidden rounded-2xl bg-slate-100">
-                  <Image src={otherAgent.image} alt="" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-contain object-bottom transition group-hover:scale-105" />
-                </div>
-                <p className="mt-4 text-xs font-black uppercase tracking-[0.15em] text-blue-600">{otherAgent.role}</p>
-                <p className="mt-1 text-xl font-black text-slate-950">{otherAgent.name}</p>
-                <span className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-slate-700 group-hover:text-blue-600">{he ? "לגלות" : "Découvrir"} <ArrowRight className="rtl-mirror size-4" /></span>
-              </Link>
-            ))}
-          </div>
         </div>
       </section>
 

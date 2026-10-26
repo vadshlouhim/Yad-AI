@@ -27,7 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { UpgradeModal } from "@/components/billing/upgrade-modal";
 import { cn } from "@/lib/utils";
-import { ISRAEL_WHATSAPP_IMAGE, SocialPageBanner } from "@/components/publish/social-page-banner";
+import { DAVID_AGENT_IMAGE, SocialPageBanner } from "@/components/publish/social-page-banner";
 import type { BillingConfig } from "@/lib/billing";
 
 type RepeatFrequency = "once" | "daily" | "weekly" | "monthly" | "custom";
@@ -1351,8 +1351,8 @@ export function WhatsAppClient({
       <SocialPageBanner
         title="WhatsApp"
         color="#128C4A"
-        agentName="Israel"
-        agentImageUrl={ISRAEL_WHATSAPP_IMAGE}
+        agentName="David"
+        agentImageUrl={DAVID_AGENT_IMAGE}
         statusLabel={isPersonalMode ? "Mode personnel" : isCloudConfigured ? "Canal configuré" : "Connexion requise"}
         compactOnMobile
       />

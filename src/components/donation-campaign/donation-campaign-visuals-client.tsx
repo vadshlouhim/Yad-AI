@@ -19,7 +19,7 @@ import {
   Video,
 } from "lucide-react";
 import { AgentPageBanner } from "@/components/dashboard/agent-page-banner";
-import { AGENT_IMAGE_URLS } from "@/lib/agents";
+import { ASSISTANT_IMAGE } from "@/lib/agents";
 import type { DonationCampaign, CampaignStep, CampaignAsset, StepStatus } from "@/lib/donation-campaign";
 import { ASSET_TYPE_LABELS } from "@/lib/donation-campaign";
 import { FacebookIcon, InstagramIcon } from "@/components/layout/dashboard-nav";
@@ -365,9 +365,9 @@ export function DonationCampaignVisualsClient({ campaign, steps, assets }: Props
         title="Visuels & Publications"
         description="Retrouvez tous les supports créés pour votre campagne de dons : affiches, messages, publications et contenus prêts à valider."
         icon={Share2}
-        imageUrl={AGENT_IMAGE_URLS.avi}
-        imageAlt="Avi, agent IA campagne de dons"
-        bubbleTitle="Je suis Avi, votre agent IA Campagne de dons"
+        imageUrl={ASSISTANT_IMAGE}
+        imageAlt="David, l’Assistant EasyCom"
+        bubbleTitle="Je suis David, votre Assistant EasyCom pour votre campagne de dons"
         bubbleTitleClassName="text-slate-950"
         bubbleText="Je rassemble vos visuels et vos publications pour faciliter chaque diffusion."
         tone="rose"

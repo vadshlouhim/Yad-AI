@@ -5,12 +5,11 @@ export const generateTorahCourseTool: AssistantToolDef = {
   name: "generate_torah_course",
   label: "Générer un cours de Torah",
   summarize: (payload) => `Générer un cours de Torah : ${String(payload.prompt ?? "")}.`,
-  availability: (ctx) => ctx.specializedAgentSlug === "shmouel",
   schema: {
     type: "function",
     function: {
       name: "generate_torah_course",
-      description: "Génère un cours de Torah structuré pour Shmouel. À appeler uniquement lorsque le sujet, la durée et le public sont connus.",
+      description: "Génère un cours de Torah structuré. À appeler uniquement lorsque le sujet, la durée et le public sont connus.",
       parameters: {
         type: "object",
         properties: {

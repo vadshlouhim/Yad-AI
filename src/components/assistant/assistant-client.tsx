@@ -25,7 +25,7 @@ import { AssistantDataPanel, type PanelActionPayload } from "./assistant-data-pa
 import type { DataPanel } from "@/lib/ai/assistant/panels";
 import type { RoutineItem } from "./daily-routine-wizard";
 import type { BillingConfig } from "@/lib/billing";
-import { AGENTS_GROUP_IMAGE, HOME_EASYCOM_AGENTS } from "@/lib/agents";
+import { ASSISTANT_AGENT } from "@/lib/agents";
 import { downloadTorahCoursePdf } from "@/lib/torah-pdf";
 import { CanvaLogo } from "@/components/templates/template-actions";
 
@@ -185,7 +185,6 @@ interface Props {
   channels: ChannelOption[];
   seasonalPrompts: QuickPrompt[];
   initialPrompt?: string;
-  initialAgentSlug?: string;
   initialApprovalDraft?: ApprovalDraft | null;
   userName?: string;
   userAvatar?: string | null;
@@ -257,7 +256,7 @@ function getFirstPersonAgentDescription(description: string) {
 
   return description;
 }
-const AGENTS_IMAGE_URL = AGENTS_GROUP_IMAGE;
+const AGENTS_IMAGE_URL = ASSISTANT_AGENT.image;
 
 function AssistantAvatar({
   className,
@@ -265,7 +264,7 @@ function AssistantAvatar({
   iconClassName,
   iconOnly = false,
   imageUrl = AGENTS_IMAGE_URL,
-  imageAlt = "Agents intelligents EasyCom IA",
+  imageAlt = "David, l’Assistant EasyCom",
 }: {
   className?: string;
   imageClassName?: string;
@@ -430,7 +429,6 @@ export function AssistantClient({
   channels,
   seasonalPrompts,
   initialPrompt,
-  initialAgentSlug,
   initialApprovalDraft,
   userName,
   userAvatar,
@@ -439,9 +437,10 @@ export function AssistantClient({
 }: Props) {
   void _tone;
   const firstName = userName?.split(" ")[0] ?? "";
-  const selectedAgent = HOME_EASYCOM_AGENTS.find((agent) => agent.slug === initialAgentSlug) ?? null;
-  const activeAssistantImage = selectedAgent?.image ?? AGENTS_IMAGE_URL;
-  const activeAssistantAlt = selectedAgent ? `${selectedAgent.name}, agent IA ${selectedAgent.role}` : "Agents intelligents EasyCom IA";
+  // One assistant: David answers every request with every tool.
+  const selectedAgent = ASSISTANT_AGENT;
+  const activeAssistantImage = selectedAgent.image;
+  const activeAssistantAlt = `${selectedAgent.name}, ${selectedAgent.role}`;
   const router = useRouter();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -863,7 +862,6 @@ export function AssistantClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           conversationId: convId,
-          agentSlug: selectedAgent?.slug,
           navigationContext: currentMessages.length === 1 ? hiddenInitialPromptRef.current : undefined,
           selectedTemplateId: options?.selectedTemplateId ?? selectedTemplate?.id ?? null,
           templateAction: options?.templateAction ?? null,
@@ -1000,7 +998,7 @@ export function AssistantClient({
     } finally {
       setLoading(false);
     }
-  }, [input, loading, activeConversationId, messages, selectedTemplate, dailyRoutineMode, assistantExperience, pendingAttachments, isRecording, selectedAgent?.slug]);
+  }, [input, loading, activeConversationId, messages, selectedTemplate, dailyRoutineMode, assistantExperience, pendingAttachments, isRecording]);
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -1940,7 +1938,7 @@ export function AssistantClient({
         open={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
         config={billingConfig}
-        featureLabel="Agents intelligents"
+        featureLabel="Assistant IA"
         title="Continuez avec l'assistant IA"
         description="Le mode gratuit inclut 20 messages avec l'assistant IA au total. Passez à l'offre Pro pour 50 messages par mois, ou Business pour un nombre illimité."
       />
@@ -2155,7 +2153,7 @@ export function AssistantClient({
               </h1>
               {assistantExperience === "simple" && (
                 <p className="truncate text-xs font-semibold text-slate-500 md:hidden">
-                  Une équipe d&apos;agents IA qui s&apos;occupe de tout
+                  Un seul assistant IA qui s&apos;occupe de tout
                 </p>
               )}
             </div>
@@ -2265,7 +2263,7 @@ export function AssistantClient({
                 <ArrowLeft className="size-5" />
               </Link>
               <p className="min-w-0 flex-1 truncate text-center text-sm font-black tracking-wide text-white/90">
-                {selectedAgent ? `Agent IA · ${selectedAgent.name}` : "Vos agents IA"}
+                {`${selectedAgent.name} · ${selectedAgent.role}`}
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -2299,15 +2297,13 @@ export function AssistantClient({
                   />
                 </div>
                 <h1 className="-mt-2 text-[2rem] font-black leading-[1.02] tracking-[-0.045em]">
-                  {selectedAgent ? `Je suis ${selectedAgent.name},` : "Vos agents IA"}
+                  {`Je suis ${selectedAgent.name},`}
                 </h1>
                 <p className="mt-1 text-lg font-extrabold text-[#ffd04c]">
-                  {selectedAgent ? `l’agent IA ${selectedAgent.role}` : "toute votre communication, simplement"}
+                  votre Assistant EasyCom
                 </p>
                 <p className="mx-auto mt-2 max-w-sm text-[13px] leading-5 text-white/78">
-                  {selectedAgent
-                    ? getFirstPersonAgentDescription(selectedAgent.shortDescription)
-                    : "Expliquez votre besoin : le bon agent vous accompagne sans changer vos habitudes."}
+                  {getFirstPersonAgentDescription(selectedAgent.shortDescription)}
                 </p>
               </div>
             ) : (
@@ -2321,10 +2317,10 @@ export function AssistantClient({
                 />
                 <div className="min-w-0 flex-1">
                   <p className="text-lg font-black leading-tight">
-                    {selectedAgent ? `${selectedAgent.name}, votre agent IA` : "Vos agents IA"}
+                    {`${selectedAgent.name}, votre Assistant EasyCom`}
                   </p>
                   <p className="mt-1 truncate text-xs font-semibold text-white/72">
-                    {selectedAgent?.role ?? "Assistant de communication"}
+                    Toute votre communication, au même endroit
                   </p>
                 </div>
                 <button
@@ -2407,7 +2403,7 @@ export function AssistantClient({
                   Bienvenue{firstName ? ` ${firstName}` : ""}
                 </h2>
                 <p className="mx-auto mt-1.5 max-w-3xl -translate-y-2 text-sm leading-6 text-slate-500 sm:text-[15px]">
-                  Découvrez Mendy, Dov Ber, Levik et les agents intelligents d’EasyCom IA : une équipe IA spécialement conçue pour gérer toute votre communication depuis une seule plateforme
+                  Je suis David, votre Assistant EasyCom : affiches, publications, newsletter, e-mails, automatisations… Dites-moi ce dont vous avez besoin, je m’occupe de toute votre communication depuis une seule conversation.
                 </p>
               </div>
             )}
@@ -2533,7 +2529,7 @@ export function AssistantClient({
                         <div className="bg-[#421388] px-4 py-3 text-white">
                           <div className="flex items-center gap-2">
                             <span className="flex size-8 items-center justify-center rounded-xl bg-white/15"><BookOpen className="size-4" /></span>
-                            <p className="text-sm font-black uppercase tracking-wide">Cours préparé par Shmouel</p>
+                            <p className="text-sm font-black uppercase tracking-wide">Cours préparé par David</p>
                           </div>
                           <h3 className="mt-3 text-xl font-black leading-tight">{course.title}</h3>
                         </div>

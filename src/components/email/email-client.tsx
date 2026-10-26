@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AGENT_IMAGE_URLS } from "@/lib/agents";
+import { ASSISTANT_IMAGE } from "@/lib/agents";
 import { ensurePushRegistered, enablePushNotifications, getPushPermission } from "@/lib/push/client";
 import type {
   EmailAiClassification,
@@ -32,7 +32,7 @@ import type {
 } from "@/lib/email/ai-settings";
 import { describeRule } from "@/lib/email/notification-rules";
 
-const LEVIK_EMAIL_IMAGE = AGENT_IMAGE_URLS.levik;
+const ASSISTANT_EMAIL_IMAGE = ASSISTANT_IMAGE;
 
 const CATEGORY_META: Record<
   EmailCategory,
@@ -458,7 +458,7 @@ export function EmailClient({
             )}
           </div>
         </div>
-        <Image src={LEVIK_EMAIL_IMAGE} alt="Levik, agent IA Email" width={240} height={280} className="pointer-events-none absolute -bottom-3 -right-5 z-10 h-[10.5rem] w-auto object-contain object-bottom drop-shadow-[0_18px_24px_rgba(12,2,35,0.34)] sm:-right-2 sm:h-[16rem]" priority />
+        <Image src={ASSISTANT_EMAIL_IMAGE} alt="David, l’Assistant EasyCom" width={240} height={280} className="pointer-events-none absolute -bottom-3 -right-5 z-10 h-[10.5rem] w-auto object-contain object-bottom drop-shadow-[0_18px_24px_rgba(12,2,35,0.34)] sm:-right-2 sm:h-[16rem]" priority />
       </div>
 
       {oauthNotice && (

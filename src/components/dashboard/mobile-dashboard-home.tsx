@@ -12,7 +12,6 @@ import {
   ArrowRight,
   Bell,
   BookOpen,
-  BotMessageSquare,
   Cake,
   CalendarDays,
   CalendarRange,
@@ -43,7 +42,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { DASHBOARD_MODULE_COLORS } from "./dashboard-module-colors";
 import { MOBILE_ACTION_CARD_CLASS, MOBILE_HOME_HEADER_CLASS } from "@/components/presentation/platform-style";
-import { HOME_EASYCOM_AGENTS, type EasyComAgent } from "@/lib/agents";
+import { ASSISTANT_AGENT } from "@/lib/agents";
 import { ComingSoonBanner } from "@/components/coming-soon/coming-soon-banner";
 import { useComingSoonGate } from "@/components/dashboard/coming-soon-dialog";
 import {
@@ -78,17 +77,6 @@ type ActionCard = {
   badge?: string;
   badgeClassName?: string;
 };
-
-const FEATURED_AGENT_SLUGS = [
-  "dov",
-  "david",
-  "shmouel",
-  "levik",
-  "barouh",
-  "zalman",
-  "avi",
-  "tsemah",
-] as const;
 
 const ACTION_CARDS: ActionCard[] = [
   {
@@ -191,19 +179,6 @@ const ACTION_CARDS: ActionCard[] = [
   { key: "assistance", title: "Assistance indemnisation", icon: Plane, className: DASHBOARD_MODULE_COLORS["assistance"], href: "/dashboard/assistance-indemnisation-aerienne" },
 ];
 
-const AGENT_ACCENTS: Record<string, { icon: typeof Sparkles; surface: string }> = {
-  mendy: { icon: BotMessageSquare, surface: "bg-[#147af3]" },
-  dov: { icon: Sparkles, surface: "bg-[#ed3676]" },
-  israel: { icon: BotMessageSquare, surface: "bg-[#11b96a]" },
-  david: { icon: CalendarRange, surface: "bg-[#7851d8]" },
-  shmouel: { icon: BookOpen, surface: "bg-[#e9a400]" },
-  levik: { icon: Mail, surface: "bg-[#e94755]" },
-  barouh: { icon: Sparkles, surface: "bg-[#ef8b18]" },
-  zalman: { icon: ImageIcon, surface: "bg-[#6f31d7]" },
-  avi: { icon: Target, surface: "bg-[#11b956]" },
-  tsemah: { icon: Mail, surface: "bg-[#e5338a]" },
-};
-
 const MODAL_TONES: Record<string, string> = {
   social: "from-[#0878ee] via-[#0668e8] to-[#064bd8]",
   automations: "from-[#f36756] via-[#df4639] to-[#b9302a]",
@@ -214,12 +189,6 @@ const MODAL_TONES: Record<string, string> = {
   email: "from-[#f33967] via-[#ed3262] to-[#dc2860]",
 };
 
-// Hebrew: the two agents whose tools are offered open those tools directly.
-const HE_AGENT_HREFS: Record<string, string> = {
-  levik: "/dashboard/newsletter",
-  dov: "/dashboard/social-networks",
-};
-
 const SECTION_HREFS: Record<string, string> = {
   email: "/dashboard/email",
   visuals: "/dashboard/templates",
@@ -227,12 +196,6 @@ const SECTION_HREFS: Record<string, string> = {
 
 function resolveHref(href: string, basePath: "/dashboard" | "/demo") {
   return href.startsWith("/dashboard") ? href.replace("/dashboard", basePath) : href;
-}
-
-function getAgentPrompt(agent: EasyComAgent, locale: string, translate: (value: string) => string) {
-  return locale === "he"
-    ? `אני רוצה לעבוד עם ${agent.name}, הסוכן שלי בתחום ${translate(agent.role)}. עזור לי להתחיל.`
-    : `Je souhaite travailler avec ${agent.name}, mon agent spécialisé en ${agent.role.toLowerCase()}. Aide-moi à commencer.`;
 }
 
 export function MobileDashboardHome({
@@ -259,7 +222,6 @@ export function MobileDashboardHome({
   const [draggingKey, setDraggingKey] = useState<MobileHomeModuleKey | null>(null);
   const [undoModule, setUndoModule] = useState<MobileHomeModuleKey | null>(null);
   const [homeNotice, setHomeNotice] = useState<string | null>(null);
-  const agentsScrollerRef = useRef<HTMLDivElement>(null);
   const addedModuleRef = useRef(false);
   const moduleKey = searchParams.get("module");
   const sections = useMemo(() => getOfficialDashboardMenuSections(communityType, tr), [communityType, tr]);
@@ -271,9 +233,6 @@ export function MobileDashboardHome({
     if (!moduleKey) return undefined;
     return sectionByKey.get(moduleKey);
   }, [moduleKey, sectionByKey]);
-  const featuredAgents = FEATURED_AGENT_SLUGS.flatMap((slug) =>
-    HOME_EASYCOM_AGENTS.filter((agent) => agent.slug === slug).map((agent) => ({ ...agent, role: tr(agent.role) }))
-  );
   const actionByKey = useMemo(() => new Map(ACTION_CARDS.map((action) => [action.key, {
     ...action,
     title: tr(action.title),
@@ -337,17 +296,6 @@ export function MobileDashboardHome({
     params.delete("module");
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }
-
-  function scrollAgentsForward() {
-    const scroller = agentsScrollerRef.current;
-    if (!scroller) return;
-    const reachedEnd = scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 12;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    scroller.scrollTo({
-      left: reachedEnd ? 0 : Math.min(scroller.scrollLeft + 179, scroller.scrollWidth),
-      behavior: reduceMotion ? "auto" : "smooth",
-    });
   }
 
   async function handleLogout() {
@@ -504,62 +452,33 @@ export function MobileDashboardHome({
           <LanguageSwitcher compact className="shrink-0" />
         </div>
 
-        <div className="relative mt-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="flex shrink-0 items-center gap-2 text-[1.12rem] font-extrabold tracking-[-0.025em]">
-              <Sparkles className="size-5 shrink-0 fill-[#ffba13] text-[#ffba13]" />
-              <span>{tr("Vos agents IA")}</span>
-            </h2>
-            <button
-              type="button"
-              onClick={scrollAgentsForward}
-              aria-label={locale === "he" ? "הצגת סוכני ה־AI הבאים" : "Afficher les agents IA suivants"}
-              className="flex size-9 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/10 backdrop-blur-sm transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-            >
-              <ArrowRight className="rtl-mirror size-5" />
-            </button>
-          </div>
-        </div>
-
-        <div
-          ref={agentsScrollerRef}
-          className="relative -me-5 mt-2 snap-x snap-mandatory overflow-x-auto pe-5 scroll-smooth [scrollbar-width:none] motion-reduce:scroll-auto [&::-webkit-scrollbar]:hidden"
+        <Link
+          href={resolveHref("/dashboard/assistant", basePath)}
+          onClick={guard("/dashboard/assistant")}
+          aria-label={tr("Ouvrir l’Assistant EasyCom")}
+          className="relative mt-4 flex min-h-[112px] items-center gap-3 overflow-hidden rounded-[1.35rem] border border-white/20 bg-white/[0.055] pe-4 shadow-[0_12px_22px_rgba(17,2,58,0.2)] backdrop-blur-sm transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
-          <div className="flex w-max gap-3 pe-5">
-            {featuredAgents.map((agent) => {
-              const accent = AGENT_ACCENTS[agent.slug] ?? AGENT_ACCENTS.david;
-              const AccentIcon = accent.icon;
-              const agentHref = locale === "he" && HE_AGENT_HREFS[agent.slug]
-                ? HE_AGENT_HREFS[agent.slug]
-                : `/dashboard/assistant?agent=${encodeURIComponent(agent.slug)}&prefill=${encodeURIComponent(getAgentPrompt(agent, locale, tr))}`;
-              return (
-                <Link
-                  key={agent.slug}
-                  href={resolveHref(agentHref, basePath)}
-                  onClick={guard(agentHref)}
-                  className="relative h-[112px] w-[150px] shrink-0 snap-start overflow-hidden rounded-[1.35rem] border border-white/20 bg-white/[0.055] shadow-[0_12px_22px_rgba(17,2,58,0.2)] backdrop-blur-sm transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                >
-                  <span className={cn("absolute end-2.5 top-2.5 z-20 flex size-8 items-center justify-center rounded-full text-white shadow-lg", accent.surface)}>
-                    <AccentIcon className="size-4 stroke-[2.4]" />
-                  </span>
-                  <Image
-                    src={agent.image}
-                    width={94}
-                    height={137}
-                    sizes="76px"
-                    alt=""
-                    aria-hidden="true"
-                    className="absolute -bottom-1 start-0 h-[108px] w-[76px] object-contain object-bottom drop-shadow-[0_10px_12px_rgba(8,1,30,0.28)]"
-                  />
-                  <span className="absolute bottom-2.5 start-[71px] end-2 z-10 flex min-h-[46px] flex-col justify-end text-start">
-                    <span className="block text-sm font-black leading-tight">{agent.name}</span>
-                    <span className="mt-0.5 block break-words text-[10px] font-semibold leading-[1.18] text-white/90">{tr(agent.role)}</span>
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
+          <Image
+            src={ASSISTANT_AGENT.image}
+            width={94}
+            height={137}
+            sizes="84px"
+            alt=""
+            aria-hidden="true"
+            className="-mb-1 h-[112px] w-[84px] shrink-0 self-end object-contain object-bottom drop-shadow-[0_10px_12px_rgba(8,1,30,0.28)]"
+          />
+          <span className="min-w-0 flex-1 text-start">
+            <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-[#ffd04c]">
+              <Sparkles className="size-3.5 fill-[#ffba13] text-[#ffba13]" />
+              {tr("Votre assistant IA")}
+            </span>
+            <span className="mt-1 block text-lg font-black leading-tight">{ASSISTANT_AGENT.name} · {tr(ASSISTANT_AGENT.role)}</span>
+            <span className="mt-0.5 block text-xs font-semibold leading-5 text-white/85">{tr("Posez votre question, David s’occupe du reste.")}</span>
+          </span>
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white text-[#421388] shadow-lg">
+            <ArrowRight className="rtl-mirror size-5" />
+          </span>
+        </Link>
 
       </section>
 

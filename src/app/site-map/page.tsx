@@ -70,7 +70,7 @@ export default async function SiteMapPage() {
         </div>
 
         <div className="rounded-[1.7rem] border border-slate-200 bg-slate-50 p-6 lg:col-span-2">
-          <h2 className="text-xl font-black">Agents IA</h2>
+          <h2 className="text-xl font-black">Assistant IA</h2>
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             {EASYCOM_AGENTS.map((agent) => (
               <Link key={agent.slug} href={`/agents/${agent.slug}`} className="rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm hover:text-blue-700">

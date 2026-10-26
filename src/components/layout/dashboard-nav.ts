@@ -200,7 +200,7 @@ export const DASHBOARD_SECTION_STYLES: Record<string, { label: string; itemActiv
     label: "text-cyan-300",
     itemActive: "bg-cyan-700 text-white shadow-sm",
   },
-  "AGENTS INTELLIGENTS": {
+  "ASSISTANT IA": {
     label: "text-blue-300",
     itemActive: "bg-blue-600 text-white shadow-sm",
   },
@@ -562,7 +562,7 @@ export const DASHBOARD_TOP_ITEM: DashboardNavItem = {
 };
 
 export const QUICK_ACCESS_ITEMS: ReadonlyArray<Omit<DashboardNavItem, "icon"> & { icon: LucideIcon; notification?: boolean }> = [
-  { href: "/dashboard/assistant", label: "Agents intelligents", icon: Bot },
+  { href: "/dashboard/assistant", label: "Assistant IA", icon: Bot },
   { href: "/dashboard/overview", label: "Tableau de bord", icon: House },
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell, notification: true },
   { href: "/dashboard/events", label: "Mon Agenda", icon: CalendarDays },
@@ -581,8 +581,8 @@ export function getQuickAccessItems(translate: (value: string) => string = (valu
 
 export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
-    section: "AGENTS INTELLIGENTS",
-    items: [{ href: "/dashboard/assistant", label: "Agents intelligents", icon: Bot }],
+    section: "ASSISTANT IA",
+    items: [{ href: "/dashboard/assistant", label: "Assistant IA", icon: Bot }],
   },
   {
     section: "RESEAUX SOCIAUX",
@@ -668,7 +668,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
 
 export const MOBILE_PRIMARY_NAV: DashboardNavItem[] = [
   { href: "/dashboard/overview", label: "Accueil", icon: House },
-  { href: "/dashboard/assistant", label: "Agents IA", icon: Sparkles },
+  { href: "/dashboard/assistant", label: "Assistant IA", icon: Sparkles },
   { href: "/dashboard/events", label: "Mon Agenda", icon: CalendarDays },
   { href: "/dashboard/settings", label: "Reglages", icon: Settings2 },
 ];

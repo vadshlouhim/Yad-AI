@@ -21,7 +21,7 @@ import { getLocale } from "next-intl/server";
 const STEPS = [
   { number: "01", title: "Votre contexte", description: "On pose vos canaux, votre ton, vos habitudes et les publics à informer.", icon: UserCheck, tone: "border-blue-200 bg-blue-50 text-blue-800", line: "bg-blue-700" },
   { number: "02", title: "Tout au même endroit", description: "Réseaux, emails, avis, contacts, ressources et événements sont centralisés.", icon: DatabaseZap, tone: "border-violet-200 bg-violet-50 text-violet-800", line: "bg-violet-600" },
-  { number: "03", title: "Les agents préparent", description: "Chaque agent IA prend son sujet et prépare des actions prêtes à valider.", icon: Sparkles, tone: "border-emerald-200 bg-emerald-50 text-emerald-800", line: "bg-emerald-600" },
+  { number: "03", title: "David prépare", description: "David, votre Assistant EasyCom, prépare des actions prêtes à valider.", icon: Sparkles, tone: "border-emerald-200 bg-emerald-50 text-emerald-800", line: "bg-emerald-600" },
   { number: "04", title: "Vous validez", description: "Vous publiez, envoyez, automatisez ou ajustez en gardant le contrôle.", icon: Send, tone: "border-amber-200 bg-amber-50 text-amber-800", line: "bg-amber-500" },
 ];
 
@@ -100,13 +100,13 @@ export default async function MethodPage() {
           <div className="flex flex-col items-center justify-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 px-3 py-1.5 text-xs font-black text-blue-900">
               <Bot className="size-4" />
-              {he ? "צוות סוכני AI לצדכם" : "Une équipe d’agents IA à vos côtés"}
+              {he ? "עוזר AI אחד לצדכם" : "Un assistant IA à vos côtés"}
             </div>
             <h2 className="mt-5 max-w-3xl text-[clamp(2rem,8vw,3.75rem)] font-black leading-[1.04] tracking-tight">
               {he ? "התקשורת שלכם מתקדמת, " : "Votre communication avance, "}<span className="bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-600 bg-clip-text text-transparent">{he ? "גם כשאתם עסוקים" : "même quand vous êtes occupé"}</span>
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-              {he ? "הסוכנים מכינים את התוכן, מארגנים אוטומציות, עוקבים אחר אימיילים וביקורות ועוזרים לפרסם בערוצים הנכונים." : "Les agents préparent vos contenus, organisent vos automatisations, suivent vos emails et vos avis, puis vous aident à publier sur les bons canaux."}
+              {he ? "David מכין את התוכן, מארגן אוטומציות, עוקב אחר אימיילים וביקורות ועוזר לפרסם בערוצים הנכונים." : "David prépare vos contenus, organise vos automatisations, suit vos emails et vos avis, puis vous aide à publier sur les bons canaux."}
             </p>
             <div className="mt-8 grid max-w-2xl gap-4 sm:grid-cols-3">
               {cards.map(({ label, description, icon: Icon, tone, line }) => (

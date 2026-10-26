@@ -8,7 +8,7 @@ import { Baby, BookOpen, CalendarDays, Check, ChevronDown, Clock3, Copy, FileDow
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { AGENT_IMAGE_URLS } from "@/lib/agents";
+import { ASSISTANT_IMAGE } from "@/lib/agents";
 import { downloadTorahCoursePdf } from "@/lib/torah-pdf";
 
 type TorahDuration = "5 minutes" | "10 minutes" | "15 minutes" | "30 minutes" | "Plus de 45 minutes";
@@ -37,7 +37,7 @@ const THEMES: Array<{ value: TorahTheme; label: string; description: string; ico
   { value: "children", label: "Pour les enfants", description: "Des mots simples et des exemples", icon: Baby, active: "border-orange-400 bg-gradient-to-br from-[#ffbd17] to-[#ee9100] text-white shadow-orange-200", idle: "border-orange-100 bg-[#fffaf4] text-slate-700 hover:bg-orange-50" },
   { value: "event", label: "Événement précis", description: "Bar-mitsva, naissance, décès…", icon: CalendarDays, active: "border-rose-400 bg-gradient-to-br from-[#f64c89] to-[#d92d7c] text-white shadow-rose-200", idle: "border-rose-100 bg-[#fffaf4] text-slate-700 hover:bg-rose-50" },
 ];
-const SHMOUEL_TORAH_IMAGE = AGENT_IMAGE_URLS.shmouel;
+const ASSISTANT_TORAH_IMAGE = ASSISTANT_IMAGE;
 const DEFAULT_AUTHORIZED_SOURCES = ["chabad.org", "loubavitch.fr", "sefaria.org"];
 
 export function TorahClient() {
@@ -146,9 +146,9 @@ export function TorahClient() {
         <div className="relative z-10 max-w-[68%] sm:max-w-3xl">
           <span className="flex size-11 items-center justify-center rounded-2xl bg-white/15 text-white shadow-lg ring-1 ring-white/20 sm:size-12"><BookOpen className="size-6" /></span>
           <h1 className="mt-4 text-[clamp(2rem,9vw,2.75rem)] font-black uppercase leading-[1.02] tracking-[-0.045em] sm:mt-5 sm:text-4xl">Cours de Torah IA</h1>
-          <p className="mt-3 hidden max-w-2xl text-base font-semibold leading-7 text-white/85 sm:block sm:text-lg">Shmouel structure un cours adapté à votre public, votre sujet et votre temps.</p>
+          <p className="mt-3 hidden max-w-2xl text-base font-semibold leading-7 text-white/85 sm:block sm:text-lg">David structure un cours adapté à votre public, votre sujet et votre temps.</p>
         </div>
-        <Image src={SHMOUEL_TORAH_IMAGE} alt="Shmouel, agent IA Torah" width={240} height={280} className="pointer-events-none absolute -bottom-3 -right-5 z-10 h-[10.5rem] w-auto object-contain object-bottom drop-shadow-[0_18px_24px_rgba(12,2,35,0.34)] sm:-right-2 sm:h-[16rem]" priority />
+        <Image src={ASSISTANT_TORAH_IMAGE} alt="David, l’Assistant EasyCom" width={240} height={280} className="pointer-events-none absolute -bottom-3 -right-5 z-10 h-[10.5rem] w-auto object-contain object-bottom drop-shadow-[0_18px_24px_rgba(12,2,35,0.34)] sm:-right-2 sm:h-[16rem]" priority />
       </section>
 
       <Card className="overflow-hidden rounded-[2rem] border border-violet-100 bg-white shadow-[0_18px_46px_rgba(66,19,136,0.09)]">

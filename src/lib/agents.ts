@@ -11,173 +11,40 @@ export type EasyComAgent = {
   capabilities: readonly string[];
 };
 
-export const AGENT_IMAGE_URLS = {
-  avi: "/agents/avi-transparent.png",
-  barouh: "/agents/barouh-transparent.png",
-  david: "/agents/david-transparent.png",
-  dovBer: "/agents/dov-ber-transparent.png",
-  israel: "/agents/israel-transparent.png",
-  levik: "/agents/levik-transparent.png",
-  mendy: "/agents/mendy-transparent.png",
-  shmouel: "/agents/shmouel-transparent.png",
-  tsemah: "/agents/tsemah-transparent.png",
-  zalman: "/agents/zalman-transparent.png",
-} as const;
+/** David, l'Assistant EasyCom, is the only agent: one assistant with access to every tool. */
+export const ASSISTANT_IMAGE = "/agents/david-transparent.png";
 
-export const AGENTS_GROUP_IMAGE = "/agents/all-agents-characters-transparent.png";
+export const ASSISTANT_AGENT: EasyComAgent = {
+  slug: "david",
+  name: "David",
+  role: "Assistant EasyCom",
+  marketingTitle: "Un seul assistant. Toute votre communication.",
+  shortDescription: "Il prépare vos affiches, publications, newsletters, e-mails et automatisations, depuis une seule conversation.",
+  description: "David est votre Assistant EasyCom : un seul interlocuteur qui a accès à tous les outils de la plateforme.",
+  details: "Dites-lui simplement ce dont vous avez besoin : une affiche pour Chabbat, une publication, la newsletter, une réponse à un avis, un rappel d'événement ou un cours de Torah. Il prépare, vous validez.",
+  image: ASSISTANT_IMAGE,
+  tone: "from-violet-600 to-blue-500",
+  capabilities: ["Affiches, publications et newsletter", "E-mails, avis Google et WhatsApp", "Automatisations, rappels et cours de Torah"],
+};
 
-export const EASYCOM_AGENTS: readonly EasyComAgent[] = [
-  {
-    slug: "shlomi",
-    name: "Shlomi",
-    role: "Orchestrateur IA",
-    marketingTitle: "Tout avance ensemble.",
-    shortDescription: "Il coordonne les agents et vous aide à piloter toute votre communication depuis un seul espace.",
-    description: "Shlomi est votre point d'entrée. Il comprend votre besoin, mobilise le bon agent et vous aide à suivre ce qui avance.",
-    details: "Demandez-lui simplement ce que vous voulez accomplir : il vous oriente, prépare un plan d'action et relie les activités entre elles pour que votre communication reste cohérente.",
-    image: "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/Shlomi%20agent-orcetra-Itshak.webp",
-    tone: "from-blue-600 to-cyan-500",
-    capabilities: ["Oriente vers le bon agent", "Centralise les actions à mener", "Garde une vue d'ensemble de votre communication"],
-  },
-  {
-    slug: "david",
-    name: "David",
-    role: "Automatisations",
-    marketingTitle: "Votre routine. Automatique.",
-    shortDescription: "Il met en place vos routines : rappels, publications et actions récurrentes, au bon moment.",
-    description: "David transforme vos habitudes de communication en automatisations simples et fiables.",
-    details: "Il vous aide à programmer les rappels d'événements, les publications régulières et les séquences utiles, afin que les actions importantes ne reposent plus sur votre mémoire.",
-    image: AGENT_IMAGE_URLS.david,
-    tone: "from-violet-600 to-blue-500",
-    capabilities: ["Crée des routines récurrentes", "Programme rappels et publications", "Vous laisse choisir le niveau de validation"],
-  },
-  {
-    slug: "dov",
-    name: "Dov",
-    role: "Réseaux sociaux",
-    marketingTitle: "Instagram, sans effort.",
-    shortDescription: "Il prépare vos contenus pour vous aider à rester visible avec des publications cohérentes.",
-    description: "Dov vous accompagne pour transformer une idée, un événement ou une actualité en contenu Instagram prêt à publier.",
-    details: "Il vous propose des textes, des angles et des publications adaptées à votre univers afin de vous aider à communiquer régulièrement, sans recommencer à zéro à chaque fois.",
-    image: AGENT_IMAGE_URLS.dovBer,
-    tone: "from-pink-600 to-orange-400",
-    capabilities: ["Prépare des publications et légendes", "Adapte le ton à votre structure", "Aide à maintenir une présence régulière"],
-  },
-  {
-    slug: "mendy",
-    name: "Mendy",
-    role: "Facebook",
-    marketingTitle: "Facebook, toujours vivant.",
-    shortDescription: "Il vous accompagne pour créer et publier des contenus adaptés à votre page Facebook.",
-    description: "Mendy vous aide à communiquer clairement avec votre communauté sur Facebook.",
-    details: "À partir d'une information simple, il prépare un message structuré, facile à relire et prêt à publier. Vous conservez toujours le dernier mot avant la diffusion.",
-    image: AGENT_IMAGE_URLS.mendy,
-    tone: "from-blue-700 to-indigo-500",
-    capabilities: ["Rédige des posts adaptés à Facebook", "Met en valeur vos actualités", "Prépare la publication en quelques étapes"],
-  },
-  {
-    slug: "israel",
-    name: "Israël",
-    role: "WhatsApp",
-    marketingTitle: "Le bon message. Au bon moment.",
-    shortDescription: "Il prépare vos messages, vos relances et vos envois WhatsApp pour garder le lien simplement.",
-    description: "Israël vous aide à garder une communication de proximité sur WhatsApp, sans perdre de temps sur la rédaction.",
-    details: "Il prépare des messages courts et adaptés à chaque situation : une information importante, un rappel, une invitation ou une relance. Vous pouvez les personnaliser avant l'envoi.",
-    image: AGENT_IMAGE_URLS.israel,
-    tone: "from-emerald-600 to-teal-400",
-    capabilities: ["Prépare vos messages WhatsApp", "Aide à relancer au bon moment", "Simplifie les envois récurrents"],
-  },
-  {
-    slug: "levik",
-    name: "Levik",
-    role: "Emails",
-    marketingTitle: "Votre boîte mail, maîtrisée.",
-    shortDescription: "Il vous aide à trier, rédiger et envoyer vos emails sans perdre le ton de votre structure.",
-    description: "Levik remet de l'ordre dans votre communication email et vous aide à répondre plus vite.",
-    details: "Il facilite la préparation des réponses, la rédaction des communications importantes et le suivi des messages qui méritent votre attention.",
-    image: AGENT_IMAGE_URLS.levik,
-    tone: "from-rose-600 to-red-400",
-    capabilities: ["Aide à trier les emails", "Prépare des réponses personnalisables", "Rédige vos communications importantes"],
-  },
-  {
-    slug: "barouh",
-    name: "Barouh",
-    role: "Avis Google",
-    marketingTitle: "Chaque avis compte.",
-    shortDescription: "Il surveille vos avis, prépare des réponses pertinentes et vous aide à soigner votre réputation.",
-    description: "Barouh vous aide à suivre votre réputation locale et à ne laisser aucun avis important sans réponse.",
-    details: "Il repère les nouveaux avis, propose des réponses adaptées à votre ton et vous permet de garder une relation attentive avec les personnes qui vous découvrent sur Google.",
-    image: AGENT_IMAGE_URLS.barouh,
-    tone: "from-amber-500 to-orange-400",
-    capabilities: ["Centralise vos avis Google", "Propose des réponses pertinentes", "Aide à protéger votre réputation"],
-  },
-  {
-    slug: "shmouel",
-    name: "Shmouel",
-    role: "Cours de Torah",
-    marketingTitle: "Vos enseignements, amplifiés.",
-    shortDescription: "Il transforme vos idées et vos enseignements en contenus prêts à partager avec votre communauté.",
-    description: "Shmouel met vos cours et enseignements en forme pour qu'ils puissent vivre au-delà du moment où ils sont prononcés.",
-    details: "Il vous aide à créer des résumés, annonces et contenus inspirants à partir de vos idées, afin de les partager plus facilement avec votre communauté.",
-    image: AGENT_IMAGE_URLS.shmouel,
-    tone: "from-sky-700 to-blue-400",
-    capabilities: ["Transforme une idée en contenu", "Prépare des résumés faciles à partager", "Soutient votre communication autour des cours"],
-  },
-];
+export const EASYCOM_AGENTS: readonly EasyComAgent[] = [ASSISTANT_AGENT];
 
-export const HOME_EASYCOM_AGENTS: readonly EasyComAgent[] = [
-  ...EASYCOM_AGENTS.filter((agent) => agent.slug !== "shlomi"),
-  {
-    slug: "avi",
-    name: "Avi",
-    role: "Campagnes de dons",
-    marketingTitle: "Une campagne claire, a chaque etape.",
-    shortDescription: "Il vous aide a preparer, organiser et diffuser votre campagne de dons avec des contenus prets a valider.",
-    description: "Avi structure votre campagne afin que chaque etape, visuel et message reste simple a suivre.",
-    details: "Il vous accompagne pour planifier les dates, preparer les visuels et coordonner la diffusion de votre campagne, tout en vous laissant la validation finale.",
-    image: AGENT_IMAGE_URLS.avi,
-    tone: "from-rose-600 to-red-400",
-    capabilities: ["Organise les etapes de campagne", "Prepare les contenus a diffuser", "Garde un suivi clair des actions"],
-  },
-  {
-    slug: "tsemah",
-    name: "Tsemah",
-    role: "Newsletter IA",
-    marketingTitle: "Vos nouvelles, bien envoyees.",
-    shortDescription: "Il transforme vos evenements et vos photos en newsletters pretes a programmer.",
-    description: "Tsemah rassemble les informations utiles de votre communaute pour creer des newsletters simples et soignees.",
-    details: "Il prepare le contenu, vous permet de verifier l'email avant l'envoi et vous aide a choisir le bon moment pour le programmer.",
-    image: AGENT_IMAGE_URLS.tsemah,
-    tone: "from-fuchsia-600 to-pink-400",
-    capabilities: ["Compose vos newsletters", "Prepare une validation avant l'envoi", "Aide a planifier la diffusion"],
-  },
-  {
-    slug: "zalman",
-    name: "Zalman",
-    role: "Affiches & visuels",
-    marketingTitle: "Vos visuels, a votre image.",
-    shortDescription: "Il vous accompagne pour personnaliser et creer des affiches coherentes avec vos evenements.",
-    description: "Zalman vous aide a choisir, personnaliser et preparer les bons visuels pour chaque moment important.",
-    details: "A partir de la banque d'affiches ou de vos idees, il vous guide pour creer un visuel clair, elegant et pret a partager.",
-    image: AGENT_IMAGE_URLS.zalman,
-    tone: "from-red-600 to-orange-400",
-    capabilities: ["Personnalise vos affiches", "Aide a creer de nouveaux visuels", "Prepare les creations a partager"],
-  },
-];
+/** Former agents whose public pages now point to David. */
+export const RETIRED_AGENT_SLUGS = ["shlomi", "dov", "mendy", "israel", "levik", "barouh", "shmouel", "avi", "tsemah", "zalman"] as const;
 
 export function getEasyComAgent(slug: string) {
   return EASYCOM_AGENTS.find((agent) => agent.slug === slug);
 }
 
 const HE_AGENT_COPY: Record<string, Pick<EasyComAgent, "role" | "marketingTitle" | "shortDescription" | "description" | "details" | "capabilities">> = {
-  shlomi: { role: "מתאם AI", marketingTitle: "הכול מתקדם יחד.", shortDescription: "הוא מתאם בין הסוכנים ועוזר לנהל את כל התקשורת ממרחב אחד.", description: "Shlomi הוא נקודת הכניסה שלכם. הוא מבין את הצורך, מגייס את הסוכן הנכון ועוזר לעקוב אחר ההתקדמות.", details: "ספרו לו מה תרצו להשיג: הוא יכוון אתכם, יכין תוכנית פעולה ויחבר בין הפעילויות כדי לשמור על תקשורת עקבית.", capabilities: ["מכוון לסוכן הנכון", "מרכז את הפעולות לביצוע", "שומר על תמונה כוללת של התקשורת"] },
-  david: { role: "אוטומציות", marketingTitle: "השגרה שלכם. אוטומטית.", shortDescription: "הוא מגדיר שגרות, תזכורות, פרסומים ופעולות חוזרות בזמן הנכון.", description: "David הופך הרגלי תקשורת לאוטומציות פשוטות ואמינות.", details: "הוא עוזר לתזמן תזכורות לאירועים, פרסומים קבועים ורצפים שימושיים, כך שהפעולות החשובות לא תלויות בזיכרון.", capabilities: ["יוצר שגרות חוזרות", "מתזמן תזכורות ופרסומים", "מאפשר לבחור את רמת האישור"] },
-  dov: { role: "רשתות חברתיות", marketingTitle: "Instagram, בלי מאמץ.", shortDescription: "הוא מכין תוכן שיעזור לכם להישאר נוכחים עם פרסומים עקביים.", description: "Dov הופך רעיון, אירוע או חדשות לתוכן Instagram מוכן לפרסום.", details: "הוא מציע טקסטים, זוויות ופרסומים שמתאימים לעולם שלכם, כדי שתוכלו לתקשר בקביעות בלי להתחיל מאפס.", capabilities: ["מכין פרסומים וכיתובים", "מתאים את הסגנון לארגון", "עוזר לשמור על נוכחות קבועה"] },
-  mendy: { role: "Facebook", marketingTitle: "Facebook, תמיד חי.", shortDescription: "הוא עוזר ליצור ולפרסם תוכן שמתאים לעמוד ה־Facebook שלכם.", description: "Mendy עוזר לתקשר בבהירות עם הקהילה ב־Facebook.", details: "ממידע פשוט הוא מכין מסר מובנה, קל לבדיקה ומוכן לפרסום. המילה האחרונה תמיד שלכם.", capabilities: ["כותב פוסטים ל־Facebook", "מדגיש את החדשות שלכם", "מכין את הפרסום בכמה שלבים"] },
-  israel: { role: "WhatsApp", marketingTitle: "המסר הנכון. בזמן הנכון.", shortDescription: "הוא מכין הודעות, תזכורות ושליחות WhatsApp כדי לשמור על קשר בפשטות.", description: "Israël עוזר לשמור על תקשורת קרובה ב־WhatsApp בלי לבזבז זמן על ניסוח.", details: "הוא מכין הודעות קצרות שמתאימות לכל מצב: מידע חשוב, תזכורת, הזמנה או פנייה חוזרת. אפשר להתאים לפני השליחה.", capabilities: ["מכין הודעות WhatsApp", "עוזר לפנות שוב בזמן הנכון", "מפשט שליחות חוזרות"] },
-  levik: { role: "אימיילים", marketingTitle: "תיבת האימייל שלכם, בשליטה.", shortDescription: "הוא עוזר למיין, לנסח ולשלוח אימיילים תוך שמירה על הסגנון שלכם.", description: "Levik עושה סדר בתקשורת באימייל ועוזר לענות מהר יותר.", details: "הוא מקל על הכנת תשובות, ניסוח הודעות חשובות ומעקב אחר מסרים שדורשים תשומת לב.", capabilities: ["עוזר למיין אימיילים", "מכין תשובות שאפשר להתאים", "מנסח הודעות חשובות"] },
-  barouh: { role: "ביקורות Google", marketingTitle: "כל ביקורת חשובה.", shortDescription: "הוא עוקב אחר ביקורות, מכין תשובות מתאימות ועוזר לטפח את המוניטין.", description: "Barouh עוזר לעקוב אחר המוניטין המקומי ולא להשאיר ביקורת חשובה ללא מענה.", details: "הוא מזהה ביקורות חדשות, מציע תשובות בסגנון שלכם ועוזר לשמור על קשר קשוב עם מי שמגלה אתכם ב־Google.", capabilities: ["מרכז ביקורות Google", "מציע תשובות מתאימות", "עוזר להגן על המוניטין"] },
-  shmouel: { role: "שיעורי תורה", marketingTitle: "מגבירים את ההשפעה של השיעורים.", shortDescription: "הוא הופך רעיונות ושיעורים לתוכן מוכן לשיתוף עם הקהילה.", description: "Shmouel מעצב את השיעורים והתובנות כדי שימשיכו לחיות גם אחרי שנאמרו.", details: "הוא עוזר ליצור סיכומים, הודעות ותוכן מעורר השראה מהרעיונות שלכם, כדי לשתף אותם בקלות.", capabilities: ["הופך רעיון לתוכן", "מכין סיכומים קלים לשיתוף", "תומך בתקשורת סביב השיעורים"] },
+  david: {
+    role: "העוזר של EasyCom",
+    marketingTitle: "עוזר אחד. כל התקשורת שלכם.",
+    shortDescription: "הוא מכין מודעות, פרסומים, עלונים, אימיילים ואוטומציות – הכל משיחה אחת.",
+    description: "David הוא העוזר של EasyCom: איש קשר אחד עם גישה לכל הכלים של הפלטפורמה.",
+    details: "פשוט אמרו לו מה אתם צריכים: מודעה לשבת, פרסום, עלון, תשובה לביקורת, תזכורת לאירוע או שיעור תורה. הוא מכין, אתם מאשרים.",
+    capabilities: ["מודעות, פרסומים ועלון", "אימיילים, ביקורות Google ו-WhatsApp", "אוטומציות, תזכורות ושיעורי תורה"],
+  },
 };
 
 export function getLocalizedEasyComAgent(slug: string, locale: string) {

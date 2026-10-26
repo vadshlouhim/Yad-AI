@@ -42,7 +42,6 @@ export interface RunAssistantParams {
   gmailConnected: boolean;
   /** Gate billing pré-calculé par le chat route (évite un re-fetch par outil). */
   billingGate: BillingGate;
-  specializedAgentSlug?: string | null;
   emit: AssistantEmit;
 }
 
@@ -53,13 +52,12 @@ function cardTypeFor(kind: string): AssistantActionCard["type"] {
 // Exécute l'agent : boucle d'outils, puis stream de la réponse finale.
 // Retourne le texte final complet (pour persistance).
 export async function runAssistant(params: RunAssistantParams): Promise<string> {
-  const { openrouter, model, systemPrompt, messages, admin, communityId, userId, actionMode, gmailConnected, billingGate, specializedAgentSlug, emit } = params;
+  const { openrouter, model, systemPrompt, messages, admin, communityId, userId, actionMode, gmailConnected, billingGate, emit } = params;
 
   const tools = buildTools({
     gmailConnected,
     isPaid: billingGate.isPaid,
     isSuperAdmin: billingGate.isSuperAdmin,
-    specializedAgentSlug,
   });
   const currentMessages: ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },

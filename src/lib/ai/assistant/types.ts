@@ -39,7 +39,6 @@ export interface BuildToolsContext {
   gmailConnected: boolean;
   isPaid: boolean;
   isSuperAdmin: boolean;
-  specializedAgentSlug?: string | null;
 }
 
 /**

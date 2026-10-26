@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLocale } from "next-intl";
 import { ChevronDown, LogOut, Settings, User, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { AGENT_IMAGE_URLS } from "@/lib/agents";
 import {
   getOfficialDashboardMenuSections,
   OFFICIAL_MENU_SECTION_STYLES,
@@ -45,107 +43,6 @@ const PLAN_LABELS: Record<string, string> = {
   PROFESSIONAL: "Abonné",
   ENTERPRISE: "Abonné",
 };
-
-const SOCIAL_AGENT_IMAGES = [
-  {
-    src: AGENT_IMAGE_URLS.dovBer,
-    width: 54,
-    height: 75,
-    sizes: "3.35rem",
-    className: "left-0 -top-2 h-[4.7rem] w-[3.35rem] -rotate-6",
-  },
-  {
-    src: AGENT_IMAGE_URLS.mendy,
-    width: 64,
-    height: 80,
-    sizes: "4rem",
-    className: "left-1/2 -top-3 h-20 w-16 -translate-x-1/2 z-10",
-  },
-  {
-    src: AGENT_IMAGE_URLS.israel,
-    width: 54,
-    height: 75,
-    sizes: "3.35rem",
-    className: "right-0 -top-2 h-[4.7rem] w-[3.35rem] rotate-6",
-  },
-];
-
-const DAVID_AUTOMATION_IMAGE_URL = AGENT_IMAGE_URLS.david;
-const LEVIK_EMAIL_IMAGE_URL = AGENT_IMAGE_URLS.levik;
-const SHMOUEL_TORAH_IMAGE_URL = AGENT_IMAGE_URLS.shmouel;
-const AVI_DONATION_IMAGE_URL = AGENT_IMAGE_URLS.avi;
-const ZALMAN_VISUALS_IMAGE_URL = AGENT_IMAGE_URLS.zalman;
-const TSEMAH_NEWSLETTER_IMAGE_URL = AGENT_IMAGE_URLS.tsemah;
-
-function SocialAgentBubble() {
-  return (
-    <span className="relative flex h-16 w-[4.9rem] shrink-0 items-center justify-center self-center overflow-visible">
-      {SOCIAL_AGENT_IMAGES.map((agent) => (
-        <Image
-          key={agent.src}
-          src={agent.src}
-          width={agent.width}
-          height={agent.height}
-          sizes={agent.sizes}
-          alt=""
-          aria-hidden="true"
-          className={cn(
-            "absolute object-contain object-top drop-shadow-[0_10px_14px_rgba(15,23,42,0.18)]",
-            agent.className
-          )}
-        />
-      ))}
-    </span>
-  );
-}
-
-function AutomationAgentBubble() {
-  return (
-    <span className="relative z-20 flex h-16 w-[4.9rem] shrink-0 items-center justify-center self-center overflow-visible">
-      <Image
-        src={DAVID_AUTOMATION_IMAGE_URL}
-        width={64}
-        height={80}
-        sizes="4rem"
-        alt=""
-        aria-hidden="true"
-        className="absolute -top-3 z-20 h-20 w-16 object-contain object-top drop-shadow-[0_10px_14px_rgba(15,23,42,0.18)]"
-      />
-    </span>
-  );
-}
-
-function SingleAgentBubble({ src }: { src: string }) {
-  return (
-    <span className="relative flex h-16 w-[4.9rem] shrink-0 items-center justify-center self-center overflow-visible">
-      <Image
-        src={src}
-        width={64}
-        height={80}
-        sizes="4rem"
-        alt=""
-        aria-hidden="true"
-        className="absolute -top-3 h-20 w-16 object-contain object-top drop-shadow-[0_10px_14px_rgba(15,23,42,0.18)]"
-      />
-    </span>
-  );
-}
-
-function AviAgentBubble() {
-  return (
-    <span className="relative flex h-16 w-[5.4rem] shrink-0 items-center justify-center self-center overflow-visible">
-      <Image
-        src={AVI_DONATION_IMAGE_URL}
-        width={79}
-        height={98}
-        sizes="4.9rem"
-        alt=""
-        aria-hidden="true"
-        className="absolute -top-4 h-[6.1rem] w-[4.9rem] object-contain object-top drop-shadow-[0_12px_16px_rgba(15,23,42,0.2)]"
-      />
-    </span>
-  );
-}
 
 export function Sidebar({ community, userAvatar, userName, unreadNotifications = 0, basePath = "/dashboard" }: SidebarProps) {
   const pathname = usePathname();
@@ -463,13 +360,6 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
                         <p className={cn("text-[15px] font-black tracking-tight", style.titleClass)}>{section.section}</p>
                         {renderSectionSubtitle(section, cn("mt-1.5 text-xs leading-5", style.descriptionClass))}
                       </div>
-                      {section.key === "social" && <SocialAgentBubble />}
-                      {section.key === "automations" && <AutomationAgentBubble />}
-                      {section.key === "email" && <SingleAgentBubble src={LEVIK_EMAIL_IMAGE_URL} />}
-                      {section.key === "torah" && <SingleAgentBubble src={SHMOUEL_TORAH_IMAGE_URL} />}
-                      {section.key === "donation" && <AviAgentBubble />}
-                      {section.key === "newsletter" && <SingleAgentBubble src={TSEMAH_NEWSLETTER_IMAGE_URL} />}
-                      {section.key === "visuals" && <SingleAgentBubble src={ZALMAN_VISUALS_IMAGE_URL} />}
                       <ChevronDown
                         className={cn(
                           "mt-4 size-4 flex-shrink-0 text-slate-400 transition-transform duration-300",

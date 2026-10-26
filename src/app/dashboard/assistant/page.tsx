@@ -6,7 +6,7 @@ import { getCommunityProfileDisplayLabel } from "@/lib/community/profile-labels"
 import { getBillingConfig } from "@/lib/billing";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Agents intelligents — EasyCom IA" };
+export const metadata: Metadata = { title: "Assistant IA — EasyCom IA" };
 
 export default async function AssistantPage({
   searchParams,
@@ -187,7 +187,6 @@ export default async function AssistantPage({
       channels={channels ?? []}
       seasonalPrompts={quickActionPrompts}
       initialPrompt={initialPrompt}
-      initialAgentSlug={typeof params.agent === "string" ? params.agent : undefined}
       initialApprovalDraft={initialApprovalDraft}
       userName={profile.name ?? ""}
       userAvatar={profile.avatarUrl ?? null}

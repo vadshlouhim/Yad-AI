@@ -5,16 +5,9 @@ import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { AGENT_IMAGE_URLS } from "@/lib/agents";
+import { ASSISTANT_IMAGE } from "@/lib/agents";
 
-export const DOV_BER_INSTAGRAM_IMAGE = AGENT_IMAGE_URLS.dovBer;
-
-export const MENDY_FACEBOOK_IMAGE = AGENT_IMAGE_URLS.mendy;
-
-export const ISRAEL_WHATSAPP_IMAGE = AGENT_IMAGE_URLS.israel;
-
-export const DAVID_AGENT_IMAGE =
-  "https://xicipkwqvuoaavvdgnnb.supabase.co/storage/v1/object/public/Image%20du%20site/agent-orcetra-shlomi.webp";
+export const DAVID_AGENT_IMAGE = ASSISTANT_IMAGE;
 
 const DEFAULT_AGENT_TEXT =
   "Je vous évite de surfer sur les réseaux sociaux : je prépare vos publications, et vous les publiez en un clic !";
@@ -110,7 +103,7 @@ export function SocialPageBanner({
               "relative max-w-md rounded-2xl bg-white px-5 py-4 text-base font-black leading-6 shadow-xl before:absolute before:-top-2 before:left-1/2 before:size-4 before:-translate-x-1/2 before:rotate-45 before:bg-white lg:before:-left-2 lg:before:top-10 lg:before:translate-x-0",
               compactOnMobile && "hidden md:block"
             )} style={{ color }}>
-              Je suis {agentName}, votre agent intelligent. {DEFAULT_AGENT_TEXT}
+              Je suis {agentName}, votre Assistant EasyCom. {DEFAULT_AGENT_TEXT}
             </div>
           </div>
         )}

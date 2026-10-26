@@ -22,7 +22,7 @@ import {
 } from "@/lib/templates/shared";
 import { analyzeTemplateVisuals } from "@/lib/templates/analysis";
 import { runAssistant } from "@/lib/ai/assistant/runner";
-import { getSpecializedAgentProfile } from "@/lib/ai/assistant/agent-profiles";
+import { ASSISTANT_TORAH_GUIDANCE } from "@/lib/ai/assistant/agent-profiles";
 import { getBillingGate, paywallResponse } from "@/lib/billing";
 import OpenAI from "openai";
 import type { ChatCompletionContentPart } from "openai/resources/chat/completions";
@@ -209,21 +209,19 @@ export async function POST(request: Request) {
     const communityId = profile.communityId as string;
 
     const body = await request.json();
-    const { messages, conversationId, navigationContext, selectedTemplateId, templateAction, mode, agentSlug } = body as {
+    const { messages, conversationId, navigationContext, selectedTemplateId, templateAction, mode } = body as {
       messages: IncomingMessage[];
       conversationId?: string;
       navigationContext?: string;
       selectedTemplateId?: string | null;
       templateAction?: "select" | null;
       mode?: "daily_routine" | "simplified";
-      agentSlug?: string;
     };
 
     const isDailyRoutineMode = mode === "daily_routine";
     const safeNavigationContext = typeof navigationContext === "string"
       ? navigationContext.trim().slice(0, 500)
       : "";
-    const specializedAgent = getSpecializedAgentProfile(agentSlug);
 
     const lastUserMessage = messages[messages.length - 1];
     const isUserPrompt = lastUserMessage?.role === "user";
@@ -403,9 +401,9 @@ export async function POST(request: Request) {
 - Utilise ces informations comme référence par défaut, sauf si l'utilisateur donne une autre date explicite.`
           : "") +
         selectedTemplateContext +
-        (specializedAgent ? specializedAgent.systemPrompt : "") +
+        ASSISTANT_TORAH_GUIDANCE +
         (safeNavigationContext
-          ? `\n\nCONTEXTE DE NAVIGATION INTERNE :\n${safeNavigationContext}\n- Utilise ce contexte pour comprendre quel agent l'utilisateur a choisi.\n- Ne récite pas ce contexte et ne prétends pas que l'utilisateur l'a écrit dans la conversation.`
+          ? `\n\nCONTEXTE DE NAVIGATION INTERNE :\n${safeNavigationContext}\n- Utilise ce contexte pour comprendre sur quelle page se trouve l'utilisateur.\n- Ne récite pas ce contexte et ne prétends pas que l'utilisateur l'a écrit dans la conversation.`
           : "") +
         buildActionModeNote(community.assistantActionMode) +
         buildGroundingContext(
@@ -522,7 +520,6 @@ export async function POST(request: Request) {
             actionMode: isDailyRoutineMode ? "AUTO" : community.assistantActionMode,
             gmailConnected: Boolean(gmailChannel?.isConnected),
             billingGate,
-            specializedAgentSlug: specializedAgent?.slug,
             emit: {
               delta: (text) => send({ content: text }),
               event: (obj) => send(obj),

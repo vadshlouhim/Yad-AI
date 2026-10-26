@@ -8,7 +8,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: he ? "EasyCom AI — כל התקשורת של בית הכנסת שלכם" : "EasyCom AI — Toute la communication de votre synagogue",
     description: he
       ? "פרסום, יצירה ואוטומציה לכל התקשורת של בית הכנסת, בית חב״ד או הארגון שלכם, עם סוכני AI."
-      : "Publiez, créez, automatisez. Toute la communication de votre synagogue, Beth Habad ou association au même endroit, avec vos agents IA.",
+      : "Publiez, créez, automatisez. Toute la communication de votre synagogue, Beth Habad ou association au même endroit, avec votre assistant IA.",
     alternates: { canonical: "/" },
     openGraph: { locale: he ? "he_IL" : "fr_FR" },
   };

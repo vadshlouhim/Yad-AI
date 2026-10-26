@@ -5,7 +5,7 @@ import Image from "next/image";
 import { BookOpen, CalendarDays, Check, ChevronDown, Crown, ExternalLink, Pause, Pencil, ScrollText, ShieldCheck, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FacebookIcon, InstagramIcon } from "@/components/layout/dashboard-nav";
-import { AGENT_IMAGE_URLS } from "@/lib/agents";
+import { ASSISTANT_IMAGE } from "@/lib/agents";
 import { cn } from "@/lib/utils";
 
 const DAYS = [
@@ -118,7 +118,7 @@ export function HayomYomSeferHamitsvotClient({ communityName, timezone, eligible
           <h1 className="mt-4 text-[clamp(1.75rem,8vw,2.6rem)] font-black leading-[1.03] tracking-[-0.04em] sm:mt-5 sm:text-4xl">Hayom Yom et Sefer Hamitsvot</h1>
           <p className="mt-3 hidden max-w-2xl text-sm font-semibold leading-6 text-white/78 sm:block sm:text-base">Les études quotidiennes publiées sur une carte à votre image, sans génération IA, sur Facebook et Instagram.</p>
         </div>
-        <Image src={AGENT_IMAGE_URLS.david} alt="David, agent des automatisations" width={240} height={280} className="absolute -bottom-3 -right-5 z-10 h-[10.5rem] w-auto object-contain object-bottom drop-shadow-[0_18px_24px_rgba(12,2,35,0.34)] sm:-right-2 sm:h-[16rem]" priority />
+        <Image src={ASSISTANT_IMAGE} alt="David, l’Assistant EasyCom" width={240} height={280} className="absolute -bottom-3 -right-5 z-10 h-[10.5rem] w-auto object-contain object-bottom drop-shadow-[0_18px_24px_rgba(12,2,35,0.34)] sm:-right-2 sm:h-[16rem]" priority />
       </section>
 
       <section className="overflow-hidden rounded-[2rem] border border-violet-100 bg-[#fffaf4] shadow-[0_18px_46px_rgba(66,19,136,0.09)]">

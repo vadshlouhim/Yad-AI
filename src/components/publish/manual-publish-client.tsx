@@ -26,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { DAVID_AGENT_IMAGE, DOV_BER_INSTAGRAM_IMAGE, MENDY_FACEBOOK_IMAGE, SocialPageBanner } from "@/components/publish/social-page-banner";
+import { DAVID_AGENT_IMAGE, SocialPageBanner } from "@/components/publish/social-page-banner";
 
 const SOCIAL_LABELS: Record<string, string> = {
   WHATSAPP: "WhatsApp",
@@ -493,8 +493,8 @@ function InstagramPublishClient({ channelId, isConnected, communityName }: Props
       <SocialPageBanner
         title="Publier sur Instagram"
         color="#8A184D"
-        agentName="Dov Ber"
-        agentImageUrl={DOV_BER_INSTAGRAM_IMAGE}
+        agentName="David"
+        agentImageUrl={DAVID_AGENT_IMAGE}
         statusLabel={isConnected ? "Compte connecté" : "Connexion requise"}
         backHref="/dashboard/publications"
         compactOnMobile
@@ -920,8 +920,8 @@ function FacebookPublishClient({ channelId, isConnected, communityName }: Props)
       <SocialPageBanner
         title="Publier sur Facebook"
         color="#0B4FB3"
-        agentName="Mendy"
-        agentImageUrl={MENDY_FACEBOOK_IMAGE}
+        agentName="David"
+        agentImageUrl={DAVID_AGENT_IMAGE}
         statusLabel={isConnected ? "Facebook connecté" : "Connexion requise"}
         backHref="/dashboard/publications"
         compactOnMobile

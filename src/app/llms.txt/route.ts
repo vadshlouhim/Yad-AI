@@ -21,7 +21,7 @@ export async function GET() {
     `- Conditions d'utilisation: ${absoluteUrl("/legal/terms")}`,
     `- Plan du site: ${absoluteUrl("/site-map")}`,
     "",
-    "## Agents IA",
+    "## Assistant IA",
     ...EASYCOM_AGENTS.map(
       (agent) => `- ${agent.name}, ${agent.role}: ${absoluteUrl(`/agents/${agent.slug}`)}`
     ),

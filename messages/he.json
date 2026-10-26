@@ -217,6 +217,11 @@
     "heSupport": "תמיכה ב־WhatsApp",
     "heLogout": "התנתקות",
     "copy": {
+      "Assistant IA": "עוזר AI",
+      "Assistant EasyCom": "העוזר של EasyCom",
+      "Votre assistant IA": "עוזר ה־AI שלכם",
+      "Posez votre question, David s’occupe du reste__dot__": "שאלו את השאלה שלכם, David ידאג לכל השאר.",
+      "Ouvrir l’Assistant EasyCom": "פתיחת העוזר של EasyCom",
       "Abonné": "מנוי פעיל",
       "Sans abonnement": "ללא מנוי",
       "Ouvrir l’Agenda IA": "פתיחת יומן ה־AI",
