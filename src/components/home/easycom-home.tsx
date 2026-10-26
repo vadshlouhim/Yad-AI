@@ -178,6 +178,20 @@ function MainVideoPlayer() {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [muted, setMuted] = useState(true);
+  const [src, setSrc] = useState<string>();
+
+  // Start the presentation (about 40 MB) only once the page itself has loaded, so it
+  // no longer competes with the page code for bandwidth on slow connections.
+  useEffect(() => {
+    let timer = 0;
+    const start = () => { timer = window.setTimeout(() => setSrc(MAIN_VIDEO_URL), 300); };
+    if (document.readyState === "complete") start();
+    else window.addEventListener("load", start, { once: true });
+    return () => {
+      window.removeEventListener("load", start);
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   function toggleSound() {
     const video = videoRef.current;
@@ -192,7 +206,7 @@ function MainVideoPlayer() {
     <video
       ref={videoRef}
       className={`home-master-video${loaded && !failed ? " home-master-video-ready" : ""}${failed ? " home-master-video-failed" : ""}`}
-      src={MAIN_VIDEO_URL}
+      src={src}
       autoPlay
       muted={muted}
       controls

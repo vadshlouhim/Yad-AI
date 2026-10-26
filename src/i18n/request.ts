@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
+import { getRequestAuthUser } from "@/lib/auth";
 import {
   DEFAULT_LOCALE,
   isSupportedLocale,
@@ -32,12 +33,12 @@ export default getRequestConfig(async () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   ) {
     try {
-      const supabase = await createClient();
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await getRequestAuthUser();
 
       if (user) {
+        const supabase = await createClient();
         const { data: profile } = await supabase
           .from("profiles")
           .select("locale")

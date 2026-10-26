@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
@@ -5,17 +6,27 @@ import type { Tables } from "@/types/database.types";
 
 type Profile = Tables<"profiles">;
 
+/**
+ * One Supabase Auth round trip per server request: the dashboard layout, the page and
+ * the locale lookup all ask for the user while rendering the same request.
+ */
+export const getRequestAuthUser = cache(async () => {
+  const supabase = await createClient();
+  return supabase.auth.getUser();
+});
+
 // Récupère l'utilisateur Supabase + son profil
 // Redirige vers /auth/login si non connecté
-export async function requireAuth(): Promise<{
+// Mis en cache par requête : le layout et la page partagent le même résultat.
+export const requireAuth = cache(async (): Promise<{
   supabaseUser: { id: string; email: string; country?: string };
   profile: Profile;
-}> {
+}> => {
   const supabase = await createClient();
   const {
     data: { user },
     error,
-  } = await supabase.auth.getUser();
+  } = await getRequestAuthUser();
 
   if (error || !user) {
     redirect("/auth/login");
@@ -87,7 +98,7 @@ export async function requireAuth(): Promise<{
     },
     profile,
   };
-}
+});
 
 // Version sans redirection (pour les layouts qui vérifient sans bloquer)
 export async function getOptionalUser() {

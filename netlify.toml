@@ -12,3 +12,6 @@
 
 [functions."automations-cron"]
   schedule = "* * * * *"
+
+[functions."keep-warm"]
+  schedule = "*/5 * * * *"
