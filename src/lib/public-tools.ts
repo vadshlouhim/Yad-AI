@@ -539,9 +539,18 @@ export const PUBLIC_SERVICES = [
 
 export const UPCOMING_TOOLS = ["Clips vidéo", "Campagnes de dons"] as const;
 
+// A poster picked in the public gallery: kept through sign-up so the user lands on it.
+// Strictly an internal path with a plain id, so it can never become an open redirect.
+const POSTER_DESTINATION = /^\/dashboard\/templates\?templateId=([A-Za-z0-9_-]{1,64})$/;
+
+export function getPosterTemplateId(value: string | null | undefined): string | null {
+  return value?.match(POSTER_DESTINATION)?.[1] ?? null;
+}
+
 export function getPublicToolDestination(
   value: string | null | undefined,
 ): string | null {
+  if (getPosterTemplateId(value)) return value!;
   return value &&
     [...PUBLIC_TOOLS, ...PUBLIC_SERVICES].some(
       (item) => item.destination === value,

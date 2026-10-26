@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getBillingGate } from "@/lib/billing";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -37,5 +38,25 @@ export default async function CanvaTemplateRedirectPage({ params }: Props) {
     notFound();
   }
   if (!canvaUrl) notFound();
+
+  // Every opening is traced (who, which community, which template), so a shared or
+  // resold Canva link can be traced back to the account that opened it.
+  try {
+    const requestHeaders = await headers();
+    await admin.from("AuditLog").insert({
+      id: crypto.randomUUID(),
+      action: "template.canva_open",
+      resource: "Template",
+      resourceId: template.id,
+      userId: user.id,
+      communityId: gate.communityId,
+      ipAddress: requestHeaders.get("x-nf-client-connection-ip") ?? requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+      userAgent: requestHeaders.get("user-agent")?.slice(0, 300) ?? null,
+      newData: { access: gate.access },
+    });
+  } catch (error) {
+    console.error("[Canva] Journal d'ouverture impossible:", error);
+  }
+
   redirect(canvaUrl);
 }

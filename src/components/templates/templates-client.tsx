@@ -21,6 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { BillingConfig } from "@/lib/billing";
 import {
   PosterGallery,
+  posterDisplayName,
   posterTemplateImage,
   type PosterGalleryTemplate,
 } from "./poster-gallery";
@@ -299,7 +300,7 @@ export function TemplatesClient({
       if (returnToPublish) {
         const attached = attachGeneratedImageToSocialComposer(
           data.imageUrl,
-          `${selectedTemplate.name} — affiche personnalisée`
+          `${posterDisplayName(selectedTemplate)} — affiche personnalisée`
         );
         if (attached) {
           window.location.assign("/dashboard/social-networks");
@@ -444,7 +445,7 @@ export function TemplatesClient({
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)]">
           <div className="space-y-4 lg:sticky lg:top-6">
             <Card className="overflow-hidden rounded-[2rem] border-violet-100 bg-[#f7f3ee] p-2 shadow-[0_16px_40px_rgba(66,19,136,0.1)]">
-              {sourceImage ? <img src={sourceImage} alt={source ? "Votre affiche personnalisée" : selectedTemplate.name} className="w-full rounded-[1.5rem] object-contain" /> : null}
+              {sourceImage ? <img src={sourceImage} alt={source ? "Votre affiche personnalisée" : posterDisplayName(selectedTemplate)} className="w-full rounded-[1.5rem] object-contain" /> : null}
             </Card>
             {source ? (
               <Card className="rounded-[1.5rem] border-emerald-200 bg-emerald-50/70 shadow-none">

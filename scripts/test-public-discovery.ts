@@ -142,10 +142,16 @@ for (const invalid of [
   "/dashboard/unknown",
   "/dashboard/templates?next=https://evil.test",
   "/onboarding?callbackUrl=https://evil.test",
+  "/dashboard/templates?templateId=abc&next=https://evil.test",
+  "/dashboard/templates?templateId=../admin",
+  "/dashboard/templates?templateId=",
 ]) {
   assert.equal(getPublicToolDestination(invalid), null);
   assert.equal(getAuthToolDestination(invalid), null);
 }
+// A poster picked in the public gallery survives sign-up and onboarding.
+const posterDestination = "/dashboard/templates?templateId=3f2b8c1e-9a4d-4c2f-b7e1-0d5a6c9e8f12";
+assert.equal(getPublicToolDestination(posterDestination), posterDestination);
 assert.equal(getPostAuthDestination("/dashboard", false), "/onboarding");
 assert.equal(getPostAuthDestination("/dashboard", true), "/dashboard");
 assert.equal(getPostAuthDestination("/onboarding", true), "/onboarding");

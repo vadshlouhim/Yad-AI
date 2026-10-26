@@ -6,6 +6,7 @@ import Link from "next/link";
 import { LogIn, UserPlus, X } from "lucide-react";
 import {
   PosterGallery,
+  posterDisplayName,
   posterTemplateImage,
   type PosterGalleryTemplate,
 } from "./poster-gallery";
@@ -125,7 +126,7 @@ export function PublicPosterGallery({ templates }: Props) {
               {imageUrl ? (
                 <img
                   src={imageUrl}
-                  alt={selectedTemplate.name}
+                  alt={posterDisplayName(selectedTemplate)}
                   className="max-h-[64dvh] w-full object-contain lg:max-h-[calc(100dvh-6rem)]"
                 />
               ) : (
@@ -136,7 +137,7 @@ export function PublicPosterGallery({ templates }: Props) {
             <div className="flex flex-col justify-center border-t border-slate-200 bg-white p-5 sm:p-8 lg:border-s lg:border-t-0">
               <p className="text-xs font-black uppercase tracking-[0.16em] text-violet-700">{he ? "מודעה שנבחרה" : "Affiche sélectionnée"}</p>
               <h2 id="public-poster-title" className="mt-2 pe-10 text-2xl font-black text-slate-950 sm:text-3xl">
-                {selectedTemplate.name}
+                {posterDisplayName(selectedTemplate)}
               </h2>
               {selectedTemplate.description ? (
                 <p className="mt-3 text-sm leading-6 text-slate-500">{selectedTemplate.description}</p>

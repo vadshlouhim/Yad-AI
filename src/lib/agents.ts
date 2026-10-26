@@ -12,7 +12,7 @@ export type EasyComAgent = {
 };
 
 /** David, l'Assistant EasyCom, is the only agent: one assistant with access to every tool. */
-// 427×640 WebP (44 KB) made from david-transparent.png (929 KB): it is shown in raw <img> tags too.
+// 427×640 WebP (24 KB) made from david-transparent.png (929 KB): it is shown in raw <img> tags too.
 export const ASSISTANT_IMAGE = "/agents/david.webp";
 
 export const ASSISTANT_AGENT: EasyComAgent = {

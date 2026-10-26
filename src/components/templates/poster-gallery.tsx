@@ -2,13 +2,14 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useMemo, useState } from "react";
-import { ArrowLeft, ImageIcon, Paintbrush, Search } from "lucide-react";
+import { ArrowLeft, ImageIcon, Paintbrush, Search, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { CATEGORY_EMOJI, CATEGORY_LABELS } from "@/lib/templates/shared";
 import { cn } from "@/lib/utils";
 import { POSTER_HEADER_CLASS } from "@/components/presentation/platform-style";
 import { CanvaLogo } from "@/components/templates/template-actions";
 import { HOLIDAY_THEMES } from "@/lib/templates/taxonomy";
+import { posterDisplayName } from "@/lib/templates/display-name";
 import { useLocale } from "next-intl";
 
 export interface PosterGalleryTemplate {
@@ -26,6 +27,7 @@ export interface PosterGalleryTemplate {
   isPremium: boolean;
   tags: string[];
   usageCount: number;
+  languages?: string[];
 }
 
 interface PosterStatus {
@@ -70,6 +72,8 @@ function sortSubCategories(values: string[], category: string | null) {
   });
 }
 
+export { posterDisplayName };
+
 export function posterTemplateImage(template: PosterGalleryTemplate) {
   return template.previewUrl ?? template.thumbnailUrl ?? template.originalUrl;
 }
@@ -94,20 +98,32 @@ export function PosterGallery({
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [subCategoryPath, setSubCategoryPath] = useState<string[]>([]);
+  const [canvaOnly, setCanvaOnly] = useState(false);
+  const [language, setLanguage] = useState<"fr" | "he" | null>(null);
 
   const categories = useMemo(() => [...new Set(templates.map((template) => template.category))], [templates]);
-  const filteredTemplates = useMemo(() => {
+  const canvaCount = useMemo(() => templates.filter((template) => template.hasCanva).length, [templates]);
+  const languageCounts = useMemo(() => ({
+    fr: templates.filter((template) => template.languages?.includes("fr")).length,
+    he: templates.filter((template) => template.languages?.includes("he")).length,
+  }), [templates]);
+  // Search, Canva and language narrow everything, so every counter below reflects them.
+  const searchMatches = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase("fr");
     return templates.filter((template) => {
-      if (category && template.category !== category) return false;
-      if (subCategoryPath.length && !subCategoryPath.every((part, index) => splitSubCategory(template.subCategory)[index] === part)) return false;
+      if (canvaOnly && !template.hasCanva) return false;
+      if (language && !template.languages?.includes(language)) return false;
       if (!needle) return true;
-      return [template.name, template.description ?? "", template.subCategory ?? "", ...(template.tags ?? [])]
+      return [template.name, posterDisplayName(template), template.description ?? "", template.subCategory ?? "", ...(template.tags ?? [])]
         .join(" ")
         .toLocaleLowerCase("fr")
         .includes(needle);
     });
-  }, [category, search, subCategoryPath, templates]);
+  }, [canvaOnly, language, search, templates]);
+  const filteredTemplates = useMemo(() => searchMatches.filter((template) => {
+    if (category && template.category !== category) return false;
+    return !subCategoryPath.length || subCategoryPath.every((part, index) => splitSubCategory(template.subCategory)[index] === part);
+  }), [category, searchMatches, subCategoryPath]);
   const nextSubCategories = useMemo(() => {
     if (!category) return [];
     const options = new Set<string>();
@@ -171,7 +187,7 @@ export function PosterGallery({
                     : "border-violet-200 bg-white text-violet-700 hover:bg-violet-50"
                 )}
               >
-                {he ? "הכול" : "Toutes"} <span className="ms-1 opacity-70">{templates.length}</span>
+                {he ? "הכול" : "Toutes"} <span className="ms-1 opacity-70">{searchMatches.length}</span>
               </button>
               {categories.map((item, index) => (
                 <button
@@ -187,10 +203,32 @@ export function PosterGallery({
                 >
                   {CATEGORY_EMOJI[item] ?? "🖼️"} {CATEGORY_LABELS[item] ?? item}{" "}
                   <span className="ml-1 opacity-70">
-                    {templates.filter((template) => template.category === item).length}
+                    {searchMatches.filter((template) => template.category === item).length}
                   </span>
                 </button>
               ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {canvaCount > 0 ? (
+                <button type="button" aria-pressed={canvaOnly} onClick={() => setCanvaOnly((value) => !value)} className={cn("inline-flex min-h-10 items-center gap-2 rounded-full border px-3.5 text-sm font-black transition", canvaOnly ? "border-[#421388] bg-[#421388] text-white" : "border-violet-200 bg-white text-violet-800 hover:bg-violet-50")}>
+                  <CanvaLogo className={cn("h-3.5", canvaOnly && "brightness-0 invert")} />{he ? "ניתן לעריכה ב־Canva" : "Modifiable dans Canva"} <span className="opacity-70">{canvaCount}</span>
+                </button>
+              ) : null}
+              {languageCounts.fr > 0 && languageCounts.he > 0 ? ([["fr", he ? "צרפתית" : "Français"], ["he", "עברית"]] as const).map(([value, label]) => (
+                <button key={value} type="button" aria-pressed={language === value} onClick={() => setLanguage((current) => current === value ? null : value)} className={cn("inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 text-sm font-black transition", language === value ? "border-[#421388] bg-[#421388] text-white" : "border-violet-200 bg-white text-violet-800 hover:bg-violet-50")}>
+                  {label} <span className="opacity-70">{languageCounts[value]}</span>
+                </button>
+              )) : null}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <p className="flex items-start gap-2 rounded-2xl bg-fuchsia-50/70 px-3.5 py-3 text-xs font-semibold leading-5 text-slate-700">
+                <Sparkles className="mt-0.5 size-4 shrink-0 text-fuchsia-600" aria-hidden="true" />
+                <span><strong className="text-fuchsia-800">{he ? "עם ה־AI: " : "Avec l’IA : "}</strong>{he ? "כתבו מה לשנות (תאריכים, שעות, שם הקהילה) ו־EasyCom IA מכין את המודעה בשבילכם." : "écrivez ce qui change (dates, horaires, nom de la communauté) et EasyCom IA prépare l’affiche pour vous."}</span>
+              </p>
+              <p className="flex items-start gap-2 rounded-2xl bg-blue-50/70 px-3.5 py-3 text-xs font-semibold leading-5 text-slate-700">
+                <CanvaLogo className="mt-0.5 h-4 shrink-0" />
+                <span><strong className="text-blue-800">{he ? "ב־Canva: " : "Dans Canva : "}</strong>{he ? "פותחים את התבנית ב־Canva ועורכים בעצמכם הכול: טקסטים, צבעים ותמונות." : "vous ouvrez le modèle dans Canva et modifiez vous-même tout le contenu : textes, couleurs et images."}</span>
+              </p>
             </div>
             {category && nextSubCategories.length > 0 ? (
               <div className="rounded-[1.5rem] border border-violet-100 bg-white p-3.5 shadow-sm">
@@ -201,13 +239,17 @@ export function PosterGallery({
                   {subCategoryPath.length > 0 ? <button type="button" onClick={() => setSubCategoryPath((path) => path.slice(0, -1))} className="inline-flex items-center gap-1 rounded-xl bg-violet-50 px-2.5 py-1.5 text-xs font-black text-violet-700 hover:bg-violet-100"><ArrowLeft className="rtl-mirror size-3.5" />{he ? "חזרה" : "Retour"}</button> : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {nextSubCategories.map((item, index) => <button key={item} type="button" onClick={() => setSubCategoryPath((path) => [...path, item])} className={cn("min-h-11 rounded-2xl border px-3.5 text-sm font-black transition hover:-translate-y-0.5", CATEGORY_TONES[(index + 1) % CATEGORY_TONES.length])}>{item}<span className="ml-1.5 opacity-65">{templates.filter((template) => template.category === category && [...subCategoryPath, item].every((part, pathIndex) => splitSubCategory(template.subCategory)[pathIndex] === part)).length}</span></button>)}
+                  {nextSubCategories.map((item, index) => <button key={item} type="button" onClick={() => setSubCategoryPath((path) => [...path, item])} className={cn("min-h-11 rounded-2xl border px-3.5 text-sm font-black transition hover:-translate-y-0.5", CATEGORY_TONES[(index + 1) % CATEGORY_TONES.length])}>{item}<span className="ml-1.5 opacity-65">{searchMatches.filter((template) => template.category === category && [...subCategoryPath, item].every((part, pathIndex) => splitSubCategory(template.subCategory)[pathIndex] === part)).length}</span></button>)}
                 </div>
               </div>
             ) : null}
           </CardContent>
         </Card>
       ) : null}
+
+      <p className="text-sm font-bold text-slate-600" role="status">
+        {he ? `${filteredTemplates.length} מודעות` : `${filteredTemplates.length} affiche${filteredTemplates.length > 1 ? "s" : ""}`}
+      </p>
 
       {filteredTemplates.length === 0 ? (
         <Card>
@@ -232,7 +274,7 @@ export function PosterGallery({
                   {image ? (
                     <img
                       src={image}
-                      alt={template.name}
+                      alt={posterDisplayName(template)}
                       loading="lazy"
                       decoding="async"
                       className="h-full w-full rounded-[1rem] object-contain transition duration-300 group-hover:scale-[1.015]"
@@ -251,7 +293,7 @@ export function PosterGallery({
                     {template.supportsAi ? <span className="rounded-full bg-fuchsia-50 px-2 py-1 text-[10px] font-black uppercase text-fuchsia-700">IA</span> : null}
                     {template.hasCanva ? <span className="inline-flex h-6 items-center rounded-full bg-blue-50 px-2"><CanvaLogo className="h-3.5" /></span> : null}
                   </span>
-                  <p className="mt-2 line-clamp-2 text-sm font-black text-slate-900">{template.name}</p>
+                  <p className="mt-2 line-clamp-2 text-sm font-black text-slate-900">{posterDisplayName(template)}</p>
                   <p className={cn("mt-1 text-xs font-semibold", status.className)}>{status.label}</p>
                 </div>
                 </button>
