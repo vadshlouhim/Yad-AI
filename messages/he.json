@@ -38,10 +38,17 @@
     "madeBy": "האתר והמיזם נוצרו על ידי", "responsible": "תקשורת AI אחראית ומלווה."
   },
   "home": {
+    "assistantText": "עוזר אחד לתקשורת שלכם: עלון שבת ופרסום בכל הערוצים כבר עכשיו – ובקרוב עוד. אמרו לו מה אתם צריכים: הוא מכין, אתם מאשרים.",
+    "assistantTitle": "David, העוזר של EasyCom",
+    "assistantKicker": "עוזר ה־AI שלכם",
+    "showcaseAlt": "מודעה שנוצרה עם EasyCom IA",
+    "showcaseCta": "לכל המודעות",
+    "showcaseSubtitle": "מודעות אמיתיות שהכינו קהילות, מוכנות תוך דקות.",
+    "showcaseTitle": "נוצר עם EasyCom IA",
     "skip": "מעבר לתוכן", "previewLoading": "התצוגה המקדימה נפתחת…", "watchVideo": "צפייה בסרטון",
     "title1": "עלון השבת והפרסומים של הקהילה.", "title2": "בלי מאמץ.", "title3": "תוך כמה דקות.",
     "subtitle": "ה־AI כותב בשבילכם בעברית את עלון השבת ואת הפוסטים – ומפרסם בפייסבוק, באינסטגרם ובוואטסאפ בלחיצה אחת.",
-    "discoverUpcoming": "לגלות מה חדש ובקרוב", "agentAria": "Dov Ber, סוכן התקשורת שלכם",
+    "discoverUpcoming": "לגלות מה חדש ובקרוב", "agentAria": "David, העוזר של EasyCom",
     "simpleStart": "מתחילים בפשטות", "reassurance1": "ללא התחייבות", "reassurance2": "הגדרה בתוך 5 דקות",
     "reassurance3": "תמיכה בעברית ובצרפתית", "presentationVideo": "סרטון היכרות עם EasyCom AI",
     "enableSound": "הפעלת הצליל בסרטון", "disableSound": "השתקת הסרטון", "soundOn": "הצליל מופעל",

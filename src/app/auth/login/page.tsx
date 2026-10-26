@@ -37,7 +37,7 @@ export default async function LoginPage() {
             <h1 className="text-4xl font-bold leading-tight">
               {he ? "שותף ה־AI של הקהילה שלכם" : "Le copilote IA de votre communauté"}
             </h1>
-            <p className="text-blue-200 text-lg leading-relaxed">
+            <p className="text-violet-200 text-lg leading-relaxed">
               {he ? "מרכזים, מכינים ומפיצים את התקשורת הקהילתית מכלי חכם אחד." : "Centralisez, préparez et diffusez votre communication communautaire depuis un seul outil intelligent."}
             </p>
           </div>
@@ -45,14 +45,14 @@ export default async function LoginPage() {
           <div className="grid gap-4">
             {benefits.map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-3">
-                <Icon className="size-5 shrink-0 text-blue-300" />
-                <span className="text-blue-100">{text}</span>
+                <Icon className="size-5 shrink-0 text-violet-300" />
+                <span className="text-violet-100">{text}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="text-blue-300 text-sm">
+        <div className="text-violet-300 text-sm">
           © {new Date().getFullYear()} EasyCom IA — {he ? "תקשורת קהילתית חכמה" : "Communication communautaire augmentée"}
         </div>
       </div>

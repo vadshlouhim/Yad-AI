@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getLocale } from "next-intl/server";
 import { EasyComHome } from "@/components/home/easycom-home";
+import { getShowcasePosters } from "@/lib/templates/showcase";
 
 export async function generateMetadata(): Promise<Metadata> {
   const he = (await getLocale()) === "he";
@@ -14,6 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function HomePage() {
-  return <EasyComHome />;
+export default async function HomePage() {
+  const showcase = await getShowcasePosters(await getLocale());
+  return <EasyComHome showcase={showcase} />;
 }

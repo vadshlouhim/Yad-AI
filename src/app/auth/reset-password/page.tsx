@@ -12,7 +12,7 @@ export default async function ResetPasswordPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10">
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-md flex-col justify-center space-y-4">
-        <Link href="/auth/login" className="text-sm font-medium text-blue-600 hover:underline">
+        <Link href="/auth/login" className="text-sm font-medium text-[#6018ce] hover:underline">
           {he ? "חזרה להתחברות" : "Retour à la connexion"}
         </Link>
         <div className="rounded-2xl border border-slate-200 bg-white p-5">

@@ -191,7 +191,7 @@ canvas {
 
 /* Gradient brand */
 .brand-gradient {
-  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  background: radial-gradient(circle at 76% 8%, #6f29c2 0%, #421388 40%, #210763 100%);
 }
 
 /* Hebrew launch surfaces must not depend on generated arbitrary Tailwind colors. */

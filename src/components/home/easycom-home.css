@@ -499,3 +499,49 @@
   .easycom-home .home-tool { min-height: 188px; }
   .easycom-home .home-agent-art { padding: 8px 6px 0; }
 }
+
+/* Showcase: real posters made with EasyCom IA, scrolling gently under the hero. */
+.home-showcase { padding: 18px 0 26px; }
+.home-showcase-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.home-showcase-heading h2 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.8px; line-height: 1.15; }
+.home-showcase-heading p { margin: 6px 0 0; color: var(--home-muted); font-size: 15px; }
+.home-showcase-link { display: inline-flex; flex-shrink: 0; align-items: center; gap: 6px; color: var(--home-purple); font-size: 15px; font-weight: 800; text-decoration: none; }
+.home-showcase-link:hover { text-decoration: underline; }
+.home-showcase-viewport { margin-top: 16px; overflow: hidden; mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent); }
+.home-showcase-track { display: flex; gap: 14px; width: max-content; margin: 0; padding: 4px 0 10px; list-style: none; animation: home-showcase-scroll 60s linear infinite; }
+.home-showcase-viewport:hover .home-showcase-track { animation-play-state: paused; }
+.home-showcase-track li { flex: 0 0 auto; width: 180px; aspect-ratio: 4 / 5; overflow: hidden; border-radius: 18px; background: #f1ebfb; box-shadow: 0 10px 24px #21114e1f; }
+.home-showcase-track img { display: block; width: 100%; height: 100%; object-fit: cover; }
+@keyframes home-showcase-scroll { to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+  .home-showcase-track { animation: none; }
+  .home-showcase-viewport { overflow-x: auto; }
+}
+
+/* One assistant instead of a row of agents. */
+.home-assistant { display: flex; align-items: center; gap: 32px; margin-top: 46px; padding: 0 36px; border-radius: 28px; background: linear-gradient(120deg, #f3ecff, #fff8ec); box-shadow: 0 8px 30px #2107630d; overflow: hidden; }
+.home-assistant-art { flex: 0 0 220px; align-self: flex-end; }
+.home-assistant-art img { display: block; width: 100%; height: auto; }
+.home-assistant-copy { padding: 30px 0; }
+.home-assistant-kicker { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: var(--home-purple); font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+.home-assistant-copy h2 { margin-top: 8px !important; }
+.home-assistant-copy > p:not(.home-assistant-kicker) { max-width: 620px; margin: 12px 0 20px; color: var(--home-muted); font-size: 17px; line-height: 1.55; }
+
+/* Desktop: every tool visible at once instead of a sideways-scrolling row. */
+@media (min-width: 1024px) {
+  .home-tool-row { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-flow: row; grid-auto-columns: auto; overflow: visible; scroll-snap-type: none; padding-bottom: 0; }
+}
+
+@media (max-width: 767px) {
+  .home-showcase { padding: 8px 0 18px; }
+  .home-showcase-heading { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .home-showcase-heading h2 { font-size: 22px; }
+  .home-showcase-heading p { font-size: 13px; }
+  .home-showcase-track li { width: 132px; border-radius: 14px; }
+  .home-assistant { flex-direction: column; align-items: stretch; gap: 0; margin-top: 22px; padding: 0 18px; border-radius: 22px; text-align: center; }
+  .home-assistant-art { flex-basis: auto; width: 140px; align-self: center; order: 2; }
+  .home-assistant-copy { padding: 22px 0 12px; }
+  .home-assistant-kicker { justify-content: center; }
+  .home-assistant-copy h2 { justify-content: center; }
+  .home-assistant-copy > p:not(.home-assistant-kicker) { font-size: 15px; margin-inline: auto; }
+}

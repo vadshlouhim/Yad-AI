@@ -36,7 +36,7 @@ export default async function AuthErrorPage({
         </div>
         <Link
           href="/auth/login"
-          className="inline-flex items-center justify-center h-10 px-6 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center justify-center h-10 px-6 rounded-lg bg-[#421388] text-white font-medium hover:bg-[#35106f] transition-colors"
         >
           {he ? "חזרה להתחברות" : "Retour à la connexion"}
         </Link>

@@ -47,7 +47,7 @@ export function ForgotPasswordForm() {
   return (
     <main className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-md flex-col justify-center space-y-6">
       <div>
-        <Link href="/auth/login" className="text-sm font-medium text-blue-600 hover:underline">
+        <Link href="/auth/login" className="text-sm font-medium text-[#6018ce] hover:underline">
           {t("backToLogin")}
         </Link>
         <h1 className="mt-6 text-2xl font-bold text-slate-900">{t("forgotTitle")}</h1>
@@ -79,7 +79,7 @@ export function ForgotPasswordForm() {
               required
               autoComplete="email"
               placeholder="vous@exemple.com"
-              className="w-full rounded-lg border border-slate-200 py-2.5 ps-10 pe-4 text-sm outline-none transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="w-full rounded-lg border border-slate-200 py-2.5 ps-10 pe-4 text-sm outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
             />
           </span>
         </label>

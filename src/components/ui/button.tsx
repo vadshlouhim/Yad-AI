@@ -6,12 +6,12 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex max-w-full items-center justify-center gap-2 whitespace-normal text-center sm:whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex max-w-full items-center justify-center gap-2 whitespace-normal text-center sm:whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-          "bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:bg-blue-800",
+          "bg-[#421388] text-white shadow-sm hover:bg-[#35106f] active:bg-[#2b0c63]",
         destructive:
           "bg-red-500 text-white shadow-sm hover:bg-red-600",
         outline:
@@ -21,11 +21,11 @@ const buttonVariants = cva(
         ghost:
           "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
         link:
-          "text-blue-600 underline-offset-4 hover:underline",
+          "text-[#6018ce] underline-offset-4 hover:underline",
         gold:
           "bg-amber-500 text-white shadow-sm hover:bg-amber-600",
         "outline-primary":
-          "border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100",
+          "border border-violet-200 bg-violet-50 text-[#421388] hover:bg-violet-100",
       },
       size: {
         default: "min-h-9 h-auto px-4 py-2 sm:h-9",

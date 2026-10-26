@@ -142,7 +142,7 @@ export function LoginForm() {
               required
               autoComplete="email"
               disabled={!supabaseConfigured}
-              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
+              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 transition-colors"
             />
           </div>
         </div>
@@ -154,7 +154,7 @@ export function LoginForm() {
             </label>
             <Link
               href="/auth/forgot-password"
-              className="text-xs text-blue-600 hover:underline"
+              className="text-xs text-[#6018ce] hover:underline"
             >
               {t("forgot")}
             </Link>
@@ -170,7 +170,7 @@ export function LoginForm() {
               required
               autoComplete="current-password"
               disabled={!supabaseConfigured}
-              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
+              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 transition-colors"
             />
             <button
               type="button"
@@ -189,7 +189,7 @@ export function LoginForm() {
 
       <p className="text-center text-sm text-slate-500">
         {t("noAccount")}{" "}
-        <Link href={toolDestination ? `/auth/register?callbackUrl=${encodeURIComponent(toolDestination)}` : "/auth/register"} className="text-blue-600 hover:underline font-medium">
+        <Link href={toolDestination ? `/auth/register?callbackUrl=${encodeURIComponent(toolDestination)}` : "/auth/register"} className="text-[#6018ce] hover:underline font-medium">
           {t("createAccount")}
         </Link>
       </p>

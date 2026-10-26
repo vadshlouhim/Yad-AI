@@ -1,5 +1,13 @@
 {
   "home": {
+    "assistantText": "One assistant for all your communication: posters, posts, the Shabbat newsletter, emails and automations. Tell him what you need: he prepares, you approve.",
+    "assistantTitle": "David, the EasyCom Assistant",
+    "assistantKicker": "Your AI assistant",
+    "showcaseAlt": "Poster made with EasyCom IA",
+    "showcaseCta": "See all posters",
+    "showcaseSubtitle": "Real posters made by communities, ready in minutes.",
+    "showcaseTitle": "Made with EasyCom IA",
+    "agentAria": "David, your EasyCom Assistant",
     "specialOffer": "Launch offer", "gift": "7-day free trial", "trialPriceCaption": "for 7 days", "thenPrice": "Then {price}/month or {yearly}/year, no commitment. Cancel anytime.", "cardRequired": "No card needed during the trial.",
     "faqTitle": "Frequently asked questions", "faq1q": "Do I have to pay during the trial?", "faq1a": "No. No card is asked for during the 7-day trial. You only pay if you decide to subscribe.", "faq2q": "What happens after 7 days?", "faq2a": "You choose: €12.99/month or €99/year, no commitment. Without a subscription, your account stays available read-only.",
     "whatsappMessage": "Hello, I would like more information about EasyCom AI.",

@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 function formatPrice(locale: string, value: number) {
   const intlLocale = locale === "he" ? "he-IL" : locale === "en" ? "en-US" : "fr-FR";
-  return new Intl.NumberFormat(intlLocale, { style: "currency", currency: "EUR", minimumFractionDigits: value === 0 ? 0 : 2 }).format(value);
+  return new Intl.NumberFormat(intlLocale, { style: "currency", currency: "EUR", minimumFractionDigits: Number.isInteger(value) ? 0 : 2 }).format(value);
 }
 
 const STEP_ICONS = [Eye, Sparkles, Zap] as const;

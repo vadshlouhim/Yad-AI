@@ -161,7 +161,7 @@ export function RegisterForm() {
             }
             required
             disabled={!supabaseConfigured || loading || googleLoading}
-            className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
           >
             {SUPPORTED_COUNTRIES.map((option) => (
               <option key={option.code} value={option.value}>
@@ -216,7 +216,7 @@ export function RegisterForm() {
               required
               autoComplete="name"
               disabled={!supabaseConfigured}
-              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
+              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 transition-colors"
             />
           </div>
         </div>
@@ -236,7 +236,7 @@ export function RegisterForm() {
               required
               autoComplete="email"
               disabled={!supabaseConfigured}
-              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
+              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 transition-colors"
             />
           </div>
         </div>
@@ -256,7 +256,7 @@ export function RegisterForm() {
               required
               autoComplete="new-password"
               disabled={!supabaseConfigured}
-              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
+              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 ps-10 pe-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 transition-colors"
             />
             <button
               type="button"
@@ -294,11 +294,11 @@ export function RegisterForm() {
 
         <p className="text-xs text-slate-400 text-center leading-relaxed">
           {he ? "ביצירת חשבון אתם מסכימים ל" : "En créant un compte, vous acceptez nos"}{" "}
-          <Link href="/legal/terms" className="text-blue-600 hover:underline">
+          <Link href="/legal/terms" className="text-[#6018ce] hover:underline">
             {he ? "תנאי השימוש" : "conditions d’utilisation"}
           </Link>{" "}
           {he ? " ול" : "et notre"}{" "}
-          <Link href="/privacy" className="text-blue-600 hover:underline">
+          <Link href="/privacy" className="text-[#6018ce] hover:underline">
             {he ? "מדיניות הפרטיות" : "politique de confidentialité"}
           </Link>
           .
@@ -307,7 +307,7 @@ export function RegisterForm() {
 
       <p className="text-center text-sm text-slate-500">
         {t("hasAccount")}{" "}
-        <Link href={toolDestination ? `/auth/login?callbackUrl=${encodeURIComponent(toolDestination)}` : "/auth/login"} className="text-blue-600 hover:underline font-medium">
+        <Link href={toolDestination ? `/auth/login?callbackUrl=${encodeURIComponent(toolDestination)}` : "/auth/login"} className="text-[#6018ce] hover:underline font-medium">
           {t("login")}
         </Link>
       </p>

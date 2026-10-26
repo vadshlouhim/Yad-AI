@@ -13,7 +13,9 @@ import {
 import { PUBLIC_TOOLS, getLocalizedPublicTool, type PublicTool } from "@/lib/public-tools";
 import { ToolIcon } from "@/components/presentation/tool-visual";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
-import { HOME_AGENT_IMAGES, MAIN_VIDEO_URL, homeVideoSource } from "./home-media";
+import { MAIN_VIDEO_URL, homeVideoSource } from "./home-media";
+import { ASSISTANT_AGENT, ASSISTANT_IMAGE } from "@/lib/agents";
+import type { ShowcasePoster } from "@/lib/templates/showcase";
 import { isFeatureEnabled } from "@/lib/features-by-locale";
 import { SUBSCRIPTION_MONTHLY_CENTS, SUBSCRIPTION_YEARLY_CENTS } from "@/lib/billing/subscription-policy";
 import "./easycom-home.css";
@@ -24,16 +26,16 @@ const PreviewDialog = dynamic(() => import("./home-video-dialog"), {
 });
 const MEDIA = "/media/home/";
 const TOOLS = [
-  { id: "publish", name: "Publier partout", badge: "En un clic", media: "02-dovber-publier-partout", agent: "Dov Ber", role: "Réseaux sociaux", portrait: HOME_AGENT_IMAGES.dovBer, Icon: Share2 },
-  { id: "newsletter", name: "Newsletter", badge: "Imprimable pour Chabbat", media: "04-levik-newsletter", agent: "Levik", role: "Newsletter", portrait: HOME_AGENT_IMAGES.levik, Icon: FileText },
-  { id: "shabbat", name: "Horaires Chabbat et Fêtes", badge: "Publié automatiquement", media: "05-david-horaires-chabbat", agent: "David", role: "Horaires Chabbat et Fêtes", portrait: HOME_AGENT_IMAGES.david, Icon: Clock },
-  { id: "automations", name: "Hayom Yom & anniversaire juif", badge: "Intelligent", media: "06-david-anniversaires", agent: "David", role: "Automatisations", portrait: HOME_AGENT_IMAGES.david, Icon: Settings },
-  { id: "reminders", name: "Automatisations J-10 J-5", badge: "Rappels intelligents", media: "07-david-automatisations", agent: "David", role: "Rappels d’événements", portrait: HOME_AGENT_IMAGES.david, Icon: CalendarClock },
-  { id: "contacts", name: "CRM 2.0", badge: "Connecter Unisoft", media: "06-david-anniversaires", agent: "Israël", role: "CRM communautaire", portrait: "/agents/israel-transparent.png", Icon: Users },
-  { id: "posters", name: "Affiches & Visuels", badge: "IA & Canva", media: "03-zalman-affiches", agent: "Zalman", role: "Affiches & Visuels", portrait: HOME_AGENT_IMAGES.zalman, Icon: ImageIcon },
-  { id: "torah", name: "Cours de Torah", badge: "Sources fiables", media: "08-shmouel-cours-torah", agent: "Shmouel", role: "Cours de Torah", portrait: HOME_AGENT_IMAGES.shmouel, Icon: BookOpen },
-  { id: "email", name: "Email & Avis Google", badge: "Surveillé et intelligent", media: "10-email-avis-google", agent: "Levik", role: "Email & Avis Google", portrait: HOME_AGENT_IMAGES.levik, Icon: Mail },
-  { id: "coming-soon", name: "À venir…", badge: "Bientôt disponible", media: "11-upcoming", agent: "EasyCom AI", role: "Nouveauté", portrait: HOME_AGENT_IMAGES.dovBer, Icon: Sparkles },
+  { id: "publish", name: "Publier partout", badge: "En un clic", media: "02-dovber-publier-partout", agent: "David", role: "Réseaux sociaux", portrait: ASSISTANT_IMAGE, Icon: Share2 },
+  { id: "newsletter", name: "Newsletter", badge: "Imprimable pour Chabbat", media: "04-levik-newsletter", agent: "David", role: "Newsletter", portrait: ASSISTANT_IMAGE, Icon: FileText },
+  { id: "shabbat", name: "Horaires Chabbat et Fêtes", badge: "Publié automatiquement", media: "05-david-horaires-chabbat", agent: "David", role: "Horaires Chabbat et Fêtes", portrait: ASSISTANT_IMAGE, Icon: Clock },
+  { id: "automations", name: "Hayom Yom & anniversaire juif", badge: "Intelligent", media: "06-david-anniversaires", agent: "David", role: "Automatisations", portrait: ASSISTANT_IMAGE, Icon: Settings },
+  { id: "reminders", name: "Automatisations J-10 J-5", badge: "Rappels intelligents", media: "07-david-automatisations", agent: "David", role: "Rappels d’événements", portrait: ASSISTANT_IMAGE, Icon: CalendarClock },
+  { id: "contacts", name: "CRM 2.0", badge: "Connecter Unisoft", media: "06-david-anniversaires", agent: "David", role: "CRM communautaire", portrait: ASSISTANT_IMAGE, Icon: Users },
+  { id: "posters", name: "Affiches & Visuels", badge: "IA & Canva", media: "03-zalman-affiches", agent: "David", role: "Affiches & Visuels", portrait: ASSISTANT_IMAGE, Icon: ImageIcon },
+  { id: "torah", name: "Cours de Torah", badge: "Sources fiables", media: "08-shmouel-cours-torah", agent: "David", role: "Cours de Torah", portrait: ASSISTANT_IMAGE, Icon: BookOpen },
+  { id: "email", name: "Email & Avis Google", badge: "Surveillé et intelligent", media: "10-email-avis-google", agent: "David", role: "Email & Avis Google", portrait: ASSISTANT_IMAGE, Icon: Mail },
+  { id: "coming-soon", name: "À venir…", badge: "Bientôt disponible", media: "11-upcoming", agent: "David", role: "Nouveauté", portrait: ASSISTANT_IMAGE, Icon: Sparkles },
 ] as const;
 
 const HE_COMING_HOME_MODULES = [
@@ -80,9 +82,10 @@ function HomeToolIcon({ id }: { id: string }) {
     {["facebook", "instagram", "whatsapp"].map(channel => <Image key={channel} src={`${MEDIA}${channel}-white.svg`} width={32} height={32} className="home-tool-icon" alt="" />)}
   </span>;
 }
+const PLAY_DEMO_EVENT = "home:play-demo";
 function DemoLink() {
   const t = useTranslations("home");
-  return <a href="https://www.youtube.com/@EasyComAI-Synagogue-BethHabad" target="_blank" rel="noopener noreferrer" className="home-button home-button-secondary">
+  return <a href="#demo" onClick={() => window.dispatchEvent(new Event(PLAY_DEMO_EVENT))} className="home-button home-button-secondary">
     <span className="home-play-small"><Play size={14} fill="currentColor" aria-hidden="true" /></span>{t("watchVideo")}
   </a>;
 }
@@ -146,7 +149,7 @@ function Hero() {
       </Link> : null}
     </div>
     <div className="home-hero-art" aria-label={t("agentAria")}>
-      <div className="home-hero-portrait"><Image src={HOME_AGENT_IMAGES.dovBer} alt={t("agentAria")} width={899} height={1100} sizes="(max-width: 767px) 44vw, 520px" preload /></div>
+      <div className="home-hero-portrait"><Image src={ASSISTANT_IMAGE} alt={t("agentAria")} width={427} height={640} sizes="(max-width: 767px) 44vw, 300px" preload loading="eager" /></div>
       {locale === "he" ? <>
         <span className="home-orbit home-orbit-publish"><FileText /><span>{t("heBadgeNewsletter")}</span></span>
         <span className="home-orbit home-orbit-newsletter"><Printer /><span>{t("heBadgePdf")}</span></span>
@@ -255,6 +258,12 @@ function MainDemo({ blocked }: { blocked: boolean }) {
     }, { threshold: [0, 0.2], rootMargin: "120px 0px" });
     observer.observe(element);
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const play = () => setManuallyStarted(true);
+    window.addEventListener(PLAY_DEMO_EVENT, play);
+    return () => window.removeEventListener(PLAY_DEMO_EVENT, play);
   }, []);
 
   const active = inView && pageVisible && !blocked && (!reducedMotion || manuallyStarted);
@@ -406,7 +415,39 @@ function WhatsAppBubble() {
   </a>;
 }
 
-export function EasyComHome() {
+function Showcase({ posters }: { posters: ShowcasePoster[] }) {
+  const t = useTranslations("home");
+  if (posters.length < 4) return null;
+  // The track holds the list twice so the loop scrolls without a visible seam.
+  return <section className="home-showcase" aria-labelledby="home-showcase-title">
+    <div className="home-container home-showcase-heading">
+      <div><h2 id="home-showcase-title">{t("showcaseTitle")}</h2><p>{t("showcaseSubtitle")}</p></div>
+      <Link href="/affiches" prefetch={false} className="home-showcase-link">{t("showcaseCta")}<ArrowRight className="rtl-mirror" size={17} aria-hidden="true" /></Link>
+    </div>
+    <div className="home-showcase-viewport">
+      <ul className="home-showcase-track" dir="ltr">
+        {[...posters, ...posters].map((poster, index) => <li key={`${poster.id}-${index}`} aria-hidden={index >= posters.length || undefined}>
+          <Image src={poster.imageUrl} alt={index < posters.length ? t("showcaseAlt") : ""} width={240} height={300} sizes="180px" loading="lazy" />
+        </li>)}
+      </ul>
+    </div>
+  </section>;
+}
+
+function AssistantSection() {
+  const t = useTranslations("home");
+  return <section id="assistant" className="home-assistant" aria-labelledby="home-assistant-title">
+    <div className="home-assistant-art"><Image src={ASSISTANT_AGENT.image} alt="" width={427} height={640} sizes="(max-width: 767px) 140px, 220px" /></div>
+    <div className="home-assistant-copy">
+      <p className="home-assistant-kicker"><Sparkles size={16} fill="currentColor" aria-hidden="true" />{t("assistantKicker")}</p>
+      <h2 id="home-assistant-title">{t("assistantTitle")}</h2>
+      <p>{t("assistantText")}</p>
+      <TrialLink />
+    </div>
+  </section>;
+}
+
+export function EasyComHome({ showcase = [] }: { showcase?: ShowcasePoster[] }) {
   const locale = useLocale();
   const t = useTranslations("home");
   const nav = useTranslations("nav");
@@ -414,7 +455,7 @@ export function EasyComHome() {
   const hebrewToolCopy = locale === "he" ? t.raw("toolCopy") as Record<string, { name: string; badge: string; role: string }> : {};
   const tools = TOOLS.map((tool) => locale === "he" ? { ...tool, ...hebrewToolCopy[tool.id] } : tool) as HomeTool[];
   const priceLocale = locale === "he" ? "he-IL" : locale === "en" ? "en-US" : "fr-FR";
-  const formatPrice = (value: number) => new Intl.NumberFormat(priceLocale, { style: "currency", currency: "EUR", minimumFractionDigits: value === 0 ? 0 : 2 }).format(value);
+  const formatPrice = (value: number) => new Intl.NumberFormat(priceLocale, { style: "currency", currency: "EUR", minimumFractionDigits: Number.isInteger(value) ? 0 : 2 }).format(value);
   const [active, setActive] = useState<string | null>(null);
   const [selected, setSelected] = useState<{ item: PublicTool; media: string; trigger: HTMLElement; comingSoon: boolean } | null>(null);
   useEffect(() => {
@@ -437,6 +478,7 @@ export function EasyComHome() {
     <HomeHeader />
     <main id="home-main">
       <Hero />
+      <Showcase posters={showcase} />
       <MainDemo blocked={selected !== null} />
       <div className="home-container home-body">
         {locale === "he" ? <HebrewComingSoonGrid /> : isFeatureEnabled(locale, "publish") ? <section id="fonctionnalites" className="home-features" aria-labelledby="home-features-title">
@@ -447,15 +489,7 @@ export function EasyComHome() {
           </div>}>{tools.filter(tool => tool.id !== "posters").map(tool => <FeatureCard key={tool.id} tool={tool} active={active === tool.id} setActive={setActive} onOpen={open} />)}
           </CardRow>
         </section> : null}
-        <section id="agents" className="home-agents" aria-labelledby="home-agents-title">
-          <div className="home-section-heading"><h2 id="home-agents-title"><Users fill="currentColor" aria-hidden="true" /><span className="home-agents-desktop-title">{t("agents")}</span><span className="home-agents-mobile-title">{t("specializedAgents")}</span></h2>{locale === "he" ? <p className="home-agents-availability">{t("agentsAvailability")}</p> : null}</div>
-          <CardRow id="home-agents-row" className="home-agent-row" label={t("agents")}>{tools.filter(tool => !["shabbat", "email", "coming-soon", "reminders", "contacts"].includes(tool.id)).map(tool => {
-            const enabled = locale !== "he" || tool.id === "newsletter" || tool.id === "publish";
-            return <button key={tool.id} type="button" className={`home-agent home-agent-${tool.id}${enabled ? " home-agent-enabled" : " home-agent-disabled"}`} aria-label={`${tool.agent}, ${tool.role}`} aria-haspopup={enabled ? "dialog" : undefined} aria-disabled={!enabled || undefined} disabled={!enabled} onClick={enabled ? event => open(tool, event.currentTarget) : undefined}>
-            <span className="home-agent-art"><Image src={tool.portrait} alt="" width={260} height={310} sizes="(max-width: 767px) 100px, (max-width: 1023px) 150px, 240px" /><span className="home-agent-badge"><tool.Icon size={23} aria-hidden="true" /></span>{locale === "he" ? <span className="home-agent-status">{t(enabled ? "availableNow" : "comingSoonBadge")}</span> : null}</span>
-            <span className="home-agent-info"><strong>{tool.agent}</strong><span>{tool.role}</span><ArrowRight size={19} className="rtl-mirror home-agent-arrow" aria-hidden="true" /></span>
-          </button>})}</CardRow>
-        </section>
+        <AssistantSection />
         <section id="tarifs" className="home-pricing" aria-label={t("specialOffer")}>
           <h2><Sparkles className="home-sparkles" fill="currentColor" aria-hidden="true" />{t("tryTitle")}</h2>
           <p className="home-price-special">{t("specialOffer")}</p>

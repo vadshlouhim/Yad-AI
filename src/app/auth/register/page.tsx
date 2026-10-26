@@ -37,7 +37,7 @@ export default async function RegisterPage() {
             <h1 className="text-4xl font-bold leading-tight">
               {he ? "מגלים את EasyCom IA" : "Découvrez EasyCom IA"}
             </h1>
-            <p className="text-blue-200 text-lg leading-relaxed">
+            <p className="text-violet-200 text-lg leading-relaxed">
               {he ? "מכירים את היישום ומגדירים את הקהילה בפחות משתי דקות." : "Explorez l’application et configurez votre communauté en moins de 2 minutes."}
             </p>
           </div>
@@ -47,13 +47,13 @@ export default async function RegisterPage() {
             {benefits.map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-2.5">
                 <Icon className="size-4 shrink-0 text-amber-300" />
-                <span className="text-blue-100 text-sm">{text}</span>
+                <span className="text-violet-100 text-sm">{text}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="text-blue-300 text-sm">
+        <div className="text-violet-300 text-sm">
           © {new Date().getFullYear()} EasyCom IA — {he ? "תקשורת קהילתית חכמה" : "Communication communautaire augmentée"}
         </div>
       </div>
