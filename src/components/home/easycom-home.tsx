@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import {
@@ -49,9 +50,16 @@ const HE_COMING_HOME_MODULES = [
   { key: "shop", Icon: ShoppingBag },
 ] as const;
 type HomeTool = (typeof TOOLS)[number];
-const NAV = [
+// Shown as large cards, in this order; every other tool lives under "À venir".
+const MAIN_TOOL_IDS = ["publish", "newsletter", "shabbat", "posters", "coming-soon"] as const;
+const UPCOMING_TOOL_IDS = ["email", "torah", "contacts", "reminders", "automations"] as const;
+const OPEN_UPCOMING_EVENT = "home:open-upcoming";
+function openUpcoming() {
+  window.dispatchEvent(new Event(OPEN_UPCOMING_EVENT));
+}
+const NAV: Array<{ href: string; label: string; nextLink?: boolean; upcoming?: boolean; desktop?: boolean }> = [
   { href: "#fonctionnalites", label: "features" },
-  { href: "/fonctionnalites-a-venir", label: "comingSoon", nextLink: true },
+  { href: "#fonctionnalites", label: "comingSoon", upcoming: true },
   { href: "#demo", label: "demo" },
   { href: "#tarifs", label: "pricingShort" },
   { href: "#faq", label: "faq", desktop: true },
@@ -115,7 +123,7 @@ function HomeHeader() {
   return <header className="home-header">
     <div className="home-container home-header-inner">
       <Brand />
-      <nav className="home-desktop-nav" aria-label={t("primaryLabel")}>{visibleNav.map(link => link.nextLink ? <Link key={link.href} href={link.href}>{t(link.label)}</Link> : <a key={link.href} href={link.href}>{t(link.label)}</a>)}</nav>
+      <nav className="home-desktop-nav" aria-label={t("primaryLabel")}>{visibleNav.map(link => link.nextLink ? <Link key={link.label} href={link.href}>{t(link.label)}</Link> : <a key={link.label} href={link.href} onClick={link.upcoming ? openUpcoming : undefined}>{t(link.label)}</a>)}</nav>
       <div className="home-header-actions">
         <span className="home-language-desktop"><LanguageSwitcher compact /></span>
         <Link href="/auth/login" prefetch={false} className="home-login">{t("loginShort")}</Link>
@@ -127,7 +135,7 @@ function HomeHeader() {
       <button type="button" className="home-menu-backdrop" aria-label={t("closeMenu")} onClick={() => { setOpen(false); toggle.current?.focus(); }} />
       <nav ref={mobileMenu} id="home-mobile-menu" className="home-mobile-menu" aria-label={t("mobileLabel")}>
         <div className="home-language-mobile"><LanguageSwitcher /></div>
-        {visibleNav.filter(link => locale === "he" || !link.desktop).map(link => link.nextLink ? <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>{t(link.label)}<ArrowRight className="rtl-mirror" size={16} /></Link> : <a key={link.href} href={link.href} onClick={() => setOpen(false)}>{t(link.label)}<ArrowRight className="rtl-mirror" size={16} /></a>)}
+        {visibleNav.filter(link => locale === "he" || !link.desktop).map(link => link.nextLink ? <Link key={link.label} href={link.href} onClick={() => setOpen(false)}>{t(link.label)}<ArrowRight className="rtl-mirror" size={16} /></Link> : <a key={link.label} href={link.href} onClick={() => { setOpen(false); if (link.upcoming) openUpcoming(); }}>{t(link.label)}<ArrowRight className="rtl-mirror" size={16} /></a>)}
         <Link href="/contact" onClick={() => setOpen(false)}>{t("contact")}<ArrowRight className="rtl-mirror" size={16} /></Link>
         <Link href="/auth/login" prefetch={false} onClick={() => setOpen(false)}>{t("loginShort")}<ArrowRight className="rtl-mirror" size={16} /></Link>
       </nav>
@@ -142,11 +150,6 @@ function Hero() {
       <h1 id="home-title"><span className="home-title-line">{t("title1")}</span>{" "}<span className="home-title-line">{t("title2")}</span>{" "}<span className="home-title-accent">{t("title3")}</span></h1>
       <p className="home-hero-subtitle">{t("subtitle")}</p>
       <div className="home-hero-buttons"><TrialLink /><DemoLink /></div>
-      {locale !== "he" ? <Link href="/fonctionnalites-a-venir" className="home-coming-soon-chip">
-        <span className="home-coming-soon-rocket" aria-hidden="true">🚀</span>
-        <span>{t("discoverUpcoming")}</span>
-        <small>NEW</small>
-      </Link> : null}
     </div>
     <div className="home-hero-art" aria-label={t("agentAria")}>
       <div className="home-hero-portrait"><Image src={ASSISTANT_IMAGE} alt={t("agentAria")} width={427} height={640} sizes="(max-width: 767px) 44vw, 300px" preload loading="eager" /></div>
@@ -158,7 +161,7 @@ function Hero() {
         <span className="home-orbit home-orbit-publish"><ToolIcon id="publish" className="size-5" /><span>Publier partout</span></span>
         <span className="home-orbit home-orbit-newsletter"><FileText /><span>Newsletter</span></span>
         <span className="home-orbit home-orbit-posters"><ImageIcon /><span>Affiches</span></span>
-        <span className="home-orbit home-orbit-automations"><Settings /><span>Automatisations</span></span>
+        <span className="home-orbit home-orbit-automations"><Clock /><span>Horaires Chabbat</span></span>
       </>}
     </div>
     <ul className="home-reassurance" aria-label={t("simpleStart")}>{["reassurance1", "reassurance2", "reassurance3"].map(key => <li key={key}><span><Check size={12} strokeWidth={3} aria-hidden="true" /></span>{t(key)}</li>)}</ul>
@@ -415,6 +418,39 @@ function WhatsAppBubble() {
   </a>;
 }
 
+function UpcomingDialog({ tools, onClose, onPreview }: {
+  tools: HomeTool[];
+  onClose: () => void;
+  onPreview: (tool: HomeTool, trigger: HTMLElement) => void;
+}) {
+  const t = useTranslations("home");
+  const locale = useLocale();
+  return <DialogPrimitive.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
+    <DialogPrimitive.Portal>
+      <DialogPrimitive.Overlay className="home-video-overlay" />
+      <DialogPrimitive.Content className="home-upcoming-dialog" aria-describedby="home-upcoming-text">
+        <DialogPrimitive.Close className="home-video-close" aria-label={t("upcomingClose")}><X size={20} aria-hidden="true" /></DialogPrimitive.Close>
+        <p className="home-upcoming-kicker"><Sparkles size={16} fill="currentColor" aria-hidden="true" />{t("upcomingKicker")}</p>
+        <DialogPrimitive.Title className="home-upcoming-title">{t("upcomingTitle")}</DialogPrimitive.Title>
+        <p id="home-upcoming-text" className="home-upcoming-text">{t("upcomingText")}</p>
+        <ul className="home-upcoming-list">
+          {tools.map((tool) => {
+            const base = PUBLIC_TOOLS.find((item) => item.id === tool.id);
+            const description = base ? getLocalizedPublicTool(base, locale).description : null;
+            return <li key={tool.id}>
+              <button type="button" className={`home-upcoming-item home-tool-${tool.id}`} onClick={(event) => onPreview(tool, event.currentTarget)}>
+                <span className="home-upcoming-icon"><tool.Icon aria-hidden="true" /></span>
+                <span className="home-upcoming-copy"><strong>{tool.name}</strong><small>{description ?? tool.badge}</small></span>
+                <span className="home-upcoming-badge">{t("comingSoonBadge")}</span>
+              </button>
+            </li>;
+          })}
+        </ul>
+      </DialogPrimitive.Content>
+    </DialogPrimitive.Portal>
+  </DialogPrimitive.Root>;
+}
+
 function Showcase({ posters }: { posters: ShowcasePoster[] }) {
   const t = useTranslations("home");
   if (posters.length < 4) return null;
@@ -458,6 +494,14 @@ export function EasyComHome({ showcase = [] }: { showcase?: ShowcasePoster[] }) 
   const formatPrice = (value: number) => new Intl.NumberFormat(priceLocale, { style: "currency", currency: "EUR", minimumFractionDigits: Number.isInteger(value) ? 0 : 2 }).format(value);
   const [active, setActive] = useState<string | null>(null);
   const [selected, setSelected] = useState<{ item: PublicTool; media: string; trigger: HTMLElement; comingSoon: boolean } | null>(null);
+  const [upcomingOpen, setUpcomingOpen] = useState(false);
+  const mainTools = MAIN_TOOL_IDS.flatMap((id) => tools.filter((tool) => tool.id === id));
+  const upcomingTools = UPCOMING_TOOL_IDS.flatMap((id) => tools.filter((tool) => tool.id === id));
+  useEffect(() => {
+    const show = () => setUpcomingOpen(true);
+    window.addEventListener(OPEN_UPCOMING_EVENT, show);
+    return () => window.removeEventListener(OPEN_UPCOMING_EVENT, show);
+  }, []);
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     function stopPreviews() { if (reduced.matches || document.hidden) setActive(null); }
@@ -466,8 +510,15 @@ export function EasyComHome({ showcase = [] }: { showcase?: ShowcasePoster[] }) 
     return () => { reduced.removeEventListener("change", stopPreviews); document.removeEventListener("visibilitychange", stopPreviews); };
   }, []);
   function open(tool: HomeTool, trigger: HTMLElement) {
-    const comingSoon = tool.id === "coming-soon";
+    if (tool.id === "coming-soon") {
+      setActive(null);
+      setUpcomingOpen(true);
+      return;
+    }
+    // Upcoming tools can be previewed, but offer no sign-up button yet.
+    const comingSoon = (UPCOMING_TOOL_IDS as readonly string[]).includes(tool.id);
     const base = PUBLIC_TOOLS.find(item => item.id === tool.id) ?? (comingSoon ? PUBLIC_TOOLS[0] : undefined);
+    setUpcomingOpen(false);
     const original = base ? getLocalizedPublicTool(base, locale) : undefined;
     if (!original) return;
     setActive(null);
@@ -485,8 +536,7 @@ export function EasyComHome({ showcase = [] }: { showcase?: ShowcasePoster[] }) 
           <h2 id="home-features-title"><Sparkles className="home-sparkles" fill="currentColor" aria-hidden="true" />{t("whatToDo")}</h2>
           <CardRow id="home-functions-row" className="home-tool-row" label={t("toolsLabel")} footer={<div className="home-feature-links">
             <a href="https://linktr.ee/Yadshlouhim" className="home-feature-link home-feature-link-shop"><span className="home-feature-link-icon"><ShoppingBag aria-hidden="true" /></span><span className="home-feature-link-copy">{t("shop")}<small>{t("online")}</small></span><ArrowRight className="rtl-mirror home-feature-link-arrow" size={17} aria-hidden="true" /></a>
-            <Link href="/affiches" prefetch={false} className="home-feature-link home-feature-link-posters"><span className="home-feature-link-icon"><ImageIcon aria-hidden="true" /></span><span className="home-feature-link-copy">{t("posters")}<small>IA &amp; Canva</small></span><ArrowRight className="rtl-mirror home-feature-link-arrow" size={17} aria-hidden="true" /></Link>
-          </div>}>{tools.filter(tool => tool.id !== "posters").map(tool => <FeatureCard key={tool.id} tool={tool} active={active === tool.id} setActive={setActive} onOpen={open} />)}
+          </div>}>{mainTools.map(tool => <FeatureCard key={tool.id} tool={tool} active={active === tool.id} setActive={setActive} onOpen={open} />)}
           </CardRow>
         </section> : null}
         <AssistantSection />
@@ -509,11 +559,12 @@ export function EasyComHome({ showcase = [] }: { showcase?: ShowcasePoster[] }) 
     <footer className="home-container home-footer">
       <div className="home-footer-top"><Brand /><nav aria-label={t("footerNav")}>{NAV.map(link => {
         if (locale === "he" && ["features", "comingSoon"].includes(link.label)) return <a key={link.label} href="#fonctionnalites" className={link.desktop ? "home-footer-faq" : ""}>{nav(link.label)}</a>;
-        return link.nextLink ? <Link key={link.href} href={link.href} className={link.desktop ? "home-footer-faq" : ""}>{nav(link.label)}</Link> : <a key={link.href} href={link.href} className={link.desktop ? "home-footer-faq" : ""}>{nav(link.label)}</a>;
+        return link.nextLink ? <Link key={link.label} href={link.href} className={link.desktop ? "home-footer-faq" : ""}>{nav(link.label)}</Link> : <a key={link.label} href={link.href} onClick={link.upcoming ? openUpcoming : undefined} className={link.desktop ? "home-footer-faq" : ""}>{nav(link.label)}</a>;
       })}<Link href="/contact" className="home-footer-contact">{nav("contact")}</Link></nav></div>
-      <div className="home-footer-bottom"><p>{footer("rights", { year: new Date().getFullYear() })}</p><nav aria-label={t("legalLinks")}>{LEGAL.map(link => <Link key={link.href} href={link.href}>{footer(link.label)}</Link>)}</nav></div>
+      <div className="home-footer-bottom"><p>{footer("rights", { year: new Date().getFullYear() })}</p><nav aria-label={t("legalLinks")}>{LEGAL.map(link => <Link key={link.label} href={link.href}>{footer(link.label)}</Link>)}</nav></div>
     </footer>
     <WhatsAppBubble />
+    {upcomingOpen && <UpcomingDialog tools={upcomingTools} onClose={() => setUpcomingOpen(false)} onPreview={open} />}
     {selected && <PreviewDialog item={selected.item} media={selected.media} trigger={selected.trigger} comingSoon={selected.comingSoon} onClose={() => setSelected(null)} />}
   </div>;
 }

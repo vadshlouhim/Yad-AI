@@ -38,6 +38,10 @@
     "madeBy": "האתר והמיזם נוצרו על ידי", "responsible": "תקשורת AI אחראית ומלווה."
   },
   "home": {
+    "upcomingClose": "סגירת רשימת התכונות שבדרך",
+    "upcomingText": "התכונות האלה יגיעו בקרוב. לחצו על אחת מהן כדי לראות תצוגה מקדימה.",
+    "upcomingTitle": "בקרוב ב־EasyCom IA",
+    "upcomingKicker": "בקרוב",
     "assistantText": "עוזר אחד לתקשורת שלכם: עלון שבת ופרסום בכל הערוצים כבר עכשיו – ובקרוב עוד. אמרו לו מה אתם צריכים: הוא מכין, אתם מאשרים.",
     "assistantTitle": "David, העוזר של EasyCom",
     "assistantKicker": "עוזר ה־AI שלכם",

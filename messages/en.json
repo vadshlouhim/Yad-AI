@@ -1,5 +1,9 @@
 {
   "home": {
+    "upcomingClose": "Close the list of upcoming features",
+    "upcomingText": "These features are on their way. Tap one to see a preview.",
+    "upcomingTitle": "Coming soon to EasyCom IA",
+    "upcomingKicker": "Coming soon",
     "assistantText": "One assistant for all your communication: posters, posts, the Shabbat newsletter, emails and automations. Tell him what you need: he prepares, you approve.",
     "assistantTitle": "David, the EasyCom Assistant",
     "assistantKicker": "Your AI assistant",

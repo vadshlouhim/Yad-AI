@@ -43,6 +43,10 @@
     "responsible": "Communication IA responsable et accompagnée."
   },
   "home": {
+    "upcomingClose": "Fermer la liste des fonctions à venir",
+    "upcomingText": "Ces fonctions arrivent prochainement. Touchez-en une pour découvrir son aperçu.",
+    "upcomingTitle": "Bientôt dans EasyCom IA",
+    "upcomingKicker": "À venir",
     "assistantText": "Un seul assistant pour toute votre communication : affiches, publications, newsletter de Chabbat, e-mails et automatisations. Dites-lui ce dont vous avez besoin : il prépare, vous validez.",
     "assistantTitle": "David, l’Assistant EasyCom",
     "assistantKicker": "Votre assistant IA",
