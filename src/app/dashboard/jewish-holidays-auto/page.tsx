@@ -25,7 +25,7 @@ export default async function JewishHolidaysAutoPage() {
 
   const { data: community } = await admin
     .from("Community")
-    .select("id, name, logoUrl, city, country, timezone, plan")
+    .select("id, name, logoUrl, city, country, timezone, plan, createdAt")
     .eq("id", communityId)
     .single();
 
@@ -86,6 +86,7 @@ export default async function JewishHolidaysAutoPage() {
         country,
         timezone: community?.timezone ?? "Europe/Paris",
         plan: community?.plan ?? "FREE_TRIAL",
+        createdAt: community?.createdAt ?? null,
       }}
       holidays={holidays}
       nextHoliday={nextHoliday}

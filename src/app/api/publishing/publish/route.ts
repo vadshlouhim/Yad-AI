@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicationsFromDraft, publishToAllChannels } from "@/lib/publishing/publisher";
-import { TIER_LIMITS, getBillingGate, getBillingUsage, paywallResponse, tierLimitMessage } from "@/lib/billing";
+import { getBillingGate, paywallResponse } from "@/lib/billing";
 
 const LIMITED_SOCIAL_CHANNELS = new Set(["INSTAGRAM", "FACEBOOK", "TELEGRAM"]);
 
@@ -24,15 +24,7 @@ export async function POST(request: Request) {
   const requestedSocialCount = channelTypes.filter((channelType) => LIMITED_SOCIAL_CHANNELS.has(String(channelType))).length;
   const gate = await getBillingGate(admin, user.id);
   if (!gate.isSuperAdmin && requestedSocialCount > 0) {
-    const usage = await getBillingUsage(admin, profile.communityId, gate.tier);
-    if (usage.socialPublications + requestedSocialCount > TIER_LIMITS[gate.tier].socialPublications) {
-      return paywallResponse(
-        "social_publications",
-        tierLimitMessage(gate.tier, "socialPublications"),
-        { socialPublications: usage.socialPublications },
-        TIER_LIMITS[gate.tier]
-      );
-    }
+    if (!gate.isPaid) return paywallResponse("social_publications");
   }
 
   const { data: draft } = await admin

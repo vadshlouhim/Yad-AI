@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEmailAiState, withEmailAiState } from "@/lib/email/ai-settings";
 import { buildNotificationRuleFromPrompt } from "@/lib/email/notification-rules";
-import { assertTierFeature } from "@/lib/billing";
+import { assertPaidFeature } from "@/lib/billing";
 
 async function getContext() {
   const supabase = await createClient();
@@ -22,12 +22,10 @@ async function getContext() {
     return { error: NextResponse.json({ error: "Communaute introuvable" }, { status: 400 }) };
   }
 
-  const tierCheck = await assertTierFeature(
+  const tierCheck = await assertPaidFeature(
     admin,
     user.id,
-    "BUSINESS",
-    "email_management",
-    "La gestion des emails est réservée à l'offre Business."
+    "email_management"
   );
   if (!tierCheck.ok) return { error: tierCheck.response };
 

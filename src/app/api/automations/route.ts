@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database.types";
 import { AUTOMATION_PRESETS, buildAutomationActions } from "@/lib/automation/presets";
 import { presetAppliesToCommunity, type PresetWithClientTypes } from "@/lib/automation/preset-utils";
-import { TIER_LIMITS, getBillingGate, getBillingUsage, paywallResponse, tierLimitMessage } from "@/lib/billing";
+import { getBillingGate, paywallResponse } from "@/lib/billing";
 
 const TRIGGERS = new Set<Database["public"]["Enums"]["AutomationTrigger"]>([
   "BEFORE_EVENT",
@@ -139,15 +139,7 @@ export async function POST(request: Request) {
 
     const gate = await getBillingGate(admin, user.id);
     if (!gate.isSuperAdmin) {
-      const usage = await getBillingUsage(admin, profile.communityId, gate.tier);
-      if (usage.automations >= TIER_LIMITS[gate.tier].automations) {
-        return paywallResponse(
-          "automations",
-          tierLimitMessage(gate.tier, "automations"),
-          { automations: usage.automations },
-          TIER_LIMITS[gate.tier]
-        );
-      }
+      if (!gate.isPaid) return paywallResponse("automations");
     }
 
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;

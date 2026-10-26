@@ -1,3 +1,5 @@
+import type { BillingInterval } from "@/lib/billing/subscription-policy";
+
 export type StripeMode = "test" | "live";
 
 interface StripeConfigurationRequirements {
@@ -41,9 +43,8 @@ export function assertStripeConfiguration(requirements: StripeConfigurationRequi
   }
 
   if (requirements.checkout) {
-    const priceId = requiredEnv("STRIPE_PRICE_MONTHLY_1999");
-    if (!priceId.startsWith("price_")) {
-      throw new Error("STRIPE_PRICE_MONTHLY_1999 doit contenir un Price ID Stripe.");
+    for (const name of Object.values(PRICE_ENV)) {
+      if (!requiredEnv(name).startsWith("price_")) throw new Error(`${name} doit contenir un Price ID Stripe.`);
     }
   }
 
@@ -59,8 +60,29 @@ export function assertStripeConfiguration(requirements: StripeConfigurationRequi
   return mode;
 }
 
-export function getConfiguredPriceId() {
-  return requiredEnv("STRIPE_PRICE_MONTHLY_1999");
+const PRICE_ENV: Record<BillingInterval, string> = {
+  month: "STRIPE_PRICE_MONTHLY",
+  year: "STRIPE_PRICE_YEARLY",
+};
+
+export function getConfiguredPriceId(interval: BillingInterval) {
+  return requiredEnv(PRICE_ENV[interval]);
+}
+
+/**
+ * Prices that are no longer sold but may still bill existing subscribers until they are
+ * moved to the current monthly price (scripts/migrate-subscriptions-to-current-price.ts).
+ */
+export function getLegacyPriceIds() {
+  return ["STRIPE_PRICE_MONTHLY_1999", "STRIPE_PRO_PRICE_ID", "STRIPE_STARTER_PRICE_ID", "STRIPE_ENTERPRISE_PRICE_ID"]
+    .map((name) => process.env[name])
+    .filter((value): value is string => Boolean(value));
+}
+
+/** Every price the webhook accepts: the two current ones, plus legacy ones still billing. */
+export function getAcceptedPriceIds() {
+  const current = Object.values(PRICE_ENV).map((name) => process.env[name]).filter((value): value is string => Boolean(value));
+  return [...current, ...getLegacyPriceIds()];
 }
 
 export function getCanonicalAppOrigin(requestUrl?: string) {

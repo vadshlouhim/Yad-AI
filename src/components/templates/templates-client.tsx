@@ -18,7 +18,7 @@ import {
 import { UpgradeModal } from "@/components/billing/upgrade-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { BillingConfig, BillingUsage } from "@/lib/billing";
+import type { BillingConfig } from "@/lib/billing";
 import {
   PosterGallery,
   posterTemplateImage,
@@ -48,9 +48,9 @@ interface Props {
   templates: Template[];
   community: Community;
   shabbatTimes: unknown;
-  plan: string;
+  /** Subscribed or still in the free trial; otherwise the gallery is read-only. */
+  hasAccess: boolean;
   billingConfig: BillingConfig;
-  billingUsage: BillingUsage;
   galleryTitle?: string;
   gallerySubtitle?: string;
   showGalleryFilters?: boolean;
@@ -94,9 +94,8 @@ type Step = "gallery" | "request" | "confirm" | "preview";
 
 export function TemplatesClient({
   templates,
-  plan,
+  hasAccess,
   billingConfig,
-  billingUsage,
   galleryTitle = "BANQUE D'AFFICHES",
   gallerySubtitle = "Choisissez une affiche et décrivez simplement les textes à modifier.",
   showGalleryFilters = true,
@@ -107,11 +106,8 @@ export function TemplatesClient({
   returnToPublish = false,
   community,
 }: Props) {
-  const freePosterAlreadyUsed = plan === "FREE_TRIAL" && billingUsage.posterGenerations >= 1;
   const initialTemplate = initialTemplateId ? templates.find((template) => template.id === initialTemplateId) ?? null : null;
-  const initialTemplateLocked = Boolean(
-    initialTemplate && (freePosterAlreadyUsed || (plan === "FREE_TRIAL" && initialTemplate.isPremium))
-  );
+  const initialTemplateLocked = Boolean(initialTemplate && !hasAccess);
   const initialTemplateSupportsAi = Boolean(initialTemplate?.supportsAi);
   const [step, setStep] = useState<Step>(initialTemplate && initialTemplateSupportsAi && !initialTemplateLocked ? "request" : "gallery");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
@@ -155,7 +151,7 @@ export function TemplatesClient({
   }
 
   function openCanva(template: Template) {
-    if (plan === "FREE_TRIAL") {
+    if (!hasAccess) {
       setChoiceTemplate(null);
       setUpgradeOpen(true);
       return;
@@ -165,7 +161,7 @@ export function TemplatesClient({
   }
 
   function selectTemplate(template: Template) {
-    if (freePosterAlreadyUsed || (plan === "FREE_TRIAL" && template.isPremium)) {
+    if (!hasAccess) {
       setUpgradeOpen(true);
       return;
     }
@@ -406,7 +402,7 @@ export function TemplatesClient({
           templates={templates}
           onSelect={selectTemplate}
           getStatus={(template) => {
-            const locked = freePosterAlreadyUsed || (plan === "FREE_TRIAL" && (template.isPremium || !template.supportsAi));
+            const locked = !hasAccess;
             return {
               label: locked ? "Réservée" : template.supportsAi && template.hasCanva ? "Choisir IA ou Canva" : template.hasCanva ? "Ouvrir dans Canva" : "Personnaliser avec l’IA",
               className: locked ? "text-amber-700" : "text-[#d92d7c]",

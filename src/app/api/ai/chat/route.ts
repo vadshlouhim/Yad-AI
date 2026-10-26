@@ -23,7 +23,7 @@ import {
 import { analyzeTemplateVisuals } from "@/lib/templates/analysis";
 import { runAssistant } from "@/lib/ai/assistant/runner";
 import { getSpecializedAgentProfile } from "@/lib/ai/assistant/agent-profiles";
-import { TIER_LIMITS, getBillingGate, getBillingUsage, paywallResponse, tierLimitMessage } from "@/lib/billing";
+import { getBillingGate, paywallResponse } from "@/lib/billing";
 import OpenAI from "openai";
 import type { ChatCompletionContentPart } from "openai/resources/chat/completions";
 
@@ -232,15 +232,7 @@ export async function POST(request: Request) {
 
     const billingGate = await getBillingGate(admin, user.id);
     if (isUserPrompt && !billingGate.isSuperAdmin) {
-      const usage = await getBillingUsage(admin, communityId, billingGate.tier);
-      if (usage.assistantMessages >= TIER_LIMITS[billingGate.tier].assistantMessages) {
-        return paywallResponse(
-          "assistant_messages",
-          tierLimitMessage(billingGate.tier, "assistantMessages"),
-          { assistantMessages: usage.assistantMessages },
-          TIER_LIMITS[billingGate.tier]
-        );
-      }
+      if (!billingGate.isPaid) return paywallResponse("assistant_messages");
     }
 
     // Templates/articles : chargés uniquement quand l'intention est explicite

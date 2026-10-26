@@ -1,5 +1,5 @@
 import { fromZonedTime } from "date-fns-tz";
-import { TIER_LIMITS, getBillingUsage, tierLimitMessage } from "@/lib/billing";
+import { PAYWALL_MESSAGE } from "@/lib/billing";
 import type { AssistantToolDef } from "../types";
 import type { PanelItem } from "../panels";
 import { panelId, resolveGate, truncate } from "./shared";
@@ -169,11 +169,8 @@ export const createAutomation: AssistantToolDef = {
   },
   execute: async (ctx, payload) => {
     const gate = await resolveGate(ctx);
-    if (gate && !gate.isSuperAdmin) {
-      const usage = await getBillingUsage(ctx.admin, ctx.communityId, gate.tier);
-      if (usage.automations >= TIER_LIMITS[gate.tier].automations) {
-        return { success: false, message: tierLimitMessage(gate.tier, "automations"), code: "PAYWALL_REQUIRED" };
-      }
+    if (gate && !gate.isPaid) {
+      return { success: false, message: PAYWALL_MESSAGE, code: "PAYWALL_REQUIRED" };
     }
 
     const id = crypto.randomUUID();

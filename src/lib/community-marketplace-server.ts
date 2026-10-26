@@ -2,6 +2,7 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hasCommunityAccess } from "@/lib/billing/subscription-policy";
 
 export async function getMarketplaceContext() {
   const supabase = await createClient();
@@ -18,7 +19,7 @@ export async function getMarketplaceContext() {
 
   const { data: community } = await admin
     .from("Community")
-    .select("id, name, plan")
+    .select("id, name, plan, createdAt")
     .eq("id", profile.communityId)
     .single();
   if (!community) return null;
@@ -30,6 +31,6 @@ export function marketplaceError(message: string, status: number) {
   return Response.json({ error: message }, { status });
 }
 
-export function isPublishingPlan(plan: string | null | undefined) {
-  return Boolean(plan && plan !== "FREE_TRIAL");
+export function isPublishingPlan(community: { plan?: string | null; createdAt?: string | null }) {
+  return hasCommunityAccess(community);
 }

@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import { assertStripeConfiguration, getConfiguredPriceId, getStripeMode } from "@/lib/stripe-config";
-import { SUBSCRIPTION_TRIAL_DAYS } from "@/lib/billing/subscription-policy";
+import { subscriptionPriceCents, type BillingInterval } from "@/lib/billing/subscription-policy";
 
 let _stripe: Stripe | null = null;
 
@@ -20,40 +20,28 @@ export const stripe = new Proxy({} as Stripe, {
   },
 });
 
-export const PLANS = {
-  FREE_TRIAL: {
-    name: "Gratuit",
-    priceId: null,
-    price: 0,
-    limits: { socialPublications: 1, assistantMessages: 20, automations: 1, posterGenerations: 1, whatsapp: false },
-  },
-  PROFESSIONAL: {
-    name: "EasyCom IA",
-    priceId: process.env.STRIPE_PRICE_MONTHLY_1999,
-    price: 19.99,
-    limits: { socialPublications: -1, assistantMessages: -1, automations: -1, posterGenerations: -1, whatsapp: true },
-  },
-} as const;
-
 export async function createCheckoutSession(params: {
   communityId: string;
   userId: string;
   locale: "fr" | "he" | "en";
-  includeTrial: boolean;
+  interval: BillingInterval;
+  /** End of the free trial still owed to the community; billing starts then. */
+  trialEnd: Date | null;
   stripeCustomerId?: string;
   customerEmail?: string;
   successUrl: string;
   cancelUrl: string;
 }) {
-  const { communityId, userId, locale, includeTrial, stripeCustomerId, customerEmail, successUrl, cancelUrl } = params;
+  const { communityId, userId, locale, interval, trialEnd, stripeCustomerId, customerEmail, successUrl, cancelUrl } = params;
   assertStripeConfiguration({ checkout: true });
-  const priceId = getConfiguredPriceId();
-  await validateSubscriptionCatalog(priceId);
+  const priceId = getConfiguredPriceId(interval);
+  await validateSubscriptionPrice(priceId, interval);
   const metadata = {
     community_id: communityId,
     user_id: userId,
     plan_tier: "PROFESSIONAL",
-    trial_included: String(includeTrial),
+    billing_interval: interval,
+    trial_included: String(Boolean(trialEnd)),
   };
 
   const checkoutParams: Stripe.Checkout.SessionCreateParams = {
@@ -71,12 +59,7 @@ export async function createCheckoutSession(params: {
     locale: locale === "he" ? "auto" : locale,
     metadata,
     subscription_data: {
-      ...(includeTrial
-        ? {
-            trial_period_days: SUBSCRIPTION_TRIAL_DAYS,
-            trial_settings: { end_behavior: { missing_payment_method: "cancel" as const } },
-          }
-        : {}),
+      ...(trialEnd ? { trial_end: Math.floor(trialEnd.getTime() / 1000) } : {}),
       metadata,
     },
     billing_address_collection: "required",
@@ -149,14 +132,11 @@ export async function createPortalSession(params: { stripeCustomerId: string; re
   });
 }
 
-async function validateSubscriptionCatalog(priceId: string) {
+async function validateSubscriptionPrice(priceId: string, interval: BillingInterval) {
+  const label = interval === "year" ? "annuel" : "mensuel";
   const price = await stripe.prices.retrieve(priceId);
-  assertStripeObjectMode(price.livemode, "Price mensuel");
-  assertMonthlyEuroPrice(price, 1999, "mensuel");
-}
-
-function assertMonthlyEuroPrice(price: Stripe.Price, expectedAmount: number, label: string) {
-  if (!price.active || price.type !== "recurring" || price.currency !== "eur" || price.unit_amount !== expectedAmount || price.recurring?.interval !== "month" || price.recurring.interval_count !== 1) {
+  assertStripeObjectMode(price.livemode, `Price ${label}`);
+  if (!price.active || price.type !== "recurring" || price.currency !== "eur" || price.unit_amount !== subscriptionPriceCents(interval) || price.recurring?.interval !== interval || price.recurring.interval_count !== 1) {
     throw new Error(`Le Price Stripe ${label} ne correspond pas à l'offre EasyCom attendue.`);
   }
 }

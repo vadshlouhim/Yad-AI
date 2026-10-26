@@ -1,5 +1,7 @@
+import type { BillingInterval } from "@/lib/billing/subscription-policy";
+
 export interface SubscriptionCheckoutRequest {
-  tier: "PROFESSIONAL" | "ENTERPRISE";
+  interval: BillingInterval;
   successUrl: string;
   cancelUrl: string;
 }

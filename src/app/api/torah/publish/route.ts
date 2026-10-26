@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicationsFromDraft, publishToChannel } from "@/lib/publishing/publisher";
-import { TIER_LIMITS, assertPaidFeature, getBillingGate, getBillingUsage, paywallResponse, tierLimitMessage } from "@/lib/billing";
+import { assertPaidFeature, getBillingGate, paywallResponse } from "@/lib/billing";
 import type { Tables } from "@/types/database.types";
 
 const channelTypes = ["FACEBOOK", "INSTAGRAM", "WHATSAPP"] as const;
@@ -65,15 +65,7 @@ export async function POST(request: Request) {
   const requestedSocialCount = uniqueTypes.filter((type) => type === "FACEBOOK" || type === "INSTAGRAM").length;
   const gate = await getBillingGate(context.admin, context.userId);
   if (!gate.isSuperAdmin && requestedSocialCount > 0) {
-    const usage = await getBillingUsage(context.admin, context.communityId, gate.tier);
-    if (usage.socialPublications + requestedSocialCount > TIER_LIMITS[gate.tier].socialPublications) {
-      return paywallResponse(
-        "social_publications",
-        tierLimitMessage(gate.tier, "socialPublications"),
-        { socialPublications: usage.socialPublications },
-        TIER_LIMITS[gate.tier]
-      );
-    }
+    if (!gate.isPaid) return paywallResponse("social_publications");
   }
   if (uniqueTypes.includes("WHATSAPP")) {
     const paid = await assertPaidFeature(

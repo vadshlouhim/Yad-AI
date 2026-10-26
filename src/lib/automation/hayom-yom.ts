@@ -1,7 +1,6 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { canAccessAdmin } from "@/lib/admin-access";
-import { getBillingConfig } from "@/lib/billing";
-import { stripe } from "@/lib/stripe";
+import { communityHasAccess } from "@/lib/billing";
 import { getNextWeeklyRunAt } from "./shabbat-times";
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -82,38 +81,9 @@ export async function getHayomYomAccess(params: {
   if (params.profile && canAccessAdmin(params.profile as never)) {
     return { allowed: true, reason: "super_admin" as const };
   }
-
-  const [{ data: community }, { data: subscription }, billingConfig] = await Promise.all([
-    params.admin.from("Community").select("plan").eq("id", params.communityId).maybeSingle(),
-    params.admin.from("Subscription").select("stripePriceId, plan, status")
-      .eq("communityId", params.communityId)
-      .eq("status", "ACTIVE")
-      .order("createdAt", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    getBillingConfig(params.admin),
-  ]);
-
-  if (!subscription) return { allowed: false, reason: "inactive_subscription" as const };
-  if (community?.plan === "ENTERPRISE" || subscription.plan === "ENTERPRISE") {
-    return { allowed: true, reason: "business" as const };
-  }
-  if (community?.plan !== "PROFESSIONAL" && subscription.plan !== "PROFESSIONAL") {
-    return { allowed: false, reason: "wrong_plan" as const };
-  }
-  if (!subscription.stripePriceId || subscription.stripePriceId.startsWith("manual-")) {
-    return { allowed: true, reason: "paid_subscription" as const };
-  }
-
-  try {
-    const price = await stripe.prices.retrieve(subscription.stripePriceId);
-    return price.unit_amount === billingConfig.basePriceCents
-      ? { allowed: true, reason: "full_price_pro" as const }
-      : { allowed: false, reason: "launch_price" as const };
-  } catch (error) {
-    console.error("[Hayom Yom] Vérification Stripe impossible:", error);
-    return { allowed: false, reason: "stripe_unavailable" as const };
-  }
+  return (await communityHasAccess(params.admin, params.communityId))
+    ? { allowed: true, reason: "subscribed_or_trial" as const }
+    : { allowed: false, reason: "inactive_subscription" as const };
 }
 
 function decodeHtml(value: string) {

@@ -5,7 +5,7 @@ import { getShabbatTimes } from "@/lib/automation/hebcal";
 import { getPosterSource, trustedCommunityLogo, trustedStoredCommunityLogo, logoEditInstructions } from "@/lib/templates/edit-source";
 import { readPosterEditState } from "@/lib/templates/edit-state";
 import { NextResponse } from "next/server";
-import { FREE_POSTER_LIMIT, getBillingGate, getBillingUsage, paywallResponse } from "@/lib/billing";
+import { getBillingGate, paywallResponse } from "@/lib/billing";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { editTemplatePosterWithFal, type PosterChange } from "@/lib/templates/fal-edit";
@@ -54,12 +54,7 @@ export async function POST(request: Request) {
     const admin = createAdminClient();
     const gate = await getBillingGate(admin, user.id);
     if (!gate.communityId) return NextResponse.json({ error: "Communauté non configurée" }, { status: 400 });
-    if (!gate.isPaid) {
-      const usage = await getBillingUsage(admin, gate.communityId, gate.tier);
-      if (usage.posterGenerations >= FREE_POSTER_LIMIT) {
-        return paywallResponse("poster_generations", "Le mode gratuit permet de modifier une seule affiche.", { posterGenerations: usage.posterGenerations });
-      }
-    }
+    if (!gate.isPaid) return paywallResponse("poster_generations");
     const { data: template } = await admin.from("Template").select("*").eq("id", templateId)
       .or(`isGlobal.eq.true,communityId.eq.${gate.communityId}`).single();
     if (!template) return NextResponse.json({ error: "Template introuvable" }, { status: 404 });

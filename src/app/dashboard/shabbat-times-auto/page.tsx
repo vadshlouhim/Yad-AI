@@ -24,7 +24,7 @@ export default async function ShabbatTimesAutoPage({ searchParams }: { searchPar
 
   const { data: community } = await admin
     .from("Community")
-    .select("id, name, logoUrl, city, country, timezone, tone, phone, email, website, address, religiousStream, plan")
+    .select("id, name, logoUrl, city, country, timezone, tone, phone, email, website, address, religiousStream, plan, createdAt")
     .eq("id", communityId)
     .single();
 

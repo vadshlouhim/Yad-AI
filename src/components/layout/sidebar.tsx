@@ -31,18 +31,19 @@ interface SidebarProps {
   basePath?: string;
 }
 
+// One subscription: every paid plan value (legacy ones included) reads "Abonné".
 const PLAN_COLORS: Record<string, string> = {
   FREE_TRIAL: "bg-amber-500",
-  STARTER: "bg-blue-500",
-  PROFESSIONAL: "bg-blue-500",
-  ENTERPRISE: "bg-violet-500",
+  STARTER: "bg-emerald-500",
+  PROFESSIONAL: "bg-emerald-500",
+  ENTERPRISE: "bg-emerald-500",
 };
 
 const PLAN_LABELS: Record<string, string> = {
-  FREE_TRIAL: "Gratuit",
-  STARTER: "Pro",
-  PROFESSIONAL: "Pro",
-  ENTERPRISE: "Business",
+  FREE_TRIAL: "Sans abonnement",
+  STARTER: "Abonné",
+  PROFESSIONAL: "Abonné",
+  ENTERPRISE: "Abonné",
 };
 
 const SOCIAL_AGENT_IMAGES = [

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import OpenAI from "openai";
 import { detectFileType, MAX_FILE_SIZE, STORAGE_BUCKET } from "@/lib/community-library";
+import { hasCommunityAccess } from "@/lib/billing/subscription-policy";
 
 const openrouter = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
@@ -24,8 +25,8 @@ export async function POST(request: Request) {
   if (!communityId) return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
 
   const admin = createAdminClient();
-  const { data: community } = await admin.from("Community").select("plan, name").eq("id", communityId).single();
-  if (!community || community.plan === "FREE_TRIAL") {
+  const { data: community } = await admin.from("Community").select("plan, createdAt, name").eq("id", communityId).single();
+  if (!community || !hasCommunityAccess(community)) {
     return NextResponse.json({ error: "Abonnement requis pour soumettre une ressource" }, { status: 402 });
   }
 

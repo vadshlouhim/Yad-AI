@@ -56,7 +56,7 @@ export function ScheduleTemplateGallery({
   return (
     <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
       {templates.map((template, index) => {
-        const locked = !isPaid && index > 0;
+        const locked = !isPaid;
         const variant = variantLabel?.(template);
         return (
           <article key={template.id} className="group flex min-w-0 flex-col overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white p-1.5 text-start shadow-sm transition duration-200 hover:-translate-y-1 hover:border-violet-300 hover:shadow-xl hover:shadow-violet-950/10">

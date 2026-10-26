@@ -136,7 +136,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const context = await getMarketplaceContext();
   if (!context) return marketplaceError("Non autorisé", 401);
-  if (!isPublishingPlan(context.community.plan)) return marketplaceError("Abonnement requis pour publier", 402);
+  if (!isPublishingPlan(context.community)) return marketplaceError("Abonnement requis pour publier", 402);
 
   const form = await request.formData();
   let metadata: Record<string, unknown>;

@@ -37,7 +37,6 @@ export interface ReadResult {
 /** Contexte de construction du catalogue (filtrage par palier, variantes de description). */
 export interface BuildToolsContext {
   gmailConnected: boolean;
-  tier: BillingGate["tier"];
   isPaid: boolean;
   isSuperAdmin: boolean;
   specializedAgentSlug?: string | null;

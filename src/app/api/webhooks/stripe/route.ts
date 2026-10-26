@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type Stripe from "stripe";
 import { createNotificationOnce } from "@/lib/notifications/create-once";
 import { notifyUser } from "@/lib/notifications/notify";
-import { assertStripeConfiguration, getStripeMode } from "@/lib/stripe-config";
+import { assertStripeConfiguration, getAcceptedPriceIds, getStripeMode } from "@/lib/stripe-config";
 import { getBillingCopy, normalizeBillingLocale } from "@/lib/billing/copy";
 import { hasFullSubscriptionAccess } from "@/lib/billing/subscription-policy";
 
@@ -75,7 +75,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   if (!communityId) return;
   const priceId = subscription.items.data[0]?.price.id;
   if (!priceId) throw new Error("Abonnement Stripe sans Price.");
-  const plan = getPlanFromSubscription(subscription, priceId);
+  const plan = getPlanFromPrice(priceId);
   const sub = subscription as unknown as { current_period_start: number; current_period_end: number; trial_start: number | null; trial_end: number | null; canceled_at: number | null };
   const admin = createAdminClient();
 
@@ -203,12 +203,10 @@ function metadataCommunityId(metadata: Stripe.Metadata | null | undefined) {
   return metadata?.community_id ?? metadata?.communityId ?? null;
 }
 
-function getPlanFromSubscription(subscription: Stripe.Subscription, priceId: string): "STARTER" | "PROFESSIONAL" | "ENTERPRISE" {
-  const metadataTier = subscription.metadata?.plan_tier ?? subscription.metadata?.planTier;
-  if (metadataTier === "STARTER" || metadataTier === "PROFESSIONAL" || metadataTier === "ENTERPRISE") return metadataTier;
-  if ([process.env.STRIPE_PRICE_MONTHLY_1999, process.env.STRIPE_PRO_PRICE_ID].includes(priceId)) return "PROFESSIONAL";
-  if (priceId === process.env.STRIPE_STARTER_PRICE_ID) return "STARTER";
-  if (priceId === process.env.STRIPE_ENTERPRISE_PRICE_ID) return "ENTERPRISE";
+// One offer: every accepted price (current monthly/yearly, or a legacy one still billing)
+// is the same subscription.
+function getPlanFromPrice(priceId: string): "PROFESSIONAL" {
+  if (getAcceptedPriceIds().includes(priceId)) return "PROFESSIONAL";
   throw new Error(`Price Stripe non autorisé: ${priceId}`);
 }
 

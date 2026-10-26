@@ -15,6 +15,7 @@ import { ToolIcon } from "@/components/presentation/tool-visual";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { HOME_AGENT_IMAGES, MAIN_VIDEO_URL, homeVideoSource } from "./home-media";
 import { isFeatureEnabled } from "@/lib/features-by-locale";
+import { SUBSCRIPTION_MONTHLY_CENTS, SUBSCRIPTION_YEARLY_CENTS } from "@/lib/billing/subscription-policy";
 import "./easycom-home.css";
 
 const PreviewDialog = dynamic(() => import("./home-video-dialog"), {
@@ -446,7 +447,7 @@ export function EasyComHome() {
           <p className="home-price-special">{t("specialOffer")}</p>
           <p className="home-price-gift">{locale === "he" ? t("trialFeatures") : t("gift")}</p>
           <p className="home-price"><bdi dir="ltr">{formatPrice(0)}</bdi> <span>{t("trialPriceCaption")}</span></p>
-          <p className="home-price-after">{t("thenPrice", { price: formatPrice(19.99) })}</p>
+          <p className="home-price-after">{t("thenPrice", { price: formatPrice(SUBSCRIPTION_MONTHLY_CENTS / 100), yearly: formatPrice(SUBSCRIPTION_YEARLY_CENTS / 100) })}</p>
           <p className="home-price-after">{t("cardRequired")}</p>
           <TrialLink />
         </section>

@@ -10,7 +10,6 @@ import { Check } from "lucide-react";
 import { getPublicToolDestination } from "@/lib/public-tools";
 import { normalizeSupportedCountry } from "@/lib/community/countries";
 import { useLocale, useTranslations } from "next-intl";
-import { createSubscriptionCheckout } from "@/lib/billing/checkout-client";
 
 const STEPS = [
   { id: 0, label: "Identité", description: "Votre structure" },
@@ -197,21 +196,8 @@ export function OnboardingWizard({
 
       if (!res.ok) throw new Error(he ? "שגיאה בשמירה" : "Erreur lors de la sauvegarde");
 
-      try {
-        const checkoutUrl = await createSubscriptionCheckout({
-          tier: "PROFESSIONAL",
-          successUrl: `${window.location.origin}${getPublicToolDestination(returnTo) ?? "/dashboard/settings/billing?success=true"}`,
-          cancelUrl: `${window.location.origin}/dashboard/settings/billing`,
-        });
-        if (checkoutUrl) {
-          window.location.assign(checkoutUrl);
-          return;
-        }
-      } catch (checkoutError) {
-        console.error(checkoutError);
-        alert(billingCopy("checkoutError"));
-      }
-      router.replace("/dashboard/settings/billing");
+      // The free trial starts now and needs no card: go straight to the tool.
+      router.replace(getPublicToolDestination(returnTo) ?? "/dashboard");
       router.refresh();
     } catch (err) {
       console.error(err);

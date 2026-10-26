@@ -1,5 +1,4 @@
-import type { PlanTier } from "@/lib/billing";
-import { tierLabel } from "@/lib/billing";
+import { PAYWALL_MESSAGE } from "@/lib/billing";
 
 /**
  * Source de vérité unique des permissions de l'assistant.
@@ -45,11 +44,9 @@ export interface ToolPermission {
   domain: AssistantDomain;
   /** Sensibilité fixe, ou fonction pour les outils polymorphes. */
   sensitivity: Sensitivity | ((args: Record<string, unknown>) => Sensitivity);
-  /** Palier exact requis (sémantique assertTierFeature : égalité stricte). */
-  requiredTier?: PlanTier;
-  /** Réservé aux paliers payants (sémantique gate.isPaid — WhatsApp). */
+  /** Réservé aux abonnés et aux communautés en essai. */
   paidOnly?: boolean;
-  /** Quota TIER_LIMITS vérifié à l'exécution par le handler (informative ici). */
+  /** Ancienne métrique de quota, conservée à titre informatif (plus aucune limite). */
   usageMetric?: "automations" | "socialPublications";
   /** Future application des rôles EDITOR/VIEWER — non appliqué tant que les rôles ne sont pas actifs. */
   allowedRoles: CommunityRole[];
@@ -67,7 +64,7 @@ export const TOOL_PERMISSIONS: Record<string, ToolPermission> = {
   get_community_settings: { domain: "settings", sensitivity: "READ", allowedRoles: ALL_ROLES, cardType: "setting" },
   get_daily_routine: { domain: "settings", sensitivity: "READ", allowedRoles: ALL_ROLES, cardType: "setting" },
   list_notifications: { domain: "notifications", sensitivity: "READ", allowedRoles: ALL_ROLES, cardType: "setting" },
-  list_reviews: { domain: "reviews", sensitivity: "READ", requiredTier: "BUSINESS", allowedRoles: ALL_ROLES, cardType: "email" },
+  list_reviews: { domain: "reviews", sensitivity: "READ", paidOnly: true, allowedRoles: ALL_ROLES, cardType: "email" },
   get_usage_and_plan: { domain: "meta", sensitivity: "READ", allowedRoles: ALL_ROLES, cardType: "navigation" },
   suggest_navigation: { domain: "meta", sensitivity: "READ", allowedRoles: ALL_ROLES, cardType: "navigation" },
   generate_torah_course: { domain: "content", sensitivity: "READ", allowedRoles: ALL_ROLES, cardType: "creation" },
@@ -95,7 +92,7 @@ export const TOOL_PERMISSIONS: Record<string, ToolPermission> = {
   delete_notification: { domain: "notifications", sensitivity: "REVERSIBLE", allowedRoles: ALL_ROLES, cardType: "setting" },
 
   // ── Actions irréversibles ou publiques (validation TOUJOURS requise) ──
-  send_email: { domain: "comms", sensitivity: "IRREVERSIBLE", requiredTier: "BUSINESS", allowedRoles: WRITE_ROLES, cardType: "email" },
+  send_email: { domain: "comms", sensitivity: "IRREVERSIBLE", paidOnly: true, allowedRoles: WRITE_ROLES, cardType: "email" },
   email_community: { domain: "comms", sensitivity: "IRREVERSIBLE", allowedRoles: WRITE_ROLES, cardType: "email" },
   send_whatsapp: { domain: "comms", sensitivity: "IRREVERSIBLE", paidOnly: true, allowedRoles: WRITE_ROLES, cardType: "email" },
   publish_content: { domain: "publications", sensitivity: "IRREVERSIBLE", usageMetric: "socialPublications", allowedRoles: WRITE_ROLES, cardType: "creation" },
@@ -106,7 +103,7 @@ export const TOOL_PERMISSIONS: Record<string, ToolPermission> = {
   delete_automation: { domain: "automations", sensitivity: "IRREVERSIBLE", allowedRoles: WRITE_ROLES, cardType: "automation" },
   delete_draft: { domain: "content", sensitivity: "IRREVERSIBLE", allowedRoles: WRITE_ROLES, cardType: "creation" },
   delete_channel: { domain: "channels", sensitivity: "IRREVERSIBLE", allowedRoles: ADMIN_ONLY, cardType: "setting" },
-  reply_review: { domain: "reviews", sensitivity: "IRREVERSIBLE", requiredTier: "BUSINESS", allowedRoles: ADMIN_ONLY, cardType: "email" },
+  reply_review: { domain: "reviews", sensitivity: "IRREVERSIBLE", paidOnly: true, allowedRoles: ADMIN_ONLY, cardType: "email" },
 };
 
 export function resolveSensitivity(name: string, args: Record<string, unknown> = {}): Sensitivity | null {
@@ -121,7 +118,6 @@ export function requiresConfirmation(sensitivity: Sensitivity, actionMode: "AUTO
 }
 
 export interface ToolAllowContext {
-  tier: PlanTier;
   isPaid: boolean;
   isSuperAdmin: boolean;
   /** Future application des rôles — ignoré tant qu'ils ne sont pas actifs. */
@@ -139,17 +135,8 @@ export function isToolAllowed(name: string, ctx: ToolAllowContext): ToolAllowRes
   if (!permission) return { allowed: false, reason: `Outil inconnu : ${name}.` };
   if (ctx.isSuperAdmin) return { allowed: true };
 
-  if (permission.requiredTier && !ctx.isPaid) {
-    return {
-      allowed: false,
-      reason: `Cette fonctionnalité est réservée à l'offre ${tierLabel(permission.requiredTier)}. Passez à l'offre supérieure depuis la page Facturation.`,
-    };
-  }
   if (permission.paidOnly && !ctx.isPaid) {
-    return {
-      allowed: false,
-      reason: "Cette fonctionnalité est réservée aux offres payantes. Passez à l'offre Pro ou Business depuis la page Facturation.",
-    };
+    return { allowed: false, reason: PAYWALL_MESSAGE };
   }
   return { allowed: true };
 }

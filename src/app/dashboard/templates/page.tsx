@@ -5,7 +5,8 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TemplatesClient } from "@/components/templates/templates-client";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
-import { getBillingConfig, getBillingUsage, planToTier } from "@/lib/billing";
+import { getBillingConfig } from "@/lib/billing";
+import { hasCommunityAccess } from "@/lib/billing/subscription-policy";
 import { getStoredShabbatTimes } from "@/lib/ai/engine";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -44,12 +45,11 @@ export default async function TemplatesPage({ searchParams }: Props) {
       .order("usageCount", { ascending: false }),
     admin
       .from("Community")
-      .select("id, name, city, logoUrl, tone, phone, email, website, address, religiousStream, timezone, plan")
+      .select("id, name, city, logoUrl, tone, phone, email, website, address, religiousStream, timezone, plan, createdAt")
       .eq("id", communityId)
       .single(),
     getBillingConfig(admin),
   ]);
-  const billingUsage = await getBillingUsage(admin, communityId, planToTier(community?.plan));
 
   const hydratedTemplates = (templates ?? []).map((template) => {
     const { canvaUrl, ...safeTemplate } = template;
@@ -72,9 +72,8 @@ export default async function TemplatesPage({ searchParams }: Props) {
         templates={hydratedTemplates as Parameters<typeof TemplatesClient>[0]["templates"]}
         community={community!}
         shabbatTimes={shabbatTimes}
-        plan={community?.plan ?? "FREE_TRIAL"}
+        hasAccess={hasCommunityAccess(community)}
         billingConfig={billingConfig}
-        billingUsage={billingUsage}
         key={source?.id ?? initialTemplateId ?? "gallery"}
         initialTemplateId={initialTemplateId}
         initialSource={source ? { id: source.id, imageUrl: source.url, editState: readPosterEditState(source.editState) } : null}

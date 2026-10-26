@@ -34,8 +34,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { OnboardingWizard, demoOnboardingData } from "@/components/onboarding/onboarding-wizard";
-import type { BillingConfig, PlanTier } from "@/lib/billing";
-import { planToTier, tierLabel } from "@/lib/billing";
+import { formatEuroCents, type BillingConfig } from "@/lib/billing";
+import { isSubscribedPlan } from "@/lib/billing/subscription-policy";
 import { createClient as createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { templateAvailability, type TemplateAvailability } from "@/lib/templates/availability";
 import { enabledTemplateLanguageOptions, TEMPLATE_LANGUAGE_LABELS, type TemplateLanguage } from "@/lib/templates/languages";
@@ -238,10 +238,11 @@ const AUTOMATION_DAY_TYPES = [
 const VISIBILITY_FILTERS = ["ALL", "GLOBAL", "LOCAL"] as const;
 const STATUS_FILTERS = ["ALL", "ACTIVE", "INACTIVE", "PREMIUM"] as const;
 type AvailabilityFilter = "ALL" | TemplateAvailability;
-const USER_PLAN_TIERS: Array<{ value: PlanTier; label: string; helper: string }> = [
-  { value: "FREE", label: "Gratuit", helper: "Limites de l'offre gratuite" },
-  { value: "PRO", label: "Pro", helper: "WhatsApp, 3 automatisations et 50 messages IA / mois" },
-  { value: "BUSINESS", label: "Business", helper: "Droits Business, emails, avis Google et messages IA illimités" },
+type AdminPlanChoice = "FREE" | "PRO";
+
+const USER_PLAN_TIERS: Array<{ value: AdminPlanChoice; label: string; helper: string }> = [
+  { value: "FREE", label: "Sans abonnement", helper: "Essai gratuit de 7 jours après la création de la communauté, puis lecture seule" },
+  { value: "PRO", label: "Abonné (accès offert)", helper: "Toutes les fonctionnalités, sans paiement Stripe" },
 ] as const;
 const ADMIN_AUTOMATION_PRESETS = [
   { key: "WEEKLY_SHABBAT", logo: "🕯️", name: "Horaires de Chabbat", description: "Prépare les horaires chaque semaine.", trigger: "WEEKLY_SHABBAT" },
@@ -377,11 +378,6 @@ export function AdminConsoleClient({
   const [theme, setTheme] = useState<ThemeMode>("light");
   const [status, setStatus] = useState<string | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(initialTemplateError);
-  const [billingDraft, setBillingDraft] = useState({
-    basePriceEuros: (billingConfig.basePriceCents / 100).toFixed(2),
-    trialDays: String(billingConfig.trialDays),
-  });
-  const [billingSaving, setBillingSaving] = useState(false);
   const [showDevelopmentPreview, setShowDevelopmentPreview] = useState(false);
   const [developmentPreviewRun, setDevelopmentPreviewRun] = useState(0);
   const [adminAutomationFormOpen, setAdminAutomationFormOpen] = useState(false);
@@ -848,7 +844,7 @@ export function AdminConsoleClient({
     window.location.reload();
   }
 
-  async function saveUserBilling(user: AdminUser, planTier: PlanTier, startedAt: string) {
+  async function saveUserBilling(user: AdminUser, planTier: AdminPlanChoice, startedAt: string) {
     setSavingUserBillingId(user.id);
     setStatus(null);
     const response = await fetch(`/api/admin/users/${user.id}`, {
@@ -877,26 +873,6 @@ export function AdminConsoleClient({
       return;
     }
     window.location.reload();
-  }
-
-  async function saveBillingPricing() {
-    setBillingSaving(true);
-    setStatus(null);
-    try {
-      const response = await fetch("/api/admin/billing-config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(billingDraft),
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setStatus(payload.error ?? "Enregistrement de la tarification impossible.");
-        return;
-      }
-      setStatus("Tarification mise à jour.");
-    } finally {
-      setBillingSaving(false);
-    }
   }
 
   const navItems = [
@@ -1547,25 +1523,14 @@ export function AdminConsoleClient({
 
           {activeSection === "pricing" && (
             <section className={`mt-6 rounded-[2rem] border p-5 shadow-sm ${panelClass}`}>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <h3 className={`flex items-center gap-2 text-2xl font-black ${strongText}`}>
-                    <CreditCard className="size-6 text-blue-500" />
-                    Tarification de lancement
-                  </h3>
-                  <p className={`mt-2 max-w-2xl text-sm leading-6 ${mutedText}`}>
-                    Ces valeurs alimentent les pages Facturation, Onboarding et les pop-ups de paiement.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={saveBillingPricing}
-                  disabled={billingSaving}
-                  className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
-                >
-                  <Save className="mr-1 inline size-4" />
-                  {billingSaving ? "Enregistrement..." : "Enregistrer"}
-                </button>
+              <div>
+                <h3 className={`flex items-center gap-2 text-2xl font-black ${strongText}`}>
+                  <CreditCard className="size-6 text-violet-500" />
+                  Abonnement unique
+                </h3>
+                <p className={`mt-2 max-w-2xl text-sm leading-6 ${mutedText}`}>
+                  Une seule offre, définie dans le code (src/lib/billing/subscription-policy.ts) et utilisée partout : pages publiques, facturation et paiement Stripe.
+                </p>
               </div>
 
               {status && (
@@ -1574,34 +1539,17 @@ export function AdminConsoleClient({
                 </p>
               )}
 
-              <div className="mt-6 grid gap-4 lg:grid-cols-2">
-                <label className={`text-sm font-semibold ${strongText}`}>
-                  Tarif normal TTC mensuel
-                  <input
-                    value={billingDraft.basePriceEuros}
-                    onChange={(event) => setBillingDraft((current) => ({ ...current, basePriceEuros: event.target.value }))}
-                    className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}
-                    inputMode="decimal"
-                    placeholder="19.99"
-                  />
-                </label>
-                <label className={`text-sm font-semibold ${strongText}`}>
-                  Durée de l&apos;essai gratuit (jours)
-                  <input
-                    type="number"
-                    min="0"
-                    value={billingDraft.trialDays}
-                    onChange={(event) => setBillingDraft((current) => ({ ...current, trialDays: event.target.value }))}
-                    className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}
-                  />
-                </label>
-                <div className={`rounded-3xl border p-4 ${isDark ? "border-blue-300/20 bg-blue-300/10" : "border-blue-100 bg-blue-50"}`}>
-                  <p className={`text-xs font-black uppercase tracking-[0.16em] ${isDark ? "text-blue-100" : "text-blue-700"}`}>Aperçu public</p>
-                  <p className={`mt-3 text-sm font-bold ${mutedText}`}>
-                    <span className={`text-2xl font-black ${isDark ? "text-white" : "text-blue-700"}`}>0 €</span>
-                    <span className="ml-2 text-xs">pendant {billingDraft.trialDays || "30"} jours, puis {billingDraft.basePriceEuros || "19.99"} € TTC / mois</span>
-                  </p>
-                </div>
+              <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                {[
+                  ["Essai gratuit", `${billingConfig.trialDays} jours, sans carte`],
+                  ["Mensuel", `${formatEuroCents(billingConfig.monthlyPriceCents)} TTC / mois`],
+                  ["Annuel", `${formatEuroCents(billingConfig.yearlyPriceCents)} TTC / an`],
+                ].map(([label, value]) => (
+                  <div key={label} className={`rounded-3xl border p-4 ${isDark ? "border-violet-300/20 bg-violet-300/10" : "border-violet-100 bg-violet-50"}`}>
+                    <p className={`text-xs font-black uppercase tracking-[0.16em] ${isDark ? "text-violet-100" : "text-violet-700"}`}>{label}</p>
+                    <p className={`mt-2 text-lg font-black ${strongText}`}>{value}</p>
+                  </div>
+                ))}
               </div>
             </section>
           )}
@@ -1739,7 +1687,7 @@ export function AdminConsoleClient({
                 <div className="mt-5 space-y-3">
                   {users.map((user) => {
                     const community = communities.find((community) => community.id === user.communityId);
-                    const planTier = planToTier(user.communityPlan);
+                    const planTier: AdminPlanChoice = isSubscribedPlan(user.communityPlan) ? "PRO" : "FREE";
                     const planTierMeta = USER_PLAN_TIERS.find((item) => item.value === planTier) ?? USER_PLAN_TIERS[0];
                     const billingSince = user.adminBillingSince
                       ? new Date(user.adminBillingSince).toISOString().slice(0, 10)
@@ -1753,11 +1701,9 @@ export function AdminConsoleClient({
                               {user.role}
                             </span>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                              planTier === "BUSINESS"
-                                ? "bg-violet-500/15 text-violet-600"
-                                : planTier === "PRO"
-                                  ? "bg-emerald-500/15 text-emerald-600"
-                                  : "bg-slate-500/15 text-slate-500"
+                              planTier === "PRO"
+                                ? "bg-emerald-500/15 text-emerald-600"
+                                : "bg-slate-500/15 text-slate-500"
                             }`}>
                               {planTierMeta.label}
                             </span>
@@ -1791,7 +1737,7 @@ export function AdminConsoleClient({
                             onSubmit={(event) => {
                               event.preventDefault();
                               const formData = new FormData(event.currentTarget);
-                              const planTier = String(formData.get("planTier")) as PlanTier;
+                              const planTier = String(formData.get("planTier")) as AdminPlanChoice;
                               const startedAt = String(formData.get("subscriptionStartedAt") ?? "");
                               void saveUserBilling(user, planTier, startedAt);
                             }}
@@ -1822,7 +1768,7 @@ export function AdminConsoleClient({
                               </label>
                             </div>
                             <p className={`text-xs ${mutedText}`}>
-                              Le choix met immédiatement à jour le plan de la communauté et les permissions associées. {tierLabel(planTier)} : {planTierMeta.helper}.
+                              Le choix met immédiatement à jour le plan de la communauté et les permissions associées. {planTierMeta.label} : {planTierMeta.helper}.
                             </p>
                             <div className="flex flex-wrap justify-end gap-2">
                               <button

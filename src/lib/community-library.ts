@@ -70,9 +70,6 @@ export function detectFileType(mimeType: string): ResourceFileType | null {
   return null;
 }
 
-export function isPaidPlan(plan: string | null | undefined): boolean {
-  return Boolean(plan && plan !== "FREE_TRIAL");
-}
 
 export const CATEGORY_COLORS: Record<ResourceCategory, string> = {
   Cours: "bg-violet-100 text-violet-700",

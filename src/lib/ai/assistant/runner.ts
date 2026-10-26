@@ -57,7 +57,6 @@ export async function runAssistant(params: RunAssistantParams): Promise<string> 
 
   const tools = buildTools({
     gmailConnected,
-    tier: billingGate.tier,
     isPaid: billingGate.isPaid,
     isSuperAdmin: billingGate.isSuperAdmin,
     specializedAgentSlug,
@@ -200,7 +199,6 @@ async function handleToolCall(ctx: ToolCtx): Promise<string> {
 
   // ── Gate palier/paiement (ceinture-bretelles : buildTools filtre déjà le catalogue) ──
   const allowed = isToolAllowed(name, {
-    tier: billingGate.tier,
     isPaid: billingGate.isPaid,
     isSuperAdmin: billingGate.isSuperAdmin,
   });

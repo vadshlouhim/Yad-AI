@@ -11,6 +11,8 @@ import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { getToolOnboardingPath } from "@/lib/public-tools";
 import { isDashboardPathEnabled } from "@/lib/features-by-locale";
+import { SubscriptionBanner } from "@/components/billing/subscription-banner";
+import { getCommunityAccess } from "@/lib/billing/subscription-policy";
 
 export const metadata: Metadata = {
   title: { template: "%s — EasyCom IA", default: "Dashboard — EasyCom IA" },
@@ -38,7 +40,7 @@ export default async function DashboardLayout({
 
   const { data: community } = await admin
     .from("Community")
-    .select("id, name, logoUrl, plan, onboardingDone, timezone, communityType, channels:Channel(type, isConnected)")
+    .select("id, name, logoUrl, plan, createdAt, onboardingDone, timezone, communityType, channels:Channel(type, isConnected)")
     .eq("id", profile.communityId)
     .single();
 
@@ -80,6 +82,9 @@ export default async function DashboardLayout({
         />
         <GmbNotificationBadge />
         <DashboardFirstVisitGate userId={profile.id} />
+        {pathname.startsWith("/dashboard/settings/billing") ? null : (
+          <SubscriptionBanner access={getCommunityAccess(community)} createdAt={community.createdAt} />
+        )}
         <main
           className="dashboard-main-scroll flex-1 w-full overflow-y-auto pb-24 animate-fade-in md:pb-0"
           style={profile.locale === "he" ? { scrollbarWidth: "none" } : undefined}

@@ -1,5 +1,5 @@
 import { createPublicationsFromDraft, publishToAllChannels, retryFailedPublication } from "@/lib/publishing/publisher";
-import { TIER_LIMITS, getBillingUsage, tierLimitMessage } from "@/lib/billing";
+import { PAYWALL_MESSAGE } from "@/lib/billing";
 import type { AssistantToolDef } from "../types";
 import type { PanelItem } from "../panels";
 import { frDateTime, panelId, resolveGate, truncate } from "./shared";
@@ -139,11 +139,8 @@ export const publishContent: AssistantToolDef = {
     }
     const gate = await resolveGate(ctx);
     const requestedSocialCount = channelTypes.filter((channelType) => LIMITED_SOCIAL_CHANNELS.has(String(channelType))).length;
-    if (gate && !gate.isSuperAdmin && requestedSocialCount > 0) {
-      const usage = await getBillingUsage(ctx.admin, ctx.communityId, gate.tier);
-      if (usage.socialPublications + requestedSocialCount > TIER_LIMITS[gate.tier].socialPublications) {
-        return { success: false, message: tierLimitMessage(gate.tier, "socialPublications"), code: "PAYWALL_REQUIRED" };
-      }
+    if (gate && !gate.isPaid && requestedSocialCount > 0) {
+      return { success: false, message: PAYWALL_MESSAGE, code: "PAYWALL_REQUIRED" };
     }
     const { data: channels } = await ctx.admin
       .from("Channel")

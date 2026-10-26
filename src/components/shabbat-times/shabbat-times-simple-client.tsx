@@ -28,6 +28,7 @@ import { CHABAD_SHABBAT_ATTRIBUTION } from "@/lib/automation/shabbat-poster";
 import { inferShabbatTimesVariant } from "@/lib/templates/taxonomy";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { parseOutputLocale, type OutputLocale } from "@/lib/ai/output-locale";
+import { hasCommunityAccess } from "@/lib/billing/subscription-policy";
 import {
   PosterResultActions,
   OutputLocalePicker,
@@ -45,6 +46,7 @@ type Community = {
   logoUrl: string | null;
   city: string | null;
   plan: string;
+  createdAt?: string | null;
 };
 
 type Shabbat = {
@@ -394,7 +396,7 @@ export function ShabbatTimesSimpleClient({
     if (cityRefreshTimer.current) clearTimeout(cityRefreshTimer.current);
   }, []);
 
-  const isPaid = community.plan !== "FREE_TRIAL";
+  const isPaid = hasCommunityAccess(community);
   const templateCounts = useMemo(() => {
     const withOffices = templates.filter((template) => inferShabbatTimesVariant(template) === "with-offices").length;
     return { withOffices, simple: templates.length - withOffices };
@@ -440,8 +442,8 @@ export function ShabbatTimesSimpleClient({
     setNotice("");
   }
 
-  function openTemplate(template: Template, index: number) {
-    if (!isPaid && index > 0) {
+  function openTemplate(template: Template) {
+    if (!isPaid) {
       setPaywallOpen(true);
       return;
     }
@@ -666,7 +668,7 @@ export function ShabbatTimesSimpleClient({
       </header>
 
       <section className="mt-7">
-        {savedPoster.selectedTemplateId ? <Button variant="outline" className="mb-4 rounded-xl font-black text-violet-700" onClick={() => { const template = templates.find((item) => item.id === savedPoster.selectedTemplateId); if (template) { openTemplate(template, templates.indexOf(template)); void refreshShabbatTimes(); } }}><Edit3 className="me-2 size-4" />{t("resume")}</Button> : null}
+        {savedPoster.selectedTemplateId ? <Button variant="outline" className="mb-4 rounded-xl font-black text-violet-700" onClick={() => { const template = templates.find((item) => item.id === savedPoster.selectedTemplateId); if (template) { openTemplate(template); void refreshShabbatTimes(); } }}><Edit3 className="me-2 size-4" />{t("resume")}</Button> : null}
         <div className="flex items-end justify-between gap-4">
           <div>
             <h2 className="text-2xl font-black tracking-tight text-slate-950">{t("choosePoster")}</h2>

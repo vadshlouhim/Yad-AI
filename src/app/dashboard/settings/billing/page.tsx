@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BillingClient } from "@/components/settings/billing-client";
 import { getBillingConfig } from "@/lib/billing";
+import { getCommunityAccess, trialEndsAt } from "@/lib/billing/subscription-policy";
 import { stripe } from "@/lib/stripe";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
@@ -28,7 +29,7 @@ export default async function BillingPage() {
   const admin = createAdminClient();
 
   const [{ data: community }, { data: subscription }, { count: subscriptionHistoryCount }, billingConfig] = await Promise.all([
-    admin.from("Community").select("plan, stripeCustomerId, planExpiresAt").eq("id", communityId).single(),
+    admin.from("Community").select("plan, stripeCustomerId, planExpiresAt, createdAt").eq("id", communityId).single(),
     admin
       .from("Subscription")
       .select("id, plan, status, currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd, trialEnd, createdAt")
@@ -67,6 +68,8 @@ export default async function BillingPage() {
       billingConfig={billingConfig}
       invoices={invoices}
       hasUsedTrial={(subscriptionHistoryCount ?? 0) > 0}
+      access={getCommunityAccess(community)}
+      trialEndsAt={community?.createdAt ? trialEndsAt(community.createdAt).toISOString() : null}
       now={new Date().toISOString()}
     />
   );

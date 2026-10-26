@@ -60,8 +60,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-  const planTier = body.planTier;
-  if (planTier !== "FREE" && planTier !== "PRO" && planTier !== "BUSINESS") {
+  // One subscription: "PRO" grants it manually; the legacy "BUSINESS" value means the same.
+  const planTier = body.planTier === "BUSINESS" ? "PRO" : body.planTier;
+  if (planTier !== "FREE" && planTier !== "PRO") {
     return NextResponse.json({ error: "Offre demandée invalide" }, { status: 400 });
   }
 
@@ -93,7 +94,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const startedAt = parseDate(body.subscriptionStartedAt);
   const now = new Date();
   const nextVocabulary = updateAdminBillingVocabulary(community.vocabulary, startedAt);
-  const nextPlan = planTier === "FREE" ? "FREE_TRIAL" : planTier === "PRO" ? "PROFESSIONAL" : "ENTERPRISE";
+  const nextPlan = planTier === "FREE" ? "FREE_TRIAL" : "PROFESSIONAL";
 
   const { error: communityError } = await admin
     .from("Community")
@@ -125,7 +126,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         id: crypto.randomUUID(),
         communityId: targetProfile.communityId,
         stripeSubscriptionId: manualSubscriptionId,
-        stripePriceId: planTier === "BUSINESS" ? "manual-business-access" : "manual-pro-access",
+        stripePriceId: "manual-pro-access",
         plan: nextPlan,
         status: "ACTIVE",
         currentPeriodStart: startedAt.toISOString(),

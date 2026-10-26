@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { RESOURCE_CATEGORIES, RESOURCE_THEMES, type ResourceCategory, type ResourceTheme } from "@/lib/community-library";
+import { hasCommunityAccess } from "@/lib/billing/subscription-policy";
 
 async function getAuthorizedCommunity(userId: string) {
   const admin = createAdminClient();
@@ -83,8 +84,8 @@ export async function POST(request: Request) {
   if (!communityId) return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
 
   const admin = createAdminClient();
-  const { data: community } = await admin.from("Community").select("plan").eq("id", communityId).single();
-  if (!community || community.plan === "FREE_TRIAL") {
+  const { data: community } = await admin.from("Community").select("plan, createdAt").eq("id", communityId).single();
+  if (!community || !hasCommunityAccess(community)) {
     return NextResponse.json({ error: "Abonnement requis" }, { status: 402 });
   }
 

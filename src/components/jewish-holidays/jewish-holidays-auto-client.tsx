@@ -10,8 +10,9 @@ import { OutputLocalePicker, PosterResultActions, SchedulePosterDialog, Schedule
 import { getHolidayRelationKey, type HolidayItem } from "@/lib/automation/jewish-holidays";
 import type { OutputLocale } from "@/lib/ai/output-locale";
 import type { Json } from "@/types/database.types";
+import { hasCommunityAccess } from "@/lib/billing/subscription-policy";
 
-type Community = { id: string; name: string; logoUrl: string | null; city: string | null; country: string; timezone: string; plan: string };
+type Community = { id: string; name: string; logoUrl: string | null; city: string | null; country: string; timezone: string; plan: string; createdAt?: string | null };
 type Channel = { type: string; isActive: boolean; isConnected: boolean; settings: Json };
 type InitialAutomation = { id: string; isActive: boolean; status: string; triggerConfig: Json } | null;
 type HolidayTimes = { entry: string | null; exit: string | null };
@@ -45,7 +46,7 @@ export function JewishHolidaysAutoClient({ community, holidays, nextHoliday, all
   const [notice, setNotice] = useState("");
   const [paywallOpen, setPaywallOpen] = useState(false);
   const selectedHoliday = holidays.find((holiday) => holiday.id === selectedHolidayId) ?? nextHoliday ?? holidays[0] ?? null;
-  const isPaid = community.plan !== "FREE_TRIAL";
+  const isPaid = hasCommunityAccess(community);
   const connectedChannels = useMemo(() => new Set(channels.filter(connectedChannel).map((channel) => channel.type)), [channels]);
   const [publishChannels, setPublishChannels] = useState<string[]>(() => ["FACEBOOK", "INSTAGRAM"].filter((channel) => connectedChannels.has(channel)));
 
@@ -77,8 +78,8 @@ export function JewishHolidaysAutoClient({ community, holidays, nextHoliday, all
     } finally { setLoadingTimes(false); }
   }, [city, t]);
 
-  function openTemplate(template: ScheduleTemplate, index: number) {
-    if (!isPaid && index > 0) { setPaywallOpen(true); return; }
+  function openTemplate(template: ScheduleTemplate) {
+    if (!isPaid) { setPaywallOpen(true); return; }
     setSelectedTemplate(template);
     setResultImageUrl(null);
     setError("");

@@ -1,4 +1,5 @@
-import { TIER_LIMITS, getBillingUsage, tierLabel } from "@/lib/billing";
+import { formatEuroCents } from "@/lib/billing";
+import { SUBSCRIPTION_MONTHLY_CENTS, SUBSCRIPTION_YEARLY_CENTS } from "@/lib/billing/subscription-policy";
 import { rememberFact } from "../memory";
 import type { AssistantToolDef } from "../types";
 import { panelId, resolveGate } from "./shared";
@@ -113,43 +114,40 @@ export const suggestNavigation: AssistantToolDef = {
 
 export const getUsageAndPlan: AssistantToolDef = {
   name: "get_usage_and_plan",
-  label: "Consulter l'offre et les quotas",
-  summarize: () => "Consulter l'offre active et la consommation des quotas.",
+  label: "Consulter l'abonnement",
+  summarize: () => "Consulter l'état de l'abonnement.",
   schema: {
     type: "function",
     function: {
       name: "get_usage_and_plan",
       description:
-        "Affiche l'offre active (Gratuit/Pro/Business) et la consommation des quotas (messages IA, automatisations, publications sociales). Pour changer d'offre : suggest_navigation(billing).",
+        "Affiche l'état de l'abonnement unique EasyCom IA (abonné, essai gratuit en cours, ou lecture seule après l'essai), sans quota : tout est illimité pour les abonnés. Pour s'abonner : suggest_navigation(billing).",
       parameters: { type: "object", properties: {} },
     },
   },
   read: async (ctx) => {
     const gate = await resolveGate(ctx);
-    if (!gate) return { llmResult: { error: "Impossible de déterminer l'offre." } };
-    const usage = await getBillingUsage(ctx.admin, ctx.communityId, gate.tier);
-    const limits = TIER_LIMITS[gate.tier];
-    const fmt = (n: number) => (n >= Number.MAX_SAFE_INTEGER ? "illimité" : String(n));
+    if (!gate) return { llmResult: { error: "Impossible de déterminer l'abonnement." } };
+    const status = gate.access === "subscribed" ? "Abonné" : gate.access === "trial" ? "Essai gratuit" : "Lecture seule (essai terminé)";
+    const offer = `${formatEuroCents(SUBSCRIPTION_MONTHLY_CENTS)}/mois ou ${formatEuroCents(SUBSCRIPTION_YEARLY_CENTS)}/an`;
+    const trialEnd = gate.access === "trial" && gate.trialEndsAt ? new Date(gate.trialEndsAt).toLocaleDateString("fr-FR") : null;
 
     return {
       llmResult: {
-        plan: tierLabel(gate.tier),
-        usage: {
-          assistantMessages: `${usage.assistantMessages}/${fmt(limits.assistantMessages)}`,
-          automations: `${usage.automations}/${fmt(limits.automations)}`,
-          socialPublications: `${usage.socialPublications}/${fmt(limits.socialPublications)} ce mois-ci`,
-        },
-        note: "Pour changer d'offre, propose suggest_navigation(billing) — tu ne peux pas déclencher de paiement.",
+        status,
+        offer,
+        trialEndsAt: trialEnd,
+        note: "Une seule offre, tout inclus et illimité. Pour s'abonner, propose suggest_navigation(billing) — tu ne peux pas déclencher de paiement.",
       },
       panel: {
         id: panelId("plan"),
         panelType: "settings_view",
         entity: "settings",
-        title: `Offre ${tierLabel(gate.tier)}`,
+        title: "Abonnement EasyCom IA",
         fields: [
-          { key: "assistantMessages", label: "Messages Agent IA", value: `${usage.assistantMessages} / ${fmt(limits.assistantMessages)}` },
-          { key: "automations", label: "Automatisations IA", value: `${usage.automations} / ${fmt(limits.automations)}` },
-          { key: "socialPublications", label: "Publications sociales (mois)", value: `${usage.socialPublications} / ${fmt(limits.socialPublications)}` },
+          { key: "status", label: "État", value: status },
+          { key: "offer", label: "Offre", value: offer },
+          ...(trialEnd ? [{ key: "trialEnd", label: "Fin de l'essai", value: trialEnd }] : []),
         ],
         actions: [
           { id: "go-billing", label: "Gérer mon offre", style: "primary", kind: "navigate", href: "/dashboard/settings/billing" },

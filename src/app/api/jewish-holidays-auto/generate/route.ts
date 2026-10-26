@@ -14,7 +14,7 @@ async function getAuthContext() {
   if (!user) return { error: NextResponse.json({ error: "Non autorisé" }, { status: 401 }) };
   const admin = createAdminClient();
   const gate = await getBillingGate(admin, user.id);
-  if (!gate.isPaid) return { error: paywallResponse("holiday_generation", "La génération d’affiches de fêtes est réservée au mode payant.") };
+  if (!gate.isPaid) return { error: paywallResponse("holiday_generation") };
   const { data: profile } = await admin.from("profiles").select("communityId").eq("id", user.id).single();
   if (!profile?.communityId) return { error: NextResponse.json({ error: "Communauté introuvable" }, { status: 403 }) };
   const { data: community } = await admin.from("Community").select("id, name, city, country, timezone, logoUrl").eq("id", profile.communityId).single();

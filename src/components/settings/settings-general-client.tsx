@@ -91,10 +91,10 @@ function getCommunityTypeChoice(value: string) {
 }
 
 const PLAN_LABELS: Record<string, { label: string; color: string }> = {
-  FREE_TRIAL: { label: "Gratuit", color: "bg-slate-100 text-slate-700" },
-  STARTER: { label: "Pro", color: "bg-blue-100 text-blue-700" },
-  PROFESSIONAL: { label: "Pro", color: "bg-blue-100 text-blue-700" },
-  ENTERPRISE: { label: "Business", color: "bg-purple-100 text-purple-700" },
+  FREE_TRIAL: { label: "Sans abonnement", color: "bg-slate-100 text-slate-700" },
+  STARTER: { label: "Abonné", color: "bg-emerald-100 text-emerald-700" },
+  PROFESSIONAL: { label: "Abonné", color: "bg-emerald-100 text-emerald-700" },
+  ENTERPRISE: { label: "Abonné", color: "bg-emerald-100 text-emerald-700" },
 };
 
 const HE_COUNTRY_LABELS: Record<string, string> = {
