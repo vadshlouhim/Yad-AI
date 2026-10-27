@@ -49,7 +49,7 @@ fin de la migration ci-dessous.
 
 ## Mise en production
 
-1. Avec la clé `sk_live_...`, lancer `npx tsx scripts/stripe-create-prices.ts` (simulation),
+1. Avec la clé secrète Stripe du mode live, lancer `npx tsx scripts/stripe-create-prices.ts` (simulation),
    puis avec `--apply`. Reporter `STRIPE_PRICE_MONTHLY` et `STRIPE_PRICE_YEARLY` sur Netlify.
 2. Dans le Customer Portal live, proposer les deux nouveaux prix.
 3. Déployer.
