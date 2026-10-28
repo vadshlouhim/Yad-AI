@@ -14,6 +14,8 @@ export const NEWSLETTER_SPECIFIC_EVENT_LIMIT = 800;
 export const NEWSLETTER_IMAGES_PER_ROW = 4;
 /** Technical ceiling only (a pasted document), far above any real newsletter section. */
 export const NEWSLETTER_TEXT_HARD_LIMIT = 20000;
+/** A newsletter grows page by page as needed; past this it is a pasted document, not a newsletter. */
+export const NEWSLETTER_MAX_PAGES = 20;
 
 export function limitNewsletterText(text: string, maxLength: number) {
   const clean = text.trim();

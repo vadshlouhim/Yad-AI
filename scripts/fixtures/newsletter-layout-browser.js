@@ -8,9 +8,8 @@ const params = new URLSearchParams(location.search);
 const selected = params.get('preview') || params.get('pdf');
 const expectedOverflow = new Set(['provided-b', 'extreme-proportions', 'ai-reordered']);
 const sources = data => [...(data.enabled.photos ? data.photos : []), ...(data.enabled.posters ? data.posters : []), ...(data.enabled.restaurantAd ? data.partnerAds : [])];
-function validate(data, pages, name) {
-  const pageLimit = data.layout?.pageLimit || 2;
-  check(pageLimit === 2 ? pages.length === 2 : pages.length >= 2 && pages.length <= pageLimit, name + ': the print contract is two A4 pages, or the extra pages the user added');
+function validate(data, pages, name, maxPages = 2) {
+  check(maxPages === 2 ? pages.length === 2 : pages.length >= 2 && pages.length <= maxPages, name + ': the print contract is two A4 pages, or the pages the content needs');
   const root = document.createElement('div'); root.innerHTML = pages.join(''); document.body.append(root);
   const textIds = [...root.querySelectorAll('[data-newsletter-text]')].map(node => node.dataset.newsletterText);
   check(new Set(textIds).size === textIds.length, name + ': article split between zones or pages');
@@ -111,10 +110,10 @@ function validate(data, pages, name) {
   let total = 0;
   // ?preview=<case>&pages=3 renders a case with extra pages for visual review.
   const previewPages = Number(params.get('pages')) || 0;
-  for (const fixture of cases.filter(c => (!selected || c.name === selected) && (previewPages || !expectedOverflow.has(c.name)))) {
+  for (const fixture of cases.filter(c => (!selected || c.name === selected) && (previewPages || params.has('pdf') || !expectedOverflow.has(c.name)))) {
     if (previewPages) fixture.data.layout = { ...(fixture.data.layout || {}), pageLimit: previewPages };
     const pages = await composeNewsletter(fixture.data).catch(error => { throw new Error(fixture.name + ': ' + error.message); });
-    validate(fixture.data, pages, fixture.name);
+    validate(fixture.data, pages, fixture.name, previewPages || (expectedOverflow.has(fixture.name) ? 3 : 2));
     total++;
     if (selected) {
       document.body.innerHTML = pages.join('');
@@ -152,69 +151,74 @@ function validate(data, pages, name) {
       return;
     }
   }
-  // Overflowing sheets: automatic tightening may keep them on 2 pages; otherwise the
-  // single extra page offered to the user keeps the full composed layout.
+  // Overflowing sheets never block: tightening keeps them on 2 pages, otherwise a 3rd page
+  // is added on its own, still with whole articles and every visual.
   const extendedSummary = [];
+  const timed = async (data) => { const started = performance.now(); const report = await composeNewsletterWithReport(data); return { report, ms: Math.round(performance.now() - started) }; };
   for (const fixture of cases.filter(c => expectedOverflow.has(c.name))) {
-    const tightened = await composeNewsletterWithReport(fixture.data).catch(() => null);
-    if (tightened) {
-      check(tightened.pages.length === 2 && !tightened.omittedMediaIds.length, fixture.name + ': automatic tightening must keep every visual on one recto-verso sheet');
-      validate(fixture.data, tightened.pages, fixture.name + ' (tightened, 2 pages)');
-      extendedSummary.push(fixture.name + '=2p');
-      total++;
-      continue;
-    }
-    const extended = structuredClone(fixture.data);
-    extended.layout = { ...(fixture.data.layout || {}), pageLimit: 3 };
-    const report = await composeNewsletterWithReport(extended).catch(() => null);
-    check(report, fixture.name + ': adding a 3rd page must resolve the overflow');
-    check(report.pages.length === 3, fixture.name + ': extra page requested but not used');
-    check(report.omittedMediaIds.length === 0, fixture.name + ': the 3rd page must hold every visual');
+    const report = await composeNewsletterWithReport(fixture.data).catch(error => { throw new Error(fixture.name + ': overflow must never block (' + error.message + ')'); });
+    check(!report.omittedMediaIds.length, fixture.name + ': every visual must be kept');
+    check(report.pages.length === 2 || report.pages.length === 3, fixture.name + ': a slightly long sheet takes 2 or 3 pages');
     check(report.pages.every(html => !html.includes('data-composition="overflow-page"')), fixture.name + ': extra pages must use the composed layout');
-    validate(extended, report.pages, fixture.name + ' (3 pages)');
-    extendedSummary.push(fixture.name + '=3p');
+    validate(fixture.data, report.pages, fixture.name + ' (' + report.pages.length + ' pages)', 3);
+    extendedSummary.push(fixture.name + '=' + report.pages.length + 'p');
     total++;
   }
-  // Grow provided-b one visual at a time beyond 3 pages: composition never fails, the last visuals are set aside.
+  // Text, visuals or both beyond 3 pages: pages keep being added, nothing is cut or set aside.
+  const allImages = root => [...root.querySelectorAll('[data-newsletter-content] img:not([data-newsletter-decoration])')];
+  const checkGrown = (data, report, name) => {
+    check(report.flowFallback && !report.omittedMediaIds.length, name + ': grown sheets keep every visual');
+    check(report.pages.length > 3 && report.pages.length <= 20, name + ': expected 4 to 20 pages, got ' + report.pages.length);
+    const grown = document.createElement('div'); grown.innerHTML = report.pages.join(''); document.body.append(grown);
+    check(allImages(grown).length === sources(data).length, name + ': a visual is missing');
+    const ravText = [...grown.querySelectorAll('[data-newsletter-text="rav"]')].map(node => node.textContent).join('');
+    if (data.enabled.ravWord) check(ravText === data.generated.ravWord, name + ': the Rav text must be complete');
+    check([...grown.querySelectorAll('article')].every(page => {
+      const content = page.querySelector('[data-newsletter-content]').getBoundingClientRect();
+      return [...page.querySelectorAll('[data-newsletter-content] section')].every(section => section.getBoundingClientRect().bottom <= content.bottom + 1);
+    }), name + ': content must stay inside the printable area');
+    grown.remove();
+  };
+  // Many visuals: grow provided-b one visual at a time until it needs more than 3 pages.
   const heavy = structuredClone(cases.find(c => c.name === 'provided-b').data);
   const pool = [...heavy.posters, ...heavy.photos];
-  heavy.layout = { ...(heavy.layout || {}), pageLimit: 3 };
-  let heavyReport = await composeNewsletterWithReport(heavy);
-  for (let i = 0; !heavyReport.omittedMediaIds.length; i++) {
-    check(i < 24, 'heavy fixture never exceeded 3 pages');
+  let heavyRun = await timed(heavy);
+  for (let i = 0; heavyRun.report.pages.length <= 3; i++) {
+    check(i < 40, 'heavy fixture never needed more than 3 pages');
     const source = pool[i % pool.length];
     const copy = { ...source, id: source.id + '-copy' + i, name: source.name + ' copy ' + i };
     if (heavy.posters.includes(source) || source.poster) heavy.posters.push(copy); else heavy.photos.push(copy);
-    heavyReport = await composeNewsletterWithReport(heavy).catch(error => { throw new Error('heavy (3 pages): ' + error.message); });
+    heavyRun = await timed(heavy).catch(error => { throw new Error('heavy: ' + error.message); });
   }
-  check(heavyReport.pages.length === 3, 'heavy fixture must stay on 3 pages');
-  const heavyOnTwo = { ...heavy, layout: { ...heavy.layout, pageLimit: 2 } };
-  check(!(await composeNewsletterWithReport(heavyOnTwo).catch(() => null)), 'heavy content on 2 pages must offer a 3rd page instead of dropping visuals');
-  check(heavyReport.omittedMediaIds[0] === heavy.posters.at(-1).id, 'the last poster must be the first visual set aside');
-  const kept = { ...heavy, posters: heavy.posters.filter(item => !heavyReport.omittedMediaIds.includes(item.id)), photos: heavy.photos.filter(item => !heavyReport.omittedMediaIds.includes(item.id)), partnerAds: heavy.partnerAds.filter(item => !heavyReport.omittedMediaIds.includes(item.id)) };
-  validate(kept, heavyReport.pages, 'heavy (3 pages, ' + heavyReport.omittedMediaIds.length + ' visual(s) set aside)');
-  extendedSummary.push('heavy=3p/-' + heavyReport.omittedMediaIds.length + 'visual');
+  checkGrown(heavy, heavyRun.report, 'heavy');
+  extendedSummary.push('heavy=' + heavyRun.report.pages.length + 'p/' + sources(heavy).length + 'visuals/' + heavyRun.ms + 'ms');
   total++;
-  // A single article taller than a page cannot be laid out whole: on 3 pages the flowing
-  // safety net takes over instead of failing, without cutting a word or dropping a visual.
+  // A long newsletter (about 8 pages) keeps readable 11px type instead of shrinking.
+  const long = baseNewsletter();
+  long.generated.ravWord = 'Un long mot du Rav pour Chabbat, partagé avec toute la communauté. '.repeat(260);
+  const longRun = await timed(long);
+  checkGrown(long, longRun.report, 'long');
+  const longFonts = longRun.report.pages.map(html => (html.match(/data-body-font="([0-9.]+)"/) || [])[1]);
+  check(longFonts.every(font => font === undefined || Number(font) >= 11), 'long: type must stay at 11px, got ' + longFonts.join(','));
+  extendedSummary.push('long=' + longRun.report.pages.length + 'p/' + longRun.ms + 'ms');
+  total++;
+  // A single article taller than a page flows overleaf ("— suite"), in French and Hebrew.
   for (const locale of ['fr', 'he']) {
     const oversized = baseNewsletter();
     oversized.outputLocale = locale;
     oversized.generated.ravWord = locale === 'he' ? 'דבר תורה ארוך מאוד לשבת. '.repeat(320) : 'Un très long mot du Rav pour Chabbat. '.repeat(160);
-    check(!(await composeNewsletterWithReport(oversized).catch(() => null)), locale + ': an oversized article on 2 pages must offer a 3rd page');
-    oversized.layout = { ...(oversized.layout || {}), pageLimit: 3 };
-    const flow = await composeNewsletterWithReport(oversized).catch(error => { throw new Error(locale + ' oversized (3 pages): ' + error.message); });
-    check(flow.flowFallback && flow.oversizedBlocks.includes('rav'), locale + ': the flowing safety net must report the oversized article');
-    check(flow.pages.length >= 3 && !flow.omittedMediaIds.length, locale + ': the safety net keeps every visual');
+    const flow = await composeNewsletterWithReport(oversized).catch(error => { throw new Error(locale + ' oversized: ' + error.message); });
+    check(flow.flowFallback && flow.oversizedBlocks.includes('rav'), locale + ': the flowing layout must report the oversized article');
+    check(flow.pages.length >= 3 && !flow.omittedMediaIds.length, locale + ': the flowing layout keeps every visual');
     const flowRoot = document.createElement('div'); flowRoot.innerHTML = flow.pages.join(''); document.body.append(flowRoot);
     const ravText = [...flowRoot.querySelectorAll('[data-newsletter-text="rav"]')].map(node => node.textContent).join('');
-    check(ravText === oversized.generated.ravWord, locale + ': the safety net must keep every word of the article');
+    check(ravText === oversized.generated.ravWord, locale + ': the flowing layout must keep every word of the article');
     const continuation = [...flowRoot.querySelectorAll('h2')].map(node => node.textContent).filter(text => /— (suite|המשך)$/.test(text));
     check(continuation.length && continuation.every(text => text.endsWith(locale === 'he' ? '— המשך' : '— suite')), locale + ': continuation label must be localized');
     check([...flowRoot.querySelectorAll('article')].every(page => {
       const content = page.querySelector('[data-newsletter-content]').getBoundingClientRect();
       return [...page.querySelectorAll('[data-newsletter-content] section')].every(section => section.getBoundingClientRect().bottom <= content.bottom + 1);
-    }), locale + ': the safety net must not overflow the printable area');
+    }), locale + ': the flowing layout must not overflow the printable area');
     flowRoot.remove();
     extendedSummary.push(locale + '-oversized=' + flow.pages.length + 'p/flow');
     total++;
@@ -235,6 +239,6 @@ function validate(data, pages, name) {
   const impossible = baseNewsletter(); impossible.generated.ravWord = 'Contenu démesurément long. '.repeat(3000);
   rejected = false;
   try { await composeNewsletter(impossible); } catch { rejected = true; }
-  check(rejected, 'Impossible content must not be silently truncated');
+  check(rejected, 'Content beyond 20 pages must be refused, never silently truncated');
   document.body.textContent = 'PASS: ' + total + ' browser layouts (' + extendedSummary.join(', ') + ')';
 })().catch(error => { document.body.textContent = 'FAIL: ' + (error?.stack || error?.message || String(error)); });

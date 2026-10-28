@@ -13,7 +13,7 @@ import { estimateNewsletterFill } from "@/lib/newsletter/layout-estimate";
 import { NEWSLETTER_ERROR_CODES, newsletterErrorCode } from "@/lib/newsletter/errors";
 import { inlineNewsletterExportImages, NEWSLETTER_IMAGE_ACCEPT, resolveNewsletterBanner, uploadNewsletterBatch, uploadNewsletterImage } from "@/lib/newsletter/media";
 import { createDraftSaveQueue } from "@/lib/newsletter/save-queue";
-import { limitNewsletterText, NEWSLETTER_EVENT_INTRO_LIMIT, NEWSLETTER_INTRO_LIMIT, NEWSLETTER_PARASHA_LIMIT, NEWSLETTER_PHOTO_LIMIT, NEWSLETTER_POSTER_LIMIT, NEWSLETTER_RAV_WORD_LIMIT, NEWSLETTER_SEFER_LIMIT, NEWSLETTER_SPECIFIC_EVENT_LIMIT, NEWSLETTER_TEXT_HARD_LIMIT } from "@/lib/newsletter/limits";
+import { limitNewsletterText, NEWSLETTER_EVENT_INTRO_LIMIT, NEWSLETTER_INTRO_LIMIT, NEWSLETTER_PARASHA_LIMIT, NEWSLETTER_PHOTO_LIMIT, NEWSLETTER_POSTER_LIMIT, NEWSLETTER_RAV_WORD_LIMIT, NEWSLETTER_SEFER_LIMIT, NEWSLETTER_MAX_PAGES, NEWSLETTER_SPECIFIC_EVENT_LIMIT, NEWSLETTER_TEXT_HARD_LIMIT } from "@/lib/newsletter/limits";
 import { newsletterLogoImageUrl } from "@/lib/newsletter/media-path";
 import { parseNewsletterLabels, resolveNewsletterLabels, type NewsletterLabelKey, type NewsletterLabels } from "@/lib/newsletter/labels";
 import { NEWSLETTER_CHALLOT_ICON_URL } from "@/lib/newsletter/kiddush";
@@ -484,7 +484,6 @@ export function NewsletterPaperClient({
     layout,
   };
   const fillEstimate = estimateNewsletterFill(baseDocumentData);
-  const pageLimit = layout.pageLimit ?? 2;
   const documentData: NewsletterDocumentData = {
     ...baseDocumentData,
     layout: {
@@ -505,13 +504,12 @@ export function NewsletterPaperClient({
       void fetch("/api/newsletter/layout-event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...summary, outputLocale }) }).catch(() => undefined);
     }
   }, [outputLocale]);
-  const compositionNote = compositionReport.pageCount > pageLimit
-    ? t("overflow.extraPages", { count: compositionReport.pageCount })
+  // The newsletter grows on its own: past one recto-verso sheet the client gets a warning, never a blocker.
+  const compositionNote = compositionReport.pageCount > 2
+    ? [t("overflow.pagesWarning", { pages: compositionReport.pageCount, sheets: Math.ceil(compositionReport.pageCount / 2) }), compositionReport.flowFallback ? t("overflow.continued") : ""].filter(Boolean).join(" ")
     : compositionReport.flowFallback
       ? t("overflow.continued")
-      : compositionReport.omittedMedia
-        ? t("overflow.omitted", { count: compositionReport.omittedMedia })
-        : null;
+      : null;
   const localDraftKey = useMemo(() => `easycom.newsletter.draft.${community.id}.${userId}.${outputLocale}`, [community.id, outputLocale, userId]);
   const draftSnapshot = useMemo<NewsletterDraft>(() => ({
     version: NEWSLETTER_DRAFT_VERSION,
@@ -1096,11 +1094,6 @@ export function NewsletterPaperClient({
     }
   }
 
-  function addThirdPage() {
-    setLayout(current => ({ ...current, pageLimit: 3 }));
-    setNeedsMorePages(false);
-  }
-
   const sectionTitle = (key: NewsletterLabelKey, className?: string) => (
     <span className="inline-flex flex-wrap items-center gap-2"><EditableSectionTitle
       label={resolvedLabels[key]}
@@ -1247,11 +1240,7 @@ export function NewsletterPaperClient({
                 <span aria-hidden="true">{fillEstimate.percent}%</span>
               </div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/80"><div className={cn("h-full rounded-full transition-[width]", fillEstimate.percent < 90 ? "bg-emerald-600" : fillEstimate.percent <= 100 ? "bg-amber-500" : "bg-red-600")} style={{ width: `${Math.min(100, fillEstimate.percent)}%` }} /></div>
-              <p className="mt-2 text-xs font-semibold opacity-80">{t(fillEstimate.percent > 100 ? "fill.over" : fillEstimate.percent >= 90 ? "fill.close" : "fill.comfortable", { pages: pageLimit })}</p>
-              {pageLimit > 2 ? <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-black/5 pt-3" data-newsletter-page-format>
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#164960] ring-1 ring-slate-200">{t("fill.format", { pages: pageLimit, sheets: Math.ceil(pageLimit / 2) })}</span>
-                <button type="button" onClick={() => setLayout(current => ({ ...current, pageLimit: 2 }))} className="min-h-9 rounded-xl px-3 text-xs font-black text-[#164960] underline-offset-2 hover:underline">{t("fill.backToTwo")}</button>
-              </div> : null}
+              <p className="mt-2 text-xs font-semibold opacity-80">{t(fillEstimate.percent > 100 ? "fill.over" : fillEstimate.percent >= 90 ? "fill.close" : "fill.comfortable", { pages: 2 })}</p>
             </div>
             {(layout.deferredMediaIds?.length ?? 0) > 0 ? <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
               <p className="font-bold">{t("overflow.deferHelp")}</p>
@@ -1461,15 +1450,17 @@ export function NewsletterPaperClient({
 
         <main ref={previewRef} className={cn("min-w-0 rounded-[1.8rem] border border-amber-100 bg-gradient-to-b from-[#fffdf8] to-[#f7f2e7] p-3 shadow-[0_16px_42px_rgba(95,68,22,0.1)] sm:p-5 xl:col-span-2", editorStep !== "preview" && "hidden")}>
           {draftReady ? <NewsletterRevision data={documentData} onApply={applyRevision} onUndo={undoRevision} canUndo={Boolean(previousRevision)} onBusy={setRevisionBusy} /> : null}
-          {needsMorePages && pageLimit === 2 ? <div className="mb-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 print:hidden" role="status" data-newsletter-overflow-banner>
-            <p className="font-black text-amber-950">{t("overflow.bannerTitle")}</p>
-            <p className="mt-1 text-sm text-amber-900">{t("overflow.bannerHelp")}</p>
+          {needsMorePages ? <div className="mb-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 print:hidden" role="status" data-newsletter-overflow-banner>
+            <p className="font-black text-amber-950">{t("overflow.tooLongTitle", { pages: NEWSLETTER_MAX_PAGES })}</p>
+            <p className="mt-1 text-sm text-amber-900">{t("overflow.tooLongHelp")}</p>
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-              <button type="button" onClick={addThirdPage} className="min-h-11 rounded-xl bg-amber-500 px-4 text-sm font-black text-amber-950 shadow-sm hover:bg-amber-400" data-newsletter-add-page>{t("overflow.addThirdPage")}</button>
               <button type="button" onClick={() => void shortenTextsAutomatically()} disabled={overflowShortening} className="min-h-11 text-sm font-bold text-amber-900 underline underline-offset-2 disabled:opacity-60">{overflowShortening ? t("overflow.shortening") : t("overflow.shortenInstead")}</button>
             </div>
           </div> : null}
-          {!needsMorePages && compositionNote ? <p className="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 print:hidden" role="status" data-newsletter-composition-note>{compositionNote}</p> : null}
+          {!needsMorePages && compositionNote ? <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950 print:hidden" role="status" data-newsletter-composition-note>
+            <p>{compositionNote}</p>
+            {compositionReport.pageCount > 2 ? <button type="button" onClick={() => void shortenTextsAutomatically()} disabled={overflowShortening} className="mt-2 min-h-9 text-sm font-bold text-amber-900 underline underline-offset-2 disabled:opacity-60">{overflowShortening ? t("overflow.shortening") : t("overflow.shortenOptional")}</button> : null}
+          </div> : null}
           {draftReady ? <NewsletterDocument prepared={preparedRevision} ref={documentRef} data={documentData} visible={editorStep === "preview"} onError={setError} onOverflow={showOverflow} onComposed={handleComposed} /> : null}
         </main>
       </div>

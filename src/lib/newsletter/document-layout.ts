@@ -1,4 +1,5 @@
 import type { CommunityInfo, GeneratedNewsletter, ModuleKey, NewsletterBirthday, NewsletterEvent, NewsletterManualBirthday, NewsletterShabbat, UploadedPhoto } from "@/components/newsletter/newsletter-paper-client";
+import { NEWSLETTER_MAX_PAGES } from "./limits";
 import { isSaturdayDate, newsletterShabbatDate, type NewsletterStudy } from "./shabbat-study";
 import type { NewsletterLayoutPreferences } from "./revision";
 import { resolveNewsletterLabels, type NewsletterLabels } from "./labels";
@@ -520,64 +521,37 @@ const isOverflowError = (error: unknown) =>
   [NEWSLETTER_ERROR_CODES.layoutOverflow, NEWSLETTER_ERROR_CODES.printableOverflow].includes(newsletterErrorCode(error) as never);
 
 /**
- * Never asks the user to arbitrate before trying everything that keeps the content intact:
- * normal spacing, then tight spacing (smaller gaps and photos; posters stay readable).
- * On 3 pages the composition never fails:
- *  - when the text alone fits, visuals are set aside from the end (posters, partners, photos);
- *  - otherwise a flowing layout lets long articles continue overleaf, keeping every word and visual.
+ * Never blocks and never drops anything the client added:
+ *  1. one recto-verso sheet (2 pages), tightening spacing first;
+ *  2. otherwise whole articles on 3 pages, every visual kept;
+ *  3. otherwise articles flow from page to page ("— suite"), as many pages as the content
+ *     needs, up to NEWSLETTER_MAX_PAGES. The editor shows a warning, never a dead end.
+ * The page count is decided by the content; `layout.pageLimit` from older drafts is ignored.
  */
 export async function composeNewsletterWithReport(data: NewsletterDocumentData): Promise<NewsletterComposition> {
-  const pageLimit: 2 | 3 = (data.layout?.pageLimit ?? 2) > 2 ? 3 : 2;
-  const attempt = async (candidate: NewsletterDocumentData, densities: Array<"auto" | "compact" | "tight">) => {
+  const attempt = async (pageLimit: 2 | 3, densities: Array<"auto" | "compact" | "tight">) => {
     for (const density of densities) {
       try {
-        return await composeNewsletterOnce({ ...candidate, layout: { ...candidate.layout, pageLimit, density } });
+        return await composeNewsletterOnce({ ...data, layout: { ...data.layout, pageLimit, density } });
       } catch (error) {
         if (!isOverflowError(error)) throw error;
       }
     }
     return null;
   };
-  const requested = data.layout?.density ?? "auto";
-  const pages = await attempt(data, [...new Set([requested, "tight" as const])]);
+  const densities = [...new Set([data.layout?.density ?? "auto", "tight" as const])];
+  const pages = await attempt(2, densities) ?? await attempt(3, densities);
   if (pages) return { pages, omittedMediaIds: [] };
-  if (pageLimit < 3) throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { maxPages: pageLimit });
 
-  const withoutMedia = (ids: Set<string>) => ({
-    ...data,
-    photos: data.photos.filter(item => !ids.has(item.id)),
-    posters: data.posters.filter(item => !ids.has(item.id)),
-    partnerAds: data.partnerAds.filter(item => !ids.has(item.id)),
-  });
-  const allMedia = [...data.posters, ...data.partnerAds, ...data.photos].map(item => item.id);
-  // If even the text alone cannot be laid out as whole articles, setting visuals aside is pointless.
-  const textOnlyFits = !allMedia.length || Boolean(await attempt(withoutMedia(new Set(allMedia)), ["tight"]));
-  if (textOnlyFits && allMedia.length) {
-    // Grouped steps keep the number of attempts small on phones.
-    const posterIds = data.posters.map(item => item.id);
-    const partnerIds = data.partnerAds.map(item => item.id);
-    const photoIds = data.photos.map(item => item.id);
-    const steps = [
-      posterIds.slice(-1),
-      posterIds,
-      [...posterIds, ...partnerIds],
-      [...posterIds, ...partnerIds, ...photoIds.slice(Math.ceil(photoIds.length / 2))],
-    ].filter((step, index, all) => step.length && step.length < allMedia.length && all.findIndex(other => other.length === step.length) === index);
-    for (const step of steps) {
-      const fitted = await attempt(withoutMedia(new Set(step)), ["tight"]);
-      if (fitted) return { pages: fitted, omittedMediaIds: [...step].reverse() };
-    }
-    const textOnly = await attempt(withoutMedia(new Set(allMedia)), ["tight"]);
-    if (textOnly) return { pages: textOnly, omittedMediaIds: [...allMedia].reverse() };
-  }
-  const flow = await composeNewsletterFlow(data, pageLimit);
+  const flow = await composeNewsletterFlow(data, 3);
+  if (flow.pages.length > NEWSLETTER_MAX_PAGES) throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { maxPages: NEWSLETTER_MAX_PAGES });
   return { pages: flow.pages, omittedMediaIds: [], flowFallback: true, oversizedBlocks: flow.oversizedBlocks };
 }
 
 /**
  * Safety net: a word-processor flow that cannot fail. Articles may continue on the next
  * page ("— suite"); nothing is truncated or hidden. Type tightens to stay within
- * `targetPages`; physically larger content gets the extra pages it needs.
+ * `targetPages`; longer content keeps 11px type and gets the extra pages it needs.
  */
 async function composeNewsletterFlow(data: NewsletterDocumentData, targetPages: number): Promise<{ pages: string[]; oversizedBlocks: string[] }> {
   await document.fonts.ready;
@@ -603,9 +577,11 @@ async function composeNewsletterFlow(data: NewsletterDocumentData, targetPages: 
     const oversizedBlocks = blocks.filter((block, index) => measure(block, 11) > capacity(index ? 1 : 0)).map(block => block.id);
     let layout: DocumentPage[] = [];
     for (const font of [11, 10.5, 10, 9.5]) {
-      layout = paginateNewsletter(blocks, capacity, measure, font);
-      if (layout.length <= targetPages) break;
+      const candidate = paginateNewsletter(blocks, capacity, measure, font);
+      if (candidate.length <= targetPages) { layout = candidate; break; }
     }
+    // Too long for `targetPages` even with tighter type: keep the readable size and add pages.
+    if (!layout.length) layout = paginateNewsletter(blocks, capacity, measure, 11);
     while (layout.length < 2) layout.push({ blocks: [], fontSize: 11 });
     const pages = layout.map((page, index) => {
       const article = paper(flowData, index);

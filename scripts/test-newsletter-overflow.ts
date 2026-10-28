@@ -43,9 +43,9 @@ assert.ok(Math.abs(onThreePages.percent - full.percent * 2 / 3) <= 1, `3-page ga
 async function main() {
   const he = JSON.parse(await readFile("messages/he.json", "utf8"));
   const fr = JSON.parse(await readFile("messages/fr.json", "utf8"));
-  // The overflow UI is a single banner: one button, one alternative.
+  // Pages are added on their own: a warning past one sheet, and a banner only beyond 20 pages.
   // There is no "does not fit on 3 pages" message any more: 3 pages always compose.
-  const keys = ["bannerTitle", "bannerHelp", "addThirdPage", "shortenInstead", "shortening", "omitted", "deferHelp", "continued", "extraPages"];
+  const keys = ["pagesWarning", "shortenOptional", "tooLongTitle", "tooLongHelp", "shortenInstead", "shortening", "deferHelp", "continued"];
   assert.deepEqual(Object.keys(fr.newsletter.overflow).sort(), [...keys].sort());
   assert.deepEqual(Object.keys(he.newsletter.overflow).sort(), [...keys].sort());
   const withoutIcuSyntax = (text: string) => text.replace(/\{count, plural,|\b(?:one|other) \{|\{\w+\}/g, "");
