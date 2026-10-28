@@ -1,4 +1,4 @@
-import { NEWSLETTER_RAV_WORD_LIMIT } from "./limits";
+import { NEWSLETTER_TEXT_HARD_LIMIT } from "./limits";
 import { NEWSLETTER_ERROR_CODES, NewsletterError } from "./errors";
 
 export const REVISION_FIELDS = ["title", "intro", "ravWord", "shabbatNote", "eventIntro", "parnessText", "kiddushText"] as const;
@@ -39,7 +39,8 @@ export function validateNewsletterRevision(raw: unknown, allowed: RevisionField[
     if (!value.changes || typeof value.changes !== "object" || Array.isArray(value.changes)) throw new NewsletterError(NEWSLETTER_ERROR_CODES.invalidAiResponse);
     for (const [key, text] of Object.entries(value.changes)) {
       if (!allowed.includes(key as RevisionField) || !REVISION_FIELDS.includes(key as RevisionField)) throw new NewsletterError(NEWSLETTER_ERROR_CODES.invalidAiResponse);
-      const maxLength = key === "title" ? 100 : key === "ravWord" ? NEWSLETTER_RAV_WORD_LIMIT : 12000;
+      // A revision may keep a long text as long as the client wrote it.
+      const maxLength = key === "title" ? 100 : NEWSLETTER_TEXT_HARD_LIMIT;
       if (typeof text !== "string" || !text.trim() || text.length > maxLength) throw new NewsletterError(NEWSLETTER_ERROR_CODES.invalidAiResponse);
       changes[key as RevisionField] = text;
     }

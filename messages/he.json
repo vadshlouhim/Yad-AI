@@ -509,7 +509,7 @@
     "studyRetrying": "מנסה שוב…",
     "studyManualHelp": "אפשר לכתוב או להדביק טקסט משלכם בשדה שלמטה.",
     "specificEventHelp": "הטקסט נשאר בעלון הזה בלבד ואינו נוסף ליומן.",
-    "charactersMaximum": "תווים לכל היותר", "hide": "הסתרה", "retry": "ניסיון חוזר", "save": "שמירה", "saving": "שומר…", "add": "הוספה", "remove": "הסרה", "continue": "המשך",
+    "charactersMaximum": "תווים לכל היותר", "charactersRecommended": "{count} / {recommended} תווים מומלצים", "longTextHint": "טקסט ארוך: הוא יתפוס יותר מקום בעלון וייתכן שיתווספו עמודים. שום דבר לא ייחתך.", "hide": "הסתרה", "retry": "ניסיון חוזר", "save": "שמירה", "saving": "שומר…", "add": "הוספה", "remove": "הסרה", "continue": "המשך",
     "draft": { "restoring": "משחזר טיוטה…", "saving": "שומר…", "saved": "הטיוטה נשמרה אוטומטית", "offline": "נשמר במכשיר זה", "error": "הטיוטה אינה זמינה" },
     "uploads": { "title": "העלאת תמונות", "queued": "בהמתנה", "uploading": "מעלה…", "success": "נוספה", "error": "נכשל" },
     "fill": { "label": "מילוי העלון: {percent}%", "section": "~ {percent}%", "comfortable": "נותר מקום נוח בעימוד.", "close": "העלון כמעט מלא; המרווחים יותאמו אוטומטית במידת הצורך.", "over": "התוכן חורג מהערכת {pages} עמודים; תחילה ננסה התאמה אוטומטית.", "format": "פורמט: {pages} עמודים · {sheets} דפי A4", "backToTwo": "חזרה ל־2 עמודים (דף דו־צדדי אחד)", "names": { "intro": "מבוא", "ravWord": "דבר הרב", "parasha": "פרשת השבוע", "seferHamitsvot": "ספר המצוות", "agenda": "אירועים", "birthdays": "ימי הולדת", "community": "הקדשות", "support": "תמכו בנו", "photos": "תמונות השבוע", "posters": "מודעות", "partners": "תמונות שותפים", "specificEvent": "אירוע מיוחד" } },

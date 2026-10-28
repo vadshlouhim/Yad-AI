@@ -13,7 +13,7 @@ import { estimateNewsletterFill } from "@/lib/newsletter/layout-estimate";
 import { NEWSLETTER_ERROR_CODES, newsletterErrorCode } from "@/lib/newsletter/errors";
 import { inlineNewsletterExportImages, NEWSLETTER_IMAGE_ACCEPT, resolveNewsletterBanner, uploadNewsletterBatch, uploadNewsletterImage } from "@/lib/newsletter/media";
 import { createDraftSaveQueue } from "@/lib/newsletter/save-queue";
-import { limitNewsletterText, NEWSLETTER_EVENT_INTRO_LIMIT, NEWSLETTER_INTRO_LIMIT, NEWSLETTER_PARASHA_LIMIT, NEWSLETTER_PHOTO_LIMIT, NEWSLETTER_POSTER_LIMIT, NEWSLETTER_RAV_WORD_LIMIT, NEWSLETTER_SEFER_LIMIT, NEWSLETTER_SPECIFIC_EVENT_LIMIT } from "@/lib/newsletter/limits";
+import { limitNewsletterText, NEWSLETTER_EVENT_INTRO_LIMIT, NEWSLETTER_INTRO_LIMIT, NEWSLETTER_PARASHA_LIMIT, NEWSLETTER_PHOTO_LIMIT, NEWSLETTER_POSTER_LIMIT, NEWSLETTER_RAV_WORD_LIMIT, NEWSLETTER_SEFER_LIMIT, NEWSLETTER_SPECIFIC_EVENT_LIMIT, NEWSLETTER_TEXT_HARD_LIMIT } from "@/lib/newsletter/limits";
 import { newsletterLogoImageUrl } from "@/lib/newsletter/media-path";
 import { parseNewsletterLabels, resolveNewsletterLabels, type NewsletterLabelKey, type NewsletterLabels } from "@/lib/newsletter/labels";
 import { NEWSLETTER_CHALLOT_ICON_URL } from "@/lib/newsletter/kiddush";
@@ -331,7 +331,7 @@ export function parseNewsletterDraft(
       title: safeTitle,
       subtitle: outputLocale === "he" && !/[\u0590-\u05ff]/.test(draftText(generatedValue.subtitle)) ? defaults.subtitle : draftText(generatedValue.subtitle, defaults.subtitle),
       intro: draftText(generatedValue.intro, defaults.intro),
-      ravWord: limitNewsletterText(draftText(generatedValue.ravWord), NEWSLETTER_RAV_WORD_LIMIT),
+      ravWord: draftText(generatedValue.ravWord),
       shabbatNote: draftText(generatedValue.shabbatNote),
       eventIntro: draftText(generatedValue.eventIntro),
       restaurantAd: draftText(generatedValue.restaurantAd),
@@ -561,11 +561,7 @@ export function NewsletterPaperClient({
   function applyRevision(revision: Revision, pages: string[], key: string) {
     setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, posters, partnerAds, layout, outputLocale, labelOverrides });
     const { parnessText: parness, kiddushText: kiddush, ...texts } = revision.changes;
-    setGenerated(current => ({
-      ...current,
-      ...texts,
-      ...(texts.ravWord !== undefined ? { ravWord: limitNewsletterText(texts.ravWord, NEWSLETTER_RAV_WORD_LIMIT) } : {}),
-    }));
+    setGenerated(current => ({ ...current, ...texts }));
     if (parness !== undefined) setParnessText(parness);
     if (kiddush !== undefined) setKiddushText(kiddush);
     setLayout(current => ({ ...current, ...revision.layout }));
@@ -1308,11 +1304,12 @@ export function NewsletterPaperClient({
                     id="newsletter-rav-word"
                     value={generated.ravWord}
                     onChange={(event) => setGenerated((current) => ({ ...current, ravWord: event.target.value }))}
-                    maxLength={NEWSLETTER_RAV_WORD_LIMIT}
+                    maxLength={NEWSLETTER_TEXT_HARD_LIMIT}
                     rows={6}
                     className="mt-3 w-full resize-y rounded-xl border border-[#cfe6d9] bg-white px-3 py-2 text-base font-medium leading-6 outline-none focus:border-[#087e55] focus:ring-4 focus:ring-emerald-100 sm:text-sm"
                   />
-                  <span className="mt-1 block text-end text-[10px] font-bold text-slate-500">{generated.ravWord.length}/{NEWSLETTER_RAV_WORD_LIMIT} {t("charactersMaximum")}</span>
+                  <span className="mt-1 block text-end text-[10px] font-bold text-slate-500">{t("charactersRecommended", { count: generated.ravWord.length, recommended: NEWSLETTER_RAV_WORD_LIMIT })}</span>
+                  {generated.ravWord.length > NEWSLETTER_RAV_WORD_LIMIT ? <p className="mt-1 text-xs font-semibold text-amber-800">{t("longTextHint")}</p> : null}
                   {generated.ravWord.length > NEWSLETTER_RAV_WORD_LIMIT * 0.8 ? <button type="button" onClick={() => void shortenText("ravWord", NEWSLETTER_RAV_WORD_LIMIT)} disabled={Boolean(shorteningField)} className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-violet-100 px-3 text-xs font-black text-violet-900 disabled:opacity-60">{shorteningField === "ravWord" ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}{t("shorten.action")}</button> : null}
                   <div id="newsletter-rav-suggestion" aria-live="polite">
                     {!localizedShabbat?.parasha?.trim() ? <p className="mt-2 text-xs font-medium text-amber-800">{t("rav.parashaRequired")}</p> : null}
@@ -1544,10 +1541,13 @@ function EditableSectionTitle({ label, defaultLabel, modified, editLabel, resetL
   </span>;
 }
 
+/** `maxLength` is a recommended length: past it the field warns, it never blocks typing or pasting. */
 function TextArea({ label, value, onChange, maxLength, onShorten, shortening = false, shortenLabel }: { label: string; value: string; onChange: (value: string) => void; maxLength?: number; onShorten?: () => void; shortening?: boolean; shortenLabel?: string }) {
+  const t = useTranslations("newsletter");
   return <label className="block text-sm font-bold text-slate-700">{label}
-    <textarea value={value} maxLength={maxLength} onChange={(event) => onChange(event.target.value)} rows={4} className="mt-1.5 w-full resize-y rounded-xl border border-violet-100 px-3 py-2 text-base font-medium leading-6 outline-none focus:border-violet-700 focus:ring-2 focus:ring-violet-100 sm:text-sm" />
-    {maxLength ? <span className="mt-1 block text-end text-[10px] font-bold text-slate-500">{value.length}/{maxLength}</span> : null}
+    <textarea value={value} maxLength={NEWSLETTER_TEXT_HARD_LIMIT} onChange={(event) => onChange(event.target.value)} rows={4} className="mt-1.5 w-full resize-y rounded-xl border border-violet-100 px-3 py-2 text-base font-medium leading-6 outline-none focus:border-violet-700 focus:ring-2 focus:ring-violet-100 sm:text-sm" />
+    {maxLength ? <span className="mt-1 block text-end text-[10px] font-bold text-slate-500">{t("charactersRecommended", { count: value.length, recommended: maxLength })}</span> : null}
+    {maxLength && value.length > maxLength ? <span className="mt-1 block text-xs font-semibold text-amber-800">{t("longTextHint")}</span> : null}
     {onShorten && maxLength && value.length > maxLength * 0.8 ? <button type="button" onClick={onShorten} disabled={shortening} className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-violet-100 px-3 text-xs font-black text-violet-900 disabled:opacity-60">{shortening ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}{shortenLabel}</button> : null}
   </label>;
 }
