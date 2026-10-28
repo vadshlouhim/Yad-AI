@@ -27,7 +27,6 @@ import {
 } from "@/components/layout/dashboard-nav";
 import { getCommunityProfileLabel } from "@/lib/community/profile-labels";
 import { MobileDashboardHome } from "@/components/dashboard/mobile-dashboard-home";
-import { ComingSoonBanner } from "@/components/coming-soon/coming-soon-banner";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { useDashboardCopy } from "@/lib/i18n/use-dashboard-copy";
 import { getPublishChannels } from "@/lib/features-by-locale";
@@ -332,7 +331,6 @@ export function DashboardClient({
           icon={Settings2}
         />
       </section>
-      {basePath === "/dashboard" ? <ComingSoonBanner onClick={guard("/fonctionnalites-a-venir")} /> : null}
       </div>
       {comingSoonDialog}
     </>

@@ -529,7 +529,6 @@ export function EasyComHome({ showcase = [] }: { showcase?: ShowcasePoster[] }) 
     <HomeHeader />
     <main id="home-main">
       <Hero />
-      <Showcase posters={showcase} />
       <MainDemo blocked={selected !== null} />
       <div className="home-container home-body">
         {locale === "he" ? <HebrewComingSoonGrid /> : isFeatureEnabled(locale, "publish") ? <section id="fonctionnalites" className="home-features" aria-labelledby="home-features-title">
@@ -539,6 +538,10 @@ export function EasyComHome({ showcase = [] }: { showcase?: ShowcasePoster[] }) 
           </div>}>{mainTools.map(tool => <FeatureCard key={tool.id} tool={tool} active={active === tool.id} setActive={setActive} onOpen={open} />)}
           </CardRow>
         </section> : null}
+      </div>
+      {/* The tools come first; the poster reel follows, just above the assistant. */}
+      <Showcase posters={showcase} />
+      <div className="home-container home-body">
         <AssistantSection />
         <section id="tarifs" className="home-pricing" aria-label={t("specialOffer")}>
           <h2><Sparkles className="home-sparkles" fill="currentColor" aria-hidden="true" />{t("tryTitle")}</h2>

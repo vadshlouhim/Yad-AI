@@ -27,7 +27,6 @@ import {
   Users,
   Zap,
   Sparkles,
-  Rocket,
 } from "lucide-react";
 import React from "react";
 import { getCommunityProfileLabel } from "@/lib/community/profile-labels";
@@ -469,7 +468,7 @@ export function getOfficialDashboardMenuSections(
       subtitle: "",
       icon: ShoppingBag,
       items: [
-        { href: "/dashboard/boutique", label: "La Boutique d’EasyCom-AI", icon: ShoppingBag },
+        { href: "https://linktr.ee/Yadshlouhim", label: "BOUTIQUE EN LIGNE", icon: ShoppingBag },
       ],
     },
     {
@@ -499,15 +498,6 @@ export function getOfficialDashboardMenuSections(
       icon: Users,
       items: [
         { href: "/dashboard/contacts", label: "CRM Inteligent IA", icon: Users },
-      ],
-    },
-    {
-      key: "roadmap",
-      section: "FONCTIONNALITÉS À VENIR",
-      subtitle: "Découvrez les prochains outils EasyCom AI",
-      icon: Rocket,
-      items: [
-        { href: "/dashboard/fonctionnalites-a-venir", label: "Voir les nouveautés à venir", icon: Sparkles },
       ],
     },
     {
@@ -618,7 +608,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavSection[] = [
   {
     section: "BOUTIQUES ET ARTICLES",
     items: [
-      { href: "/dashboard/boutique", label: "La Boutique d’EasyCom-AI", icon: ShoppingBag },
+      { href: "https://linktr.ee/Yadshlouhim", label: "BOUTIQUE EN LIGNE", icon: ShoppingBag },
     ],
   },
   {
@@ -715,7 +705,7 @@ export const DASHBOARD_DESKTOP_CATEGORIES: DashboardDesktopCategory[] = [
     section: "BOUTIQUES ET ARTICLES",
     icon: ShoppingBag,
     items: [
-      { href: "/dashboard/boutique", label: "La Boutique d’EasyCom-AI", icon: ShoppingBag },
+      { href: "https://linktr.ee/Yadshlouhim", label: "BOUTIQUE EN LIGNE", icon: ShoppingBag },
     ],
   },
   {

@@ -35,7 +35,7 @@ export const MOBILE_HOME_MODULES: ReadonlyArray<{ key: MobileHomeModuleKey; titl
   { key: "whatsapp", title: "WhatsApp automatisé", href: "/dashboard/whatsapp" },
   { key: "website", title: "Création de site web", href: "/dashboard/website" },
   { key: "seo", title: "Référencement IA", href: "/dashboard/referencement" },
-  { key: "shop", title: "La Boutique d’EasyCom-AI", href: "/dashboard/boutique" },
+  { key: "shop", title: "BOUTIQUE EN LIGNE", href: "https://linktr.ee/Yadshlouhim" },
   { key: "assistance", title: "Assistance indemnisation", href: "/dashboard/assistance-indemnisation-aerienne" },
 ];
 

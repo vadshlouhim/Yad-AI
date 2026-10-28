@@ -43,7 +43,6 @@ import { cn } from "@/lib/utils";
 import { DASHBOARD_MODULE_COLORS } from "./dashboard-module-colors";
 import { MOBILE_ACTION_CARD_CLASS, MOBILE_HOME_HEADER_CLASS } from "@/components/presentation/platform-style";
 import { ASSISTANT_AGENT } from "@/lib/agents";
-import { ComingSoonBanner } from "@/components/coming-soon/coming-soon-banner";
 import { useComingSoonGate } from "@/components/dashboard/coming-soon-dialog";
 import {
   getOfficialDashboardMenuSections,
@@ -167,17 +166,20 @@ const ACTION_CARDS: ActionCard[] = [
   { key: "seo", title: "Référencement IA", icon: Search, className: DASHBOARD_MODULE_COLORS["seo"], href: "/dashboard/referencement" },
   {
     key: "shop",
-    title: "La Boutique d’EasyCom-AI",
+    title: "BOUTIQUE EN LIGNE",
     icon: ShoppingBag,
     className: "bg-[#421388] text-white",
     iconClassName: "text-[#421388]",
-    href: "/dashboard/boutique",
-    badge: "Marketplace juive n° 1",
+    href: "https://linktr.ee/Yadshlouhim",
+    badge: "Articles et produits pour les communautés",
     badgeClassName: "text-white",
     columns: 6,
   },
   { key: "assistance", title: "Assistance indemnisation", icon: Plane, className: DASHBOARD_MODULE_COLORS["assistance"], href: "/dashboard/assistance-indemnisation-aerienne" },
 ];
+
+// Secondary tools stay one tap away under "Autres outils", below the main cards.
+const OTHER_TOOL_KEYS: MobileHomeModuleKey[] = ["torah", "event-reminders", "photo-recap", "daily-study"];
 
 const MODAL_TONES: Record<string, string> = {
   social: "from-[#0878ee] via-[#0668e8] to-[#064bd8]",
@@ -239,6 +241,10 @@ export function MobileDashboardHome({
     badge: action.badge ? tr(action.badge) : action.badge,
   }])), [tr]);
   const visibleActions = homeModules.flatMap((key) => {
+    const action = OTHER_TOOL_KEYS.includes(key) ? undefined : actionByKey.get(key);
+    return action ? [action] : [];
+  });
+  const otherTools = OTHER_TOOL_KEYS.flatMap((key) => {
     const action = actionByKey.get(key);
     return action ? [action] : [];
   });
@@ -321,8 +327,7 @@ export function MobileDashboardHome({
   }
 
   function moveHomeModule(from: MobileHomeModuleKey, to: MobileHomeModuleKey) {
-    const fixedModules: MobileHomeModuleKey[] = ["shop", "event-reminders", "photo-recap", "torah"];
-    if (from === to || fixedModules.includes(from) || fixedModules.includes(to)) return;
+    if (from === to || from === "shop" || to === "shop") return;
     const fromIndex = homeModules.indexOf(from);
     const toIndex = homeModules.indexOf(to);
     if (fromIndex < 0 || toIndex < 0) return;
@@ -494,8 +499,7 @@ export function MobileDashboardHome({
         <div className="mt-4 grid grid-cols-6 items-stretch gap-2.5 sm:gap-3">
           {visibleActions.map((action) => {
             const Icon = action.icon;
-            const isBottomThree = action.key === "event-reminders" || action.key === "photo-recap" || action.key === "daily-study";
-            const isFixedCard = action.key === "shop" || action.key === "torah" || isBottomThree;
+            const isFixedCard = action.key === "shop";
             const content = (
               <>
                 {action.key === "shop" ? (
@@ -514,21 +518,16 @@ export function MobileDashboardHome({
                 ) : (
                   <>
                     <span className={cn(
-                      "relative flex shrink-0 items-center justify-center bg-white shadow-lg",
-                      isBottomThree ? "size-10 rounded-xl sm:size-11 sm:rounded-2xl" : "size-11 rounded-2xl sm:size-12",
+                      "relative flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white shadow-lg sm:size-12",
                       action.iconClassName ?? "text-slate-800",
                     )}>
-                      <Icon className={cn("stroke-[2.15]", isBottomThree ? "size-5 sm:size-6" : "size-6")} />
+                      <Icon className="size-6 stroke-[2.15]" />
                     </span>
                     <span className="relative block min-w-0 max-w-full text-center">
-                      <span className={cn(
-                        "block font-black tracking-[-0.02em]",
-                        action.key === "daily-study" ? "line-clamp-3" : "line-clamp-2",
-                        isBottomThree ? "text-xs leading-[1.12] sm:text-sm" : "text-sm leading-tight sm:text-base",
-                      )}>
+                      <span className="block line-clamp-2 text-sm font-black leading-tight tracking-[-0.02em] sm:text-base">
                         {action.title}
                       </span>
-                      {action.badge && !isBottomThree ? (
+                      {action.badge ? (
                         <span className={cn(
                           "mt-1 block line-clamp-2 text-[0.64rem] font-bold leading-tight text-white/75 sm:text-xs",
                         )}>
@@ -542,24 +541,19 @@ export function MobileDashboardHome({
             );
             const layoutClassName = cn(
               "relative",
-              action.key === "shop" ? "col-span-6" : isBottomThree ? "col-span-2" : "col-span-3",
+              action.key === "shop" || action.key === "visuals" ? "col-span-6" : "col-span-3",
               action.key === "publish" && "col-start-1 row-start-1",
               action.key === "newsletter-paper" && "col-start-4 row-start-1",
               action.key === "birthdays-yahrzeit" && "col-start-1 row-start-2",
               action.key === "shabbat-times" && "col-start-4 row-start-2",
               action.key === "visuals" && "col-start-1 row-start-3",
-              action.key === "torah" && "col-start-4 row-start-3",
               action.key === "shop" && "col-start-1 row-start-4",
-              action.key === "event-reminders" && "col-start-1 row-start-5",
-              action.key === "photo-recap" && "col-start-3 row-start-5",
-              action.key === "daily-study" && "col-start-5 row-start-5",
               editMode && "animate-[pulse_1.4s_ease-in-out_infinite]"
             );
             const cardClassName = cn(
               MOBILE_ACTION_CARD_CLASS,
               "h-full w-full !min-h-[116px] !flex-col !justify-center !gap-2 rounded-[1.65rem] !border-0 px-3 py-3 !text-center shadow-[0_16px_30px_-18px_rgba(15,23,42,0.5)] sm:!min-h-[126px] sm:!gap-3 sm:p-4",
               action.className,
-              isBottomThree && "!min-h-[104px] !gap-2 rounded-[1.4rem] px-1.5 py-2.5 sm:!min-h-[118px] sm:!gap-2.5 sm:px-3",
               action.key === "shop" && "!min-h-[72px] !flex-row !justify-start !gap-3 rounded-[1.45rem] px-3.5 py-3 !text-start shadow-[0_16px_30px_-18px_rgba(66,19,136,0.65)] sm:!min-h-[80px] sm:px-5",
               editMode && action.key === "shop" && "pe-12"
             );
@@ -616,7 +610,22 @@ export function MobileDashboardHome({
         </div>
         {undoModule ? <div className="fixed bottom-[6.5rem] left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl bg-slate-950 px-4 py-3 text-xs font-bold text-white shadow-xl"><span>{tr("Module retiré")}</span><button type="button" onClick={restoreHomeModule} className="text-[#f2c75c]">{tr("Annuler")}</button></div> : null}
         {homeNotice ? <button type="button" onClick={() => setHomeNotice(null)} className="fixed bottom-[6.5rem] left-1/2 z-50 w-[calc(100%-2rem)] -translate-x-1/2 rounded-2xl bg-slate-950 px-4 py-3 text-start text-xs font-bold text-white shadow-xl">{homeNotice}</button> : null}
-        {basePath === "/dashboard" ? <div className="mt-5"><ComingSoonBanner onClick={guard("/fonctionnalites-a-venir")} /></div> : null}
+        {otherTools.length ? <>
+          <h2 className="mt-7 text-lg font-black leading-tight tracking-tight text-slate-950 sm:text-xl">{tr("Autres outils")}</h2>
+          <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+            {otherTools.map((action) => {
+              const Icon = action.icon;
+              return (
+                <Link key={action.key} href={resolveHref(action.href!, basePath)} onClick={guard(action.href!)} className={cn(MOBILE_ACTION_CARD_CLASS, "h-full w-full !min-h-[96px] !flex-col !justify-center !gap-2 rounded-[1.4rem] !border-0 px-2 py-2.5 !text-center shadow-[0_16px_30px_-18px_rgba(15,23,42,0.5)]", action.className)}>
+                  <span className={cn("relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-lg", action.iconClassName ?? "text-slate-800")}>
+                    <Icon className="size-5 stroke-[2.15]" />
+                  </span>
+                  <span className="relative block line-clamp-2 text-xs font-black leading-[1.12] tracking-[-0.02em] sm:text-sm">{action.title}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </> : null}
       </section>
       {comingSoonDialog}
 

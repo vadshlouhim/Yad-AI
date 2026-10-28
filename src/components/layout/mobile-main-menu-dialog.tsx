@@ -18,7 +18,6 @@ import {
   Image,
   Mail,
   Plane,
-  Rocket,
   Settings,
   ShoppingBag,
   Sparkles,
@@ -251,13 +250,13 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
       },
       {
         key: "shop",
-        title: "La Boutique d’EasyCom-AI",
+        title: "BOUTIQUE EN LIGNE",
         icon: ShoppingBag,
         tone: "border border-[#eadcb8] bg-[linear-gradient(135deg,#fffdf7_0%,#fff3d3_100%)] !text-[#321451]",
-        href: "/dashboard/boutique",
+        href: "https://linktr.ee/Yadshlouhim",
         items: [],
         homeModuleKey: "shop",
-        badge: "Marketplace juive n° 1",
+        badge: "Articles et produits pour les communautés",
       },
       {
         key: "compensation",
@@ -292,7 +291,6 @@ export function MobileMainMenuDialog({ communityName, sections, onClose }: Mobil
     const comingSoon: ToolGroup[] = [];
 
     const account = [
-      item("/dashboard/fonctionnalites-a-venir", "Fonctionnalités à venir", Rocket),
       item("/dashboard/settings", "Paramètres", Settings),
       item("/help", "Support et suggestions", Headphones),
       item("/dashboard/settings?section=profile", "Profil", User),
