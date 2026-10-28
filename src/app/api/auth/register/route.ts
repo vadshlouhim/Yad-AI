@@ -70,9 +70,10 @@ async function incrementRateLimit(key: string): Promise<number> {
     "if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end",
     "return count",
   ].join("; ");
-  let response: Response;
+  // A missing or unreachable limiter must never block sign-ups: fall back to an in-memory count
+  // (Supabase Auth keeps its own sign-up rate limits on top of it).
   try {
-    response = await fetch(redisUrl, {
+    const response = await fetch(redisUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${redisToken}`,
@@ -86,31 +87,21 @@ async function incrementRateLimit(key: string): Promise<number> {
         REGISTER_WINDOW_SECONDS,
       ]),
       cache: "no-store",
+      signal: AbortSignal.timeout(3000),
     });
-  } catch (error) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn("[Auth] Redis unavailable; using local development rate limit");
-      return incrementLocalRateLimit(key);
+    if (!response.ok) throw new Error(`Registration rate limiter failed (${response.status})`);
+    const payload = (await response.json()) as RedisResult;
+    if (payload.error || typeof payload.result !== "number") {
+      throw new Error(payload.error ?? "Invalid registration rate limiter response");
     }
-    throw error;
+    return payload.result;
+  } catch (error) {
+    console.error("[Auth] Redis unavailable; using in-memory registration rate limit:", error);
+    return incrementLocalRateLimit(key);
   }
-
-  if (!response.ok) {
-    throw new Error(`Registration rate limiter failed (${response.status})`);
-  }
-
-  const payload = (await response.json()) as RedisResult;
-  if (payload.error || typeof payload.result !== "number") {
-    throw new Error(payload.error ?? "Invalid registration rate limiter response");
-  }
-  return payload.result;
 }
 
 function incrementLocalRateLimit(key: string): number {
-  if (process.env.NODE_ENV !== "development") {
-    throw new Error("Registration rate limiter is not configured");
-  }
-
   const now = Date.now();
   const current = localRateLimits.get(key);
   if (!current || current.expiresAt <= now) {
