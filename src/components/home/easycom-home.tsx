@@ -15,7 +15,7 @@ import { PUBLIC_TOOLS, getLocalizedPublicTool, type PublicTool } from "@/lib/pub
 import { ToolIcon } from "@/components/presentation/tool-visual";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { MAIN_VIDEO_URL, homeVideoSource } from "./home-media";
-import { ASSISTANT_AGENT, ASSISTANT_IMAGE } from "@/lib/agents";
+import { ASSISTANT_IMAGE } from "@/lib/agents";
 import type { ShowcasePoster } from "@/lib/templates/showcase";
 import { isFeatureEnabled } from "@/lib/features-by-locale";
 import { SUBSCRIPTION_MONTHLY_CENTS, SUBSCRIPTION_YEARLY_CENTS } from "@/lib/billing/subscription-policy";
@@ -470,19 +470,6 @@ function Showcase({ posters }: { posters: ShowcasePoster[] }) {
   </section>;
 }
 
-function AssistantSection() {
-  const t = useTranslations("home");
-  return <section id="assistant" className="home-assistant" aria-labelledby="home-assistant-title">
-    <div className="home-assistant-art"><Image src={ASSISTANT_AGENT.image} alt="" width={427} height={640} sizes="(max-width: 767px) 140px, 220px" /></div>
-    <div className="home-assistant-copy">
-      <p className="home-assistant-kicker"><Sparkles size={16} fill="currentColor" aria-hidden="true" />{t("assistantKicker")}</p>
-      <h2 id="home-assistant-title">{t("assistantTitle")}</h2>
-      <p>{t("assistantText")}</p>
-      <TrialLink />
-    </div>
-  </section>;
-}
-
 export function EasyComHome({ showcase = [] }: { showcase?: ShowcasePoster[] }) {
   const locale = useLocale();
   const t = useTranslations("home");
@@ -542,7 +529,6 @@ export function EasyComHome({ showcase = [] }: { showcase?: ShowcasePoster[] }) 
       {/* The tools come first; the poster reel follows, just above the assistant. */}
       <Showcase posters={showcase} />
       <div className="home-container home-body">
-        <AssistantSection />
         <section id="tarifs" className="home-pricing" aria-label={t("specialOffer")}>
           <h2><Sparkles className="home-sparkles" fill="currentColor" aria-hidden="true" />{t("tryTitle")}</h2>
           <p className="home-price-special">{t("specialOffer")}</p>

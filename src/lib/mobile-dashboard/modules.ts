@@ -24,7 +24,7 @@ export const MOBILE_HOME_MODULES: ReadonlyArray<{ key: MobileHomeModuleKey; titl
   { key: "birthdays-yahrzeit", title: "Anniversaires & Yahrzeit", href: "/dashboard/jewish-birthdays" },
   { key: "event-reminders", title: "Automatisations", href: "/dashboard/event-reminders-auto" },
   { key: "photo-recap", title: "Récap photos", href: "/dashboard/recap-auto" },
-  { key: "newsletter-paper", title: "Newsletter", href: "/dashboard/newsletter" },
+  { key: "newsletter-paper", title: "Newsletter PDF", href: "/dashboard/newsletter" },
   { key: "torah", title: "Cours de Torah", href: "/dashboard/torah" },
   { key: "email-reviews", title: "Email & Avis Google", href: "/dashboard?module=email" },
   { key: "contacts", title: "CRM intelligent", href: "/dashboard/contacts" },

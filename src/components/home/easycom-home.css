@@ -518,14 +518,6 @@
   .home-showcase-viewport { overflow-x: auto; }
 }
 
-/* One assistant instead of a row of agents. */
-.home-assistant { display: flex; align-items: center; gap: 32px; margin-top: 46px; padding: 0 36px; border-radius: 28px; background: linear-gradient(120deg, #f3ecff, #fff8ec); box-shadow: 0 8px 30px #2107630d; overflow: hidden; }
-.home-assistant-art { flex: 0 0 220px; align-self: flex-end; }
-.home-assistant-art img { display: block; width: 100%; height: auto; }
-.home-assistant-copy { padding: 30px 0; }
-.home-assistant-kicker { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: var(--home-purple); font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
-.home-assistant-copy h2 { margin-top: 8px !important; }
-.home-assistant-copy > p:not(.home-assistant-kicker) { max-width: 620px; margin: 12px 0 20px; color: var(--home-muted); font-size: 17px; line-height: 1.55; }
 
 /* Desktop: every tool visible at once instead of a sideways-scrolling row. */
 @media (min-width: 1024px) {
@@ -538,12 +530,6 @@
   .home-showcase-heading h2 { font-size: 22px; }
   .home-showcase-heading p { font-size: 13px; }
   .home-showcase-track li { width: 132px; border-radius: 14px; }
-  .home-assistant { flex-direction: column; align-items: stretch; gap: 0; margin-top: 22px; padding: 0 18px; border-radius: 22px; text-align: center; }
-  .home-assistant-art { flex-basis: auto; width: 140px; align-self: center; order: 2; }
-  .home-assistant-copy { padding: 22px 0 12px; }
-  .home-assistant-kicker { justify-content: center; }
-  .home-assistant-copy h2 { justify-content: center; }
-  .home-assistant-copy > p:not(.home-assistant-kicker) { font-size: 15px; margin-inline: auto; }
 }
 
 /* "À venir": every tool that is not offered yet, in one list (rendered in a portal,

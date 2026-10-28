@@ -134,5 +134,10 @@ function checkoutErrorMessage(error: unknown) {
   if (error instanceof Error && error.message === "STRIPE_SECRET_KEY manquant") {
     return "Stripe n'est pas configuré sur le serveur.";
   }
+  // Server configuration problems (keys, prices, site URL) name the setting to fix; they never
+  // contain a secret value, only the variable name or the mismatch.
+  if (error instanceof Error && /STRIPE_|NEXT_PUBLIC_APP_URL|Price Stripe|Stripe (TEST|LIVE)|mauvais environnement/.test(error.message)) {
+    return `Configuration du paiement incomplète : ${error.message}`;
+  }
   return "Impossible de préparer le paiement pour le moment.";
 }

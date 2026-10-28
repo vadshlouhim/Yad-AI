@@ -2,14 +2,16 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { OnboardingData } from "../onboarding-wizard";
 import {
-  Building2, MapPin, Phone, Mail, Globe, HandHeart, ChevronRight,
+  Building2, MapPin, ChevronDown, ChevronRight,
   Image as ImageIcon, Loader2, Upload,
 } from "lucide-react";
 import { isSupportedCountry, SUPPORTED_COUNTRIES } from "@/lib/community/countries";
 import { useLocale } from "next-intl";
+
+const optionalInputClass = "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20";
 
 interface Props {
   data: OnboardingData;
@@ -25,6 +27,7 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
   const [logoError, setLogoError] = useState<string | null>(null);
   const [continuing, setContinuing] = useState(false);
   const [continueError, setContinueError] = useState<string | null>(null);
+  const [contactsOpen, setContactsOpen] = useState(false);
   const isValid = data.communityName.trim().length >= 2
     && data.city.trim().length >= 2
     && isSupportedCountry(data.country);
@@ -75,19 +78,11 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
 
   return (
     <Card className="border-blue-100 shadow-xl shadow-blue-100/70">
-      <CardHeader className="pb-4">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-100 to-sky-100 flex items-center justify-center mb-3">
-          <Building2 className="size-6 text-blue-600" />
-        </div>
-        <CardTitle className="text-xl">{he ? "זהות הארגון שלכם" : "Identité de votre structure"}</CardTitle>
-        <CardDescription>
-          {he ? "הפרטים האלה עוזרים ל־EasyCom IA להכיר את הארגון ולהתאים את התוכן באופן אוטומטי." : "Ces informations permettent à EasyCom IA de comprendre votre identité et de personnaliser vos contenus automatiquement."}
-        </CardDescription>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-xl"><Building2 className="size-5 text-blue-600" />{he ? "הארגון שלכם" : "Votre structure"}</CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-6">
-
-        {/* Nom */}
+      <CardContent className="space-y-5">
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-slate-700">
             {he ? "שם הארגון" : "Nom de votre structure"} <span className="text-red-500">*</span>
@@ -96,58 +91,14 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
             type="text"
             value={data.communityName}
             onChange={(e) => updateData({ communityName: e.target.value })}
-            placeholder={he ? "לדוגמה: בית חב״ד פריז" : "Ex. Association Sportive de Bordeaux"}
+            placeholder={he ? "לדוגמה: בית חב״ד פריז" : "Ex. Beth Habad Paris"}
             className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           />
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                {data.logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={data.logoUrl} alt={he ? "לוגו הארגון" : "Logo de votre structure"} className="h-full w-full object-contain p-2" />
-                ) : (
-                  <ImageIcon className="size-7 text-slate-400" />
-                )}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900">{he ? "לוגו הארגון" : "Logo votre structure"}</p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">
-                  {he ? "הוסיפו לוגו כדי להתאים את התוכן והמרחב שלכם." : "Ajoutez votre logo pour personnaliser vos contenus et votre espace."}
-                </p>
-              </div>
-            </div>
-
-            <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50">
-              {logoUploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-              {logoUploading ? (he ? "מעלה..." : "Téléversement...") : simulationMode ? (he ? "הדמיית לוגו" : "Simuler un logo") : (he ? "בחירת לוגו" : "Choisir un logo")}
-              <input
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                disabled={logoUploading}
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) void uploadLogo(file);
-                  event.currentTarget.value = "";
-                }}
-              />
-            </label>
-          </div>
-
-          {logoError && (
-            <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-              {logoError}
-            </p>
-          )}
-        </div>
-
-        {/* Localisation */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 flex items-center gap-1">
+            <label className="flex items-center gap-1 text-sm font-medium text-slate-700">
               <MapPin className="size-3.5 text-slate-400" />
               {he ? "עיר" : "Ville"} <span className="text-red-500">*</span>
             </label>
@@ -176,67 +127,61 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
           </div>
         </div>
 
-        {/* Contacts - facultatif */}
-        <div className="space-y-3">
-          <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-            {he ? "פרטי קשר" : "Contacts"}
-            <span className="text-xs font-normal text-slate-400 border border-slate-200 rounded-full px-2 py-0.5">{he ? "רשות" : "Facultatif"}</span>
+        {/* Logo: a small, discreet row. */}
+        <div>
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-200 px-3 py-2 transition hover:border-blue-300 hover:bg-blue-50/40">
+            <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-50">
+              {data.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={data.logoUrl} alt={he ? "לוגו הארגון" : "Logo de votre structure"} className="h-full w-full object-contain p-1" />
+              ) : (
+                <ImageIcon className="size-4 text-slate-400" />
+              )}
+            </span>
+            <span className="flex-1 text-sm text-slate-600">{he ? "לוגו" : "Logo"} <span className="text-xs text-slate-400">({he ? "רשות" : "facultatif"})</span></span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700">
+              {logoUploading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+              {logoUploading ? (he ? "מעלה..." : "Envoi…") : data.logoUrl ? (he ? "החלפה" : "Changer") : (he ? "הוספה" : "Ajouter")}
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              disabled={logoUploading}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void uploadLogo(file);
+                event.currentTarget.value = "";
+              }}
+            />
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <p className="text-xs text-slate-500 flex items-center gap-1">
-                <Phone className="size-3" /> {he ? "טלפון" : "Téléphone"}
-              </p>
-              <input
-                type="tel"
-                value={data.phone}
-                onChange={(e) => updateData({ phone: e.target.value })}
-                placeholder="+33 1 23 45 67 89"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-slate-500 flex items-center gap-1">
-                <Mail className="size-3" /> {he ? "אימייל ציבורי" : "Email public"}
-              </p>
-              <input
-                type="email"
-                value={data.email}
-                onChange={(e) => updateData({ email: e.target.value })}
-                placeholder="contact@macommunaute.fr"
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-slate-500 flex items-center gap-1">
-              <Globe className="size-3" /> {he ? "אתר" : "Site web"}
-            </p>
-            <input
-              type="url"
-              value={data.website}
-              onChange={(e) => updateData({ website: e.target.value })}
-              placeholder="https://www.macommunaute.fr"
-              className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            />
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-slate-500 flex items-center gap-1">
-              <HandHeart className="size-3" /> {he ? "עמוד תרומות" : "Page de dons"}
-            </p>
-            <input
-              type="url"
-              value={data.donationUrl}
-              onChange={(e) => updateData({ donationUrl: e.target.value })}
-              placeholder="https://allodons.fr/votre-structure"
-              className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            />
-            <p className="text-xs leading-5 text-slate-400">{he ? "הקישור יוצע אוטומטית בעלון השבת המודפס." : "Il sera proposé automatiquement dans votre Newsletter Papier Chabbat."}</p>
-          </div>
+          {logoError && (
+            <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">{logoError}</p>
+          )}
         </div>
 
-        {/* Navigation */}
-        <div className="pt-2">
+        {/* Optional contacts stay folded until the user asks for them. */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setContactsOpen((open) => !open)}
+            aria-expanded={contactsOpen}
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+          >
+            <ChevronDown className={`size-3.5 transition-transform ${contactsOpen ? "rotate-180" : ""}`} />
+            {he ? "פרטי קשר (רשות)" : "Contact (facultatif)"}
+          </button>
+          {contactsOpen && (
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <input type="tel" value={data.phone} onChange={(e) => updateData({ phone: e.target.value })} placeholder={he ? "טלפון" : "Téléphone"} aria-label={he ? "טלפון" : "Téléphone"} className={optionalInputClass} />
+              <input type="email" value={data.email} onChange={(e) => updateData({ email: e.target.value })} placeholder={he ? "אימייל ציבורי" : "Email public"} aria-label={he ? "אימייל ציבורי" : "Email public"} className={optionalInputClass} />
+              <input type="url" value={data.website} onChange={(e) => updateData({ website: e.target.value })} placeholder={he ? "אתר" : "Site web"} aria-label={he ? "אתר" : "Site web"} className={optionalInputClass} />
+              <input type="url" value={data.donationUrl} onChange={(e) => updateData({ donationUrl: e.target.value })} placeholder={he ? "עמוד תרומות" : "Page de dons"} aria-label={he ? "עמוד תרומות" : "Page de dons"} className={optionalInputClass} />
+            </div>
+          )}
+        </div>
+
+        <div className="pt-1">
           <Button
             onClick={handleContinue}
             disabled={(!simulationMode && !isValid) || continuing}
@@ -244,10 +189,10 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
             className="w-full"
           >
             {continuing ? <Loader2 className="size-4 animate-spin" /> : <ChevronRight className="rtl-mirror size-4" />}
-            {he ? "המשך" : "Continuer"}
+            {he ? "כניסה ל־EasyCom IA" : "Accéder à EasyCom IA"}
           </Button>
           {!simulationMode && !isValid && (
-            <p className="text-xs text-slate-400 text-center mt-2">
+            <p className="mt-2 text-center text-xs text-slate-400">
               {he ? "הזינו שם ועיר כדי להמשיך." : "Renseignez le nom et la ville pour continuer."}
             </p>
           )}
@@ -261,5 +206,3 @@ export function StepIdentity({ data, updateData, onNext, simulationMode = false 
     </Card>
   );
 }
-
-

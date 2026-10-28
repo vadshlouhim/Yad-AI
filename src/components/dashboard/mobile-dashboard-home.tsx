@@ -124,7 +124,7 @@ const ACTION_CARDS: ActionCard[] = [
   },
   {
     key: "newsletter-paper",
-    title: "Newsletter",
+    title: "Newsletter PDF",
     icon: FileText,
     className: "bg-[#5a1a96] text-white",
     iconClassName: "text-[#7b61ff]",
@@ -178,8 +178,11 @@ const ACTION_CARDS: ActionCard[] = [
   { key: "assistance", title: "Assistance indemnisation", icon: Plane, className: DASHBOARD_MODULE_COLORS["assistance"], href: "/dashboard/assistance-indemnisation-aerienne" },
 ];
 
-// Secondary tools stay one tap away under "Autres outils", below the main cards.
-const OTHER_TOOL_KEYS: MobileHomeModuleKey[] = ["torah", "event-reminders", "photo-recap", "daily-study"];
+// Every other tool stays one tap away under "Autres outils", below the main cards (the main menu
+// only holds the account now).
+const OTHER_TOOL_KEYS: MobileHomeModuleKey[] = ["torah", "event-reminders", "photo-recap", "daily-study", "contacts", "targeted", "email-reviews", "whatsapp", "website", "seo", "assistance"];
+// Main cards the user removed from the grid are listed there too, so they are never lost.
+const MAIN_CARD_KEYS: MobileHomeModuleKey[] = ["publish", "newsletter-paper", "birthdays-yahrzeit", "shabbat-times", "visuals", "shop"];
 
 const MODAL_TONES: Record<string, string> = {
   social: "from-[#0878ee] via-[#0668e8] to-[#064bd8]",
@@ -244,7 +247,7 @@ export function MobileDashboardHome({
     const action = OTHER_TOOL_KEYS.includes(key) ? undefined : actionByKey.get(key);
     return action ? [action] : [];
   });
-  const otherTools = OTHER_TOOL_KEYS.flatMap((key) => {
+  const otherTools = [...MAIN_CARD_KEYS.filter((key) => homeLoaded && !homeModules.includes(key)), ...OTHER_TOOL_KEYS].flatMap((key) => {
     const action = actionByKey.get(key);
     return action ? [action] : [];
   });
@@ -403,10 +406,11 @@ export function MobileDashboardHome({
                   <button
                     type="button"
                     aria-label={locale === "he" ? "סגירת תפריט הפרופיל" : "Fermer le menu du profil"}
-                    className="fixed inset-0 z-40 cursor-default"
+                    className="fixed inset-0 z-[60] cursor-default bg-[#16052f]/20"
                     onClick={() => setProfileOpen(false)}
                   />
-                  <div className="absolute end-0 top-[calc(100%+0.65rem)] z-50 w-60 overflow-hidden rounded-3xl border border-white/20 bg-white p-2 text-slate-700 shadow-2xl shadow-[#1d0752]/30">
+                  {/* Fixed, not absolute: the header clips its overflow and used to hide most of this menu. */}
+                  <div className="fixed end-3 top-[calc(max(0.8rem,env(safe-area-inset-top))+3.25rem)] z-[61] w-64 overflow-hidden rounded-3xl border border-slate-200 bg-white p-2 text-slate-700 shadow-2xl shadow-[#1d0752]/30">
                     <div className="border-b border-slate-100 px-3 py-2.5">
                       <p className="truncate text-sm font-bold text-slate-950">{userName}</p>
                       <p className="mt-0.5 truncate text-xs text-slate-500">{communityName}</p>
@@ -508,7 +512,7 @@ export function MobileDashboardHome({
                       <ShoppingBag className="size-5 stroke-[2.2] sm:size-[22px]" />
                     </span>
                     <span className="relative min-w-0 flex-1 text-start">
-                      <span className="block truncate text-sm font-black leading-tight tracking-[-0.02em] sm:text-base">{action.title}</span>
+                      <span className="block truncate text-[1.05rem] font-black leading-tight tracking-[-0.02em] sm:text-lg">{action.title}</span>
                       <span className="mt-1 block truncate text-[0.64rem] font-bold leading-tight text-violet-100 sm:text-xs">{action.badge}</span>
                     </span>
                     <span className="relative flex size-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white ring-1 ring-white/15 sm:size-9">
@@ -524,7 +528,7 @@ export function MobileDashboardHome({
                       <Icon className="size-6 stroke-[2.15]" />
                     </span>
                     <span className="relative block min-w-0 max-w-full text-center">
-                      <span className="block line-clamp-2 text-sm font-black leading-tight tracking-[-0.02em] sm:text-base">
+                      <span className="block line-clamp-2 text-[1.05rem] font-black leading-tight tracking-[-0.02em] sm:text-lg">
                         {action.title}
                       </span>
                       {action.badge ? (
@@ -615,13 +619,21 @@ export function MobileDashboardHome({
           <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
             {otherTools.map((action) => {
               const Icon = action.icon;
+              const className = cn(MOBILE_ACTION_CARD_CLASS, "h-full w-full !min-h-[96px] !flex-col !justify-center !gap-2 rounded-[1.4rem] !border-0 px-2 py-2.5 !text-center shadow-[0_16px_30px_-18px_rgba(15,23,42,0.5)]", action.className);
+              const content = <>
+                <span className={cn("relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-lg", action.iconClassName ?? "text-slate-800")}>
+                  <Icon className="size-5 stroke-[2.15]" />
+                </span>
+                <span className="relative block line-clamp-2 text-sm font-black leading-tight tracking-[-0.02em] sm:text-base">{action.title}</span>
+              </>;
+              if (action.href?.startsWith("http")) return <a key={action.key} href={action.href} className={className}>{content}</a>;
+              if (action.href) return <Link key={action.key} href={resolveHref(action.href, basePath)} onClick={guard(action.href)} className={className}>{content}</Link>;
               return (
-                <Link key={action.key} href={resolveHref(action.href!, basePath)} onClick={guard(action.href!)} className={cn(MOBILE_ACTION_CARD_CLASS, "h-full w-full !min-h-[96px] !flex-col !justify-center !gap-2 rounded-[1.4rem] !border-0 px-2 py-2.5 !text-center shadow-[0_16px_30px_-18px_rgba(15,23,42,0.5)]", action.className)}>
-                  <span className={cn("relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-lg", action.iconClassName ?? "text-slate-800")}>
-                    <Icon className="size-5 stroke-[2.15]" />
-                  </span>
-                  <span className="relative block line-clamp-2 text-xs font-black leading-[1.12] tracking-[-0.02em] sm:text-sm">{action.title}</span>
-                </Link>
+                <button key={action.key} type="button" onClick={() => {
+                  if (!action.sectionKey) return;
+                  if (isBlocked(SECTION_HREFS[action.sectionKey] ?? "")) openComingSoon();
+                  else openSection(action.sectionKey);
+                }} className={className}>{content}</button>
               );
             })}
           </div>

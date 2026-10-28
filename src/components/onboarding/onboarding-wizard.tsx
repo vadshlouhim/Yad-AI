@@ -3,18 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { StepIdentity } from "./steps/step-identity";
-import { StepSocial } from "./steps/step-social";
 import { WelcomeAnimation } from "./welcome-animation";
-import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
 import { getPublicToolDestination } from "@/lib/public-tools";
 import { normalizeSupportedCountry } from "@/lib/community/countries";
-import { useLocale, useTranslations } from "next-intl";
-
-const STEPS = [
-  { id: 0, label: "Identité", description: "Votre structure" },
-  { id: 1, label: "Connexions", description: "Canaux facultatifs" },
-];
+import { useLocale } from "next-intl";
 
 export interface OnboardingData {
   // Étape 1 - Identité
@@ -123,66 +115,27 @@ interface Props {
 export function OnboardingWizard({
   userId,
   userName,
-  communityId: initialCommunityId,
-  initialStep = 0,
   initialData,
   simulationMode = false,
   returnTo,
 }: Props) {
   const he = useLocale() === "he";
-  const billingCopy = useTranslations("onboarding");
-  const steps = he ? [{ id: 0, label: "זהות", description: "הארגון שלכם" }, { id: 1, label: "חיבורים", description: "ערוצים לבחירה" }] : STEPS;
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(Math.min(initialStep, steps.length - 1));
   const [data, setData] = useState<OnboardingData>(() => {
     const restored = { ...defaultData, ...initialData };
     return { ...restored, country: normalizeSupportedCountry(restored.country) };
   });
-  const [communityId, setCommunityId] = useState<string | undefined>(initialCommunityId);
-  const [saving, setSaving] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
 
   function updateData(partial: Partial<OnboardingData>) {
     setData((prev) => ({ ...prev, ...partial }));
   }
 
-  function goNext() {
-    setCurrentStep((s) => Math.min(s + 1, steps.length - 1));
-  }
-
-  function goPrev() {
-    setCurrentStep((s) => Math.max(s - 1, 0));
-  }
-
-  // Crée (ou met à jour) le brouillon de communauté dès la fin de l'étape Identité,
-  // pour que la connexion OAuth (étape suivante) ait un communityId auquel s'attacher.
-  async function handleIdentityContinue() {
-    if (simulationMode) {
-      goNext();
-      return;
-    }
-
-    const res = await fetch("/api/onboarding/draft", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, data }),
-    });
-
-    const json = await res.json().catch(() => ({})) as { communityId?: string; error?: string };
-    if (!res.ok || !json.communityId) {
-      throw new Error(json.error ?? (he ? "שגיאה בשמירת הטיוטה" : "Erreur lors de l'enregistrement du brouillon"));
-    }
-
-    setCommunityId(json.communityId);
-    goNext();
-  }
-
+  // Only the identity step remains: it creates the space and opens EasyCom right away.
   async function finishOnboarding() {
-    setSaving(true);
     try {
       if (simulationMode) {
         window.setTimeout(() => {
-          setSaving(false);
           setShowWelcome(true);
         }, 450);
         return;
@@ -201,8 +154,7 @@ export function OnboardingWizard({
       router.refresh();
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : (he ? "לא ניתן להשלים את ההרשמה." : "Impossible de finaliser votre inscription."));
-      setSaving(false);
+      throw err instanceof Error ? err : new Error(he ? "לא ניתן להשלים את ההרשמה." : "Impossible de finaliser votre inscription.");
     }
   }
 
@@ -210,11 +162,7 @@ export function OnboardingWizard({
     return (
       <WelcomeAnimation
         onComplete={() => {
-          if (simulationMode) {
-            setShowWelcome(false);
-            setCurrentStep(steps.length - 1);
-            return;
-          }
+          if (simulationMode) setShowWelcome(false);
         }}
       />
     );
@@ -238,78 +186,16 @@ export function OnboardingWizard({
           <h1 className="relative mt-3 text-2xl font-black tracking-tight sm:text-4xl">
             {he ? "בואו ניצור מרחב שמתאים לכם" : "Créons un espace qui vous ressemble"}
           </h1>
-          <p className="relative mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-blue-50 sm:text-base">
-            {he ? "בשני שלבים מהירים EasyCom IA מכיר את הארגון ומתאים את המרחב שלכם." : "En deux étapes rapides, EasyCom IA apprend à connaître votre structure pour personnaliser votre espace."}
-          </p>
-        </div>
-
-        <div className="mb-8 w-full max-w-2xl overflow-hidden rounded-3xl border border-white bg-white/80 p-5 shadow-sm shadow-slate-200/80 sm:mb-10">
-          <div className="relative flex w-full items-center justify-between">
-            <div className="absolute left-0 right-0 top-4 h-0.5 bg-slate-200 -z-0" />
-            <div
-              className="absolute left-0 top-4 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-500 transition-all duration-500 -z-0"
-              style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
-            />
-
-            {steps.map((step) => {
-              const isCompleted = currentStep > step.id;
-              const isCurrent = currentStep === step.id;
-
-              return (
-                <div key={step.id} className="z-10 flex flex-col items-center gap-2">
-                  <div
-                    className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all duration-300",
-                      isCompleted
-                        ? "border-blue-600 bg-blue-600 text-white"
-                        : isCurrent
-                          ? "border-blue-600 bg-white text-blue-600 shadow-md shadow-blue-100"
-                          : "border-slate-200 bg-white text-slate-400"
-                    )}
-                  >
-                    {isCompleted ? <Check className="size-4" /> : step.id + 1}
-                  </div>
-                  <div className="hidden text-center sm:block">
-                    <p
-                      className={cn(
-                        "text-xs font-bold",
-                        isCurrent ? "text-blue-700" : isCompleted ? "text-slate-700" : "text-slate-400"
-                      )}
-                    >
-                      {step.label}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-slate-400">{step.description}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
 
         <div className="w-full max-w-2xl animate-fade-in">
-          {currentStep === 0 && (
-            <StepIdentity
-              data={data}
-              updateData={updateData}
-              onNext={handleIdentityContinue}
-              onPrev={goPrev}
-              simulationMode={simulationMode}
-            />
-          )}
-          {currentStep === 1 && (
-            <div className="space-y-4">
-              {!simulationMode && <p className="rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3 text-center text-sm font-bold text-violet-900">{billingCopy("checkoutReminder")}</p>}
-              <StepSocial
-                data={data}
-                updateData={updateData}
-                onNext={finishOnboarding}
-                onPrev={goPrev}
-                communityId={communityId}
-                simulationMode={simulationMode}
-                saving={saving}
-              />
-            </div>
-          )}
+          <StepIdentity
+            data={data}
+            updateData={updateData}
+            onNext={finishOnboarding}
+            onPrev={() => undefined}
+            simulationMode={simulationMode}
+          />
         </div>
       </div>
     </div>
