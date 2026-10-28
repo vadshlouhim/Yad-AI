@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Sparkles, Undo2 } from "lucide-react";
-import { composeNewsletter, type NewsletterDocumentData } from "@/lib/newsletter/document-layout";
+import { composeNewsletterWithReport, type NewsletterDocumentData } from "@/lib/newsletter/document-layout";
 import { REVISION_FIELDS, validateNewsletterRevision, type RevisionField, type NewsletterRevision as Revision } from "@/lib/newsletter/revision";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
@@ -34,10 +34,11 @@ export function NewsletterRevision({ data, onApply, onUndo, canUndo, onBusy }: {
       const revision = validateNewsletterRevision(payload, allowed);
       const { parnessText, kiddushText, ...texts } = revision.changes;
       const candidate = { ...data, generated: { ...data.generated, ...texts }, parnessText: parnessText ?? data.parnessText, kiddushText: kiddushText ?? data.kiddushText, layout: { ...data.layout, ...revision.layout } };
-      const pages = await composeNewsletter(candidate);
+      const { pages, omittedMediaIds } = await composeNewsletterWithReport(candidate);
       if (!mounted.current) return;
       if (latestKey.current !== sourceKey) throw new Error(t("draftChanged"));
-      if (!pages.length || pages.length > 2) throw new Error(t("tooManyPages"));
+      // A text revision must not silently push visuals out of the newsletter.
+      if (!pages.length || pages.length > (candidate.layout?.pageLimit ?? 2) || omittedMediaIds.length) throw new Error(t("tooManyPages"));
       onApply(revision, pages, JSON.stringify(candidate));
       setMessage(t("success"));
       setOpen(false);

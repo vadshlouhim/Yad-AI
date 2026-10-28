@@ -10,8 +10,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { editTemplatePosterWithFal, type PosterChange } from "@/lib/templates/fal-edit";
 import { parseOutputLocale, outputIntlLocale } from "@/lib/ai/output-locale";
-import { createReligiousPoster } from "@/lib/religious/poster-overlay";
-import { RELIGIOUS_COPY } from "@/lib/religious/locale";
 
 function changesFromLegacyBody(body: Record<string, unknown>): PosterChange[] {
   if (Array.isArray(body.textBlocks)) {
@@ -78,14 +76,12 @@ export async function POST(request: Request) {
       : requestedLogoUrl;
     let shabbatDate: string | undefined;
     const outputLocale = parseOutputLocale(body.outputLocale, "fr");
-    let shabbatTimes: Awaited<ReturnType<typeof getShabbatTimes>> = null;
     if (body.shabbat === true) {
       const { data: community } = await admin.from("Community").select("city, country, timezone").eq("id", gate.communityId).single();
       const city = changes.find((change) => change.label === "location")?.newText ?? community?.city ?? undefined;
       const times = await getShabbatTimes({ city, country: community?.country ?? undefined, timezone: community?.timezone ?? undefined, outputLocale });
       if (!times?.entry || !times.exit || !times.parasha) return NextResponse.json({ error: "Impossible d’actualiser les horaires. Vérifiez la ville et réessayez." }, { status: 422 });
       shabbatDate = times.date;
-      shabbatTimes = times;
       const fresh: Record<string, string> = { parasha: times.parasha, "entry time": times.entry, "exit time": times.exit, location: city ?? "" };
       for (const change of changes) if (fresh[change.label]) change.newText = fresh[change.label];
       changes.push({ label: "Date", currentText: "", newText: new Date(`${times.date}T12:00:00Z`).toLocaleDateString(outputIntlLocale(outputLocale), { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }) });
@@ -93,34 +89,7 @@ export async function POST(request: Request) {
     const previous = readPosterEditState(source?.editState);
     for (const change of changes) change.currentText = previous?.changes.find((old) => old.label === change.label)?.newText ?? change.currentText;
 
-    const edited = body.shabbat === true && shabbatTimes
-      ? await createReligiousPoster({
-          admin,
-          template,
-          communityId: gate.communityId,
-          userId: user.id,
-          locale: outputLocale,
-          sourceImageUrl: source?.url,
-          logoUrl: logoUrl ?? undefined,
-          content: {
-            communityName: structureName,
-            title: outputLocale === "he" ? "שבת שלום" : "Chabbat Chalom",
-            subtitle: `${RELIGIOUS_COPY[outputLocale].parasha} ${shabbatTimes.parasha}`,
-            hebrewDate: shabbatTimes.hebrewDate,
-            gregorianDate: changes.find((change) => change.label === "Date")?.newText,
-            location: changes.find((change) => change.label === "location")?.newText,
-            entryLabel: RELIGIOUS_COPY[outputLocale].entry,
-            entryTime: shabbatTimes.entry,
-            exitLabel: RELIGIOUS_COPY[outputLocale].exit,
-            exitTime: shabbatTimes.exit,
-            extraLines: [
-              changes.find((change) => change.label === "Kiddouch")?.newText ?? "",
-              changes.find((change) => change.label === "Offices")?.newText ?? "",
-            ],
-            source: RELIGIOUS_COPY[outputLocale].source,
-          },
-        })
-      : await editTemplatePosterWithFal({
+    const edited = await editTemplatePosterWithFal({
       admin,
       template,
       communityId: gate.communityId,

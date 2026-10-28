@@ -1,4 +1,4 @@
-import { NEWSLETTER_RAV_WORD_LIMIT } from "./limits";
+import { NEWSLETTER_TEXT_HARD_LIMIT } from "./limits";
 import { NEWSLETTER_ERROR_CODES, NewsletterError } from "./errors";
 
 export const REVISION_FIELDS = ["title", "intro", "ravWord", "shabbatNote", "eventIntro", "parnessText", "kiddushText"] as const;
@@ -9,7 +9,7 @@ export type NewsletterLayoutPreferences = {
   composition?: "auto" | "full" | "columns";
   fontSize?: number;
   density?: "auto" | "compact" | "tight";
-  pageLimit?: 2 | 3 | 4;
+  pageLimit?: 2 | 3;
   deferredMediaIds?: string[];
 };
 export const CAPTION_LIMIT = 180;
@@ -23,7 +23,8 @@ export function parseLayoutPreferences(raw: unknown): NewsletterLayoutPreference
     ...(["auto", "full", "columns"].includes(String(value.composition)) ? { composition: value.composition as "auto" | "full" | "columns" } : {}),
     ...(typeof value.fontSize === "number" && value.fontSize >= 9.5 && value.fontSize <= 12 && value.fontSize * 2 === Math.round(value.fontSize * 2) ? { fontSize: value.fontSize } : {}),
     ...(["auto", "compact", "tight"].includes(String(value.density)) ? { density: value.density as "auto" | "compact" | "tight" } : {}),
-    ...(value.pageLimit === 2 || value.pageLimit === 3 || value.pageLimit === 4 ? { pageLimit: value.pageLimit } : {}),
+    // Legacy drafts saved on 4 pages are brought back to the 3-page maximum.
+    ...(value.pageLimit === 2 ? { pageLimit: 2 as const } : value.pageLimit === 3 || value.pageLimit === 4 ? { pageLimit: 3 as const } : {}),
     ...(Array.isArray(value.deferredMediaIds) ? { deferredMediaIds: [...new Set(value.deferredMediaIds.filter((id): id is string => typeof id === "string" && id.length <= 200))].slice(0, 20) } : {}),
   };
 }
@@ -38,7 +39,8 @@ export function validateNewsletterRevision(raw: unknown, allowed: RevisionField[
     if (!value.changes || typeof value.changes !== "object" || Array.isArray(value.changes)) throw new NewsletterError(NEWSLETTER_ERROR_CODES.invalidAiResponse);
     for (const [key, text] of Object.entries(value.changes)) {
       if (!allowed.includes(key as RevisionField) || !REVISION_FIELDS.includes(key as RevisionField)) throw new NewsletterError(NEWSLETTER_ERROR_CODES.invalidAiResponse);
-      const maxLength = key === "title" ? 100 : key === "ravWord" ? NEWSLETTER_RAV_WORD_LIMIT : 12000;
+      // A revision may keep a long text as long as the client wrote it.
+      const maxLength = key === "title" ? 100 : NEWSLETTER_TEXT_HARD_LIMIT;
       if (typeof text !== "string" || !text.trim() || text.length > maxLength) throw new NewsletterError(NEWSLETTER_ERROR_CODES.invalidAiResponse);
       changes[key as RevisionField] = text;
     }

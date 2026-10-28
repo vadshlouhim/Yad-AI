@@ -28,7 +28,8 @@ export async function waitForNewsletterPdf(chrome, url) {
     const { sessionId } = await send("Target.attachToTarget", { targetId, flatten: true });
     await send("Page.enable", {}, sessionId);
     await send("Page.navigate", { url }, sessionId);
-    const deadline = Date.now() + 50000;
+    // Multi-page exports with many images can need longer on slow machines.
+    const deadline = Date.now() + (Number(process.env.NEWSLETTER_PDF_TIMEOUT_MS) || 50000);
     while (Date.now() < deadline) {
       await new Promise(resolve => setTimeout(resolve, 200));
       const result = await send("Runtime.evaluate", { expression: "document.body?.textContent || ''", returnByValue: true }, sessionId).catch(() => null);

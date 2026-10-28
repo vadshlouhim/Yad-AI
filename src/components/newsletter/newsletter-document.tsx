@@ -2,7 +2,7 @@
 
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { composeNewsletter, PAPER, type NewsletterDocumentData } from "@/lib/newsletter/document-layout";
+import { composeNewsletterWithReport, PAPER, type NewsletterComposition, type NewsletterDocumentData } from "@/lib/newsletter/document-layout";
 import { useTranslations } from "next-intl";
 import { NEWSLETTER_ERROR_CODES, newsletterErrorCode } from "@/lib/newsletter/errors";
 
@@ -18,8 +18,11 @@ export const NewsletterDocument = forwardRef<NewsletterDocumentHandle, {
   data: NewsletterDocumentData;
   visible: boolean;
   onError: (error: string) => void;
+  /** The content does not fit the selected page count, even after automatic tightening. */
+  onOverflow?: () => void;
+  onComposed?: (report: NewsletterComposition) => void;
   prepared?: { key: string; pages: string[] } | null;
-}>(function NewsletterDocument({ data, visible, onError, prepared }, ref) {
+}>(function NewsletterDocument({ data, visible, onError, onOverflow, onComposed, prepared }, ref) {
   const t = useTranslations("newsletter.document");
   const key = JSON.stringify(data);
   const [rendered, setRendered] = useState<{ key: string; pages: string[] } | null>(null);
@@ -30,10 +33,12 @@ export const NewsletterDocument = forwardRef<NewsletterDocumentHandle, {
   const printRoot = useRef<HTMLDivElement>(null);
   const previewRefs = useRef<Array<HTMLDivElement | null>>([]);
   const alive = useRef(true);
-  const pending = useRef<{ key: string; promise: Promise<string[]> } | null>(null);
+  const pending = useRef<{ key: string; promise: Promise<NewsletterComposition> } | null>(null);
   const latestKey = useRef(key);
+  const onComposedRef = useRef(onComposed);
 
   useEffect(() => { latestKey.current = key; }, [key]);
+  useEffect(() => { onComposedRef.current = onComposed; }, [onComposed]);
   useEffect(() => {
     alive.current = true;
     return () => { alive.current = false; };
@@ -43,12 +48,13 @@ export const NewsletterDocument = forwardRef<NewsletterDocumentHandle, {
     setBusy(true);
     try {
       if (pending.current?.key !== key) {
-        pending.current = { key, promise: prepared?.key === key ? Promise.resolve(prepared.pages) : composeNewsletter(JSON.parse(key) as NewsletterDocumentData) };
+        pending.current = { key, promise: prepared?.key === key ? Promise.resolve({ pages: prepared.pages, omittedMediaIds: [] }) : composeNewsletterWithReport(JSON.parse(key) as NewsletterDocumentData) };
       }
       const job = pending.current;
-      const pages = await job.promise;
+      const composition = await job.promise;
       if (!alive.current || latestKey.current !== key) throw new Error(t("contentChanged"));
-      setRendered({ key, pages });
+      setRendered({ key, pages: composition.pages });
+      onComposedRef.current?.(composition);
       await paint();
       return Array.from(printRoot.current?.querySelectorAll<HTMLElement>("article[data-newsletter-page]") ?? []);
     } catch (error) {
@@ -65,10 +71,12 @@ export const NewsletterDocument = forwardRef<NewsletterDocumentHandle, {
     if (visible) void prepare().catch((error: unknown) => {
       if (alive.current && latestKey.current === key) {
         const code = newsletterErrorCode(error);
-        onError(code === NEWSLETTER_ERROR_CODES.layoutOverflow ? t("layoutOverflow", { pages: (JSON.parse(key) as NewsletterDocumentData).layout?.pageLimit ?? 2 }) : code === NEWSLETTER_ERROR_CODES.printableOverflow ? t("printableOverflow") : t("compositionError"));
+        const overflow = code === NEWSLETTER_ERROR_CODES.layoutOverflow || code === NEWSLETTER_ERROR_CODES.printableOverflow;
+        if (overflow && onOverflow) onOverflow();
+        else onError(code === NEWSLETTER_ERROR_CODES.layoutOverflow ? t("layoutOverflow", { pages: (JSON.parse(key) as NewsletterDocumentData).layout?.pageLimit ?? 2 }) : code === NEWSLETTER_ERROR_CODES.printableOverflow ? t("printableOverflow") : t("compositionError"));
       }
     });
-  }, [visible, prepare, onError, key, t]);
+  }, [visible, prepare, onError, onOverflow, key, t]);
 
   useEffect(() => {
     const root = container.current;

@@ -8,12 +8,12 @@ import { NewsletterDocument, type NewsletterDocumentHandle } from "@/components/
 import { NewsletterRevision } from "./newsletter-revision";
 import { PhotoCaptions } from "./photo-captions";
 import { parseLayoutPreferences, type NewsletterLayoutPreferences, type NewsletterRevision as Revision } from "@/lib/newsletter/revision";
-import type { NewsletterDocumentData } from "@/lib/newsletter/document-layout";
+import type { NewsletterComposition, NewsletterDocumentData } from "@/lib/newsletter/document-layout";
 import { estimateNewsletterFill } from "@/lib/newsletter/layout-estimate";
 import { NEWSLETTER_ERROR_CODES, newsletterErrorCode } from "@/lib/newsletter/errors";
 import { inlineNewsletterExportImages, NEWSLETTER_IMAGE_ACCEPT, resolveNewsletterBanner, uploadNewsletterBatch, uploadNewsletterImage } from "@/lib/newsletter/media";
 import { createDraftSaveQueue } from "@/lib/newsletter/save-queue";
-import { limitNewsletterText, NEWSLETTER_EVENT_INTRO_LIMIT, NEWSLETTER_INTRO_LIMIT, NEWSLETTER_PARASHA_LIMIT, NEWSLETTER_PHOTO_LIMIT, NEWSLETTER_POSTER_LIMIT, NEWSLETTER_RAV_WORD_LIMIT, NEWSLETTER_SEFER_LIMIT, NEWSLETTER_SPECIFIC_EVENT_LIMIT } from "@/lib/newsletter/limits";
+import { limitNewsletterText, NEWSLETTER_EVENT_INTRO_LIMIT, NEWSLETTER_INTRO_LIMIT, NEWSLETTER_PARASHA_LIMIT, NEWSLETTER_PHOTO_LIMIT, NEWSLETTER_POSTER_LIMIT, NEWSLETTER_RAV_WORD_LIMIT, NEWSLETTER_SEFER_LIMIT, NEWSLETTER_MAX_PAGES, NEWSLETTER_SPECIFIC_EVENT_LIMIT, NEWSLETTER_TEXT_HARD_LIMIT } from "@/lib/newsletter/limits";
 import { newsletterLogoImageUrl } from "@/lib/newsletter/media-path";
 import { parseNewsletterLabels, resolveNewsletterLabels, type NewsletterLabelKey, type NewsletterLabels } from "@/lib/newsletter/labels";
 import { NEWSLETTER_CHALLOT_ICON_URL } from "@/lib/newsletter/kiddush";
@@ -331,7 +331,7 @@ export function parseNewsletterDraft(
       title: safeTitle,
       subtitle: outputLocale === "he" && !/[\u0590-\u05ff]/.test(draftText(generatedValue.subtitle)) ? defaults.subtitle : draftText(generatedValue.subtitle, defaults.subtitle),
       intro: draftText(generatedValue.intro, defaults.intro),
-      ravWord: limitNewsletterText(draftText(generatedValue.ravWord), NEWSLETTER_RAV_WORD_LIMIT),
+      ravWord: draftText(generatedValue.ravWord),
       shabbatNote: draftText(generatedValue.shabbatNote),
       eventIntro: draftText(generatedValue.eventIntro),
       restaurantAd: draftText(generatedValue.restaurantAd),
@@ -435,11 +435,10 @@ export function NewsletterPaperClient({
   const [pendingServerDraft, setPendingServerDraft] = useState<NewsletterDraft | null>(null);
   const [retryLoadCount, setRetryLoadCount] = useState(0);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
-  const [overflowOpen, setOverflowOpen] = useState(false);
-  const [overflowPreview, setOverflowPreview] = useState(false);
+  // Set only when the content does not fit even after automatic tightening.
+  const [needsMorePages, setNeedsMorePages] = useState(false);
+  const [compositionReport, setCompositionReport] = useState({ pageCount: 2, omittedMedia: 0, flowFallback: false, oversizedBlocks: [] as string[] });
   const [overflowShortening, setOverflowShortening] = useState(false);
-  const [shortenProposal, setShortenProposal] = useState<Pick<GeneratedNewsletter, "intro" | "ravWord" | "shabbatNote"> | null>(null);
-  const [deferChoice, setDeferChoice] = useState("");
 
   const activeCount = useMemo(() => Object.values(enabled).filter(Boolean).length, [enabled]);
   const mayContainLegacyCuts = [[generated.intro, 180], [generated.ravWord, 850], [generated.shabbatNote, 620], [generated.eventIntro, 220]].some(([text, limit]) => typeof text === "string" && text.length === limit && !/[.!?…]$/.test(text.trim()));
@@ -485,17 +484,32 @@ export function NewsletterPaperClient({
     layout,
   };
   const fillEstimate = estimateNewsletterFill(baseDocumentData);
-  const pageLimit = layout.pageLimit ?? 2;
-  const nextPageLimit = pageLimit === 2 ? 3 : 4;
   const documentData: NewsletterDocumentData = {
     ...baseDocumentData,
     layout: {
       ...layout,
       density: layout.density ?? (fillEstimate.percent > 100 ? "compact" : "auto"),
-      // While the overflow dialog is open, the preview shows the result with one more page.
-      pageLimit: overflowPreview ? nextPageLimit : layout.pageLimit,
     },
   };
+  const showOverflow = useCallback(() => setNeedsMorePages(true), []);
+  const reportedFallback = useRef("");
+  const handleComposed = useCallback((report: NewsletterComposition) => {
+    setNeedsMorePages(false);
+    const summary = { pageCount: report.pages.length, omittedMedia: report.omittedMediaIds.length, flowFallback: Boolean(report.flowFallback), oversizedBlocks: report.oversizedBlocks ?? [] };
+    setCompositionReport(current => JSON.stringify(current) === JSON.stringify(summary) ? current : summary);
+    // Let the team know when the safety net was needed; never blocks the user.
+    const signature = JSON.stringify(summary);
+    if ((summary.flowFallback || summary.omittedMedia) && reportedFallback.current !== signature) {
+      reportedFallback.current = signature;
+      void fetch("/api/newsletter/layout-event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...summary, outputLocale }) }).catch(() => undefined);
+    }
+  }, [outputLocale]);
+  // The newsletter grows on its own: past one recto-verso sheet the client gets a warning, never a blocker.
+  const compositionNote = compositionReport.pageCount > 2
+    ? [t("overflow.pagesWarning", { pages: compositionReport.pageCount, sheets: Math.ceil(compositionReport.pageCount / 2) }), compositionReport.flowFallback ? t("overflow.continued") : ""].filter(Boolean).join(" ")
+    : compositionReport.flowFallback
+      ? t("overflow.continued")
+      : null;
   const localDraftKey = useMemo(() => `easycom.newsletter.draft.${community.id}.${userId}.${outputLocale}`, [community.id, outputLocale, userId]);
   const draftSnapshot = useMemo<NewsletterDraft>(() => ({
     version: NEWSLETTER_DRAFT_VERSION,
@@ -545,11 +559,7 @@ export function NewsletterPaperClient({
   function applyRevision(revision: Revision, pages: string[], key: string) {
     setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, posters, partnerAds, layout, outputLocale, labelOverrides });
     const { parnessText: parness, kiddushText: kiddush, ...texts } = revision.changes;
-    setGenerated(current => ({
-      ...current,
-      ...texts,
-      ...(texts.ravWord !== undefined ? { ravWord: limitNewsletterText(texts.ravWord, NEWSLETTER_RAV_WORD_LIMIT) } : {}),
-    }));
+    setGenerated(current => ({ ...current, ...texts }));
     if (parness !== undefined) setParnessText(parness);
     if (kiddush !== undefined) setKiddushText(kiddush);
     setLayout(current => ({ ...current, ...revision.layout }));
@@ -1040,8 +1050,7 @@ export function NewsletterPaperClient({
       if (action === "pdf") await exportPdf(pages);
     } catch (outputError) {
       if ([NEWSLETTER_ERROR_CODES.layoutOverflow, NEWSLETTER_ERROR_CODES.printableOverflow].includes(newsletterErrorCode(outputError) as never)) {
-        setOverflowPreview(pageLimit < 4);
-        setOverflowOpen(true);
+        setNeedsMorePages(true);
         setEditorStep("preview");
         setError(null);
       } else {
@@ -1053,7 +1062,8 @@ export function NewsletterPaperClient({
     }
   }
 
-  async function prepareOverflowShortening() {
+  /** Applied directly (no before/after screen): "Annuler" restores the previous version. */
+  async function shortenTextsAutomatically() {
     if (overflowShortening) return;
     setOverflowShortening(true);
     setError(null);
@@ -1073,44 +1083,15 @@ export function NewsletterPaperClient({
       const [intro, ravWord, shabbatNote] = await Promise.all([
         shorten(generated.intro), shorten(generated.ravWord), shorten(generated.shabbatNote),
       ]);
-      setShortenProposal({ intro, ravWord, shabbatNote });
+      setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, posters, partnerAds, layout, outputLocale, labelOverrides });
+      setGenerated(current => ({ ...current, intro, ravWord, shabbatNote }));
+      setLayout(current => ({ ...current, density: "compact" }));
+      setNeedsMorePages(false);
     } catch (shortenError) {
       setError(shortenError instanceof Error ? shortenError.message : t("shorten.error"));
     } finally {
       setOverflowShortening(false);
     }
-  }
-
-  function acceptOverflowShortening() {
-    if (!shortenProposal) return;
-    setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, posters, partnerAds, layout, outputLocale, labelOverrides });
-    setGenerated(current => ({ ...current, ...shortenProposal }));
-    setLayout(current => ({ ...current, density: "compact" }));
-    setShortenProposal(null);
-    setOverflowPreview(false);
-    setOverflowOpen(false);
-  }
-
-  function reduceOverflowVisuals() {
-    setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, posters, partnerAds, layout, outputLocale, labelOverrides });
-    setLayout(current => ({ ...current, density: "tight", fontSize: 9.5 }));
-    setOverflowPreview(false);
-    setOverflowOpen(false);
-  }
-
-  function deferOverflowMedia() {
-    if (!deferChoice) return;
-    setPreviousRevision({ generated, parnessText, kiddushText, specificEventText, seferHamitsvotText, photos, posters, partnerAds, layout, outputLocale, labelOverrides });
-    setLayout(current => ({ ...current, deferredMediaIds: [...new Set([...(current.deferredMediaIds ?? []), deferChoice])] }));
-    setDeferChoice("");
-    setOverflowPreview(false);
-    setOverflowOpen(false);
-  }
-
-  function addOverflowPage() {
-    setLayout(current => ({ ...current, pageLimit: nextPageLimit }));
-    setOverflowPreview(false);
-    setOverflowOpen(false);
   }
 
   const sectionTitle = (key: NewsletterLabelKey, className?: string) => (
@@ -1259,11 +1240,7 @@ export function NewsletterPaperClient({
                 <span aria-hidden="true">{fillEstimate.percent}%</span>
               </div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/80"><div className={cn("h-full rounded-full transition-[width]", fillEstimate.percent < 90 ? "bg-emerald-600" : fillEstimate.percent <= 100 ? "bg-amber-500" : "bg-red-600")} style={{ width: `${Math.min(100, fillEstimate.percent)}%` }} /></div>
-              <p className="mt-2 text-xs font-semibold opacity-80">{t(fillEstimate.percent > 100 ? "fill.over" : fillEstimate.percent >= 90 ? "fill.close" : "fill.comfortable", { pages: pageLimit })}</p>
-              {pageLimit > 2 ? <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-black/5 pt-3" data-newsletter-page-format>
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#164960] ring-1 ring-slate-200">{t("fill.format", { pages: pageLimit, sheets: Math.ceil(pageLimit / 2) })}</span>
-                <button type="button" onClick={() => setLayout(current => ({ ...current, pageLimit: 2 }))} className="min-h-9 rounded-xl px-3 text-xs font-black text-[#164960] underline-offset-2 hover:underline">{t("fill.backToTwo")}</button>
-              </div> : null}
+              <p className="mt-2 text-xs font-semibold opacity-80">{t(fillEstimate.percent > 100 ? "fill.over" : fillEstimate.percent >= 90 ? "fill.close" : "fill.comfortable", { pages: 2 })}</p>
             </div>
             {(layout.deferredMediaIds?.length ?? 0) > 0 ? <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
               <p className="font-bold">{t("overflow.deferHelp")}</p>
@@ -1316,11 +1293,12 @@ export function NewsletterPaperClient({
                     id="newsletter-rav-word"
                     value={generated.ravWord}
                     onChange={(event) => setGenerated((current) => ({ ...current, ravWord: event.target.value }))}
-                    maxLength={NEWSLETTER_RAV_WORD_LIMIT}
+                    maxLength={NEWSLETTER_TEXT_HARD_LIMIT}
                     rows={6}
                     className="mt-3 w-full resize-y rounded-xl border border-[#cfe6d9] bg-white px-3 py-2 text-base font-medium leading-6 outline-none focus:border-[#087e55] focus:ring-4 focus:ring-emerald-100 sm:text-sm"
                   />
-                  <span className="mt-1 block text-end text-[10px] font-bold text-slate-500">{generated.ravWord.length}/{NEWSLETTER_RAV_WORD_LIMIT} {t("charactersMaximum")}</span>
+                  <span className="mt-1 block text-end text-[10px] font-bold text-slate-500">{t("charactersRecommended", { count: generated.ravWord.length, recommended: NEWSLETTER_RAV_WORD_LIMIT })}</span>
+                  {generated.ravWord.length > NEWSLETTER_RAV_WORD_LIMIT ? <p className="mt-1 text-xs font-semibold text-amber-800">{t("longTextHint")}</p> : null}
                   {generated.ravWord.length > NEWSLETTER_RAV_WORD_LIMIT * 0.8 ? <button type="button" onClick={() => void shortenText("ravWord", NEWSLETTER_RAV_WORD_LIMIT)} disabled={Boolean(shorteningField)} className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-violet-100 px-3 text-xs font-black text-violet-900 disabled:opacity-60">{shorteningField === "ravWord" ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}{t("shorten.action")}</button> : null}
                   <div id="newsletter-rav-suggestion" aria-live="polite">
                     {!localizedShabbat?.parasha?.trim() ? <p className="mt-2 text-xs font-medium text-amber-800">{t("rav.parashaRequired")}</p> : null}
@@ -1472,49 +1450,20 @@ export function NewsletterPaperClient({
 
         <main ref={previewRef} className={cn("min-w-0 rounded-[1.8rem] border border-amber-100 bg-gradient-to-b from-[#fffdf8] to-[#f7f2e7] p-3 shadow-[0_16px_42px_rgba(95,68,22,0.1)] sm:p-5 xl:col-span-2", editorStep !== "preview" && "hidden")}>
           {draftReady ? <NewsletterRevision data={documentData} onApply={applyRevision} onUndo={undoRevision} canUndo={Boolean(previousRevision)} onBusy={setRevisionBusy} /> : null}
-          {draftReady ? <NewsletterDocument prepared={preparedRevision} ref={documentRef} data={documentData} visible={editorStep === "preview"} onError={setError} /> : null}
+          {needsMorePages ? <div className="mb-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 print:hidden" role="status" data-newsletter-overflow-banner>
+            <p className="font-black text-amber-950">{t("overflow.tooLongTitle", { pages: NEWSLETTER_MAX_PAGES })}</p>
+            <p className="mt-1 text-sm text-amber-900">{t("overflow.tooLongHelp")}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <button type="button" onClick={() => void shortenTextsAutomatically()} disabled={overflowShortening} className="min-h-11 text-sm font-bold text-amber-900 underline underline-offset-2 disabled:opacity-60">{overflowShortening ? t("overflow.shortening") : t("overflow.shortenInstead")}</button>
+            </div>
+          </div> : null}
+          {!needsMorePages && compositionNote ? <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950 print:hidden" role="status" data-newsletter-composition-note>
+            <p>{compositionNote}</p>
+            {compositionReport.pageCount > 2 ? <button type="button" onClick={() => void shortenTextsAutomatically()} disabled={overflowShortening} className="mt-2 min-h-9 text-sm font-bold text-amber-900 underline underline-offset-2 disabled:opacity-60">{overflowShortening ? t("overflow.shortening") : t("overflow.shortenOptional")}</button> : null}
+          </div> : null}
+          {draftReady ? <NewsletterDocument prepared={preparedRevision} ref={documentRef} data={documentData} visible={editorStep === "preview"} onError={setError} onOverflow={showOverflow} onComposed={handleComposed} /> : null}
         </main>
       </div>
-      {overflowOpen ? <div className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/55 p-3 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="newsletter-overflow-title" data-newsletter-overflow-dialog>
-        <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[1.75rem] bg-white p-5 shadow-2xl sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 id="newsletter-overflow-title" className="text-xl font-black text-slate-950">{pageLimit < 4 ? t("overflow.addPageTitle", { pages: pageLimit, next: nextPageLimit }) : t("overflow.title")}</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-700">{pageLimit === 2 ? t("overflow.message") : t("overflow.messageExtended", { pages: pageLimit })}</p>
-            </div>
-            <button type="button" onClick={() => { setOverflowOpen(false); setOverflowPreview(false); }} className="min-h-10 rounded-xl px-3 text-sm font-black text-slate-500 hover:bg-slate-100" aria-label={t("overflow.close")}>×</button>
-          </div>
-          {pageLimit < 4 ? <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4" data-newsletter-add-page>
-            <button type="button" onClick={addOverflowPage} className="min-h-12 w-full rounded-2xl bg-amber-500 px-4 text-sm font-black text-amber-950 shadow-sm hover:bg-amber-400">{t("overflow.addPage", { next: nextPageLimit })}</button>
-            <p className="mt-2 text-center text-xs font-semibold text-amber-900">{t(nextPageLimit === 3 ? "overflow.addPageHelp3" : "overflow.addPageHelp4")}</p>
-          </div> : <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-800">{t("overflow.maxReached")}</p>}
-          {pageLimit < 4 ? <p className="mt-5 text-sm font-black text-slate-800">{t("overflow.otherSolutions", { pages: pageLimit })}</p> : null}
-          <div className="mt-4 rounded-2xl bg-slate-50 p-3 text-sm text-slate-700">
-            <p className="font-black">{t("overflow.dominant")}</p>
-            <p className="mt-1">{fillEstimate.sections.slice().sort((a, b) => b.percent - a.percent).slice(0, 3).map(section => t("overflow.dominantItem", { label: t(`fill.names.${section.key}`), percent: section.percent })).join(", ")}</p>
-          </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <button type="button" onClick={() => void prepareOverflowShortening()} disabled={overflowShortening} className="min-h-12 rounded-2xl bg-violet-700 px-4 py-3 text-sm font-black text-white disabled:opacity-60">{overflowShortening ? t("overflow.shortening") : t("overflow.shorten")}</button>
-            <button type="button" onClick={reduceOverflowVisuals} className="min-h-12 rounded-2xl bg-[#164960] px-4 py-3 text-sm font-black text-white">{t("overflow.reduceVisuals")}</button>
-          </div>
-          {shortenProposal ? <div className="mt-4 rounded-2xl border border-violet-200 bg-violet-50 p-4">
-            <h3 className="font-black text-violet-950">{t("overflow.compare")}</h3>
-            {(["intro", "ravWord", "shabbatNote"] as const).map(key => generated[key].trim() ? <div key={key} className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
-              <div className="rounded-xl bg-white p-3"><strong>{t("overflow.before", { count: generated[key].length })}</strong><p className="mt-1 line-clamp-3 text-slate-600">{generated[key]}</p></div>
-              <div className="rounded-xl bg-white p-3"><strong>{t("overflow.after", { count: shortenProposal[key].length })}</strong><p className="mt-1 line-clamp-3 text-slate-600">{shortenProposal[key]}</p></div>
-            </div> : null)}
-            <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={acceptOverflowShortening} className="min-h-10 rounded-xl bg-violet-800 px-4 text-sm font-black text-white">{t("overflow.apply")}</button><button type="button" onClick={() => setShortenProposal(null)} className="min-h-10 rounded-xl px-4 text-sm font-black text-slate-600">{t("overflow.cancel")}</button></div>
-          </div> : null}
-          <div className="mt-4 rounded-2xl border border-slate-200 p-3">
-            <label className="text-sm font-black text-slate-800">{t("overflow.defer")}</label>
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row"><select value={deferChoice} onChange={event => setDeferChoice(event.target.value)} className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-sm">
-              <option value="">{t("overflow.chooseMedia")}</option>
-              {[...photos.map(item => ({ ...item, kind: t("fill.names.photos") })), ...posters.map(item => ({ ...item, kind: t("fill.names.posters") })), ...partnerAds.map(item => ({ ...item, kind: t("fill.names.partners") }))].filter(item => !deferredIds.has(item.id)).map(item => <option key={item.id} value={item.id}>{item.kind} · {item.name}</option>)}
-            </select><button type="button" onClick={deferOverflowMedia} disabled={!deferChoice} className="min-h-11 rounded-xl bg-slate-800 px-4 text-sm font-black text-white disabled:opacity-40">{t("overflow.deferAction")}</button></div>
-            <p className="mt-2 text-xs text-slate-500">{t("overflow.deferHelp")}</p>
-          </div>
-        </div>
-      </div> : null}
       <div className={cn("fixed inset-x-0 bottom-[calc(5.95rem+env(safe-area-inset-bottom))] z-20 border-t border-[#dce9e5] bg-[#f7faf8]/95 px-3 py-2 backdrop-blur print:hidden md:bottom-0 md:z-40 md:py-3", keyboardOpen && "max-md:hidden")}>
         <div className={cn("mx-auto grid max-w-3xl gap-2", "grid-cols-1")}>
           {editorStep === "modules" ? (
@@ -1583,10 +1532,13 @@ function EditableSectionTitle({ label, defaultLabel, modified, editLabel, resetL
   </span>;
 }
 
+/** `maxLength` is a recommended length: past it the field warns, it never blocks typing or pasting. */
 function TextArea({ label, value, onChange, maxLength, onShorten, shortening = false, shortenLabel }: { label: string; value: string; onChange: (value: string) => void; maxLength?: number; onShorten?: () => void; shortening?: boolean; shortenLabel?: string }) {
+  const t = useTranslations("newsletter");
   return <label className="block text-sm font-bold text-slate-700">{label}
-    <textarea value={value} maxLength={maxLength} onChange={(event) => onChange(event.target.value)} rows={4} className="mt-1.5 w-full resize-y rounded-xl border border-violet-100 px-3 py-2 text-base font-medium leading-6 outline-none focus:border-violet-700 focus:ring-2 focus:ring-violet-100 sm:text-sm" />
-    {maxLength ? <span className="mt-1 block text-end text-[10px] font-bold text-slate-500">{value.length}/{maxLength}</span> : null}
+    <textarea value={value} maxLength={NEWSLETTER_TEXT_HARD_LIMIT} onChange={(event) => onChange(event.target.value)} rows={4} className="mt-1.5 w-full resize-y rounded-xl border border-violet-100 px-3 py-2 text-base font-medium leading-6 outline-none focus:border-violet-700 focus:ring-2 focus:ring-violet-100 sm:text-sm" />
+    {maxLength ? <span className="mt-1 block text-end text-[10px] font-bold text-slate-500">{t("charactersRecommended", { count: value.length, recommended: maxLength })}</span> : null}
+    {maxLength && value.length > maxLength ? <span className="mt-1 block text-xs font-semibold text-amber-800">{t("longTextHint")}</span> : null}
     {onShorten && maxLength && value.length > maxLength * 0.8 ? <button type="button" onClick={onShorten} disabled={shortening} className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-violet-100 px-3 text-xs font-black text-violet-900 disabled:opacity-60">{shortening ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}{shortenLabel}</button> : null}
   </label>;
 }

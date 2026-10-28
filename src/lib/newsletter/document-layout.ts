@@ -1,11 +1,12 @@
 import type { CommunityInfo, GeneratedNewsletter, ModuleKey, NewsletterBirthday, NewsletterEvent, NewsletterManualBirthday, NewsletterShabbat, UploadedPhoto } from "@/components/newsletter/newsletter-paper-client";
+import { NEWSLETTER_MAX_PAGES } from "./limits";
 import { isSaturdayDate, newsletterShabbatDate, type NewsletterStudy } from "./shabbat-study";
 import type { NewsletterLayoutPreferences } from "./revision";
 import { resolveNewsletterLabels, type NewsletterLabels } from "./labels";
 import { formatKiddushSponsor, NEWSLETTER_CHALLOT_ICON_URL } from "./kiddush";
 import { outputIntlLocale, type OutputLocale } from "@/lib/ai/output-locale";
 import { RELIGIOUS_COPY } from "./religious-locale";
-import { NEWSLETTER_ERROR_CODES, NewsletterError } from "./errors";
+import { NEWSLETTER_ERROR_CODES, NewsletterError, newsletterErrorCode } from "./errors";
 
 export const PAPER = { width: 794, height: 1123, margin: 42, gap: 18 };
 const CONTENT_WIDTH = PAPER.width - PAPER.margin * 2;
@@ -133,10 +134,11 @@ function heading(text: string, compact = false, fontSize = 11) {
   return node;
 }
 
-export function renderDocumentBlock(block: DocumentBlock, fontSize: number) {
+export function renderDocumentBlock(block: DocumentBlock, fontSize: number, locale: OutputLocale = "fr") {
   const section = element("section", undefined, { breakInside: "avoid", minWidth: "0" });
   section.dataset.blockId = block.id;
-  if (block.title) section.append(heading(block.title + (block.kind === "text" && block.continuation ? " — suite" : ""), block.kind === "text" && block.compact));
+  const continuation = block.kind === "text" && block.continuation ? (locale === "he" ? " — המשך" : " — suite") : "";
+  if (block.title) section.append(heading(block.title + continuation, block.kind === "text" && block.compact));
   if (block.kind === "text") {
     const text = element("div", block.id === "dedications" ? undefined : block.text, {
       whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: block.compact ? "var(--newsletter-font), Arial, sans-serif" : "var(--newsletter-serif), Georgia, 'Times New Roman', serif",
@@ -301,7 +303,9 @@ function header(data: NewsletterDocumentData, first: boolean) {
 
 function footer(data: NewsletterDocumentData, index: number, total: number) {
   const rtl = data.outputLocale === "he";
-  const node = element("footer", undefined, { display: "flex", flexShrink: "0", gap: "14px", justifyContent: "space-between", alignItems: "end", borderTop: `1px solid ${GOLD}`, paddingTop: "10px", marginTop: "16px", fontSize: "10px", lineHeight: "1.4", color: ACCENT });
+  // Must match the footer reserve used by the compositor (8px when tight, 16px otherwise).
+  const marginTop = data.layout?.density === "tight" ? "8px" : "16px";
+  const node = element("footer", undefined, { display: "flex", flexShrink: "0", gap: "14px", justifyContent: "space-between", alignItems: "end", borderTop: `1px solid ${GOLD}`, paddingTop: "10px", marginTop, fontSize: "10px", lineHeight: "1.4", color: ACCENT });
   const info = element("div", undefined, { minWidth: "0", overflowWrap: "anywhere" });
   info.append(element("strong", data.community.name));
   const contact = element("div");
@@ -504,8 +508,105 @@ function renderCaption(text: string) {
   return caption;
 }
 
+export type NewsletterComposition = {
+  pages: string[];
+  omittedMediaIds: string[];
+  /** The flowing safety-net layout was used: some article continues on the next page. */
+  flowFallback?: boolean;
+  /** Blocks taller than a whole page, which prevented the whole-article layout. */
+  oversizedBlocks?: string[];
+};
+
+const isOverflowError = (error: unknown) =>
+  [NEWSLETTER_ERROR_CODES.layoutOverflow, NEWSLETTER_ERROR_CODES.printableOverflow].includes(newsletterErrorCode(error) as never);
+
+/**
+ * Never blocks and never drops anything the client added:
+ *  1. one recto-verso sheet (2 pages), tightening spacing first;
+ *  2. otherwise whole articles on 3 pages, every visual kept;
+ *  3. otherwise articles flow from page to page ("— suite"), as many pages as the content
+ *     needs, up to NEWSLETTER_MAX_PAGES. The editor shows a warning, never a dead end.
+ * The page count is decided by the content; `layout.pageLimit` from older drafts is ignored.
+ */
+export async function composeNewsletterWithReport(data: NewsletterDocumentData): Promise<NewsletterComposition> {
+  const attempt = async (pageLimit: 2 | 3, densities: Array<"auto" | "compact" | "tight">) => {
+    for (const density of densities) {
+      try {
+        return await composeNewsletterOnce({ ...data, layout: { ...data.layout, pageLimit, density } });
+      } catch (error) {
+        if (!isOverflowError(error)) throw error;
+      }
+    }
+    return null;
+  };
+  const densities = [...new Set([data.layout?.density ?? "auto", "tight" as const])];
+  const pages = await attempt(2, densities) ?? await attempt(3, densities);
+  if (pages) return { pages, omittedMediaIds: [] };
+
+  const flow = await composeNewsletterFlow(data, 3);
+  if (flow.pages.length > NEWSLETTER_MAX_PAGES) throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { maxPages: NEWSLETTER_MAX_PAGES });
+  return { pages: flow.pages, omittedMediaIds: [], flowFallback: true, oversizedBlocks: flow.oversizedBlocks };
+}
+
+/**
+ * Safety net: a word-processor flow that cannot fail. Articles may continue on the next
+ * page ("— suite"); nothing is truncated or hidden. Type tightens to stay within
+ * `targetPages`; longer content keeps 11px type and gets the extra pages it needs.
+ */
+async function composeNewsletterFlow(data: NewsletterDocumentData, targetPages: number): Promise<{ pages: string[]; oversizedBlocks: string[] }> {
+  await document.fonts.ready;
+  const blocks = await makeBlocks(data);
+  const rtl = data.outputLocale === "he";
+  const root = element("div", undefined, { position: "fixed", left: "-20000px", top: "0", width: CONTENT_WIDTH + "px", fontFamily: "var(--newsletter-font), Arial, sans-serif", color: INK, visibility: "hidden", direction: rtl ? "rtl" : "ltr" });
+  root.style.setProperty("--newsletter-font", rtl ? "var(--font-hebrew)" : "Arial");
+  root.style.setProperty("--newsletter-serif", rtl ? "var(--font-hebrew)" : "Georgia");
+  document.body.append(root);
+  try {
+    const flowData = { ...data, layout: { ...data.layout, density: "auto" as const } };
+    const heightOf = (node: HTMLElement) => { root.replaceChildren(node); return node.getBoundingClientRect().height; };
+    const cache = new Map<string, number>();
+    const measure = (block: DocumentBlock, font: number) => {
+      const key = JSON.stringify([block, font]);
+      if (!cache.has(key)) cache.set(key, heightOf(renderDocumentBlock(block, font, data.outputLocale)));
+      return cache.get(key)!;
+    };
+    // 16px footer margin + a few pixels of safety for rounding differences between browsers.
+    const footHeight = heightOf(footer(flowData, 0, 9)) + 16 + 8;
+    const capacities = [true, false].map(first => PAPER.height - PAPER.margin * 2 - heightOf(header(flowData, first)) - footHeight);
+    const capacity = (index: number) => capacities[index ? 1 : 0];
+    const oversizedBlocks = blocks.filter((block, index) => measure(block, 11) > capacity(index ? 1 : 0)).map(block => block.id);
+    let layout: DocumentPage[] = [];
+    for (const font of [11, 10.5, 10, 9.5]) {
+      const candidate = paginateNewsletter(blocks, capacity, measure, font);
+      if (candidate.length <= targetPages) { layout = candidate; break; }
+    }
+    // Too long for `targetPages` even with tighter type: keep the readable size and add pages.
+    if (!layout.length) layout = paginateNewsletter(blocks, capacity, measure, 11);
+    while (layout.length < 2) layout.push({ blocks: [], fontSize: 11 });
+    const pages = layout.map((page, index) => {
+      const article = paper(flowData, index);
+      article.dataset.composition = "flow";
+      article.dataset.bodyFont = String(page.fontSize);
+      const content = element("div", undefined, { flex: "1", minHeight: "0" });
+      content.dataset.newsletterContent = "true";
+      page.blocks.forEach((block, i) => {
+        const section = renderDocumentBlock(block, page.fontSize, data.outputLocale);
+        if (i) section.style.marginTop = blockGap(page.fontSize) + "px";
+        content.append(section);
+      });
+      article.append(content, footer(flowData, index, layout.length));
+      return article.outerHTML;
+    });
+    return { pages, oversizedBlocks };
+  } finally { root.remove(); }
+}
+
 /** Measured zones shared unchanged by preview, browser print and PDF export. */
 export async function composeNewsletter(data: NewsletterDocumentData): Promise<string[]> {
+  return (await composeNewsletterWithReport(data)).pages;
+}
+
+async function composeNewsletterOnce(data: NewsletterDocumentData): Promise<string[]> {
   await document.fonts.ready;
   if (data.outputLocale === "he") {
     const family = getComputedStyle(document.documentElement).getPropertyValue("--font-hebrew").trim();
@@ -603,7 +704,8 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
         if (rows.some(row => row.images.some(img => {
           const ratio = img.width / img.height;
           const shortest = Math.min(row.height, row.height * ratio);
-          const minimum = g.id === "posters" ? (density === "tight" ? 135 : density === "compact" ? 160 : POSTER_MIN_SHORT_SIDE) : density === "tight" ? 52 : density === "compact" ? 58 : 65;
+          // Tightening is automatic, so it never makes a poster unreadable: only photos shrink.
+          const minimum = g.id === "posters" ? POSTER_MIN_SHORT_SIDE : density === "tight" ? 52 : density === "compact" ? 58 : 65;
           return shortest < Math.min(minimum, width * Math.min(1, 1 / ratio), maxHeight * Math.min(1, ratio)) - 0.1;
         }))) continue;
         const areas = rows.flatMap(row => row.images.map(img => row.height ** 2 * img.width / img.height));
@@ -767,7 +869,7 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
       }
       return galleryParts.get(key)!;
     };
-    /** Extra pages (3–4): whole articles flow page by page; a gallery may continue on the next page, in upload order. */
+    /** Extra page (3): whole articles flow page by page; a gallery may continue on the next page, in upload order. */
     const searchPages = (pageCount: number, fonts: number[]) => {
       const media = available([photos, posters, partners]);
       const placements: number[][] = [];
