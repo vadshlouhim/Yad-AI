@@ -17,6 +17,8 @@
     "test:admin-templates": "tsx scripts/test-admin-templates.ts",
     "test:newsletter-sefer-he": "tsx scripts/test-newsletter-sefer-he.ts",
     "test:newsletter-overflow": "tsx scripts/test-newsletter-overflow.ts",
+    "test:logo-overlay": "tsx scripts/test-logo-overlay.ts",
+    "test:office-times": "tsx scripts/test-office-times.ts",
     "templates:import": "tsx scripts/import-template-library.ts",
     "templates:holiday-times:import": "tsx scripts/import-holiday-times-templates.ts",
     "templates:shabbat-times:replace": "tsx scripts/replace-shabbat-times-templates.ts",

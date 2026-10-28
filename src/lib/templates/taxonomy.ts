@@ -71,6 +71,12 @@ export function inferTemplateUsage(template: { category?: string | null; subCate
   return null;
 }
 
+/** Shabbat and holiday hours posters live only in their own tools, never in the general galleries. */
+export function isScheduleTimesTemplate(template: { category?: string | null; subCategory?: string | null; tags?: string[] | null }) {
+  const usage = inferTemplateUsage(template);
+  return usage === TEMPLATE_USAGE_TAGS.shabbatTimes || usage === TEMPLATE_USAGE_TAGS.holidayTimes;
+}
+
 export function inferShabbatTimesVariant(template: { subCategory?: string | null; tags?: string[] | null }): ShabbatTimesVariant {
   if ((template.tags ?? []).includes("schedule:with-offices")) return "with-offices";
   const text = normalizeTaxonomyText(template.subCategory);

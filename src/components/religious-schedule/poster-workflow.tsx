@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Check, Crown, Download, Edit3, ImageIcon, Send, Sparkles, X } from "lucide-react";
+import Link from "next/link";
+import { Check, Download, Edit3, ImageIcon, Lock, Send, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CanvaLogo } from "@/components/templates/template-actions";
 import { cn } from "@/lib/utils";
@@ -32,8 +33,7 @@ export function ScheduleTemplateGallery({
   onSelect,
   emptyTitle,
   emptyHelp,
-  offeredLabel,
-  premiumLabel,
+  lockedLabel,
   variantLabel,
 }: {
   templates: ScheduleTemplate[];
@@ -41,8 +41,8 @@ export function ScheduleTemplateGallery({
   onSelect: (template: ScheduleTemplate, index: number) => void;
   emptyTitle: string;
   emptyHelp: string;
-  offeredLabel: string;
-  premiumLabel: string;
+  /** Shown on every poster once the trial is over: one subscription unlocks them all. */
+  lockedLabel: string;
   variantLabel?: (template: ScheduleTemplate) => { label: string; className: string } | null;
 }) {
   if (templates.length === 0) return (
@@ -63,14 +63,13 @@ export function ScheduleTemplateGallery({
             <button type="button" onClick={() => onSelect(template, index)} className="min-w-0 text-start focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-300">
               <div className="relative aspect-square overflow-hidden rounded-[1.2rem] bg-slate-100">
                 <ScheduleTemplateImage template={template} className="h-full w-full transition duration-300 group-hover:scale-[1.02]" />
-                <span className="absolute start-2 top-2 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-black text-slate-700 shadow-sm backdrop-blur">{index === 0 ? offeredLabel : premiumLabel}</span>
                 {variant ? <span className={cn("absolute bottom-2 end-2 z-10 rounded-full px-2.5 py-1 text-[10px] font-black shadow-sm backdrop-blur", variant.className)}>{variant.label}</span> : null}
-                {locked ? <div className="absolute inset-0 flex items-center justify-center bg-slate-950/48 backdrop-blur-[1px]"><span className="flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-xs font-black text-[#421388] shadow-xl"><Crown className="size-4 text-amber-500" /> Premium</span></div> : null}
+                {locked ? <div className="absolute inset-0 flex items-center justify-center bg-slate-950/48 backdrop-blur-[1px]"><span className="flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-xs font-black text-[#421388] shadow-xl"><Lock className="size-4" /> {lockedLabel}</span></div> : null}
                 {template.canvaUrl ? <span className="absolute bottom-2 start-2 inline-flex rounded-full bg-white/95 px-2 py-1 shadow"><CanvaLogo className="h-4" /></span> : null}
               </div>
               <div className="flex items-center justify-between gap-2 px-2 py-3">
                 <span className="line-clamp-1 text-sm font-black text-slate-900">{template.name}</span>
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-violet-50 text-[#421388] transition group-hover:bg-[#421388] group-hover:text-white">{locked ? <Crown className="size-4" /> : <Sparkles className="size-4" />}</span>
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-violet-50 text-[#421388] transition group-hover:bg-[#421388] group-hover:text-white">{locked ? <Lock className="size-4" /> : <Sparkles className="size-4" />}</span>
               </div>
             </button>
           </article>
@@ -137,4 +136,15 @@ export function PosterResultActions({ onEdit, onDownload, editLabel, downloadLab
 
 export function SocialPublishPanel({ connected, selected, onToggle, onPublish, publishing, title, help, disconnectedLabel, publishLabel }: { connected: Set<string>; selected: string[]; onToggle: (id: string) => void; onPublish: () => void; publishing: boolean; title: string; help: string; disconnectedLabel: string; publishLabel: string }) {
   return <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-center justify-between gap-3"><div><h3 className="font-black text-slate-950">{title}</h3><p className="mt-1 text-xs leading-5 text-slate-500">{help}</p></div><Send className="size-5 text-[#421388]" /></div><div className="mt-4 grid grid-cols-2 gap-2">{[{ id: "FACEBOOK", label: "Facebook" }, { id: "INSTAGRAM", label: "Instagram" }].map(({ id, label }) => { const active = selected.includes(id); const isConnected = connected.has(id); return <button key={id} type="button" disabled={!isConnected} onClick={() => onToggle(id)} className={cn("relative flex min-h-20 flex-col items-center justify-center gap-1.5 rounded-2xl border p-2 text-xs font-black transition", active && id === "FACEBOOK" && "border-blue-400 bg-[#315ecb] text-white", active && id === "INSTAGRAM" && "border-pink-400 bg-gradient-to-r from-[#d92d7c] to-[#f06b45] text-white", !active && "border-slate-200 bg-white text-slate-600", !isConnected && "cursor-not-allowed bg-slate-50 text-slate-400 opacity-70")}>{active ? <Check className="absolute end-2 top-2 size-4" /> : null}<span>{label}</span>{!isConnected ? <span className="text-[9px]">{disconnectedLabel}</span> : null}</button>; })}</div><Button type="button" className="mt-3 w-full rounded-2xl bg-gradient-to-r from-[#d92d7c] to-[#f06b45] font-black" loading={publishing} disabled={selected.length === 0} onClick={onPublish}><Send className="size-4" />{publishLabel}</Button></div>;
+}
+
+/** After the trial every poster is locked the same way: one subscription unlocks everything. */
+export function ScheduleSubscribeDialog({ open, onClose, title, text, cta, closeLabel }: { open: boolean; onClose: () => void; title: string; text: string; cta: string; closeLabel: string }) {
+  if (!open) return null;
+  return <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" onClick={onClose}><div role="dialog" aria-modal="true" aria-labelledby="schedule-subscribe-title" className="w-full max-w-md rounded-[2rem] bg-white p-6 text-center shadow-2xl" onClick={(event) => event.stopPropagation()}><button type="button" aria-label={closeLabel} onClick={onClose} className="ms-auto flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-500"><X className="size-5" /></button><span className="mx-auto mt-2 flex size-16 items-center justify-center rounded-3xl bg-violet-100 text-[#421388]"><Lock className="size-8" /></span><h2 id="schedule-subscribe-title" className="mt-5 text-2xl font-black text-slate-950">{title}</h2><p className="mt-2 text-sm leading-6 text-slate-500">{text}</p><Button asChild className="mt-6 w-full rounded-2xl bg-[#421388] font-black hover:bg-[#35106f]"><Link href="/dashboard/settings/billing">{cta}</Link></Button></div></div>;
+}
+
+/** For posters that also exist on Canva: opens the poster there (through the traced redirect). */
+export function CanvaCustomizeLink({ templateId, label, help }: { templateId: string; label: string; help: string }) {
+  return <a href={`/templates/canva/${encodeURIComponent(templateId)}`} target="_blank" rel="noopener noreferrer" className="mt-3 flex min-h-12 w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-start shadow-sm transition hover:border-[#00c4cc] hover:bg-cyan-50/40"><CanvaLogo className="h-5 shrink-0" /><span className="min-w-0 flex-1"><span className="block text-sm font-black text-slate-900">{label}</span><span className="block text-[11px] font-semibold text-slate-500">{help}</span></span><Edit3 className="size-4 shrink-0 text-slate-400" /></a>;
 }

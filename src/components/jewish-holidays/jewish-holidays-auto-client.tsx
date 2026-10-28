@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { CheckCircle2, Clock3, Edit3, ImageIcon, Loader2, MapPin, Sparkles } from "lucide-react";
+import { CheckCircle2, Clock3, Edit3, Loader2, MapPin, Sparkles } from "lucide-react";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { CommunityLogoPicker } from "@/components/templates/community-logo-picker";
 import { ScheduleHubNav } from "@/components/templates/schedule-hub-nav";
 import { Button } from "@/components/ui/button";
-import { OutputLocalePicker, PosterResultActions, SchedulePosterDialog, SchedulePosterPreview, ScheduleTemplateGallery, SocialPublishPanel, type ScheduleTemplate } from "@/components/religious-schedule/poster-workflow";
+import { OutputLocalePicker, PosterResultActions, SchedulePosterDialog, SchedulePosterPreview, CanvaCustomizeLink, ScheduleSubscribeDialog, ScheduleTemplateGallery, SocialPublishPanel, type ScheduleTemplate } from "@/components/religious-schedule/poster-workflow";
 import { getHolidayRelationKey, type HolidayItem } from "@/lib/automation/jewish-holidays";
 import type { OutputLocale } from "@/lib/ai/output-locale";
 import type { Json } from "@/types/database.types";
@@ -152,7 +152,7 @@ export function JewishHolidaysAutoClient({ community, holidays, nextHoliday, all
       <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-900">{t(initialAutomation ? "legacyAutomationNotice" : "manualNotice")}</div>
       <section className="mt-7">
         <div className="flex items-end justify-between gap-4"><div><h2 className="text-2xl font-black tracking-tight text-slate-950">{t("choosePoster")}</h2><p className="mt-1 text-sm text-slate-500">{t("galleryHelp")}</p></div><span className="hidden rounded-full bg-violet-50 px-3 py-2 text-xs font-black text-[#421388] sm:inline-flex">{t("templateCount", { count: allTemplates.length })}</span></div>
-        <ScheduleTemplateGallery templates={allTemplates} isPaid={isPaid} onSelect={openTemplate} emptyTitle={t("noPoster")} emptyHelp={t("noPosterHelp")} offeredLabel={tx("offered")} premiumLabel={t("premium")} />
+        <ScheduleTemplateGallery templates={allTemplates} isPaid={isPaid} onSelect={openTemplate} emptyTitle={t("noPoster")} emptyHelp={t("noPosterHelp")} lockedLabel={t("locked")} />
       </section>
 
       <SchedulePosterDialog open={Boolean(selectedTemplate)} busy={generating || publishing} eyebrow={t("title")} title={resultImageUrl ? t("ready") : t("customize")} closeLabel={tx("close")} onClose={() => setSelectedTemplate(null)}>
@@ -167,6 +167,7 @@ export function JewishHolidaysAutoClient({ community, holidays, nextHoliday, all
                 <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/70 p-3"><div className="flex items-center justify-between"><p className="text-xs font-black uppercase tracking-[0.12em] text-[#421388]">{t("prefilled")}</p>{loadingTimes ? <Loader2 className="size-4 animate-spin text-[#421388]" /> : <CheckCircle2 className="size-4 text-emerald-600" />}</div><div className={`mt-3 grid grid-cols-2 gap-2 ${isHanukkah ? "sm:grid-cols-3" : "sm:grid-cols-4"}`}>{[[t("date"), gregorianDate], [t("hebrewDate"), hebrewDate], [entryLabel, times.entry ?? "—"], ...(isHanukkah ? [] : [[t("holidayExit"), times.exit ?? "—"]])].map(([label, value]) => <div key={label} className="min-w-0 rounded-xl bg-white px-2.5 py-2 text-center shadow-sm ring-1 ring-violet-100"><p className="text-[9px] font-black uppercase tracking-wide text-slate-400">{label}</p><p className="mt-1 text-xs font-black text-slate-900 sm:text-sm" dir={String(value).includes(":") ? "ltr" : undefined}>{value}</p></div>)}</div></div>
                 <CommunityLogoPicker value={logoUrl || null} onChange={(url) => setLogoUrl(url)} onBusyChange={setUploadingLogo} onError={setError} />
                 <Button type="button" size="xl" className="mt-5 w-full rounded-2xl bg-[#d92d7c] font-black shadow-lg shadow-pink-950/20 hover:bg-[#c5236e]" loading={generating} disabled={uploadingLogo || loadingTimes || generating} onClick={() => void generatePoster()}>{!generating ? <Sparkles className="size-5" /> : null}{generating ? t("generating") : t("generate")}</Button>
+                {selectedTemplate?.canvaUrl ? <CanvaCustomizeLink templateId={selectedTemplate.id} label={t("canva")} help={t("canvaHelp")} /> : null}
               </div> : <PosterResultActions onEdit={() => { setResultImageUrl(null); setNotice(""); }} onDownload={() => void downloadPoster()} editLabel={tx("edit")} downloadLabel={tx("download")} />}
               {error ? <p role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</p> : null}
               {notice ? <p className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800"><CheckCircle2 className="size-5 shrink-0" />{notice}</p> : null}
@@ -176,7 +177,7 @@ export function JewishHolidaysAutoClient({ community, holidays, nextHoliday, all
           <div className="border-t border-violet-100 bg-white/55 px-4 pb-7 pt-6 sm:px-6 sm:pb-8"><div className="mx-auto max-w-sm"><SchedulePosterPreview template={selectedTemplate} imageUrl={resultImageUrl} alt={t("previewAlt")} /></div></div>
         </> : null}
       </SchedulePosterDialog>
-      {paywallOpen ? <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm"><div className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl"><ImageIcon className="mx-auto size-10 text-[#421388]" /><h2 className="mt-4 text-xl font-black text-slate-950">{t("premium")}</h2><p className="mt-2 text-sm text-slate-600">{t("premiumHelp")}</p><Button type="button" className="mt-5" onClick={() => setPaywallOpen(false)}>{tx("close")}</Button></div></div> : null}
+      <ScheduleSubscribeDialog open={paywallOpen} onClose={() => setPaywallOpen(false)} title={t("premium")} text={t("premiumHelp")} cta={t("discoverPlan")} closeLabel={tx("close")} />
     </div>
   );
 }

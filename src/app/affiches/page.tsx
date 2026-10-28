@@ -5,6 +5,7 @@ import { PublicPosterGallery } from "@/components/templates/public-poster-galler
 import type { PosterGalleryTemplate } from "@/components/templates/poster-gallery";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
+import { isScheduleTimesTemplate } from "@/lib/templates/taxonomy";
 import { getLocale } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +32,7 @@ export default async function PublicPostersPage() {
     console.error("[Public posters] Unable to load templates:", error);
   }
 
-  const publicTemplates: PosterGalleryTemplate[] = (templates ?? []).map((template) => ({
+  const publicTemplates: PosterGalleryTemplate[] = (templates ?? []).filter((template) => !isScheduleTimesTemplate(template)).map((template) => ({
     id: template.id,
     name: template.name,
     description: template.description,

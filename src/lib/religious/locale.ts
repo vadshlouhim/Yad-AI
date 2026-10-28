@@ -45,7 +45,6 @@ export const RELIGIOUS_COPY = {
     holidayEve: "Veille de fête",
     holidayExit: "Sortie de fête",
     unavailable: "À vérifier",
-    source: "Horaires de Chabbat fournis par Chabad.org/ShabbatTimes",
   },
   he: {
     parasha: "פרשת השבוע",
@@ -57,7 +56,6 @@ export const RELIGIOUS_COPY = {
     holidayEve: "ערב חג",
     holidayExit: "מוצאי חג",
     unavailable: "יש לבדוק",
-    source: "זמני שבת באדיבות Chabad.org/ShabbatTimes",
   },
   en: {
     parasha: "Parasha",
@@ -69,6 +67,5 @@ export const RELIGIOUS_COPY = {
     holidayEve: "Holiday begins",
     holidayExit: "Holiday ends",
     unavailable: "To be confirmed",
-    source: "Shabbat times provided by Chabad.org/ShabbatTimes",
   },
 } as const;

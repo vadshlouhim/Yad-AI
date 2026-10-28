@@ -37,6 +37,9 @@ import { OnboardingWizard, demoOnboardingData } from "@/components/onboarding/on
 import { formatEuroCents, type BillingConfig } from "@/lib/billing";
 import { isSubscribedPlan } from "@/lib/billing/subscription-policy";
 import { createClient as createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { LogoZoneEditor } from "@/components/admin/logo-zone-editor";
+import { getTemplateLogoZone, withLogoZone } from "@/lib/templates/logo-zone";
+import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import { templateAvailability, type TemplateAvailability } from "@/lib/templates/availability";
 import { enabledTemplateLanguageOptions, TEMPLATE_LANGUAGE_LABELS, type TemplateLanguage } from "@/lib/templates/languages";
 import {
@@ -93,6 +96,7 @@ interface AdminTemplate {
   tags: string[];
   languages: TemplateLanguage[];
   usageCount: number;
+  design?: unknown;
   createdAt: string;
   updatedAt: string;
 }
@@ -525,6 +529,7 @@ export function AdminConsoleClient({
         isGlobal: selectedTemplate.isGlobal,
         isActive: selectedTemplate.isActive,
         isPremium: selectedTemplate.isPremium,
+        logoZone: getTemplateLogoZone(selectedTemplate),
       }),
     });
 
@@ -1199,6 +1204,14 @@ export function AdminConsoleClient({
                           {selectedUsage !== TEMPLATE_USAGE_TAGS.shabbatCommunity ? <label className={`block text-sm font-semibold ${strongText}`}>Format<select value={selectedShabbatVariant} onChange={(event) => updateSelectedTaxonomy({ shabbatVariant: event.target.value as ShabbatTimesVariant })} className={`mt-2 w-full rounded-2xl border px-3 py-2 text-sm outline-none ${inputClass}`}><option value="simple">Simples</option><option value="with-offices">Avec offices</option></select></label> : null}
                         </div>
                         <p className={`mt-3 text-xs ${mutedText}`}>Chemin généré : {selectedTemplate.subCategory}</p>
+                        <div className="mt-4">
+                          <LogoZoneEditor
+                            imageUrl={resolveTemplateAssetUrl(selectedTemplate.originalUrl) ?? resolveTemplateAssetUrl(selectedTemplate.previewUrl) ?? resolveTemplateAssetUrl(selectedTemplate.thumbnailUrl)}
+                            zone={getTemplateLogoZone(selectedTemplate)}
+                            onChange={(zone) => updateSelectedTemplate({ design: withLogoZone(selectedTemplate.design, zone) })}
+                            dark={isDark}
+                          />
+                        </div>
                       </section>
                     ) : selectedTemplate.category === "HOLIDAY" ? (
                       <section className={`rounded-3xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-rose-100 bg-rose-50/60"}`}>

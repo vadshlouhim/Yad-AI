@@ -116,13 +116,13 @@ async function main() {
     const edits = buildShabbatPosterChanges(fields, weeks[1]);
     assert.equal(edits.find((change) => change.label === "parasha")?.newText, "Souccot");
     assert.equal(edits.find((change) => change.label === "Kiddouch")?.newText, fields.kiddouch);
-    assert.equal(edits.find((change) => change.label === "Offices")?.newText, fields.officeTimes);
-    assert.equal(edits.find((change) => change.label === "source")?.newText, "Shabbat times provided by Chabad.org/ShabbatTimes");
+    assert.equal(edits.find((change) => change.label === "Offices")?.newText, "Office vendredi — 19h00");
+    assert.equal(edits.find((change) => change.label === "source"), undefined, "the times source is never printed");
     const caption = buildShabbatCaption(fields, weeks[1]);
     assert.match(caption, /Souccot/);
     assert.doesNotMatch(caption, /Haazinouh/);
     assert.match(caption, /Office vendredi/);
-    assert.match(caption, /Shabbat times provided by Chabad\.org\/ShabbatTimes/);
+    assert.doesNotMatch(caption, /Chabad\.org/i, "the times source is never written in the post");
     await getUpcomingShabbatTimes({ latitude: 0, longitude: 0, timezone: "UTC", date: new Date("2026-09-16T12:00:00Z"), count: 1 });
     assert.equal(new URL(shabbatRequestUrl).searchParams.get("coords"), "0,0", "Zero coordinates must be accepted");
   } finally { globalThis.fetch = originalFetch; }

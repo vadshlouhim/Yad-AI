@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent } from "react";
+import Image from "next/image";
 import {
-  ArrowDownToLine,
   BellRing,
-  CheckCircle2,
   RefreshCw,
   Smartphone,
   X,
@@ -24,7 +23,9 @@ type BeforeInstallPromptEvent = Event & {
 type Platform = "ios" | "android" | "desktop";
 
 const PUSH_SETUP_KEY = "easycom:dashboard-push-setup:v1";
-const DISMISSED_SESSION_KEY = "easycom:dashboard-setup-dismissed:v1";
+const DISMISSED_UNTIL_KEY = "easycom:dashboard-setup-dismissed-until:v1";
+// Closing the reminder hides it for a few days instead of on every visit.
+const DISMISS_FOR_MS = 3 * 24 * 60 * 60 * 1000;
 const INSTALL_HELP_VIDEO_URL = "https://youtube.com/shorts/VU-N2UbVqzc?si=MH7zQPAbBGH1J280";
 const subscribeToHydration = () => () => undefined;
 
@@ -60,7 +61,7 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
   const locale = useLocale();
   const he = locale === "he";
   const pushSetupKey = `${PUSH_SETUP_KEY}:${userId}`;
-  const dismissedSessionKey = `${DISMISSED_SESSION_KEY}:${userId}`;
+  const dismissedUntilKey = `${DISMISSED_UNTIL_KEY}:${userId}`;
   const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const [platform] = useState<Platform>(() =>
     typeof window === "undefined" ? "desktop" : getPlatform()
@@ -84,7 +85,11 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
   const [message, setMessage] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(() => {
     if (typeof window === "undefined") return false;
-    return window.sessionStorage.getItem(dismissedSessionKey) === "true";
+    try {
+      return Number(window.localStorage.getItem(dismissedUntilKey)) > Date.now();
+    } catch {
+      return false;
+    }
   });
 
   useEffect(() => {
@@ -128,6 +133,35 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
     };
   }, [he, pushSetupKey]);
 
+  const [closing, setClosing] = useState(false);
+  const [dragY, setDragY] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const dragStart = useRef<number | null>(null);
+
+  function startDrag(event: ReactPointerEvent<HTMLElement>) {
+    if ((event.target as HTMLElement).closest("[data-no-drag]")) return;
+    dragStart.current = event.clientY;
+    setDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function moveDrag(event: ReactPointerEvent<HTMLElement>) {
+    if (dragStart.current !== null) setDragY(event.clientY - dragStart.current);
+  }
+
+  // A short swipe up is enough to put the card away.
+  function endDrag() {
+    if (dragStart.current === null) return;
+    dragStart.current = null;
+    setDragging(false);
+    if (dragY < -40) setClosing(true);
+    else setDragY(0);
+  }
+
+  function close() {
+    setClosing(true);
+  }
+
   async function installApplication() {
     setMessage(null);
     if (!installPrompt) {
@@ -166,7 +200,11 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
   }
 
   function dismiss() {
-    window.sessionStorage.setItem(dismissedSessionKey, "true");
+    try {
+      window.localStorage.setItem(dismissedUntilKey, String(Date.now() + DISMISS_FOR_MS));
+    } catch {
+      // Without storage the reminder simply comes back on the next visit.
+    }
     setDismissed(true);
   }
 
@@ -176,67 +214,74 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
 
   const installationStep = !installed;
   const pushBlocked = permission === "denied";
+  const pushUnavailable = installationStep || pushBlocked || !isPushSupported();
+  const pushHint = he
+    ? (pushBlocked ? "חסומות בהגדרות המכשיר" : !isPushSupported() ? "השתמשו ב־Safari או ב־Chrome" : installationStep ? "זמין אחרי ההתקנה" : "כדי לא לפספס שום דבר")
+    : (pushBlocked ? "Bloquées dans les réglages" : !isPushSupported() ? "Utilisez Safari ou Chrome" : installationStep ? "Disponible après l’installation" : "Pour ne rien manquer");
+  const installHint = installPrompt
+    ? (he ? "גישה מהירה ממסך הבית" : "Accès direct depuis l’écran d’accueil")
+    : he ? (platform === "ios" ? "Safari: שיתוף ← הוספה למסך הבית" : "תפריט הדפדפן ← התקנה") : (platform === "ios" ? "Safari : Partager → Sur l’écran d’accueil" : "Menu du navigateur → Installer");
+  const actionClass = "flex h-8 shrink-0 items-center justify-center rounded-full px-3.5 text-xs font-bold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40";
+  const offset = closing ? -160 : Math.min(0, dragY);
 
+  // A small in-app card that slides down from the top. It sits above the top bar (z-900) but below
+  // menus and dialogs (z-998+), and closes with the X or a swipe up.
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-[#170534]/65 p-3 backdrop-blur-sm">
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-[950] flex justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:pt-20">
+      <div className="animate-setup-toast-in pointer-events-auto w-full max-w-sm">
       <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="first-visit-title"
-        className="relative my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-sm overflow-y-auto rounded-3xl border border-white/70 bg-[#fffaf4] shadow-[0_30px_100px_rgba(23,5,52,0.42)]"
+        role="status"
+        aria-label={he ? "התקנה והתראות" : "Installation et notifications"}
+        onPointerDown={startDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onTransitionEnd={() => { if (closing) dismiss(); }}
+        style={{ transform: `translateY(${offset}px)`, opacity: closing ? 0 : 1, transition: !dragging ? "transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.28s" : "none", touchAction: "none" }}
+        className="w-full select-none overflow-hidden rounded-[1.25rem] bg-white/95 shadow-[0_18px_50px_-12px_rgba(23,5,52,0.35)] ring-1 ring-black/5 backdrop-blur-xl"
       >
-        <header className="flex items-center gap-3 bg-gradient-to-br from-[#6d2bc1] to-[#210763] px-4 py-4 text-white">
-          <Smartphone className="size-7 shrink-0" aria-hidden="true" />
-          <h1 id="first-visit-title" className="flex-1 text-lg font-black leading-tight">
-            {he ? "התקינו את EasyCom IA" : "Installez EasyCom IA"}
-          </h1>
-          <button type="button" onClick={dismiss} aria-label={he ? "סגירה" : "Fermer"} className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/12 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
-            <X className="size-5" />
+        <header className="flex items-center gap-2.5 px-3.5 pb-1 pt-3">
+          <Image src="/apple-touch-icon.png" alt="" width={28} height={28} className="size-7 shrink-0 rounded-lg" />
+          <p className="min-w-0 flex-1 truncate text-[13px] font-black text-slate-950">EasyCom IA</p>
+          <button type="button" data-no-drag onClick={close} aria-label={he ? "סגירה" : "Fermer"} className="-me-1.5 flex size-9 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300">
+            <X className="size-4" />
           </button>
         </header>
 
-        <div className="space-y-3 p-4">
-          <article className="rounded-2xl border border-blue-100 bg-white p-3">
-            <div className="flex items-center gap-2">
-              {installed ? <CheckCircle2 className="size-5 text-emerald-600" /> : <Smartphone className="size-5 text-[#0878ee]" />}
-              <h2 className="text-sm font-bold text-slate-950">{he ? "אפליקציה" : "Application"}</h2>
-              {installed && <span className="ms-auto text-xs font-bold text-emerald-700">{he ? "מותקנת" : "Installée"}</span>}
-            </div>
-            {!installed && <>
-              {!installPrompt && <p className="mt-2 text-xs leading-5 text-slate-600">
-                {he ? (platform === "ios" ? "Safari: שיתוף ← הוספה למסך הבית." : "תפריט הדפדפן ← התקנת האפליקציה.") : (platform === "ios" ? "Safari : Partager → Sur l’écran d’accueil." : "Menu du navigateur → Installer l’application.")}
-              </p>}
-              <button type="button" onClick={() => void installApplication()} disabled={installing} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#0878ee] px-3 text-sm font-bold text-white hover:bg-[#0668d8] disabled:opacity-60">
-                <ArrowDownToLine className="size-4" />
-                {he ? (installing ? "בהתקנה…" : installPrompt ? "התקנת האפליקציה" : "איך מתקינים") : (installing ? "Installation…" : installPrompt ? "Installer l’application" : "Voir comment installer")}
+        <div className="divide-y divide-slate-100 px-3.5">
+          {installationStep && (
+            <div className="flex items-center gap-3 py-2.5">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[#0878ee]"><Smartphone className="size-4" aria-hidden="true" /></span>
+              <p className="min-w-0 flex-1">
+                <span className="block text-[13px] font-bold leading-tight text-slate-900">{he ? "התקינו את האפליקציה" : "Installer l’application"}</span>
+                <span className="mt-0.5 block truncate text-[11px] text-slate-500">{installHint}</span>
+              </p>
+              <button type="button" data-no-drag onClick={() => void installApplication()} disabled={installing} className={`${actionClass} bg-[#0878ee] text-white hover:bg-[#0668d8]`}>
+                {he ? (installing ? "…" : installPrompt ? "התקנה" : "איך?") : (installing ? "…" : installPrompt ? "Installer" : "Comment ?")}
               </button>
-            </>}
-          </article>
-
-          <article className="rounded-2xl border border-rose-100 bg-white p-3">
-            <div className="flex items-center gap-2">
-              {pushSetupComplete ? <CheckCircle2 className="size-5 text-emerald-600" /> : <BellRing className="size-5 text-[#d92d7c]" />}
-              <h2 className="text-sm font-bold text-slate-950">{he ? "התראות" : "Notifications"}</h2>
-              {pushSetupComplete && <span className="ms-auto text-xs font-bold text-emerald-700">{he ? "פעילות" : "Activées"}</span>}
             </div>
-            {!pushSetupComplete && <>
-              {(pushBlocked || !isPushSupported() || installationStep) && <p className="mt-2 text-xs leading-5 text-slate-600">
-                {he ? (pushBlocked ? "אפשרו אותן בהגדרות המכשיר." : !isPushSupported() ? "השתמשו ב־Safari או ב־Chrome." : "יש להפעיל לאחר ההתקנה.") : (pushBlocked ? "Autorisez-les dans les réglages de votre appareil." : !isPushSupported() ? "Utilisez Safari ou Chrome." : "À activer après l’installation.")}
-              </p>}
-              <button type="button" onClick={() => void activatePush()} disabled={installationStep || enablingPush || pushBlocked || !isPushSupported()} className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#d92d7c] px-3 text-sm font-bold text-white hover:bg-[#bf256d] disabled:cursor-not-allowed disabled:opacity-45">
-                <BellRing className="size-4" />
-                {he ? (enablingPush ? "בהפעלה…" : "הפעלת התראות") : (enablingPush ? "Activation…" : "Activer les notifications")}
-              </button>
-              {pushBlocked && <button type="button" onClick={() => setPermission(getPushPermission())} className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 text-xs font-bold text-slate-500 hover:text-[#d92d7c]">
-                <RefreshCw className="size-4" /> {he ? "בדיקה חוזרת" : "Vérifier à nouveau"}
-              </button>}
-            </>}
-          </article>
+          )}
 
-          {message && <p role="status" className="rounded-xl bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">{message}</p>}
-          <button type="button" onClick={dismiss} className="flex min-h-11 w-full items-center justify-center rounded-xl text-sm font-bold text-slate-500 hover:bg-white hover:text-[#421388]">{he ? "מאוחר יותר" : "Plus tard"}</button>
+          {!pushSetupComplete && (
+            <div className="flex items-center gap-3 py-2.5">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-pink-50 text-[#d92d7c]"><BellRing className="size-4" aria-hidden="true" /></span>
+              <p className="min-w-0 flex-1">
+                <span className="block text-[13px] font-bold leading-tight text-slate-900">{he ? "הפעלת התראות" : "Activer les notifications"}</span>
+                <span className="mt-0.5 block truncate text-[11px] text-slate-500">{pushHint}</span>
+              </p>
+              {pushBlocked
+                ? <button type="button" data-no-drag onClick={() => setPermission(getPushPermission())} aria-label={he ? "בדיקה חוזרת" : "Vérifier à nouveau"} className="flex size-8 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-[#d92d7c]"><RefreshCw className="size-4" /></button>
+                : <button type="button" data-no-drag onClick={() => void activatePush()} disabled={enablingPush || pushUnavailable} className={`${actionClass} bg-[#d92d7c] text-white hover:bg-[#bf256d]`}>
+                  {he ? (enablingPush ? "…" : "הפעלה") : (enablingPush ? "…" : "Activer")}
+                </button>}
+            </div>
+          )}
         </div>
+
+        {message && <p className="mx-3.5 mb-2 rounded-xl bg-amber-50 px-2.5 py-1.5 text-[11px] leading-4 text-amber-900">{message}</p>}
+        <div className="flex justify-center pb-1.5 pt-0.5" aria-hidden="true"><span className="h-1 w-9 rounded-full bg-slate-200" /></div>
       </section>
+      </div>
     </div>
   );
 }

@@ -318,7 +318,6 @@ function footer(data: NewsletterDocumentData, index: number, total: number) {
     contact.append(isolated);
   });
   info.append(contact);
-  if (data.shabbat?.sourceUrl) info.append(element("div", RELIGIOUS_COPY[data.outputLocale].source, { fontSize: "8px", marginTop: "3px", color: INK }));
   info.append(element("div", rtl ? "נוצר באמצעות EasyCom-AI — בינה מלאכותית לשירות הקהילות" : "Contenu créé par EasyCom-AI — l’IA au service des communautés", { fontSize: "9px", marginTop: "4px", color: INK }));
   const pageNumber = element("span", `${index + 1} / ${total}`, { whiteSpace: "nowrap" });
   pageNumber.dir = "ltr";

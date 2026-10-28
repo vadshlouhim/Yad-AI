@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
+import { isScheduleTimesTemplate } from "@/lib/templates/taxonomy";
 
 export type ShowcasePoster = { id: string; imageUrl: string };
 
@@ -13,22 +14,22 @@ export const getShowcasePosters = unstable_cache(
     const admin = createAdminClient();
     const { data, error } = await admin
       .from("Template")
-      .select("id, thumbnailUrl")
+      .select("id, thumbnailUrl, category, subCategory, tags")
       .eq("isActive", true)
       .eq("isGlobal", true)
       .contains("languages", [locale === "he" ? "he" : "fr"])
       .not("thumbnailUrl", "is", null)
       .order("usageCount", { ascending: false })
-      .limit(12);
+      .limit(40);
     if (error) {
       console.error("[Home showcase] Unable to load posters:", error);
       return [];
     }
-    return (data ?? []).flatMap((template) => {
+    return (data ?? []).filter((template) => !isScheduleTimesTemplate(template)).flatMap((template) => {
       const imageUrl = resolveTemplateAssetUrl(template.thumbnailUrl);
       return imageUrl ? [{ id: template.id, imageUrl }] : [];
-    });
+    }).slice(0, 12);
   },
-  ["home-showcase-posters"],
+  ["home-showcase-posters-v2"],
   { revalidate: 3600 },
 );

@@ -5,6 +5,7 @@ import type { Database } from "@/types/database.types";
 import { classifyTemplateAdminError } from "@/lib/templates/admin-errors";
 import { assertTemplateDestination, normalizeCanvaUrl } from "@/lib/templates/availability";
 import { parseTemplateLanguages } from "@/lib/templates/languages";
+import { parseLogoZone, withLogoZone } from "@/lib/templates/logo-zone";
 import { NextResponse } from "next/server";
 
 const TEMPLATE_CATEGORIES = new Set<Database["public"]["Enums"]["TemplateCategory"]>([
@@ -62,7 +63,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const admin = createAdminClient();
   const { data: currentTemplate } = await admin
     .from("Template")
-    .select("supportsAi, canvaUrl, isActive")
+    .select("supportsAi, canvaUrl, isActive, design")
     .eq("id", id)
     .maybeSingle();
   if (!currentTemplate) {
@@ -139,6 +140,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "Sélectionnez au moins une langue valide.", code: "INVALID_REQUEST" }, { status: 400 });
     }
     updateData.languages = languages;
+  }
+
+  // `logoZone: null` removes the zone; anything that is not a valid zone is refused.
+  if (body.logoZone !== undefined) {
+    const zone = body.logoZone === null ? null : parseLogoZone(body.logoZone);
+    if (body.logoZone !== null && !zone) {
+      return NextResponse.json({ error: "Zone du logo invalide.", code: "INVALID_REQUEST" }, { status: 400 });
+    }
+    updateData.design = withLogoZone(currentTemplate.design, zone);
   }
 
   for (const field of ["isGlobal", "isActive", "isPremium"] as const) {

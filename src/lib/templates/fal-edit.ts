@@ -6,6 +6,7 @@ import { mergePosterChanges, type PosterEditState } from "./edit-state";
 import type { Json } from "@/types/database.types";
 import { assertPosterEditSchema } from "./edit-source";
 import { overlayOfficialLogoFromUrl } from "./logo-overlay";
+import type { LogoZone } from "./logo-zone";
 
 export const FAL_POSTER_EDIT_MODEL = "xai/grok-imagine-image/quality/edit";
 
@@ -114,6 +115,7 @@ export async function editTemplatePosterWithFal(params: {
   sourceImageUrl?: string;
   editState?: PosterEditState;
   overlayLogoUrl?: string;
+  overlayLogoZone?: LogoZone | null;
 }) {
   const falKey = process.env.FAL_KEY?.trim();
   if (!falKey) throw new Error("FAL_KEY n’est pas configurée sur le serveur.");
@@ -144,7 +146,7 @@ export async function editTemplatePosterWithFal(params: {
 
   const generatedBuffer = await downloadFalImage(remoteUrl);
   const overlaid = params.overlayLogoUrl
-    ? await overlayOfficialLogoFromUrl(generatedBuffer, params.overlayLogoUrl)
+    ? await overlayOfficialLogoFromUrl(generatedBuffer, params.overlayLogoUrl, params.overlayLogoZone)
     : null;
   const buffer = overlaid?.buffer ?? generatedBuffer;
   const storagePath = `generated-ai/${params.communityId}/${Date.now()}-${crypto.randomUUID()}.png`;

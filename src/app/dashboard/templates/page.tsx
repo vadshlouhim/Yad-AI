@@ -5,6 +5,7 @@ import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TemplatesClient } from "@/components/templates/templates-client";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
+import { isScheduleTimesTemplate } from "@/lib/templates/taxonomy";
 import { getBillingConfig } from "@/lib/billing";
 import { hasCommunityAccess } from "@/lib/billing/subscription-policy";
 import { getStoredShabbatTimes } from "@/lib/ai/engine";
@@ -51,7 +52,7 @@ export default async function TemplatesPage({ searchParams }: Props) {
     getBillingConfig(admin),
   ]);
 
-  const hydratedTemplates = (templates ?? []).map((template) => {
+  const hydratedTemplates = (templates ?? []).filter((template) => template.id === initialTemplateId || !isScheduleTimesTemplate(template)).map((template) => {
     const { canvaUrl, ...safeTemplate } = template;
     return {
       ...safeTemplate,

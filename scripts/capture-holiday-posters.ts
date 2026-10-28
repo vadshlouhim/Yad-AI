@@ -52,7 +52,7 @@ async function main() {
   const source = templates[0];
   const sourceResponse = await fetch(source.originalUrl!);
   const shabbatBackground = Buffer.from(await sourceResponse.arrayBuffer());
-  const shabbatContent: ReligiousPosterContent = { communityName: "Beth Habad Exemple", title: "Parachat Berechit", gregorianDate: "17 octobre 2026", location: "Paris", entryLabel: "Entrée", entryTime: "18:22", exitLabel: "Sortie", exitTime: "19:27", source: "Chabad.org/ShabbatTimes" };
+  const shabbatContent: ReligiousPosterContent = { communityName: "Beth Habad Exemple", title: "Parachat Berechit", gregorianDate: "17 octobre 2026", location: "Paris", entryLabel: "Entrée", entryTime: "18:22", exitLabel: "Sortie", exitTime: "19:27" };
   const before = await legacyRender(shabbatBackground, "fr", shabbatContent);
   const after = await renderReligiousPoster({ background: shabbatBackground, locale: "fr", content: shabbatContent });
   await Promise.all([writeFile(path.join(outputDir, "shabbat-before.png"), before), writeFile(path.join(outputDir, "shabbat-after.png"), after)]);

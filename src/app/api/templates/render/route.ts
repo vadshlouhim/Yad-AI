@@ -4,6 +4,7 @@ export const maxDuration = 180;
 import { getShabbatTimes } from "@/lib/automation/hebcal";
 import { getPosterSource, trustedCommunityLogo, trustedStoredCommunityLogo, logoEditInstructions } from "@/lib/templates/edit-source";
 import { readPosterEditState } from "@/lib/templates/edit-state";
+import { describeLogoZone, getTemplateLogoZone } from "@/lib/templates/logo-zone";
 import { NextResponse } from "next/server";
 import { getBillingGate, paywallResponse } from "@/lib/billing";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -71,9 +72,13 @@ export async function POST(request: Request) {
     if (body.logoUrl && !requestedLogoUrl && !isExactStoredLogo) {
       return NextResponse.json({ error: "Logo inaccessible." }, { status: 400 });
     }
+    // The logo chosen in the dialog always wins; the community's saved logo is only a fallback.
     const logoUrl = body.shabbat === true
-      ? storedLogoUrl ?? requestedLogoUrl
+      ? requestedLogoUrl ?? storedLogoUrl
       : requestedLogoUrl;
+    const logoZone = getTemplateLogoZone(template);
+    // The source may be the user's previous poster, which already carries an older logo there.
+    const logoArea = logoZone ? `the logo area (${describeLogoZone(logoZone)})` : "the top-right corner";
     let shabbatDate: string | undefined;
     const outputLocale = parseOutputLocale(body.outputLocale, "fr");
     if (body.shabbat === true) {
@@ -99,11 +104,15 @@ export async function POST(request: Request) {
       editState: { version: 1, templateId: template.id, sourceMediaId: source?.id ?? null, changes: previous?.changes ?? [], textsToRemove: [], logoUrl, shabbatDate },
       referenceImageUrls: body.shabbat !== true && logoUrl ? [logoUrl] : undefined,
       overlayLogoUrl: body.shabbat === true && logoUrl ? logoUrl : undefined,
+      overlayLogoZone: logoZone,
       editInstructions: [
         "NON-NEGOTIABLE BRANDING REQUIREMENTS:",
         body.shabbat === true && logoUrl
-          ? "Do not draw, recreate or add the official community logo. Preserve the top-right branding area because the exact logo will be composited there after generation."
+          ? `Completely erase any existing logo, emblem, logo placeholder, white box or sticker inside ${logoArea}, and fill that area with the surrounding background so it looks clean and empty. Keep it free of any text or drawing: the exact official logo will be composited there after generation.`
           : logoEditInstructions(logoUrl),
+        body.shabbat === true
+          ? "Never write any source, credit or attribution line for the times (for example \"Chabad.org\" or \"Shabbat times provided by…\"), and remove any such line already on the image."
+          : "",
         structureName
           ? `The official organization name is "${structureName}". It is mandatory: reproduce it exactly, clearly and legibly once on the final poster. Never omit, abbreviate, translate or alter it.`
           : "The organization name provided in the confirmed content is mandatory and must never be omitted or altered.",
@@ -115,7 +124,7 @@ export async function POST(request: Request) {
         customInstructions
           ? `OPTIONAL USER PREFERENCE: ${customInstructions}. Apply it only when it is compatible with the confirmed text, legibility, the original template, and every non-negotiable requirement above.`
           : "No additional user preference was supplied.",
-      ].join("\n"),
+      ].filter(Boolean).join("\n"),
         });
     await admin.from("Template").update({ usageCount: (template.usageCount ?? 0) + 1, updatedAt: new Date().toISOString() }).eq("id", template.id);
     return NextResponse.json({ imageUrl: edited.imageUrl, mediaId: edited.mediaId, shabbatDate, usedTextBlocks: body.textBlocks ?? [], generatedTexts: body.generatedTexts ?? {}, warnings: [] });

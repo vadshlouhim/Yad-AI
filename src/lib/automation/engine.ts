@@ -50,6 +50,7 @@ import type { Tables, Enums } from "@/types/database.types";
 import { Resend } from "resend";
 import { parseOutputLocale, outputIntlLocale } from "@/lib/ai/output-locale";
 import { createReligiousPoster } from "@/lib/religious/poster-overlay";
+import { formatOfficeLines, packOfficeLines, parseOfficeText } from "@/lib/religious/office-times";
 import { RELIGIOUS_COPY } from "@/lib/religious/locale";
 
 type Automation = Tables<"Automation">;
@@ -139,8 +140,11 @@ async function renderShabbatPosterImage(params: {
         entryTime: params.shabbatTimes.entry,
         exitLabel: RELIGIOUS_COPY[outputLocale].exit,
         exitTime: params.shabbatTimes.exit,
-        extraLines: [savedFields.kiddouch, typeof posterConfig.officeTimes === "string" ? posterConfig.officeTimes : savedFields.officeTimes],
-        source: RELIGIOUS_COPY[outputLocale].source,
+        // Offices are stored as the user wrote them; relative times follow this week's candle lighting.
+        extraLines: [
+          savedFields.kiddouch,
+          ...packOfficeLines(formatOfficeLines(parseOfficeText((typeof posterConfig.officeTimes === "string" && posterConfig.officeTimes) || savedFields.officeTimes || ""), params.shabbatTimes, outputLocale)),
+        ],
       },
     });
     return rendered.imageUrl;

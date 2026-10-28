@@ -4,6 +4,7 @@ import type { Database, Tables } from "@/types/database.types";
 import type { OutputLocale } from "@/lib/ai/output-locale";
 import { resolveTemplateAssetUrl } from "@/lib/templates/shared";
 import { overlayOfficialLogoFromUrl } from "@/lib/templates/logo-overlay";
+import { getTemplateLogoZone } from "@/lib/templates/logo-zone";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -21,7 +22,6 @@ export type ReligiousPosterContent = {
   exitTime?: string | null;
   communityName?: string;
   extraLines?: string[];
-  source?: string;
 };
 
 function escapeXml(value: string) {
@@ -70,7 +70,6 @@ export async function renderReligiousPoster(params: {
         ${params.content.entryTime ? `<text x="540" y="740" text-anchor="middle" font-size="34" font-weight="600">${escapeXml(params.content.entryLabel ?? "")}: <tspan direction="ltr" unicode-bidi="embed" font-size="52" font-weight="800">${escapeXml(params.content.entryTime)}</tspan></text>` : ""}
         ${params.content.exitTime ? `<text x="540" y="825" text-anchor="middle" font-size="34" font-weight="600">${escapeXml(params.content.exitLabel ?? "")}: <tspan direction="ltr" unicode-bidi="embed" font-size="52" font-weight="800">${escapeXml(params.content.exitTime)}</tspan></text>` : ""}
         ${extra.map((value, index) => line(value, 910 + index * 48, 27, 450, bodyFamily)).join("")}
-        ${line(params.content.source, 1110, 18, 400, bodyFamily)}
       </g>
     </svg>`);
 
@@ -117,7 +116,7 @@ export async function createReligiousPoster(params: {
   let width = 1080;
   let height = 1350;
   if (params.logoUrl) {
-    const result = await overlayOfficialLogoFromUrl(buffer, params.logoUrl);
+    const result = await overlayOfficialLogoFromUrl(buffer, params.logoUrl, getTemplateLogoZone(params.template));
     buffer = result.buffer;
     width = result.width;
     height = result.height;

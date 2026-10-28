@@ -7,7 +7,6 @@ import {
   Check,
   CheckCircle2,
   Clock3,
-  Crown,
   Edit3,
   ExternalLink,
   Gift,
@@ -24,7 +23,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Json } from "@/types/database.types";
 import { ScheduleHubNav } from "@/components/templates/schedule-hub-nav";
-import { CHABAD_SHABBAT_ATTRIBUTION } from "@/lib/automation/shabbat-poster";
+import { formatOfficeLines, parseOfficeText, serializeOfficeLines, type OfficeLine } from "@/lib/religious/office-times";
+import { OfficeTimesEditor } from "@/components/shabbat-times/office-times-editor";
 import { inferShabbatTimesVariant } from "@/lib/templates/taxonomy";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { parseOutputLocale, type OutputLocale } from "@/lib/ai/output-locale";
@@ -34,6 +34,8 @@ import {
   OutputLocalePicker,
   SchedulePosterDialogHeader,
   SchedulePosterPreview,
+  CanvaCustomizeLink,
+  ScheduleSubscribeDialog,
   ScheduleTemplateGallery,
   type ScheduleTemplate,
 } from "@/components/religious-schedule/poster-workflow";
@@ -112,15 +114,15 @@ function stringValue(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
-function buildCaption(fields: FormState, locale: OutputLocale) {
+function buildCaption(fields: FormState, locale: OutputLocale, offices: string[] = []) {
   if (locale === "he") return [
     `שבת שלום מאת ${fields.structureName}.`,
     fields.parasha ? `פרשת השבוע: ${fields.parasha}` : "",
     `כניסת שבת: ${fields.entry}`,
     `יציאת שבת: ${fields.exit}`,
     fields.kiddouch ? `קידוש בחסות: ${fields.kiddouch}` : "",
+    ...offices,
     fields.city ? `📍 ${fields.city}` : "",
-    "זמני שבת באדיבות Chabad.org/ShabbatTimes",
   ].filter(Boolean).join("\n") + "\n\n#שבתשלום";
   const lines = [
     `Chabbat Chalom de la part de ${fields.structureName}.`,
@@ -128,8 +130,8 @@ function buildCaption(fields: FormState, locale: OutputLocale) {
     `Entrée de Chabbat : ${fields.entry}`,
     `Sortie de Chabbat : ${fields.exit}`,
     fields.kiddouch ? `Kiddouch offert par : ${fields.kiddouch}` : "",
+    ...offices,
     fields.city ? `📍 ${fields.city}` : "",
-    CHABAD_SHABBAT_ATTRIBUTION,
   ];
   return `${lines.filter(Boolean).join("\n")}\n\n#ChabbatChalom`;
 }
@@ -379,6 +381,8 @@ export function ShabbatTimesSimpleClient({
     aiInstructions: stringValue(savedFields.aiInstructions),
     logoUrl: stringValue(savedFields.logoUrl) || community.logoUrl || "",
   }));
+  // Kept as written by the user ("15 min avant l'allumage") and resolved against each week's times.
+  const [officeLines, setOfficeLines] = useState<OfficeLine[]>(() => parseOfficeText(stringValue(savedPoster.officeTimes) || stringValue(savedFields.officeTimes)));
   const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -492,6 +496,7 @@ export function ShabbatTimesSimpleClient({
     setError("");
     setNotice("");
     try {
+      const offices = selectedTemplateMode === "detailed" ? formatOfficeLines(officeLines, times, outputLocale) : [];
       const textBlocks = [
         { id: "structure", text: form.structureName.trim(), role: "organization", priority: "main" },
         { id: "city", text: form.city.trim(), role: "location", priority: "complementary" },
@@ -499,7 +504,7 @@ export function ShabbatTimesSimpleClient({
         { id: "entry", text: times.entry, role: "entry time", priority: "important" },
         { id: "exit", text: times.exit, role: "exit time", priority: "important" },
         ...(form.kiddouch.trim() ? [{ id: "kiddouch", text: `Kiddouch offert par : ${form.kiddouch.trim()}`, role: "Kiddouch", priority: "complementary" }] : []),
-        { id: "source", text: CHABAD_SHABBAT_ATTRIBUTION, role: "source", priority: "complementary" },
+        ...(offices.length ? [{ id: "offices", text: offices.join("\n"), role: "Prayer service times: write them in the poster's service-time boxes, one service per line, exactly as given", priority: "important" }] : []),
       ];
       const response = await fetch("/api/templates/render", {
         method: "POST",
@@ -528,10 +533,11 @@ export function ShabbatTimesSimpleClient({
           templateId: selectedTemplate.id,
           templateMode: selectedTemplateMode,
           config: {
-            fields: { ...savedFields, ...form, ...times },
+            fields: { ...savedFields, ...form, ...times, officeTimes: serializeOfficeLines(officeLines) },
+            officeTimes: serializeOfficeLines(officeLines),
             draftSourceMediaId: data.mediaId,
             outputLocale,
-            postText: buildCaption({ ...form, ...times }, outputLocale),
+            postText: buildCaption({ ...form, ...times }, outputLocale, offices),
             scheduleMode: "notification",
             channels: publishChannels,
           },
@@ -587,7 +593,7 @@ export function ShabbatTimesSimpleClient({
       const response = await fetch("/api/shabbat-times-auto/publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: buildCaption(form, outputLocale), imageUrl: resultImageUrl, channels: publishChannels }),
+        body: JSON.stringify({ content: buildCaption(form, outputLocale, selectedTemplateMode === "detailed" ? formatOfficeLines(officeLines, form, outputLocale) : []), imageUrl: resultImageUrl, channels: publishChannels }),
       });
       const data = await response.json().catch(() => ({})) as {
         successfulChannels?: string[];
@@ -629,7 +635,7 @@ export function ShabbatTimesSimpleClient({
             outputLocale,
             fields: { ...savedFields, ...form },
             sourceMediaId: resultImageUrl ? sourceMediaId : savedPoster.sourceMediaId,
-            postText: buildCaption(form, outputLocale),
+            postText: buildCaption(form, outputLocale, selectedTemplateMode === "detailed" ? formatOfficeLines(officeLines, form, outputLocale) : []),
             notificationDay: "Vendredi",
             notificationDayOfWeek: 5,
             notificationTime: automationTime,
@@ -687,8 +693,7 @@ export function ShabbatTimesSimpleClient({
           onSelect={openTemplate}
           emptyTitle={t("noPoster")}
           emptyHelp={t("noPosterHelp")}
-          offeredLabel={tx("offered")}
-          premiumLabel={t("premium")}
+          lockedLabel={t("locked")}
           variantLabel={(template) => {
             const withOffices = inferShabbatTimesVariant(template) === "with-offices";
             return { label: withOffices ? tx("withServices") : tx("simpleTimes"), className: withOffices ? "bg-[#421388]/95 text-white" : "bg-emerald-50/95 text-emerald-800" };
@@ -749,9 +754,10 @@ export function ShabbatTimesSimpleClient({
                       <p className="mt-2 text-[11px] font-bold text-violet-800">
                         {weekDate ? `${format.dateTime(new Date(`${weekDate}T12:00:00Z`), { timeZone: "UTC" })} · ${form.city}` : t("updating")}
                       </p>
-                      <p className="mt-1 text-[10px] font-semibold text-slate-500">{t("source")}</p>
                       {cityCandidates.map((city) => <Button key={city} type="button" variant="outline" className="mt-2" onClick={() => void refreshShabbatTimes(city)}>{city}</Button>)}
                     </div>
+
+                    {selectedTemplateMode === "detailed" ? <OfficeTimesEditor lines={officeLines} onChange={setOfficeLines} entry={form.entry} exit={form.exit} outputLocale={outputLocale} /> : null}
 
                     <details className="group mt-4 rounded-2xl border border-slate-200 bg-slate-50 open:bg-white">
                       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-black text-slate-800">
@@ -780,6 +786,7 @@ export function ShabbatTimesSimpleClient({
                       {!generating && <Sparkles className="size-5" />}
                       {generating ? t("generating") : t("generate")}
                     </Button>
+                    {selectedTemplate.canvaUrl ? <CanvaCustomizeLink templateId={selectedTemplate.id} label={t("canva")} help={t("canvaHelp")} /> : null}
                   </div>
                 ) : (
                   <div>
@@ -877,20 +884,7 @@ export function ShabbatTimesSimpleClient({
         </div>
       )}
 
-      {paywallOpen && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-          <div role="dialog" aria-modal="true" className="w-full max-w-md rounded-[2rem] bg-white p-6 text-center shadow-2xl">
-            <button type="button" aria-label={tx("close")} onClick={() => setPaywallOpen(false)} className="ms-auto flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-500"><X className="size-5" /></button>
-            <span className="mx-auto mt-2 flex size-16 items-center justify-center rounded-3xl bg-amber-100 text-amber-600"><Crown className="size-8" /></span>
-            <h2 className="mt-5 text-2xl font-black text-slate-950">{t("premium")}</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">{t("premiumHelp")}</p>
-            <Button asChild className="mt-6 w-full rounded-2xl bg-[#421388] font-black hover:bg-[#35106f]">
-              <a href="/dashboard/settings/billing">{t("discoverPlan")}</a>
-            </Button>
-            <button type="button" onClick={() => setPaywallOpen(false)} className="mt-3 text-sm font-bold text-slate-500 hover:text-slate-900">{t("continueFree")}</button>
-          </div>
-        </div>
-      )}
+      <ScheduleSubscribeDialog open={paywallOpen} onClose={() => setPaywallOpen(false)} title={t("premium")} text={t("premiumHelp")} cta={t("discoverPlan")} closeLabel={tx("close")} />
 
       {publishSuccessResults ? (
         <ShabbatPublishSuccessDialog
