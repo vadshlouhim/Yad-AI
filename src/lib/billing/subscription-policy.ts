@@ -21,8 +21,15 @@ export function trialEndsAt(communityCreatedAt: string | Date) {
   return new Date(new Date(communityCreatedAt).getTime() + SUBSCRIPTION_TRIAL_DAYS * DAY_MS);
 }
 
-export function trialDaysLeft(communityCreatedAt: string | Date, now = new Date()) {
-  return Math.max(0, Math.ceil((trialEndsAt(communityCreatedAt).getTime() - now.getTime()) / DAY_MS));
+/**
+ * Calendar days left, so the count drops every midnight (7, 6, 5…) in the community's time zone
+ * rather than 24 hours after sign-up. The last day of the trial shows 1, never 0.
+ */
+export function trialDaysLeft(communityCreatedAt: string | Date, now = new Date(), timeZone = "Europe/Paris") {
+  const end = trialEndsAt(communityCreatedAt);
+  if (end.getTime() <= now.getTime()) return 0;
+  const calendarDay = (date: Date) => Date.parse(`${new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(date)}T00:00:00Z`);
+  return Math.max(1, Math.round((calendarDay(end) - calendarDay(now)) / DAY_MS));
 }
 
 /** Any plan other than FREE_TRIAL means a live (or manually granted) subscription. */

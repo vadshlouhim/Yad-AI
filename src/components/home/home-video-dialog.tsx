@@ -8,6 +8,16 @@ import type { PublicTool } from "@/lib/public-tools";
 import { homeVideoSource } from "./home-media";
 import { useLocale } from "next-intl";
 
+// A still picture explains these tools better than a video; the others keep their video.
+const HOME_FEATURE_IMAGES: Record<string, string> = {
+  publish: "/media/home/features/publish.webp",
+  newsletter: "/media/home/features/newsletter.webp",
+  shabbat: "/media/home/features/shabbat.webp",
+  posters: "/media/home/features/posters.webp",
+  automations: "/media/home/features/birthdays.webp",
+  "coming-soon": "/media/home/features/coming-soon.webp",
+};
+
 export default function HomeVideoDialog({ item, media, trigger, comingSoon = false, onClose }: {
   item: PublicTool;
   media: string;
@@ -38,6 +48,9 @@ export default function HomeVideoDialog({ item, media, trigger, comingSoon = fal
             <p>{item.description}</p>
             <ul>{item.benefits.map((benefit) => <li key={benefit}>{benefit}</li>)}</ul>
           </div>
+        ) : HOME_FEATURE_IMAGES[item.id] ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="home-feature-image" src={HOME_FEATURE_IMAGES[item.id]} width={1200} height={1500} alt={`Présentation de ${item.name}`} />
         ) : (
           <video ref={video} src={homeVideoSource(media)} poster={comingSoon ? undefined : `/media/home/${media}.webp`} autoPlay muted controls playsInline preload="metadata" aria-label={`Présentation de ${item.name}`} />
         )}

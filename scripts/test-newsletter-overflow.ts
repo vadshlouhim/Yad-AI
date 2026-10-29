@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { estimateNewsletterFill } from "../src/lib/newsletter/layout-estimate";
 import { parseLayoutPreferences } from "../src/lib/newsletter/revision";
 import type { NewsletterDocumentData } from "../src/lib/newsletter/document-layout";
+import { endingPhotoGroupCaption, individualPhotoCaptions } from "../src/lib/newsletter/photo-caption-plan";
 
 const base = {
   outputLocale: "he",
@@ -35,6 +36,16 @@ assert.equal(parseLayoutPreferences({ fontSize: 9.5 }).fontSize, 9.5);
 // 3 pages is the maximum: legacy 4-page drafts are brought back to 3.
 assert.equal(parseLayoutPreferences({ pageLimit: 4 }).pageLimit, 3);
 assert.equal(parseLayoutPreferences({ pageLimit: 5 }).pageLimit, undefined);
+
+// The flowing safety-net layout must keep individual captions and render a group
+// caption only on the row where that group ends.
+const captionedPhotos = [
+  { id: "photo-1", caption: "Légende individuelle", captionGroup: "group-1", groupCaption: "Légende du groupe" },
+  { id: "photo-2", captionGroup: "group-1", groupCaption: "Légende du groupe" },
+];
+assert.deepEqual(individualPhotoCaptions(captionedPhotos), [{ imageId: "photo-1", text: "Légende individuelle" }]);
+assert.deepEqual(endingPhotoGroupCaption(captionedPhotos), { groupId: "group-1", text: "Légende du groupe" });
+assert.equal(endingPhotoGroupCaption(captionedPhotos, { id: "photo-3", captionGroup: "group-1" }), null);
 
 // The gauge measures against the selected page count.
 const onThreePages = estimateNewsletterFill({ ...overloaded, layout: { pageLimit: 3 } });

@@ -7,6 +7,7 @@ import { formatKiddushSponsor, NEWSLETTER_CHALLOT_ICON_URL } from "./kiddush";
 import { outputIntlLocale, type OutputLocale } from "@/lib/ai/output-locale";
 import { RELIGIOUS_COPY } from "./religious-locale";
 import { NEWSLETTER_ERROR_CODES, NewsletterError, newsletterErrorCode } from "./errors";
+import { endingPhotoGroupCaption, individualPhotoCaptions } from "./photo-caption-plan";
 
 export const PAPER = { width: 794, height: 1123, margin: 42, gap: 18 };
 const CONTENT_WIDTH = PAPER.width - PAPER.margin * 2;
@@ -40,7 +41,7 @@ export type NewsletterDocumentData = {
 export type DocumentImage = UploadedPhoto & { width: number; height: number };
 export type DocumentBlock =
   | { kind: "text"; id: string; title: string; text: string; compact?: boolean; continuation?: boolean }
-  | { kind: "images"; id: string; title: string; images: DocumentImage[]; height: number; maxHeight: number; poster?: boolean };
+  | { kind: "images"; id: string; title: string; images: DocumentImage[]; height: number; maxHeight: number; poster?: boolean; groupCaption?: string; groupCaptionId?: string };
 export type DocumentPage = { blocks: DocumentBlock[]; fontSize: number };
 type Measure = (block: DocumentBlock, fontSize: number) => number;
 const TEXT_SIZES = [13, 12.5, 12, 11.5, 11, 10.5, 10, 9.5, 9, 8.5, 8];
@@ -163,17 +164,31 @@ export function renderDocumentBlock(block: DocumentBlock, fontSize: number, loca
     }
     section.append(text);
   } else {
-    const row = element("div", undefined, { display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", height: `${block.height}px` });
+    const row = element("div", undefined, { display: "flex", alignItems: "flex-start", justifyContent: "center", gap: "12px" });
     const ratios = block.images.map((image) => image.width / image.height);
     const height = Math.min(block.height, (CONTENT_WIDTH - (block.images.length - 1) * 12) / ratios.reduce((a, b) => a + b, 0));
+    const captions = new Map(individualPhotoCaptions(block.images).map((caption) => [caption.imageId, caption.text]));
     for (const [i, image] of block.images.entries()) {
       const img = element("img") as HTMLImageElement;
       img.src = image.url;
       img.alt = image.name;
       Object.assign(img.style, { display: "block", width: `${height * ratios[i]}px`, height: `${height}px`, objectFit: "contain", border: "0", borderRadius: "0", boxShadow: "none", flexShrink: "0" });
-      row.append(img);
+      const figure = element("figure", undefined, { margin: "0", width: img.style.width, flexShrink: "0" });
+      figure.append(img);
+      const captionText = captions.get(image.id);
+      if (captionText) {
+        const caption = renderCaption(captionText);
+        caption.dataset.photoCaption = image.id;
+        figure.append(caption);
+      }
+      row.append(figure);
     }
     section.append(row);
+    if (block.groupCaption?.trim()) {
+      const caption = renderCaption(block.groupCaption);
+      caption.dataset.photoGroupCaption = block.groupCaptionId ?? "";
+      section.append(caption);
+    }
   }
   return section;
 }
@@ -250,7 +265,17 @@ async function makeBlocks(data: NewsletterDocumentData): Promise<DocumentBlock[]
       const count = photos.length - index === 3 ? 3 : Math.min(2, photos.length - index);
       const images = photos.slice(index, index + count);
       const maxHeight = (CONTENT_WIDTH - (count - 1) * 12) / images.reduce((sum, image) => sum + image.width / image.height, 0);
-      blocks.push({ kind: "images", id: `photos-${index}`, title: index === 0 ? labels.photos : "", images, height: Math.min(230, maxHeight), maxHeight: Math.min(430, maxHeight) });
+      const following = photos[index + count];
+      const groupCaption = endingPhotoGroupCaption(images, following);
+      blocks.push({
+        kind: "images",
+        id: `photos-${index}`,
+        title: index === 0 ? labels.photos : "",
+        images,
+        height: Math.min(230, maxHeight),
+        maxHeight: Math.min(430, maxHeight),
+        ...(groupCaption ? { groupCaption: groupCaption.text, groupCaptionId: groupCaption.groupId } : {}),
+      });
       index += count;
     }
   }

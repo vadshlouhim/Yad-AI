@@ -16,7 +16,7 @@ export type FeatureKey =
 const ENABLED_BY_LOCALE: Record<string, FeatureKey[] | "all"> = {
   fr: "all",
   en: "all",
-  he: ["newsletter", "publish"],
+  he: ["newsletter", "publish", "birthdays"],
 };
 
 export function isFeatureEnabled(locale: string, key: FeatureKey) {

@@ -26,7 +26,6 @@ const PUSH_SETUP_KEY = "easycom:dashboard-push-setup:v1";
 const DISMISSED_UNTIL_KEY = "easycom:dashboard-setup-dismissed-until:v1";
 // Closing the reminder hides it for a few days instead of on every visit.
 const DISMISS_FOR_MS = 3 * 24 * 60 * 60 * 1000;
-const INSTALL_HELP_VIDEO_URL = "https://youtube.com/shorts/VU-N2UbVqzc?si=MH7zQPAbBGH1J280";
 const subscribeToHydration = () => () => undefined;
 
 function getPlatform(): Platform {
@@ -134,6 +133,7 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
   }, [he, pushSetupKey]);
 
   const [closing, setClosing] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef<number | null>(null);
@@ -165,7 +165,7 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
   async function installApplication() {
     setMessage(null);
     if (!installPrompt) {
-      window.open(INSTALL_HELP_VIDEO_URL, "_blank", "noopener,noreferrer");
+      setGuideOpen(true);
       return;
     }
 
@@ -282,6 +282,17 @@ export function DashboardFirstVisitGate({ userId }: { userId: string }) {
         <div className="flex justify-center pb-1.5 pt-0.5" aria-hidden="true"><span className="h-1 w-9 rounded-full bg-slate-200" /></div>
       </section>
       </div>
+      {guideOpen ? (
+        // The illustrated Android / iPhone steps, shown in the app instead of a YouTube video.
+        <div className="pointer-events-auto fixed inset-0 z-[1100] flex items-center justify-center bg-[#16052f]/70 p-3 backdrop-blur-sm" onClick={() => setGuideOpen(false)}>
+          <div role="dialog" aria-modal="true" aria-label={he ? "איך מתקינים את האפליקציה" : "Comment installer l’application"} className="relative max-h-[92dvh] w-full max-w-3xl overflow-auto rounded-2xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <button type="button" onClick={() => setGuideOpen(false)} aria-label={he ? "סגירה" : "Fermer"} className="sticky end-2 top-2 z-10 float-end m-2 flex size-9 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow ring-1 ring-slate-200 hover:text-slate-900">
+              <X className="size-4" />
+            </button>
+            <Image src="/media/install-guide.webp" width={1600} height={1407} sizes="(max-width: 768px) 100vw, 768px" alt={he ? "שלבי ההתקנה ב־Android וב־iPhone" : "Étapes pour installer l’application sur Android et iPhone"} className="block h-auto w-full" />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

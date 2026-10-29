@@ -238,9 +238,9 @@ export function Sidebar({ community, userAvatar, userName, unreadNotifications =
       <div className="flex min-h-[74px] items-center gap-3 border-b border-slate-200 bg-white px-4 py-4">
         <button
           type="button"
-          onClick={() => router.push(resolveHref(locale === "he" ? "/dashboard/newsletter" : "/dashboard/assistant"))}
+          onClick={() => router.push(resolveHref(locale === "he" ? "/dashboard" : "/dashboard/assistant"))}
           className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-blue-600 shadow-sm ring-1 ring-blue-100 transition-all hover:scale-[1.02]"
-          aria-label={locale === "he" ? tr("Newsletter papier Chabbat") : tr("Ouvrir l'assistant")}
+          aria-label={locale === "he" ? tr("Tableau de bord") : tr("Ouvrir l'assistant")}
         >
           {community.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element

@@ -31,6 +31,7 @@ import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { useDashboardCopy } from "@/lib/i18n/use-dashboard-copy";
 import { getPublishChannels } from "@/lib/features-by-locale";
 import { useComingSoonGate } from "@/components/dashboard/coming-soon-dialog";
+import { HebrewDashboardHome } from "@/components/dashboard/hebrew-dashboard-home";
 
 interface Props {
   basePath?: "/dashboard" | "/demo";
@@ -163,6 +164,10 @@ export function DashboardClient({
   function openMainMenu() {
     if (typeof window === "undefined") return;
     window.dispatchEvent(new CustomEvent("dashboard:open-main-menu"));
+  }
+
+  if (locale === "he") {
+    return <HebrewDashboardHome firstName={firstName} basePath={basePath} />;
   }
 
   return (

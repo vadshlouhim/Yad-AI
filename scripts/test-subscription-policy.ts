@@ -27,6 +27,12 @@ assert.equal(trialEndsAt(createdAt).toISOString(), "2026-10-08T10:00:00.000Z");
 assert.equal(trialDaysLeft(createdAt, at(0)), 7);
 assert.equal(trialDaysLeft(createdAt, at(6.5)), 1);
 assert.equal(trialDaysLeft(createdAt, at(8)), 0);
+// The count drops at midnight (Paris), not 24 hours after sign-up.
+assert.equal(trialDaysLeft("2026-10-28T14:00:00.000Z", new Date("2026-10-29T08:00:00.000Z")), 6, "the day after sign-up shows 6");
+assert.equal(trialDaysLeft("2026-10-28T14:00:00.000Z", new Date("2026-10-28T23:30:00.000Z")), 6, "after midnight in Paris it already shows 6");
+assert.equal(trialDaysLeft("2026-10-28T14:00:00.000Z", new Date("2026-10-28T22:30:00.000Z")), 7, "still 7 until midnight in Paris");
+assert.equal(trialDaysLeft("2026-10-28T14:00:00.000Z", new Date("2026-11-04T09:00:00.000Z")), 1, "the last morning shows 1, not 0");
+assert.deepEqual(Array.from({ length: 7 }, (_, i) => trialDaysLeft("2026-10-28T14:00:00.000Z", new Date(Date.parse("2026-10-28T15:00:00.000Z") + i * day))), [7, 6, 5, 4, 3, 2, 1]);
 
 // Trial while the community is younger than 7 days, read-only after, whatever the plan value says.
 assert.equal(getCommunityAccess({ plan: "FREE_TRIAL", createdAt }, at(1)), "trial");

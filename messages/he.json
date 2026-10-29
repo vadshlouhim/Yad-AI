@@ -80,6 +80,22 @@
     "heDemoLine": "כותבים, מעצבים ומדפיסים – תוך כמה דקות",
     "heDemoCta": "יוצרים חשבון ומתחילים ←", "heDemoAria": "יצירת חשבון והתחלה",
     "heDemoAvailableTitle": "מה כבר זמין בעברית?",
+    "heActiveTitle": "מה EasyCom AI עושה בשבילכם",
+    "heActiveCta": "יוצרים חשבון ומתחילים ←",
+    "heActiveModules": {
+      "publish": {
+        "name": "פרסום בכל הערוצים",
+        "description": "כותבים פעם אחת ומפרסמים בפייסבוק, באינסטגרם ובוואטסאפ."
+      },
+      "newsletter": {
+        "name": "עלון שבת",
+        "description": "עלון דו־צדדי מקצועי, מוכן להדפסה תוך כמה דקות."
+      },
+      "birthdays": {
+        "name": "יום הולדת עברי ויארצייט",
+        "description": "ימי הולדת עבריים ויארצייט של הקהילה, עם תזכורות והודעות אוטומטיות."
+      }
+    },
     "heDemoCards": {
       "newsletter": { "label": "זמין עכשיו", "title": "עלון שבת", "description": "עלון דו־צדדי מקצועי, מוכן להדפסה תוך דקות", "aria": "יצירת חשבון לעלון שבת" },
       "publish": { "label": "חדש", "title": "פרסום בכל הערוצים", "description": "כותבים פעם אחת – מפרסמים בכל הרשתות", "aria": "יצירת חשבון לפרסום בכל הערוצים" }
@@ -368,6 +384,8 @@
       "Vos agents IA": "סוכני ה־AI שלכם",
       "Que souhaitez-vous faire ?": "מה תרצו לעשות?",
       "Autres outils": "כלים נוספים",
+      "Outils à venir": "כלים שיגיעו בקרוב",
+      "Posez votre question à l’IA": "שאלו את ה־AI",
       "Terminé": "סיום",
       "Module retiré": "המודול הוסר",
       "Abonnement": "מנוי",

@@ -394,6 +394,19 @@ export function getOfficialDashboardMenuSections(
   getStructureTypeLabel(communityType);
   const resourcesSubtitle = "Des outils pratiques pour accompagner votre communauté";
 
+  if (locale === "he") {
+    return [{
+      key: "settings",
+      section: translate("הגדרות"),
+      subtitle: "",
+      icon: Settings,
+      items: [
+        { href: "/dashboard/settings", label: translate("הגדרות"), icon: Settings },
+        { href: "/help", label: translate("עזרה ושאלות נפוצות"), icon: HelpCircle },
+      ],
+    }];
+  }
+
   const sections: OfficialDashboardMenuSection[] = [
     {
       key: "social",
@@ -564,6 +577,7 @@ export function getQuickAccessItems(translate: (value: string) => string = (valu
         { href: "/dashboard/overview", label: "Tableau de bord", icon: House },
         { href: "/dashboard/newsletter", label: "Newsletter papier Chabbat", icon: Mail },
         { href: "/dashboard/social-networks", label: "Publier sur tous mes réseaux", icon: Share2 },
+        { href: "/dashboard/jewish-birthdays", label: "יום הולדת עברי ויארצייט", icon: CalendarClock },
       ]
     : QUICK_ACCESS_ITEMS;
   return items.map((item) => ({ ...item, label: translate(item.label) }));

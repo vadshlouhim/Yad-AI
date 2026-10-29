@@ -180,7 +180,9 @@ const ACTION_CARDS: ActionCard[] = [
 
 // Every other tool stays one tap away under "Autres outils", below the main cards (the main menu
 // only holds the account now).
-const OTHER_TOOL_KEYS: MobileHomeModuleKey[] = ["torah", "event-reminders", "photo-recap", "daily-study", "contacts", "targeted", "email-reviews", "whatsapp", "website", "seo", "assistance"];
+const OTHER_TOOL_KEYS: MobileHomeModuleKey[] = ["torah", "event-reminders", "photo-recap", "daily-study"];
+// The rest stays folded behind a small "Outils à venir" button.
+const UPCOMING_TOOL_KEYS: MobileHomeModuleKey[] = ["contacts", "targeted", "email-reviews", "whatsapp", "website", "seo", "assistance"];
 // Main cards the user removed from the grid are listed there too, so they are never lost.
 const MAIN_CARD_KEYS: MobileHomeModuleKey[] = ["publish", "newsletter-paper", "birthdays-yahrzeit", "shabbat-times", "visuals", "shop"];
 
@@ -227,6 +229,7 @@ export function MobileDashboardHome({
   const [draggingKey, setDraggingKey] = useState<MobileHomeModuleKey | null>(null);
   const [undoModule, setUndoModule] = useState<MobileHomeModuleKey | null>(null);
   const [homeNotice, setHomeNotice] = useState<string | null>(null);
+  const [upcomingOpen, setUpcomingOpen] = useState(false);
   const addedModuleRef = useRef(false);
   const moduleKey = searchParams.get("module");
   const sections = useMemo(() => getOfficialDashboardMenuSections(communityType, tr), [communityType, tr]);
@@ -244,7 +247,11 @@ export function MobileDashboardHome({
     badge: action.badge ? tr(action.badge) : action.badge,
   }])), [tr]);
   const visibleActions = homeModules.flatMap((key) => {
-    const action = OTHER_TOOL_KEYS.includes(key) ? undefined : actionByKey.get(key);
+    const action = OTHER_TOOL_KEYS.includes(key) || UPCOMING_TOOL_KEYS.includes(key) ? undefined : actionByKey.get(key);
+    return action ? [action] : [];
+  });
+  const upcomingTools = UPCOMING_TOOL_KEYS.flatMap((key) => {
+    const action = actionByKey.get(key);
     return action ? [action] : [];
   });
   const otherTools = [...MAIN_CARD_KEYS.filter((key) => homeLoaded && !homeModules.includes(key)), ...OTHER_TOOL_KEYS].flatMap((key) => {
@@ -327,6 +334,27 @@ export function MobileDashboardHome({
     setHomeModules(next);
     setUndoModule(null);
     void persistHomeModules(next);
+  }
+
+  /** A compact card for the "Autres outils" and "Outils à venir" lists. */
+  function renderToolCard(action: ActionCard) {
+    const Icon = action.icon;
+    const className = cn(MOBILE_ACTION_CARD_CLASS, "h-full w-full !min-h-[96px] !flex-col !justify-center !gap-2 rounded-[1.4rem] !border-0 px-2 py-2.5 !text-center shadow-[0_16px_30px_-18px_rgba(15,23,42,0.5)]", action.className);
+    const content = <>
+      <span className={cn("relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-lg", action.iconClassName ?? "text-slate-800")}>
+        <Icon className="size-5 stroke-[2.15]" />
+      </span>
+      <span className="relative block line-clamp-2 text-sm font-black leading-tight tracking-[-0.02em] sm:text-base">{action.title}</span>
+    </>;
+    if (action.href?.startsWith("http")) return <a key={action.key} href={action.href} className={className}>{content}</a>;
+    if (action.href) return <Link key={action.key} href={resolveHref(action.href, basePath)} onClick={guard(action.href)} className={className}>{content}</Link>;
+    return (
+      <button key={action.key} type="button" onClick={() => {
+        if (!action.sectionKey) return;
+        if (isBlocked(SECTION_HREFS[action.sectionKey] ?? "")) openComingSoon();
+        else openSection(action.sectionKey);
+      }} className={className}>{content}</button>
+    );
   }
 
   function moveHomeModule(from: MobileHomeModuleKey, to: MobileHomeModuleKey) {
@@ -465,27 +493,18 @@ export function MobileDashboardHome({
           href={resolveHref("/dashboard/assistant", basePath)}
           onClick={guard("/dashboard/assistant")}
           aria-label={tr("Ouvrir l’Assistant EasyCom")}
-          className="relative mt-4 flex min-h-[112px] items-center gap-3 overflow-hidden rounded-[1.35rem] border border-white/20 bg-white/[0.055] pe-4 shadow-[0_12px_22px_rgba(17,2,58,0.2)] backdrop-blur-sm transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          /* A slim, discreet row: the tools come first on the dashboard. */
+          className="relative mt-3 inline-flex h-10 max-w-full items-center gap-2 rounded-full border border-white/15 bg-white/[0.07] pe-1.5 ps-1.5 transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
-          <Image
-            src={ASSISTANT_AGENT.image}
-            width={94}
-            height={137}
-            sizes="84px"
-            alt=""
-            aria-hidden="true"
-            className="-mb-1 h-[112px] w-[84px] shrink-0 self-end object-contain object-bottom drop-shadow-[0_10px_12px_rgba(8,1,30,0.28)]"
-          />
-          <span className="min-w-0 flex-1 text-start">
-            <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-[#ffd04c]">
-              <Sparkles className="size-3.5 fill-[#ffba13] text-[#ffba13]" />
-              {tr("Votre assistant IA")}
-            </span>
-            <span className="mt-1 block text-lg font-black leading-tight">{ASSISTANT_AGENT.name} · {tr(ASSISTANT_AGENT.role)}</span>
-            <span className="mt-0.5 block text-xs font-semibold leading-5 text-white/85">{tr("Posez votre question, David s’occupe du reste.")}</span>
+          <span className="flex size-8 shrink-0 items-start justify-center overflow-hidden rounded-full bg-white/15">
+            <Image src={ASSISTANT_AGENT.image} width={94} height={137} sizes="32px" alt="" aria-hidden="true" className="mt-0.5 w-8 object-cover object-top" />
           </span>
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white text-[#421388] shadow-lg">
-            <ArrowRight className="rtl-mirror size-5" />
+          <span className="flex min-w-0 items-center gap-1.5 pe-1 text-start text-sm font-bold">
+            <Sparkles className="size-3.5 shrink-0 fill-[#ffba13] text-[#ffba13]" />
+            <span className="truncate">{tr("Posez votre question à l’IA")}</span>
+          </span>
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/90 text-[#421388]">
+            <ArrowRight className="rtl-mirror size-4" />
           </span>
         </Link>
 
@@ -617,26 +636,15 @@ export function MobileDashboardHome({
         {otherTools.length ? <>
           <h2 className="mt-7 text-lg font-black leading-tight tracking-tight text-slate-950 sm:text-xl">{tr("Autres outils")}</h2>
           <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
-            {otherTools.map((action) => {
-              const Icon = action.icon;
-              const className = cn(MOBILE_ACTION_CARD_CLASS, "h-full w-full !min-h-[96px] !flex-col !justify-center !gap-2 rounded-[1.4rem] !border-0 px-2 py-2.5 !text-center shadow-[0_16px_30px_-18px_rgba(15,23,42,0.5)]", action.className);
-              const content = <>
-                <span className={cn("relative flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-lg", action.iconClassName ?? "text-slate-800")}>
-                  <Icon className="size-5 stroke-[2.15]" />
-                </span>
-                <span className="relative block line-clamp-2 text-sm font-black leading-tight tracking-[-0.02em] sm:text-base">{action.title}</span>
-              </>;
-              if (action.href?.startsWith("http")) return <a key={action.key} href={action.href} className={className}>{content}</a>;
-              if (action.href) return <Link key={action.key} href={resolveHref(action.href, basePath)} onClick={guard(action.href)} className={className}>{content}</Link>;
-              return (
-                <button key={action.key} type="button" onClick={() => {
-                  if (!action.sectionKey) return;
-                  if (isBlocked(SECTION_HREFS[action.sectionKey] ?? "")) openComingSoon();
-                  else openSection(action.sectionKey);
-                }} className={className}>{content}</button>
-              );
-            })}
+            {otherTools.map(renderToolCard)}
           </div>
+          {upcomingTools.length ? <>
+            <button type="button" onClick={() => setUpcomingOpen((open) => !open)} aria-expanded={upcomingOpen} className="mx-auto mt-4 flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50">
+              <ChevronDown className={cn("size-3.5 transition-transform", upcomingOpen && "rotate-180")} />
+              {tr("Outils à venir")}
+            </button>
+            {upcomingOpen ? <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">{upcomingTools.map(renderToolCard)}</div> : null}
+          </> : null}
         </> : null}
       </section>
       {comingSoonDialog}

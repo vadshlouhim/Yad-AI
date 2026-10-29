@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
 import {
   isSupportedLocale,
   LOCALE_COOKIE_MAX_AGE,
@@ -15,15 +14,22 @@ import {
 } from "@/i18n/config";
 import { cn } from "@/lib/utils";
 
+function writeCookie(value: string) {
+  document.cookie = value;
+}
+
 export function LanguageSwitcher({
   className,
   compact = false,
+  fullLabels = false,
+  showUnavailableEnglish = true,
 }: {
   className?: string;
   compact?: boolean;
+  fullLabels?: boolean;
+  showUnavailableEnglish?: boolean;
 }) {
   const currentLocale = useLocale();
-  const router = useRouter();
   const t = useTranslations("languageSwitcher");
   const [pendingLocale, setPendingLocale] = useState<Locale | null>(null);
 
@@ -31,35 +37,35 @@ export function LanguageSwitcher({
     if (locale === currentLocale || pendingLocale) return;
 
     setPendingLocale(locale);
-    document.cookie = `${LOCALE_COOKIE_NAME}=${locale}; Path=/; Max-Age=${LOCALE_COOKIE_MAX_AGE}; SameSite=Lax`;
-    document.cookie = `${LOCALE_SOURCE_COOKIE_NAME}=${LOCALE_SOURCE_MANUAL}; Path=/; Max-Age=${LOCALE_COOKIE_MAX_AGE}; SameSite=Lax`;
+    writeCookie(`${LOCALE_COOKIE_NAME}=${locale}; Path=/; Max-Age=${LOCALE_COOKIE_MAX_AGE}; SameSite=Lax`);
+    writeCookie(`${LOCALE_SOURCE_COOKIE_NAME}=${LOCALE_SOURCE_MANUAL}; Path=/; Max-Age=${LOCALE_COOKIE_MAX_AGE}; SameSite=Lax`);
 
-    try {
-      const response = await fetch("/api/user/locale", {
+    void fetch("/api/user/locale", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ locale }),
+        keepalive: true,
+      })
+      .then((response) => {
+        if (response.status === 401) {
+          writeCookie(`${LOCALE_PENDING_COOKIE_NAME}=1; Path=/; Max-Age=${LOCALE_PENDING_COOKIE_MAX_AGE}; SameSite=Lax`);
+        } else if (!response.ok) {
+          console.error("La préférence de langue n’a pas pu être enregistrée dans le profil.");
+        }
+      })
+      .catch(() => {
+        // Le cookie conserve le choix pour les visiteurs et en cas de panne réseau.
       });
 
-      if (response.status === 401) {
-        document.cookie = `${LOCALE_PENDING_COOKIE_NAME}=1; Path=/; Max-Age=${LOCALE_PENDING_COOKIE_MAX_AGE}; SameSite=Lax`;
-      }
-
-      if (!response.ok && response.status !== 401) {
-        console.error("La préférence de langue n’a pas pu être enregistrée dans le profil.");
-      }
-    } catch {
-      // Le cookie conserve le choix pour les visiteurs et en cas de panne réseau.
-    } finally {
-      setPendingLocale(null);
-      router.refresh();
-    }
+    // The cookie drives the next server render immediately. `keepalive`
+    // lets the authenticated profile update finish during navigation.
+    window.location.reload();
   }
 
   const locale = isSupportedLocale(currentLocale) ? currentLocale : "fr";
   const options: Array<{ locale: Locale; shortLabel: string; label: string }> = [
-    { locale: "fr", shortLabel: "FR", label: t("selectFrench") },
-    { locale: "he", shortLabel: "עב", label: t("selectHebrew") },
+    { locale: "he", shortLabel: fullLabels ? "עברית" : "עב", label: t("selectHebrew") },
+    { locale: "fr", shortLabel: fullLabels ? "Français" : "FR", label: t("selectFrench") },
   ];
 
   return (
@@ -87,7 +93,9 @@ export function LanguageSwitcher({
             disabled={pendingLocale !== null}
             className={cn(
               "inline-flex items-center justify-center rounded-full font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#421388] focus-visible:ring-offset-2 disabled:cursor-wait",
-              compact ? "h-7 min-w-8 px-2 text-[10px]" : "h-8 min-w-9 px-2.5 text-xs",
+              fullLabels
+                ? "min-h-11 min-w-[3.5rem] px-2.5 text-[11px]"
+                : compact ? "h-7 min-w-8 px-2 text-[10px]" : "h-8 min-w-9 px-2.5 text-xs",
               active
                 ? "bg-[#421388] text-white shadow-sm ring-2 ring-amber-300"
                 : "text-[#421388] hover:bg-violet-50",
@@ -99,7 +107,7 @@ export function LanguageSwitcher({
         );
       })}
 
-      <span
+      {showUnavailableEnglish ? <span
         className="group relative inline-flex rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#421388] focus-visible:ring-offset-2"
         tabIndex={0}
         title={t("englishUnavailable")}
@@ -121,7 +129,7 @@ export function LanguageSwitcher({
         >
           {t("englishUnavailable")}
         </span>
-      </span>
+      </span> : null}
     </div>
   );
 }

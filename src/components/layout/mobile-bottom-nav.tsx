@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Grid2X2, Share2, UsersRound } from "lucide-react";
+import { Cake, FileText, Grid2X2, Share2, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -30,10 +30,10 @@ export function MobileBottomNav() {
     >
       <div className={`mx-auto grid min-h-[4.7rem] max-w-md items-center gap-2 ${locale === "he" ? "grid-cols-4" : "grid-cols-2"}`}>
         {locale === "he" ? <>
-          <Link href="/dashboard/newsletter" aria-current={pathname.startsWith("/dashboard/newsletter") ? "page" : undefined} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-2 text-xs font-semibold focus-visible:ring-4 focus-visible:ring-violet-200 ${pathname.startsWith("/dashboard/newsletter") ? "bg-[#421388] text-white" : "bg-violet-50 text-violet-900"}`}><FileText className="size-5" aria-hidden="true" />{dashboard("heNewsletter")}</Link>
+          <button type="button" onClick={handleClick} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-semibold focus-visible:ring-4 focus-visible:ring-violet-200 ${isOverviewPage ? "bg-[#421388] text-white" : "bg-violet-50 text-violet-900"}`}><Grid2X2 className="size-5" aria-hidden="true" />{dashboard("mainMenu")}</button>
           <Link href="/dashboard/social-networks" aria-current={pathname.startsWith("/dashboard/social-networks") ? "page" : undefined} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-semibold focus-visible:ring-4 focus-visible:ring-violet-200 ${pathname.startsWith("/dashboard/social-networks") ? "bg-[#421388] text-white" : "bg-violet-50 text-violet-900"}`}><Share2 className="size-5" aria-hidden="true" />{dashboard("hePublishNav")}</Link>
-          <span aria-disabled="true" className="flex min-h-14 cursor-default flex-col items-center justify-center gap-1 rounded-xl bg-slate-100 px-1 text-[11px] font-semibold text-slate-400"><Grid2X2 className="size-5" aria-hidden="true" /><span>{dashboard("mainMenu")}</span><small className="text-[8px] leading-none">{dashboard("heComingSoonBadge")}</small></span>
-          <span aria-disabled="true" className="flex min-h-14 cursor-default flex-col items-center justify-center gap-1 rounded-xl bg-slate-100 px-1 text-[11px] font-semibold text-slate-400"><UsersRound className="size-5" aria-hidden="true" /><span>{dashboard("smartCrm")}</span><small className="text-[8px] leading-none">{dashboard("heComingSoonBadge")}</small></span>
+          <Link href="/dashboard/newsletter" aria-current={pathname.startsWith("/dashboard/newsletter") ? "page" : undefined} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-semibold focus-visible:ring-4 focus-visible:ring-violet-200 ${pathname.startsWith("/dashboard/newsletter") ? "bg-[#421388] text-white" : "bg-violet-50 text-violet-900"}`}><FileText className="size-5" aria-hidden="true" />{dashboard("heNewsletter")}</Link>
+          <Link href="/dashboard/jewish-birthdays" aria-current={pathname.startsWith("/dashboard/jewish-birthdays") ? "page" : undefined} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-semibold focus-visible:ring-4 focus-visible:ring-violet-200 ${pathname.startsWith("/dashboard/jewish-birthdays") ? "bg-[#421388] text-white" : "bg-violet-50 text-violet-900"}`}><Cake className="size-5" aria-hidden="true" /><span>יום הולדת</span></Link>
         </> : <>
         <button
           type="button"
