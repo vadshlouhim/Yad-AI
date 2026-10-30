@@ -105,6 +105,7 @@ export async function POST(request: Request) {
       referenceImageUrls: body.shabbat !== true && logoUrl ? [logoUrl] : undefined,
       overlayLogoUrl: body.shabbat === true && logoUrl ? logoUrl : undefined,
       overlayLogoZone: logoZone,
+      overlayLogoWhitePlate: body.shabbat === true,
       editInstructions: [
         "NON-NEGOTIABLE BRANDING REQUIREMENTS:",
         body.shabbat === true && logoUrl
@@ -112,6 +113,9 @@ export async function POST(request: Request) {
           : logoEditInstructions(logoUrl),
         body.shabbat === true
           ? "Never write any source, credit or attribution line for the times (for example \"Chabad.org\" or \"Shabbat times provided by…\"), and remove any such line already on the image."
+          : "",
+        body.shabbat === true
+          ? "GRAPHIC COHERENCE FOR THIS SHABBAT POSTER: derive the text styling from the template's existing dominant palette. Use no more than two text colours: one dark, highly legible primary colour for essential information and one existing template accent colour for emphasis. Keep the same semantic role in the same colour throughout. Never introduce unrelated purple, blue, red or decorative colours. Maintain strong contrast against every local background, a clear hierarchy, consistent type weight, balanced spacing and aligned text blocks. The organization name, title, location, dates, labels and times must read as one intentional visual system."
           : "",
         structureName
           ? `The official organization name is "${structureName}". It is mandatory: reproduce it exactly, clearly and legibly once on the final poster. Never omit, abbreviate, translate or alter it.`

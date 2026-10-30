@@ -28,9 +28,92 @@ function escapeXml(value: string) {
   return value.replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[character] ?? character);
 }
 
-function line(value: string | undefined, y: number, size: number, weight = 500, family = "PosterBody") {
+function line(value: string | undefined, y: number, size: number, weight = 500, family = "PosterBody", fill?: string) {
   if (!value?.trim()) return "";
-  return `<text x="540" y="${y}" text-anchor="middle" font-family="${family}" font-size="${size}" font-weight="${weight}">${escapeXml(value.trim())}</text>`;
+  return `<text x="540" y="${y}" text-anchor="middle" font-family="${family}" font-size="${size}" font-weight="${weight}"${fill ? ` fill="${fill}"` : ""}>${escapeXml(value.trim())}</text>`;
+}
+
+type Rgb = { r: number; g: number; b: number };
+export type PosterPalette = { primary: string; accent: string };
+
+const channelLuminance = (channel: number) => {
+  const value = channel / 255;
+  return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+};
+
+function luminance(color: Rgb) {
+  return 0.2126 * channelLuminance(color.r) + 0.7152 * channelLuminance(color.g) + 0.0722 * channelLuminance(color.b);
+}
+
+function mix(first: Rgb, second: Rgb, secondWeight: number): Rgb {
+  const weight = Math.min(1, Math.max(0, secondWeight));
+  return {
+    r: Math.round(first.r * (1 - weight) + second.r * weight),
+    g: Math.round(first.g * (1 - weight) + second.g * weight),
+    b: Math.round(first.b * (1 - weight) + second.b * weight),
+  };
+}
+
+function toHex(color: Rgb) {
+  return `#${[color.r, color.g, color.b].map((value) => Math.min(255, Math.max(0, value)).toString(16).padStart(2, "0")).join("")}`;
+}
+
+export function posterContrastRatio(first: Rgb, second: Rgb) {
+  const lighter = Math.max(luminance(first), luminance(second));
+  const darker = Math.min(luminance(first), luminance(second));
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function readableOnWhite(color: Rgb) {
+  let candidate = color;
+  const white = { r: 255, g: 255, b: 255 };
+  while (posterContrastRatio(candidate, white) < 4.8) {
+    candidate = mix(candidate, { r: 12, g: 18, b: 28 }, 0.12);
+  }
+  return candidate;
+}
+
+/** Selects a representative template accent, then derives two deterministic, readable text colours. */
+export async function extractPosterPalette(background: Buffer): Promise<PosterPalette> {
+  const { data, info } = await sharp(background, { failOn: "warning", limitInputPixels: 80_000_000 })
+    .rotate()
+    .resize(48, 60, { fit: "cover" })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const buckets = new Map<string, { count: number; r: number; g: number; b: number; saturation: number }>();
+
+  for (let offset = 0; offset < data.length; offset += info.channels) {
+    if (data[offset + 3] < 180) continue;
+    const r = data[offset];
+    const g = data[offset + 1];
+    const b = data[offset + 2];
+    const maximum = Math.max(r, g, b);
+    const minimum = Math.min(r, g, b);
+    const saturation = maximum === 0 ? 0 : (maximum - minimum) / maximum;
+    const lightness = (maximum + minimum) / 510;
+    if (lightness < 0.07 || lightness > 0.91 || saturation < 0.08) continue;
+    const key = `${Math.round(r / 32)}:${Math.round(g / 32)}:${Math.round(b / 32)}`;
+    const bucket = buckets.get(key) ?? { count: 0, r: 0, g: 0, b: 0, saturation: 0 };
+    bucket.count += 1;
+    bucket.r += r;
+    bucket.g += g;
+    bucket.b += b;
+    bucket.saturation += saturation;
+    buckets.set(key, bucket);
+  }
+
+  const selected = [...buckets.values()].sort((first, second) => {
+    const firstScore = first.count * (0.45 + first.saturation / first.count);
+    const secondScore = second.count * (0.45 + second.saturation / second.count);
+    return secondScore - firstScore;
+  })[0];
+  const sampled = selected
+    ? { r: Math.round(selected.r / selected.count), g: Math.round(selected.g / selected.count), b: Math.round(selected.b / selected.count) }
+    : { r: 139, g: 107, b: 62 };
+  const accent = readableOnWhite(sampled);
+  const primary = readableOnWhite(mix(accent, { r: 17, g: 24, b: 39 }, 0.72));
+  return { primary: toHex(primary), accent: toHex(accent) };
 }
 
 let embeddedFonts: Promise<{ body: string; title: string }> | null = null;
@@ -51,6 +134,7 @@ export async function renderReligiousPoster(params: {
   const direction = params.locale === "he" ? "rtl" : "ltr";
   const extra = (params.content.extraLines ?? []).filter(Boolean).slice(0, 3);
   const fonts = params.embeddedHebrewFonts ? await posterFonts() : null;
+  const palette = await extractPosterPalette(params.background);
   const bodyFamily = fonts ? "PosterBody" : "Arial, 'Noto Sans Hebrew', sans-serif";
   const titleFamily = fonts && params.locale === "he" ? "PosterTitle" : bodyFamily;
   const svg = Buffer.from(`
@@ -59,16 +143,16 @@ export async function renderReligiousPoster(params: {
         @font-face { font-family: PosterBody; src: url(data:font/ttf;base64,${fonts.body}); font-weight: 100 900; }
         @font-face { font-family: PosterTitle; src: url(data:font/ttf;base64,${fonts.title}); font-weight: 300 900; }
       </style>` : ""}
-      <rect x="86" y="185" width="908" height="980" rx="36" fill="#ffffff" fill-opacity="0.92" stroke="#7c3aed" stroke-opacity="0.32" stroke-width="3"/>
-      <g fill="#24173d" font-family="${bodyFamily}" direction="${direction}" unicode-bidi="embed">
+      <rect x="86" y="185" width="908" height="980" rx="36" fill="#ffffff" fill-opacity="0.96" stroke="${palette.accent}" stroke-opacity="0.48" stroke-width="3"/>
+      <g fill="${palette.primary}" font-family="${bodyFamily}" direction="${direction}" unicode-bidi="embed">
         ${line(params.content.communityName, 275, 34, 600, bodyFamily)}
         ${line(params.content.title, 380, 66, 800, titleFamily)}
-        ${line(params.content.subtitle, 455, 42, 700, bodyFamily)}
+        ${line(params.content.subtitle, 455, 42, 700, bodyFamily, palette.accent)}
         ${line(params.content.hebrewDate, 520, 32, 500, bodyFamily)}
         ${line(params.content.gregorianDate, 570, 27, 400, bodyFamily)}
         ${line(params.content.location, 625, 28, 500, bodyFamily)}
-        ${params.content.entryTime ? `<text x="540" y="740" text-anchor="middle" font-size="34" font-weight="600">${escapeXml(params.content.entryLabel ?? "")}: <tspan direction="ltr" unicode-bidi="embed" font-size="52" font-weight="800">${escapeXml(params.content.entryTime)}</tspan></text>` : ""}
-        ${params.content.exitTime ? `<text x="540" y="825" text-anchor="middle" font-size="34" font-weight="600">${escapeXml(params.content.exitLabel ?? "")}: <tspan direction="ltr" unicode-bidi="embed" font-size="52" font-weight="800">${escapeXml(params.content.exitTime)}</tspan></text>` : ""}
+        ${params.content.entryTime ? `<text x="540" y="740" text-anchor="middle" font-size="34" font-weight="600">${escapeXml(params.content.entryLabel ?? "")}: <tspan direction="ltr" unicode-bidi="embed" font-size="52" font-weight="800" fill="${palette.accent}">${escapeXml(params.content.entryTime)}</tspan></text>` : ""}
+        ${params.content.exitTime ? `<text x="540" y="825" text-anchor="middle" font-size="34" font-weight="600">${escapeXml(params.content.exitLabel ?? "")}: <tspan direction="ltr" unicode-bidi="embed" font-size="52" font-weight="800" fill="${palette.accent}">${escapeXml(params.content.exitTime)}</tspan></text>` : ""}
         ${extra.map((value, index) => line(value, 910 + index * 48, 27, 450, bodyFamily)).join("")}
       </g>
     </svg>`);
@@ -107,6 +191,7 @@ export async function createReligiousPoster(params: {
   content: ReligiousPosterContent;
   sourceImageUrl?: string;
   logoUrl?: string;
+  logoWhitePlate?: boolean;
   recordMedia?: boolean;
 }) {
   const sourceUrl = params.sourceImageUrl ?? resolveTemplateAssetUrl(params.template.originalUrl) ?? resolveTemplateAssetUrl(params.template.previewUrl);
@@ -116,7 +201,9 @@ export async function createReligiousPoster(params: {
   let width = 1080;
   let height = 1350;
   if (params.logoUrl) {
-    const result = await overlayOfficialLogoFromUrl(buffer, params.logoUrl, getTemplateLogoZone(params.template));
+    const result = await overlayOfficialLogoFromUrl(buffer, params.logoUrl, getTemplateLogoZone(params.template), {
+      whitePlate: params.logoWhitePlate,
+    });
     buffer = result.buffer;
     width = result.width;
     height = result.height;

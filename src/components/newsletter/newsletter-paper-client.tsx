@@ -837,7 +837,8 @@ export function NewsletterPaperClient({
         onClick={() => toggleModule(module.key)}
         aria-pressed={isActive}
         className={cn(
-          "group flex min-h-[66px] items-center gap-3 rounded-2xl border px-3.5 py-3 text-start transition active:scale-[0.985] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/25",
+          "group flex items-center gap-3 rounded-2xl border px-3.5 py-3 text-start transition active:scale-[0.985] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/25",
+          interfaceLocale === "he" ? "min-h-[72px] shadow-[0_8px_24px_rgba(60,20,120,.08)]" : "min-h-[66px]",
           isActive
             ? "border-emerald-300 bg-[#eaf8f2] text-[#123d39] shadow-[0_8px_20px_rgba(16,100,85,0.07)]"
             : "border-slate-200 bg-white text-slate-700 hover:border-[#8acbbb] hover:bg-[#f5fbf8]"
@@ -1128,9 +1129,9 @@ export function NewsletterPaperClient({
       <nav className="mx-4 rounded-[1.7rem] border border-[#dce9e5] bg-white/90 p-2 shadow-[0_14px_35px_rgba(17,43,69,0.07)] sm:mx-0 sm:p-2.5 print:hidden" aria-label={t("steps.aria")}>
         <div className="grid min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
           {([
-            ["modules", "01", t("steps.compose"), t("steps.composeDetail"), LayoutList, "bg-[#164960] text-white shadow-[0_10px_24px_rgba(17,43,69,0.16)]", "border-[#dce9e5] bg-[#f2f8f6] text-[#164960] hover:bg-[#e6f2ed]"],
-            ["content", "02", t("steps.customize"), t("steps.customizeDetail"), PenLine, "bg-[#0f766e] text-white shadow-[0_10px_24px_rgba(15,118,110,0.16)]", "border-[#dce9e5] bg-[#f2f8f6] text-[#164960] hover:bg-[#e6f2ed]"],
-            ["preview", "03", t("steps.leaflet"), t("steps.leafletDetail"), Eye, "bg-[#d7a95b] text-[#2f291d] shadow-[0_10px_24px_rgba(146,105,41,0.16)]", "border-[#dce9e5] bg-[#f2f8f6] text-[#164960] hover:bg-[#e6f2ed]"],
+            ["modules", "01", t("steps.compose"), t("steps.composeDetail"), LayoutList, interfaceLocale === "he" ? "bg-[#0f766e] text-white shadow-[0_8px_24px_rgba(60,20,120,.08)]" : "bg-[#164960] text-white shadow-[0_10px_24px_rgba(17,43,69,0.16)]", interfaceLocale === "he" ? "border-[#dce9e5] bg-white text-slate-700" : "border-[#dce9e5] bg-[#f2f8f6] text-[#164960] hover:bg-[#e6f2ed]"],
+            ["content", "02", t("steps.customize"), t("steps.customizeDetail"), PenLine, "bg-[#0f766e] text-white shadow-[0_10px_24px_rgba(15,118,110,0.16)]", interfaceLocale === "he" ? "border-[#dce9e5] bg-white text-slate-700" : "border-[#dce9e5] bg-[#f2f8f6] text-[#164960] hover:bg-[#e6f2ed]"],
+            ["preview", "03", t("steps.leaflet"), t("steps.leafletDetail"), Eye, interfaceLocale === "he" ? "bg-[#0f766e] text-white shadow-[0_8px_24px_rgba(60,20,120,.08)]" : "bg-[#d7a95b] text-[#2f291d] shadow-[0_10px_24px_rgba(146,105,41,0.16)]", interfaceLocale === "he" ? "border-[#dce9e5] bg-white text-slate-700" : "border-[#dce9e5] bg-[#f2f8f6] text-[#164960] hover:bg-[#e6f2ed]"],
           ] as const).map(([step, number, label, detail, Icon, activeClass, idleClass]) => (
             <button key={step} type="button" aria-current={editorStep === step ? "step" : undefined} onClick={() => step === "preview" ? void prepareOutput("preview") : setEditorStep(step)} disabled={preparingAction !== null} className={cn("group flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1 rounded-[1.2rem] border border-transparent px-1 py-2 text-center transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e] focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60 sm:min-h-[78px] sm:flex-row sm:justify-start sm:gap-3 sm:px-4 sm:text-start", editorStep === step ? activeClass : idleClass)}>
               <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-lg bg-white/85 text-[10px] font-black shadow-sm sm:size-10 sm:rounded-xl sm:text-sm", editorStep === step && step !== "preview" ? "text-[#164960]" : "text-current")}>{number}</span>
@@ -1467,7 +1468,7 @@ export function NewsletterPaperClient({
       <div className={cn("fixed inset-x-0 bottom-[calc(5.95rem+env(safe-area-inset-bottom))] z-20 border-t border-[#dce9e5] bg-[#f7faf8]/95 px-3 py-2 backdrop-blur print:hidden md:bottom-0 md:z-40 md:py-3", keyboardOpen && "max-md:hidden")}>
         <div className={cn("mx-auto grid max-w-3xl gap-2", "grid-cols-1")}>
           {editorStep === "modules" ? (
-            <Button type="button" onClick={() => { if (generated.title.trim()) { setError(null); setEditorStep("content"); } else { setError(t("errors.titleContinue")); } }} className="min-h-13 rounded-2xl bg-[#164960] px-5 font-black text-white shadow-[0_10px_22px_rgba(17,43,69,0.18)] hover:bg-[#113d50]">
+            <Button type="button" onClick={() => { if (generated.title.trim()) { setError(null); setEditorStep("content"); } else { setError(t("errors.titleContinue")); } }} className={cn("min-h-13 rounded-2xl bg-[#164960] px-5 font-black text-white shadow-[0_10px_22px_rgba(17,43,69,0.18)] hover:bg-[#113d50]", interfaceLocale === "he" && "disabled:bg-[#164960]/45 disabled:text-white disabled:opacity-100")}>
               {t("continue")} <PenLine className="size-4" />
             </Button>
           ) : null}

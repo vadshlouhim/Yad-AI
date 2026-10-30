@@ -12,7 +12,7 @@ const supabaseImageHostname = (() => {
 })();
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@keeratita/heic-converter"],
+  serverExternalPackages: ["@keeratita/heic-converter", "web-push"],
   experimental: {
     preloadEntriesOnStart: false,
   },

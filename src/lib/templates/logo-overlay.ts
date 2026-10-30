@@ -7,6 +7,10 @@ const MAX_INPUT_PIXELS = 80_000_000;
 const BACKGROUND_TOLERANCE = 42;
 const SOFT_EDGE = 26;
 
+export type LogoOverlayOptions = {
+  whitePlate?: boolean;
+};
+
 /**
  * Makes a plain (white or single-colour) logo background transparent, flooding in from the edges so
  * that the same colour inside the logo is kept. Logos that are already transparent, or whose
@@ -62,13 +66,15 @@ export async function removeUniformBackground(logoBuffer: Buffer): Promise<Buffe
 }
 
 /**
- * Places the official logo, without any plate behind it, inside the template's logo zone when one is
- * known, otherwise in the top-right corner.
+ * Places the official logo inside the template's logo zone when one is known, otherwise in the
+ * top-right corner. Shabbat posters can opt into a white visibility plate while other poster flows
+ * keep their existing transparent treatment.
  */
 export async function compositeOfficialLogo(
   posterBuffer: Buffer,
   logoBuffer: Buffer,
   zone?: LogoZone | null,
+  options: LogoOverlayOptions = {},
 ): Promise<{ buffer: Buffer; width: number; height: number }> {
   const poster = sharp(posterBuffer, {
     failOn: "warning",
@@ -83,8 +89,15 @@ export async function compositeOfficialLogo(
   const box = zone
     ? { left: Math.round(zone.x * width), top: Math.round(zone.y * height), width: Math.max(16, Math.round(zone.width * width)), height: Math.max(16, Math.round(zone.height * height)) }
     : null;
-  const maxLogoWidth = box ? Math.round(box.width * 0.92) : Math.max(48, Math.round(width * 0.16));
-  const maxLogoHeight = box ? Math.round(box.height * 0.92) : Math.max(36, Math.round(height * 0.1));
+  const platePadding = options.whitePlate
+    ? Math.max(8, Math.round(Math.min(width, height) * 0.012))
+    : 0;
+  const maxLogoWidth = box
+    ? Math.max(16, Math.round(box.width * (options.whitePlate ? 0.78 : 0.92)))
+    : Math.max(48, Math.round(width * 0.16));
+  const maxLogoHeight = box
+    ? Math.max(16, Math.round(box.height * (options.whitePlate ? 0.66 : 0.92)))
+    : Math.max(36, Math.round(height * 0.1));
   const logo = await sharp(await removeUniformBackground(logoBuffer), { limitInputPixels: MAX_INPUT_PIXELS })
     .resize({
       width: maxLogoWidth,
@@ -95,19 +108,42 @@ export async function compositeOfficialLogo(
     .png()
     .toBuffer({ resolveWithObject: true });
 
-  const left = box
-    ? box.left + Math.round((box.width - logo.info.width) / 2)
-    : width - logo.info.width - margin;
-  const top = box
-    ? box.top + Math.round((box.height - logo.info.height) / 2)
+  const requestedPlateWidth = logo.info.width + platePadding * 2;
+  const requestedPlateHeight = logo.info.height + platePadding * 2;
+  const plateWidth = options.whitePlate
+    ? Math.min(requestedPlateWidth, box ? Math.round(box.width * 0.94) : width - margin * 2)
+    : 0;
+  const plateHeight = options.whitePlate
+    ? Math.min(requestedPlateHeight, box ? Math.round(box.height * 0.94) : height - margin * 2)
+    : 0;
+  const visualWidth = options.whitePlate ? plateWidth : logo.info.width;
+  const visualHeight = options.whitePlate ? plateHeight : logo.info.height;
+  const visualLeft = box
+    ? box.left + Math.round((box.width - visualWidth) / 2)
+    : width - visualWidth - margin;
+  const visualTop = box
+    ? box.top + Math.round((box.height - visualHeight) / 2)
     : margin;
+  const safeVisualLeft = Math.min(Math.max(0, visualLeft), Math.max(0, width - visualWidth));
+  const safeVisualTop = Math.min(Math.max(0, visualTop), Math.max(0, height - visualHeight));
+  const logoLeft = safeVisualLeft + Math.round((visualWidth - logo.info.width) / 2);
+  const logoTop = safeVisualTop + Math.round((visualHeight - logo.info.height) / 2);
+
+  const plate = options.whitePlate
+    ? Buffer.from(`
+      <svg width="${plateWidth}" height="${plateHeight}" viewBox="0 0 ${plateWidth} ${plateHeight}" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="3" width="${Math.max(1, plateWidth - 4)}" height="${Math.max(1, plateHeight - 4)}" rx="${Math.max(4, Math.round(Math.min(plateWidth, plateHeight) * 0.08))}" fill="#000000" fill-opacity="0.14"/>
+        <rect x="1" y="1" width="${Math.max(1, plateWidth - 4)}" height="${Math.max(1, plateHeight - 4)}" rx="${Math.max(4, Math.round(Math.min(plateWidth, plateHeight) * 0.08))}" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"/>
+      </svg>`)
+    : null;
 
   const output = await poster
     .composite([
+      ...(plate ? [{ input: plate, left: safeVisualLeft, top: safeVisualTop }] : []),
       {
         input: logo.data,
-        left: Math.min(Math.max(0, left), Math.max(0, width - logo.info.width)),
-        top: Math.min(Math.max(0, top), Math.max(0, height - logo.info.height)),
+        left: Math.min(Math.max(0, logoLeft), Math.max(0, width - logo.info.width)),
+        top: Math.min(Math.max(0, logoTop), Math.max(0, height - logo.info.height)),
       },
     ])
     .png()
@@ -120,6 +156,7 @@ export async function overlayOfficialLogoFromUrl(
   posterBuffer: Buffer,
   logoUrl: string,
   zone?: LogoZone | null,
+  options: LogoOverlayOptions = {},
 ): Promise<{ buffer: Buffer; width: number; height: number }> {
   const response = await fetch(logoUrl, {
     signal: AbortSignal.timeout(20_000),
@@ -136,5 +173,5 @@ export async function overlayOfficialLogoFromUrl(
   if (!logoBuffer.length || logoBuffer.length > MAX_LOGO_BYTES) {
     throw new Error("La taille du logo officiel est invalide.");
   }
-  return compositeOfficialLogo(posterBuffer, logoBuffer, zone);
+  return compositeOfficialLogo(posterBuffer, logoBuffer, zone, options);
 }

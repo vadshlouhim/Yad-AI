@@ -439,6 +439,19 @@
     "ideas": { "title": "Idées de l’IA pour cette semaine", "parasha": "Une idée autour de la Paracha {name}", "holiday": "Préparer la communauté pour {name}", "event": "Rappeler l’événement {name}", "volunteers": "Merci à nos bénévoles", "kiddush": "Une photo du Kiddouch" },
     "actions": { "edit": "Modifier", "duplicate": "Dupliquer", "delete": "Supprimer", "deleteConfirm": "Supprimer cette publication programmée ?" }
   },
+  "hebrewDashboardHome": {
+    "welcome": "Bienvenue, {name}", "subtitle": "Vos trois outils, réunis au même endroit.", "question": "Que souhaitez-vous faire ?", "start": "Commencer maintenant", "comingSoon": "Fonctionnalités à venir", "soonBadge": "Bientôt",
+    "tools": { "publish": { "title": "Publier partout", "description": "Écrivez une fois et publiez sur Facebook, Instagram et WhatsApp." }, "newsletter": { "title": "Newsletter de Chabbat", "description": "Un feuillet professionnel recto verso, prêt à imprimer en quelques minutes." }, "birthdays": { "title": "Anniversaires hébraïques et Yahrzeit", "description": "Rappels et messages automatiques pour les anniversaires hébraïques et les Yahrzeit de la communauté." } },
+    "upcoming": { "posters": "Affiches et flyers", "times": "Horaires de Chabbat et fêtes", "automations": "Automatisations", "crm": "CRM 2.0", "torah": "Cours de Torah", "email": "Email et avis Google", "shop": "Boutique et produits" }
+  },
+  "jewishBirthdays": {
+    "title": "Anniversaires & Yahrzeit",
+    "subtitle": "Les dates du mois de {month}, avec proposition à J-7 et rappel interne à J-1.",
+    "summary": { "count": "{count, plural, =0 {Aucune date ce mois-ci} one {# date ce mois-ci} other {# dates ce mois-ci}}", "manageCrm": "Gérer dans le CRM" },
+    "sections": { "birthdays": "Anniversaires ({count})", "yahrzeits": "Yahrzeit ({count})", "noBirthdays": "Aucun anniversaire ce mois-ci", "noYahrzeits": "Aucun yahrzeit ce mois-ci" },
+    "card": { "today": "Aujourd’hui", "for": "Pour {name}", "past": "passé", "offerKiddush": "Proposer d’offrir le Kidouch" },
+    "dialog": { "eyebrow": "Kidouch ou Parnass Hayom", "title": "Message pour {name}", "close": "Fermer", "languages": { "fr": "Français", "he": "Hébreu", "bilingual": "Bilingue" }, "loading": "David prépare le message…", "unavailable": "Message indisponible.", "dryRun": "Modifiez le texte si besoin. Aucun message n’est envoyé automatiquement.", "copy": "Copier", "copied": "Copié", "openWhatsApp": "Ouvrir WhatsApp", "missingPhone": "Ajoutez un numéro dans le CRM pour utiliser WhatsApp." }
+  },
   "socialComposer": {
     "header": { "back": "Retour au tableau de bord", "title": "Publier partout", "profile": "Ouvrir mon profil", "week": "Ma semaine" },
     "networks": { "FACEBOOK": "Facebook", "INSTAGRAM": "Instagram" },

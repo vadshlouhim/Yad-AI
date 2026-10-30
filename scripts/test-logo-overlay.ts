@@ -31,7 +31,7 @@ async function main() {
   assert.equal((await pixelAt(kept, 0, 0))[3], 255, "a complex background is kept");
   assert.equal((await sharp(kept).metadata()).width, 200, "a complex background is not trimmed");
 
-  // Placement: centred in the template's zone, with no white plate around it.
+  // Default placement remains transparent for non-Shabbat poster flows.
   const poster = await sharp({ create: { width: 1000, height: 1250, channels: 4, background: "#204060" } }).png().toBuffer();
   const zone = { x: 0.05, y: 0.04, width: 0.2, height: 0.12 };
   const placed = await compositeOfficialLogo(poster, whiteLogo, zone);
@@ -41,6 +41,15 @@ async function main() {
   assert.ok(zoneCentre[0] > 150, "the logo sits in the middle of the zone");
   const topRight = await pixelAt(placed.buffer, 960, 40);
   assert.deepEqual(topRight.slice(0, 3), [32, 64, 96], "nothing is added in the top-right corner when a zone exists");
+
+  // Shabbat placement: an opaque white visibility plate frames the exact logo inside the zone.
+  const withPlate = await compositeOfficialLogo(poster, whiteLogo, zone, { whitePlate: true });
+  const plateCorner = await pixelAt(withPlate.buffer, 95, 70);
+  assert.ok(plateCorner[0] >= 245 && plateCorner[1] >= 245 && plateCorner[2] >= 245, "the Shabbat logo has an opaque white plate");
+  const outsidePlate = await pixelAt(withPlate.buffer, 55, 55);
+  assert.deepEqual(outsidePlate.slice(0, 3), [32, 64, 96], "the white plate stays inside the configured logo zone");
+  const platedLogoPixel = await pixelAt(withPlate.buffer, 180, 125);
+  assert.ok(platedLogoPixel[0] > 150 && platedLogoPixel[1] < 100, "the official logo remains visible and centred above the plate");
 
   // Without a zone the logo still goes top-right, without plate.
   const fallback = await compositeOfficialLogo(poster, whiteLogo);
@@ -53,7 +62,7 @@ async function main() {
   assert.deepEqual(getTemplateLogoZone({ design }), zone);
   assert.deepEqual(withLogoZone(design, null), [{ type: "other" }], "clearing the zone keeps other design entries");
 
-  console.log("Logo overlay: background removal, zone placement and zone storage passed.");
+  console.log("Logo overlay: background removal, optional white plate, zone placement and zone storage passed.");
 }
 
 main().catch((error) => {

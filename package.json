@@ -18,6 +18,7 @@
     "test:newsletter-sefer-he": "tsx scripts/test-newsletter-sefer-he.ts",
     "test:newsletter-overflow": "tsx scripts/test-newsletter-overflow.ts",
     "test:logo-overlay": "tsx scripts/test-logo-overlay.ts",
+    "test:religious-poster": "tsx scripts/test-religious-poster.ts",
     "test:office-times": "tsx scripts/test-office-times.ts",
     "templates:import": "tsx scripts/import-template-library.ts",
     "templates:holiday-times:import": "tsx scripts/import-holiday-times-templates.ts",

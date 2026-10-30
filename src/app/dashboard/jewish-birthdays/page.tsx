@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { JewishBirthdaysClient } from "@/components/jewish-birthdays/jewish-birthdays-client";
 import { requireAuth } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getBirthdayOccurrence, getCurrentHebrewDate, getHebrewMonthLabel, getYahrzeitOccurrence, validateHebrewBirthday } from "@/lib/contacts/hebrew-birthday";
 
-export const metadata: Metadata = { title: "Anniversaires & Yahrzeit — EasyCom IA" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("jewishBirthdays");
+  return { title: `${t("title")} — EasyCom IA` };
+}
 
 export default async function JewishBirthdaysPage() {
+  const locale = await getLocale();
   const { profile } = await requireAuth();
   if (!profile.communityId) redirect("/onboarding");
   const admin = createAdminClient() as ReturnType<typeof createAdminClient> & {
@@ -39,7 +44,7 @@ export default async function JewishBirthdaysPage() {
       firstName: contact.firstName?.trim() || contact.displayName.split(/\s+/)[0],
       displayName: contact.displayName,
       phone: contact.phone,
-      hebrewDate: occurrence.label,
+      hebrewDate: locale === "he" ? occurrence.hebrewDate.renderGematriya() : occurrence.label,
       hebrewDay: occurrence.hebrewDate.getDate(),
       gregorianDate: occurrence.gregorianDate,
     }];
@@ -49,7 +54,7 @@ export default async function JewishBirthdaysPage() {
     const occurrence = getYahrzeitOccurrence({ hebrewDeathDay: row.hebrewDeathDay, hebrewDeathMonth: row.hebrewDeathMonth, hebrewDeathYear: row.hebrewDeathYear }, current.getFullYear());
     const member = Array.isArray(row.member) ? row.member[0] : row.member;
     if (!occurrence || occurrence.hebrewDate.getMonth() !== current.getMonth() || !member) return [];
-    return [{ id: row.id, memberId: row.memberId, firstName: member.firstName?.trim() || member.displayName.split(/\s+/)[0], displayName: member.displayName, phone: member.phone, deceasedName: row.deceasedName, deceasedHebrewName: row.deceasedHebrewName, relationship: row.relationship, hebrewDate: occurrence.label, hebrewDay: occurrence.hebrewDate.getDate(), gregorianDate: occurrence.gregorianDate }];
+    return [{ id: row.id, memberId: row.memberId, firstName: member.firstName?.trim() || member.displayName.split(/\s+/)[0], displayName: member.displayName, phone: member.phone, deceasedName: row.deceasedName, deceasedHebrewName: row.deceasedHebrewName, relationship: row.relationship, hebrewDate: locale === "he" ? occurrence.hebrewDate.renderGematriya() : occurrence.label, hebrewDay: occurrence.hebrewDate.getDate(), gregorianDate: occurrence.gregorianDate }];
   }).sort((left, right) => left.gregorianDate.localeCompare(right.gregorianDate));
 
   return (
@@ -57,7 +62,9 @@ export default async function JewishBirthdaysPage() {
       birthdays={birthdays}
       yahrzeits={yahrzeits}
       currentHebrewDay={current.getDate()}
-      currentMonth={`${getHebrewMonthLabel(current.getMonth(), current.getFullYear())} ${current.getFullYear()}`}
+      currentMonth={locale === "he"
+        ? new Intl.DateTimeFormat("he-IL-u-ca-hebrew", { month: "long", year: "numeric" }).format(current.greg())
+        : `${getHebrewMonthLabel(current.getMonth(), current.getFullYear())} ${current.getFullYear()}`}
     />
   );
 }

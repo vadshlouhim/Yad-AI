@@ -21,7 +21,7 @@
     "method": "השיטה שלנו", "posters": "מודעות", "demo": "הדגמה", "blog": "בלוג",
     "pricing": "תמחור", "pricingShort": "מחירים", "faq": "שאלות נפוצות", "contact": "יצירת קשר",
     "login": "התחברות", "loginShort": "התחברות", "tryFree": "נסו בחינם", "try": "נסו",
-    "brandHome": "EasyCom IA, דף הבית", "tagline": "תקשורת קהילתית",
+    "brandHome": "EasyCom AI, דף הבית", "tagline": "תקשורת קהילתית",
     "primaryLabel": "ניווט ראשי", "mobileLabel": "ניווט בנייד", "menuLabel": "תפריט ניווט",
     "openMenu": "פתיחת התפריט", "closeMenu": "סגירת התפריט"
   },
@@ -34,46 +34,51 @@
   "footer": {
     "description": "עוזר AI לתקשורת, אוטומציה ונראות.", "siteMap": "מפת האתר", "privacy": "מדיניות פרטיות",
     "terms": "תנאי שימוש", "cookies": "עוגיות", "deleteData": "מחיקת נתונים",
-    "linksLabel": "קישורים בתחתית האתר", "rights": "© {year} EasyCom IA. כל הזכויות שמורות.",
+    "linksLabel": "קישורים בתחתית האתר", "rights": "© {year} EasyCom AI. כל הזכויות שמורות.",
     "madeBy": "האתר והמיזם נוצרו על ידי", "responsible": "תקשורת AI אחראית ומלווה."
   },
   "home": {
     "upcomingClose": "סגירת רשימת התכונות שבדרך",
     "upcomingText": "התכונות האלה יגיעו בקרוב. לחצו על אחת מהן כדי לראות תצוגה מקדימה.",
-    "upcomingTitle": "בקרוב ב־EasyCom IA",
+    "upcomingTitle": "בקרוב ב־EasyCom AI",
     "upcomingKicker": "בקרוב",
     "assistantText": "עוזר אחד לתקשורת שלכם: עלון שבת ופרסום בכל הערוצים כבר עכשיו – ובקרוב עוד. אמרו לו מה אתם צריכים: הוא מכין, אתם מאשרים.",
     "assistantTitle": "David, העוזר של EasyCom",
     "assistantKicker": "עוזר ה־AI שלכם",
-    "showcaseAlt": "מודעה שנוצרה עם EasyCom IA",
+    "showcaseAlt": "מודעה שנוצרה עם EasyCom AI",
     "showcaseCta": "לכל המודעות",
     "showcaseSubtitle": "מודעות אמיתיות שהכינו קהילות, מוכנות תוך דקות.",
-    "showcaseTitle": "נוצר עם EasyCom IA",
+    "showcaseTitle": "נוצר עם EasyCom AI",
     "skip": "מעבר לתוכן", "previewLoading": "התצוגה המקדימה נפתחת…", "watchVideo": "צפייה בסרטון",
-    "title1": "עלון השבת והפרסומים של הקהילה.", "title2": "בלי מאמץ.", "title3": "תוך כמה דקות.",
+    "title1": "עלון השבת והפרסומים", "title2": "של הקהילה – בלי מאמץ", "title3": "תוך כמה דקות",
     "subtitle": "ה־AI כותב בשבילכם בעברית את עלון השבת ואת הפוסטים – ומפרסם בפייסבוק, באינסטגרם ובוואטסאפ בלחיצה אחת.",
     "discoverUpcoming": "לגלות מה חדש ובקרוב", "agentAria": "David, העוזר של EasyCom",
     "simpleStart": "מתחילים בפשטות", "reassurance1": "ללא התחייבות", "reassurance2": "הגדרה בתוך 5 דקות",
     "reassurance3": "תמיכה בעברית ובצרפתית", "presentationVideo": "סרטון היכרות עם EasyCom AI",
     "enableSound": "הפעלת הצליל בסרטון", "disableSound": "השתקת הסרטון", "soundOn": "הצליל מופעל",
-    "videoLoading": "הסרטון נטען…", "videoUnavailable": "הסרטון אינו זמין כרגע.",
+    "videoLoading": "הסרטון נטען…", "videoUnavailable": "הסרטון אינו זמין כרגע",
     "demoAria": "הדגמה של EasyCom AI", "demoImageAlt": "EasyCom AI בפעולה",
     "playDemo": "הפעלת ההדגמה של EasyCom AI", "demoLabel": "הדגמה — נתונים לדוגמה",
     "whatToDo": "מה תרצו לעשות?", "toolsLabel": "כלים", "shop": "חנות ומוצרים", "online": "באינטרנט",
     "posters": "מודעות ופליירים", "agents": "סוכני ה־AI שלכם", "specializedAgents": "סוכני ה־AI המקצועיים שלכם",
     "tryTitle": "נסו את EasyCom AI", "specialOffer": "הצעת השקה",
     "gift": "7 ימי ניסיון חינם", "trialPriceCaption": "למשך 7 ימים",
-    "thenPrice": "לאחר מכן {price} לחודש או {yearly} לשנה, ללא התחייבות. ביטול בכל עת.",
-    "cardRequired": "ללא כרטיס אשראי בתקופת הניסיון.",
+    "thenPrice": "לאחר מכן {price} לחודש או {yearly} לשנה, ללא התחייבות, ביטול בכל עת",
+    "cardRequired": "ללא כרטיס אשראי בתקופת הניסיון",
     "trialFeatures": "7 ימי ניסיון חינם – עלון שבת ופרסום בכל הערוצים ללא הגבלה!", "faqTitle": "שאלות נפוצות",
+    "promoOffer": "מבצע",
+    "promoCode": "קוד קופון: <strong>{code}</strong>",
+    "promoThen": "ואחר כך, במחיר מבצע:",
+    "promoPriceCaption": "לחודש",
+    "regularPrice": "המחיר הרגיל",
     "faq1q": "האם צריך לשלם במהלך תקופת הניסיון?",
     "faq1a": "לא. לא נדרש כרטיס אשראי במהלך 7 ימי הניסיון. משלמים רק אם מחליטים להירשם למנוי.",
     "faq2q": "מה קורה אחרי 7 ימים?",
-    "faq2a": "בוחרים: 12.99 € לחודש או 99 € לשנה, ללא התחייבות. ללא מנוי, החשבון נשאר זמין לצפייה בלבד.",
-    "final1": "אתם מטפלים בקהילה שלכם.", "final2": "EasyCom AI מטפל בתקשורת שלכם.",
+    "faq2a": "בוחרים: 12,99 € לחודש (9,99 € לחודש עם קוד הקופון חדש) או 99 € לשנה, ללא התחייבות. ללא מנוי, החשבון נשאר זמין לצפייה בלבד.",
+    "final1": "אתם מטפלים בקהילה שלכם", "final2": "EasyCom AI מטפל בתקשורת שלכם",
     "footerNav": "ניווט בתחתית האתר", "legalLinks": "קישורים משפטיים",
     "question": "יש לכם שאלה?", "chat": "דברו איתנו", "whatsapp": "יצירת קשר עם EasyCom AI ב־WhatsApp",
-    "whatsappMessage": "שלום, אשמח לקבל מידע נוסף על EasyCom AI.",
+    "whatsappMessage": "שלום, אשמח לקבל מידע נוסף על EasyCom AI",
     "heBadgeNewsletter": "📄 עלון שבת", "heBadgePdf": "📣 פרסום בכל הערוצים", "heBadgeAi": "✨ AI בעברית",
     "heDemoKicker": "חדש", "heDemoTitle": "עלון שבת",
     "heDemoSubtitle": "פלטפורמת ה־AI הראשונה לעלון השבת של שלוחים ובתי חב״ד",
@@ -81,19 +86,21 @@
     "heDemoCta": "יוצרים חשבון ומתחילים ←", "heDemoAria": "יצירת חשבון והתחלה",
     "heDemoAvailableTitle": "מה כבר זמין בעברית?",
     "heActiveTitle": "מה EasyCom AI עושה בשבילכם",
-    "heActiveCta": "יוצרים חשבון ומתחילים ←",
     "heActiveModules": {
       "publish": {
         "name": "פרסום בכל הערוצים",
-        "description": "כותבים פעם אחת ומפרסמים בפייסבוק, באינסטגרם ובוואטסאפ."
+        "description": "כותבים פעם אחת ומפרסמים בפייסבוק, באינסטגרם ובוואטסאפ.",
+        "cta": "מתחילים לפרסם"
       },
       "newsletter": {
         "name": "עלון שבת",
-        "description": "עלון דו־צדדי מקצועי, מוכן להדפסה תוך כמה דקות."
+        "description": "עלון דו־צדדי מקצועי, מוכן להדפסה תוך כמה דקות.",
+        "cta": "יוצרים את העלון הראשון"
       },
       "birthdays": {
         "name": "יום הולדת עברי ויארצייט",
-        "description": "ימי הולדת עבריים ויארצייט של הקהילה, עם תזכורות והודעות אוטומטיות."
+        "description": "ימי הולדת עבריים ויארצייט של הקהילה, עם תזכורות והודעות אוטומטיות.",
+        "cta": "מגדירים תזכורות"
       }
     },
     "heDemoCards": {
@@ -512,6 +519,19 @@
     "status": { "SCHEDULED": "מתוזמן", "PUBLISHED": "פורסם", "FAILED": "נכשל", "PENDING": "בהמתנה", "CANCELLED": "בוטל" },
     "ideas": { "title": "רעיונות AI לשבוע הזה", "parasha": "רעיון על פרשת {name}", "holiday": "הכנת הקהילה לקראת {name}", "event": "תזכורת לאירוע {name}", "volunteers": "תודה למתנדבים שלנו", "kiddush": "תמונה מהקידוש" },
     "actions": { "edit": "עריכה", "duplicate": "שכפול", "delete": "מחיקה", "deleteConfirm": "למחוק את הפרסום המתוזמן?" }
+  },
+  "hebrewDashboardHome": {
+    "welcome": "ברוכים הבאים, {name}", "subtitle": "שלושת הכלים שלכם, במקום אחד.", "question": "מה תרצו לעשות?", "start": "מתחילים עכשיו", "comingSoon": "פונקציות בקרוב", "soonBadge": "בקרוב",
+    "tools": { "publish": { "title": "פרסום בכל הערוצים", "description": "כותבים פעם אחת ומפרסמים בפייסבוק, באינסטגרם ובוואטסאפ." }, "newsletter": { "title": "עלון שבת", "description": "עלון דו־צדדי מקצועי, מוכן להדפסה תוך כמה דקות." }, "birthdays": { "title": "יום הולדת עברי ויארצייט", "description": "תזכורות והודעות אוטומטיות לימי הולדת עבריים וליארצייט של הקהילה." } },
+    "upcoming": { "posters": "מודעות ופליירים", "times": "זמני שבת וחגים", "automations": "אוטומציות", "crm": "CRM 2.0", "torah": "שיעורי תורה", "email": "אימייל וביקורות Google", "shop": "חנות ומוצרים" }
+  },
+  "jewishBirthdays": {
+    "title": "ימי הולדת ויארצייט",
+    "subtitle": "התאריכים של חודש {month} – הצעה 7 ימים לפני ותזכורת יום לפני.",
+    "summary": { "count": "{count} תאריכים החודש", "manageCrm": "ניהול ב-CRM" },
+    "sections": { "birthdays": "ימי הולדת ({count})", "yahrzeits": "יארצייט ({count})", "noBirthdays": "אין ימי הולדת החודש", "noYahrzeits": "אין יארצייט החודש" },
+    "card": { "today": "היום", "for": "עבור {name}", "past": "עבר", "offerKiddush": "להציע לתרום את הקידוש" },
+    "dialog": { "eyebrow": "קידוש או פרנס היום", "title": "הודעה עבור {name}", "close": "סגירה", "languages": { "fr": "צרפתית", "he": "עברית", "bilingual": "דו-לשוני" }, "loading": "דוד מכין את ההודעה…", "unavailable": "ההודעה אינה זמינה.", "dryRun": "אפשר לערוך את הטקסט. שום הודעה אינה נשלחת אוטומטית.", "copy": "העתקה", "copied": "הועתק", "openWhatsApp": "פתיחה בוואטסאפ", "missingPhone": "הוסיפו מספר טלפון ב-CRM כדי להשתמש בוואטסאפ." }
   },
   "socialComposer": {
     "header": { "back": "חזרה ללוח הבקרה", "title": "פרסום בכל הערוצים", "profile": "פתיחת הפרופיל שלי", "week": "השבוע שלי" },

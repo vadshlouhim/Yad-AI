@@ -80,6 +80,19 @@
     "ideas": { "title": "AI ideas for this week", "parasha": "An idea about Parasha {name}", "holiday": "Prepare the community for {name}", "event": "Remind everyone about {name}", "volunteers": "Thank our volunteers", "kiddush": "A photo from Kiddush" },
     "actions": { "edit": "Edit", "duplicate": "Duplicate", "delete": "Delete", "deleteConfirm": "Delete this scheduled publication?" }
   },
+  "hebrewDashboardHome": {
+    "welcome": "Welcome, {name}", "subtitle": "Your three tools, all in one place.", "question": "What would you like to do?", "start": "Get started", "comingSoon": "Coming soon", "soonBadge": "Soon",
+    "tools": { "publish": { "title": "Post everywhere", "description": "Write once and post to Facebook, Instagram and WhatsApp." }, "newsletter": { "title": "Shabbat newsletter", "description": "A professional two-sided newsletter, ready to print in minutes." }, "birthdays": { "title": "Hebrew birthdays and Yahrzeit", "description": "Automatic reminders and messages for the community’s Hebrew birthdays and Yahrzeits." } },
+    "upcoming": { "posters": "Posters and flyers", "times": "Shabbat and holiday times", "automations": "Automations", "crm": "CRM 2.0", "torah": "Torah classes", "email": "Email and Google reviews", "shop": "Shop and products" }
+  },
+  "jewishBirthdays": {
+    "title": "Birthdays & Yahrzeit",
+    "subtitle": "Dates for {month}, with an offer 7 days before and an internal reminder one day before.",
+    "summary": { "count": "{count, plural, =0 {No dates this month} one {# date this month} other {# dates this month}}", "manageCrm": "Manage in CRM" },
+    "sections": { "birthdays": "Birthdays ({count})", "yahrzeits": "Yahrzeit ({count})", "noBirthdays": "No birthdays this month", "noYahrzeits": "No yahrzeits this month" },
+    "card": { "today": "Today", "for": "For {name}", "past": "past", "offerKiddush": "Offer to sponsor Kiddush" },
+    "dialog": { "eyebrow": "Kiddush or Parnass Hayom", "title": "Message for {name}", "close": "Close", "languages": { "fr": "French", "he": "Hebrew", "bilingual": "Bilingual" }, "loading": "David is preparing the message…", "unavailable": "Message unavailable.", "dryRun": "Edit the text if needed. No message is sent automatically.", "copy": "Copy", "copied": "Copied", "openWhatsApp": "Open WhatsApp", "missingPhone": "Add a phone number in CRM to use WhatsApp." }
+  },
   "socialComposer": {
     "header": { "back": "Back to dashboard", "title": "Post everywhere", "profile": "Open my profile", "week": "My week" },
     "networks": { "FACEBOOK": "Facebook", "INSTAGRAM": "Instagram" },
