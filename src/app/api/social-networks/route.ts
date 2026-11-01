@@ -118,7 +118,16 @@ export async function POST(request: Request) {
 
     const parsed = postSchema.safeParse(await request.json());
     if (!parsed.success) {
-      return NextResponse.json({ error: "Donnees invalides" }, { status: 400 });
+      const invalidFields = Object.keys(parsed.error.flatten().fieldErrors);
+      console.error("[Social Networks POST] Invalid payload", parsed.error.flatten());
+      return NextResponse.json(
+        {
+          error: invalidFields.length > 0
+            ? `Données de publication invalides : ${invalidFields.join(", ")}.`
+            : "Données de publication invalides.",
+        },
+        { status: 400 }
+      );
     }
 
     const { admin, communityId } = context;
@@ -185,7 +194,7 @@ export async function POST(request: Request) {
     const primaryImageUrl = mediaUrls[0] ?? null;
     const primaryText = uniqueChannelTypes.map((channelType) => channelTexts[channelType]).find(Boolean) ?? "";
 
-    await admin.from("ContentDraft").insert({
+    const { error: draftError } = await admin.from("ContentDraft").insert({
       id: draftId,
       communityId,
       title: primaryText.slice(0, 120) || "Publication tous reseaux",
@@ -197,6 +206,10 @@ export async function POST(request: Request) {
       aiPromptUsed: "social-networks-page",
       updatedAt: now,
     });
+    if (draftError) {
+      console.error("[Social Networks POST] Draft insert failed", draftError);
+      throw new Error("Le brouillon de publication n’a pas pu être enregistré.");
+    }
 
     for (const channelType of uniqueChannelTypes) {
       const metadata: Record<string, unknown> = {
@@ -204,7 +217,7 @@ export async function POST(request: Request) {
         source: "social-networks-page",
       };
 
-      await admin.from("ChannelAdaptation").upsert(
+      const { error: adaptationError } = await admin.from("ChannelAdaptation").upsert(
         {
           draftId,
           channelType,
@@ -215,6 +228,10 @@ export async function POST(request: Request) {
         },
         { onConflict: "draftId,channelType" }
       );
+      if (adaptationError) {
+        console.error("[Social Networks POST] Channel adaptation failed", { channelType, error: adaptationError });
+        throw new Error(`La version ${channelType} n’a pas pu être enregistrée.`);
+      }
     }
 
     const publications = hasSchedule
@@ -233,6 +250,9 @@ export async function POST(request: Request) {
           communityId,
           channelIds: (channels ?? []).map((channel) => channel.id),
         });
+    if (publications.length === 0) {
+      throw new Error("Aucune publication n’a pu être créée pour les réseaux sélectionnés.");
+    }
 
     const publishResults: Record<string, unknown> = {};
     if (!hasSchedule) {
