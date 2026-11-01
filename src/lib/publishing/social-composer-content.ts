@@ -22,6 +22,15 @@ export function hasSocialComposerContent(
   return mediaUrls.length > 0 || selectedNetworks.some((network) => Boolean(texts[network].trim()));
 }
 
+export function selectSocialComposerTexts(
+  selectedNetworks: SocialComposerNetwork[],
+  texts: SocialComposerTexts,
+): Partial<SocialComposerTexts> {
+  return Object.fromEntries(
+    selectedNetworks.map((network) => [network, texts[network]]),
+  ) as Partial<SocialComposerTexts>;
+}
+
 export function resolveManualPublishText(prompt: string, preparedText: string): string {
   return preparedText.trim() || prompt.trim();
 }

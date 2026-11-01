@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft, CalendarDays, Check, CheckCircle2, Info, ImagePlus, Loader2, RotateCcw, Sparkles, Upload, WandSparkles, X } from "lucide-react";
 import { FacebookIcon, InstagramIcon } from "@/components/layout/dashboard-nav";
-import { hasSocialComposerContent, resolveSocialComposerTexts } from "@/lib/publishing/social-composer-content";
+import { hasSocialComposerContent, resolveSocialComposerTexts, selectSocialComposerTexts } from "@/lib/publishing/social-composer-content";
 import { cn } from "@/lib/utils";
 
 type NetworkType = "FACEBOOK" | "INSTAGRAM";
@@ -159,7 +159,8 @@ export function SocialNetworksClient() {
     try {
       const safeDate = scheduleAdjustment ? new Date(scheduleAdjustment.publishAt) : requestedDate;
       const scheduledDates = safeDate ? Array.from({ length: repeatWeekly ? 8 : 1 }, (_, index) => new Date(safeDate.getTime() + index * 7 * 86_400_000).toISOString()) : undefined;
-      const response = await fetch("/api/social-networks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: resolvedTexts.FACEBOOK || resolvedTexts.INSTAGRAM, texts: resolvedTexts, mediaUrls, channelTypes: selectedNetworks, scheduledAt: null, scheduledDates, repeatWeekly }) });
+      const selectedTexts = selectSocialComposerTexts(selectedNetworks, resolvedTexts);
+      const response = await fetch("/api/social-networks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: selectedTexts.FACEBOOK || selectedTexts.INSTAGRAM, texts: selectedTexts, mediaUrls, channelTypes: selectedNetworks, scheduledAt: null, scheduledDates, repeatWeekly }) });
       const payload = await readJson<ApiPayload>(response);
       if (!response.ok) {
         if (payload?.code === "PAYWALL_REQUIRED") setBillingUrl(payload.billingUrl ?? "/dashboard/settings/billing");

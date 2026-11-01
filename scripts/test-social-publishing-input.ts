@@ -3,6 +3,7 @@ import {
   hasSocialComposerContent,
   resolveManualPublishText,
   resolveSocialComposerTexts,
+  selectSocialComposerTexts,
 } from "../src/lib/publishing/social-composer-content";
 
 const emptyVersions = { FACEBOOK: "", INSTAGRAM: "" };
@@ -35,4 +36,10 @@ assert.equal(resolveManualPublishText("Texte de départ Facebook", ""), "Texte d
 assert.equal(resolveManualPublishText("Prompt Telegram", "Message Telegram préparé"), "Message Telegram préparé");
 assert.equal(resolveManualPublishText("  Légende Instagram  ", ""), "Légende Instagram");
 
-console.log("Social publishing input tests passed (8 scenarios).");
+const longFacebookPost = resolveSocialComposerTexts("F".repeat(8_562), emptyVersions);
+const selectedLongFacebookPost = selectSocialComposerTexts(["FACEBOOK"], longFacebookPost);
+assert.deepEqual(Object.keys(selectedLongFacebookPost), ["FACEBOOK"]);
+assert.equal(selectedLongFacebookPost.FACEBOOK?.length, 8_562);
+assert.equal(selectedLongFacebookPost.INSTAGRAM, undefined);
+
+console.log("Social publishing input tests passed (11 scenarios).");

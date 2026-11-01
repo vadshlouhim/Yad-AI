@@ -119,12 +119,16 @@ export async function POST(request: Request) {
 
     const parsed = postSchema.safeParse(await request.json());
     if (!parsed.success) {
-      const invalidFields = Object.keys(parsed.error.flatten().fieldErrors);
+      const validationDetails = Array.from(new Set(parsed.error.issues.map((issue) => {
+        const field = issue.path.join(".") || "requête";
+        if (issue.code === "too_big") return `${field} dépasse la limite de ${issue.maximum} caractères`;
+        return `${field} : ${issue.message}`;
+      })));
       console.error("[Social Networks POST] Invalid payload", parsed.error.flatten());
       return NextResponse.json(
         {
-          error: invalidFields.length > 0
-            ? `Données de publication invalides : ${invalidFields.join(", ")}.`
+          error: validationDetails.length > 0
+            ? `Données de publication invalides — ${validationDetails.join(" ; ")}.`
             : "Données de publication invalides.",
         },
         { status: 400 }
