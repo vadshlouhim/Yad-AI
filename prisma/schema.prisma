@@ -552,7 +552,7 @@ enum ContentType {
 // ============================================================
 
 model ChannelAdaptation {
-  id          String      @id @default(cuid())
+  id          String      @id @default(dbgenerated("(gen_random_uuid())::text"))
   draftId     String
   channelType ChannelType
   body        String      @db.Text
