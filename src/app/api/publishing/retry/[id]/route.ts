@@ -28,6 +28,12 @@ export async function POST(
     return NextResponse.json({ error: "Seules les publications en échec peuvent être relancées" }, { status: 400 });
   }
 
-  await retryFailedPublication(id);
-  return NextResponse.json({ success: true });
+  const result = await retryFailedPublication(id);
+  if (!result.success) {
+    return NextResponse.json(
+      { error: `La nouvelle tentative a échoué : ${result.error || "cause inconnue"}.`, result },
+      { status: 502 }
+    );
+  }
+  return NextResponse.json({ success: true, result });
 }

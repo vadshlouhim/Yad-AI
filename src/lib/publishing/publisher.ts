@@ -144,11 +144,15 @@ export async function publishToAllChannels(
   channelIds: string[]
 ): Promise<Record<string, PublishResult>> {
   const supabase = createAdminClient();
-  const { data: publications } = await supabase
+  const { data: publications, error: publicationsError } = await supabase
     .from("Publication")
     .select("*, channel:Channel(*)")
     .eq("draftId", draftId)
     .in("channelId", channelIds);
+  if (publicationsError) {
+    console.error("[publishToAllChannels] Publication lookup failed", publicationsError);
+    throw new Error("Les publications à envoyer n’ont pas pu être chargées.");
+  }
 
   const results: Record<string, PublishResult> = {};
 
@@ -259,7 +263,7 @@ export async function createPublicationsFromDraft(params: {
     const hashtags = resolvePublicationHashtags(draft, adaptation);
     const metadata = resolvePublicationMetadata(adaptation, hashtags);
 
-    const { data: pub } = await supabase
+    const { data: pub, error: publicationError } = await supabase
       .from("Publication")
       .insert({
         id: crypto.randomUUID(),
@@ -287,7 +291,16 @@ export async function createPublicationsFromDraft(params: {
       .select()
       .single();
 
-    if (pub) publications.push(pub);
+    if (publicationError) {
+      console.error("[createPublicationsFromDraft] Publication insert failed", {
+        channelType: channel.type,
+        draftId,
+        error: publicationError,
+      });
+      throw new Error(`La publication ${channel.type} n’a pas pu être enregistrée.`);
+    }
+    if (!pub) throw new Error(`La publication ${channel.type} est introuvable après son enregistrement.`);
+    publications.push(pub);
   }
 
   return publications;

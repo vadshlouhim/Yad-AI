@@ -4,12 +4,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createPublicationsFromDraft, publishToChannel } from "@/lib/publishing/publisher";
 import type { Tables } from "@/types/database.types";
+import { formatValidationError } from "@/lib/api/validation-error";
+import { fitHashtagsWithinTextLimit, truncateSocialComposerText } from "@/lib/publishing/social-composer-content";
 
 type Channel = Tables<"Channel">;
 type Publication = Tables<"Publication">;
 
 const createSchema = z.object({
-  content: z.string().default(""),
+  content: z.string().max(256_000).default(""),
   hashtags: z.array(z.string()).default([]),
   mediaUrls: z.array(z.string().url()).default([]),
   publishNow: z.boolean().default(false),
@@ -72,11 +74,12 @@ export async function POST(request: Request) {
 
     const parsed = createSchema.safeParse(await request.json());
     if (!parsed.success) {
-      return NextResponse.json({ error: "Donnees invalides" }, { status: 400 });
+      return NextResponse.json({ error: formatValidationError(parsed.error) }, { status: 400 });
     }
 
-    const { content, hashtags, mediaUrls, publishNow, scheduledAt } = parsed.data;
-    const cleanContent = content.trim();
+    const { content, mediaUrls, publishNow, scheduledAt } = parsed.data;
+    const cleanContent = truncateSocialComposerText("FACEBOOK", content);
+    const hashtags = fitHashtagsWithinTextLimit(cleanContent, parsed.data.hashtags, 63_206);
     if (!cleanContent && mediaUrls.length === 0) {
       return NextResponse.json({ error: "Ajoutez un texte ou un media avant de publier." }, { status: 400 });
     }
@@ -105,7 +108,7 @@ export async function POST(request: Request) {
     const now = new Date().toISOString();
     const primaryMediaUrl = mediaUrls[0] ?? null;
 
-    await admin.from("ContentDraft").insert({
+    const { error: draftError } = await admin.from("ContentDraft").insert({
       id: draftId,
       communityId,
       title: cleanContent.slice(0, 120) || "Publication Facebook",
@@ -118,8 +121,9 @@ export async function POST(request: Request) {
       aiPromptUsed: "facebook-manual-page",
       updatedAt: now,
     });
+    if (draftError) throw new Error("Le brouillon Facebook n’a pas pu être enregistré.");
 
-    await admin.from("ChannelAdaptation").upsert(
+    const { error: adaptationError } = await admin.from("ChannelAdaptation").upsert(
       {
         draftId,
         channelType: "FACEBOOK",
@@ -131,6 +135,7 @@ export async function POST(request: Request) {
       },
       { onConflict: "draftId,channelType" }
     );
+    if (adaptationError) throw new Error("La version Facebook n’a pas pu être enregistrée.");
 
     const publications = await createPublicationsFromDraft({
       draftId,
@@ -151,6 +156,12 @@ export async function POST(request: Request) {
       }
 
       const publishResult = await publishToChannel(publication as Publication & { channel: Channel });
+      if (!publishResult.success) {
+        return NextResponse.json(
+          { error: `Facebook a refusé la publication : ${publishResult.error || "cause inconnue"}.`, publications, publishResult },
+          { status: 502 }
+        );
+      }
       return NextResponse.json({ publications, publishResult });
     }
 

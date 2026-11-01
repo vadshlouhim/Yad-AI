@@ -7,7 +7,8 @@ import { getBillingGate, paywallResponse } from "@/lib/billing";
 import type { Tables } from "@/types/database.types";
 import { isPublishDryRun } from "@/lib/publishing/dry-run";
 import { getJewishHolidays, getUpcomingShabbatTimes } from "@/lib/automation/hebcal";
-import { getSelectedSocialTextLengthError } from "@/lib/publishing/social-composer-content";
+import { normalizeSelectedSocialTexts } from "@/lib/publishing/social-composer-content";
+import { formatValidationError } from "@/lib/api/validation-error";
 
 type Channel = Tables<"Channel">;
 type Publication = Tables<"Publication">;
@@ -16,12 +17,12 @@ type SocialPublishResult = Omit<PublishResult, "externalUrl"> & { externalUrl: s
 const SOCIAL_CHANNELS = ["FACEBOOK", "INSTAGRAM"] as const;
 const LIMITED_SOCIAL_CHANNELS = new Set(["FACEBOOK", "INSTAGRAM"]);
 const postSchema = z.object({
-  text: z.string().max(63_206).default(""),
+  text: z.string().max(256_000).default(""),
   texts: z.object({
-    FACEBOOK: z.string().max(63_206).optional(),
+    FACEBOOK: z.string().max(256_000).optional(),
     // The selected-channel limit is checked below. Keeping this permissive lets
     // older clients send an unused Instagram draft without blocking Facebook.
-    INSTAGRAM: z.string().max(63_206).optional(),
+    INSTAGRAM: z.string().max(256_000).optional(),
   }).optional(),
   mediaUrls: z.array(z.string().url()).default([]),
   channelTypes: z.array(z.enum(SOCIAL_CHANNELS)).min(1),
@@ -122,18 +123,9 @@ export async function POST(request: Request) {
 
     const parsed = postSchema.safeParse(await request.json());
     if (!parsed.success) {
-      const validationDetails = Array.from(new Set(parsed.error.issues.map((issue) => {
-        const field = issue.path.join(".") || "requête";
-        if (issue.code === "too_big") return `${field} dépasse la limite de ${issue.maximum} caractères`;
-        return `${field} : ${issue.message}`;
-      })));
       console.error("[Social Networks POST] Invalid payload", parsed.error.flatten());
       return NextResponse.json(
-        {
-          error: validationDetails.length > 0
-            ? `Données de publication invalides — ${validationDetails.join(" ; ")}.`
-            : "Données de publication invalides.",
-        },
+        { error: formatValidationError(parsed.error) },
         { status: 400 }
       );
     }
@@ -143,13 +135,10 @@ export async function POST(request: Request) {
     const { text, texts, mediaUrls, channelTypes, scheduledAt, scheduledDates } = parsed.data;
     const cleanText = text.trim();
     const uniqueChannelTypes = Array.from(new Set(channelTypes));
-    const channelTexts = Object.fromEntries(
+    const requestedChannelTexts = Object.fromEntries(
       uniqueChannelTypes.map((channelType) => [channelType, texts?.[channelType]?.trim() || cleanText])
     ) as Partial<Record<(typeof SOCIAL_CHANNELS)[number], string>>;
-    const textLengthError = getSelectedSocialTextLengthError(uniqueChannelTypes, channelTexts);
-    if (textLengthError) {
-      return NextResponse.json({ error: textLengthError }, { status: 400 });
-    }
+    const channelTexts = normalizeSelectedSocialTexts(uniqueChannelTypes, requestedChannelTexts);
     const scheduleDates = Array.from(new Set(scheduledDates?.length ? scheduledDates : scheduledAt ? [scheduledAt] : []))
       .map((value) => new Date(value))
       .sort((a, b) => a.getTime() - b.getTime());

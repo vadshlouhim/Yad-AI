@@ -26,17 +26,18 @@ export async function publishToTelegram(
 
   try {
     const formattedContent = formatTelegramContent(payload);
+    const plainContent = formatTelegramPlainContent(payload);
     const apiBase = `https://api.telegram.org/bot${botToken}`;
 
     if (payload.mediaUrls && payload.mediaUrls.length > 0) {
+      const caption = plainContent.slice(0, 1024);
       const response = await fetch(`${apiBase}/sendPhoto`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: chatId,
           photo: payload.mediaUrls[0],
-          caption: formattedContent.substring(0, 1024),
-          parse_mode: "HTML",
+          caption,
         }),
       });
       const data = await response.json();
@@ -47,15 +48,23 @@ export async function publishToTelegram(
           body: JSON.stringify({
             chat_id: chatId,
             document: payload.mediaUrls[0],
-            caption: formattedContent.substring(0, 1024),
-            parse_mode: "HTML",
+            caption,
           }),
         });
         const fallbackData = await fallbackResponse.json();
         if (!fallbackData.ok) return { success: false, error: fallbackData.description ?? data.description ?? "Erreur Telegram" };
+        const followUpError = await sendTelegramTextChunks(apiBase, chatId, plainContent.slice(1024));
+        if (followUpError) return { success: false, error: followUpError };
         return { success: true, externalId: fallbackData.result.message_id.toString() };
       }
+      const followUpError = await sendTelegramTextChunks(apiBase, chatId, plainContent.slice(1024));
+      if (followUpError) return { success: false, error: followUpError };
       return { success: true, externalId: data.result.message_id.toString() };
+    }
+
+    if (formattedContent.length > 4096) {
+      const chunkError = await sendTelegramTextChunks(apiBase, chatId, plainContent);
+      return chunkError ? { success: false, error: chunkError } : { success: true };
     }
 
     const response = await fetch(`${apiBase}/sendMessage`, {
@@ -95,4 +104,35 @@ function formatTelegramContent(payload: PublishPayload): string {
   return content
     .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
     .replace(/\*(.*?)\*/g, "<i>$1</i>");
+}
+
+function formatTelegramPlainContent(payload: PublishPayload): string {
+  return [payload.content, payload.hashtags?.slice(0, 10).join(" ")].filter(Boolean).join("\n\n");
+}
+
+export function splitTelegramText(text: string, limit = 4096): string[] {
+  const chunks: string[] = [];
+  let remaining = text.trim();
+  while (remaining.length > limit) {
+    const candidate = remaining.slice(0, limit);
+    const breakAt = Math.max(candidate.lastIndexOf("\n"), candidate.lastIndexOf(" "));
+    const end = breakAt > limit / 2 ? breakAt : limit;
+    chunks.push(remaining.slice(0, end).trim());
+    remaining = remaining.slice(end).trim();
+  }
+  if (remaining) chunks.push(remaining);
+  return chunks;
+}
+
+async function sendTelegramTextChunks(apiBase: string, chatId: string, text: string): Promise<string | null> {
+  for (const chunk of splitTelegramText(text)) {
+    const response = await fetch(`${apiBase}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text: chunk, disable_web_page_preview: false }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) return data.description ?? "Telegram a refusé une partie du message.";
+  }
+  return null;
 }

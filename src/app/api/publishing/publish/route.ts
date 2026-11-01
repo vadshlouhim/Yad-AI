@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
   const { data: channels } = await admin
     .from("Channel")
-    .select("id")
+    .select("id,type")
     .eq("communityId", profile.communityId)
     .in("type", channelTypes)
     .eq("isActive", true);
@@ -55,7 +55,21 @@ export async function POST(request: Request) {
   });
 
   if (!scheduledAt) {
-    publishToAllChannels(draftId, channels.map((c) => c.id)).catch(console.error);
+    const results = await publishToAllChannels(draftId, channels.map((c) => c.id));
+    const failures = channels
+      .map((channel) => ({ channel: channel.type, result: results[channel.id] }))
+      .filter(({ result }) => !result?.success);
+    if (failures.length > 0) {
+      return NextResponse.json(
+        {
+          error: failures.map(({ channel, result }) => `${channel} : ${result?.error || "cause inconnue"}`).join(" ; "),
+          publications,
+          results,
+        },
+        { status: 502 }
+      );
+    }
+    return NextResponse.json({ publications, count: publications.length, results });
   }
 
   return NextResponse.json({ publications, count: publications.length });

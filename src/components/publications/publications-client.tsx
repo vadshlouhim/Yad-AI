@@ -216,10 +216,12 @@ export function PublicationsClient({ publications, statsByStatus, activeStatus, 
   async function retryPublication(id: string) {
     setRetrying(id);
     try {
-      await fetch(`/api/publishing/retry/${id}`, { method: "POST" });
+      const response = await fetch(`/api/publishing/retry/${id}`, { method: "POST" });
+      const payload = await response.json().catch(() => null) as { error?: string } | null;
+      if (!response.ok) throw new Error(payload?.error || t("history.retryError"));
       router.refresh();
-    } catch {
-      alert(t("history.retryError"));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : t("history.retryError"));
     } finally {
       setRetrying(null);
     }

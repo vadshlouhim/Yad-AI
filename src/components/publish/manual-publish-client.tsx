@@ -26,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { resolveManualPublishText } from "@/lib/publishing/social-composer-content";
+import { resolveManualPublishText, truncateSocialComposerText } from "@/lib/publishing/social-composer-content";
 import { DAVID_AGENT_IMAGE, SocialPageBanner } from "@/components/publish/social-page-banner";
 
 const SOCIAL_LABELS: Record<string, string> = {
@@ -445,7 +445,7 @@ function InstagramPublishClient({ channelId, isConnected, communityName }: Props
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          caption: effectiveCaption,
+          caption: truncateSocialComposerText("INSTAGRAM", effectiveCaption),
           hashtags,
           imageUrl,
           publishNow,
@@ -455,6 +455,9 @@ function InstagramPublishClient({ channelId, isConnected, communityName }: Props
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error ?? "Impossible d'enregistrer la publication.");
+      }
+      if (publishNow && data.publishResult && data.publishResult.success === false) {
+        throw new Error(`Instagram a refusé la publication : ${data.publishResult.error ?? "cause inconnue"}.`);
       }
       setSuccessMessage(publishNow ? "Publication Instagram envoyee." : "Publication Instagram planifiee.");
       if (!publishNow) {
@@ -599,10 +602,12 @@ function InstagramPublishClient({ channelId, isConnected, communityName }: Props
               <textarea
                 rows={6}
                 value={caption}
+                maxLength={2_200}
                 onChange={(event) => setCaption(event.target.value)}
                 placeholder="Le message Instagram redige par l'IA apparaitra ici..."
                 className="min-h-[150px] w-full rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-relaxed shadow-inner shadow-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
               />
+              <p className="text-right text-xs text-slate-400">{caption.length.toLocaleString()} / 2 200</p>
             </div>
           </Card>
 
@@ -875,7 +880,7 @@ function FacebookPublishClient({ channelId, isConnected, communityName }: Props)
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          content: effectiveMessage,
+          content: truncateSocialComposerText("FACEBOOK", effectiveMessage),
           hashtags,
           mediaUrls,
           publishNow,
@@ -885,6 +890,9 @@ function FacebookPublishClient({ channelId, isConnected, communityName }: Props)
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error ?? "Impossible d'enregistrer la publication.");
+      }
+      if (publishNow && data.publishResult && data.publishResult.success === false) {
+        throw new Error(`Facebook a refusé la publication : ${data.publishResult.error ?? "cause inconnue"}.`);
       }
       setSuccessMessage(publishNow ? "Publication Facebook envoyee." : "Publication Facebook planifiee.");
       if (!publishNow) setScheduledAt("");
@@ -1028,10 +1036,12 @@ function FacebookPublishClient({ channelId, isConnected, communityName }: Props)
               <textarea
                 rows={6}
                 value={message}
+                maxLength={63_206}
                 onChange={(event) => setMessage(event.target.value)}
                 placeholder="Le message Facebook redige par l'IA apparaitra ici..."
                 className="min-h-[150px] w-full rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-relaxed shadow-inner shadow-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               />
+              <p className="text-right text-xs text-slate-400">{message.length.toLocaleString()} / 63 206</p>
             </div>
           </Card>
 
@@ -1322,6 +1332,9 @@ function TelegramPublishClient({ channelId, isConnected, communityName }: Props)
       if (!response.ok) {
         throw new Error(data.error ?? "Impossible d'enregistrer la publication.");
       }
+      if (publishNow && data.publishResult && data.publishResult.success === false) {
+        throw new Error(`Telegram a refusé la publication : ${data.publishResult.error ?? "cause inconnue"}.`);
+      }
       setSuccessMessage(publishNow ? "Publication Telegram envoyee." : "Publication Telegram planifiee.");
       if (!publishNow) setScheduledAt("");
       await loadScheduledPosts();
@@ -1444,10 +1457,12 @@ function TelegramPublishClient({ channelId, isConnected, communityName }: Props)
               <textarea
                 rows={6}
                 value={message}
+                maxLength={63_206}
                 onChange={(event) => setMessage(event.target.value)}
                 placeholder="Le message Telegram redige par l'IA apparaitra ici..."
                 className="min-h-[150px] w-full rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-relaxed shadow-inner shadow-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
               />
+              <p className="text-right text-xs text-slate-400">{message.length.toLocaleString()} / 63 206</p>
             </div>
           </Card>
 

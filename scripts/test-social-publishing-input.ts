@@ -2,10 +2,14 @@ import assert from "node:assert/strict";
 import {
   hasSocialComposerContent,
   getSelectedSocialTextLengthError,
+  fitHashtagsWithinTextLimit,
+  normalizeSelectedSocialTexts,
+  truncateSocialComposerText,
   resolveManualPublishText,
   resolveSocialComposerTexts,
   selectSocialComposerTexts,
 } from "../src/lib/publishing/social-composer-content";
+import { splitTelegramText } from "../src/lib/publishing/adapters/telegram";
 
 const emptyVersions = { FACEBOOK: "", INSTAGRAM: "" };
 
@@ -45,7 +49,21 @@ assert.equal(selectedLongFacebookPost.INSTAGRAM, undefined);
 assert.equal(getSelectedSocialTextLengthError(["FACEBOOK"], longFacebookPost), null);
 assert.equal(
   getSelectedSocialTextLengthError(["INSTAGRAM"], longFacebookPost),
-  "INSTAGRAM dépasse la limite de 2200 caractères (8562 caractères saisis).",
+  null,
 );
+const legacyLongPayload = { FACEBOOK: "F".repeat(8_562), INSTAGRAM: "I".repeat(8_562) };
+assert.equal(normalizeSelectedSocialTexts(["FACEBOOK"], legacyLongPayload).FACEBOOK?.length, 8_562);
+assert.equal(normalizeSelectedSocialTexts(["FACEBOOK"], legacyLongPayload).INSTAGRAM, undefined);
+assert.equal(normalizeSelectedSocialTexts(["INSTAGRAM"], legacyLongPayload).INSTAGRAM?.length, 2_200);
+const telegramChunks = splitTelegramText("mot ".repeat(2_500));
+assert.equal(telegramChunks.length > 1, true);
+assert.equal(telegramChunks.every((chunk) => chunk.length <= 4_096), true);
+assert.equal(telegramChunks.join(" ").replace(/\s+/g, " ").trim(), "mot ".repeat(2_500).trim());
+assert.deepEqual(fitHashtagsWithinTextLimit("A".repeat(2_190), ["#un", "#deux"], 2_200), ["#un"]);
+const emojiBoundaryText = `${"A".repeat(2_198)}😀suite`;
+const truncatedEmojiText = truncateSocialComposerText("INSTAGRAM", emojiBoundaryText);
+assert.equal(truncatedEmojiText.length <= 2_200, true);
+assert.equal(truncatedEmojiText.includes("�"), false);
+assert.equal(truncateSocialComposerText("FACEBOOK", "F".repeat(256_000)).length, 63_206);
 
-console.log("Social publishing input tests passed (13 scenarios).");
+console.log("Social publishing input tests passed (23 scenarios).");

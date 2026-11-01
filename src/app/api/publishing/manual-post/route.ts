@@ -3,8 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicationsFromDraft, publishToAllChannels } from "@/lib/publishing/publisher";
 import { getBillingGate, paywallResponse } from "@/lib/billing";
+import { z } from "zod";
+import { formatValidationError } from "@/lib/api/validation-error";
 
 const LIMITED_SOCIAL_CHANNELS = new Set(["INSTAGRAM", "FACEBOOK", "TELEGRAM"]);
+const manualPostSchema = z.object({
+  title: z.string().max(120).optional(),
+  text: z.string().min(1).max(63_206),
+  channelType: z.enum(["FACEBOOK", "INSTAGRAM", "TELEGRAM", "WHATSAPP", "EMAIL"]),
+});
 
 export async function POST(request: Request) {
   try {
@@ -23,12 +30,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Communauté introuvable" }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { title, text, channelType } = body;
-
-    if (!text || !text.trim()) {
-      return NextResponse.json({ error: "Le texte de la publication est obligatoire." }, { status: 400 });
-    }
+    const parsed = manualPostSchema.safeParse(await request.json());
+    if (!parsed.success) return NextResponse.json({ error: formatValidationError(parsed.error) }, { status: 400 });
+    const { title, text, channelType } = parsed.data;
 
     const gate = await getBillingGate(admin, user.id);
     if (!gate.isSuperAdmin && LIMITED_SOCIAL_CHANNELS.has(String(channelType))) {
@@ -54,7 +58,7 @@ export async function POST(request: Request) {
     // 2. Create a ContentDraft record
     const draftId = crypto.randomUUID();
     const now = new Date().toISOString();
-    await admin.from("ContentDraft").insert({
+    const { error: draftError } = await admin.from("ContentDraft").insert({
       id: draftId,
       communityId: profile.communityId,
       title: title || "Publication manuelle",
@@ -64,6 +68,7 @@ export async function POST(request: Request) {
       createdAt: now,
       updatedAt: now
     });
+    if (draftError) throw new Error("Le brouillon de publication n’a pas pu être enregistré.");
 
     // 3. Create publication record
     const publications = await createPublicationsFromDraft({
@@ -79,6 +84,12 @@ export async function POST(request: Request) {
     // 4. Publish immediately
     const results = await publishToAllChannels(draftId, [channel.id]);
     const result = results[channel.id];
+    if (!result?.success) {
+      return NextResponse.json(
+        { error: `${channelType} a refusé la publication : ${result?.error || "cause inconnue"}.`, publications, publishResult: result },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json({
       success: true,

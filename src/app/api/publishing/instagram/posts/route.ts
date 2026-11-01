@@ -4,12 +4,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createPublicationsFromDraft, publishToChannel } from "@/lib/publishing/publisher";
 import type { Tables } from "@/types/database.types";
+import { formatValidationError } from "@/lib/api/validation-error";
+import { fitHashtagsWithinTextLimit, truncateSocialComposerText } from "@/lib/publishing/social-composer-content";
 
 type Channel = Tables<"Channel">;
 type Publication = Tables<"Publication">;
 
 const createSchema = z.object({
-  caption: z.string().default(""),
+  caption: z.string().max(256_000).default(""),
   hashtags: z.array(z.string()).default([]),
   imageUrl: z.string().url(),
   publishNow: z.boolean().default(false),
@@ -73,10 +75,12 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: "Donnees invalides" }, { status: 400 });
+      return NextResponse.json({ error: formatValidationError(parsed.error) }, { status: 400 });
     }
 
-    const { caption, hashtags, imageUrl, publishNow, scheduledAt } = parsed.data;
+    const { caption: requestedCaption, imageUrl, publishNow, scheduledAt } = parsed.data;
+    const caption = truncateSocialComposerText("INSTAGRAM", requestedCaption);
+    const hashtags = fitHashtagsWithinTextLimit(caption.trim(), parsed.data.hashtags, 2_200);
     const { admin, communityId } = await getProfileCommunity(user.id);
 
     if (!publishNow && !scheduledAt) {
@@ -102,7 +106,7 @@ export async function POST(request: Request) {
     const draftId = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    await admin.from("ContentDraft").insert({
+    const { error: draftError } = await admin.from("ContentDraft").insert({
       id: draftId,
       communityId,
       title: caption.trim().slice(0, 120) || "Publication Instagram",
@@ -115,8 +119,9 @@ export async function POST(request: Request) {
       aiPromptUsed: "instagram-manual-page",
       updatedAt: now,
     });
+    if (draftError) throw new Error("Le brouillon Instagram n’a pas pu être enregistré.");
 
-    await admin.from("ChannelAdaptation").upsert(
+    const { error: adaptationError } = await admin.from("ChannelAdaptation").upsert(
       {
         draftId,
         channelType: "INSTAGRAM",
@@ -128,6 +133,7 @@ export async function POST(request: Request) {
       },
       { onConflict: "draftId,channelType" }
     );
+    if (adaptationError) throw new Error("La version Instagram n’a pas pu être enregistrée.");
 
     const publications = await createPublicationsFromDraft({
       draftId,
@@ -148,6 +154,12 @@ export async function POST(request: Request) {
       }
 
       const publishResult = await publishToChannel(publication as Publication & { channel: Channel });
+      if (!publishResult.success) {
+        return NextResponse.json(
+          { error: `Instagram a refusé la publication : ${publishResult.error || "cause inconnue"}.`, publications, publishResult },
+          { status: 502 }
+        );
+      }
       return NextResponse.json({ publications, publishResult });
     }
 
