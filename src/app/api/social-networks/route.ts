@@ -7,6 +7,7 @@ import { getBillingGate, paywallResponse } from "@/lib/billing";
 import type { Tables } from "@/types/database.types";
 import { isPublishDryRun } from "@/lib/publishing/dry-run";
 import { getJewishHolidays, getUpcomingShabbatTimes } from "@/lib/automation/hebcal";
+import { getSelectedSocialTextLengthError } from "@/lib/publishing/social-composer-content";
 
 type Channel = Tables<"Channel">;
 type Publication = Tables<"Publication">;
@@ -18,7 +19,9 @@ const postSchema = z.object({
   text: z.string().max(63_206).default(""),
   texts: z.object({
     FACEBOOK: z.string().max(63_206).optional(),
-    INSTAGRAM: z.string().max(2_200).optional(),
+    // The selected-channel limit is checked below. Keeping this permissive lets
+    // older clients send an unused Instagram draft without blocking Facebook.
+    INSTAGRAM: z.string().max(63_206).optional(),
   }).optional(),
   mediaUrls: z.array(z.string().url()).default([]),
   channelTypes: z.array(z.enum(SOCIAL_CHANNELS)).min(1),
@@ -143,6 +146,10 @@ export async function POST(request: Request) {
     const channelTexts = Object.fromEntries(
       uniqueChannelTypes.map((channelType) => [channelType, texts?.[channelType]?.trim() || cleanText])
     ) as Partial<Record<(typeof SOCIAL_CHANNELS)[number], string>>;
+    const textLengthError = getSelectedSocialTextLengthError(uniqueChannelTypes, channelTexts);
+    if (textLengthError) {
+      return NextResponse.json({ error: textLengthError }, { status: 400 });
+    }
     const scheduleDates = Array.from(new Set(scheduledDates?.length ? scheduledDates : scheduledAt ? [scheduledAt] : []))
       .map((value) => new Date(value))
       .sort((a, b) => a.getTime() - b.getTime());

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   hasSocialComposerContent,
+  getSelectedSocialTextLengthError,
   resolveManualPublishText,
   resolveSocialComposerTexts,
   selectSocialComposerTexts,
@@ -41,5 +42,10 @@ const selectedLongFacebookPost = selectSocialComposerTexts(["FACEBOOK"], longFac
 assert.deepEqual(Object.keys(selectedLongFacebookPost), ["FACEBOOK"]);
 assert.equal(selectedLongFacebookPost.FACEBOOK?.length, 8_562);
 assert.equal(selectedLongFacebookPost.INSTAGRAM, undefined);
+assert.equal(getSelectedSocialTextLengthError(["FACEBOOK"], longFacebookPost), null);
+assert.equal(
+  getSelectedSocialTextLengthError(["INSTAGRAM"], longFacebookPost),
+  "INSTAGRAM dépasse la limite de 2200 caractères (8562 caractères saisis).",
+);
 
-console.log("Social publishing input tests passed (11 scenarios).");
+console.log("Social publishing input tests passed (13 scenarios).");
