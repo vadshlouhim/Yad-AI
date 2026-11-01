@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createPublicationsFromDraft, publishToChannel } from "@/lib/publishing/publisher";
+import { createPublicationsFromDraft, publishToChannel, type PublishResult } from "@/lib/publishing/publisher";
 import { getBillingGate, paywallResponse } from "@/lib/billing";
 import type { Tables } from "@/types/database.types";
 import { isPublishDryRun } from "@/lib/publishing/dry-run";
@@ -10,6 +10,7 @@ import { getJewishHolidays, getUpcomingShabbatTimes } from "@/lib/automation/heb
 
 type Channel = Tables<"Channel">;
 type Publication = Tables<"Publication">;
+type SocialPublishResult = Omit<PublishResult, "externalUrl"> & { externalUrl: string | null };
 
 const SOCIAL_CHANNELS = ["FACEBOOK", "INSTAGRAM"] as const;
 const LIMITED_SOCIAL_CHANNELS = new Set(["FACEBOOK", "INSTAGRAM"]);
@@ -254,13 +255,17 @@ export async function POST(request: Request) {
       throw new Error("Aucune publication n’a pu être créée pour les réseaux sélectionnés.");
     }
 
-    const publishResults: Record<string, unknown> = {};
+    const publishResults: Record<string, SocialPublishResult> = {};
     if (!hasSchedule) {
-      const { data: fullPublications } = await admin
+      const { data: fullPublications, error: publicationsError } = await admin
         .from("Publication")
         .select("*, channel:Channel(*)")
         .eq("draftId", draftId)
         .eq("communityId", communityId);
+      if (publicationsError) {
+        console.error("[Social Networks POST] Publication lookup failed", publicationsError);
+        throw new Error("Les publications ont été enregistrées, mais leur envoi n’a pas pu démarrer.");
+      }
 
       for (const publication of fullPublications ?? []) {
         const fullPublication = publication as Publication & { channel: Channel };
@@ -269,6 +274,22 @@ export async function POST(request: Request) {
           ...result,
           externalUrl: result.externalUrl ?? (result.success ? getChannelProfileUrl(fullPublication.channel) : null),
         };
+      }
+
+      const failedChannels = Object.entries(publishResults)
+        .filter(([, result]) => !result.success)
+        .map(([channelType, result]) => `${channelType} : ${result.error || "cause inconnue renvoyée par le réseau"}`);
+      if (failedChannels.length > 0) {
+        return NextResponse.json(
+          {
+            code: "SOCIAL_PUBLISH_FAILED",
+            error: `La publication a été enregistrée, mais l’envoi a échoué — ${failedChannels.join(" ; ")}.`,
+            draftId,
+            publications,
+            publishResults,
+          },
+          { status: 502 }
+        );
       }
     }
 

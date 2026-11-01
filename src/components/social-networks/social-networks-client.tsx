@@ -14,6 +14,7 @@ type Moment = "now" | "tonight" | "custom";
 type Channel = { id: string; type: NetworkType; name: string | null; handle: string | null; isConnected: boolean; isActive: boolean };
 type Draft = { idea: string; tone: Tone; versions: Record<NetworkType, string>; mediaUrls: string[]; selectedNetworks: NetworkType[]; moment: Moment; customDate: string; repeatWeekly: boolean };
 type SuccessState = { scheduled: boolean; date: string | null; networks: NetworkType[] };
+type ApiPayload = { error?: string; code?: string; billingUrl?: string };
 
 const NETWORKS: Array<{ type: NetworkType; icon: typeof FacebookIcon; limit: number }> = [
   { type: "FACEBOOK", icon: FacebookIcon, limit: 63_206 },
@@ -24,6 +25,15 @@ const DRAFT_KEY = "easycom:social-composer:v2";
 function nextSundayAtSeven() { const value = new Date(); const days = (7 - value.getDay()) % 7 || 7; value.setDate(value.getDate() + days); value.setHours(19, 0, 0, 0); return value; }
 function tonightAtSeven() { const value = new Date(); value.setHours(19, 0, 0, 0); if (value.getTime() <= Date.now()) value.setDate(value.getDate() + 1); return value; }
 function dateTimeLocal(date: Date) { const offset = date.getTimezoneOffset(); return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 16); }
+async function readJson<T>(response: Response): Promise<T | null> {
+  return response.json().catch(() => null) as Promise<T | null>;
+}
+function apiError(response: Response, payload: ApiPayload | null, fallback: string) {
+  return payload?.error?.trim() || `${fallback} (erreur HTTP ${response.status}).`;
+}
+function caughtError(caught: unknown, fallback: string) {
+  return caught instanceof Error && caught.message ? caught.message : fallback;
+}
 
 function StepCard({ number, title, children }: { number: string; title: string; children: React.ReactNode }) {
   return <section className="rounded-[20px] border border-[#eee9f7] bg-white p-4 shadow-[0_8px_28px_rgba(54,31,92,0.05)] sm:p-5"><div className="mb-4 flex items-center gap-3"><span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-violet-100 text-sm font-black text-violet-700">{number}</span><h2 className="text-[15px] font-black text-slate-900">{title}</h2></div>{children}</section>;
@@ -62,12 +72,12 @@ export function SocialNetworksClient() {
   const loadChannels = useCallback(async () => {
     try {
       const response = await fetch("/api/social-networks", { cache: "no-store" });
-      if (!response.ok) throw new Error();
-      const data = await response.json() as { channels?: Channel[] };
-      const visible = (data.channels ?? []).filter((channel) => NETWORKS.some((item) => item.type === channel.type));
+      const data = await readJson<{ channels?: Channel[] } & ApiPayload>(response);
+      if (!response.ok) throw new Error(apiError(response, data, t("errors.load")));
+      const visible = (data?.channels ?? []).filter((channel) => NETWORKS.some((item) => item.type === channel.type));
       setChannels(visible);
       setSelectedNetworks(visible.filter((channel) => channel.isConnected && channel.isActive).map((channel) => channel.type));
-    } catch { setError(t("errors.load")); }
+    } catch (caught) { setError(caughtError(caught, t("errors.load"))); }
   }, [t]);
 
   useEffect(() => { void loadChannels(); }, [loadChannels]);
@@ -120,16 +130,17 @@ export function SocialNetworksClient() {
     setGenerating(true); setError(null);
     try {
       const response = await fetch("/api/publishing/social-generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: idea, tone, locale }) });
-      if (!response.ok) throw new Error();
-      const value = await response.json() as { versions: Record<NetworkType, string> };
+      const value = await readJson<{ versions?: Record<NetworkType, string> } & ApiPayload>(response);
+      if (!response.ok) throw new Error(apiError(response, value, t("errors.ai")));
+      if (!value?.versions) throw new Error("L’IA a répondu sans fournir de texte pour les réseaux.");
       setVersions(value.versions);
-    } catch { setError(t("errors.ai")); } finally { setGenerating(false); }
+    } catch (caught) { setError(caughtError(caught, t("errors.ai"))); } finally { setGenerating(false); }
   };
 
   const uploadImage = async (file: File) => {
     setUploading(true); setError(null);
-    try { const form = new FormData(); form.append("file", file); const response = await fetch("/api/uploads/attachment", { method: "POST", body: form }); if (!response.ok) throw new Error(); const value = await response.json() as { url?: string; publicUrl?: string }; const url = value.url ?? value.publicUrl; if (!url) throw new Error(); setMediaUrls([url]); }
-    catch { setError(t("errors.upload")); } finally { setUploading(false); }
+    try { const form = new FormData(); form.append("file", file); const response = await fetch("/api/uploads/attachment", { method: "POST", body: form }); const value = await readJson<{ url?: string; publicUrl?: string } & ApiPayload>(response); if (!response.ok) throw new Error(apiError(response, value, t("errors.upload"))); const url = value?.url ?? value?.publicUrl; if (!url) throw new Error("L’image a été reçue, mais le serveur n’a renvoyé aucune adresse utilisable."); setMediaUrls([url]); }
+    catch (caught) { setError(caughtError(caught, t("errors.upload"))); } finally { setUploading(false); }
   };
 
   const toggleNetwork = (type: NetworkType) => { const channel = channels.find((item) => item.type === type); if (!channel?.isConnected) return; setSelectedNetworks((current) => current.includes(type) ? current.filter((item) => item !== type) : [...current, type]); };
@@ -149,13 +160,13 @@ export function SocialNetworksClient() {
       const safeDate = scheduleAdjustment ? new Date(scheduleAdjustment.publishAt) : requestedDate;
       const scheduledDates = safeDate ? Array.from({ length: repeatWeekly ? 8 : 1 }, (_, index) => new Date(safeDate.getTime() + index * 7 * 86_400_000).toISOString()) : undefined;
       const response = await fetch("/api/social-networks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: resolvedTexts.FACEBOOK || resolvedTexts.INSTAGRAM, texts: resolvedTexts, mediaUrls, channelTypes: selectedNetworks, scheduledAt: null, scheduledDates, repeatWeekly }) });
-      const payload = await response.json().catch(() => null) as { error?: string; code?: string; billingUrl?: string } | null;
+      const payload = await readJson<ApiPayload>(response);
       if (!response.ok) {
         if (payload?.code === "PAYWALL_REQUIRED") setBillingUrl(payload.billingUrl ?? "/dashboard/settings/billing");
-        throw new Error(payload?.error || t("errors.publish"));
+        throw new Error(apiError(response, payload, t("errors.publish")));
       }
       localStorage.removeItem(DRAFT_KEY); setSuccess({ scheduled: Boolean(safeDate), date: safeDate?.toISOString() ?? null, networks: selectedNetworks });
-    } catch (caught) { setError(caught instanceof Error ? caught.message : t("errors.publish")); } finally { setSubmitting(false); }
+    } catch (caught) { setError(caughtError(caught, t("errors.publish"))); } finally { setSubmitting(false); }
   };
 
   const reset = () => { setIdea(""); setVersions({ FACEBOOK: "", INSTAGRAM: "" }); setMediaUrls([]); setMoment("now"); setRepeatWeekly(false); setSuccess(null); localStorage.removeItem(DRAFT_KEY); };
