@@ -14,10 +14,10 @@ type Publication = Tables<"Publication">;
 const SOCIAL_CHANNELS = ["FACEBOOK", "INSTAGRAM"] as const;
 const LIMITED_SOCIAL_CHANNELS = new Set(["FACEBOOK", "INSTAGRAM"]);
 const postSchema = z.object({
-  text: z.string().min(1),
+  text: z.string().max(63_206).default(""),
   texts: z.object({
-    FACEBOOK: z.string().min(1).max(63_206),
-    INSTAGRAM: z.string().min(1).max(2_200),
+    FACEBOOK: z.string().max(63_206).optional(),
+    INSTAGRAM: z.string().max(2_200).optional(),
   }).optional(),
   mediaUrls: z.array(z.string().url()).default([]),
   channelTypes: z.array(z.enum(SOCIAL_CHANNELS)).min(1),
@@ -126,6 +126,9 @@ export async function POST(request: Request) {
     const { text, texts, mediaUrls, channelTypes, scheduledAt, scheduledDates } = parsed.data;
     const cleanText = text.trim();
     const uniqueChannelTypes = Array.from(new Set(channelTypes));
+    const channelTexts = Object.fromEntries(
+      uniqueChannelTypes.map((channelType) => [channelType, texts?.[channelType]?.trim() || cleanText])
+    ) as Partial<Record<(typeof SOCIAL_CHANNELS)[number], string>>;
     const scheduleDates = Array.from(new Set(scheduledDates?.length ? scheduledDates : scheduledAt ? [scheduledAt] : []))
       .map((value) => new Date(value))
       .sort((a, b) => a.getTime() - b.getTime());
@@ -145,6 +148,10 @@ export async function POST(request: Request) {
 
     if (uniqueChannelTypes.includes("INSTAGRAM") && mediaUrls.length === 0) {
       return NextResponse.json({ error: "Instagram requiert une image avant publication." }, { status: 400 });
+    }
+
+    if (mediaUrls.length === 0 && uniqueChannelTypes.every((channelType) => !channelTexts[channelType])) {
+      return NextResponse.json({ error: "Ajoutez un texte ou une image avant de publier." }, { status: 400 });
     }
 
     let channelsQuery = admin
@@ -176,12 +183,13 @@ export async function POST(request: Request) {
     const draftId = crypto.randomUUID();
     const now = new Date().toISOString();
     const primaryImageUrl = mediaUrls[0] ?? null;
+    const primaryText = uniqueChannelTypes.map((channelType) => channelTexts[channelType]).find(Boolean) ?? "";
 
     await admin.from("ContentDraft").insert({
       id: draftId,
       communityId,
-      title: cleanText.slice(0, 120) || "Publication tous reseaux",
-      body: cleanText,
+      title: primaryText.slice(0, 120) || "Publication tous reseaux",
+      body: primaryText,
       imageUrl: primaryImageUrl,
       contentType: "GENERAL",
       status: hasSchedule ? "AI_PROPOSAL" : "READY_TO_PUBLISH",
@@ -200,7 +208,7 @@ export async function POST(request: Request) {
         {
           draftId,
           channelType,
-          body: texts?.[channelType] ?? cleanText,
+          body: channelTexts[channelType] ?? primaryText,
           imageUrl: primaryImageUrl,
           metadata,
           updatedAt: now,

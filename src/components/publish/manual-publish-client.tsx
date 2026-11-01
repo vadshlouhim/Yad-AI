@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { resolveManualPublishText } from "@/lib/publishing/social-composer-content";
 import { DAVID_AGENT_IMAGE, SocialPageBanner } from "@/components/publish/social-page-banner";
 
 const SOCIAL_LABELS: Record<string, string> = {
@@ -336,8 +337,9 @@ function InstagramPublishClient({ channelId, isConnected, communityName }: Props
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const hashtags = useMemo(() => extractHashtags(hashtagsInput), [hashtagsInput]);
+  const effectiveCaption = resolveManualPublishText(aiPrompt, caption);
   const instagramHandle = communityName.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 18) || "communaute";
-  const canSubmit = Boolean(isConnected && channelId && caption.trim() && !publishing);
+  const canSubmit = Boolean(isConnected && channelId && imageUrl && !publishing);
 
   async function loadScheduledPosts() {
     setListLoading(true);
@@ -412,7 +414,7 @@ function InstagramPublishClient({ channelId, isConnected, communityName }: Props
   }
 
   async function copyInstagramContent() {
-    const textToCopy = [caption.trim(), hashtags.join(" ")].filter(Boolean).join("\n\n");
+    const textToCopy = [effectiveCaption, hashtags.join(" ")].filter(Boolean).join("\n\n");
     if (!textToCopy) return;
 
     try {
@@ -426,10 +428,6 @@ function InstagramPublishClient({ channelId, isConnected, communityName }: Props
   async function submitPost(publishNow: boolean) {
     if (!channelId) {
       alert("Le canal Instagram n'est pas connecte.");
-      return;
-    }
-    if (!caption.trim()) {
-      alert("Le message Instagram est vide.");
       return;
     }
     if (!imageUrl) {
@@ -447,7 +445,7 @@ function InstagramPublishClient({ channelId, isConnected, communityName }: Props
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          caption,
+          caption: effectiveCaption,
           hashtags,
           imageUrl,
           publishNow,
@@ -586,7 +584,7 @@ function InstagramPublishClient({ channelId, isConnected, communityName }: Props
                   </div>
                   <p className="text-[13px] leading-[18px] text-gray-900">
                     <span className="mr-1 font-semibold">{instagramHandle}</span>
-                    {formatPreviewText(caption)}
+                    {formatPreviewText(effectiveCaption)}
                   </p>
                   {hashtags.length > 0 && (
                     <p className="mt-3 text-[12px] leading-[17px] text-[#c13584]">{hashtags.join(" ")}</p>
@@ -634,7 +632,7 @@ function InstagramPublishClient({ channelId, isConnected, communityName }: Props
                 <Button
                   variant="outline"
                   onClick={copyInstagramContent}
-                  disabled={!caption.trim() && hashtags.length === 0}
+                  disabled={!effectiveCaption && hashtags.length === 0}
                   className="rounded-2xl border-slate-200"
                 >
                   <Copy className="mr-2 size-4" />
@@ -756,7 +754,8 @@ function FacebookPublishClient({ channelId, isConnected, communityName }: Props)
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const hashtags = useMemo(() => extractHashtags(hashtagsInput), [hashtagsInput]);
-  const canSubmit = Boolean(isConnected && channelId && (message.trim() || mediaUrls.length > 0) && !publishing);
+  const effectiveMessage = resolveManualPublishText(prompt, message);
+  const canSubmit = Boolean(isConnected && channelId && (effectiveMessage || mediaUrls.length > 0) && !publishing);
 
   async function loadScheduledPosts() {
     setListLoading(true);
@@ -845,7 +844,7 @@ function FacebookPublishClient({ channelId, isConnected, communityName }: Props)
   }
 
   async function copyFacebookContent() {
-    const textToCopy = [message.trim(), hashtags.join(" ")].filter(Boolean).join("\n\n");
+    const textToCopy = [effectiveMessage, hashtags.join(" ")].filter(Boolean).join("\n\n");
     if (!textToCopy) return;
 
     try {
@@ -861,7 +860,7 @@ function FacebookPublishClient({ channelId, isConnected, communityName }: Props)
       alert("Connectez Facebook avant de publier.");
       return;
     }
-    if (!message.trim() && mediaUrls.length === 0) {
+    if (!effectiveMessage && mediaUrls.length === 0) {
       alert("Ajoutez un texte ou un media avant de publier.");
       return;
     }
@@ -876,7 +875,7 @@ function FacebookPublishClient({ channelId, isConnected, communityName }: Props)
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          content: message,
+          content: effectiveMessage,
           hashtags,
           mediaUrls,
           publishNow,
@@ -988,9 +987,9 @@ function FacebookPublishClient({ channelId, isConnected, communityName }: Props)
                       <MoreHorizontal className="size-5 text-slate-500" />
                     </div>
 
-                    {(message.trim() || hashtags.length > 0) && (
+                    {(effectiveMessage || hashtags.length > 0) && (
                       <div className="mb-3 text-[12px] leading-[17px] text-slate-800">
-                        {formatPreviewText([message.trim(), hashtags.join(" ")].filter(Boolean).join("\n\n"))}
+                        {formatPreviewText([effectiveMessage, hashtags.join(" ")].filter(Boolean).join("\n\n"))}
                       </div>
                     )}
 
@@ -1077,7 +1076,7 @@ function FacebookPublishClient({ channelId, isConnected, communityName }: Props)
                 <Button
                   variant="outline"
                   onClick={copyFacebookContent}
-                  disabled={!message.trim() && hashtags.length === 0}
+                  disabled={!effectiveMessage && hashtags.length === 0}
                   className="rounded-2xl border-slate-200"
                 >
                   <Copy className="mr-2 size-4" />
@@ -1191,7 +1190,8 @@ function TelegramPublishClient({ channelId, isConnected, communityName }: Props)
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const hashtags = useMemo(() => extractHashtags(hashtagsInput), [hashtagsInput]);
-  const canSubmit = Boolean(isConnected && channelId && (message.trim() || mediaUrls.length > 0) && !publishing);
+  const effectiveMessage = resolveManualPublishText(prompt, message);
+  const canSubmit = Boolean(isConnected && channelId && (effectiveMessage || mediaUrls.length > 0) && !publishing);
 
   async function loadScheduledPosts() {
     setListLoading(true);
@@ -1280,7 +1280,7 @@ function TelegramPublishClient({ channelId, isConnected, communityName }: Props)
   }
 
   async function copyTelegramContent() {
-    const textToCopy = [message.trim(), hashtags.join(" ")].filter(Boolean).join("\n\n");
+    const textToCopy = [effectiveMessage, hashtags.join(" ")].filter(Boolean).join("\n\n");
     if (!textToCopy) return;
 
     try {
@@ -1296,7 +1296,7 @@ function TelegramPublishClient({ channelId, isConnected, communityName }: Props)
       alert("Connectez Telegram avant de publier.");
       return;
     }
-    if (!message.trim() && mediaUrls.length === 0) {
+    if (!effectiveMessage && mediaUrls.length === 0) {
       alert("Ajoutez un texte ou un media avant de publier.");
       return;
     }
@@ -1311,7 +1311,7 @@ function TelegramPublishClient({ channelId, isConnected, communityName }: Props)
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          content: message,
+          content: effectiveMessage,
           hashtags,
           mediaUrls,
           publishNow,
@@ -1430,7 +1430,7 @@ function TelegramPublishClient({ channelId, isConnected, communityName }: Props)
                         ))}
                       </div>
                     )}
-                    <div>{formatPreviewText([message.trim(), hashtags.join(" ")].filter(Boolean).join("\n\n"))}</div>
+                    <div>{formatPreviewText([effectiveMessage, hashtags.join(" ")].filter(Boolean).join("\n\n"))}</div>
                     <span className="mt-2 block text-right text-[10px] text-slate-400">12:00</span>
                   </div>
                 </div>
@@ -1491,7 +1491,7 @@ function TelegramPublishClient({ channelId, isConnected, communityName }: Props)
                 <Button
                   variant="outline"
                   onClick={copyTelegramContent}
-                  disabled={!message.trim() && hashtags.length === 0}
+                  disabled={!effectiveMessage && hashtags.length === 0}
                   className="rounded-2xl border-slate-200"
                 >
                   <Copy className="mr-2 size-4" />

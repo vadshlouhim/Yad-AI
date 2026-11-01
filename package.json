@@ -33,6 +33,7 @@
     "test:subscription-policy": "tsx scripts/test-subscription-policy.ts",
     "test:public-discovery": "tsx scripts/test-public-discovery.ts",
     "test:country": "tsx scripts/test-community-country.ts",
+    "test:social-publishing-input": "tsx scripts/test-social-publishing-input.ts",
     "benchmark:public-ttfb": "node scripts/benchmark-public-ttfb.mjs"
   },
   "dependencies": {

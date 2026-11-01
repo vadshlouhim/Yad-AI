@@ -9,7 +9,7 @@ type Channel = Tables<"Channel">;
 type Publication = Tables<"Publication">;
 
 const createSchema = z.object({
-  caption: z.string().min(1),
+  caption: z.string().default(""),
   hashtags: z.array(z.string()).default([]),
   imageUrl: z.string().url(),
   publishNow: z.boolean().default(false),
@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     await admin.from("ContentDraft").insert({
       id: draftId,
       communityId,
-      title: caption.slice(0, 120),
+      title: caption.trim().slice(0, 120) || "Publication Instagram",
       body: caption,
       hashtags,
       imageUrl,

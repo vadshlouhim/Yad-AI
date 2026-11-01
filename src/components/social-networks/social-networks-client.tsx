@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { ArrowLeft, CalendarDays, Check, CheckCircle2, Info, ImagePlus, Loader2, RotateCcw, Sparkles, Upload, WandSparkles, X } from "lucide-react";
 import { FacebookIcon, InstagramIcon } from "@/components/layout/dashboard-nav";
+import { hasSocialComposerContent, resolveSocialComposerTexts } from "@/lib/publishing/social-composer-content";
 import { cn } from "@/lib/utils";
 
 type NetworkType = "FACEBOOK" | "INSTAGRAM";
@@ -135,15 +136,17 @@ export function SocialNetworksClient() {
   const submit = async () => {
     setError(null);
     if (selectedNetworks.length === 0) { setError(t("errors.networkRequired")); return; }
-    if (selectedNetworks.some((network) => !versions[network].trim())) { setError(t("errors.textRequired")); return; }
+    const resolvedTexts = resolveSocialComposerTexts(idea, versions);
+    if (!hasSocialComposerContent(selectedNetworks, resolvedTexts, mediaUrls)) { setError(t("errors.textRequired")); return; }
     if (selectedNetworks.includes("INSTAGRAM") && mediaUrls.length === 0) { setError(t("errors.instagramImage")); return; }
+    setVersions(resolvedTexts);
     if (moment === "now" && !window.confirm(t("actions.confirmNow"))) return;
     if (requestedDate && requestedDate.getTime() <= Date.now()) { setError(t("errors.future")); return; }
     setSubmitting(true);
     try {
       const safeDate = scheduleAdjustment ? new Date(scheduleAdjustment.publishAt) : requestedDate;
       const scheduledDates = safeDate ? Array.from({ length: repeatWeekly ? 8 : 1 }, (_, index) => new Date(safeDate.getTime() + index * 7 * 86_400_000).toISOString()) : undefined;
-      const response = await fetch("/api/social-networks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: versions.FACEBOOK || versions.INSTAGRAM, texts: versions, mediaUrls, channelTypes: selectedNetworks, scheduledAt: null, scheduledDates, repeatWeekly }) });
+      const response = await fetch("/api/social-networks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: resolvedTexts.FACEBOOK || resolvedTexts.INSTAGRAM, texts: resolvedTexts, mediaUrls, channelTypes: selectedNetworks, scheduledAt: null, scheduledDates, repeatWeekly }) });
       if (!response.ok) throw new Error();
       localStorage.removeItem(DRAFT_KEY); setSuccess({ scheduled: Boolean(safeDate), date: safeDate?.toISOString() ?? null, networks: selectedNetworks });
     } catch { setError(t("errors.publish")); } finally { setSubmitting(false); }
