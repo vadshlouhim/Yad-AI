@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "next-intl";
+import { InstagramPrerequisiteDialog } from "@/components/social-connections/instagram-prerequisite-dialog";
 
 interface Props {
   data: OnboardingData;
@@ -68,7 +69,7 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   missing_env: "Configuration Meta manquante côté serveur.",
   expired: "Session expirée, veuillez réessayer.",
   invalid_state: "Erreur de sécurité, veuillez réessayer.",
-  no_instagram_business: "Aucun compte Instagram Pro lié à cette Page Facebook.",
+  no_instagram_business: "Une Page Facebook a été trouvée, mais aucun compte Instagram professionnel ne lui est lié. Vérifiez le lien Page ↔ Instagram dans Meta Business Suite.",
   no_page: "Aucune Page Facebook trouvée. Relancez la connexion, cliquez sur « Modifier les paramètres » et cochez votre Page.",
   forbidden: "Accès non autorisé.",
   error: "Une erreur est survenue lors de la connexion.",
@@ -97,6 +98,7 @@ export function StepSocial({
   const [connecting, setConnecting] = useState<string | null>(null);
   const [oauthNotice, setOauthNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [connected, setConnected] = useState<ConnectedStatus>({ INSTAGRAM: false, FACEBOOK: false, EMAIL: false });
+  const [instagramPrerequisiteOpen, setInstagramPrerequisiteOpen] = useState(false);
 
   // Toujours à jour, lus depuis le listener "message" sans re-déclencher son effet.
   const dataRef = useRef(data);
@@ -202,7 +204,7 @@ export function StepSocial({
     updateData({ channels: data.channels.filter((c) => c.type !== type) });
   }
 
-  function handleOAuthConnect(provider: "facebook" | "instagram" | "gmail") {
+  function launchOAuthConnect(provider: "facebook" | "instagram" | "gmail") {
     setConnecting(provider);
 
     if (simulationMode) {
@@ -237,6 +239,14 @@ export function StepSocial({
       // Popup bloquée : on retombe sur le flux plein écran (retour direct sur /onboarding).
       window.location.assign(buildUrl("onboarding").toString());
     }
+  }
+
+  function handleOAuthConnect(provider: "facebook" | "instagram" | "gmail") {
+    if (provider === "instagram") {
+      setInstagramPrerequisiteOpen(true);
+      return;
+    }
+    launchOAuthConnect(provider);
   }
 
   return (
@@ -389,6 +399,12 @@ export function StepSocial({
           {saving ? (he ? "פותח את המרחב..." : "Ouverture de votre espace...") : (he ? "כניסה ל־EasyCom IA" : "Accéder à EasyCom IA")}
         </Button>
       </div>
+
+      <InstagramPrerequisiteDialog
+        open={instagramPrerequisiteOpen}
+        onOpenChange={setInstagramPrerequisiteOpen}
+        onContinue={() => launchOAuthConnect("instagram")}
+      />
     </div>
   );
 }

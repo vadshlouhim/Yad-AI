@@ -2057,8 +2057,11 @@ function TaskCreateDialog({ triggerClassName }: { triggerClassName?: string } = 
         }),
       });
       if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        throw new Error(payload?.error ?? "Impossible d’ajouter la tâche.");
+        const payload = await response.json().catch(() => null) as { error?: string; requestId?: string } | null;
+        const reference = payload?.requestId && !payload.error?.includes(payload.requestId)
+          ? ` (référence ${payload.requestId})`
+          : "";
+        throw new Error(`${payload?.error ?? "Impossible d’ajouter la tâche."}${reference}`);
       }
       setOpen(false);
       setTitle("");

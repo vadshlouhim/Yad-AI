@@ -76,6 +76,7 @@ export async function POST(request: Request) {
     const logoUrl = body.shabbat === true
       ? requestedLogoUrl ?? storedLogoUrl
       : requestedLogoUrl;
+    const logoWhitePlate = typeof body.logoWhitePlate === "boolean" ? body.logoWhitePlate : true;
     const logoZone = getTemplateLogoZone(template);
     // The source may be the user's previous poster, which already carries an older logo there.
     const logoArea = logoZone ? `the logo area (${describeLogoZone(logoZone)})` : "the top-right corner";
@@ -105,11 +106,12 @@ export async function POST(request: Request) {
       referenceImageUrls: body.shabbat !== true && logoUrl ? [logoUrl] : undefined,
       overlayLogoUrl: body.shabbat === true && logoUrl ? logoUrl : undefined,
       overlayLogoZone: logoZone,
-      overlayLogoWhitePlate: body.shabbat === true,
+      overlayLogoWhitePlate: body.shabbat === true ? logoWhitePlate : false,
+      overlayLogoProtectFromText: body.shabbat === true,
       editInstructions: [
         "NON-NEGOTIABLE BRANDING REQUIREMENTS:",
         body.shabbat === true && logoUrl
-          ? `Completely erase any existing logo, emblem, logo placeholder, white box or sticker inside ${logoArea}, and fill that area with the surrounding background so it looks clean and empty. Keep it free of any text or drawing: the exact official logo will be composited there after generation.`
+          ? `ABSOLUTE LOGO SAFE ZONE: completely erase any existing logo, emblem, logo placeholder, white box, sticker, letter, number or text fragment inside ${logoArea}, and fill that area with the surrounding background so it looks clean and empty. No glyph or text bounding box may touch, cross, sit behind or sit in front of this area. Move every mandatory title, date, location and time outside it. If space is insufficient, remove optional wording before violating this rule. The exact official logo will be composited there after generation and must remain the only foreground element in its protected area.`
           : logoEditInstructions(logoUrl),
         body.shabbat === true
           ? "Never write any source, credit or attribution line for the times (for example \"Chabad.org\" or \"Shabbat times provided by…\"), and remove any such line already on the image."

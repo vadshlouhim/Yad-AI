@@ -40,6 +40,7 @@ type ShabbatPosterConfig = {
   notificationTime?: string;
   scheduleMode?: string;
   channels?: string[];
+  logoWhitePlate?: boolean;
   configured?: boolean;
   suspended?: boolean;
 };
@@ -110,6 +111,7 @@ function sanitizeConfig(value: unknown, existing: ShabbatPosterConfig): ShabbatP
     notificationTime,
     scheduleMode: typeof value.scheduleMode === "string" ? value.scheduleMode : (existing.scheduleMode ?? "notification"),
     channels: Array.isArray(value.channels) ? (value.channels as string[]) : (existing.channels ?? ["INSTAGRAM", "FACEBOOK", "WHATSAPP"]),
+    logoWhitePlate: typeof value.logoWhitePlate === "boolean" ? value.logoWhitePlate : (existing.logoWhitePlate ?? true),
   };
 }
 

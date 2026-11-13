@@ -58,6 +58,7 @@ export type NewsletterEvent = {
   endDate: string | null;
   location: string | null;
   category: string | null;
+  kind: "event" | "task";
 };
 
 export type NewsletterBirthday = {
@@ -1328,7 +1329,7 @@ export function NewsletterPaperClient({
               {enabled.events ? <section className="overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white shadow-sm">
                 <div className="flex min-w-0 items-center gap-2 px-3 py-3 sm:px-4">
                   <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-900"><CalendarDays className="size-5" /></span>
-                  <div className="min-w-0 flex-1">{sectionTitle("agenda", "text-sm font-black text-slate-900")}<span className="block text-xs font-medium text-slate-600">{t("agenda.count", { count: initialEvents.length })}</span></div>
+                  <div className="min-w-0 flex-1">{sectionTitle("agenda", "text-sm font-black text-slate-900")}<span className="block text-xs font-medium text-slate-600">{t("agenda.count", { count: initialEvents.length })}</span><span className="block text-[11px] font-semibold text-amber-800">{t("agenda.sync")}</span></div>
                   <button type="button" aria-expanded={agendaOpen} aria-controls="newsletter-agenda-panel" onClick={() => setAgendaOpen((open) => !open)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600">
                     <ChevronDown className={cn("size-5 shrink-0 text-amber-800 transition-transform", agendaOpen && "rotate-180")} />
                   </button>

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn, CHANNEL_LABELS } from "@/lib/utils";
+import { InstagramPrerequisiteDialog } from "@/components/social-connections/instagram-prerequisite-dialog";
 
 interface Channel {
   id: string;
@@ -107,7 +108,7 @@ const OAUTH_MESSAGES: Record<string, { tone: "success" | "error"; text: string }
   invalid_state: { tone: "error", text: "Erreur de sécurité OAuth. Relancez la connexion." },
   forbidden: { tone: "error", text: "Ce compte ne correspond pas à cette communauté." },
   no_page: { tone: "error", text: "Aucune Page Facebook trouvée. Relancez la connexion, cliquez sur « Modifier les paramètres » et cochez votre Page. Vous devez être admin de la Page (ou y avoir accès via Meta Business Suite)." },
-  no_instagram_business: { tone: "error", text: "Aucun compte Instagram Pro lié à une Page Facebook." },
+  no_instagram_business: { tone: "error", text: "Une Page Facebook a bien été trouvée, mais aucun compte Instagram professionnel ne lui est lié." },
   app_deleted: { tone: "error", text: "L’application Meta configurée a été supprimée. Créez une nouvelle application Meta puis remplacez META_APP_ID et META_APP_SECRET." },
   redirect_uri_mismatch: { tone: "error", text: "L’URL de redirection n’est pas autorisée dans Meta. Ajoutez l’URL exacte du callback dans Facebook Login > Paramètres." },
   error: { tone: "error", text: "Connexion refusée par Meta. Vérifiez l'URL de redirection." },
@@ -134,10 +135,13 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
   const [expandedChannel, setExpandedChannel] = useState<string | null>(null);
   const [tokenInput, setTokenInput] = useState<Record<string, string>>({});
   const [oauthPopupProvider] = useState<string | null>(null);
+  const [instagramPrerequisiteOpen, setInstagramPrerequisiteOpen] = useState(false);
 
   const channelMap = Object.fromEntries(channels.map((c) => [c.type, c]));
   const oauthStatus = searchParams.get("oauth");
+  const oauthProvider = searchParams.get("provider");
   const oauthMessage = oauthStatus ? OAUTH_MESSAGES[oauthStatus] : null;
+  const showInstagramHelp = oauthProvider === "instagram" && (oauthStatus === "no_page" || oauthStatus === "no_instagram_business");
   const channelDescription = (type: string) => locale !== "he" ? CHANNEL_CONFIG[type].description : ({
     INSTAGRAM: "פרסמו פוסטים וסטוריז בחשבון Instagram העסקי שלכם.",
     FACEBOOK: "פרסמו בעמוד Facebook שלכם. נדרשת הרשאת מנהל.",
@@ -182,7 +186,7 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
     }
   }
 
-  function connectOAuth(type: string) {
+  function launchOAuth(type: string) {
     const popupUrl = new URL(`/api/auth/oauth/${type.toLowerCase()}`, window.location.origin);
     popupUrl.searchParams.set("communityId", communityId);
     popupUrl.searchParams.set("returnTo", "settings_popup");
@@ -190,6 +194,14 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
     fallbackUrl.searchParams.set("communityId", communityId);
     fallbackUrl.searchParams.set("returnTo", "settings");
     openOAuthPopup(popupUrl, `${type.toLowerCase()}_oauth`, fallbackUrl);
+  }
+
+  function connectOAuth(type: string) {
+    if (type === "INSTAGRAM") {
+      setInstagramPrerequisiteOpen(true);
+      return;
+    }
+    launchOAuth(type);
   }
 
   function connectGmail() {
@@ -301,6 +313,30 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
             {locale === "he" ? (oauthMessage.tone === "success" ? "החיבור הצליח והערוץ פעיל כעת." : "החיבור נכשל. נסו להתחבר מחדש.") : oauthMessage.text}
           </p>
         </div>
+      )}
+      {showInstagramHelp && (
+        <aside className="rounded-[1.6rem] border border-pink-200 bg-gradient-to-br from-pink-50 to-orange-50 p-5 shadow-sm" aria-labelledby="instagram-connection-help">
+          <div className="flex items-start gap-3">
+            <Info className="mt-0.5 size-5 shrink-0 text-pink-600" />
+            <div className="min-w-0 flex-1">
+              <h2 id="instagram-connection-help" className="font-black text-slate-950">
+                {locale === "he" ? "בדיקת החיבור לאינסטגרם" : "Vérifiez votre configuration Instagram"}
+              </h2>
+              <ol className="mt-3 list-decimal space-y-2 ps-5 text-sm leading-6 text-slate-700">
+                <li>{locale === "he" ? "החשבון חייב להיות חשבון מקצועי: Business או Creator." : "Le compte Instagram doit être professionnel : Business ou Creator."}</li>
+                <li>{locale === "he" ? "יש לקשר אותו לדף Facebook, לא רק למרכז החשבונות." : "Il doit être relié à une Page Facebook, pas seulement ajouté au Centre de comptes."}</li>
+                <li>{locale === "he" ? "התחברו עם חשבון Facebook שמנהל את הדף ואשרו את הדף בחלון Meta." : "Reconnectez-vous avec le compte Facebook qui administre cette Page et autorisez-la dans la fenêtre Meta."}</li>
+              </ol>
+              <button
+                type="button"
+                onClick={() => connectOAuth("INSTAGRAM")}
+                className="mt-4 inline-flex min-h-11 items-center justify-center rounded-2xl bg-gradient-to-r from-pink-600 to-orange-500 px-4 text-sm font-black text-white shadow-sm transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-pink-200"
+              >
+                {locale === "he" ? "לנסות שוב עם Meta" : "Réessayer la connexion Meta"}
+              </button>
+            </div>
+          </div>
+        </aside>
       )}
 
       {/* ── Stat bar ─────────────────────────────────────────── */}
@@ -777,6 +813,12 @@ export function ChannelsSettingsClient({ channels, communityId }: Props) {
           </Link>
         </div>
       </div>
+
+      <InstagramPrerequisiteDialog
+        open={instagramPrerequisiteOpen}
+        onOpenChange={setInstagramPrerequisiteOpen}
+        onContinue={() => launchOAuth("INSTAGRAM")}
+      />
 
     </div>
   );

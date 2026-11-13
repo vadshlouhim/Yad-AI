@@ -21,7 +21,7 @@ const overloaded: NewsletterDocumentData = {
   ...base,
   generated: { ...base.generated, intro: "מבוא ".repeat(150), ravWord: "דבר הרב ".repeat(100), shabbatNote: "פרשה ".repeat(100) },
   enabled: { ...base.enabled, events: true, birthdays: true, restaurantAd: true, support: true },
-  events: Array.from({ length: 4 }, (_, index) => ({ id: String(index), title: "אירוע", description: "פרטים", startDate: "2026-10-24T12:00:00Z", endDate: null, location: null, category: null })),
+  events: Array.from({ length: 4 }, (_, index) => ({ id: String(index), title: "אירוע", description: "פרטים", startDate: "2026-10-24T12:00:00Z", endDate: null, location: null, category: null, kind: "event" as const })),
   birthdays: Array.from({ length: 5 }, (_, index) => ({ id: String(index), name: "שם", hebrewDate: "י חשוון", gregorianDate: "2026-10-24" })),
   photos: Array.from({ length: 4 }, (_, index) => ({ id: `photo-${index}`, name: "photo", url: "data:image/png;base64," })),
   posters: Array.from({ length: 3 }, (_, index) => ({ id: `poster-${index}`, name: "poster", url: "data:image/png;base64," })),

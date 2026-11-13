@@ -127,8 +127,11 @@ export function EventForm({ defaultValues, eventId }: Props) {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? "Erreur lors de la sauvegarde");
+        const data = await res.json().catch(() => ({})) as { error?: string; requestId?: string };
+        const reference = data.requestId && !data.error?.includes(data.requestId)
+          ? ` (référence ${data.requestId})`
+          : "";
+        throw new Error(`${data.error ?? "Erreur lors de la sauvegarde"}${reference}`);
       }
 
       const data = await res.json();

@@ -238,7 +238,16 @@ export async function GET(request: Request, { params }: RouteParams) {
       pages = await fetchGrantedPages(graphApiBase, longLived.access_token, appId, appSecret);
     }
 
-    console.log("[Meta OAuth] Pages found:", pages.map((page) => ({ id: page.id, name: page.name, hasToken: Boolean(page.access_token) })));
+    console.log("[Meta OAuth] Page discovery", {
+      provider,
+      pageCount: pages.length,
+      instagramPageCount: pages.filter((page) => Boolean(page.instagram_business_account?.id)).length,
+    });
+
+    if (pages.length === 0) {
+      returnUrl.searchParams.set("oauth", "no_page");
+      return NextResponse.redirect(returnUrl);
+    }
 
     const selectedPage = pages.find((page) =>
       provider === "instagram" ? Boolean(page.instagram_business_account?.id) : Boolean(page.access_token)

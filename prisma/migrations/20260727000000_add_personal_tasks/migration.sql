@@ -12,6 +12,7 @@ CREATE TABLE "Task" (
 );
 
 CREATE INDEX "Task_communityId_userId_idx" ON "Task"("communityId", "userId");
+CREATE INDEX "Task_userId_idx" ON "Task"("userId");
 CREATE INDEX "Task_scheduledAt_idx" ON "Task"("scheduledAt");
 
 ALTER TABLE "Task"
@@ -21,3 +22,32 @@ ALTER TABLE "Task"
 ALTER TABLE "Task"
   ADD CONSTRAINT "Task_userId_fkey"
   FOREIGN KEY ("userId") REFERENCES "profiles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE "Task" ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Task_select_own"
+  ON "Task"
+  FOR SELECT
+  TO authenticated
+  USING ((SELECT auth.uid()) = "userId");
+
+CREATE POLICY "Task_insert_own"
+  ON "Task"
+  FOR INSERT
+  TO authenticated
+  WITH CHECK ((SELECT auth.uid()) = "userId");
+
+CREATE POLICY "Task_update_own"
+  ON "Task"
+  FOR UPDATE
+  TO authenticated
+  USING ((SELECT auth.uid()) = "userId")
+  WITH CHECK ((SELECT auth.uid()) = "userId");
+
+CREATE POLICY "Task_delete_own"
+  ON "Task"
+  FOR DELETE
+  TO authenticated
+  USING ((SELECT auth.uid()) = "userId");
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "Task" TO service_role;

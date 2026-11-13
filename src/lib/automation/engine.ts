@@ -129,7 +129,8 @@ async function renderShabbatPosterImage(params: {
       locale: outputLocale,
       sourceImageUrl: source && source.templateId === template.id ? source.url : undefined,
       logoUrl: logoUrl ?? undefined,
-      logoWhitePlate: true,
+      logoWhitePlate: typeof posterConfig.logoWhitePlate === "boolean" ? posterConfig.logoWhitePlate : true,
+      protectLogoFromText: true,
       content: {
         communityName: savedFields.structureName || params.communityName,
         title: outputLocale === "he" ? "שבת שלום" : "Chabbat Chalom",

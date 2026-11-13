@@ -247,7 +247,8 @@ async function makeBlocks(data: NewsletterDocumentData): Promise<DocumentBlock[]
     blocks.push(...textBlock("events-intro", labels.agenda, g.eventIntro));
     for (const event of data.events) {
       const date = new Intl.DateTimeFormat(outputIntlLocale(data.outputLocale), { dateStyle: "full", timeStyle: "short", timeZone: data.community.timezone }).format(new Date(event.startDate));
-      blocks.push(...textBlock(`event-${event.id}`, event.title, [date, event.location, event.description].filter(Boolean).join("\n"), true));
+      const itemType = event.kind === "task" ? (data.outputLocale === "he" ? "משימה" : "Tâche") : null;
+      blocks.push(...textBlock(`event-${event.id}`, event.title, [itemType, date, event.location, event.description].filter(Boolean).join("\n"), true));
     }
   }
   if (e.specificEvent) blocks.push(...textBlock("specific-event", labels.specificEvent, data.specificEventText ?? "", true));

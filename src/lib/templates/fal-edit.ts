@@ -117,6 +117,7 @@ export async function editTemplatePosterWithFal(params: {
   overlayLogoUrl?: string;
   overlayLogoZone?: LogoZone | null;
   overlayLogoWhitePlate?: boolean;
+  overlayLogoProtectFromText?: boolean;
 }) {
   const falKey = process.env.FAL_KEY?.trim();
   if (!falKey) throw new Error("FAL_KEY n’est pas configurée sur le serveur.");
@@ -149,6 +150,7 @@ export async function editTemplatePosterWithFal(params: {
   const overlaid = params.overlayLogoUrl
     ? await overlayOfficialLogoFromUrl(generatedBuffer, params.overlayLogoUrl, params.overlayLogoZone, {
         whitePlate: params.overlayLogoWhitePlate,
+        protectFromText: params.overlayLogoProtectFromText,
       })
     : null;
   const buffer = overlaid?.buffer ?? generatedBuffer;

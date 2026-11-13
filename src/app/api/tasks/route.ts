@@ -16,24 +16,36 @@ const taskSchema = z.object({
   recurrenceRule: recurrenceSchema,
 });
 
+function taskErrorResponse(message: string, status: number, requestId: string) {
+  return NextResponse.json(
+    { error: message, requestId },
+    { status, headers: { "X-Request-ID": requestId } },
+  );
+}
+
 export async function POST(request: Request) {
+  const requestId = crypto.randomUUID();
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    if (!user) return taskErrorResponse("Non authentifié", 401, requestId);
 
     const parsed = taskSchema.safeParse(await request.json());
     if (!parsed.success) {
-      return NextResponse.json({ error: "Données de tâche invalides", details: parsed.error.flatten() }, { status: 400 });
+      console.warn("[Tasks POST] validation error", { requestId, userId: user.id, issues: parsed.error.issues });
+      return taskErrorResponse(parsed.error.issues[0]?.message ?? "Données de tâche invalides", 400, requestId);
     }
 
     const admin = createAdminClient();
-    const { data: profile } = await admin
+    const { data: profile, error: profileError } = await admin
       .from("profiles")
       .select("communityId")
       .eq("id", user.id)
       .single();
-    if (!profile?.communityId) return NextResponse.json({ error: "Pas de communauté" }, { status: 400 });
+    if (profileError || !profile?.communityId) {
+      console.error("[Tasks POST] profile error", { requestId, userId: user.id, error: profileError });
+      return taskErrorResponse("Aucune communauté n’est associée à votre compte.", 400, requestId);
+    }
 
     const { data: task, error } = await admin
       .from("Task")
@@ -50,11 +62,23 @@ export async function POST(request: Request) {
       .single();
 
     if (error || !task) {
-      console.error("[Tasks POST] insert error", error);
-      return NextResponse.json({ error: "Erreur lors de la création de la tâche" }, { status: 500 });
+      console.error("[Tasks POST] insert error", {
+        requestId,
+        userId: user.id,
+        communityId: profile.communityId,
+        code: error?.code,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+      });
+      return taskErrorResponse(
+        `La tâche n’a pas pu être créée. Réessayez ou transmettez la référence ${requestId}.`,
+        500,
+        requestId,
+      );
     }
 
-    await admin.from("AuditLog").insert({
+    const { error: auditError } = await admin.from("AuditLog").insert({
       id: crypto.randomUUID(),
       userId: user.id,
       communityId: profile.communityId,
@@ -63,6 +87,9 @@ export async function POST(request: Request) {
       resourceId: task.id,
       newData: { title: task.title },
     });
+    if (auditError) {
+      console.error("[Tasks POST] audit error", { requestId, taskId: task.id, code: auditError.code, message: auditError.message });
+    }
 
     try {
       await notifyAgendaItemCreated(admin, {
@@ -74,12 +101,16 @@ export async function POST(request: Request) {
         link: "/dashboard/events",
       });
     } catch (error) {
-      console.error("[Tasks POST] notification error", error);
+      console.error("[Tasks POST] notification error", { requestId, taskId: task.id, error });
     }
 
-    return NextResponse.json(task, { status: 201 });
+    return NextResponse.json(task, { status: 201, headers: { "X-Request-ID": requestId } });
   } catch (error) {
-    console.error("[Tasks POST]", error);
-    return NextResponse.json({ error: "Erreur lors de la création de la tâche" }, { status: 500 });
+    console.error("[Tasks POST] unexpected error", { requestId, error });
+    return taskErrorResponse(
+      `La tâche n’a pas pu être créée. Réessayez ou transmettez la référence ${requestId}.`,
+      500,
+      requestId,
+    );
   }
 }

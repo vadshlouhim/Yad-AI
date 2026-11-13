@@ -192,6 +192,7 @@ export async function createReligiousPoster(params: {
   sourceImageUrl?: string;
   logoUrl?: string;
   logoWhitePlate?: boolean;
+  protectLogoFromText?: boolean;
   recordMedia?: boolean;
 }) {
   const sourceUrl = params.sourceImageUrl ?? resolveTemplateAssetUrl(params.template.originalUrl) ?? resolveTemplateAssetUrl(params.template.previewUrl);
@@ -203,6 +204,7 @@ export async function createReligiousPoster(params: {
   if (params.logoUrl) {
     const result = await overlayOfficialLogoFromUrl(buffer, params.logoUrl, getTemplateLogoZone(params.template), {
       whitePlate: params.logoWhitePlate,
+      protectFromText: params.protectLogoFromText,
     });
     buffer = result.buffer;
     width = result.width;

@@ -11,6 +11,7 @@ import { parseNewsletterLabels } from "@/lib/newsletter/labels";
 import { getLocale, getTranslations } from "next-intl/server";
 import { parseOutputLocale } from "@/lib/ai/output-locale";
 import { HebrewDateEvent } from "@hebcal/core";
+import { expandAgendaTaskOccurrences } from "@/lib/agenda/task-occurrences";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("newsletter");
@@ -28,16 +29,16 @@ function startOfDay(date: Date) {
 }
 
 export default async function NewsletterPage() {
-  const { profile } = await requireAuth();
+  const { profile, supabaseUser } = await requireAuth();
   if (!profile.communityId) redirect("/onboarding");
   const outputLocale = parseOutputLocale(await getLocale());
 
   const admin = createAdminClient();
   const now = new Date();
   const weekEnd = addDays(now, 7);
-  const eventsEnd = addDays(now, 45);
+  const eventsEnd = addDays(now, 30);
 
-  const [{ data: community }, { data: events }, { data: contacts }] = await Promise.all([
+  const [{ data: community }, { data: events }, { data: tasks }, { data: contacts }] = await Promise.all([
     admin
       .from("Community")
       .select("id, name, logoUrl, coverUrl, city, timezone, communityType, religiousStream, vocabulary, address, phone, email, website")
@@ -50,8 +51,14 @@ export default async function NewsletterPage() {
       .neq("status", "ARCHIVED")
       .gte("startDate", now.toISOString())
       .lte("startDate", eventsEnd.toISOString())
-      .order("startDate", { ascending: true })
-      .limit(12),
+      .order("startDate", { ascending: true }),
+    admin
+      .from("Task")
+      .select("id, title, scheduledAt, recurrenceRule")
+      .eq("communityId", profile.communityId)
+      .eq("userId", supabaseUser.id)
+      .lte("scheduledAt", eventsEnd.toISOString())
+      .order("scheduledAt", { ascending: true }),
     admin
       .from("CommunityMember")
       .select("id, firstName, displayName, hebrewBirthDay, hebrewBirthMonth, hebrewBirthYear")
@@ -123,7 +130,20 @@ export default async function NewsletterPage() {
     endDate: event.endDate,
     location: event.location,
     category: event.category,
+    kind: "event",
   }));
+  const taskItems: NewsletterEvent[] = expandAgendaTaskOccurrences(tasks ?? [], now, eventsEnd, timezone).map((task) => ({
+    id: `task-${task.id}`,
+    title: task.title,
+    description: null,
+    startDate: task.scheduledAt,
+    endDate: null,
+    location: null,
+    category: "TASK",
+    kind: "task",
+  }));
+  const agendaItems = [...eventItems, ...taskItems]
+    .sort((left, right) => left.startDate.localeCompare(right.startDate));
 
   return (
     <NewsletterPaperClient
@@ -144,7 +164,7 @@ export default async function NewsletterPage() {
         website: community?.website ?? null,
         isBethHabad: community?.communityType === "SYNAGOGUE" || community?.religiousStream === "BETH_HABAD",
       }}
-      initialEvents={eventItems}
+      initialEvents={agendaItems}
       initialBirthdays={birthdays}
       initialShabbat={shabbatData}
       initialSeferHamitsvot={seferHamitsvot}

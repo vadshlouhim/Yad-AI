@@ -9,7 +9,39 @@ const SOFT_EDGE = 26;
 
 export type LogoOverlayOptions = {
   whitePlate?: boolean;
+  protectFromText?: boolean;
 };
+
+type PixelBox = { left: number; top: number; width: number; height: number };
+
+function paddedBox(box: PixelBox, padding: number, width: number, height: number): PixelBox {
+  const left = Math.max(0, box.left - padding);
+  const top = Math.max(0, box.top - padding);
+  const right = Math.min(width, box.left + box.width + padding);
+  const bottom = Math.min(height, box.top + box.height + padding);
+  return { left, top, width: Math.max(1, right - left), height: Math.max(1, bottom - top) };
+}
+
+/**
+ * Removes readable content below a transparent logo without forcing a white plate. The strongly
+ * blurred patch retains the local colours while making any text in the protected footprint
+ * unreadable before the official logo is composited.
+ */
+async function clearReadableContent(buffer: Buffer, box: PixelBox, canvasWidth: number, canvasHeight: number) {
+  const padding = Math.max(8, Math.round(Math.min(canvasWidth, canvasHeight) * 0.012));
+  const protectedBox = paddedBox(box, padding, canvasWidth, canvasHeight);
+  const blurSigma = Math.min(50, Math.max(14, Math.round(Math.min(protectedBox.width, protectedBox.height) * 0.18)));
+  const patch = await sharp(buffer, { failOn: "warning", limitInputPixels: MAX_INPUT_PIXELS })
+    .extract(protectedBox)
+    .blur(blurSigma)
+    .png()
+    .toBuffer();
+
+  return sharp(buffer, { failOn: "warning", limitInputPixels: MAX_INPUT_PIXELS })
+    .composite([{ input: patch, left: protectedBox.left, top: protectedBox.top }])
+    .png()
+    .toBuffer();
+}
 
 /**
  * Makes a plain (white or single-colour) logo background transparent, flooding in from the edges so
@@ -76,11 +108,11 @@ export async function compositeOfficialLogo(
   zone?: LogoZone | null,
   options: LogoOverlayOptions = {},
 ): Promise<{ buffer: Buffer; width: number; height: number }> {
-  const poster = sharp(posterBuffer, {
+  const normalizedPoster = await sharp(posterBuffer, {
     failOn: "warning",
     limitInputPixels: MAX_INPUT_PIXELS,
-  }).rotate();
-  const metadata = await poster.metadata();
+  }).rotate().png().toBuffer();
+  const metadata = await sharp(normalizedPoster).metadata();
   const width = metadata.width;
   const height = metadata.height;
   if (!width || !height) throw new Error("Dimensions de l’affiche invalides.");
@@ -128,6 +160,17 @@ export async function compositeOfficialLogo(
   const safeVisualTop = Math.min(Math.max(0, visualTop), Math.max(0, height - visualHeight));
   const logoLeft = safeVisualLeft + Math.round((visualWidth - logo.info.width) / 2);
   const logoTop = safeVisualTop + Math.round((visualHeight - logo.info.height) / 2);
+  const safeLogoLeft = Math.min(Math.max(0, logoLeft), Math.max(0, width - logo.info.width));
+  const safeLogoTop = Math.min(Math.max(0, logoTop), Math.max(0, height - logo.info.height));
+
+  const protectedPoster = options.protectFromText && !options.whitePlate
+    ? await clearReadableContent(normalizedPoster, {
+        left: safeLogoLeft,
+        top: safeLogoTop,
+        width: logo.info.width,
+        height: logo.info.height,
+      }, width, height)
+    : normalizedPoster;
 
   const plate = options.whitePlate
     ? Buffer.from(`
@@ -137,13 +180,13 @@ export async function compositeOfficialLogo(
       </svg>`)
     : null;
 
-  const output = await poster
+  const output = await sharp(protectedPoster, { failOn: "warning", limitInputPixels: MAX_INPUT_PIXELS })
     .composite([
       ...(plate ? [{ input: plate, left: safeVisualLeft, top: safeVisualTop }] : []),
       {
         input: logo.data,
-        left: Math.min(Math.max(0, logoLeft), Math.max(0, width - logo.info.width)),
-        top: Math.min(Math.max(0, logoTop), Math.max(0, height - logo.info.height)),
+        left: safeLogoLeft,
+        top: safeLogoTop,
       },
     ])
     .png()

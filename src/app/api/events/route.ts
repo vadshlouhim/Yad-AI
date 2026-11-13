@@ -5,20 +5,35 @@ import { notifyAgendaItemCreated } from "@/lib/notifications/agenda";
 import { z } from "zod";
 
 const eventSchema = z.object({
-  title: z.string().min(1).max(255),
+  title: z.string().trim().min(1).max(255),
   description: z.string().optional().nullable(),
   startDate: z.string().datetime(),
   endDate: z.string().datetime().optional().nullable(),
   location: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
-  category: z.string().default("OTHER"),
+  category: z.enum(["SHABBAT", "HOLIDAY", "COURSE", "PRAYER", "COMMUNITY", "YOUTH", "CULTURAL", "FUNDRAISING", "ANNOUNCEMENT", "OTHER"]).default("OTHER"),
   audience: z.string().optional().nullable(),
-  status: z.string().default("DRAFT"),
+  status: z.enum(["DRAFT", "READY", "SCHEDULED", "PUBLISHED", "COMPLETED", "ARCHIVED"]).default("DRAFT"),
   isRecurring: z.boolean().default(false),
   recurrenceRule: z.any().optional().nullable(),
   isPublic: z.boolean().default(true),
   notes: z.string().optional().nullable(),
+}).superRefine((event, context) => {
+  if (event.endDate && new Date(event.endDate) < new Date(event.startDate)) {
+    context.addIssue({
+      code: "custom",
+      path: ["endDate"],
+      message: "La date de fin doit être postérieure à la date de début.",
+    });
+  }
 });
+
+function eventErrorResponse(message: string, status: number, requestId: string) {
+  return NextResponse.json(
+    { error: message, requestId },
+    { status, headers: { "X-Request-ID": requestId } },
+  );
+}
 
 export async function GET(request: Request) {
   try {
@@ -60,24 +75,33 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const requestId = crypto.randomUUID();
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    if (!user) return eventErrorResponse("Non authentifié", 401, requestId);
 
     const admin = createAdminClient();
 
     const { data: profile, error: profileError } = await admin
       .from("profiles")
-      .select("*")
+      .select("communityId")
       .eq("id", user.id)
       .single();
-    if (profileError || !profile?.communityId) return NextResponse.json({ error: "Pas de communauté" }, { status: 400 });
+    if (profileError || !profile?.communityId) {
+      console.error("[Events POST] profile error", { requestId, userId: user.id, error: profileError });
+      return eventErrorResponse("Aucune communauté n’est associée à votre compte.", 400, requestId);
+    }
 
     const body = await request.json();
     const parsed = eventSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: "Données invalides", details: parsed.error }, { status: 400 });
+      const firstIssue = parsed.error.issues[0]?.message;
+      console.warn("[Events POST] validation error", { requestId, userId: user.id, issues: parsed.error.issues });
+      return NextResponse.json(
+        { error: firstIssue ?? "Les informations de l’événement sont invalides.", requestId },
+        { status: 400, headers: { "X-Request-ID": requestId } },
+      );
     }
 
     const { data: event, error: eventError } = await admin
@@ -104,12 +128,24 @@ export async function POST(request: Request) {
       .single();
 
     if (eventError || !event) {
-      console.error("[Events POST] insert error", eventError);
-      return NextResponse.json({ error: "Erreur lors de la création" }, { status: 500 });
+      console.error("[Events POST] insert error", {
+        requestId,
+        userId: user.id,
+        communityId: profile.communityId,
+        code: eventError?.code,
+        message: eventError?.message,
+        details: eventError?.details,
+        hint: eventError?.hint,
+      });
+      return eventErrorResponse(
+        `L’événement n’a pas pu être créé. Réessayez ou transmettez la référence ${requestId}.`,
+        500,
+        requestId,
+      );
     }
 
     // Log audit
-    await admin.from("AuditLog").insert({
+    const { error: auditError } = await admin.from("AuditLog").insert({
       id: crypto.randomUUID(),
       userId: user.id,
       communityId: profile.communityId,
@@ -117,8 +153,10 @@ export async function POST(request: Request) {
       resource: "Event",
       resourceId: event.id,
       newData: { title: event.title, category: event.category },
-      updatedAt: new Date().toISOString(),
     });
+    if (auditError) {
+      console.error("[Events POST] audit error", { requestId, eventId: event.id, code: auditError.code, message: auditError.message });
+    }
 
     try {
       await notifyAgendaItemCreated(admin, {
@@ -130,12 +168,16 @@ export async function POST(request: Request) {
         link: `/dashboard/events/${event.id}`,
       });
     } catch (notificationError) {
-      console.error("[Events POST] notification error", notificationError);
+      console.error("[Events POST] notification error", { requestId, eventId: event.id, error: notificationError });
     }
 
-    return NextResponse.json(event, { status: 201 });
+    return NextResponse.json(event, { status: 201, headers: { "X-Request-ID": requestId } });
   } catch (error) {
-    console.error("[Events POST]", error);
-    return NextResponse.json({ error: "Erreur lors de la création" }, { status: 500 });
+    console.error("[Events POST] unexpected error", { requestId, error });
+    return eventErrorResponse(
+      `L’événement n’a pas pu être créé. Réessayez ou transmettez la référence ${requestId}.`,
+      500,
+      requestId,
+    );
   }
 }

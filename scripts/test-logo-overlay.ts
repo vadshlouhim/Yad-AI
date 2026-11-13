@@ -51,6 +51,17 @@ async function main() {
   const platedLogoPixel = await pixelAt(withPlate.buffer, 180, 125);
   assert.ok(platedLogoPixel[0] > 150 && platedLogoPixel[1] < 100, "the official logo remains visible and centred above the plate");
 
+  // A transparent Shabbat logo gets a deterministic safe area: high-contrast text-like stripes
+  // underneath it are neutralised even when the user disables the white plate.
+  const stripedPoster = await sharp(svg('<rect width="1000" height="1250" fill="#204060"/><g fill="#ffffff">' + Array.from({ length: 30 }, (_, index) => `<rect x="${45 + index * 7}" y="45" width="3" height="140"/>`).join("") + '</g>', 1000, 1250)).png().toBuffer();
+  const protectedLogo = await compositeOfficialLogo(stripedPoster, whiteLogo, zone, { protectFromText: true });
+  const rawProtected = await sharp(protectedLogo.buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const rowValues = Array.from({ length: 50 }, (_, index) => rawProtected.data[((75 * rawProtected.info.width) + 80 + index) * 4]);
+  const transitions = rowValues.slice(1).filter((value, index) => Math.abs(value - rowValues[index]) > 80).length;
+  assert.ok(transitions < 4, `text-like contrast is cleared below the transparent logo (got ${transitions} transitions)`);
+  const outsideProtectedZone = await pixelAt(protectedLogo.buffer, 400, 75);
+  assert.deepEqual(outsideProtectedZone.slice(0, 3), [32, 64, 96], "the cleanup stays local to the protected logo area");
+
   // Without a zone the logo still goes top-right, without plate.
   const fallback = await compositeOfficialLogo(poster, whiteLogo);
   const fallbackCorner = await pixelAt(fallback.buffer, 1000 - 26, 26);

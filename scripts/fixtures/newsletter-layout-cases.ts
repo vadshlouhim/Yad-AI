@@ -13,7 +13,7 @@ export function baseNewsletter(): NewsletterDocumentData {
     generated: { title: "Le Chabbat Mag", subtitle: "Au cœur de notre communauté", intro: "Chers amis de la communauté, un Chabbat rempli de sérénité et d’inspiration vous attend à Vanves. Venez partager ces moments précieux avec nous.", ravWord: "Un message de paix et de partage. ".repeat(15), shabbatNote: "Cette semaine, partageons un moment ensemble. ".repeat(8), eventIntro: "Retrouvons-nous dimanche.", restaurantAd: "", proofreadNote: "", warnings: [] },
     enabled: { ravWord: true, shabbat: true, photos: true, posters: true, parness: true, kiddush: true, events: true, specificEvent: false, birthdays: true, restaurantAd: true, seferHamitsvot: true, support: true },
     parnessText: "Famille Cohen", kiddushText: "Famille Levy", bannerPhotoUrl: "",
-    events: [{ id: "1", title: "Rencontre communautaire", startDate: "2026-10-18T10:00:00Z", endDate: null, location: null, category: null, description: "Nous vous attendons nombreux." }],
+    events: [{ id: "1", title: "Rencontre communautaire", startDate: "2026-10-18T10:00:00Z", endDate: null, location: null, category: null, description: "Nous vous attendons nombreux.", kind: "event" }],
     birthdays: [{ id: "1", name: "David", hebrewDate: "10 Tichri", gregorianDate: "2026-10-18" }],
     shabbat: { date: "2026-10-16", parasha: "Parachah Noah", hebrewDate: "6 Cheshvan 5787", entry: "18:41", exit: "20:01" },
     seferHamitsvot: { date: "2026-10-17", dateLabel: "samedi 17 octobre 2026", text: "Texte témoin de l’étude, conservé intégralement. ".repeat(12), sourceUrl: "https://www.loubavitch.fr/etude/etudes-quotidiennes/251702/sefer-hamitsvot", sourceLabel: "Source : Beth Loubavitch — loubavitch.fr" },

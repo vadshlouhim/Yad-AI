@@ -456,6 +456,7 @@ model Task {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([communityId, userId])
+  @@index([userId])
   @@index([scheduledAt])
 }
 

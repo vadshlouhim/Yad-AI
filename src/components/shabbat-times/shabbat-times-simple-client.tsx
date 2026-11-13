@@ -381,6 +381,7 @@ export function ShabbatTimesSimpleClient({
     aiInstructions: stringValue(savedFields.aiInstructions),
     logoUrl: stringValue(savedFields.logoUrl) || community.logoUrl || "",
   }));
+  const [logoWhitePlate, setLogoWhitePlate] = useState(() => typeof savedPoster.logoWhitePlate === "boolean" ? savedPoster.logoWhitePlate : true);
   // Kept as written by the user ("15 min avant l'allumage") and resolved against each week's times.
   const [officeLines, setOfficeLines] = useState<OfficeLine[]>(() => parseOfficeText(stringValue(savedPoster.officeTimes) || stringValue(savedFields.officeTimes)));
   const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
@@ -516,6 +517,7 @@ export function ShabbatTimesSimpleClient({
           outputLocale,
           textBlocks,
           logoUrl: form.logoUrl || null,
+          logoWhitePlate,
           customInstructions: form.aiInstructions.trim(),
         }),
       });
@@ -540,6 +542,7 @@ export function ShabbatTimesSimpleClient({
             postText: buildCaption({ ...form, ...times }, outputLocale, offices),
             scheduleMode: "notification",
             channels: publishChannels,
+            logoWhitePlate,
           },
         }),
       });
@@ -608,7 +611,7 @@ export function ShabbatTimesSimpleClient({
       if (successfulResults.length && sourceMediaId) {
         const saved = await fetch("/api/shabbat-times-auto/config", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: "save-config", templateId: selectedTemplate?.id, config: { outputLocale, fields: { ...savedFields, ...form }, sourceMediaId, draftSourceMediaId: sourceMediaId, scheduleMode: "notification" } }),
+          body: JSON.stringify({ mode: "save-config", templateId: selectedTemplate?.id, config: { outputLocale, fields: { ...savedFields, ...form }, sourceMediaId, draftSourceMediaId: sourceMediaId, scheduleMode: "notification", logoWhitePlate } }),
         });
         if (!saved.ok) setNotice(tn("publishedRefFailed"));
       }
@@ -641,6 +644,7 @@ export function ShabbatTimesSimpleClient({
             notificationTime: automationTime,
             scheduleMode: "notification",
             channels: publishChannels.length ? publishChannels : ["FACEBOOK", "INSTAGRAM"],
+            logoWhitePlate,
           },
         }),
       });
@@ -781,6 +785,27 @@ export function ShabbatTimesSimpleClient({
                       </div>
                     </details>
                     <CommunityLogoPicker value={form.logoUrl || null} onChange={(url) => updateForm("logoUrl", url)} onBusyChange={setUploadingLogo} onError={setError} />
+                    {form.logoUrl ? (
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={logoWhitePlate}
+                        onClick={() => {
+                          setLogoWhitePlate((current) => !current);
+                          setResultImageUrl(null);
+                          setNotice("");
+                        }}
+                        className="mt-3 flex w-full items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-start shadow-sm transition hover:border-violet-200 hover:bg-violet-50/40 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-violet-100"
+                      >
+                        <span>
+                          <span className="block text-sm font-black text-slate-900">{tx("logoWhitePlate")}</span>
+                          <span className="mt-1 block text-xs leading-5 text-slate-500">{tx("logoWhitePlateHelp")}</span>
+                        </span>
+                        <span className={cn("relative h-7 w-12 shrink-0 rounded-full transition", logoWhitePlate ? "bg-[#421388]" : "bg-slate-300")}>
+                          <span className={cn("absolute top-1 size-5 rounded-full bg-white shadow-sm transition", logoWhitePlate ? "end-1" : "start-1")} />
+                        </span>
+                      </button>
+                    ) : null}
 
                     <Button type="button" size="xl" className="mt-5 w-full rounded-2xl bg-[#d92d7c] font-black shadow-lg shadow-pink-950/20 hover:bg-[#c5236e]" loading={generating} disabled={uploadingLogo || loadingTimes || generating} onClick={() => void generatePoster()}>
                       {!generating && <Sparkles className="size-5" />}
