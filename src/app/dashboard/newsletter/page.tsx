@@ -6,12 +6,11 @@ import { requireAuth } from "@/lib/auth";
 import { getBirthdayOccurrence, getCurrentHebrewDate, validateHebrewBirthday } from "@/lib/contacts/hebrew-birthday";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { newsletterShabbatDate, unavailableNewsletterStudy, upcomingSaturdayDate, type NewsletterStudy } from "@/lib/newsletter/shabbat-study";
-import { fetchNewsletterStudy } from "@/lib/newsletter/shabbat-study.server";
+import { fetchNewsletterStudyForRender } from "@/lib/newsletter/shabbat-study.server";
 import { parseNewsletterLabels } from "@/lib/newsletter/labels";
 import { getLocale, getTranslations } from "next-intl/server";
 import { parseOutputLocale } from "@/lib/ai/output-locale";
 import { HebrewDateEvent } from "@hebcal/core";
-import { expandAgendaTaskOccurrences } from "@/lib/agenda/task-occurrences";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("newsletter");
@@ -29,7 +28,7 @@ function startOfDay(date: Date) {
 }
 
 export default async function NewsletterPage() {
-  const { profile, supabaseUser } = await requireAuth();
+  const { profile } = await requireAuth();
   if (!profile.communityId) redirect("/onboarding");
   const outputLocale = parseOutputLocale(await getLocale());
 
@@ -38,7 +37,7 @@ export default async function NewsletterPage() {
   const weekEnd = addDays(now, 7);
   const eventsEnd = addDays(now, 30);
 
-  const [{ data: community }, { data: events }, { data: tasks }, { data: contacts }] = await Promise.all([
+  const [{ data: community }, { data: events }, { data: contacts }] = await Promise.all([
     admin
       .from("Community")
       .select("id, name, logoUrl, coverUrl, city, timezone, communityType, religiousStream, vocabulary, address, phone, email, website")
@@ -52,13 +51,6 @@ export default async function NewsletterPage() {
       .gte("startDate", now.toISOString())
       .lte("startDate", eventsEnd.toISOString())
       .order("startDate", { ascending: true }),
-    admin
-      .from("Task")
-      .select("id, title, scheduledAt, recurrenceRule")
-      .eq("communityId", profile.communityId)
-      .eq("userId", supabaseUser.id)
-      .lte("scheduledAt", eventsEnd.toISOString())
-      .order("scheduledAt", { ascending: true }),
     admin
       .from("CommunityMember")
       .select("id, firstName, displayName, hebrewBirthDay, hebrewBirthMonth, hebrewBirthYear")
@@ -94,7 +86,7 @@ export default async function NewsletterPage() {
   let seferHamitsvot: NewsletterStudy | null = null;
   const studyDate = shabbatData ? newsletterShabbatDate(shabbatData.date) : upcomingSaturdayDate(now, timezone);
   try {
-    seferHamitsvot = await fetchNewsletterStudy(studyDate, outputLocale, profile.communityId);
+    seferHamitsvot = await fetchNewsletterStudyForRender(studyDate, outputLocale, profile.communityId);
   } catch (error) {
     // Optional study must not make the entire editor unavailable.
     console.error("[Newsletter Sefer Hamitsvot]", error);
@@ -132,19 +124,6 @@ export default async function NewsletterPage() {
     category: event.category,
     kind: "event",
   }));
-  const taskItems: NewsletterEvent[] = expandAgendaTaskOccurrences(tasks ?? [], now, eventsEnd, timezone).map((task) => ({
-    id: `task-${task.id}`,
-    title: task.title,
-    description: null,
-    startDate: task.scheduledAt,
-    endDate: null,
-    location: null,
-    category: "TASK",
-    kind: "task",
-  }));
-  const agendaItems = [...eventItems, ...taskItems]
-    .sort((left, right) => left.startDate.localeCompare(right.startDate));
-
   return (
     <NewsletterPaperClient
       key={`${profile.id}:${profile.communityId}:${outputLocale}`}
@@ -164,7 +143,7 @@ export default async function NewsletterPage() {
         website: community?.website ?? null,
         isBethHabad: community?.communityType === "SYNAGOGUE" || community?.religiousStream === "BETH_HABAD",
       }}
-      initialEvents={agendaItems}
+      initialEvents={eventItems}
       initialBirthdays={birthdays}
       initialShabbat={shabbatData}
       initialSeferHamitsvot={seferHamitsvot}

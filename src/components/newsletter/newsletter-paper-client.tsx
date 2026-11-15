@@ -731,7 +731,14 @@ export function NewsletterPaperClient({
             community.logoUrl ?? "",
             interfaceLocale,
       );
-      if (!loadedOnceRef.current && localDraft) applyDraft(localDraft);
+      if (!loadedOnceRef.current && localDraft) {
+        applyDraft(localDraft);
+        // The local copy is already durable and sufficient to use the editor.
+        // Never freeze every control while the optional server reconciliation
+        // is slow or unsupported by an embedded browser.
+        setDraftReady(true);
+        setDraftStatus("offline");
+      }
     } catch {
       localDraft = null;
     }

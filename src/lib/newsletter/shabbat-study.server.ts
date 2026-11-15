@@ -15,6 +15,7 @@ import { limitNewsletterText, NEWSLETTER_SEFER_LIMIT } from "./limits";
 import { newsletterStudyDateLabel, unavailableNewsletterStudy, type NewsletterStudy } from "./shabbat-study";
 
 const WEEK_SECONDS = 60 * 60 * 24 * 7;
+export const NEWSLETTER_STUDY_RENDER_BUDGET_MS = 5_000;
 
 const cachedFrenchSource = unstable_cache(
   fetchSeferHamitsvot,
@@ -92,5 +93,38 @@ export async function fetchNewsletterStudy(dateISO: string, locale: OutputLocale
   } catch (error) {
     console.error("[Newsletter Sefer Hamitsvot translation]", error);
     return unavailableNewsletterStudy(dateISO, locale, locale === "he" ? "translation" : "source");
+  }
+}
+
+/**
+ * The study is useful, but it must never hold the whole newsletter editor hostage.
+ * The underlying cached work is deliberately left running after the budget expires:
+ * when it completes, the next refresh can reuse the populated cache.
+ */
+export async function fetchNewsletterStudyForRender(
+  dateISO: string,
+  locale: OutputLocale,
+  communityId: string,
+  budgetMs = NEWSLETTER_STUDY_RENDER_BUDGET_MS,
+): Promise<NewsletterStudy> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const fallback = unavailableNewsletterStudy(
+    dateISO,
+    locale,
+    locale === "he" ? "translation" : "source",
+  );
+
+  try {
+    return await Promise.race([
+      fetchNewsletterStudy(dateISO, locale, communityId),
+      new Promise<NewsletterStudy>((resolve) => {
+        timeout = setTimeout(() => {
+          console.warn(`[Newsletter Sefer Hamitsvot] render budget exceeded (${budgetMs} ms)`);
+          resolve(fallback);
+        }, Math.max(0, budgetMs));
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
 }

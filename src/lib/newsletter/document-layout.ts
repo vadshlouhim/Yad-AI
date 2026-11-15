@@ -11,6 +11,8 @@ import { endingPhotoGroupCaption, individualPhotoCaptions } from "./photo-captio
 
 export const PAPER = { width: 794, height: 1123, margin: 42, gap: 18 };
 const CONTENT_WIDTH = PAPER.width - PAPER.margin * 2;
+const FONT_READY_BUDGET_MS = 1_500;
+const IMAGE_DIMENSIONS_BUDGET_MS = 8_000;
 const INK = "#234856";
 const ACCENT = "#005572";
 const GOLD = "#bb8a36";
@@ -46,6 +48,22 @@ export type DocumentPage = { blocks: DocumentBlock[]; fontSize: number };
 type Measure = (block: DocumentBlock, fontSize: number) => number;
 const TEXT_SIZES = [13, 12.5, 12, 11.5, 11, 10.5, 10, 9.5, 9, 8.5, 8];
 const blockGap = (fontSize: number) => Math.max(7, Math.min(PAPER.gap, PAPER.gap * fontSize / 11));
+
+/** Embedded browsers can leave the FontFaceSet pending forever. The layout has
+ * explicit fallback fonts, so font loading must improve rendering, never block it. */
+async function waitForFontPromise(promise: PromiseLike<unknown>) {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      Promise.resolve(promise).catch(() => undefined),
+      new Promise<void>((resolve) => {
+        timeout = setTimeout(resolve, FONT_READY_BUDGET_MS);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
 
 /** Pack real measured blocks, splitting text only at word boundaries, never truncating. */
 export function paginateNewsletter(blocks: DocumentBlock[], capacity: (index: number) => number, measure: Measure, baseFont = 11): DocumentPage[] {
@@ -195,8 +213,10 @@ export function renderDocumentBlock(block: DocumentBlock, fontSize: number, loca
 
 async function imageDimensions(image: UploadedPhoto): Promise<DocumentImage> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
-    const timer = setTimeout(() => finish(false), 15_000);
+    // Some embedded browser runtimes do not expose `Image` as a global even
+    // though regular image elements are supported.
+    const img = document.createElement("img");
+    const timer = setTimeout(() => finish(false), IMAGE_DIMENSIONS_BUDGET_MS);
     const finish = (ok: boolean) => {
       clearTimeout(timer);
       img.onload = null;
@@ -208,6 +228,10 @@ async function imageDimensions(image: UploadedPhoto): Promise<DocumentImage> {
     img.onerror = () => finish(false);
     img.src = image.url;
   });
+}
+
+function imageDimensionsInParallel(images: UploadedPhoto[]) {
+  return Promise.all(images.map(imageDimensions));
 }
 
 function textBlock(id: string, title: string, text: string, compact = false): DocumentBlock[] {
@@ -259,9 +283,9 @@ async function makeBlocks(data: NewsletterDocumentData): Promise<DocumentBlock[]
   }
   if (e.support) blocks.push(...textBlock("support", labels.support, data.outputLocale === "he" ? `תמכו בפעילות של ${data.community.name}.\n${data.community.donationUrl || ""}` : `Soutenez les actions ${supportCommunityName(data.community.name)}.\n${data.community.donationUrl || ""}`, true));
   if (e.photos) {
-    const photos: DocumentImage[] = [];
-    // Decode sequentially so large phone photos do not spike memory together.
-    for (const photo of data.photos) photos.push(await imageDimensions(photo));
+    // The upload limits keep this batch small. Loading in parallel prevents one
+    // slow proxy response per image from turning into a minute-long spinner.
+    const photos = await imageDimensionsInParallel(data.photos);
     for (let index = 0; index < photos.length;) {
       const count = photos.length - index === 3 ? 3 : Math.min(2, photos.length - index);
       const images = photos.slice(index, index + count);
@@ -281,10 +305,10 @@ async function makeBlocks(data: NewsletterDocumentData): Promise<DocumentBlock[]
     }
   }
   for (const [kind, images, label] of [["partner", e.restaurantAd ? data.partnerAds : [], labels.partners], ["poster", e.posters ? data.posters : [], labels.posters]] as const) {
-    for (const image of images) {
-      const sized = await imageDimensions(image);
+    const sizedImages = await imageDimensionsInParallel(images);
+    for (const sized of sizedImages) {
       const maxHeight = Math.min(850, CONTENT_WIDTH * sized.height / sized.width);
-      blocks.push({ kind: "images", id: `${kind}-${image.id}`, title: label, images: [sized], height: kind === "poster" ? maxHeight : Math.min(280, maxHeight), maxHeight, poster: kind === "poster" });
+      blocks.push({ kind: "images", id: `${kind}-${sized.id}`, title: label, images: [sized], height: kind === "poster" ? maxHeight : Math.min(280, maxHeight), maxHeight, poster: kind === "poster" });
     }
   }
   return blocks;
@@ -554,6 +578,14 @@ const isOverflowError = (error: unknown) =>
  * The page count is decided by the content; `layout.pageLimit` from older drafts is ignored.
  */
 export async function composeNewsletterWithReport(data: NewsletterDocumentData): Promise<NewsletterComposition> {
+  // The optimized recto-verso planner explores whole-article arrangements. A
+  // large synchronized agenda cannot realistically fit that format and makes
+  // the search needlessly expensive, so go straight to the linear paginator.
+  if (data.enabled.events && data.events.length > 18) {
+    const flow = await composeNewsletterFlow(data, 3);
+    if (flow.pages.length > NEWSLETTER_MAX_PAGES) throw new NewsletterError(NEWSLETTER_ERROR_CODES.layoutOverflow, { maxPages: NEWSLETTER_MAX_PAGES });
+    return { pages: flow.pages, omittedMediaIds: [], flowFallback: true, oversizedBlocks: flow.oversizedBlocks };
+  }
   const attempt = async (pageLimit: 2 | 3, densities: Array<"auto" | "compact" | "tight">) => {
     for (const density of densities) {
       try {
@@ -579,7 +611,7 @@ export async function composeNewsletterWithReport(data: NewsletterDocumentData):
  * `targetPages`; longer content keeps 11px type and gets the extra pages it needs.
  */
 async function composeNewsletterFlow(data: NewsletterDocumentData, targetPages: number): Promise<{ pages: string[]; oversizedBlocks: string[] }> {
-  await document.fonts.ready;
+  await waitForFontPromise(document.fonts.ready);
   const blocks = await makeBlocks(data);
   const rtl = data.outputLocale === "he";
   const root = element("div", undefined, { position: "fixed", left: "-20000px", top: "0", width: CONTENT_WIDTH + "px", fontFamily: "var(--newsletter-font), Arial, sans-serif", color: INK, visibility: "hidden", direction: rtl ? "rtl" : "ltr" });
@@ -595,18 +627,32 @@ async function composeNewsletterFlow(data: NewsletterDocumentData, targetPages: 
       if (!cache.has(key)) cache.set(key, heightOf(renderDocumentBlock(block, font, data.outputLocale)));
       return cache.get(key)!;
     };
+    const primeMeasurements = (font: number) => {
+      const missing = blocks.filter(block => !cache.has(JSON.stringify([block, font])));
+      if (!missing.length) return;
+      const nodes = missing.map(block => renderDocumentBlock(block, font, data.outputLocale));
+      root.replaceChildren(...nodes);
+      // Reading all rectangles after one DOM write causes a single layout pass,
+      // instead of one synchronous reflow for every agenda item.
+      nodes.forEach((node, index) => cache.set(JSON.stringify([missing[index], font]), node.getBoundingClientRect().height));
+    };
     // 16px footer margin + a few pixels of safety for rounding differences between browsers.
     const footHeight = heightOf(footer(flowData, 0, 9)) + 16 + 8;
     const capacities = [true, false].map(first => PAPER.height - PAPER.margin * 2 - heightOf(header(flowData, first)) - footHeight);
     const capacity = (index: number) => capacities[index ? 1 : 0];
     const oversizedBlocks = blocks.filter((block, index) => measure(block, 11) > capacity(index ? 1 : 0)).map(block => block.id);
     let layout: DocumentPage[] = [];
-    for (const font of [11, 10.5, 10, 9.5]) {
+    const candidateFonts = data.enabled.events && data.events.length > 18 ? [11] : [11, 10.5, 10, 9.5];
+    for (const font of candidateFonts) {
+      primeMeasurements(font);
       const candidate = paginateNewsletter(blocks, capacity, measure, font);
       if (candidate.length <= targetPages) { layout = candidate; break; }
     }
     // Too long for `targetPages` even with tighter type: keep the readable size and add pages.
-    if (!layout.length) layout = paginateNewsletter(blocks, capacity, measure, 11);
+    if (!layout.length) {
+      primeMeasurements(11);
+      layout = paginateNewsletter(blocks, capacity, measure, 11);
+    }
     while (layout.length < 2) layout.push({ blocks: [], fontSize: 11 });
     const pages = layout.map((page, index) => {
       const article = paper(flowData, index);
@@ -632,10 +678,10 @@ export async function composeNewsletter(data: NewsletterDocumentData): Promise<s
 }
 
 async function composeNewsletterOnce(data: NewsletterDocumentData): Promise<string[]> {
-  await document.fonts.ready;
+  await waitForFontPromise(document.fonts.ready);
   if (data.outputLocale === "he") {
     const family = getComputedStyle(document.documentElement).getPropertyValue("--font-hebrew").trim();
-    if (family) await document.fonts.load(`16px ${family}`);
+    if (family) await waitForFontPromise(document.fonts.load(`16px ${family}`));
   }
   const labels = resolveNewsletterLabels(undefined, data.labels, data.outputLocale);
   const blocks = await makeBlocks(data);
